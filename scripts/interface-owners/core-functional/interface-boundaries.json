@@ -95876,7 +95876,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_account_construction_bridge.mbt",
-      "sha256": "06d2514a580a51604a8d213826acbee723a0d7ef8c3f3c3ab5b1c3295c3185d6",
+      "sha256": "c55eee6814f6f29c633b8c00a6f97558d5b9a7f2dad7210bb1a1e5b86243469f",
       "exports": [],
       "operations": [
         {
@@ -95890,6 +95890,10 @@
         {
           "name": "client_program_close_account_read",
           "declaration": "client_program_close_account_read ( read : @ resources . PreparationAccountRead , acknowledged : Bool , ) - > Result [ Bool , @ resources . PreparationCapacityIssue ]"
+        },
+        {
+          "name": "client_program_complete_account_read_construction",
+          "declaration": "client_program_complete_account_read_construction ( read : @ resources . PreparationAccountRead , ) - > Result [ Unit , @ resources . PreparationCapacityIssue ]"
         },
         {
           "name": "client_program_prepare_account_read_construction",
@@ -95921,7 +95925,8 @@
             "client_program_prepare_account_read_construction",
             "client_program_prepare_host_account_read",
             "client_program_prepare_installed_account_read",
-            "execution_authorization_admit_prepared"
+            "execution_authorization_admit_prepared",
+            "client_program_complete_account_read_construction"
           ],
           "exports": [],
           "attributes": {
@@ -95933,24 +95938,56 @@
               {
                 "path": "src/connectors_builtin_node/client_account_construction_bridge.mbt",
                 "anchor": "pub fn client_program_prepare_host_account_read("
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read.mbt",
+                "anchor": "pub fn complete_account_read_construction("
+              },
+              {
+                "path": "adapters/host-node/account-construction.mjs",
+                "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "src/connectors_builtin_node/client_account_construction_bridge.mbt",
                 "anchor": "pub fn client_program_prepare_host_account_read("
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read.mbt",
+                "anchor": "pub fn complete_account_read_construction("
+              },
+              {
+                "path": "adapters/host-node/account-construction.mjs",
+                "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "## Reusing admitted Account originals"
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read.mbt",
+                "anchor": "pub fn complete_account_read_construction("
+              },
+              {
+                "path": "adapters/host-node/account-construction.mjs",
+                "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "### Funded Account construction on the same original"
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read.mbt",
+                "anchor": "pub fn complete_account_read_construction("
+              },
+              {
+                "path": "adapters/host-node/account-construction.mjs",
+                "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
             "synchronization": [
@@ -95961,18 +95998,42 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "## Reusing admitted Account originals"
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read.mbt",
+                "anchor": "pub fn complete_account_read_construction("
+              },
+              {
+                "path": "adapters/host-node/account-construction.mjs",
+                "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "### Funded Account construction on the same original"
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read.mbt",
+                "anchor": "pub fn complete_account_read_construction("
+              },
+              {
+                "path": "adapters/host-node/account-construction.mjs",
+                "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "### Funded Account construction on the same original"
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read.mbt",
+                "anchor": "pub fn complete_account_read_construction("
+              },
+              {
+                "path": "adapters/host-node/account-construction.mjs",
+                "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
             "resources": [
@@ -95983,12 +96044,28 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "### Funded Account construction on the same original"
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read.mbt",
+                "anchor": "pub fn complete_account_read_construction("
+              },
+              {
+                "path": "adapters/host-node/account-construction.mjs",
+                "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "### Funded Account construction on the same original"
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read.mbt",
+                "anchor": "pub fn complete_account_read_construction("
+              },
+              {
+                "path": "adapters/host-node/account-construction.mjs",
+                "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
             "verification": [
@@ -95999,6 +96076,18 @@
               {
                 "path": "src/physical_resources/preparation_account_read_wbtest.mbt",
                 "anchor": "test \"Account child sums siblings and refuses foreign and insufficient original before construction\""
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read_wbtest.mbt",
+                "anchor": "test \"completed Account construction keeps retained DATA and permits the next sibling workspace\""
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read_wbtest.mbt",
+                "anchor": "test \"Account completion current callback cannot retire the parent and refund its scratch\""
+              },
+              {
+                "path": "adapters/host-node/account-construction.test.mjs",
+                "anchor": "test('129 simultaneous completed Account gates retain DATA and cleanup while releasing constructor scratch'"
               }
             ]
           }
@@ -96168,7 +96257,7 @@
     },
     {
       "module": "src/physical_resources/preparation_account_read.mbt",
-      "sha256": "e3eefb5704165c066cc3feb73854669bc73c2a0ebdbf1eea521fd70bb30e2dd4",
+      "sha256": "7bd0bfe1ea0a612cf39d8b57c6d16525a6de0476bfda083a0d77780d89cb7967",
       "exports": [],
       "operations": [
         {
@@ -96178,6 +96267,10 @@
         {
           "name": "close_preparation_account_read",
           "declaration": "close_preparation_account_read ( read : PreparationAccountRead , physical_and_data_cleanup_complete : Bool , ) - > Result [ Bool , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "complete_account_read_construction",
+          "declaration": "complete_account_read_construction ( read : PreparationAccountRead , ) - > Result [ Unit , PreparationCapacityIssue ]"
         },
         {
           "name": "preparation_account_read_control_slots",
@@ -96198,7 +96291,8 @@
             "[I,P]prepare_account_read",
             "close_preparation_account_read",
             "preparation_account_read_control_slots",
-            "prepare_account_read_construction"
+            "prepare_account_read_construction",
+            "complete_account_read_construction"
           ],
           "exports": [],
           "attributes": {
@@ -96210,24 +96304,56 @@
               {
                 "path": "src/physical_resources/preparation_account_read.mbt",
                 "anchor": "pub fn preparation_account_read_control_slots() -> (Int64, Int64, Int64) {"
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read.mbt",
+                "anchor": "pub fn complete_account_read_construction("
+              },
+              {
+                "path": "adapters/host-node/account-construction.mjs",
+                "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "src/physical_resources/preparation_account_read.mbt",
                 "anchor": "pub fn preparation_account_read_control_slots() -> (Int64, Int64, Int64) {"
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read.mbt",
+                "anchor": "pub fn complete_account_read_construction("
+              },
+              {
+                "path": "adapters/host-node/account-construction.mjs",
+                "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "## Reusing admitted Account originals"
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read.mbt",
+                "anchor": "pub fn complete_account_read_construction("
+              },
+              {
+                "path": "adapters/host-node/account-construction.mjs",
+                "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "### Funded Account construction on the same original"
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read.mbt",
+                "anchor": "pub fn complete_account_read_construction("
+              },
+              {
+                "path": "adapters/host-node/account-construction.mjs",
+                "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
             "synchronization": [
@@ -96238,18 +96364,42 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "## Reusing admitted Account originals"
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read.mbt",
+                "anchor": "pub fn complete_account_read_construction("
+              },
+              {
+                "path": "adapters/host-node/account-construction.mjs",
+                "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "### Funded Account construction on the same original"
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read.mbt",
+                "anchor": "pub fn complete_account_read_construction("
+              },
+              {
+                "path": "adapters/host-node/account-construction.mjs",
+                "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "### Funded Account construction on the same original"
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read.mbt",
+                "anchor": "pub fn complete_account_read_construction("
+              },
+              {
+                "path": "adapters/host-node/account-construction.mjs",
+                "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
             "resources": [
@@ -96260,12 +96410,28 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "### Funded Account construction on the same original"
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read.mbt",
+                "anchor": "pub fn complete_account_read_construction("
+              },
+              {
+                "path": "adapters/host-node/account-construction.mjs",
+                "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "### Funded Account construction on the same original"
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read.mbt",
+                "anchor": "pub fn complete_account_read_construction("
+              },
+              {
+                "path": "adapters/host-node/account-construction.mjs",
+                "anchor": "moon.clientProgramCompleteAccountReadConstruction(state.read)"
               }
             ],
             "verification": [
@@ -96276,6 +96442,18 @@
               {
                 "path": "src/physical_resources/preparation_account_read_wbtest.mbt",
                 "anchor": "test \"Account child sums siblings and refuses foreign and insufficient original before construction\""
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read_wbtest.mbt",
+                "anchor": "test \"completed Account construction keeps retained DATA and permits the next sibling workspace\""
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read_wbtest.mbt",
+                "anchor": "test \"Account completion current callback cannot retire the parent and refund its scratch\""
+              },
+              {
+                "path": "adapters/host-node/account-construction.test.mjs",
+                "anchor": "test('129 simultaneous completed Account gates retain DATA and cleanup while releasing constructor scratch'"
               }
             ]
           }
