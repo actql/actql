@@ -416,6 +416,13 @@ try {
         await save(`large-row16-ref-before-wait-${id}.json`, run.ref);
         report.currentRunResult = {kind: 'run', ref: run.ref, purpose: id, complete: false};
         const terminal = await span(`wait-large-row16-${id}`, () => run.wait());
+        // Preserve the returned failure before an assertion/first close can
+        // obscure it. This is bounded diagnostic DATA from this SAME wait.
+        report.currentRunResult.terminal = {status: terminal.status,
+          result_available: terminal.result_available, physical_stop: terminal.control?.physical_stop,
+          ...(terminal.terminal_error ? {terminal_error: {code: terminal.terminal_error.code,
+            message: terminal.terminal_error.message?.slice(0, 8192),
+            messageTruncated: (terminal.terminal_error.message?.length ?? 0) > 8192}} : {})};
         assert.equal(terminal.status, 'succeeded');
         const names = terminal.next_action?.results;
         assert(Array.isArray(names) && names.length === 1); resultName = names[0];
