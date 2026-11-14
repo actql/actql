@@ -2031,7 +2031,7 @@ function publicationControl(moon) {
   // The actual Core-issued Source metadata is projected once. Only callers
   // with an admitted whole Unit register an Artifact dependency token below;
   // Model contributions remain inside their complete Model context.
-  const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits) => {
+  const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {
     return Object.freeze({
       invocation: moon.clientProgramAcquiredEffectInvocation(issued),
       bodies: Object.freeze([
@@ -2043,11 +2043,11 @@ function publicationControl(moon) {
         Object.freeze({kind: 'result_retention_policy',
           wire: inspect(token(publicationRetention)).wire}),
       ]),
-      catalogBodies: Object.freeze(checked(
+      ...(deferCatalogs ? {catalogDeferred: true, catalogBodies: Object.freeze([])} : {catalogBodies: Object.freeze(checked(
         moon.clientProgramAcquiredEffectCatalogBodies(issued,
           limits.maxWireBytes, limits.maxNodes, limits.maxDepth))
         .map(body => Object.freeze({kind: runtimeField(body, 0), cid: runtimeField(body, 1),
-          wire: runtimeField(body, 2)}))),
+          wire: runtimeField(body, 2)})))}),
     });
   };
   const localEffectContext = context => {
@@ -4495,7 +4495,7 @@ function publicationControl(moon) {
       inferModelObservationTokens.set(value, {original, issued});
       return value;
     },
-    issueOriginalModelEffectEvidence(model, retention, imports, limits) {
+    issueOriginalModelEffectEvidence(model, retention, imports, limits, deferCatalogs = false) {
       issuanceLimits(limits, 'Original Model Effect dependency');
       const retained = inferModelObservationTokens.get(model);
       const imported = imports === undefined ? undefined : localEffectDependencyTokens.get(imports);
@@ -4520,7 +4520,7 @@ function publicationControl(moon) {
         throw cause;
       }
       const direct = moon.clientProgramOriginalModelAcquiredEffectSources(acquired)
-        .map(source => inspectAcquiredEffectEvidence(source, retention, limits));
+        .map(source => inspectAcquiredEffectEvidence(source, retention, limits, deferCatalogs));
       const barrier = moon.clientProgramOriginalModelAcquiredEffectLookupBarrier(acquired);
       const lookupBodies = checked(moon.clientProgramOriginalModelAcquiredLookupDependencyBodies(acquired))
         .map(body => Object.freeze({kind:runtimeField(body,0), cid:runtimeField(body,1),
@@ -4540,6 +4540,7 @@ function publicationControl(moon) {
           ...(barrier === undefined || lookupBodies.length !== 0 ? [] : [Object.freeze({kind: 'lookup_barrier',
             cid: runtimeField(barrier, 0), wire: runtimeField(barrier, 1)})]),
         ]),
+        ...(deferCatalogs ? {catalogDeferred: true} : {}),
         catalogBodies: Object.freeze([...direct.flatMap(source => source.catalogBodies),
           ...lookupBodies.filter(body => ['source_contract', 'source_view_contract', 'data_policy',
             'request_schema', 'carrier_schema', 'schema_evidence', 'capability_evidence'].includes(body.kind))]),
@@ -4745,7 +4746,7 @@ function publicationControl(moon) {
     },
     issueCheckedAcquiredEffectEvidence(checkedEffect, capturedSource,
       identity, requirement, input, observation, authorityScopeCid,
-      dataPolicyCid, retention, limits, unit = 0, publicationRetention = retention) {
+      dataPolicyCid, retention, limits, unit = 0, publicationRetention = retention, deferCatalogs = false) {
       issuanceLimits(limits, 'Acquired Effect evidence');
       if (!Number.isSafeInteger(unit) || unit < 0) {
         throw new TypeError('Invalid acquired Effect Unit');
@@ -4760,12 +4761,12 @@ function publicationControl(moon) {
           evidenceToken(observation), authorityScopeCid, dataPolicyCid,
           token(retention), token(publicationRetention),
           limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
-      const value = inspectAcquiredEffectEvidence(issued, publicationRetention, limits);
+      const value = inspectAcquiredEffectEvidence(issued, publicationRetention, limits, deferCatalogs);
       localEffectDependencyTokens.set(value, {kind: 'acquired', issued});
       return value;
     },
     issueCheckedWholeEffectSourceUnit(plan, prepared, request, slot, captured,
-      identity, capacity, input, observation, authorityScopeCid, retention, limits) {
+      identity, capacity, input, observation, authorityScopeCid, retention, limits, deferCatalogs = false) {
       issuanceLimits(limits, 'Whole Effect Source Unit');
       if (!Number.isSafeInteger(slot) || slot < 0) {
         throw new TypeError('Invalid acquired Effect Source slot');
@@ -4774,11 +4775,11 @@ function publicationControl(moon) {
         plan, prepared, request, slot, captured, identity, capacity, input,
         evidenceToken(observation), authorityScopeCid, token(retention),
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
-      const value = inspectAcquiredEffectEvidence(issued, retention, limits);
+      const value = inspectAcquiredEffectEvidence(issued, retention, limits, deferCatalogs);
       localEffectDependencyTokens.set(value, {kind: 'acquired', issued});
       return value;
     },
-    prepareCombinedEffectSourceUnit(publication, unit, retention, limits) {
+    prepareCombinedEffectSourceUnit(publication, unit, retention, limits, deferCatalogs = false) {
       issuanceLimits(limits, 'Combined Effect Source Unit');
       if (!Number.isSafeInteger(unit) || unit < 0) {
         throw new TypeError('Invalid acquired Effect Unit');
@@ -4789,16 +4790,16 @@ function publicationControl(moon) {
         invocation: moon.clientProgramCombinedEffectSourceUnitInvocation(prepared),
         bodies: Object.freeze(moon.clientProgramCombinedEffectSourceUnitDependencyBodies(prepared)
           .map(body => Object.freeze({kind: runtimeField(body, 0), cid: runtimeField(body, 1), wire: runtimeField(body, 2)}))),
-        catalogBodies: Object.freeze(checked(moon.clientProgramCombinedEffectSourceUnitCatalogBodies(
+        ...(deferCatalogs ? {catalogDeferred: true, catalogBodies: Object.freeze([])} : {catalogBodies: Object.freeze(checked(moon.clientProgramCombinedEffectSourceUnitCatalogBodies(
           prepared, limits.maxWireBytes, limits.maxNodes, limits.maxDepth))
-          .map(body => Object.freeze({kind: runtimeField(body, 0), cid: runtimeField(body, 1), wire: runtimeField(body, 2)}))),
+          .map(body => Object.freeze({kind: runtimeField(body, 0), cid: runtimeField(body, 1), wire: runtimeField(body, 2)})))}),
       });
       // This is semantic preparation, not a completed producer. Only the
       // actual Result export/receipt issuer below can mint its Artifact.
       localEffectDependencyTokens.set(value, {kind: 'combined_source', issued: prepared, unit});
       return value;
     },
-    prepareInstalledEffectModelSourceUnit(managedRun, plan, request, inputs, unit, retention, limits) {
+    prepareInstalledEffectModelSourceUnit(managedRun, plan, request, inputs, unit, retention, limits, deferCatalogs = false) {
       issuanceLimits(limits, 'Installed preconsumer Effect Source Unit');
       if (!Number.isSafeInteger(unit) || unit < 0) {
         throw new TypeError('Invalid acquired Effect Unit');
@@ -4810,16 +4811,16 @@ function publicationControl(moon) {
         invocation: moon.clientProgramCombinedEffectSourceUnitInvocation(prepared),
         bodies: Object.freeze(moon.clientProgramCombinedEffectSourceUnitDependencyBodies(prepared)
           .map(body => Object.freeze({kind: runtimeField(body, 0), cid: runtimeField(body, 1), wire: runtimeField(body, 2)}))),
-        catalogBodies: Object.freeze(checked(moon.clientProgramPrepareInstalledEffectModelSourceUnitCatalog(
+        ...(deferCatalogs ? {catalogDeferred: true, catalogBodies: Object.freeze([])} : {catalogBodies: Object.freeze(checked(moon.clientProgramPrepareInstalledEffectModelSourceUnitCatalog(
           managedRun, plan, request, inputs, prepared,
           limits.maxWireBytes, limits.maxNodes, limits.maxDepth))
-          .map(body => Object.freeze({kind: runtimeField(body, 0), cid: runtimeField(body, 1), wire: runtimeField(body, 2)}))),
+          .map(body => Object.freeze({kind: runtimeField(body, 0), cid: runtimeField(body, 1), wire: runtimeField(body, 2)})))}),
       });
       localEffectDependencyTokens.set(value, {kind: 'combined_source', issued: prepared, unit});
       return value;
     },
     prepareOriginalEffectModelUnitEvidence(managedRun, plan, request, held, compiled, definition,
-      graph, unit, retention, catalogBodies, operation, limits, retained, current, retainedBase, executionBase) {
+      graph, unit, retention, catalogBodies, operation, limits, retained, current, retainedBase, executionBase, deferCatalogs = false) {
       issuanceLimits(limits, 'Original completed Model Unit');
       const originalCompiled = compiledRunTokens.get(compiled);
       if (originalCompiled === undefined || compiled.kind !== 'infer' || retained.modelScan !== undefined ||
@@ -4885,6 +4886,7 @@ function publicationControl(moon) {
           wire: moon.clientProgramEffectInputExportSchemaWire(retained.modelReceipt)}),
       ];
       const value = Object.freeze({invocation: moon.clientProgramOriginalModelAcquiredEffectInvocation(acquired),
+        ...(deferCatalogs ? {catalogDeferred: true} : {}),
         bodies: Object.freeze(bodies), catalogBodies: Object.freeze([...catalogBodies,
           ...lookupBodies.filter(body => ['source_contract', 'source_view_contract', 'data_policy',
             'request_schema', 'carrier_schema', 'schema_evidence', 'capability_evidence'].includes(body.kind))])});

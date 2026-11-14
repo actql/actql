@@ -769,3 +769,15 @@ pub fn captured_effect_dependency_body_reference_count(
 ) -> Int {
   value.node.references.length()
 }
+
+///|
+// Borrow one already admitted semantic edge without copying the reference
+// vector. The closed original caller prepays controls and visits.
+pub fn captured_effect_dependency_body_reference_at(
+  value : CapturedEffectDependencyBody,
+  index : Int,
+) -> (String, String)? {
+  value.node.references
+  .get(index)
+  .map(reference => (reference.kind, reference.identity))
+}

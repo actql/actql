@@ -108,6 +108,9 @@ export function retainPinnedEffectDependencyPayloads({
 export async function preparePinnedEffectSourceSet({
   maxMembers, maxGroupingWork, memberSourceBindings, commandWorkspaces, publishedTargets, ...options
 }) {
+  if (options.localEvidenceContext?.catalogDeferred === true && options.dependencyConstruction === undefined) {
+    throw new TypeError('MissingOriginalCatalogConstruction');
+  }
   const {moon, inputs, control, signal} = options;
   if(options.dependencyConstruction!==undefined){
     const original=installedEffectDependencyOriginal(options.dependencyConstruction,moon);
@@ -580,7 +583,10 @@ async function prepareDependentEffectSourceSet(options, memberCount, maxWork,
       if (model !== undefined && originalUnit === undefined) {
         dependency = control.issueOriginalModelEffectEvidence(model,
           owned.localEvidenceContext.modelRetention,
-          imports === 0 ? undefined : dependency, owned.contractLimits);
+          imports === 0 ? undefined : dependency, owned.contractLimits, options.dependencyConstruction !== undefined);
+      }
+      if (dependency.catalogDeferred === true && options.dependencyConstruction === undefined) {
+        throw new TypeError('MissingOriginalCatalogConstruction');
       }
       const unit = {invocation: dependency.invocation, artifacts: []};
       const manifestSet = new Map([[unitIndex, unit]]);

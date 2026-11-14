@@ -456,11 +456,11 @@ export function sourceFreeInferEffectPublicationPlan({acquired,
 
 export function acquiredEffectPublicationPlan({acquired, captured,
   sourceEvidence: originalSourceEvidence, sourceEvidenceWire,
-  captureStartedAt, captureCompletedAt, content, sourcePlan, managedRun, sourceHost}) {
+  captureStartedAt, captureCompletedAt, content, sourcePlan, managedRun, sourceHost, deferCatalogs = false}) {
   if (content === undefined && captured?.inputKind === 'whole-input') {
     return acquiredMultiEffectPublicationPlan({acquired,
       sources: [{captured, sourceEvidence: originalSourceEvidence, sourceEvidenceWire}],
-      captureStartedAt, captureCompletedAt, sourcePlan, managedRun, sourceHost});
+      captureStartedAt, captureCompletedAt, sourcePlan, managedRun, sourceHost, deferCatalogs});
   }
   const {moon, control, prepared, compilation, definition, admission,
     runDefinition, compiledPlan, authorityScopeCid,
@@ -522,7 +522,7 @@ export function acquiredEffectPublicationPlan({acquired, captured,
   const acquiredEvidence = control.issueCheckedAcquiredEffectEvidence(
     prepared, captured.capture.source(), captured.identity,
     captured.requirement, captured.logicalInput, sourceEvidence,
-    authorityScopeCid, source.sourceDataPolicyCid, sourceRetention, limits, 0, retention);
+    authorityScopeCid, source.sourceDataPolicyCid, sourceRetention, limits, 0, retention, deferCatalogs);
   const inputBodies = moon.clientProgramCapturedSourceDependencyBodies(
     captured.identity, captured.capture.source());
   if (typeof runtimeOptionalField(inputBodies, 0) !== 'string' ||
@@ -543,10 +543,11 @@ export function acquiredEffectPublicationPlan({acquired, captured,
       receiptEvidence: Object.freeze({...plan.receiptEvidence, contentGenerations}),
       captureEvidence: Object.freeze({...plan.captureEvidence, contentGenerations})}),
     localEvidenceContext: Object.freeze({admission, runDefinition,
+      ...(deferCatalogs ? {catalogDeferred: true} : {}),
       acquiredEvidence, retentionDependencies, acquisitionDependencies,
       ...(content === undefined ? {} : {acquiredCatalogBodies: Object.freeze([
         ...acquiredEvidence.catalogBodies,
-        ...checked(moon.clientProgramEffectPublicationPolicyBodies(prepared,
+        ...checked((deferCatalogs ? moon.clientProgramEffectPublicationPolicyBodiesDeferredCatalog : moon.clientProgramEffectPublicationPolicyBodies)(prepared,
           limits.maxWireBytes, limits.maxNodes, limits.maxDepth)).map(body =>
           Object.freeze({kind: runtimeField(body, 0), cid: runtimeField(body, 1), wire: runtimeField(body, 2)})),
       ])}),
@@ -557,7 +558,7 @@ export function acquiredEffectPublicationPlan({acquired, captured,
 // Retain the actual upstream Unit semantics before opening the first Model.
 // The existing group owns this cache and its dispatch borrow through cleanup;
 // no complete Model/Run observation or physical publication is claimed here.
-export function prepareAcquiredEffectSourceUnits({acquired, sources, sourcePlan, managedRun, modelUnits}) {
+export function prepareAcquiredEffectSourceUnits({acquired, sources, sourcePlan, managedRun, modelUnits, deferCatalogs = false}) {
   if (!Array.isArray(sources) || !Array.isArray(modelUnits)) {
     throw new TypeError('WholeEffectProducerUnitOriginalRequired');
   }
@@ -588,7 +589,7 @@ export function prepareAcquiredEffectSourceUnits({acquired, sources, sourcePlan,
     const entry = {preparing: true, value: undefined};
     byUnit.set(unit, entry);
     entry.value = control.prepareInstalledEffectModelSourceUnit(managedRun, sourcePlan,
-      acquired.requestIdentity, inputs, unit, retention, limits);
+      acquired.requestIdentity, inputs, unit, retention, limits, deferCatalogs);
     entry.preparing = false;
   }
   return Object.freeze({managedRun, sourcePlan, request: acquired.requestIdentity,
@@ -599,7 +600,7 @@ export function prepareAcquiredEffectSourceUnits({acquired, sources, sourcePlan,
 // input retention carries each original policy; derived publication carries
 // the checked combined policy with exactly the same custody/time bounds.
 export function acquiredMultiEffectPublicationPlan({acquired, sources,
-  captureStartedAt, captureCompletedAt, issuedModel, modelOriginal, modelOriginals = modelOriginal === undefined ? [] : [modelOriginal], modelEvidence = [], keyedSource, sourcePlan, managedRun, sourceHost, sourceUnitsOriginal}) {
+  captureStartedAt, captureCompletedAt, issuedModel, modelOriginal, modelOriginals = modelOriginal === undefined ? [] : [modelOriginal], modelEvidence = [], keyedSource, sourcePlan, managedRun, sourceHost, sourceUnitsOriginal, deferCatalogs = false}) {
   const {moon, control, prepared, compilation, definition, admission,
     runDefinition, compiledPlan, authorityScopeCid,
     namespaceId, storeAuthorityCid, now} = acquired;
@@ -704,13 +705,13 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
             throw new TypeError('OriginalEffectSourceUnitUnavailable');
           }
           acquiredEvidenceByUnit[unit] = original?.value ?? control.prepareInstalledEffectModelSourceUnit(
-            managedRun, sourcePlan, acquired.requestIdentity, sourceUnitInputs, unit, retention, limits);
+            managedRun, sourcePlan, acquired.requestIdentity, sourceUnitInputs, unit, retention, limits, deferCatalogs);
         } else {
           if (sourcePublication === undefined) {
             throw new TypeError('CombinedEffectProducerUnitOriginalRequired');
           }
           acquiredEvidenceByUnit[unit] = control.prepareCombinedEffectSourceUnit(
-            sourcePublication, unit, retention, limits);
+            sourcePublication, unit, retention, limits, deferCatalogs);
         }
       }
     } else if (!modelContribution) {
@@ -725,7 +726,7 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
         acquiredEvidenceByUnit[unit] = control.issueCheckedWholeEffectSourceUnit(
           sourcePlan, prepared, acquired.requestIdentity, slot,
           captured.capture.source(), captured.identity, captured.wholeCapacity,
-          captured.logicalInput, sourceEvidence[slot], authorityScopeCid, retention, limits);
+          captured.logicalInput, sourceEvidence[slot], authorityScopeCid, retention, limits, deferCatalogs);
       } else {
         if (captured.requirement === undefined) {
           throw new TypeError('QueryEffectProducerUnitOriginalRequired');
@@ -739,7 +740,7 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
           prepared, captured.capture.source(), captured.identity,
           captured.requirement, captured.logicalInput, sourceEvidence[slot],
           authorityScopeCid, captured.checkedSource.sourceDataPolicyCid,
-          sourceRetention, limits, unit, retention);
+          sourceRetention, limits, unit, retention, deferCatalogs);
       }
     }
     const bodies = moon.clientProgramCapturedSourceDependencyBodies(
@@ -757,6 +758,7 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
   }
   return Object.freeze({...plan, effectInputRetention: retention, invocationOwner,
     localEvidenceContext: Object.freeze({admission, runDefinition,
+      ...(deferCatalogs ? {catalogDeferred: true} : {}),
       acquiredEvidence: acquiredEvidenceByUnit[0],
       acquiredEvidenceByUnit: Object.freeze(acquiredEvidenceByUnit),
       ...(sourceUnitsOriginal === undefined ? {} : {originalUnitResults: sourceUnitsOriginal.byUnit}),
@@ -766,7 +768,7 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
       }),
       acquiredCatalogBodies: Object.freeze([
         ...acquiredEvidenceByUnit.flatMap(value => value.catalogBodies),
-        ...checked(moon.clientProgramEffectPublicationPolicyBodies(prepared,
+        ...checked((deferCatalogs ? moon.clientProgramEffectPublicationPolicyBodiesDeferredCatalog : moon.clientProgramEffectPublicationPolicyBodies)(prepared,
           limits.maxWireBytes, limits.maxNodes, limits.maxDepth)).map(body =>
           Object.freeze({kind: runtimeField(body, 0), cid: runtimeField(body, 1), wire: runtimeField(body, 2)})),
       ]),
@@ -779,7 +781,7 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
 // original Effect Run. Its live binding remains held by capture custody.
 export async function acquiredInferEffectPublicationPlan({acquired, sources,
   compiled, operation, operations = [operation], issuance, modelEvidence,
-  captureStartedAt, captureCompletedAt, keyedSource, signal, sourcePlan, managedRun, sourceHost, sourceUnitsOriginal, fundingOperation = operation, current, retainBinding}) {
+  captureStartedAt, captureCompletedAt, keyedSource, signal, sourcePlan, managedRun, sourceHost, sourceUnitsOriginal, fundingOperation = operation, current, retainBinding, deferCatalogs = false}) {
   if (!Array.isArray(operations) || operations.length === 0 || operations[0] !== operation ||
       new Set(operations).size !== operations.length) {
     throw new TypeError('OriginalEffectModelInventoryRequired');
@@ -821,7 +823,7 @@ export async function acquiredInferEffectPublicationPlan({acquired, sources,
         issuedModel: issued, modelOriginals, modelEvidence, managedRun, sourcePlan, sourceHost}).plan
       : acquiredMultiEffectPublicationPlan({acquired, sources,
         captureStartedAt, captureCompletedAt, issuedModel: issued, modelOriginals, modelEvidence, keyedSource,
-        sourcePlan, managedRun, sourceHost, sourceUnitsOriginal});
+        sourcePlan, managedRun, sourceHost, sourceUnitsOriginal, deferCatalogs});
     const generations = operations.flatMap(original => original.contentGenerations?.() ?? []);
     const completePlan = generations.length === 0 ? plan : Object.freeze({...plan,
       receiptEvidence: Object.freeze({...plan.receiptEvidence, contentGenerations: generations}),

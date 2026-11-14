@@ -1,6 +1,7 @@
 ///|
 fn native_control_fixture(
   current? : () -> Unit = () => (),
+  selected_environment? : @checked.CheckEnvironment? = None,
 ) -> (
   @publication_host.PreparedClientEffectComputation,
   @publication_host.ClientRequestIdentity,
@@ -11,6 +12,7 @@ fn native_control_fixture(
   let (prepared, request, plan, owner, ledger) = staged_effect_input_fixture(
     parent_limit=Some(536870912L),
     current~,
+    selected_environment~,
   )
   retain_installed_effect_operation_controls_before_construction(
     owner, prepared, request, plan,

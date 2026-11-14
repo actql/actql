@@ -4,6 +4,7 @@
 // Core funding/current evidence, not ordinary Account/Journal/STORE acceptance.
 fn dependency_original_fixture(
   current? : () -> Unit = () => (),
+  selected_environment? : @checked.CheckEnvironment? = None,
 ) -> (
   @publication_host.PreparedClientEffectComputation,
   @publication_host.ClientRequestIdentity,
@@ -15,6 +16,7 @@ fn dependency_original_fixture(
 ) raise {
   let (prepared, request, plan, owner, ledger) = native_control_fixture(
     current~,
+    selected_environment~,
   )
   let (host, captured, _) = open_installed_effect_managed_host(
       owner,

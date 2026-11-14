@@ -7,6 +7,7 @@ fn staged_effect_input_fixture(
   parent_limit? : Int64? = None,
   projection_retained? : @execution.ExecutionCapacity? = None,
   empty_header_limit? : Int? = None,
+  selected_environment? : @checked.CheckEnvironment? = None,
 ) -> (
   @publication_host.PreparedClientEffectComputation,
   @publication_host.ClientRequestIdentity,
@@ -16,6 +17,7 @@ fn staged_effect_input_fixture(
 ) raise {
   let (prepared, request, contracts) = effect_operation_plan_inputs(
     rows="[{\"id\":1},{\"id\":2}]",
+    selected_environment~,
   )
   let capture = prepare_installed_effect_staged_extent(
     prepare_installed_effect_capture_extent(

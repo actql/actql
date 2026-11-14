@@ -8,6 +8,7 @@ pub fn prepared_client_effect_publication_policy_bodies(
   max_depth : Int,
   before_body? : ((Int, Int, Int) -> Bool)? = None,
   retained_body_keys? : Map[String, String]? = None,
+  retain_catalog? : Bool = true,
 ) -> Result[Array[(String, String, String)], @checked.LocalDependencyBodyIssue] {
   guard prepared_client_effect_publication_data_policy_cid(value) is Some(cid) else {
     return Err(MissingDependency)
@@ -21,7 +22,7 @@ pub fn prepared_client_effect_publication_policy_bodies(
     max_bytes,
     max_nodes,
     max_depth,
-    retain_catalog=true,
+    retain_catalog~,
     before_body~,
     retained_body_keys~,
   )

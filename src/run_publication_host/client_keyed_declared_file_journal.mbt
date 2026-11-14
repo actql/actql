@@ -588,6 +588,7 @@ fn prepare_declared_file_lookup_dependencies(
   completed : ClientKeyedNativeCompletion,
   max_nodes : Int,
   max_depth : Int,
+  defer_catalog? : Bool = false,
 ) -> Result[Unit, ClientKeyedRequestIssue] {
   guard lookup.identifying &&
     !lookup.closed &&
@@ -669,6 +670,7 @@ fn prepare_declared_file_lookup_dependencies(
       max_depth,
       state.physical_source,
       Some(before),
+      retain_catalog=!defer_catalog,
     ) {
     Ok(value) => value
     Err(issue) => return Err(primary.val.unwrap_or(Dependency(issue)))

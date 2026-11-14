@@ -210,7 +210,7 @@ function originalKeyedLookupPublication({moon, acquired, plan, infer, captures, 
       if (lookup !== original || holdings.some(owner => owner.status().committed !== true)) {
         throw new TypeError('OriginalKeyedRawHoldingUnavailable');
       }
-      const read = checked(moon.clientProgramKeyedLookupDeclaredFilePublicationInput(
+      const read = checked(moon.clientProgramKeyedLookupDeclaredFilePublicationInputDeferredCatalog(
         lookup, now(), BigInt(Math.floor(performance.now())),
         localContractLimits.maxWireBytes, localContractLimits.maxNodes, localContractLimits.maxDepth));
       originalCurrent();

@@ -39,6 +39,7 @@ fn prepare_native_keyed_lookup_completion(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  defer_catalog? : Bool = false,
 ) -> Result[Unit, ClientKeyedRequestIssue] {
   guard max_bytes > 0 &&
     max_nodes > 0 &&
@@ -155,7 +156,11 @@ fn prepare_native_keyed_lookup_completion(
   if @publication.publication_contract_name(component.original.profile) ==
     "declared_file_content_read" {
     prepare_declared_file_lookup_dependencies(
-      lookup, result, max_nodes, max_depth,
+      lookup,
+      result,
+      max_nodes,
+      max_depth,
+      defer_catalog~,
     )
   } else {
     Ok(())

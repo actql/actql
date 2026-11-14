@@ -96,7 +96,7 @@ function fixture({rawProtocol = false} = {}) {
     assert(physicalRecord); events.push('page-prepare'); return page;
   }, keyedLookupPublicationEvidence(value) {assert.equal(value, observation); return evidence;}};
   const moon = {
-    clientProgramKeyedLookupDeclaredFilePublicationInput(value) {
+    clientProgramKeyedLookupDeclaredFilePublicationInputDeferredCatalog(value) {
       assert.strictEqual(value,originalLookup); events.push('lookup-completion'); return ok(original);
     },
     clientProgramKeyedLookupStartDeclaredFileRequestPlan(value, at, ms, issuer) {
@@ -277,6 +277,8 @@ function sameHostContinuation({failure, lostCurrent = false} = {}) {
     }
   };
   walk(parse(text, {ecmaVersion: 'latest', sourceType: 'module'})); assert(node);
+  let entered;
+  const enteredOriginal = new Promise(resolve => {entered = resolve;});
   let settle, pending = new Promise(resolve => {settle = resolve;}), calls = 0, binds = 0, adopts = 0;
   let current = true;
   const host = {}, run = {}, member = {selection: {graph: {}}, originalSelection: {}, originalPreparation: {}};
@@ -291,18 +293,19 @@ function sameHostContinuation({failure, lostCurrent = false} = {}) {
       assert.equal(value.$tag, 1); return value._0;
     }, async prepareAcquiredEffectKeyedPrefix(options) {
       calls++; assert.strictEqual(options.originalHost, host); assert.strictEqual(options.acquired, acquired);
-      options.retain({pending: true}); await pending;
+      options.retain({pending: true}); entered(); await pending;
       if (failure) throw failure.value;
       return original;
     }, managedRun: run, modelPlan: {}, captures: [], evidence: [], requestJournal: {}, runRef: {},
     sourceProfile: {}, ledger: {}, contentRun: {}, store: {}, principalId: 'explicit', signal: controller.signal,
     now: () => 'original time', checkedHost: host, acquired,
-    modelGroup: {bindKeyedFamily(value) {assert.strictEqual(value, original); adopts++;}}};
+    modelGroup: {prepareNext(task) {assert([3, 4].includes(task));},
+      bindKeyedFamily(value) {assert.strictEqual(value, original); adopts++;}}};
   const create = new Function(...Object.keys(ports), `let keyedAttempted = false, keyedPreparation,
     keyedCleanup, keyedFamily, captureCompletedAt; ${text.slice(node.start, node.end)};
     return {beforeModelPrepare, retained: () => keyedCleanup};`);
   const actual = create(...Object.values(ports));
-  return {...actual, settle() {if (lostCurrent) current = false; settle();}, controller,
+  return {...actual, enteredOriginal, settle() {if (lostCurrent) current = false; settle();}, controller,
     counts: () => ({calls, binds, adopts})};
 }
 
@@ -310,7 +313,7 @@ test('same Host pre-Model await shares one pending original and never starts it 
   const f = sameHostContinuation();
   await f.beforeModelPrepare(3); assert.deepEqual(f.counts(), {calls: 0, binds: 0, adopts: 0});
   const first = f.beforeModelPrepare(4), second = f.beforeModelPrepare(4);
-  await Promise.resolve(); assert(f.retained()); assert.deepEqual(f.counts(), {calls: 1, binds: 0, adopts: 0});
+  await f.enteredOriginal; assert(f.retained()); assert.deepEqual(f.counts(), {calls: 1, binds: 0, adopts: 0});
   f.settle(); await Promise.all([first, second]); await f.beforeModelPrepare(4);
   assert.deepEqual(f.counts(), {calls: 1, binds: 1, adopts: 1});
 });
@@ -318,7 +321,7 @@ test('same Host pre-Model await shares one pending original and never starts it 
 test('same Host pre-Model current loss and original undefined failure cannot bind or retry', async () => {
   for (const options of [{lostCurrent: true}, {failure: {value: undefined}}]) {
     const f = sameHostContinuation(options), first = f.beforeModelPrepare(4);
-    await Promise.resolve(); assert(f.retained()); f.settle();
+    await f.enteredOriginal; assert(f.retained()); f.settle();
     for (const pending of [first, f.beforeModelPrepare(4)]) {
       let rejected = false;
       try {await pending;} catch (error) {
@@ -359,7 +362,7 @@ test('actual Local input selection awaits original Host continuation before disp
 
 test('same Host pending original cancellation cannot publish the later Model input', async () => {
   const f = sameHostContinuation(), original = new Error('original cancellation');
-  const pending = f.beforeModelPrepare(4); await Promise.resolve(); assert(f.retained());
+  const pending = f.beforeModelPrepare(4); await f.enteredOriginal; assert(f.retained());
   f.controller.abort(original); f.settle();
   await assert.rejects(pending, error => error === original);
   await assert.rejects(f.beforeModelPrepare(4), error => error === original);

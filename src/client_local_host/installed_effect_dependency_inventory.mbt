@@ -277,6 +277,16 @@ pub fn prepare_installed_effect_dependency_inventory(
       max_depth,
       grow,
       segment,
+      catalog_original=Some(
+        (
+          @checked.effect_program_static_checked_computation(
+            @publication_host.prepared_client_effect_computation_candidate(
+              prepared,
+            ),
+          ),
+          control,
+        ),
+      ),
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)

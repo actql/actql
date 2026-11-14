@@ -82,12 +82,17 @@ fn effect_plan_fixture_failure(
 fn effect_operation_plan_inputs(
   rows? : String = "[{\"id\":1}]",
   suffix? : Bool = false,
+  selected_environment? : @checked.CheckEnvironment? = None,
 ) -> (
   @publication_host.PreparedClientEffectComputation,
   @publication_host.ClientRequestIdentity,
   ClientInstalledSequenceContracts,
 ) {
-  let prepared = installed_effect_managed_fixture(rows~, suffix~)
+  let prepared = installed_effect_managed_fixture(
+    rows~,
+    suffix~,
+    selected_environment~,
+  )
   let request = @publication_host.prepare_client_effect_request_identity(
     prepared,
     "sha256:" + "a".repeat(64),

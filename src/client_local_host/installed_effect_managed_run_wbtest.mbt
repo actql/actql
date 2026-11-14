@@ -4,13 +4,24 @@
 fn installed_effect_managed_fixture(
   rows? : String = "[{\"id\":1}]",
   suffix? : Bool = false,
+  selected_environment? : @checked.CheckEnvironment? = None,
 ) -> @publication_host.PreparedClientEffectComputation {
-  let environment = @publication_host.admit_client_check_environment(
-    source_query_original_environment,
-    "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
-    { text_time: false, veca: false, },
-    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-  ).unwrap()
+  let environment = match selected_environment {
+    Some(value) => value
+    None =>
+      @publication_host.admit_client_check_environment(
+        source_query_original_environment,
+        "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
+        { text_time: false, veca: false, },
+        {
+          rela: true,
+          sga: false,
+          tea: false,
+          calendar: false,
+          text_rank: false,
+        },
+      ).unwrap()
+  }
   let document =
     #|{"version":"actql/0.1","id":"installed-effect-managed","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"seed"}],"results":{"rows":{"from":"seed","fields":["id"]}},"effects":{"save":{"update":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"rows"},"id":"id","set":{"Name":{"field":"id"}}}}}}],"results":{"rows":{"from":{"stage":"main","result":"rows"}}}}
   let document = document.replace(

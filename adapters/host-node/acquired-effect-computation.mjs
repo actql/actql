@@ -485,6 +485,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
               acquiredInferEffectPublicationPlan({acquired, sources: evidence,
                 compiled, operation, issuance, modelEvidence, sourcePlan: operationPlan, managedRun,
                 sourceHost: checkedHost,
+                deferCatalogs: managedRun !== undefined && operationPlan !== undefined,
                 keyedSource: keyedFamily?.evidence ?? restoredKeyedSource,
                 captureStartedAt, captureCompletedAt, signal})});
         },
@@ -731,10 +732,12 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       publicationPlan = multiple
         ? acquiredMultiEffectPublicationPlan({acquired, sources: evidence,
           captureStartedAt, captureCompletedAt, sourcePlan: operationPlan,
-          managedRun, sourceHost: checkedHost})
+          managedRun, sourceHost: checkedHost,
+          deferCatalogs: managedRun !== undefined && operationPlan !== undefined})
         : acquiredEffectPublicationPlan({acquired, ...evidence[0],
           captureStartedAt, captureCompletedAt, sourcePlan: operationPlan,
-          managedRun, sourceHost: checkedHost});
+          managedRun, sourceHost: checkedHost,
+          deferCatalogs: managedRun !== undefined && operationPlan !== undefined});
     }
 
     if (multiple || wholeInputs || contentFamily !== undefined) {
@@ -888,7 +891,8 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
           managedRun, sourcePlan: operationPlan, sourceHost: checkedHost})
         : acquiredEffectPublicationPlan({acquired, ...evidence[0],
           captureStartedAt, captureCompletedAt, content: {...contentPlan, generation},
-          managedRun, sourcePlan: operationPlan, sourceHost: checkedHost});
+          managedRun, sourcePlan: operationPlan, sourceHost: checkedHost,
+          deferCatalogs: managedRun !== undefined && operationPlan !== undefined});
     }
     if (publicationPlan === undefined) {
       throw new Error('InstalledContentGenerationEvidenceUnavailable');
@@ -1100,7 +1104,8 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
         operation: children[0].operation, operations: children.map(child => child.operation), issuance,
         modelEvidence: children.flatMap(child => child.capture.modelEvidence()), keyedSource: keyedFamily?.evidence ?? restoredKeyed,
         captureStartedAt, captureCompletedAt, sourcePlan, managedRun, sourceHost: originalHost?.(),
-        sourceUnitsOriginal, signal, fundingOperation: publicationOwner, current: publicationCurrent,
+        sourceUnitsOriginal, deferCatalogs: managedRun !== undefined && sourcePlan !== undefined,
+        signal, fundingOperation: publicationOwner, current: publicationCurrent,
         retainBinding(binding) {publicationBindings.push(binding);}});
       publicationCurrent();
       for (const original of [publication.observation, publication.invocation]) {
@@ -1250,7 +1255,7 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
       try {
         publicationCurrent();
         if (captures.length > 1) sourceUnitsOriginal = prepareAcquiredEffectSourceUnits({acquired,
-          sources: evidence, sourcePlan, managedRun,
+          sources: evidence, sourcePlan, managedRun, deferCatalogs: managedRun !== undefined && sourcePlan !== undefined,
           modelUnits: children.map(child => runtimeField(moon.clientProgramInferOccurrenceCoordinates(child.selection.occurrence), 1))});
         publicationCurrent();
       } catch (cause) {
@@ -1330,7 +1335,7 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
                     sourcePlan, acquired.requestIdentity, producer.output, plan.compiled, plan.runDefinition,
                     producer.selection.graph, unit, sourceUnitsOriginal.retention, catalogs,
                     publicationOwner, localContractLimits, entry.results, publicationCurrent,
-                    earlyIdentityRetained, earlyIdentityExecution);
+                    earlyIdentityRetained, earlyIdentityExecution, true);
                   earlyIdentityRetained += entry.results.identityRetainedBytes;
                   earlyIdentityExecution += entry.results.identityExecutionBytes;
                 }

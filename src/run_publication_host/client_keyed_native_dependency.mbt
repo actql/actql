@@ -53,6 +53,7 @@ fn keyed_lookup_native_dependency_bodies_from_original(
   max_depth : Int,
   physical_source : (String, String)?,
   before_body : ((Int, Int, Int) -> Bool)?,
+  retain_catalog? : Bool = true,
 ) -> Result[
   Array[@publication.CapturedEffectDependencyBody],
   ClientEffectDependencyCaptureIssue,
@@ -409,7 +410,7 @@ fn keyed_lookup_native_dependency_bodies_from_original(
             max_nodes,
             max_depth,
             max_nodes,
-            retain_catalog=true,
+            retain_catalog~,
             retained_body_keys=Some(seen),
             before_body~,
           ).map_err(issue => Static(issue)),
@@ -447,7 +448,8 @@ fn keyed_lookup_native_dependency_bodies_from_original(
           // The physical descriptor owns this implementation-only view;
           // the logical checked Source Catalog need not contain it.
           append(kind, cid, original_wire)
-        } else if [
+        } else if retain_catalog &&
+          [
             "source_contract", "source_view_contract", "data_policy", "request_schema",
             "carrier_schema", "schema_evidence", "capability_evidence",
           ].contains(kind) {

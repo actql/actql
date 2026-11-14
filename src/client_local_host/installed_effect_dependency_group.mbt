@@ -23,6 +23,7 @@ priv enum ClientEffectDependencyGroupStep {
   Bodies(Array[@publication.CapturedEffectDependencyBody])
   Prepared(@publication.PreparedCapturedEffectDependencyInventory)
   Issued(@publication.CapturedEffectDependencyInventory)
+  CatalogCensus(@checked.CheckedLocalDependencyCensus)
 }
 
 ///|
@@ -51,6 +52,7 @@ fn prepare_funded_effect_dependency_inventory(
       ClientInstalledManagedRunIssue,
     ],
   ) -> Result[ClientEffectDependencyGroupStep, ClientInstalledManagedRunIssue],
+  catalog_original? : (@checked.CheckedProgram, ClientEffectOperationControls)? = None,
 ) -> Result[
   (
     @publication.CapturedEffectDependencyInventory,
@@ -275,6 +277,15 @@ fn prepare_funded_effect_dependency_inventory(
     Ok(Bodies(values)) => values
     Err(issue) => return Err(issue)
     _ => return Err(ForeignOriginal)
+  }
+  if catalog_original is Some((program, control)) {
+    match
+      close_installed_effect_catalog_references(
+        program, control, bodies, roots, max_bytes, max_nodes, max_depth, grow, segment,
+      ) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
   }
   let (references, index_units) = match
     segment(work => {

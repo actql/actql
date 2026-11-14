@@ -149,3 +149,36 @@ pub fn finish_checked_local_catalog_selection(
     max_depth,
   )
 }
+
+///|
+// The same immutable checked emitter's census; no body/wire is constructed.
+// Caller already owns fixed/depth controls and its actual scoped Work.
+pub fn census_checked_local_catalog_selection(
+  value : CheckedLocalCatalogSelection,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  work : (Int) -> Bool,
+) -> Result[CheckedLocalDependencyCensus, LocalDependencyBodyIssue] {
+  if value.closed || value.next != value.count {
+    return Err(BudgetExceeded)
+  }
+  value.closed = true
+  guard value.selected is Some(index) else { return Err(MissingDependency) }
+  let kind = match value.role {
+    "schema_evidence" => SourceSchema(index)
+    "capability_evidence" => SourceCapability(index)
+    "data_policy" | "request_schema" | "carrier_schema" =>
+      RegistryContract(index)
+    _ => SourceViewContract(index)
+  }
+  census_checked_local_dependency_body(
+    value.program,
+    value.unit,
+    kind,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    work,
+  )
+}

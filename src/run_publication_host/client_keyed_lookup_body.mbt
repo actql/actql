@@ -56,6 +56,7 @@ fn keyed_lookup_body_grow(
 fn finish_keyed_lookup_identity_bodies(
   lookup : ClientKeyedLookupInput,
   native_completion? : (String, Int64, Int, Int, Int)? = None,
+  defer_catalog? : Bool = false,
 ) -> Result[@execution.SuppliedRelationRead, ClientKeyedRequestIssue] {
   if lookup.identity_receipt is Some(_) {
     if lookup.identity_output is None || lookup.identity_bodies is None {
@@ -75,7 +76,11 @@ fn finish_keyed_lookup_identity_bodies(
     return Err(Assembly("unavailable_body_purpose"))
   }
   lookup.identifying = true
-  let result = build_keyed_lookup_identity_bodies(lookup, native_completion~)
+  let result = build_keyed_lookup_identity_bodies(
+    lookup,
+    native_completion~,
+    defer_catalog~,
+  )
   lookup.identifying = false
   match result {
     Err(issue) => {
@@ -90,6 +95,7 @@ fn finish_keyed_lookup_identity_bodies(
 fn build_keyed_lookup_identity_bodies(
   lookup : ClientKeyedLookupInput,
   native_completion? : (String, Int64, Int, Int, Int)? = None,
+  defer_catalog? : Bool = false,
 ) -> Result[Unit, ClientKeyedRequestIssue] {
   guard lookup.completed is Some(rows) && lookup.left.composed is Some(original) else {
     return Err(Assembly("body_original_sequence"))
@@ -100,7 +106,7 @@ fn build_keyed_lookup_identity_bodies(
       // then retained output/scan/receipt/body tuple/Some aliases (six records).
       record_headers: 12L,
       reference_slots: 16L,
-      scalar_words: 11L,
+      scalar_words: 12L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })
@@ -255,7 +261,13 @@ fn build_keyed_lookup_identity_bodies(
   if native_completion is Some((at, now_ms, max_bytes, max_nodes, max_depth)) {
     match
       prepare_native_keyed_lookup_completion(
-        lookup, at, now_ms, max_bytes, max_nodes, max_depth,
+        lookup,
+        at,
+        now_ms,
+        max_bytes,
+        max_nodes,
+        max_depth,
+        defer_catalog~,
       ) {
       Err(issue) => return Err(issue)
       Ok(_) => ()
