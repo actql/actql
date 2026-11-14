@@ -14,3 +14,20 @@ test "public Task Environment work follows 129 actual members instead of unused 
   assert_eq(model_tasks_usage(admitted).5, 129)
   assert_true(check_model_tasks(original, {..limits, bodies: {..limits.bodies, max_members: 128}}) is Err(_))
 }
+
+///|
+test "default final Model admission uses exact member totals while explicit policies remain smaller" {
+  let source = project_task_empty_environment()
+  let task = project_task_normalized("model-task:final.original")
+  let projected = project_public_model_task_environment(source, [task], declaration_limits()).unwrap()
+  let original = read(@utf8.encode(projected.0), projected.1, declaration_limits().bodies).unwrap()
+  let limits = original_model_tasks_admission_limits(original).unwrap()
+  let (bytes, nodes) = member_usage(member_at(original, ModelTaskContracts, 0).unwrap())
+  assert_eq(limits.bodies.max_bytes, bytes)
+  assert_eq(limits.bodies.max_nodes, nodes)
+  assert_eq(limits.bodies.max_members, 1)
+  assert_eq(model_tasks_usage(check_model_tasks(original, limits).unwrap()).5, 1)
+  assert_true(check_model_tasks(original, {..limits, bodies: {..limits.bodies, max_bytes: bytes - 1}}) is Err(_))
+  assert_true(model_tasks_admission_construction_extent(original) is Some(_))
+  assert_true(model_tasks_admission_construction_extent(source) is Some(_))
+}

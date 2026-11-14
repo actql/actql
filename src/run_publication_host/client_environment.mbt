@@ -70,17 +70,10 @@ pub fn admit_client_check_environment_from_wire(
   numeric_profile? : @numeric.Profile? = None,
   graph? : Bool = false,
 ) -> @checked.CheckEnvironment? {
-  let model_tasks = match
-    @environment.check_model_tasks(wire, {
-      bodies: {
-        max_bytes: 65536,
-        max_nodes: 4096,
-        max_depth: 64,
-        max_members: 256,
-      },
-      contracts: { max_nodes: 4096, max_depth: 64, max_text_bytes: 65536, },
-      max_work: 65536,
-    }) {
+  guard @environment.original_model_tasks_admission_limits(wire) is Some(limits) else {
+    return None
+  }
+  let model_tasks = match @environment.check_model_tasks(wire, limits) {
     Ok(value) => value
     Err(_) => return None
   }
