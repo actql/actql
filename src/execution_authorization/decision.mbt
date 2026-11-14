@@ -72,9 +72,6 @@ fn sorted_unique_names(
   invalid : RequestIssue,
   duplicate : (String) -> RequestIssue,
 ) -> Result[Array[String], RequestIssue] {
-  if values.length() > MAX_SELECTOR_VALUES {
-    return Err(invalid)
-  }
   for value in values {
     if !valid_name(value) {
       return Err(invalid)

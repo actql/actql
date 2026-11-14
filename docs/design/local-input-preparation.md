@@ -6533,3 +6533,36 @@ observer, current fence, once-only parser, lowering, checker and cleanup remain
 in place. Grammar, expression, nesting and other independent work limits are
 unchanged; a lexical bound does not establish their complete demand. Native
 keeps its original result convention through the same default Source entry.
+
+### Selected Native Host configuration construction
+
+The selected command's existing initial Read obtains Host configuration text
+through its observed file-size intake. Its original Reader/Root and any partial
+failure remain with that command until actual cleanup. Other runtime, Store and
+Journal text readers keep their own independently selected bounds and owners.
+
+Before Source preflight starts, the same Read funds its fixed control inventory.
+That preflight caches the original byte, token, container and ancestry geometry;
+its same parser is transferred once only after the complete parser/index
+constructor quote is admitted. Token and node occurrences come from that cached
+geometry, rather than converting text bytes into node prices. Subsequent closed
+object views, original child cursors, installation array growth and exact-key
+admission are funded before their constructors. Settings Strings continue to
+borrow their original Source/index backing. No returned shape or post-admission
+extent supplies an earlier construction reservation.
+
+The command retains one scalar count of its escaping metadata prefix. Each next
+constructor combines that same prefix with its own peak through the existing
+Read growth and physical backing port. Completed scratch contributes a maximum,
+not an accumulating sequence of temporary peaks. Refusal retains the original
+issue before presentation, fences further normal construction and leaves all
+physical retirement duties with the original command. No second Read, grant,
+current callback, reservation owner or cleanup acknowledgment is introduced.
+
+The explicit installed Read/domain/Host budgets, structural depth, integer and
+UTF8 checks, exact duplicate/name and selected-file identity checks remain.
+Installation names use the existing exact-key admission owner while preserving
+original order, without repeatedly scanning the already retained prefix. These
+logical constructor inventories neither certify a Native allocator layout nor
+replace the existing selected Native provider, same-domain backing or ordinary
+success, refusal and Saved consumer checks.

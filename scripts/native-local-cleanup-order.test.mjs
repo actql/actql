@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync} from 'node:fs';
+import {readFileSync, readdirSync, mkdtempSync, mkdirSync, writeFileSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
@@ -533,4 +533,204 @@ test "same Native original guards and callbackful reentry" {
   assert.ifError(result.error);
   assert.equal(result.status, 0, result.stdout+'\n'+result.stderr);
   assert.match(result.stdout+'\n'+result.stderr, /Total tests: 1, passed: 1, failed: 0/);
+});
+
+// The exact Native initial-owner method with explicit read/current/refusal
+// ports. This is constructor ordering, not Native ABI or ordinary acceptance.
+test('Native Host settings keeps the same retained prefix and rejects construction before entry', {timeout: 90_000}, t => {
+  const source = readFileSync(new URL('../src/cmd/native_client/local_host_settings_preparation.mbt', import.meta.url), 'utf8');
+  const actual = source.split('///|').find(value => value.includes('fn LocalCommandPreparationOriginal::prepare_host_metadata('));
+  assert(actual);
+  const root = mkdtempSync(join(tmpdir(), 'actql-native-host-settings-order-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  for (const name of ['', 'execution', 'arena', 'counts']) mkdirSync(join(root, 'src', name), {recursive: true});
+  writeFileSync(join(root, 'moon.mod'), 'name = "actql/host-settings-order-probe"\nsource = "src"\n');
+  writeFileSync(join(root, 'src/moon.pkg'), 'supported_targets = "js"\nimport { "actql/host-settings-order-probe/arena" @initial_arena, "actql/host-settings-order-probe/execution" @execution } for "wbtest"\n');
+  writeFileSync(join(root, 'src/counts/moon.pkg'), 'supported_targets = "js"\n');
+  writeFileSync(join(root, 'src/counts/counts.mbt'), readFileSync(new URL('../src/capacity_arithmetic/preparation_counts.mbt', import.meta.url), 'utf8'));
+  writeFileSync(join(root, 'src/execution/moon.pkg'), 'supported_targets = "js"\nimport { "actql/host-settings-order-probe/counts" @preparation_counts }\n');
+  const representation = readFileSync(new URL('../src/execution_relation/preparation_representation.mbt', import.meta.url), 'utf8');
+  const arithmetic = representation.split('///|').find(value => value.includes('pub fn checked_preparation_add_product('));
+  assert(arithmetic);
+  writeFileSync(join(root, 'src/execution/arithmetic.mbt'), arithmetic);
+  writeFileSync(join(root, 'src/arena/moon.pkg'), 'supported_targets = "js"\n');
+  writeFileSync(join(root, 'src/arena/ports.mbt'), `
+pub(all) enum Issue { Refused } derive(Eq, Debug)
+pub(all) struct InstalledArenaOriginalRead { marker : Int }
+pub(all) struct InstalledArenaHost { original : InstalledArenaOriginalRead; ceiling : Int64; calls : Array[(Int64, Int64, Int64)] }
+pub fn InstalledArenaHost::prepare_domain_original_read_construction(self : Self, read : InstalledArenaOriginalRead, r : Int64, e : Int64, raw : Int64) -> Result[Unit, Issue] {
+  if !physical_equal(read, self.original) { abort("foreign Read") }
+  self.calls.push((r, e, raw))
+  if r > self.ceiling || e > self.ceiling { Err(Refused) } else { Ok(()) }
+}
+`);
+  writeFileSync(join(root, 'src/probe_wbtest.mbt'), `
+priv enum LocalCommandPreparationIssue { CommandUnavailable; CommandRead(@initial_arena.Issue) } derive(Eq, Debug)
+priv struct LocalCommandPreparationOriginal {
+  host : @initial_arena.InstalledArenaHost?; read : @initial_arena.InstalledArenaOriginalRead?
+  mut phase_open : Bool; journal_read_open : Bool; mut closing : Bool; closed : Bool
+  mut primary : LocalCommandPreparationIssue?; read_failure : Unit?; mut metadata_retained : Int64
+}
+${actual}
+fn original(ceiling : Int64) -> (LocalCommandPreparationOriginal, @initial_arena.InstalledArenaHost) {
+  let read : @initial_arena.InstalledArenaOriginalRead = {marker: 41}
+  let host : @initial_arena.InstalledArenaHost = {original: read, ceiling, calls: []}
+  ({host: Some(host), read: Some(read), phase_open: true, journal_read_open: false, closing: false, closed: false, primary: None, read_failure: None, metadata_retained: 0L}, host)
+}
+test "same prefix is retained while completed scratch is not accumulated" {
+  let (value, host) = original(1000L)
+  assert_eq(value.prepare_host_metadata(10L, 100L), Ok(()))
+  assert_eq(value.prepare_host_metadata(20L, 30L), Ok(()))
+  assert_eq(value.prepare_host_metadata(0L, 50L), Ok(()))
+  assert_eq(host.calls, [(10L, 100L, 100L), (30L, 40L, 30L), (30L, 80L, 50L)])
+  assert_eq(value.metadata_retained, 30L)
+}
+test "a refused next constructor publishes no retained output" {
+  let (value, host) = original(100L)
+  assert_eq(value.prepare_host_metadata(10L, 20L), Ok(()))
+  assert_eq(value.prepare_host_metadata(20L, 91L), Err(CommandRead(Refused)))
+  assert_eq(value.metadata_retained, 10L)
+  assert_eq(host.calls.length(), 2)
+}
+test "cleanup currentness and arithmetic refusal precede the Host call" {
+  let (value, host) = original(1000L)
+  value.phase_open = false
+  assert_eq(value.prepare_host_metadata(1L, 2L), Err(CommandUnavailable))
+  value.phase_open = true; value.closing = true
+  assert_eq(value.prepare_host_metadata(1L, 2L), Err(CommandUnavailable))
+  value.closing = false; value.primary = Some(CommandUnavailable)
+  assert_eq(value.prepare_host_metadata(1L, 2L), Err(CommandUnavailable))
+  value.primary = None; value.metadata_retained = 9223372036854775807L
+  assert_eq(value.prepare_host_metadata(1L, 2L), Err(CommandUnavailable))
+  assert_eq(host.calls.length(), 0)
+}
+`);
+  const result = spawnSync('moon', ['test', '--target', 'js', '--deny-warn'], {
+    cwd: root, encoding: 'utf8', timeout: 75_000, maxBuffer: 4 * 1024 * 1024,
+  });
+  assert.equal(result.error, undefined, result.error?.message);
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.match(result.stdout + result.stderr, /Total tests: 3, passed: 3, failed: 0/);
+});
+
+// Actual Source preflight/parser/index/settings bodies. Only the Native Read
+// growth/current port is explicit; this is not a physical Native supplier.
+test('Native Host settings runs original staged decoding only after same Read construction admission', {timeout: 90_000}, t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-native-host-settings-parser-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const sourceRoot = new URL('../', import.meta.url);
+  const read = path => readFileSync(new URL(path, sourceRoot), 'utf8');
+  const blocks = path => read(path).split('///|');
+  const pick = (path, marker) => {
+    const value = blocks(path).find(body => body.includes(marker));
+    assert(value, marker); return value;
+  };
+  mkdirSync(join(root, 'src'), {recursive: true});
+  writeFileSync(join(root, 'moon.mod'), 'name = "actql/actql"\nsource = "src"\n');
+  // A finite original production dependency closure, no generated runtime or
+  // alternate grammar/encoder. Test-only bodies are not copied or executed.
+  const packages = ['canonical_value', 'capacity_arithmetic', 'decode_core', 'decode_scalar',
+    'decode_shape', 'encode_core', 'sha256', 'source_span', 'source_value'];
+  for (const name of packages) {
+    mkdirSync(join(root, 'src', name));
+    writeFileSync(join(root, 'src', name, 'moon.pkg'), read(`src/${name}/moon.pkg`));
+    for (const file of readdirSync(new URL(`src/${name}/`, sourceRoot))) {
+      if (file.endsWith('.mbt') && !/_(?:wb|bb)?test\.mbt$/u.test(file))
+        writeFileSync(join(root, 'src', name, file), read(`src/${name}/${file}`));
+    }
+  }
+  for (const name of ['execution', 'arena']) mkdirSync(join(root, 'src', name));
+  writeFileSync(join(root, 'src/execution/moon.pkg'), 'supported_targets = "js"\nimport { "actql/actql/capacity_arithmetic" @preparation_counts }\n');
+  const representation = read('src/execution_relation/preparation_representation.mbt');
+  writeFileSync(join(root, 'src/execution/representation.mbt'), representation.slice(0,
+    representation.indexOf('///|\n/// Domain callers supply storage/slot inventories')));
+  writeFileSync(join(root, 'src/arena/moon.pkg'), 'supported_targets = "js"\n');
+  writeFileSync(join(root, 'src/arena/ports.mbt'), `
+pub(all) enum Issue { Refused } derive(Eq, Debug)
+pub(all) struct InstalledArenaOriginalRead { marker : Int }
+pub(all) struct InstalledArenaHost { original : InstalledArenaOriginalRead; ceiling : Int64; calls : Array[(Int64, Int64, Int64)] }
+pub fn InstalledArenaHost::prepare_domain_original_read_construction(self : Self, read : InstalledArenaOriginalRead, r : Int64, e : Int64, raw : Int64) -> Result[Unit, Issue] {
+  if !physical_equal(read, self.original) { abort("foreign Read") }
+  self.calls.push((r, e, raw))
+  if r > self.ceiling || e > self.ceiling { Err(Refused) } else { Ok(()) }
+}
+`);
+  writeFileSync(join(root, 'src/moon.pkg'), 'supported_targets = "js"\nimport { "actql/actql/arena" @initial_arena, "actql/actql/execution" @execution, "actql/actql/source_value" @source, "actql/actql/decode_core" @decode, "actql/actql/decode_shape" @shape, "moonbitlang/core/encoding/utf8" } for "wbtest"\n');
+  const preparation = blocks('src/cmd/native_client/local_host_settings_preparation.mbt')
+    .filter(body => !body.includes('fn local_host_configuration_text_file(')).join('///|');
+  const settings = ['priv struct LocalHostSettings {', 'fn local_settings_text(',
+    'fn local_host_journal_record_limit(', 'fn local_host_settings(']
+    .map(marker => pick('src/cmd/native_client/local_adoption.mbt', marker)).join('\n');
+  const input = pick('src/cmd/native_client/local.mbt', 'fn local_input_cursor(');
+  const primary = pick('src/cmd/native_client/local_command_preparation.mbt', 'fn LocalCommandPreparationOriginal::retain_primary(');
+  const wire = JSON.stringify({version:'actql-config/0.1', account_config:'account.json', native:{local:{
+    account_id:'account', principal:'principal', connection:'connection', state_parent:'/private/tmp', state_name:'state',
+    managed_root:'/private/tmp/project', sqlite_library:'/private/libsqlite.dylib', signature_library:'/private/libcrypto.dylib',
+    submission_ttl_ms:1000, journal_record_limit:1025, journal_snapshot_bytes:4096,
+    installation_files:Array.from({length:9},(_,i)=>`original-${i}.json`),
+  }}});
+  writeFileSync(join(root, 'src/probe_wbtest.mbt'), `
+priv suberror ClientStop { ClientStop(String) }
+fn[T] stop(value : String) -> T raise ClientStop { raise ClientStop(value) }
+priv enum LocalCommandPreparationIssue { CommandUnavailable; CommandRead(@initial_arena.Issue) } derive(Eq, Debug)
+priv struct LocalCommandPreparationOriginal {
+  host : @initial_arena.InstalledArenaHost?; read : @initial_arena.InstalledArenaOriginalRead?
+  phase_open : Bool; journal_read_open : Bool; closing : Bool; closed : Bool
+  mut primary : LocalCommandPreparationIssue?; read_failure : Unit?; mut metadata_retained : Int64
+}
+let command_preparation_invocation : Ref[LocalCommandPreparationOriginal?] = Ref(None)
+fn native_timing_count(_ : Int) -> Unit { () }
+fn[T] command_preparation_result(value : Result[T, LocalCommandPreparationIssue], stage? : String? = None) -> T raise ClientStop {
+  ignore(stage)
+  match value { Ok(value) => value; Err(_) => stop("budget-refused") }
+}
+${primary}
+${preparation}
+${settings}
+${input}
+fn original(ceiling : Int64) -> (LocalCommandPreparationOriginal, @initial_arena.InstalledArenaHost) {
+  let read : @initial_arena.InstalledArenaOriginalRead = {marker: 41}
+  let host : @initial_arena.InstalledArenaHost = {original: read, ceiling, calls: []}
+  ({host: Some(host), read: Some(read), phase_open: true, journal_read_open: false, closing: false, closed: false, primary: None, read_failure: None, metadata_retained: 0L}, host)
+}
+let original_wire = ${JSON.stringify(wire)}
+test "same staged parser accepts padded original Host settings and nine exact names" {
+  let (value, host) = original(16000000L)
+  command_preparation_invocation.val = Some(value)
+  defer { command_preparation_invocation.val = None }
+  let selected = local_host_settings(" ".repeat(70000) + original_wire)
+  assert_eq(selected.installation_files.length(), 9)
+  assert_eq(selected.installation_files[8], "original-8.json")
+  assert_eq(selected.record_limit, 1025)
+  assert_eq(selected.account_id, "account")
+  assert_true(host.calls.length() >= 6)
+  assert_eq(host.calls[0].0, 0L)
+  assert_true(value.metadata_retained > 0L)
+}
+test "same original budget refuses before parsed settings can escape" {
+  let (value, host) = original(1L)
+  command_preparation_invocation.val = Some(value)
+  defer { command_preparation_invocation.val = None }
+  let stopped = try { ignore(local_host_settings(original_wire)); false } catch { ClientStop(_) => true }
+  assert_true(stopped)
+  assert_eq(host.calls.length(), 1)
+  assert_eq(value.metadata_retained, 0L)
+  assert_eq(value.primary, Some(CommandRead(Refused)))
+}
+test "duplicate schema fields and late duplicate installation names remain refused" {
+  for wire in [${JSON.stringify(wire.replace('original-8.json', 'original-0.json'))}, ${JSON.stringify(wire.replace('"version":', '"version":"actql-config/0.1","version":'))}] {
+    let (value, _) = original(16000000L)
+    command_preparation_invocation.val = Some(value)
+    let stopped = try { ignore(local_host_settings(wire)); false } catch { ClientStop(_) => true }
+    command_preparation_invocation.val = None
+    assert_true(stopped)
+  }
+}
+`);
+  const result = spawnSync('moon', ['test', '--target', 'js'], {
+    cwd: root, encoding: 'utf8', timeout: 75_000, maxBuffer: 4 * 1024 * 1024,
+  });
+  assert.equal(result.error, undefined, result.error?.message);
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.match(result.stdout + result.stderr, /Total tests: 3, passed: 3, failed: 0/);
 });

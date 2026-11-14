@@ -51,27 +51,38 @@ fn local_host_journal_record_limit(records : Int64) -> Int? {
 fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
   // Count the bounded typed decode, not consumers of these immutable fields.
   native_timing_count(27)
-  let cursor = local_input_cursor(text)
-  let root = @decode.closed_object(cursor, [
-    "version", "native", "state_dir", "account_config",
-  ]).unwrap_or_else(() => stop("InvalidLocalHostConfiguration"))
+  let cursor = local_host_settings_cursor(text)
+  local_host_settings_fields_prepare()
+  let root = local_host_settings_object(
+    cursor,
+    ["version", "native", "state_dir", "account_config"],
+    0,
+    "InvalidLocalHostConfiguration",
+  )
   guard local_settings_text(root, "version") == "actql-config/0.1" &&
     @decode.lookup(root, "native") is Some(native) else {
     stop("InvalidLocalHostConfiguration")
   }
-  let native = @decode.closed_object(native, ["check_environment", "local"]).unwrap_or_else(() => {
-      stop("InvalidLocalHostConfiguration")
-    },
+  let native = local_host_settings_object(
+    native,
+    ["check_environment", "local"],
+    1,
+    "InvalidLocalHostConfiguration",
   )
   guard @decode.lookup(native, "local") is Some(fields) else {
     stop("LocalHostConfigurationRequired")
   }
-  let fields = @decode.closed_object(fields, [
-    "account_id", "principal", "connection", "state_parent", "state_name", "managed_root",
-    "sqlite_library", "signature_library", "submission_ttl_ms", "journal_record_limit",
-    "journal_snapshot_bytes", "installation_files", "source_file", "run_file", "read_file",
-    "reviewer_file", "run_policy_profile_file", "initial_host_signing",
-  ]).unwrap_or_else(() => stop("InvalidLocalHostConfiguration"))
+  let fields = local_host_settings_object(
+    fields,
+    [
+      "account_id", "principal", "connection", "state_parent", "state_name", "managed_root",
+      "sqlite_library", "signature_library", "submission_ttl_ms", "journal_record_limit",
+      "journal_snapshot_bytes", "installation_files", "source_file", "run_file",
+      "read_file", "reviewer_file", "run_policy_profile_file", "initial_host_signing",
+    ],
+    2,
+    "InvalidLocalHostConfiguration",
+  )
   let number = fn(key : String) -> Int64 raise ClientStop {
     guard @decode.lookup(fields, key) is Some(value) &&
       @decode.safe_integer(value) is Ok(value) else {
@@ -88,16 +99,26 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
   if ttl < 1L || ttl > 86400000L || snapshot < 1L || snapshot > 536870912L {
     stop("InvalidLocalHostLimits")
   }
+  let selected_files = @decode.lookup(fields, "installation_files")
+  let count = match selected_files {
+    None => 0
+    Some(files) =>
+      @decode.array_length(files).unwrap_or_else(() => {
+        stop("InvalidLocalInstallationSelection")
+      })
+  }
+  local_host_settings_array_prepare(count)
   let installation_files : Array[String] = []
-  if @decode.lookup(fields, "installation_files") is Some(files) {
-    guard @decode.elements(files) is Ok(files) && files.length() <= 8 else {
+  let installation_names = @shape.key_admission()
+  if selected_files is Some(files) {
+    guard @decode.elements(files) is Ok(files) else {
       stop("InvalidLocalInstallationSelection")
     }
     for file in files {
       guard @decode.text(file) is Ok(name) &&
         !name.is_empty() &&
         name.length() <= 128 &&
-        !installation_files.contains(name) else {
+        @shape.admit_key(installation_names, name) else {
         stop("InvalidLocalInstallationSelection")
       }
       installation_files.push(name)
@@ -107,9 +128,12 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
     @decode.lookup(fields, "initial_host_signing") {
     None => None
     Some(value) => {
-      let selected = @decode.closed_object(value, [
-        "principal", "connection", "resource",
-      ]).unwrap_or_else(() => stop("InvalidInitialHostSigningSelection"))
+      let selected = local_host_settings_object(
+        value,
+        ["principal", "connection", "resource"],
+        3,
+        "InvalidInitialHostSigningSelection",
+      )
       let principal = local_settings_text(selected, "principal")
       let connection = local_settings_text(selected, "connection")
       let resource = local_settings_text(selected, "resource")
@@ -248,7 +272,7 @@ fn execute_native_local_adoption(
       original
     }
     None => {
-      let body = text_file(root, name, 65536L)
+      let body = local_host_configuration_text_file(root, name)
       (body, local_host_settings(body))
     }
   }

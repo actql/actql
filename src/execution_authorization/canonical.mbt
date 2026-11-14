@@ -7,10 +7,9 @@
 /// document.
 
 ///|
-/// Canonical encoder bounds. The admitted document is at most
-/// `MAX_ENTRIES × (1 + MAX_EXCLUSIONS_PER_ENTRY)` boxes; the JSON decoder
-/// already bounds wire input to `MAX_CONFIG_INPUT_BYTES`, and a typed
-/// configuration whose canonical document exceeds these bounds is rejected.
+/// Existing bounds for the two fixed bootstrap profile documents only.
+/// Selected Account/exclusion documents use geometry observed while validating
+/// their SAME originals; the structural depth bound remains unchanged.
 const CANONICAL_MAX_BYTES : Int = 4194304
 
 ///|
@@ -64,13 +63,17 @@ fn box_fields(box : SelectorBox) -> Map[String, Json] {
 }
 
 ///|
-fn canonical_value_of(json : Json) -> @canonical_json.CanonicalValue? {
+fn canonical_value_of(
+  json : Json,
+  bounds? : AccountCanonicalBounds? = None,
+) -> @canonical_json.CanonicalValue? {
+  let limits = bounds.unwrap_or(account_profile_literal_bounds)
   Some(
     @canonical_json.from_json(
       json,
-      CANONICAL_MAX_NODES,
+      limits.nodes,
       CANONICAL_MAX_DEPTH,
-      CANONICAL_MAX_BYTES,
+      limits.utf16_units,
     ),
   ) catch {
     _ => None
@@ -79,16 +82,20 @@ fn canonical_value_of(json : Json) -> @canonical_json.CanonicalValue? {
 
 ///|
 /// Canonical JSON text of one exclusion tuple, the key of the exclusion order.
-fn box_canonical_text(box : SelectorBox) -> String? {
-  let value = match canonical_value_of(Json::object(box_fields(box))) {
+fn box_canonical_text(
+  box : SelectorBox,
+  bounds? : AccountCanonicalBounds? = None,
+) -> String? {
+  let limits = bounds.unwrap_or(account_profile_literal_bounds)
+  let value = match canonical_value_of(Json::object(box_fields(box)), bounds~) {
     Some(value) => value
     None => return None
   }
   Some(
     @canonical_json.stringify_value(
       value,
-      CANONICAL_MAX_BYTES,
-      CANONICAL_MAX_NODES,
+      limits.encoded_bytes,
+      limits.nodes,
       CANONICAL_MAX_DEPTH,
     ),
   ) catch {
@@ -138,16 +145,20 @@ priv struct CanonicalEntry {
 }
 
 ///|
-fn document_cid(document : Json) -> String? {
-  let value = match canonical_value_of(document) {
+fn document_cid(
+  document : Json,
+  bounds? : AccountCanonicalBounds? = None,
+) -> String? {
+  let limits = bounds.unwrap_or(account_profile_literal_bounds)
+  let value = match canonical_value_of(document, bounds~) {
     Some(value) => value
     None => return None
   }
   Some(
     @canonical_json.cid_value(
       value,
-      CANONICAL_MAX_BYTES,
-      CANONICAL_MAX_NODES,
+      limits.encoded_bytes,
+      limits.nodes,
       CANONICAL_MAX_DEPTH,
     ),
   ) catch {
@@ -180,10 +191,25 @@ fn box_selectors(box : SelectorBox) -> Array[(Dimension, Selector)] {
 ///|
 /// First identifier that is not already in canonical text form, with its
 /// location in the given (not yet reordered) configuration.
-fn first_unnormalized(raw : RawAccountConfiguration) -> String? {
+fn first_unnormalized(
+  raw : RawAccountConfiguration,
+  geometry : AccountCanonicalGeometry,
+) -> String? {
+  geometry.observe_object(
+    if raw.bootstrap is Some(_) {
+      4
+    } else {
+      3
+    },
+    "versionaccount_identries".length() +
+    (if raw.bootstrap is Some(_) { "bootstrap".length() } else { 0 }),
+  )
+  geometry.observe_text(ACCOUNT_CONFIG_VERSION)
+  geometry.observe_array(raw.entries.length())
   if !normalized_text(raw.account_id) {
     return Some("$.account_id")
   }
+  geometry.observe_text(raw.account_id)
   if raw.bootstrap is Some(profile) {
     if !normalized_text(profile.profile_id) {
       return Some("$.bootstrap.profile_id")
@@ -191,27 +217,49 @@ fn first_unnormalized(raw : RawAccountConfiguration) -> String? {
     if !normalized_text(profile.profile_version) {
       return Some("$.bootstrap.profile_version")
     }
+    geometry.observe_object(3, "profile_idprofile_versionprofile_cid".length())
+    geometry.observe_text(profile.profile_id)
+    geometry.observe_text(profile.profile_version)
+    geometry.observe_text(profile.profile_cid)
   }
   for index, entry in raw.entries {
+    geometry.observe_object(
+      7,
+      "principalconnectionresourceoperationentry_idoutcomeexclusions".length(),
+    )
+    geometry.observe_array(entry.exclusions.length())
+    geometry.observe_text(outcome_token(entry.outcome))
     let prefix = "$.entries[\{index}]"
     if !normalized_text(entry.entry_id) {
       return Some(prefix + ".entry_id")
     }
+    geometry.observe_text(entry.entry_id)
     let boxes = [(prefix, entry.scope)]
     for position, exclusion in entry.exclusions {
+      geometry.observe_object(
+        4,
+        "principalconnectionresourceoperation".length(),
+      )
       boxes.push((prefix + ".exclusions[\{position}]", exclusion))
     }
     for located in boxes {
       let (at, box) = located
       for item in box_selectors(box) {
         let (dimension, selector) = item
+        if selector is All {
+          geometry.observe_object(1, "all".length())
+          geometry.observe_true()
+        }
         if selector is AnyOf(values) {
+          geometry.observe_object(1, "any_of".length())
+          geometry.observe_array(values.length())
           for value_index, value in values {
             if !normalized_text(value) {
               return Some(
                 selector_path(at, dimension) + ".any_of[\{value_index}]",
               )
             }
+            geometry.observe_text(value)
           }
         }
       }
@@ -223,7 +271,10 @@ fn first_unnormalized(raw : RawAccountConfiguration) -> String? {
 ///|
 /// Strict canonical order check of a decoded wire document. Equal neighbours
 /// are left to admission, which reports them as duplicates.
-fn first_out_of_order(raw : RawAccountConfiguration) -> String? {
+fn first_out_of_order(
+  raw : RawAccountConfiguration,
+  bounds : AccountCanonicalBounds,
+) -> String? {
   for index in 1..<raw.entries.length() {
     if code_unit_compare(
         raw.entries[index - 1].entry_id,
@@ -259,7 +310,7 @@ fn first_out_of_order(raw : RawAccountConfiguration) -> String? {
     for position, exclusion in entry.exclusions {
       // Selector values were checked ascending above, so this is the
       // canonical text of the tuple as written.
-      let text = match box_canonical_text(exclusion) {
+      let text = match box_canonical_text(exclusion, bounds=Some(bounds)) {
         Some(text) => text
         None => return Some(prefix + ".exclusions[\{position}]")
       }

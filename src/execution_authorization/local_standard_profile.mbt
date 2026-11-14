@@ -40,8 +40,8 @@ pub(all) enum LocalStandardProfileIssue {
 
 ///|
 // Both Local materializers emit one finite Account configuration. Check its
-// actual entry inventory before allocating entries or duplicate indexes, using
-// the SAME admission Owner's bound rather than separate Source/Task ceilings.
+// actual entry inventory before allocating entries or duplicate indexes.
+// Keep the array representation bound, not a separate Source/Task allowance.
 fn local_profile_entry_inventory(
   sources : Int,
   tasks : Int,
@@ -50,9 +50,6 @@ fn local_profile_entry_inventory(
   let count = sources.to_int64() + tasks.to_int64() + fixed.to_int64()
   if count > 2147483647L {
     return Err(CanonicalDocumentTooLarge)
-  }
-  if count > MAX_ENTRIES.to_int64() {
-    return Err(TooManyEntries(count.to_int()))
   }
   Ok(())
 }
@@ -202,7 +199,13 @@ pub fn local_standard_account_configuration(
     bootstrap: Some(local_standard_profile_identity()),
     entries,
   }
-  match admit_account_configuration(raw) {
+  let geometry : Ref[AccountCanonicalBounds?] = Ref(None)
+  match
+    admit_with_overlap_budget(
+      raw,
+      MAX_OVERLAP_WORK,
+      geometry_out=Some(geometry),
+    ) {
     Err(issue) => return Err(Configuration(issue))
     Ok(_) => ()
   }
@@ -219,14 +222,15 @@ pub fn local_standard_account_configuration(
       exclusions: [],
     }),
   )
-  guard canonical_value_of(document) is Some(value) else {
+  guard geometry.val is Some(bounds) &&
+    canonical_value_of(document, bounds=Some(bounds)) is Some(value) else {
     return Err(Configuration(CanonicalDocumentTooLarge))
   }
   Ok(
     @canonical_json.stringify_value(
       value,
-      MAX_CONFIG_INPUT_BYTES,
-      CANONICAL_MAX_NODES,
+      bounds.encoded_bytes,
+      bounds.nodes,
       CANONICAL_MAX_DEPTH,
     ),
   ) catch {

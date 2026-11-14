@@ -364,7 +364,9 @@ fn LocalCommandPreparationOriginal::execute_product_command(
     original_runtime,
     @run_host.client_native_local_runtime_original(runtime.manifest),
   )
-  let configuration = text_file(configuration_root, "config.json", 65536L)
+  let configuration = local_host_configuration_text_file(
+    configuration_root, "config.json",
+  )
   let settings = local_host_settings(configuration)
   if settings.sqlite_library != runtime.sqlite ||
     settings.signature_library != runtime.crypto ||
@@ -890,23 +892,13 @@ fn LocalCommandPreparationOriginal::prepare_project_text_payload(
   self : Self,
   bytes : Int64,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
-  guard self.host is Some(host) &&
-    self.read is Some(read) &&
-    local_project_text_payload_extent(bytes) is Some((r, e)) else {
+  guard local_project_text_payload_extent(bytes) is Some((r, e)) else {
     return Err(CommandUnavailable)
   }
-  // Keep each escaping text, but not a sum of completed Reader scratch peaks.
-  // The same bounded routine acknowledges Reader/Root close before returning
-  // its sole String. The existing temporary-peak port takes a maximum over
-  // the original base; it never refunds or acknowledges this Read's lifetime.
-  match
-    host.prepare_domain_original_read_retained_construction(read, r, 0L, r) {
-    Err(issue) => return Err(CommandRead(issue))
-    Ok(_) => ()
-  }
-  host
-  .prepare_domain_original_read_construction(read, 0L, e, e)
-  .map_err(issue => CommandRead(issue))
+  // Keep the actual escaping String in the same metadata prefix used by the
+  // next parser/index/settings constructor. Finished Reader scratch is a max,
+  // never a second retained frame or a sum of historical temporary peaks.
+  self.prepare_host_metadata(r, e)
 }
 
 ///|

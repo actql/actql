@@ -123,29 +123,35 @@ test "wire shape violations are rejected with a path" {
 }
 
 ///|
-test "wire bounds are enforced before admission" {
+test "wire shape and structural depth are checked before admission" {
   let large = "{\"pad\":\"" + "x".repeat(MAX_CONFIG_INPUT_BYTES) + "\"}"
-  assert_eq(wire_issue(large).kind, InputTooLarge)
+  assert_eq(wire_issue(large).kind, InvalidShape)
   let long_name = "n".repeat(MAX_NAME_LENGTH * 4 + 1)
-  assert_eq(
-    wire_issue(wire_valid.replace(old="cloud-service", new=long_name)).kind,
-    InvalidShape,
+  assert_true(
+    admit_account_configuration_json(
+      wire_valid.replace(old="cloud-service", new=long_name),
+    )
+    is Ok(_),
   )
   let entry = "{\"entry_id\":\"e\",\"outcome\":\"allow\",\"principal\":{\"all\":true},\"connection\":{\"all\":true},\"resource\":{\"all\":true},\"operation\":{\"all\":true},\"exclusions\":[]}"
   let entries = Array::make(MAX_ENTRIES + 1, entry).join(",")
   let body = "{\"version\":\"actql-execution-account-config/0.1\",\"account_id\":\"a\",\"entries\":[" +
     entries +
     "]}"
-  assert_eq(wire_issue(body), { kind: InvalidShape, path: "$.entries", })
+  assert_true(decode_account_configuration_json(body) is Ok(_))
+  assert_true(
+    admit_account_configuration_json(body) is Err(DuplicateEntryId("e")),
+  )
   let exclusion = "{\"principal\":{\"all\":true},\"connection\":{\"all\":true},\"resource\":{\"all\":true},\"operation\":{\"all\":true}}"
   let many = Array::make(MAX_EXCLUSIONS_PER_ENTRY + 1, exclusion).join(",")
   let with_many = "{\"version\":\"actql-execution-account-config/0.1\",\"account_id\":\"a\",\"entries\":[" +
     entry.replace(old="\"exclusions\":[]", new="\"exclusions\":[" + many + "]") +
     "]}"
-  assert_eq(wire_issue(with_many), {
-    kind: InvalidShape,
-    path: "$.entries[0].exclusions",
-  })
+  assert_true(decode_account_configuration_json(with_many) is Ok(_))
+  assert_true(
+    admit_account_configuration_json(with_many)
+    is Err(DuplicateExclusion("e", 1)),
+  )
   // Maximum structural nesting is accepted at the depth bound.
   let nested = "{\"version\":\"actql-execution-account-config/0.1\",\"account_id\":\"a\",\"entries\":[" +
     entry.replace(

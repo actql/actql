@@ -151,10 +151,12 @@ fn DimSet::size(self : DimSet) -> Int {
 ///|
 /// Work units charged for combining two regions: one plus every named value
 /// the set operations may visit.
-fn Region::work(self : Region, other : Region) -> Int {
-  let mut total = 1
+fn Region::work(self : Region, other : Region) -> Int64 {
+  let mut total = 1L
   for k in 0..<4 {
-    total = total + self.dims[k].size() + other.dims[k].size()
+    total = total +
+      self.dims[k].size().to_int64() +
+      other.dims[k].size().to_int64()
   }
   total
 }
@@ -238,45 +240,67 @@ priv suberror OverlapBudgetExhausted {
 }
 
 ///|
+// Continuations of the SAME depth-first exact subtraction. Store the next
+// dimension, rather than precomputing later branches that may never be used.
+priv enum OverlapContinuation {
+  OverlapVisit(Region, Int)
+  OverlapSplit(Region, Region, Int, Int)
+}
+
+///|
 /// Returns a region of `region` not covered by `exclusions[index:]`, or
 /// `None` when the exclusions cover it. Exact over the open universe: each
 /// step splits `region \ exclusion` into at most four disjoint regions
 /// (`region ∩ E` on earlier dimensions, `region_k \ E_k` on dimension `k`,
 /// unconstrained later dimensions), so no value class is lost or invented.
+/// The explicit continuation preserves the original dimension/witness order
+/// and exact work charge without using one language call frame per exclusion.
 fn uncovered_region(
   region : Region,
   exclusions : Array[Region],
   index : Int,
   budget : Ref[Int],
 ) -> Region? raise OverlapBudgetExhausted {
-  if index == exclusions.length() {
-    return Some(region)
-  }
-  let exclusion = exclusions[index]
-  budget.val = budget.val - region.work(exclusion)
-  if budget.val < 0 {
-    raise OverlapBudgetExhausted
-  }
-  let overlap = match region.intersect(exclusion) {
-    None => return uncovered_region(region, exclusions, index + 1, budget)
-    Some(value) => value
-  }
-  for k in 0..<4 {
-    let rest = region.dims[k].minus(exclusion.dims[k])
-    if !rest.is_empty() {
-      let dims = FixedArray::make(4, Finite([]))
-      for j in 0..<4 {
-        dims[j] = if j < k {
-          overlap.dims[j]
-        } else if j == k {
-          rest
-        } else {
-          region.dims[j]
+  let frames : Array[OverlapContinuation] = [OverlapVisit(region, index)]
+  while frames.pop() is Some(frame) {
+    match frame {
+      OverlapVisit(region, index) => {
+        if index == exclusions.length() {
+          return Some(region)
+        }
+        let exclusion = exclusions[index]
+        let work = region.work(exclusion)
+        if work > budget.val.to_int64() {
+          raise OverlapBudgetExhausted
+        }
+        budget.val -= work.to_int()
+        match region.intersect(exclusion) {
+          None => frames.push(OverlapVisit(region, index + 1))
+          Some(overlap) => frames.push(OverlapSplit(region, overlap, index, 0))
         }
       }
-      match uncovered_region({ dims, }, exclusions, index + 1, budget) {
-        Some(found) => return Some(found)
-        None => ()
+      OverlapSplit(region, overlap, index, next_dimension) => {
+        let exclusion = exclusions[index]
+        for k in next_dimension..<4 {
+          let rest = region.dims[k].minus(exclusion.dims[k])
+          if !rest.is_empty() {
+            let dims = FixedArray::make(4, Finite([]))
+            for j in 0..<4 {
+              dims[j] = if j < k {
+                overlap.dims[j]
+              } else if j == k {
+                rest
+              } else {
+                region.dims[j]
+              }
+            }
+            if k + 1 < 4 {
+              frames.push(OverlapSplit(region, overlap, index, k + 1))
+            }
+            frames.push(OverlapVisit({ dims, }, index + 1))
+            break
+          }
+        }
       }
     }
   }

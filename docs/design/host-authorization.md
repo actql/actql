@@ -355,3 +355,25 @@ preferred to line numbers when the files move.
 | [Execution checkpoints](../spec/execution.md#checkpoints), lines 460–462, bind evaluated allow/review/deny to policy identity. | Account outcomes are allow/deny/delegate; Host responses and durable checkpoint are separate layers. | Define the configuration-to-decision protocol mapping, immediate/deferred evidence and affected identities; do not globally rename review tokens. |
 | [Product acceptance cases](../../spec/product-decisions/acceptance-cases.json), D2.contract-floor and D2.multi-review, encode the existing floor and review model. | No Connector floor; delegated answers and Host-conditional risk claims. | Explicitly revise/retire affected D2 expectations and adoption records, add independent new-model cases, and retain historical evidence as evidence of its tested contracts. |
 | [Policy routing](../spec/execution.md#policy-routing), lines 616–632, prohibits structural inputs and constrains packaging-equivalent routing. | Host owns application decision criteria; authorization reuse must preserve actual decision inputs and validity. | Revise routing requirements and acceptance cases; keep binding/optimization guarantees and make semantic-risk routing a Reference Host recommendation. |
+
+Finite Account inventories have no separate entry, selector, exclusion,
+answering-authority or required-claim count allowance. Admission still rejects
+empty or duplicate identifiers and exclusions, enforces canonical originals,
+and decides every differing-outcome intersection by exact set subtraction.
+The existing exact-overlap work budget also charges inspection of equal-outcome
+pairs. Its depth-first continuation retains the original dimension and witness
+order without one language call frame per exclusion. Historical exported count
+constants remain compatibility data, not authorization or allocation limits.
+Wire, canonical representation and exact-work bounds remain distinct from
+Host preparation funding; admitting a larger inventory establishes no additional
+principal, target, grant, physical capacity or saved-configuration authority.
+
+Account wire admission derives byte, node and decoded-text bounds from its
+same once-encoded original, retaining the existing parser and structural depth.
+Canonical material uses container/key geometry and String lengths observed in
+the existing identifier-validation pass. It does not reparse or walk a second
+tree just to count it. The same canonical encoder/hash checks actual usage;
+JSON escaping contributes its six-byte UTF-16-unit envelope, clipped only at
+that encoder's Int representation boundary. Local profile emission reuses the
+same admission observation rather than another geometry pass. These finite
+representation bounds remain distinct from the Host's construction backing.
