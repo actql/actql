@@ -47358,11 +47358,11 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const bounds = snapshotLimits(limits);"
+                "anchor": "const bounds = snapshotLimits(limits, construction !== undefined);"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
+                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid, environmentBody) {"
               },
               {
                 "path": "adapters/host-node/installed-project-profile.mjs",
@@ -47492,7 +47492,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
+                "anchor": "const wire = construction === undefined"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
@@ -47614,7 +47614,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const tasks = [];"
+                "anchor": "const tasks = construct(() => jsCapacity(2n), () => []);"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -47652,7 +47652,7 @@
               },
               {
                 "path": "docs/design/model-provider-registration.md",
-                "anchor": "This connection supplies static checked materials, not execution dependencies,"
+                "anchor": "This connection supplies static checked materials."
               },
               {
                 "path": "src/run_publication_host/client_project_profile.mbt",
@@ -47741,7 +47741,8 @@
             "openPreparedInstalledHost/preparation/init:borrowSourceInitializationMaterial/init:borrowSourceInitializationMaterial",
             "openPreparedInstalledHost/preparation/init:selectSourceProfilePaths/init:selectSourceProfilePaths",
             "openPreparedInstalledHost/preparation/init:sourceInitializationServices/init:sourceInitializationServices",
-            "openPreparedInstalledHost/preparation/init:sourceInitializationServices/init:sourceInitializationServices/init:assertCurrent/init:assertCurrent"
+            "openPreparedInstalledHost/preparation/init:sourceInitializationServices/init:sourceInitializationServices/init:assertCurrent/init:assertCurrent",
+            "openPreparedInstalledHost/preparation/init:sourceInitializationServices/init:sourceInitializationServices/init:accountCurrent/init:accountCurrent"
           ],
           "exports": [],
           "attributes": {
@@ -50424,7 +50425,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/ordinary-local-account.mjs",
-                "anchor": "export async function prepareOrdinaryLocalAccount({root, principal, preparedOriginal,"
+                "anchor": "async function prepareOrdinaryLocalAccountOriginal({root, principal, preparedOriginal,"
               }
             ],
             "identity": [
@@ -50753,11 +50754,11 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const bounds = snapshotLimits(limits);"
+                "anchor": "const bounds = snapshotLimits(limits, construction !== undefined);"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
+                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid, environmentBody) {"
               }
             ],
             "identity": [
@@ -50831,7 +50832,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
+                "anchor": "const wire = construction === undefined"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
@@ -50905,7 +50906,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const tasks = [];"
+                "anchor": "const tasks = construct(() => jsCapacity(2n), () => []);"
               }
             ],
             "extension": [
@@ -50927,7 +50928,7 @@
               },
               {
                 "path": "docs/design/model-provider-registration.md",
-                "anchor": "This connection supplies static checked materials, not execution dependencies,"
+                "anchor": "This connection supplies static checked materials."
               }
             ],
             "verification": [
@@ -51450,11 +51451,11 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const bounds = snapshotLimits(limits);"
+                "anchor": "const bounds = snapshotLimits(limits, construction !== undefined);"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
+                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid, environmentBody) {"
               },
               {
                 "path": "adapters/host-node/installed-project-profile.mjs",
@@ -51776,7 +51777,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
+                "anchor": "const wire = construction === undefined"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
@@ -52082,7 +52083,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const tasks = [];"
+                "anchor": "const tasks = construct(() => jsCapacity(2n), () => []);"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -52188,7 +52189,7 @@
               },
               {
                 "path": "docs/design/model-provider-registration.md",
-                "anchor": "This connection supplies static checked materials, not execution dependencies,"
+                "anchor": "This connection supplies static checked materials."
               },
               {
                 "path": "src/run_publication_host/client_project_profile.mbt",
@@ -52506,11 +52507,11 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const bounds = snapshotLimits(limits);"
+                "anchor": "const bounds = snapshotLimits(limits, construction !== undefined);"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
+                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid, environmentBody) {"
               }
             ],
             "identity": [
@@ -52548,7 +52549,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
+                "anchor": "const wire = construction === undefined"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
@@ -52586,7 +52587,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const tasks = [];"
+                "anchor": "const tasks = construct(() => jsCapacity(2n), () => []);"
               }
             ],
             "extension": [
@@ -52596,7 +52597,7 @@
               },
               {
                 "path": "docs/design/model-provider-registration.md",
-                "anchor": "This connection supplies static checked materials, not execution dependencies,"
+                "anchor": "This connection supplies static checked materials."
               }
             ],
             "verification": [
@@ -56745,7 +56746,11 @@
             "localPublicationStoreAuthorityCid",
             "localPublicationStoreOptions",
             "preparePublicationRoot",
-            "preparePublicationRoot/closeServices"
+            "preparePublicationRoot/closeServices",
+            "preparePublicationRoot/parent/parent",
+            "preparePublicationRoot/parent/parent#2",
+            "preparePublicationRoot/preparePublicationRoot",
+            "preparePublicationRoot/preparePublicationRoot#2"
           ],
           "exports": [],
           "attributes": {
@@ -57846,7 +57851,8 @@
           "operations": [
             "connectEmbeddedLocal",
             "openPreparedInstalledHost",
-            "openPreparedInstalledHost/client/client"
+            "openPreparedInstalledHost/client/client",
+            "openPreparedInstalledHost/assertSourceInitializationIdentity"
           ],
           "exports": [
             "connectEmbeddedLocal"
@@ -57913,11 +57919,11 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const bounds = snapshotLimits(limits);"
+                "anchor": "const bounds = snapshotLimits(limits, construction !== undefined);"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
+                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid, environmentBody) {"
               },
               {
                 "path": "adapters/host-node/installed-project-profile.mjs",
@@ -58071,7 +58077,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
+                "anchor": "const wire = construction === undefined"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
@@ -58217,7 +58223,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const tasks = [];"
+                "anchor": "const tasks = construct(() => jsCapacity(2n), () => []);"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -58263,7 +58269,7 @@
               },
               {
                 "path": "docs/design/model-provider-registration.md",
-                "anchor": "This connection supplies static checked materials, not execution dependencies,"
+                "anchor": "This connection supplies static checked materials."
               },
               {
                 "path": "src/run_publication_host/client_project_profile.mbt",
@@ -59042,7 +59048,8 @@
             "openInstalledHost/retireModelRuntime",
             "openInstalledHost/runtimeOriginals/runtimeOriginals",
             "openInstalledHost/runtimeTarget/runtimeTarget",
-            "openInstalledHost/selectedInstalledEffect"
+            "openInstalledHost/selectedInstalledEffect",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/add/add"
           ],
           "exports": [],
           "attributes": {
@@ -59175,11 +59182,11 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const bounds = snapshotLimits(limits);"
+                "anchor": "const bounds = snapshotLimits(limits, construction !== undefined);"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
+                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid, environmentBody) {"
               },
               {
                 "path": "adapters/host-node/installed-project-profile.mjs",
@@ -59529,7 +59536,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
+                "anchor": "const wire = construction === undefined"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
@@ -59859,7 +59866,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const tasks = [];"
+                "anchor": "const tasks = construct(() => jsCapacity(2n), () => []);"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -59973,7 +59980,7 @@
               },
               {
                 "path": "docs/design/model-provider-registration.md",
-                "anchor": "This connection supplies static checked materials, not execution dependencies,"
+                "anchor": "This connection supplies static checked materials."
               },
               {
                 "path": "src/run_publication_host/client_project_profile.mbt",
@@ -61142,7 +61149,8 @@
             "project",
             "moon",
             "projectSources",
-            "configurationReader"
+            "configurationReader",
+            "accountConstruction"
           ],
           "async": true
         },
@@ -61481,6 +61489,13 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/acquisitionDescriptor/acquisitionDescriptor",
           "parameters": [
             "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/add/add",
+          "parameters": [
+            "source"
           ],
           "async": false
         },
@@ -63691,6 +63706,11 @@
           "async": true
         },
         {
+          "name": "openPreparedInstalledHost/assertSourceInitializationIdentity",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openPreparedInstalledHost/assertSourceInitializationSelection",
           "parameters": [],
           "async": false
@@ -64725,6 +64745,11 @@
           "async": false
         },
         {
+          "name": "openPreparedInstalledHost/preparation/init:sourceInitializationServices/init:sourceInitializationServices/init:accountCurrent/init:accountCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openPreparedInstalledHost/preparation/init:sourceInitializationServices/init:sourceInitializationServices/init:assertCurrent/init:assertCurrent",
           "parameters": [],
           "async": false
@@ -64902,6 +64927,26 @@
           "name": "preparePublicationRoot/closeServices",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "preparePublicationRoot/parent/parent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "preparePublicationRoot/parent/parent#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "preparePublicationRoot/preparePublicationRoot",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "preparePublicationRoot/preparePublicationRoot#2",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "prepareRequestMockModelPlan",
@@ -65577,7 +65622,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "9d159b571617806e515a5f389abe0037aaf00d3fa774e342f0329e73201f4fa0"
+      "sha256": "2944e2b87868088678b54d85f639971140f2405d4178aaf2b7133c1529ca3ef5"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -77455,7 +77500,7 @@
     {
       "module": "adapters/host-node/installed-model.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "16f62dabe25ef617bc016bbd7f63a7a2f2cb387c8aeab541ff40f00f1bf09bb5",
+      "sha256": "262b843f3c0eaec2099d540fb610d6d675dc761d6c64011856bf482a3abb00b8",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -77625,7 +77670,8 @@
           "parameters": [
             "selectedModel",
             "taskMaxOutputTokens",
-            "limits"
+            "limits",
+            "construction"
           ],
           "async": false
         },
@@ -77647,7 +77693,10 @@
             "reader",
             "resolver",
             "bindingReader",
-            "usageReader"
+            "usageReader",
+            "readCapacity",
+            "retainedCapacity",
+            "resolutionCapacities"
           ],
           "async": false
         },
@@ -77656,8 +77705,19 @@
           "parameters": [
             "selectedModel",
             "taskMaxOutputTokens",
-            "limits"
+            "limits",
+            "construction"
           ],
+          "async": false
+        },
+        {
+          "name": "modelDefaultsResolver/resolveTaskDefaults/project/project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "modelDefaultsResolver/resolveTaskDefaults/project/project#2",
+          "parameters": [],
           "async": false
         },
         {
@@ -77672,6 +77732,35 @@
           "parameters": [
             "key"
           ],
+          "async": false
+        },
+        {
+          "name": "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults#6",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults#7",
+          "parameters": [],
           "async": false
         },
         {
@@ -78130,7 +78219,7 @@
               },
               {
                 "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "let original, bounds, readFailure;"
+                "anchor": "let original, bounds, readFailure, originalConstruction;"
               }
             ],
             "synchronization": [
@@ -78551,7 +78640,7 @@
               },
               {
                 "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "let original, bounds, readFailure;"
+                "anchor": "let original, bounds, readFailure, originalConstruction;"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -79193,7 +79282,7 @@
               },
               {
                 "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "let original, bounds, readFailure;"
+                "anchor": "let original, bounds, readFailure, originalConstruction;"
               }
             ],
             "synchronization": [
@@ -79260,7 +79349,14 @@
             "prepareInstalledModelProviderDefaults/check/check",
             "prepareInstalledModelProviderDefaults/init:bindRegistration/init:bindRegistration",
             "prepareInstalledModelProviderDefaults/resolveTaskDefaults/resolveTaskDefaults",
-            "prepareInstalledModelProviderDefaults/state/init:adopt/init:adopt"
+            "prepareInstalledModelProviderDefaults/state/init:adopt/init:adopt",
+            "modelDefaultsResolver/resolveTaskDefaults/project/project",
+            "modelDefaultsResolver/resolveTaskDefaults/project/project#2",
+            "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults#3",
+            "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults#4",
+            "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults#5",
+            "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults#6",
+            "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults#7"
           ],
           "exports": [
             "assertInstalledModelDefaultsAdoption",
@@ -79339,7 +79435,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
+                "anchor": "const wire = construction === undefined"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
@@ -79393,7 +79489,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const bounds = snapshotLimits(limits);"
+                "anchor": "const bounds = snapshotLimits(limits, construction !== undefined);"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -91079,7 +91175,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "623e4849a48d868073b39cc9daae7ae7b489ec0e36efd923352a43a7683f832b",
+      "sha256": "4dc45590489e0ccd4e3202738a0544ed89d6678b1eb651a4328caa23d04d6e03",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -92047,6 +92143,7 @@
             "runtimeBundleCid",
             "accountConfiguration",
             "originalContext",
+            "accountConstruction",
             "connection",
             "profile",
             "resolveSecret",

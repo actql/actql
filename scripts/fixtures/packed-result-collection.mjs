@@ -9,9 +9,9 @@ import {getSubmissionOutcome, getSubmissionInput, getSubmissionAttempt} from '@a
 import {observeRecordApprovalDescriptors} from './record-approval/scoped-fds.fixture.mjs';
 
 const [phase, handoffPath] = process.argv.slice(2);
-assert(['budget', 'memory-recovery', 'work-recovery', 'accepted-memory-recovery', 'capture', 'saved'].includes(phase));
+assert(['budget', 'memory-recovery', 'work-recovery', 'accepted-memory-recovery', 'capture', 'saved', 'large-row-capture', 'large-row-saved'].includes(phase));
 assert.equal(typeof handoffPath, 'string');
-const stateDir = join(process.cwd(), phase === 'budget' || phase.endsWith('-recovery') ? phase + '-state' : 'state');
+const stateDir = join(process.cwd(), phase === 'budget' || phase.endsWith('-recovery') ? phase + '-state' : phase.startsWith('large-row-') ? 'large-row-state' : 'state');
 const counts = [9999, 10000, 10001, 100000];
 const report = {phase, pid: process.pid, cases: [], submits: 0,
   firstClose: 'unobserved', firstCloseCalls: 0, complete: false, phases: []};
@@ -63,6 +63,34 @@ function largeRowProgram() {
   // checked64k text and produce an independently expected row above1MiB.
   return `WITH x AS (SELECT '${'x'.repeat(64000)}' AS t) SELECT ${
     Array.from({length: 17}, (_, n) => `t AS f${n}`).join(',')} FROM x`;
+}
+// Isolated 100M-work regression for the actual normal publication refusal.
+// One original 64k literal is projected263 times, or joined into272 small rows.
+function largeRow16Program(id) {
+  const text = "WITH x AS (SELECT '" + 'x'.repeat(64000) + "' AS t)";
+  if (id === 'one-row') return text + ' SELECT ' +
+    Array.from({length: 263}, (_, n) => `t AS f${n}`).join(',') + ' FROM x';
+  assert.equal(id, 'many-rows');
+  const branch = count => Array.from({length: count}, (_, n) => `SELECT ${n} AS n`).join(' UNION ALL ');
+  return text + `, a AS (${branch(17)}), b AS (${branch(16)}) SELECT a.n AS a, b.n AS b, t AS t FROM x CROSS JOIN a CROSS JOIN b`;
+}
+function exactLargeRow16Rows(rows, id) {
+  const text = 'x'.repeat(64000), limit = 16777216;
+  if (id === 'one-row') {
+    assert.deepEqual(rows, [Object.fromEntries(Array.from({length: 263}, (_, n) => [`f${n}`, text]))]);
+  } else {
+    assert.equal(id, 'many-rows');
+    const expected = Array.from({length: 17}, (_, a) =>
+      Array.from({length: 16}, (_, b) => ({a, b, t: text}))).flat();
+    assert.deepEqual([...rows].sort((left, right) => left.a - right.a || left.b - right.b), expected);
+  }
+  const sizes = rows.map(row => Buffer.byteLength(JSON.stringify(row), 'utf8'));
+  const wireBytes = sizes.reduce((sum, bytes) => sum + bytes, 0);
+  const maxRowWireBytes = Math.max(...sizes);
+  assert(wireBytes > limit);
+  if (id === 'one-row') {assert.equal(wireBytes, 16834521); assert(maxRowWireBytes > limit);}
+  else {assert.equal(rows.length, 272); assert(maxRowWireBytes < limit);}
+  return {rows: rows.length, wireBytes, maxRowWireBytes};
 }
 // A long comment has no data rows or execution work. Its original request
 // snapshot alone outgrows this phase's fixed 256MiB while the later query fits.
@@ -256,7 +284,7 @@ const workObservations = report.workObservations = [];
 try {
   // Explicit finite policy for this authored SQL's measured semantic work.
   // Both capture and the same-original Saved process select the same Host input.
-  report.sourceFreeMaxWork = phase === 'work-recovery' ? 100000 : 30000000;
+  report.sourceFreeMaxWork = phase.startsWith('large-row-') ? 100000000 : phase === 'work-recovery' ? 100000 : 30000000;
   const memory = phase === 'budget' ? 32768 : phase === 'memory-recovery' ? 268435456
     : phase === 'accepted-memory-recovery' ? 536870912 : 1073741824;
   report.requestMemory = {retainedBytes: memory, executionBytes: memory};
@@ -373,6 +401,55 @@ try {
     report.currentRunResult.complete = true;
     report.resourceRecovery = await sameHostSmallResult(client, report, span, save);
     report.previousSaved = await readPreviousSavedResult(client, previous, report, span);
+  } else if (phase === 'large-row-capture' || phase === 'large-row-saved') {
+    const capturing = phase === 'large-row-capture';
+    const original = capturing ? {cases: []} : JSON.parse(await readFile(handoffPath, 'utf8'));
+    if (!capturing) assert.deepEqual(original.cases.map(value => value.id), ['one-row', 'many-rows']);
+    for (const id of ['one-row', 'many-rows']) {
+      const programPath = join(process.cwd(), `collection-large-row16-${id}.sql`);
+      let run, resultName;
+      if (capturing) {
+        await writeFile(programPath, largeRow16Program(id), {flag: 'wx'}); programs.push(programPath);
+        const document = await readFile(programPath, 'utf8');
+        report.currentRunResult = {kind: 'source', purpose: id}; report.submits++;
+        run = await span(`submit-large-row16-${id}`, () => client.startSource(document, {format: 'sql'}));
+        await save(`large-row16-ref-before-wait-${id}.json`, run.ref);
+        report.currentRunResult = {kind: 'run', ref: run.ref, purpose: id, complete: false};
+        const terminal = await span(`wait-large-row16-${id}`, () => run.wait());
+        // Preserve the returned failure before an assertion/first close can
+        // obscure it. This is bounded diagnostic DATA from this SAME wait.
+        report.currentRunResult.terminal = {status: terminal.status,
+          result_available: terminal.result_available, physical_stop: terminal.control?.physical_stop,
+          ...(terminal.terminal_error ? {terminal_error: {code: terminal.terminal_error.code,
+            message: terminal.terminal_error.message?.slice(0, 8192),
+            messageTruncated: (terminal.terminal_error.message?.length ?? 0) > 8192}} : {})};
+        assert.equal(terminal.status, 'succeeded');
+        const names = terminal.next_action?.results;
+        assert(Array.isArray(names) && names.length === 1); resultName = names[0];
+      } else {
+        await assert.rejects(readFile(programPath), {code: 'ENOENT'});
+        const saved = original.cases.find(value => value.id === id);
+        assert(saved.ref !== undefined && typeof saved.resultName === 'string' && saved.resultName.length);
+        report.currentRunResult = {kind: 'saved', ref: saved.ref, resultName: saved.resultName, purpose: id, complete: false};
+        run = await span(`attach-large-row16-${id}`, () => client.attach(saved.ref)); resultName = saved.resultName;
+      }
+      const result = run.result(resultName);
+      const rows = await span(`all-large-row16-${id}`, () => result.all());
+      const quantities = exactLargeRow16Rows(rows, id);
+      if (capturing && id === 'one-row') {
+        await span('large-row16-explicit-refusal', () => assert.rejects(
+          result.all({maxRowWireBytes: 16777216}), {code: 'ResultRowWireLimit'}));
+        exactLargeRow16Rows(await span('large-row16-SAME-Run-recovery', () => result.all()), id);
+        report.explicitRefusal = 'ResultRowWireLimit'; report.sameRunRecovery = true;
+      }
+      if (!capturing) assert.equal((await span(`status-AFTER-large-row16-${id}`, () => run.status())).status, 'succeeded');
+      const completed = {id, ref: run.ref, resultName, ...quantities, complete: true};
+      if (!capturing) assert.deepEqual(completed, original.cases.find(value => value.id === id));
+      report.cases.push(completed); report.currentRunResult.complete = true;
+      if (capturing) {original.cases.push(completed); await save(handoffPath, original);}
+    }
+    assert.equal(report.submits, capturing ? 2 : 0);
+    if (!capturing) report.originalProgramsAbsent = true;
   } else if (phase === 'capture') {
     for (const count of counts) {
       const programPath = join(process.cwd(), `collection-${count}.sql`);
@@ -540,7 +617,7 @@ finally {
     report.aliveScopedFD = {before: before.openPaths.length, after: after.openPaths.length};
     assert.deepEqual(report.aliveScopedFD, {before: 0, after: 0});
   } catch (error) {cleanup.push(error);}
-  if (!failed && cleanup.length === 0 && phase === 'capture') {
+  if (!failed && cleanup.length === 0 && (phase === 'capture' || phase === 'large-row-capture')) {
     report.originalProgramsRemovedAfterFirstClose = 0;
     try {
       await span('remove-original-Programs', async () => {

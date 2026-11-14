@@ -64,7 +64,8 @@
   no new byte factor, configured-limit proxy or backend-memory claim is added.
 - Extension: Catalog admission, PreparedSourceCatalog provenance, publication
   context/alias/target construction and populated ModelTask schema/generation/
-  data-handling construction are outside this inventory. Reusing a Catalog for
+  data-handling construction are outside this empty-constructor inventory; the
+  separate populated construction domain below retains their original owners. Reusing a Catalog for
   publication requires that exact CheckEnvironment owner and original admission
   bounds, including contents depth; observed usage cannot prove a tighter depth
   bound or authorize rereading. New reader allocations, output owners, flags or
@@ -78,3 +79,44 @@
   Source sidecars establish only exact source/interface correspondence. Neither
   those checks nor this inventory establish complete Catalog/publication funding,
   physical backing, normal-package artifacts, merge or release acceptance.
+
+## Populated Task construction on the original installation
+
+- Populated responsibility: Common's original public Task/defaults constructors
+  and full CheckEnvironment checker own this separate recipe. The Host selects
+  it only for the actual admitted nonempty registry inventory; the empty-only
+  recipe and both empty guards remain unchanged.
+- Populated inputs and outputs: The same original Task wire, selected registry
+  member, provider/default/profile originals and normalized writer usage supply
+  actual ordered entries and complete final Environment material. Each file is
+  read/normalized once; quoting does not reparse a growing collection prefix.
+- Populated identity: Numeric quantities are DATA, never an Account, CID,
+  registry identity, profile permission or replacement checker. The final thin
+  bridge borrows the same admitted wire and invokes the existing full checker
+  with its explicit graph/SGA/numeric-profile choices. Foreign originals and
+  empty/populated mismatch refuse.
+- Populated ownership: The SAME installation material holds retained documents,
+  canonical defaults, normalized members, ordered references and old/new final
+  Environment owners alongside active and failed constructor scratch.
+- Populated synchronization: The numeric callback reserves before file/decode,
+  normalization/default resolution, metadata and final Environment construction.
+  Retained quantities select only after actual successful return; scalar
+  accumulation uses the actual ordered delta, not repeated prefix emission.
+- Populated failure: Explicit maxTasks128, per-document bytes/nodes/depth,
+  contracts/work and smaller original Resources retain their refusals. Complete
+  member validation is never replaced by a validated prefix or successful quote.
+- Populated cancellation: Source/FD/Host currentness and unknown-close carriers
+  remain with their actual owners. Neither a retained-only number nor cancellation
+  acknowledges physical cleanup or releases a failed child.
+- Populated resources: Document bytes, YAML line inventory, value nodes, Text,
+  canonical conversion, defaults resolution and complete ordered writer usage
+  stay independent quantities. Actual registry count is inventory, not permission
+  or a body-bytes-to-node tariff. No execution/token/Account cap is increased.
+- Populated extension: This domain funds installation materialization only. It
+  does not certify runtime Model/INFER inventory, provider calls, backing layout,
+  normal artifacts or actual physical execution. Canonical RelA generation remains
+  the existing mirror mechanism, not another semantic owner.
+- Populated verification: public_model_task_registry_demand_wbtest.mbt and the
+  actual installed-project-model-task-funding case author129-member, explicit128,
+  small Resource, original/domain mismatch and once/member checks. These are
+  Source/interface references; normal installed acceptance remains independent.

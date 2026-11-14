@@ -660,7 +660,7 @@ test('packed collection persists Program-removal failure after FIRST close and n
   const runFinalizer = Function('client', 'span', 'report', 'cleanup', 'failed', 'phase', 'programs',
     'unlink', 'save', 'observeRecordApprovalDescriptors', 'setTimeout', 'stateDir', 'assert', 'progress',
     `return (async () => ${source.slice(finalizer.start, finalizer.end)})();`);
-  for (const phase of ['budget', 'capture', 'saved']) {
+  for (const phase of ['budget', 'capture', 'saved', 'large-row-capture', 'large-row-saved']) {
     const events = [], cleanup = [], report = {firstClose: 'unobserved'}, observations = [];
     const failure = Object.assign(new Error('Original Program removal failed'), {code: 'EACCES'});
     await runFinalizer({async close() {events.push('FIRST-close');}},
@@ -675,7 +675,7 @@ test('packed collection persists Program-removal failure after FIRST close and n
     assert.equal(final.path, `${phase}.observation.json`);
     assert.equal(final.value.firstClose, 'returned');
     assert.deepEqual(final.value.aliveScopedFD, {before: 0, after: 0});
-    if (phase === 'capture') {
+    if (phase === 'capture' || phase === 'large-row-capture') {
       assert.deepEqual(events, ['FIRST-close', 'first.sql', 'second.sql']);
       assert.equal(cleanup[0], failure); assert.equal(report.originalProgramsRemovedAfterFirstClose, 1);
       assert.equal(final.value.complete, false);
@@ -695,16 +695,16 @@ test('collection saves its original primary before pending close and diagnostic 
     'unlink', 'save', 'observeRecordApprovalDescriptors', 'setTimeout', 'stateDir', 'assert', 'primary', 'console', 'progress',
     `return (async () => {${source.slice(finalizer.start + 1, finalizer.end - 1)}
       ${source.slice(finalizer.end)}})();`);
-  for (const writeFails of [false, true]) {
+  for (const phase of ['capture', 'large-row-capture']) for (const writeFails of [false, true]) {
     const primary = Object.assign(new Error('OriginalWaitRefusal'), {code: 'OriginalWaitRefusal'});
-    const report = {phase: 'capture', pid: 123, firstFailedStep: 'wait-100000',
+    const report = {phase, pid: 123, firstFailedStep: 'wait-100000',
       primary: {name: primary.name, code: primary.code}, submits: 4};
     const events = [], stored = [];
     let release, entered;
     const closing = new Promise(resolve => {release = resolve;});
     const started = new Promise(resolve => {entered = resolve;});
     const result = invoke({async close() {events.push('close'); entered(); await closing;}},
-      async (_name, action) => action(), report, [], true, 'capture', [],
+      async (_name, action) => action(), report, [], true, phase, [],
       async () => assert.fail('Failed capture cannot remove input'),
       async (path, value) => {
         events.push('save'); stored.push({path, value: structuredClone(value)});
@@ -995,6 +995,7 @@ test('independent normal consumers continue after collection and variant failure
       platform: 'explicit-test', arch: 'explicit-test'}, fileURLToPath: () => repository,
     URL, checkoutState: () => before, execFileSync: () => 'b'.repeat(40), mkdir, join, writeFile,
     packedReadmeCases, packedCompositionCases, packedEffectControlCases,
+    runPackedAccountControls: async ({report}) => {report.account.completed = true; report.account.status = 'passed';},
     runMockEffectControls: async ({records}) => records.forEach(record => {record.completed = true; record.status = 'passed';}),
     nodeBenchmarkFailure, execute: async () => assert.fail('No product command'),
     prepareHealthPackages: async () => ({consumer, manifest: {}, manifestPath: '/authored-manifest'}),
@@ -1048,6 +1049,7 @@ test('each required Model composition is distinct from README three and cannot p
         platform: 'explicit-test', arch: 'explicit-test'}, fileURLToPath: () => repository,
       URL, checkoutState: () => before, execFileSync: () => 'b'.repeat(40), mkdir, join, writeFile,
       packedReadmeCases, packedCompositionCases, packedEffectControlCases,
+      runPackedAccountControls: async ({report}) => {report.account.completed = true; report.account.status = 'passed';},
       runMockEffectControls: async ({records}) => records.forEach(record => {record.completed = true; record.status = 'passed';}),
       nodeBenchmarkFailure,
       execute: async () => assert.fail('No product command'), prepareHealthPackages: async () => prepared,
@@ -1117,6 +1119,7 @@ test('failed shared package preparation records every dependent as unexecuted an
       platform: 'explicit-test', arch: 'explicit-test'}, fileURLToPath: () => repository, URL,
     checkoutState: () => before, execFileSync: () => 'b'.repeat(40), mkdir, join, writeFile,
     packedReadmeCases, packedCompositionCases, packedEffectControlCases,
+    runPackedAccountControls: async ({report}) => {report.account.completed = true; report.account.status = 'passed';},
     runMockEffectControls: async ({records}) => records.forEach(record => {record.completed = true; record.status = 'passed';}),
     nodeBenchmarkFailure, execute: async () => assert.fail('No product command'),
     prepareHealthPackages: async options => {assert.equal(options.normalLifecycle, true); throw failure;},
@@ -1126,9 +1129,9 @@ test('failed shared package preparation records every dependent as unexecuted an
     verifyNodeBenchmarkPackages: async () => assert.fail('No successful prepared input')});
   await assert.rejects(run(output), error => error === failure);
   const report = JSON.parse(await readFile(join(output, 'summary.json'), 'utf8'));
-  assert.deepEqual(report.collection.map(value => value.phase), ['budget', 'memory-recovery', 'work-recovery', 'accepted-memory-recovery', 'capture', 'saved']);
+  assert.deepEqual(report.collection.map(value => value.phase), ['budget', 'memory-recovery', 'work-recovery', 'accepted-memory-recovery', 'capture', 'saved', 'large-row-capture', 'large-row-saved']);
   assert.equal(report.complete, false);
-  assert([...report.collection, ...report.projectFiles, ...report.cases, ...report.compositions, ...report.controls].every(value =>
+  assert([report.account, ...report.collection, ...report.projectFiles, ...report.cases, ...report.compositions, ...report.controls].every(value =>
     value.status === 'unexecuted' && value.completed === false && value.unexecutedReason));
   assert.equal(report.failures.length, 1);
 });
@@ -1555,6 +1558,7 @@ test('required normal controls preserve original errors and cannot pass an unexe
     runCollectionConsumer: async ({report}) => report.collection.forEach(row => row.completed = true),
     runProjectFileJoinConsumer: async ({report}) => report.projectFiles.forEach(row => row.completed = true),
     runReadmeCases: async ({report, cases = report.cases}) => cases.forEach(row => row.completed = true),
+    runPackedAccountControls: async ({report}) => {report.account.completed = true; report.account.status = 'passed';},
     runMockEffectControls: async ({records}) => records.filter(row => row.mode !== 'publication-io-failure')
       .forEach(row => {row.completed = true; row.status = 'passed';}), verifyNodeBenchmarkPackages: async () => {}});
   await assert.rejects(execute(output), {code: 'ERR_ASSERTION'});
@@ -2506,6 +2510,7 @@ test('normal Project file JOIN cannot pass with an unexecuted capture or Saved',
       runProjectFileJoinConsumer: async ({report}) => report.projectFiles.filter(row => row.phase !== missing)
         .forEach(row => {row.completed = true; row.status = 'passed';}),
       runReadmeCases: async ({report, cases = report.cases}) => cases.forEach(row => row.completed = true),
+      runPackedAccountControls: async ({report}) => {report.account.completed = true; report.account.status = 'passed';},
       runMockEffectControls: async ({records}) => records.forEach(row => row.completed = true),
       verifyNodeBenchmarkPackages: async () => {}});
     await assert.rejects(run(output), {code: 'ERR_ASSERTION'});
@@ -2619,5 +2624,170 @@ test('required collection parent rejects missing or foreign large Saved evidence
       if (mode === 'partial-capture') assert.equal(record.largeRowUnexecutedReason,
         'Requires completed original large-row handoff');
     } else {await assert.rejects(checking); assert.equal(record.status, 'failed');}
+  }
+});
+
+
+test('16MiB regression SQL and complete tuple oracles retain263 fields and272 small rows', async () => {
+  const source = await readFile(new URL('./fixtures/packed-result-collection.mjs', import.meta.url), 'utf8');
+  const declarations = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body;
+  const load = name => {
+    const node = declarations.find(value => value.type === 'FunctionDeclaration' && value.id.name === name);
+    return Function('assert', 'Buffer', `return (${source.slice(node.start, node.end)});`)(assert, Buffer);
+  };
+  const program = load('largeRow16Program'), exact = load('exactLargeRow16Rows');
+  const text = 'x'.repeat(64000);
+  const one = [Object.fromEntries(Array.from({length: 263}, (_, index) => ['f'+index, text]))];
+  const many = Array.from({length: 17}, (_, a) => Array.from({length: 16}, (_, b) => ({a,b,t:text}))).flat();
+  const first = program('one-row'), second = program('many-rows');
+  assert.equal(first.split(text).length, 2); assert.equal(second.split(text).length, 2);
+  assert.equal((first.match(/t AS f[0-9]+/gu) ?? []).length, 263);
+  assert.equal((second.match(/SELECT [0-9]+ AS n/gu) ?? []).length, 33);
+  assert(second.endsWith('SELECT a.n AS a, b.n AS b, t AS t FROM x CROSS JOIN a CROSS JOIN b'));
+  assert.deepEqual(exact(one, 'one-row'), {rows: 1, wireBytes: 16834521, maxRowWireBytes: 16834521});
+  assert.deepEqual(exact(many, 'many-rows'), {rows: 272, wireBytes: 17413654, maxRowWireBytes: 64022});
+  assert.throws(() => exact([{...one[0], f262: text.slice(1)}], 'one-row'));
+  assert.throws(() => exact([...many.slice(0, -1), {...many.at(-1), t: text.slice(1)}], 'many-rows'));
+  assert.throws(() => exact(many.slice(1), 'many-rows'));
+});
+
+test('16MiB fixture captures once per SQL, refuses a smaller reader, closes then cold reads SAME Saved without SQL', async () => {
+  const source = await readFile(new URL('./fixtures/packed-result-collection.mjs', import.meta.url), 'utf8');
+  const first = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body.find(node => node.type !== 'ImportDeclaration');
+  const invoke = Function('ports', `return (async () => {
+    const {assert,readFile,writeFile,unlink,join,setTimeout,open,getSubmissionOutcome,getSubmissionInput,getSubmissionAttempt,
+      observeRecordApprovalDescriptors,process,console}=ports;
+    ${source.slice(first.start)}
+  })();`);
+  const text = 'x'.repeat(64000), files = new Map(), observations = [], events = [], policies = [];
+  const expected = {
+    'one-row': [Object.fromEntries(Array.from({length: 263}, (_, n) => ['f'+n, text]))],
+    'many-rows': Array.from({length: 17}, (_, a) => Array.from({length: 16}, (_, b) => ({a,b,t:text}))).flat(),
+  };
+  let selectedPhase, submissions = 0, failedTerminal;
+  const run = id => ({ref: {run: id}, async wait() {
+    events.push('wait:'+id);
+    assert(files.has('large-row16-ref-before-wait-'+id+'.json'));
+    const progress = JSON.parse(files.get(selectedPhase+'.progress.json'));
+    assert.equal(progress.event, 'start'); assert.equal(progress.step, 'wait-large-row16-'+id);
+    return failedTerminal ?? {status: 'succeeded', next_action: {results: ['answer']}};
+  }, result(name) {assert.equal(name, 'answer'); return {async all(options) {
+    if (options) {assert.deepEqual(options, {maxRowWireBytes: 16777216});
+      events.push('refusal:'+id); throw Object.assign(new Error('Explicit smaller reader'), {code: 'ResultRowWireLimit'});}
+    events.push('all:'+id); return expected[id];
+  }};}, async status() {events.push('status:'+id); return {status: 'succeeded'};}});
+  const execute = async (phase, pid) => {
+    selectedPhase = phase;
+    await invoke({assert, join, process: {argv: ['node','fixture',phase,'/fresh/large-row-original.json'], pid,
+      cwd: () => '/fresh', hrtime: process.hrtime, cpuUsage: process.cpuUsage},
+      console: {log(wire) {observations.push(JSON.parse(wire));}}, setTimeout: async () => {},
+      async readFile(path) {if (!files.has(path)) throw Object.assign(new Error('Absent'), {code: 'ENOENT'}); return files.get(path);},
+      async writeFile(path, wire, options) {if (options?.flag === 'wx') assert(!files.has(path)); files.set(path, wire);},
+      async unlink(path) {events.push('unlink:'+path); assert(files.delete(path));},
+      getSubmissionOutcome: () => assert.fail('No refusal submission'), getSubmissionInput: () => assert.fail('No refusal input'),
+      getSubmissionAttempt: () => assert.fail('No refusal attempt'),
+      observeRecordApprovalDescriptors: async () => ({openPaths: []}),
+      async open(options) {policies.push(options); return {
+        async startSource(sql, selected) {
+          assert.equal(phase, 'large-row-capture'); assert.deepEqual(selected, {format: 'sql'}); submissions++;
+          const id = sql.includes('t AS f262') ? 'one-row' : 'many-rows'; events.push('submit:'+id); return run(id);
+        }, async attach(ref) {assert.equal(phase, 'large-row-saved');
+          assert.deepEqual(ref, {run: ref.run}); assert(Object.hasOwn(expected, ref.run)); events.push('attach:'+ref.run); return run(ref.run);},
+        async close() {
+          const pending = JSON.parse(files.get(phase+'.pending.json'));
+          assert.equal(pending.firstClose, 'pending'); assert.equal(pending.complete, false);
+          if (failedTerminal) {assert.equal(pending.primary.code, 'ERR_ASSERTION');
+            assert.equal(pending.currentRunResult.terminal.terminal_error.message, 'RunPublicationCapacityUnsupported');}
+          events.push('close:'+phase);
+        },
+      };},
+    });
+  };
+  await execute('large-row-capture', 123); await execute('large-row-saved', 456);
+  assert.equal(submissions, 2);
+  assert(policies.every(value => value.stateDir === '/fresh/large-row-state' &&
+    value.installation.sourceFreeMaxWork === 100000000 &&
+    value.installation.requestMemory.retainedBytes === 1073741824 && value.installation.requestMemory.executionBytes === 1073741824));
+  assert.deepEqual(observations.map(value => [value.phase,value.pid,value.submits,value.complete]),
+    [['large-row-capture',123,2,true],['large-row-saved',456,0,true]]);
+  for (const actual of observations) {
+    assert.equal(actual.firstCloseCalls, 1); assert.equal(actual.firstClose, 'returned');
+    assert.deepEqual(actual.aliveScopedFD, {before: 0, after: 0}); assert.deepEqual(actual.cleanup, []);
+  }
+  assert.equal(observations[0].explicitRefusal, 'ResultRowWireLimit'); assert.equal(observations[0].sameRunRecovery, true);
+  assert.equal(observations[0].originalProgramsRemovedAfterFirstClose, 2);
+  assert.equal(observations[1].originalProgramsAbsent, true); assert.deepEqual(observations[1].cases, observations[0].cases);
+  assert(events.indexOf('close:large-row-capture') < events.findIndex(value => value.startsWith('unlink:')));
+  assert(events.indexOf('unlink:/fresh/collection-large-row16-many-rows.sql') < events.indexOf('attach:one-row'));
+  failedTerminal = {status: 'failed', result_available: false, control: {physical_stop: 'confirmed'},
+    terminal_error: {code: 'ACTQL_E_UNPUBLISHED_RUN', message: 'RunPublicationCapacityUnsupported'}};
+  await assert.rejects(execute('large-row-capture', 789), {code: 'ERR_ASSERTION'});
+  const failure = observations.at(-1), pending = JSON.parse(files.get('large-row-capture.pending.json'));
+  for (const receipt of [failure, pending]) {
+    assert.equal(receipt.complete, false); assert.equal(receipt.primary.code, 'ERR_ASSERTION');
+    assert.deepEqual(receipt.currentRunResult.terminal, {status: 'failed', result_available: false,
+      physical_stop: 'confirmed', terminal_error: {...failedTerminal.terminal_error, messageTruncated: false}});
+  }
+  assert.equal(failure.firstCloseCalls, 1); assert.equal(failure.firstClose, 'returned');
+  assert(files.has('/fresh/collection-large-row16-one-row.sql'), 'Failed original input is retained');
+});
+
+test('16MiB collection routing uses SAME staged artifact and separate Saved PID within the existing timeout', async t => {
+  const {root, consumer} = await scratch(t), load = await runnerFunctions(), phases = [], cleanup = [];
+  const runCollectionPhase = load('runCollectionPhase', {readFile,join,assert,process,nodeBenchmarkFailure});
+  const completedCollectionCapture = load('completedCollectionCapture', {readFile,join,assert});
+  const completedLargeRowCapture = load('completedLargeRowCapture', {readFile,join,assert});
+  const invoke = load('runCollectionConsumer', {join,dirname,mkdir,copyFile,writeFile,symlink,unlink,readlink,assert,process,
+    runCollectionPhase,completedCollectionCapture,completedLargeRowCapture});
+  const cases = [{id:'one-row',ref:{run:'one'},resultName:'answer',rows:1,wireBytes:16834521,maxRowWireBytes:16834521,complete:true},
+    {id:'many-rows',ref:{run:'many'},resultName:'answer',rows:272,wireBytes:17413654,maxRowWireBytes:64022,complete:true}];
+  const report = {collection: ['large-row-capture','large-row-saved'].map(phase => ({phase,completed:false,status:'unexecuted'}))};
+  await invoke({prepared:{consumer},root,repository,report,cleanup,async command(executable,args,options) {
+    assert.equal(executable,process.execPath); assert.equal(options.timeout,120000);
+    assert.equal(await readlink(join(options.cwd,'node_modules')),join(consumer,'node_modules'));
+    assert.deepEqual(await readFile(args[0]),await readFile(join(repository,'scripts/fixtures/packed-result-collection.mjs')));
+    const phase = args[1]; phases.push(phase); assert.equal(args[2],join(options.cwd,'large-row-original.json'));
+    const actual = {phase,pid:phase==='large-row-capture'?123:456,sourceFreeMaxWork:100000000,
+      requestMemory:{retainedBytes:1073741824,executionBytes:1073741824},submits:phase==='large-row-capture'?2:0,
+      firstClose:'returned',firstCloseCalls:1,aliveScopedFD:{before:0,after:0},cleanup:[],complete:true,cases,
+      ...(phase==='large-row-capture'?{explicitRefusal:'ResultRowWireLimit',sameRunRecovery:true,originalProgramsRemovedAfterFirstClose:2}
+        :{originalProgramsAbsent:true})};
+    await writeFile(args[2],JSON.stringify({cases}));
+    await writeFile(join(options.cwd,phase+'.observation.json'),JSON.stringify(actual));
+    return {pid:actual.pid,code:0,signal:null,wallNs:10,stdout:JSON.stringify(actual)};
+  }});
+  assert.deepEqual(phases,['large-row-capture','large-row-saved']); assert(report.collection.every(row=>row.completed));
+  assert.deepEqual(cleanup,[]); await assert.rejects(readlink(join(root,'collection/node_modules')),{code:'ENOENT'});
+  // The existing required Node22/24 route still invokes this same collection runner.
+  assert.deepEqual(job.strategy.matrix.node.map(version => Number(version.split('.')[0])),[22,24]);
+  assert(job.steps.some(step=>step.run?.includes('node scripts/test-packed-readme-workflows.mjs')));
+});
+
+
+test('required Account control uses SAME prepared artifact once and cannot pass failed or unexecuted', async t => {
+  for (const mode of ['passed','failed','unexecuted']) {
+    const {root,consumer} = await scratch(t), output = join(root,'out'), load = await runnerFunctions();
+    const before = {clean:true,revision:'a'.repeat(40)}, prepared = {consumer,manifest:{},manifestPath:'/same-normal'};
+    const primary = new Error('OriginalAccountControlFailure'); let calls=0;
+    const run = load('runPackedReadmeWorkflows', {assert,isAbsolute:value=>value.startsWith('/'),
+      process:{env:{ACTQL_PACKED_CLIENT_PACKAGES:'/same-normal'},version:'explicit-test'},
+      fileURLToPath:()=>repository,URL,checkoutState:()=>before,execFileSync:()=>'b'.repeat(40),mkdir,join,writeFile,
+      packedReadmeCases,packedCompositionCases,packedEffectControlCases,nodeBenchmarkFailure,
+      execute:async()=>assert.fail('No product command'),prepareHealthPackages:async()=>prepared,
+      async runPackedAccountControls(options) {
+        calls++; assert.strictEqual(options.prepared,prepared); assert.equal(options.repository,repository);
+        assert.equal(options.root,output); assert.equal(typeof options.command,'function'); assert(Array.isArray(options.cleanup));
+        if(mode==='failed') {options.report.account.status='failed';throw primary;}
+        if(mode==='passed') {options.report.account.completed=true;options.report.account.status='passed';}
+      },
+      runCollectionConsumer:async({report})=>report.collection.forEach(row=>row.completed=true),
+      runProjectFileJoinConsumer:async({report})=>report.projectFiles.forEach(row=>row.completed=true),
+      runReadmeCases:async({report,cases=report.cases})=>cases.forEach(row=>row.completed=true),
+      runMockEffectControls:async({records})=>records.forEach(row=>row.completed=true),verifyNodeBenchmarkPackages:async()=>{}});
+    if(mode==='passed') assert.equal((await run(output)).complete,true);
+    else await assert.rejects(run(output),error=>mode==='failed'?error===primary:error.code==='ERR_ASSERTION');
+    assert.equal(calls,1);
+    const report=JSON.parse(await readFile(join(output,'summary.json'),'utf8'));
+    assert.equal(report.complete,mode==='passed'); assert.equal(report.account.status,mode==='passed'?'passed':mode==='failed'?'failed':'unexecuted');
   }
 });

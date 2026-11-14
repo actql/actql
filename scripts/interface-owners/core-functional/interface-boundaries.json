@@ -3051,7 +3051,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -4125,7 +4125,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -6634,7 +6634,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -22554,7 +22554,7 @@
     },
     {
       "module": "adapters/host-node/installed-model.mjs",
-      "sha256": "16f62dabe25ef617bc016bbd7f63a7a2f2cb387c8aeab541ff40f00f1bf09bb5",
+      "sha256": "262b843f3c0eaec2099d540fb610d6d675dc761d6c64011856bf482a3abb00b8",
       "role": "physical-io",
       "exports": [
         "admitInstalledModelProvider",
@@ -22723,7 +22723,8 @@
           "parameters": [
             "selectedModel",
             "taskMaxOutputTokens",
-            "limits"
+            "limits",
+            "construction"
           ],
           "async": false
         },
@@ -22745,7 +22746,10 @@
             "reader",
             "resolver",
             "bindingReader",
-            "usageReader"
+            "usageReader",
+            "readCapacity",
+            "retainedCapacity",
+            "resolutionCapacities"
           ],
           "async": false
         },
@@ -22754,8 +22758,19 @@
           "parameters": [
             "selectedModel",
             "taskMaxOutputTokens",
-            "limits"
+            "limits",
+            "construction"
           ],
+          "async": false
+        },
+        {
+          "name": "modelDefaultsResolver/resolveTaskDefaults/project/project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "modelDefaultsResolver/resolveTaskDefaults/project/project#2",
+          "parameters": [],
           "async": false
         },
         {
@@ -22770,6 +22785,35 @@
           "parameters": [
             "key"
           ],
+          "async": false
+        },
+        {
+          "name": "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults#6",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults#7",
+          "parameters": [],
           "async": false
         },
         {
@@ -23099,7 +23143,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization) {"
+                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -23125,7 +23169,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization) {"
+                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -23189,7 +23233,7 @@
               },
               {
                 "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "let original, bounds, readFailure;"
+                "anchor": "let original, bounds, readFailure, originalConstruction;"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -23199,7 +23243,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization) {"
+                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -23352,7 +23396,14 @@
             "prepareInstalledModelProviderDefaults/check/check",
             "prepareInstalledModelProviderDefaults/init:bindRegistration/init:bindRegistration",
             "prepareInstalledModelProviderDefaults/resolveTaskDefaults/resolveTaskDefaults",
-            "prepareInstalledModelProviderDefaults/state/init:adopt/init:adopt"
+            "prepareInstalledModelProviderDefaults/state/init:adopt/init:adopt",
+            "modelDefaultsResolver/resolveTaskDefaults/project/project",
+            "modelDefaultsResolver/resolveTaskDefaults/project/project#2",
+            "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults#3",
+            "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults#4",
+            "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults#5",
+            "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults#6",
+            "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults#7"
           ],
           "exports": [
             "assertInstalledModelDefaultsAdoption",
@@ -23431,7 +23482,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
+                "anchor": "const wire = construction === undefined"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
@@ -23485,7 +23536,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const bounds = snapshotLimits(limits);"
+                "anchor": "const bounds = snapshotLimits(limits, construction !== undefined);"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -23535,7 +23586,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization) {"
+                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -23557,7 +23608,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization) {"
+                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -23613,13 +23664,13 @@
               },
               {
                 "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "let original, bounds, readFailure;"
+                "anchor": "let original, bounds, readFailure, originalConstruction;"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization) {"
+                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -33570,7 +33621,7 @@
       "sha256": "0104106d7e4b7a8c0a6e91aa246f13533e0ef3682cf3faff2b2faa754ede0634",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -35140,7 +35191,7 @@
       "sha256": "6d771c8cb5dd88dc1129fac3791af75d2bd72b47d4a8a397f56c8b5956da7dd2",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original installed Effect Plan and Model demand correspondence",
+      "owner": "D — original installed Effect Plan and Model demand correspondence",
       "exports": [],
       "operations": [
         {
@@ -35378,7 +35429,7 @@
       "sha256": "9c6c294e6755db008c53601f66bd914244c63fa58ff7344d1d5421cab1c9817d",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original installed Effect operation borrow and retained same-Run management controls",
+      "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
       "referenceQualification": "Native reservation and stated callback/lifetime components only; no Account permission, physical ACK or complete normal recipe",
       "exports": [],
       "operations": [
@@ -36794,7 +36845,7 @@
       "sha256": "d2641331e7d39100f54cc96ec5f38e5d2ea9986a7872fc506c13ec290b7eca8b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -37082,7 +37133,7 @@
       "module": "src/client_local_host/installed_effect_response_buffer.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 selected Effect response buffer constructor and existing physical occurrence backing",
+      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
       "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
       "exports": [],
       "contracts": [
@@ -39070,7 +39121,7 @@
       "sha256": "653b9ab15e649d502bd7a0fa0725df33d4a1be77ee45315baf65605cf5eaac40",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and named component evidence only; full constructor funding, current candidate normal artifacts and ordinary acceptance remain separate.",
       "exports": [],
       "operations": [
@@ -43066,7 +43117,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_capture_body.mbt",
-      "sha256": "12f253792cc4e5835e78a1d742b75a21df037cc571db8a6783fb685bed94cf12",
+      "sha256": "9c7b8dc76837b92de5eb0a3e88120e4c287df56ac06452cf8d28390f1799c021",
       "exports": [],
       "operations": [
         {
@@ -44380,7 +44431,7 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "8eae21b61d6df7c922e24cb6f72e3e1b34719ffa37bbb619cd28b0a1860e4d08"
+      "sha256": "f3fe003a7452d0709dfe9d2ac4f2877163a52d6c7b92f04075c9a15876fecbab"
     },
     {
       "module": "src/client_local_host/preparation_request_model_module.mbt",
@@ -45565,7 +45616,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "53e22c16f9c61e142298ebbd147a290fbd898f899eb8b58019454bce76db2e3b",
+      "sha256": "e870e97658ca1cd658f025b8c0e027ae91c357ab6bf48ebd4306bf5c66593249",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -47396,7 +47447,7 @@
           }
         }
       ],
-      "sha256": "f88793c5735b24ff14f3d76c73a62ff2bf0540d49eb0b7cdc90732ad3045eadb",
+      "sha256": "e72b7c254adacd9d7b7014f465eef2ebe49dfe9ceb7abe5c3d24bab2d6ce2312",
       "exports": [],
       "operations": [
         {
@@ -48655,7 +48706,7 @@
       "sha256": "104a4f3adaa04f682b0db6bd22e2f80e8f61efb14678eff789ee09dae0a31362",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -48751,7 +48802,7 @@
       "sha256": "c2b6127bfff44e9c3f59fd0a2a4f75d8ab1ed8960110ed73289a392949016d1e",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -49060,7 +49111,7 @@
       "sha256": "af85920af4da377b630cdbd29a6f6596313fe03015e8c366414a42b9a8ab2d3a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -52450,7 +52501,7 @@
       "sha256": "6e82ea9e18cd18b70960720c7a33251b57615ea56f1e4b1d522a9eb1f3f7734e",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "B \u2014 existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
+      "owner": "B — existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
       "referenceQualification": "Source and native constructor component only; not complete Host recipe, physical backing, current normal ABI or provider execution",
       "exports": [],
       "operations": [
@@ -52584,7 +52635,7 @@
       "sha256": "9cd772849b9f235b8a2c428552a230bd9f43465dcfceab8b33454c5136f3bcf2",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -52841,7 +52892,7 @@
       "module": "src/connectors/kintone/catalog/record_create_proposal_json.mbt",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -52939,7 +52990,7 @@
       "sha256": "5571360e377fe41196d4ec57d575c594bb21524112c0e6eb653a66208b79e316",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -53307,7 +53358,7 @@
       "sha256": "ef7db00d1a9843778ac6482253b79e688a841b6e4cc06eb66d5941f1e5b6c687",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -53568,7 +53619,7 @@
       "sha256": "d6763398e24b0991ca1546c6293b496a8413bd695d042bb5a0b0bf9c87341ddb",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -53741,7 +53792,7 @@
       "module": "src/connectors/kintone/host/record_create_mapping.mbt",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -53854,7 +53905,7 @@
       "sha256": "3febe944ec46f8234908206fe829a3f5abd9761471f1414326b2709f195bd781",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -55084,7 +55135,7 @@
       "module": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original installed Effect Plan and Model demand correspondence",
+      "owner": "D — original installed Effect Plan and Model demand correspondence",
       "contracts": [
         {
           "operations": [
@@ -55715,7 +55766,7 @@
       "module": "src/connectors_builtin_node/client_installed_effect_operation_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D \u2014 selected Effect response buffer constructor and existing physical occurrence backing",
+      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
       "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
       "exports": [],
       "contracts": [
@@ -58449,7 +58500,7 @@
       "module": "src/connectors_builtin_node/client_kintone_create_execution_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -64700,7 +64751,7 @@
       "module": "src/connectors_builtin_node_rela/client_kintone_create_execution_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -78820,7 +78871,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_content_body.mbt",
-      "sha256": "d4b6b5de983f9f876bf255be8889fc290960b18e445632835e36531e0a232795",
+      "sha256": "74eca21a1fe4b3b03846889337e57c07252d084ed79a0013fd8abee4d8266acb",
       "exports": [],
       "operations": [
         {
@@ -87285,7 +87336,7 @@
       "module": "src/connectors_builtin_node_rela/client_kintone_update_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "E \u2014 same-original kintone UPDATE Mapping installed Host projection",
+      "owner": "E — same-original kintone UPDATE Mapping installed Host projection",
       "referenceQualification": "Same-runtime synchronous Mapping DATA and selected compiler consumers only; no new current authority, normal Effect or provider outcome",
       "exports": [],
       "contracts": [
@@ -87738,7 +87789,7 @@
       "module": "src/connectors_builtin_node/client_kintone_update_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "E \u2014 same-original kintone UPDATE Mapping installed Host projection",
+      "owner": "E — same-original kintone UPDATE Mapping installed Host projection",
       "referenceQualification": "Same-runtime synchronous Mapping DATA and selected compiler consumers only; no new current authority, normal Effect or provider outcome",
       "exports": [],
       "contracts": [
@@ -91847,7 +91898,7 @@
     },
     {
       "module": "src/physical_resources/preparation_phase_work.mbt",
-      "sha256": "580e2dafeb6b0b0b19722da1bfe5288fe9e77159930255d6bcd6b59935d038a2",
+      "sha256": "506a632422865e8def2355f0638fcd501d1ea2ccae638fdde08a2365b35fef15",
       "exports": [],
       "operations": [
         {
@@ -93034,6 +93085,1274 @@
         }
       ],
       "referenceQualification": "Existing original normalization/Request source responsibilities only; not artifact, runtime, physical cleanup or ordinary acceptance."
+    },
+    {
+      "module": "src/canonical_json/source_conversion_extent.mbt",
+      "sha256": "bbb6485ad2535538da6b810c9a3f1cbbefb92245ab4c333af7f665b280cbf2db",
+      "exports": [],
+      "operations": [
+        {
+          "name": "source_conversion_construction_extent",
+          "declaration": "source_conversion_construction_extent ( nodes : Int , fields : Int , objects : Int , arrays : Int , depth : Int , input_text_units : Int , ) - > SourceConversionConstructionExtent ?"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing SourceValue/canonical JSON constructor geometry owners; scalar recipes issue no identity or Resource",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "source_conversion_construction_extent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Public generic JSON constructor continuation"
+              },
+              {
+                "path": "src/canonical_json/source_conversion_extent.mbt",
+                "anchor": "pub fn source_conversion_construction_extent("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/canonical_json/source_conversion_extent.mbt",
+                "anchor": "pub fn source_conversion_construction_extent("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Public generic JSON constructor continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Public generic JSON constructor continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Public generic JSON constructor continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Public generic JSON constructor continuation"
+              },
+              {
+                "path": "src/canonical_json/source_conversion_extent_wbtest.mbt",
+                "anchor": "test \"original canonical Source conversion keeps independent tree and text quantities\""
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Public generic JSON constructor continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Public generic JSON constructor continuation"
+              },
+              {
+                "path": "src/canonical_json/source_conversion_extent.mbt",
+                "anchor": "pub fn source_conversion_construction_extent("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Public generic JSON constructor continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/canonical_json/source_conversion_extent_wbtest.mbt",
+                "anchor": "test \"original canonical Source conversion keeps independent tree and text quantities\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_host_account.mbt",
+      "sha256": "54c80092ddf5fa07659a042bb7eb4ab60cd3a9fe77179f631335edb2ddd15a74",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,P]prepare_installed_account_read",
+          "declaration": "[ I , P ] prepare_installed_account_read ( owner : @ resources . PreparationCapacity [ I , P ] , input : I , ) - > Result [ @ resources . PreparationAccountRead , @ resources . PreparationCapacityIssue , ]"
+        },
+        {
+          "name": "[I]prepare_host_initialization_account_read",
+          "declaration": "[ I ] prepare_host_initialization_account_read ( owner : ClientHostInitializationPreparation [ I ] , ) - > Result [ @ resources . PreparationAccountRead , ClientHostInitializationIssue ]"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Account admission and same-Ledger Host initialization Read owners",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I,P]prepare_installed_account_read",
+            "[I]prepare_host_initialization_account_read"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              },
+              {
+                "path": "src/client_local_host/preparation_host_account.mbt",
+                "anchor": "///|"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/preparation_host_account.mbt",
+                "anchor": "///|"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Reusing admitted Account originals"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Reusing admitted Account originals"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/account-construction.test.mjs",
+                "anchor": "test('original refusal occurs before Buffer backing or UTF8 decode and failed prefix stays held until cleanup'"
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read_wbtest.mbt",
+                "anchor": "test \"Account child sums siblings and refuses foreign and insufficient original before construction\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/cmd/native_client/local_account_preparation.mbt",
+      "sha256": "1a0fed0401e79ce1e49ddd783ec7a3b51698ad6c0858e03ed836acf886747b70",
+      "exports": [],
+      "operations": [
+        {
+          "name": "LocalCommandPreparationOriginal::prepare_account_construction",
+          "declaration": "LocalCommandPreparationOriginal : : prepare_account_construction ( self : LocalCommandPreparationOriginal , construction : @ authorization . AccountConfigurationConstruction , ) - > Bool"
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing selected Native command/Host original Read and Account admission owners",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "LocalCommandPreparationOriginal::prepare_account_construction"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              },
+              {
+                "path": "src/cmd/native_client/local_account_preparation.mbt",
+                "anchor": "fn LocalCommandPreparationOriginal::prepare_account_construction("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/cmd/native_client/local_account_preparation.mbt",
+                "anchor": "fn LocalCommandPreparationOriginal::prepare_account_construction("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Reusing admitted Account originals"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Reusing admitted Account originals"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/platform_native/client_host/local_account_construction_original_read_wbtest.mbt",
+                "anchor": "test \"Account construction tiny same Read refuses before variable intake and retains original cleanup\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/cmd/native_client/local_publisher_diagnostic.mbt",
+      "sha256": "e37aa1ac8a1d3018512b5ae995ed714d3bc03cbb3efa5d3f32f440ce02e081fe",
+      "exports": [],
+      "operations": [
+        {
+          "name": "local_publisher_adoption_issue_code",
+          "declaration": "local_publisher_adoption_issue_code ( issue : @ local_host . NativeLocalAdoptionIssue , depth : Int , ) - > String"
+        },
+        {
+          "name": "local_publisher_binding_issue_code",
+          "declaration": "local_publisher_binding_issue_code ( issue : @ local_host . NativeLocalPublisherBindingIssue , depth : Int , ) - > String"
+        },
+        {
+          "name": "local_publisher_domain_issue_code",
+          "declaration": "local_publisher_domain_issue_code ( issue : @ initial_bootstrap . NativeBackedExecutionIssue , ) - > String"
+        },
+        {
+          "name": "local_publisher_journal_issue_code",
+          "declaration": "local_publisher_journal_issue_code ( issue : @ local_host . NativeClientRunJournalIssue , depth : Int , ) - > String"
+        },
+        {
+          "name": "local_publisher_ledger_issue_code",
+          "declaration": "local_publisher_ledger_issue_code ( issue : @ initial_resources . LedgerIssue , ) - > String"
+        },
+        {
+          "name": "local_publisher_operation_issue_code",
+          "declaration": "local_publisher_operation_issue_code ( issue : @ local_host . NativeLocalStoreOperationIssue , depth : Int , ) - > String"
+        },
+        {
+          "name": "local_publisher_resources_issue_code",
+          "declaration": "local_publisher_resources_issue_code ( issue : @ initial_arena . InstalledArenaLocalHostResourcesIssue , depth : Int , ) - > String"
+        },
+        {
+          "name": "local_publisher_sqlite_issue_code",
+          "declaration": "local_publisher_sqlite_issue_code ( issue : @ local_sqlite . NativeSqliteIssue , depth : Int , ) - > String"
+        },
+        {
+          "name": "local_report_publisher_binding_issue",
+          "declaration": "local_report_publisher_binding_issue ( issue : @ local_host . NativeLocalPublisherBindingIssue , ) - > Unit"
+        }
+      ],
+      "role": "observation-presentation",
+      "owner": "Existing Native publisher issue algebra and command diagnostic presentation; no Resource or cleanup authority",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "local_publisher_adoption_issue_code",
+            "local_publisher_binding_issue_code",
+            "local_publisher_domain_issue_code",
+            "local_publisher_journal_issue_code",
+            "local_publisher_ledger_issue_code",
+            "local_publisher_operation_issue_code",
+            "local_publisher_resources_issue_code",
+            "local_publisher_sqlite_issue_code",
+            "local_report_publisher_binding_issue"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded managed-execution diagnostics"
+              },
+              {
+                "path": "src/cmd/native_client/local_publisher_diagnostic.mbt",
+                "anchor": "fn local_publisher_binding_issue_code("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/cmd/native_client/local_publisher_diagnostic.mbt",
+                "anchor": "fn local_publisher_binding_issue_code("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded managed-execution diagnostics"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded managed-execution diagnostics"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded managed-execution diagnostics"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded managed-execution diagnostics"
+              },
+              {
+                "path": "src/cmd/native_client/local_publisher_diagnostic_wbtest.mbt",
+                "anchor": "test \"publisher diagnostic keeps original primary and return code without physical strings\""
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded managed-execution diagnostics"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded managed-execution diagnostics"
+              },
+              {
+                "path": "src/cmd/native_client/local_publisher_diagnostic.mbt",
+                "anchor": "fn local_publisher_binding_issue_code("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/prepared-publication-custody.md",
+                "anchor": "## Bounded managed-execution diagnostics"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/cmd/native_client/local_publisher_diagnostic_wbtest.mbt",
+                "anchor": "test \"publisher diagnostic keeps original primary and return code without physical strings\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_account_construction_bridge.mbt",
+      "sha256": "06d2514a580a51604a8d213826acbee723a0d7ef8c3f3c3ab5b1c3295c3185d6",
+      "exports": [],
+      "operations": [
+        {
+          "name": "account_bridge_cost",
+          "declaration": "account_bridge_cost ( units : @ authorization . AccountConfigurationConstructionUnits , ) - > Int64 ?"
+        },
+        {
+          "name": "client_program_account_read_control_bytes",
+          "declaration": "client_program_account_read_control_bytes ( ) - > Int64"
+        },
+        {
+          "name": "client_program_close_account_read",
+          "declaration": "client_program_close_account_read ( read : @ resources . PreparationAccountRead , acknowledged : Bool , ) - > Result [ Bool , @ resources . PreparationCapacityIssue ]"
+        },
+        {
+          "name": "client_program_prepare_account_read_construction",
+          "declaration": "client_program_prepare_account_read_construction ( read : @ resources . PreparationAccountRead , retained : Int64 , execution : Int64 , ) - > Result [ Unit , @ resources . PreparationCapacityIssue ]"
+        },
+        {
+          "name": "client_program_prepare_host_account_read",
+          "declaration": "client_program_prepare_host_account_read ( owner : @ client_local_host . ClientHostInitializationPreparation [ ClientLocalPreparationInputOriginal , ] , ) - > Result [ @ resources . PreparationAccountRead , @ client_local_host . ClientHostInitializationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_installed_account_read",
+          "declaration": "client_program_prepare_installed_account_read ( owner : @ resources . PreparationCapacity [ ClientLocalPreparationInputOriginal , ( ClientLocalPreparationInputOriginal , @ source_publication . PreparedPublishedQueryEnvironment , ) , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ @ resources . PreparationAccountRead , @ resources . PreparationCapacityIssue , ]"
+        },
+        {
+          "name": "execution_authorization_admit_prepared",
+          "declaration": "execution_authorization_admit_prepared ( wire : String , prepare : ( Int64 , Int64 ) - > Bool , ) - > AuthorizationAccount ?"
+        }
+      ],
+      "role": "generated-binding",
+      "owner": "Existing Account/Host initialization Core bridge; quantities and original Read stay with Common",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "account_bridge_cost",
+            "client_program_account_read_control_bytes",
+            "client_program_close_account_read",
+            "client_program_prepare_account_read_construction",
+            "client_program_prepare_host_account_read",
+            "client_program_prepare_installed_account_read",
+            "execution_authorization_admit_prepared"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_account_construction_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_host_account_read("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_account_construction_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_host_account_read("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Reusing admitted Account originals"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Reusing admitted Account originals"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/account-construction.test.mjs",
+                "anchor": "test('original refusal occurs before Buffer backing or UTF8 decode and failed prefix stays held until cleanup'"
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read_wbtest.mbt",
+                "anchor": "test \"Account child sums siblings and refuses foreign and insufficient original before construction\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/execution_authorization/construction.mbt",
+      "sha256": "ca7e314c3c474110f428f6a38356c51d7ea5bf5e2b264f7ac1103c0db8d56222",
+      "exports": [],
+      "operations": [
+        {
+          "name": "account_box_name_count",
+          "declaration": "account_box_name_count ( box : SelectorBox ) - > Int64"
+        },
+        {
+          "name": "account_construction_add",
+          "declaration": "account_construction_add ( left : AccountConfigurationConstructionUnits , right : AccountConfigurationConstructionUnits , ) - > AccountConfigurationConstructionUnits raise AccountConstructionStop"
+        },
+        {
+          "name": "account_construction_index",
+          "declaration": "account_construction_index ( value : @ decode . AdmissionConstructionUnits , ) - > AccountConfigurationConstructionUnits"
+        },
+        {
+          "name": "account_construction_source",
+          "declaration": "account_construction_source ( value : @ source . JsonConstructionExtent , ) - > AccountConfigurationConstructionUnits"
+        },
+        {
+          "name": "account_construction_sum",
+          "declaration": "account_construction_sum ( left : AccountConfigurationConstructionUnits , right : AccountConfigurationConstructionUnits , ) - > AccountConfigurationConstructionUnits ?"
+        },
+        {
+          "name": "account_construction_units",
+          "declaration": "account_construction_units ( headers : Int64 , references : Int64 , words : Int64 , text : Int64 , wire ? : Int64"
+        },
+        {
+          "name": "account_prepare_admission",
+          "declaration": "account_prepare_admission ( context : AccountConstructionContext , geometry : @ source . JsonSourceGeometry , typed : AccountConfigurationConstructionUnits , ) - > Unit raise AccountConstructionStop"
+        },
+        {
+          "name": "account_prepare_construction",
+          "declaration": "account_prepare_construction ( context : AccountConstructionContext ? , retained : AccountConfigurationConstructionUnits , execution : AccountConfigurationConstructionUnits , ) - > Unit raise AccountConstructionStop"
+        },
+        {
+          "name": "account_prepare_json_index",
+          "declaration": "account_prepare_json_index ( context : AccountConstructionContext , geometry : @ source . JsonSourceGeometry , ) - > Unit raise AccountConstructionStop"
+        },
+        {
+          "name": "account_prepare_json_tree",
+          "declaration": "account_prepare_json_tree ( context : AccountConstructionContext , geometry : @ source . JsonSourceGeometry , ) - > Unit raise AccountConstructionStop"
+        },
+        {
+          "name": "account_prepare_overlap",
+          "declaration": "account_prepare_overlap ( context : AccountConstructionContext , raw : RawAccountConfiguration , ) - > Unit raise AccountConstructionStop"
+        },
+        {
+          "name": "account_prepare_wire_decode",
+          "declaration": "account_prepare_wire_decode ( context : AccountConstructionContext , geometry : @ source . JsonSourceGeometry , ) - > AccountConfigurationConstructionUnits raise AccountConstructionStop"
+        },
+        {
+          "name": "account_selector_name_count",
+          "declaration": "account_selector_name_count ( selector : Selector ) - > Int64"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Account admission and same-Ledger Host initialization Read owners",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "account_box_name_count",
+            "account_construction_add",
+            "account_construction_index",
+            "account_construction_source",
+            "account_construction_sum",
+            "account_construction_units",
+            "account_prepare_admission",
+            "account_prepare_construction",
+            "account_prepare_json_index",
+            "account_prepare_json_tree",
+            "account_prepare_overlap",
+            "account_prepare_wire_decode",
+            "account_selector_name_count"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              },
+              {
+                "path": "src/execution_authorization/construction.mbt",
+                "anchor": "fn account_construction_units("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/execution_authorization/construction.mbt",
+                "anchor": "fn account_construction_units("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Reusing admitted Account originals"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Reusing admitted Account originals"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/account-construction.test.mjs",
+                "anchor": "test('original refusal occurs before Buffer backing or UTF8 decode and failed prefix stays held until cleanup'"
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read_wbtest.mbt",
+                "anchor": "test \"Account child sums siblings and refuses foreign and insufficient original before construction\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/physical_resources/preparation_account_read.mbt",
+      "sha256": "e3eefb5704165c066cc3feb73854669bc73c2a0ebdbf1eea521fd70bb30e2dd4",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,P]prepare_account_read",
+          "declaration": "[ I , P ] prepare_account_read ( owner : PreparationCapacity [ I , P ] , input : I , control_bytes : Int64 , ) - > Result [ PreparationAccountRead , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "close_preparation_account_read",
+          "declaration": "close_preparation_account_read ( read : PreparationAccountRead , physical_and_data_cleanup_complete : Bool , ) - > Result [ Bool , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "preparation_account_read_control_slots",
+          "declaration": "preparation_account_read_control_slots ( ) - > ( Int64 , Int64 , Int64 )"
+        },
+        {
+          "name": "prepare_account_read_construction",
+          "declaration": "prepare_account_read_construction ( read : PreparationAccountRead , retained : Int64 , execution : Int64 , ) - > Result [ Unit , PreparationCapacityIssue ]"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Account admission and same-Ledger Host initialization Read owners",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I,P]prepare_account_read",
+            "close_preparation_account_read",
+            "preparation_account_read_control_slots",
+            "prepare_account_read_construction"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read.mbt",
+                "anchor": "pub fn preparation_account_read_control_slots() -> (Int64, Int64, Int64) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/physical_resources/preparation_account_read.mbt",
+                "anchor": "pub fn preparation_account_read_control_slots() -> (Int64, Int64, Int64) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Reusing admitted Account originals"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Reusing admitted Account originals"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/account-construction.test.mjs",
+                "anchor": "test('original refusal occurs before Buffer backing or UTF8 decode and failed prefix stays held until cleanup'"
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read_wbtest.mbt",
+                "anchor": "test \"Account child sums siblings and refuses foreign and insufficient original before construction\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/platform_native/client_host/local_account_construction.mbt",
+      "sha256": "a6fd69b714d41bdc5fb4ca7e09b9dc304dbf1ed01b271bba80f9257f661d7e9a",
+      "exports": [],
+      "operations": [
+        {
+          "name": "local_account_construction_cost",
+          "declaration": "local_account_construction_cost ( units : @ authorization . AccountConfigurationConstructionUnits , ) - > Int64 ?"
+        },
+        {
+          "name": "local_account_decode",
+          "declaration": "local_account_decode ( body : Bytes , construction : ( ( @ authorization . AccountConfigurationConstruction ) - > Bool ) ? , ) - > Result [ @ authorization . AdmittedAccountConfiguration , NativeLocalAdoptionIssue , ]"
+        },
+        {
+          "name": "local_account_read",
+          "declaration": "local_account_read ( root : @ filesystem . Root , name : String , max_bytes : Int64 ? , construction : ( ( @ authorization . AccountConfigurationConstruction ) - > Bool ) ? , retain ? : Bool"
+        },
+        {
+          "name": "NativeLocalJournalOriginalResources::prepare_account_construction",
+          "declaration": "NativeLocalJournalOriginalResources : : prepare_account_construction ( self : NativeLocalJournalOriginalResources , construction : @ authorization . AccountConfigurationConstruction , ) - > Bool"
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing selected Native command/Host original Read and Account admission owners",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "local_account_construction_cost",
+            "local_account_decode",
+            "local_account_read",
+            "NativeLocalJournalOriginalResources::prepare_account_construction"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              },
+              {
+                "path": "src/platform_native/client_host/local_account_construction.mbt",
+                "anchor": "fn local_account_construction_cost("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/platform_native/client_host/local_account_construction.mbt",
+                "anchor": "fn local_account_construction_cost("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Reusing admitted Account originals"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Reusing admitted Account originals"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/platform_native/client_host/local_account_construction_original_read_wbtest.mbt",
+                "anchor": "test \"Account construction tiny same Read refuses before variable intake and retains original cleanup\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication_host/client_infer_scope_snapshot_construction.mbt",
+      "sha256": "fa59be9cbf01a76c4a8bb018d16a0a7d974f520940993afbf12d605e2d2fa1b7",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_infer_scope_snapshot_construction_capacity",
+          "declaration": "client_infer_scope_snapshot_construction_capacity ( value : ClientInferCallScope , calls : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_infer_scope_snapshot_measurement_capacity",
+          "declaration": "client_infer_scope_snapshot_measurement_capacity ( ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing original Model Scope and Request snapshot constructor owners",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_infer_scope_snapshot_construction_capacity",
+            "client_infer_scope_snapshot_measurement_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "src/run_publication_host/client_infer_scope_snapshot_construction.mbt",
+                "anchor": "pub fn client_infer_scope_snapshot_measurement_capacity() -> @execution.ExecutionCapacity? {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/client_infer_scope_snapshot_construction.mbt",
+                "anchor": "pub fn client_infer_scope_snapshot_measurement_capacity() -> @execution.ExecutionCapacity? {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "src/client_infer_host/original_scope_snapshot_wbtest.mbt",
+                "anchor": "test \"one129 prepared call inventory retains its prefunded snapshot without any provider invocation\""
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "src/run_publication_host/client_infer_scope_snapshot_construction.mbt",
+                "anchor": "pub fn client_infer_scope_snapshot_measurement_capacity() -> @execution.ExecutionCapacity? {"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_infer_host/original_scope_snapshot_wbtest.mbt",
+                "anchor": "test \"one129 prepared call inventory retains its prefunded snapshot without any provider invocation\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication_host/client_model_defaults_construction.mbt",
+      "sha256": "c56e8649a9c30bf41e2b36d7e4ff2744228b7567c4ece32ba36b1da24e06a029",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_model_metadata_add",
+          "declaration": "client_model_metadata_add ( a : @ environment . RegistryConstructionExtent , b : @ environment . RegistryConstructionExtent , ) - > @ environment . RegistryConstructionExtent"
+        },
+        {
+          "name": "client_model_provider_defaults_construction_extent",
+          "declaration": "client_model_provider_defaults_construction_extent ( provider : String , installation : String , contract : String , configuration : String , limits : @ environment . Limits , ) - > @ environment . RegistryConstructionExtent ?"
+        },
+        {
+          "name": "client_model_provider_defaults_resolution_extents",
+          "declaration": "client_model_provider_defaults_resolution_extents ( original : ClientModelProviderDefaults , tokens : Int64 ? , ) - > ( @ environment . RegistryConstructionExtent , @ environment . RegistryConstructionExtent )"
+        },
+        {
+          "name": "client_model_provider_defaults_retained_extent",
+          "declaration": "client_model_provider_defaults_retained_extent ( original : ClientModelProviderDefaults , ) - > @ environment . RegistryConstructionExtent ?"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing installed provider-defaults and public Task normalization owners",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_model_metadata_add",
+            "client_model_provider_defaults_construction_extent",
+            "client_model_provider_defaults_resolution_extents",
+            "client_model_provider_defaults_retained_extent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Original generation profiles and public Task normalization"
+              },
+              {
+                "path": "src/run_publication_host/client_model_defaults_construction.mbt",
+                "anchor": "fn client_model_metadata_add("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/client_model_defaults_construction.mbt",
+                "anchor": "fn client_model_metadata_add("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Original generation profiles and public Task normalization"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Original generation profiles and public Task normalization"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Original generation profiles and public Task normalization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Original generation profiles and public Task normalization"
+              },
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults_wbtest.mbt",
+                "anchor": "test \"defaults resolution quantities preserve the exact original override and profile inventory\""
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Original generation profiles and public Task normalization"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Original generation profiles and public Task normalization"
+              },
+              {
+                "path": "src/run_publication_host/client_model_defaults_construction.mbt",
+                "anchor": "fn client_model_metadata_add("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Original generation profiles and public Task normalization"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults_wbtest.mbt",
+                "anchor": "test \"defaults resolution quantities preserve the exact original override and profile inventory\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/source_value/yaml_construction_extent.mbt",
+      "sha256": "d36818514df69347ce8f417c13debc91ce8c98dab0ae922cf4147301320e7254",
+      "exports": [],
+      "operations": [
+        {
+          "name": "yaml_literal_construction_extent",
+          "declaration": "yaml_literal_construction_extent ( input_bytes : Int , max_nodes : Int , max_depth : Int , lines : Int , ) - > JsonLiteralConstructionExtent ?"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing SourceValue/canonical JSON constructor geometry owners; scalar recipes issue no identity or Resource",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "yaml_literal_construction_extent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Public generic JSON constructor continuation"
+              },
+              {
+                "path": "src/source_value/yaml_construction_extent.mbt",
+                "anchor": "pub fn yaml_literal_construction_extent("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/source_value/yaml_construction_extent.mbt",
+                "anchor": "pub fn yaml_literal_construction_extent("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Public generic JSON constructor continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Public generic JSON constructor continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Public generic JSON constructor continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Public generic JSON constructor continuation"
+              },
+              {
+                "path": "src/source_value/yaml_construction_extent_wbtest.mbt",
+                "anchor": "test \"YAML current document construction keeps node policy separate from physical lines and text\""
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Public generic JSON constructor continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Public generic JSON constructor continuation"
+              },
+              {
+                "path": "src/source_value/yaml_construction_extent.mbt",
+                "anchor": "pub fn yaml_literal_construction_extent("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Public generic JSON constructor continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/source_value/yaml_construction_extent_wbtest.mbt",
+                "anchor": "test \"YAML current document construction keeps node policy separate from physical lines and text\""
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

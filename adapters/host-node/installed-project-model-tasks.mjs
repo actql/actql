@@ -2,7 +2,7 @@ import {open} from 'node:fs/promises';
 import {extname} from 'node:path';
 import {types as nodeTypes} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
-import {runtimeField, runtimeUnboxedReferenceOption} from '../host-common/compiler-binding.generated.mjs';
+import {runtimeField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from '../host-common/compiler-binding.generated.mjs';
 import {installedProjectOriginalsForRuntime, resolveInstalledProjectTaskPath} from './installed-project-configuration.mjs';
 import {readBoundedConfigurationUtf8} from './source-profile-json.mjs';
 import {installedSourceConfigurationReader} from './installed-host-services.mjs';
@@ -218,8 +218,11 @@ async function loadProjectModelTasks(moon, project, providers,
             if (section === 'model_task_contracts') baseTasks = entries.length;
           }
           geometry = sourceJsonWireGeometry(wire);
-          environmentBounds = moon.clientProgramPublicModelTaskEnvironmentLimits(
+          const selectedBounds = moon.clientProgramPublicModelTaskEnvironmentLimits(
             Buffer.byteLength(wire), Number(geometry.nodes), Number(geometry.depth + 1n), baseMembers, baseTasks, inventory);
+          // This compiled Array[Int] Option uses boxed Some, unlike the
+          // unboxed reference Options returned by the capacity exports.
+          environmentBounds = runtimeIsBoxedSome(selectedBounds) ? runtimeField(selectedBounds, 0) : undefined;
           if (!Array.isArray(environmentBounds) || environmentBounds.length !== 8) {
             fail('InstalledModelTaskEnvironmentCapacityUnavailable');
           }

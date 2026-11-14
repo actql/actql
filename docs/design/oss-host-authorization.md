@@ -291,6 +291,29 @@ input's lifetime to the Account lifetime; it is not free storage, a capacity
 grant or a cleanup acknowledgement. A new operation still observes current
 Account state, and Run and named-Result permissions remain distinct.
 
+### Funded Account construction on the same original
+
+The installed Host may fund bootstrap and current Account intake through a
+byte-only Read on its existing initialization Ledger. The original opened file
+supplies its byte extent before Buffer allocation and fatal UTF8 decoding;
+canonical conversion, exact-key/index admission and standard-profile creation
+are reserved before their constructors. The retained prefix, active scratch and
+failed children coexist on that same original. A quote, wire length or matching
+CID supplies neither permission nor another reservation owner.
+
+This funded route can admit an original wire above the legacy one-million-byte
+reader selection. Unfunded compatibility intake retains that existing cap.
+Explicit smaller Resource, node/depth/work limits, malformed input and foreign
+Account refusals remain. Exact unchanged wire may borrow its admitted Account;
+a changed spelling requires its original admission again. Every protected
+operation still observes live current Account state, including Deny.
+
+The existing file/Read owners retain failure and uncertain close custody. A
+synchronous numeric FD close is attempted once; an unknown outcome cannot be
+retried against a possibly reused integer or acknowledged as retirement. Host
+close waits for those original duties. The authored construction/current/close
+regressions are Source references, not evidence of normal installed acceptance.
+
 ## Local initialization
 
 | Scope | Initial behavior |
