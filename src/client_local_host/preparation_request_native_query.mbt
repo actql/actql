@@ -377,7 +377,10 @@ fn[I, T] prepare_request_native_source_computation_input(
     }
     if default_json && selected == @frontend.Json {
       return prepare_request_default_json_computation_input(
-        owner, input, document,
+        owner,
+        input,
+        document,
+        limits.input,
       )
     }
     return prepare_request_document_computation_input(
@@ -393,19 +396,6 @@ fn[I, T] prepare_request_native_source_computation_input(
     )
   }
   owner.phase = Open
-  let program_limits = if default_json {
-    // Reuse the existing captured intake selection once. Its outer node count
-    // does not measure the Query AST: syntax uses the lowering policy, then
-    // the generated Program retains its original artifact envelope.
-    let captured = match
-      request_default_query_preparation_limits(owner, input) {
-      Ok(selected) => selected
-      Err(issue) => return Err(issue)
-    }
-    { ..captured, values_max_rows: program_limits.values_max_rows, }
-  } else {
-    program_limits
-  }
   prepare_request_native_query_computation_input(
     owner,
     input,

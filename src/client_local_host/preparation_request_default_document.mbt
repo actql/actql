@@ -1,26 +1,4 @@
 ///|
-// Default JSON input has no independent document-size support policy. These
-// are the existing Int representation ceilings, not a reservation or node
-// estimate. The same original Source preflight observes actual wire geometry
-// before tree/index acquisition. Depth and stage policy stay independent.
-// This immutable recipe is shared runtime DATA, never copied per document.
-let request_default_json_input_limits : @syntax.Limits = {
-  source: {
-    // Existing Source offset/lookahead validation requires strictly below Int max.
-    max_input_bytes: 2147483646,
-    max_nodes: 2147483647,
-    max_depth: @publication_host.client_standard_program_preparation_limits().checking.input.source.max_depth,
-  },
-  tree: {
-    max_nodes: 2147483647,
-    max_depth: @publication_host.client_standard_program_preparation_limits().checking.input.tree.max_depth,
-    max_string_bytes: 2147483647,
-    max_total_string_bytes: 2147483647,
-  },
-  max_stages: @publication_host.client_standard_program_preparation_limits().checking.input.max_stages,
-}
-
-///|
 // The installed default Node driver selects this existing Request/domain
 // connection. Explicitly selected limits keep their original separate entry;
 // no equality test recognizes a limit packet as the default. Parameters,
@@ -38,10 +16,12 @@ pub fn[I, T] prepare_request_default_source_computation_check(
   supplied? : T? = None,
   public_primary? : Bool = true,
 ) -> Result[Unit, ClientRequestTerminalIssue] {
-  let program_limits = {
-    ..@publication_host.client_standard_program_preparation_limits(),
-    values_max_rows,
+  let original_limits = match
+    request_default_program_preparation_limits(owner, input) {
+    Err(issue) => return Err(issue)
+    Ok(limits) => limits
   }
+  let program_limits = { ..original_limits, values_max_rows, }
   match
     prepare_request_native_source_computation_input(
       owner,
@@ -72,7 +52,10 @@ pub fn[I, T] prepare_request_default_source_computation_check(
           // inflated shared profile. The initial Request control quote backs
           // these immutable selection records before the checker is called.
           let stages = @syntax.stage_count(program)
-          let original_stages = selected.checking.compilation.structure.stages
+          // This remaining legacy work policy is separately tracked for
+          // replacement; do not mistake the common structural bound for its
+          // former Stage32 denominator while that work correspondence is open.
+          let original_stages = @publication_host.client_standard_program_preparation_limits().checking.compilation.structure.stages
           let original_work = selected.checking.compilation.work
           // The default generated representation selects bounded checking work
           // for its actual normalized Stage groups. Keep the installed work /
@@ -141,11 +124,10 @@ fn[I] prepare_request_default_json_computation_input(
   owner : ClientRequestPreparation[I],
   input : I,
   document : String,
+  limits : @syntax.Limits,
 ) -> Result[Unit, ClientRequestTerminalIssue] {
   let source = match
-    prepare_request_program_json_preparation(
-      owner, input, document, request_default_json_input_limits,
-    ) {
+    prepare_request_program_json_preparation(owner, input, document, limits) {
     Err(issue) => return Err(Preparation(issue))
     Ok(original) => original
   }
