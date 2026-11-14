@@ -207,9 +207,10 @@ export async function createLocalAuthorizationGate({accountConstruction, ...opti
   const frame = accountConstruction.begin();
   try {
     const gate = await createLocalAuthorizationGateOriginal(options, frame, accountConstruction);
-    frame.hold(); frame.finish(true);
-    accountConstruction.onRetire(() => {gate.close(); return !gate.cleanupPending();});
-    return gate;
+    frame.retainGate(gate);
+    frame.finish(true);
+    return Object.freeze({...gate, close: frame.closeGate, cleanup: frame.closeGate,
+      cleanupPending: frame.gateCleanupPending});
   } catch (cause) {frame.failure(cause); frame.finish(false); throw cause;}
 }
 

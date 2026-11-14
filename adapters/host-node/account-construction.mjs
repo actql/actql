@@ -17,17 +17,62 @@ export function createAccountConstruction({moon, prepareRead, current}) {
   if (!valid(controls) || controls === 0n || typeof prepareRead !== 'function' ||
       typeof current !== 'function') fail('AccountConstructionUnavailable');
   // The first actual byte-only child funds the facet/registry's fixed controls
-  // before their construction. Keep this same unused read until begin/close.
-  let firstRead = checked(prepareRead());
+  // before their construction. This constant baseline is never consumed by
+  // an observation: each frame has its own original Read/control cohort.
+  let firstRead = checked(prepareRead()), closeFlight;
   const frames = new Set(), retirements = [];
+  function settleFrame(state) {
+    if (state.closed) return true;
+    if (checked(moon.clientProgramCloseAccountRead(state.read, true)) !== true) return false;
+    state.closed = true;
+    state.read = state.issue = undefined;
+    frames.delete(state);
+    return true;
+  }
+  function closeOriginalGate(state) {
+    const owned = state.gate;
+    if (owned === undefined) return true;
+    // Only the actual owned Scope's two observations can end this hold. No
+    // caller flag, replacement method or sibling's cleanup is an ACK.
+    const closed = Reflect.apply(owned.close, owned.original, []);
+    const pending = Reflect.apply(owned.pending, owned.original, []);
+    if (closed !== true || pending !== false) return false;
+    state.gate = undefined;
+    return true;
+  }
+  async function closeAll() {
+    if (firstRead !== undefined) {
+      if (checked(moon.clientProgramCloseAccountRead(firstRead, true)) !== true) return false;
+      firstRead = undefined;
+    }
+    for (const callback of retirements) {if (await callback() === false) return false;}
+    retirements.length = 0;
+    for (const state of frames) {
+      if (state.active || state.cleaning || state.unknownClose) return false;
+      state.cleaning = true;
+      try {
+        state.closeRequested = true;
+        if (!closeOriginalGate(state)) return false;
+        if (state.cleanup !== undefined) {
+          const {handle, retry, status} = state.cleanup;
+          if (typeof retry !== 'function' || typeof status !== 'function') return false;
+          try {await Reflect.apply(retry, handle, []);} catch {}
+          const observation = Reflect.apply(status, handle, []);
+          if (Object.getOwnPropertyDescriptor(observation ?? {}, 'pending')?.value !== false) return false;
+          state.cleanup = undefined;
+        }
+        if (!settleFrame(state)) return false;
+      } finally {state.cleaning = false;}
+    }
+    return true;
+  }
   function begin() {
     if (closing) fail('AccountConstructionClosed');
     current();
-    const read = firstRead ?? checked(prepareRead());
-    firstRead = undefined;
     // Retain the actual Core child before any later constructor or observation.
-    const state = {read, retained: controls, execution: controls, active: true,
-      closed: false, retainedOutput: false, failed: false, unknownClose: false, cleanup: undefined, issue: undefined};
+    const state = {read: checked(prepareRead()), retained: controls, execution: controls, active: true,
+      closed: false, retainedOutput: false, failed: false, unknownClose: false, cleanup: undefined,
+      issue: undefined, gate: undefined, cleaning: false, closeRequested: false};
     frames.add(state);
     function prepare(retained, execution) {
       if (!state.active || state.issue !== undefined || closing) fail('AccountConstructionUnavailable');
@@ -35,7 +80,7 @@ export function createAccountConstruction({moon, prepareRead, current}) {
           !valid(state.retained + execution)) fail('AccountConstructionOverflow');
       const r = state.retained + retained;
       const e = state.execution > state.retained + execution ? state.execution : state.retained + execution;
-      try {checked(moon.clientProgramPrepareAccountReadConstruction(read, r, e));}
+      try {checked(moon.clientProgramPrepareAccountReadConstruction(state.read, r, e));}
       catch (cause) {state.issue = cause; state.failed = true; throw cause;}
       state.retained = r; state.execution = e;
     }
@@ -48,8 +93,7 @@ export function createAccountConstruction({moon, prepareRead, current}) {
     function finish(retain = false) {
       state.active = false;
       if (!retain && !state.retainedOutput && !state.failed && !state.unknownClose && state.cleanup === undefined) {
-        if (checked(moon.clientProgramCloseAccountRead(read, true)) !== true) fail('AccountReadCleanupPending');
-        state.closed = true; frames.delete(state);
+        if (!settleFrame(state)) fail('AccountReadCleanupPending');
       }
     }
     let lastWire;
@@ -63,6 +107,38 @@ export function createAccountConstruction({moon, prepareRead, current}) {
       failure,
       finish,
       hold() {state.retainedOutput = true;},
+      retainGate(original) {
+        if (state.gate !== undefined || state.closed) fail('ForeignAccountGateCleanup');
+        // Capture the constructed original BEFORE a closing fence can refuse
+        // publication. A late constructor remains owned by this SAME frame.
+        state.gate = {original, close: undefined, pending: undefined};
+        state.retainedOutput = true;
+        const close = Object.getOwnPropertyDescriptor(original, 'close');
+        const pending = Object.getOwnPropertyDescriptor(original, 'cleanupPending');
+        if (!Object.hasOwn(close ?? {}, 'value') || typeof close.value !== 'function' ||
+            !Object.hasOwn(pending ?? {}, 'value') || typeof pending.value !== 'function') {
+          fail('InvalidAccountGateCleanup');
+        }
+        state.gate.close = close.value;
+        state.gate.pending = pending.value;
+        if (closing) fail('AccountConstructionClosed');
+      },
+      closeGate() {
+        if (state.closed) return true;
+        state.closeRequested = true;
+        if (state.active || state.cleaning) return false;
+        state.cleaning = true;
+        try {
+          if (!closeOriginalGate(state) || state.failed || state.unknownClose || state.cleanup !== undefined) return false;
+          return settleFrame(state);
+        } finally {state.cleaning = false;}
+      },
+      gateCleanupPending() {
+        if (state.closed) return false;
+        if (state.closeRequested || state.cleaning || state.failed || state.unknownClose || state.cleanup !== undefined) return true;
+        const owned = state.gate;
+        return owned === undefined || Reflect.apply(owned.pending, owned.original, []) !== false;
+      },
       inputBytes(size) {
         if (!Number.isSafeInteger(size) || size < 0 || size === Number.MAX_SAFE_INTEGER) fail('AccountInputExtentUnavailable');
         const bytes = BigInt(size);
@@ -105,29 +181,16 @@ export function createAccountConstruction({moon, prepareRead, current}) {
   const facet = Object.freeze({moon, begin, observe,
     pending() {return firstRead !== undefined || frames.size !== 0;},
     onRetire(callback) {if (closing || typeof callback !== 'function') fail('AccountConstructionClosed'); retirements.push(callback);},
-    async close() {
+    close() {
+      if (closeFlight !== undefined) return closeFlight;
       closing = true;
-      if (firstRead !== undefined) {
-        if (checked(moon.clientProgramCloseAccountRead(firstRead, true)) !== true) return false;
-        firstRead = undefined;
-      }
-      for (const callback of retirements) {if (await callback() === false) return false;}
-      retirements.length = 0;
-      for (const state of frames) {
-        if (state.active || state.unknownClose) return false;
-        if (state.cleanup !== undefined) {
-          const {handle, retry, status} = state.cleanup;
-          if (typeof retry !== 'function' || typeof status !== 'function') return false;
-          try {await Reflect.apply(retry, handle, []);} catch {}
-          const observation = Reflect.apply(status, handle, []);
-          if (Object.getOwnPropertyDescriptor(observation ?? {}, 'pending')?.value !== false) return false;
-          state.cleanup = undefined;
-        }
-        if (!state.closed && checked(moon.clientProgramCloseAccountRead(state.read, true)) !== true) return false;
-        state.closed = true; state.read = state.issue = undefined;
-        frames.delete(state);
-      }
-      return true;
+      // Enqueue after publishing the SAME flight, including the first sync
+      // Core close/current boundary. Recursive/concurrent close cannot race it.
+      const flight = Promise.resolve().then(closeAll);
+      closeFlight = flight;
+      const settled = () => {if (closeFlight === flight) closeFlight = undefined;};
+      flight.then(settled, settled);
+      return flight;
     },
   });
   facets.add(facet);
