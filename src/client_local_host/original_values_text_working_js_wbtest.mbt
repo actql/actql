@@ -257,6 +257,10 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
     "{\"version\":\"actql/0.1\",\"id\":\"bound-text\",\"params\":{\"p\":{\"type\":\"string\"}},\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"as\":\"v\",\"values\":{\"schema\":{\"text\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"text\":{\"$param\":\"p\"}}]}}],\"results\":{\"rows\":{\"from\":\"v\",\"fields\":[\"text\"]}}}],\"results\":{\"rows\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}"
   } else if mode == 2 {
     original_cross_text_working_program()
+  } else if mode == 9 {
+    let columns : Array[String] = []
+    for index in 0..<17 { columns.push("t AS f" + index.to_string()) }
+    "WITH x AS (SELECT REPEAT('x',64000) AS t) SELECT " + columns.join(",") + " FROM x"
   } else if mode >= 4 {
     "SELECT REPEAT('x', 150000) AS text"
   } else if mode == 3 {
@@ -330,6 +334,7 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
     compilation_limits=request_program_compilation_limits(parent, input).unwrap(),
     retained_output=false,
     provider_factory=_ => [],
+    source_free_max_work=if mode == 9 { Some(30000000) } else { None },
   ).unwrap()
   let configuration = parent.program_source_free.unwrap().configuration.unwrap()
   if mode == 2 {
@@ -489,8 +494,8 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
           Driver(Configuration(Guard(@execution.ValueBytes(_, _, _)))) =>
             "BoundTextGuardValueBytes"
           Driver(Configuration(Guard(_))) => "BoundTextGuard"
-          Driver(Configuration(Execution(Rows(_, @execution.RowLimit)))) =>
-            "BoundTextRowLimit"
+          Driver(Configuration(Execution(Rows(step, @execution.RowLimit)))) =>
+            "BoundTextRowLimit:" + step.to_string()
           Driver(
             Configuration(Execution(Rows(_, @execution.LogicalRows(cause))))
           ) => "BoundTextLogical:" + @debug.to_string(cause)
@@ -531,6 +536,13 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
   for row in rows {
     guard @json.parse(row) is Object(fields) else {
       fail("complete original row required")
+    }
+    if mode == 9 {
+      assert_eq(fields.length(), 17)
+      for index in 0..<17 {
+        assert_eq(fields.get("f" + index.to_string()), Some(Json::string("x".repeat(64000))))
+      }
+      continue
     }
     guard fields.get("text") is Some(String(actual)) else {
       fail("original Text cell required")
@@ -701,4 +713,11 @@ test "Parameter input limits use original observed geometry and retain explicit 
 ///|
 test "ordinary measured Text fits actual finite task headroom without per-character nodes" {
   original_bound_text_working_case(8)
+}
+
+///|
+// Authored public SQL on the existing same Request/module/Run/managed caller.
+// No installed binary, public Store/Journal/Saved or physical Native ACK.
+test "original managed repeated Text retains all seventeen projected fields" {
+  original_bound_text_working_case(9)
 }
