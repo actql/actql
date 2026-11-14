@@ -246,6 +246,10 @@ pub fn client_program_abort_request_preparation(@client_local_host.ClientRequest
 
 pub fn client_program_abort_uncontinued_source_material(@physical_resources.PreparationCapacity[ClientLocalPreparationInputOriginal, Unit], ClientLocalPreparationInputOriginal) -> Result[Bool, @physical_resources.PreparationCapacityIssue]
 
+pub fn client_program_account_read_control_bytes() -> Int64
+
+pub fn client_program_accumulate_model_task_construction_capacity(@execution_relation.ExecutionCapacity?, @execution_relation.ExecutionCapacity?) -> Result[@execution_relation.ExecutionCapacity?, @physical_resources.PreparationCapacityIssue]
+
 pub fn client_program_acknowledge_infer_call_settlement(@model_execution.ModelCallSettlement) -> Bool
 
 pub fn client_program_acknowledge_saved_infer_call_entry(@model_execution.ModelCallEntry, @model_execution.ModelPreparedCallSet) -> @model_execution.ModelCallEntryAcknowledgement?
@@ -676,6 +680,10 @@ pub fn client_program_check_environment_from_wire_construction_capacity(@check_e
 
 pub fn client_program_check_environment_from_wire_with_graph_profile(@check_environment.WireEnvironment, Bool, Bool, Bool, Bool, Bool, Bool, Bool, String, String) -> @program_check.CheckEnvironment?
 
+pub fn client_program_check_environment_model_from_wire_construction_capacity(@check_environment.WireEnvironment) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_check_environment_model_from_wire_with_graph_profile(@check_environment.WireEnvironment, Bool, Bool, Bool, Bool, Bool, Bool, Bool, String, String) -> @program_check.CheckEnvironment?
+
 pub fn client_program_check_environment_wire_construction_capacity(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_check_environment_with_calendar_artifact(@program_check.CheckEnvironment, Bytes, Int, Int, Int, Int, Int, Int) -> @program_check.CheckEnvironment?
@@ -741,6 +749,8 @@ pub fn client_program_cleanup_local_preparation_admission(@physical_resources.No
 pub fn client_program_cleanup_model_execution(@model_execution.ModelExecution) -> Result[Bool, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_cleanup_model_output(@model_execution.ModelOutputPreparation) -> Result[Bool, @model_execution.ModelExecutionIssue]
+
+pub fn client_program_close_account_read(@physical_resources.PreparationAccountRead, Bool) -> Result[Bool, @physical_resources.PreparationCapacityIssue]
 
 pub fn client_program_close_effect_command_key_workspace(ClientEffectCommandWorkspace) -> Result[Bool, ClientEffectCommandWorkspaceIssue]
 
@@ -2832,6 +2842,8 @@ pub fn client_program_local_mock_account_profile_known(String, String, String) -
 
 pub fn client_program_local_standard_account_configuration(String, String, String, Array[String], Array[(String, String)], (String, String)?, String?) -> Result[String, @execution_authorization.LocalStandardProfileIssue]
 
+pub fn client_program_local_standard_account_configuration_prepared(String, String, String, Array[String], Array[(String, String)], (String, String)?, String?, (Int64, Int64) -> Bool) -> Result[String, @execution_authorization.LocalStandardProfileIssue]?
+
 pub fn client_program_local_standard_account_profile() -> (String, String, String, String)
 
 pub fn client_program_local_table_commit_response(String, Int, Int, Int, Int) -> Result[String, @effect_application.TableCommitIssue]
@@ -2941,6 +2953,12 @@ pub fn client_program_model_private_holding_cid(@run_publication.PublicationCont
 pub fn client_program_model_provider_admission_issue_kind(@model_execution.ModelProviderAdmissionIssue) -> String
 
 pub fn client_program_model_provider_binding(String, String, String, String) -> Result[@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValueIssue]
+
+pub fn client_program_model_provider_defaults_read_construction_capacity(String, String, String, String, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_model_provider_defaults_resolution_capacities(@run_publication_host.ClientModelProviderDefaults, Int64?) -> Array[@execution_relation.ExecutionCapacity?]
+
+pub fn client_program_model_provider_defaults_retained_capacity(@run_publication_host.ClientModelProviderDefaults) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_model_raw_selection_originals(@run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody) -> Array[(String, String, String)]
 
@@ -3142,6 +3160,8 @@ pub fn client_program_preparation_issue_code(ClientProgramBridgeOutcome) -> Stri
 
 pub fn client_program_preparation_ready(ClientProgramBridgeOutcome) -> @run_publication_host.PreparedClientProgram?
 
+pub fn client_program_prepare_account_read_construction(@physical_resources.PreparationAccountRead, Int64, Int64) -> Result[Unit, @physical_resources.PreparationCapacityIssue]
+
 pub fn client_program_prepare_capture(@client_local_host.ClientProgramPublication, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue]) -> Result[@client_local_host.ClientProgramCapture, @client_local_host.ClientClosedValuesPreparationIssue]
 
 pub fn client_program_prepare_captured_source_identity_scan(@execution_query.CapturedInputSource) -> Result[@execution_query.CapturedSourceIdentityScan, @execution_query.CapturedSourceIdentityScanIssue]
@@ -3182,6 +3202,8 @@ pub fn client_program_prepare_effect_query_time(@run_publication_host.PreparedCl
 
 pub fn client_program_prepare_family_effect_capture_ledger(@run_publication_host.PreparedClientEffectComputation, @client_local_host.ClientInstalledCaptureCapacity, Int64, Int64, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Array[@local.ManagedProvider]) -> @physical_resources.Ledger?
 
+pub fn client_program_prepare_host_account_read(@client_local_host.ClientHostInitializationPreparation[ClientLocalPreparationInputOriginal]) -> Result[@physical_resources.PreparationAccountRead, @client_local_host.ClientHostInitializationIssue]
+
 pub fn client_program_prepare_infer_compute_suffix(@run_publication_host.PreparedClientProgram, Int, @client_local_host.ClientInstalledSequenceContracts, String, String, String) -> Result[@execution_relation.GeneratedSequence?, @client_infer_host.Issue]
 
 pub fn client_program_prepare_infer_node_read_layout(@run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?) -> Result[@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientModelPreparationLayoutIssue]
@@ -3193,6 +3215,8 @@ pub fn client_program_prepare_infer_original_current_state_writer(@client_infer_
 pub fn client_program_prepare_infer_original_read(@run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, Int64, Int64) -> Result[@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientModelReadPreparationIssue]
 
 pub fn client_program_prepare_infer_response_reconciliation(@model_execution.ModelPreparedCallSet, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[@model_execution.ModelResponseReconciliation, @model_execution.ModelExecutionIssue]
+
+pub fn client_program_prepare_installed_account_read(@physical_resources.PreparationCapacity[ClientLocalPreparationInputOriginal, (ClientLocalPreparationInputOriginal, @client_source_publication.PreparedPublishedQueryEnvironment)], ClientLocalPreparationInputOriginal) -> Result[@physical_resources.PreparationAccountRead, @physical_resources.PreparationCapacityIssue]
 
 pub fn client_program_prepare_installed_effect_capture_recovery(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, Int, Int, Int) -> Result[@client_local_host.ClientInstalledEffectCaptureRecovery, @client_local_host.ClientInstalledManagedRunIssue]
 
@@ -3450,7 +3474,11 @@ pub fn client_program_project_effect_review(@run_publication.EffectPreviewIdenti
 
 pub fn client_program_project_http_chat_request(@model_execution.AdmittedModelProvider, @model_execution.ModelRequest, String, Int, Int, Int, Int, Int) -> Result[(String, String, String, String, String), @model_execution.OpenAIChatProjectionIssue]
 
+pub fn client_program_project_model_task_selection_construction_capacity(@run_publication_host.ClientProjectModelRegistry) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_project_model_task_selection_for(@run_publication_host.ClientProjectModelTaskSelection, @run_publication_host.ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration) -> (String, String?, String)?
+
+pub fn client_program_project_model_task_selection_retained_capacity() -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_project_native_decision_answers(@model_execution.NativeDecisionRequest, @model_execution.AdmittedModelProvider, @model_execution.ModelRequest, @decode_core.Cursor, Int, Int, Int, Int) -> Result[(String, Int), @model_execution.NativeDecisionAnswerIssue]
 
@@ -3460,7 +3488,19 @@ pub fn client_program_project_public_model_task_environment(String, String, Arra
 
 pub fn client_program_project_request_check_outcome(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Result[Unit, @client_local_host.ClientRequestTerminalIssue], String, String, String, String, Int, String?, Int, String?, Int, String, @client_local_preparation.ClientCheckSourceSelectorNamespace?, @client_local_preparation.ClientCheckSourceNamespace?, String?) -> Result[String?, @client_local_host.ClientRequestPreparationIssue]
 
+pub fn client_program_public_model_task_environment_construction_capacity(Int, Int, Int, Int, Int, Array[@check_environment.NormalizedPublicModelTask]) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_public_model_task_environment_limits(Int, Int, Int, Int, Int, Array[@check_environment.NormalizedPublicModelTask]) -> Array[Int]?
+
 pub fn client_program_public_model_task_name(@check_environment.PublicModelTaskDeclaration) -> String
+
+pub fn client_program_public_model_task_normalization_construction_capacity(@check_environment.PublicModelTaskDeclaration, @run_publication_host.ClientModelProviderDefaults, Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_public_model_task_normalized_retained_capacity(@check_environment.NormalizedPublicModelTask) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_public_model_task_read_construction_capacity(String, String, Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_public_model_task_retained_capacity(@check_environment.PublicModelTaskDeclaration) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_public_source_environment_matches(@client_source_publication.PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment) -> Bool
 
@@ -4565,6 +4605,8 @@ pub fn duckdb_registration(@connectors_builtin.ConfiguredComputeHost[@physical_s
 pub fn execution_authorization_account_json(AuthorizationAccount) -> String
 
 pub fn execution_authorization_admit(String) -> AuthorizationAccount
+
+pub fn execution_authorization_admit_prepared(String, (Int64, Int64) -> Bool) -> AuthorizationAccount?
 
 pub fn execution_authorization_answer(AuthorizationRequest, String, Array[String], String, Array[String], String) -> AuthorizationDecision
 

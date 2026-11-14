@@ -206,6 +206,8 @@ pub fn[T] close_model_io_admission(ModelIoAdmission[T], T) -> Result[Bool, Model
 
 pub fn close_platform_vm_working_capacity_after_cleanup(PlatformVMWorkingCapacity) -> Result[Unit, ImportedChildLedgerIssue]
 
+pub fn close_preparation_account_read(PreparationAccountRead, Bool) -> Result[Bool, PreparationCapacityIssue]
+
 pub fn close_shared_capacity(SharedCapacity) -> Result[Unit, LedgerIssue]
 
 pub fn[P, C] complete_backed_execution_window_after_acquisition(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C], SharedCapacityGrowth, Int64) -> Result[Unit, BackedExecutionIssue]
@@ -432,6 +434,8 @@ pub fn[T] park_original_resource_consumer(FundedReadConsumer[T], T) -> Result[Or
 
 pub fn[T] park_original_resource_consumer_for_state_write(FundedReadConsumer[T], T) -> Result[OriginalResourcePark[T], OriginalReadIssue]
 
+pub fn preparation_account_read_control_slots() -> (Int64, Int64, Int64)
+
 pub fn[P] preparation_body_borrow_reserved_extents(PreparationBodyBorrow[P]) -> Result[(Int64, Int64), PreparationCapacityIssue]
 
 pub fn[P] preparation_body_borrow_value(PreparationBodyBorrow[P]) -> P?
@@ -465,6 +469,10 @@ pub fn preparation_phase_work_construction_inventory() -> PreparationWorkConstru
 pub fn preparation_phase_work_continuation64_construction_inventory() -> PreparationWorkConstructionInventory
 
 pub fn preparation_phase_work_continuation64_retained_inventory() -> PreparationWorkConstructionInventory
+
+pub fn[I, P] prepare_account_read(PreparationCapacity[I, P], I, Int64) -> Result[PreparationAccountRead, PreparationCapacityIssue]
+
+pub fn prepare_account_read_construction(PreparationAccountRead, Int64, Int64) -> Result[Unit, PreparationCapacityIssue]
 
 pub fn[P, C, I] prepare_backed_initialization_admission(BackedExecutionLiveProjection[P, C, I], I, acquire_window? : ((Int64, Int64) -> Result[Unit, LedgerIssue])?) -> Result[BackedInitializationAdmission[I], ImportedChildLedgerIssue]
 
@@ -1112,6 +1120,8 @@ pub(all) enum OriginalStateWritePoll {
 type PlatformVMCapacity
 
 type PlatformVMWorkingCapacity
+
+type PreparationAccountRead
 
 type PreparationBodyBorrow[P]
 

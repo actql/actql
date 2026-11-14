@@ -778,6 +778,10 @@ pub fn prepare_effect_local_query_requirement(@run_publication_host.PreparedClie
 
 pub fn prepare_effect_local_query_requirement_at_query_time(@run_publication_host.PreparedClientEffectComputation, Int, Int, @run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, ClientInstalledSequenceContracts, String, String?, String?) -> Result[@query_planning.QueryRequirement, ClientLocalQueryIssue]
 
+pub fn[I] prepare_host_initialization_account_read(ClientHostInitializationPreparation[I]) -> Result[@physical_resources.PreparationAccountRead, ClientHostInitializationIssue]
+
+pub fn[I, P] prepare_installed_account_read(@physical_resources.PreparationCapacity[I, P], I) -> Result[@physical_resources.PreparationAccountRead, @physical_resources.PreparationCapacityIssue]
+
 pub fn prepare_installed_catalog_whole_source_capacity(@run_publication_host.PreparedClientProgram, @sourceview_resolution.SourceAcquisition, ClientInstalledSequenceContracts, @client_row_source_host.RowInputLimits) -> Result[ClientInstalledWholeSourceCapacity, ClientInstalledManagedRunIssue]
 
 pub fn prepare_installed_effect_capture_extent(String, @execution_relation.ExecutionCapacity, @execution_relation.ExecutionCapacity) -> Result[ClientInstalledEffectOperationExtent, ClientInstalledManagedRunIssue]

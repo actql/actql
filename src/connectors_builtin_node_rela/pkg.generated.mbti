@@ -202,6 +202,8 @@ pub fn client_prepare_installed_sequence_contracts(String, String, String?, Stri
 
 pub fn client_program_abort_request_preparation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal]) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 
+pub fn client_program_accumulate_model_task_construction_capacity(@execution_relation.ExecutionCapacity?, @execution_relation.ExecutionCapacity?) -> Result[@execution_relation.ExecutionCapacity?, @physical_resources.PreparationCapacityIssue]
+
 pub fn client_program_acquired_effect_catalog_bodies(@run_publication_host.ClientEffectAcquiredEvidence, Int, Int, Int) -> Result[Array[(String, String, String)], @run_publication_host.ClientEffectAcquiredEvidenceIssue]
 
 pub fn client_program_acquired_effect_dependency_bodies(@run_publication_host.ClientEffectAcquiredEvidence) -> Array[(String, String)]
@@ -447,6 +449,10 @@ pub fn client_program_check_environment_from_wire(@check_environment.WireEnviron
 pub fn client_program_check_environment_from_wire_construction_capacity(@check_environment.WireEnvironment) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_check_environment_from_wire_with_graph_profile(@check_environment.WireEnvironment, Bool, Bool, Bool, Bool, Bool, Bool, Bool, String, String) -> @program_check.CheckEnvironment?
+
+pub fn client_program_check_environment_model_from_wire_construction_capacity(@check_environment.WireEnvironment) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_check_environment_model_from_wire_with_graph_profile(@check_environment.WireEnvironment, Bool, Bool, Bool, Bool, Bool, Bool, Bool, String, String) -> @program_check.CheckEnvironment?
 
 pub fn client_program_check_environment_wire_construction_capacity(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
@@ -1660,6 +1666,12 @@ pub fn client_program_mock_churn_risk_target_version(@client_row_source_host.Moc
 
 pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]
 
+pub fn client_program_model_provider_defaults_read_construction_capacity(String, String, String, String, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_model_provider_defaults_resolution_capacities(@run_publication_host.ClientModelProviderDefaults, Int64?) -> Array[@execution_relation.ExecutionCapacity?]
+
+pub fn client_program_model_provider_defaults_retained_capacity(@run_publication_host.ClientModelProviderDefaults) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_multi_captured_ledger_usage(@physical_resources.Ledger) -> Array[Int64]
 
 pub fn client_program_normalize_project_model_task(@run_publication_host.ClientProjectModelTaskSelection, @run_publication_host.ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration, @run_publication_host.ClientModelProviderDefaults, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@check_environment.NormalizedPublicModelTask, @check_environment.ModelTaskIssue]
@@ -1922,11 +1934,27 @@ pub fn client_program_prepared_request_query_lowering(@client_local_host.ClientR
 
 pub fn client_program_project_effect_review(@run_publication.EffectPreviewIdentity, String, String, Array[String], String, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, @run_publication.EffectReviewProjectionIssue]
 
+pub fn client_program_project_model_task_selection_construction_capacity(@run_publication_host.ClientProjectModelRegistry) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_project_model_task_selection_for(@run_publication_host.ClientProjectModelTaskSelection, @run_publication_host.ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration) -> (String, String?, String)?
+
+pub fn client_program_project_model_task_selection_retained_capacity() -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_project_public_model_task_environment(String, String, Array[@check_environment.NormalizedPublicModelTask], Int, Int, Int, Int, Int, Int, Int, Int) -> Result[(String, String, Int), @check_environment.ModelTaskIssue]
 
+pub fn client_program_public_model_task_environment_construction_capacity(Int, Int, Int, Int, Int, Array[@check_environment.NormalizedPublicModelTask]) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_public_model_task_environment_limits(Int, Int, Int, Int, Int, Array[@check_environment.NormalizedPublicModelTask]) -> Array[Int]?
+
 pub fn client_program_public_model_task_name(@check_environment.PublicModelTaskDeclaration) -> String
+
+pub fn client_program_public_model_task_normalization_construction_capacity(@check_environment.PublicModelTaskDeclaration, @run_publication_host.ClientModelProviderDefaults, Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_public_model_task_normalized_retained_capacity(@check_environment.NormalizedPublicModelTask) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_public_model_task_read_construction_capacity(String, String, Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_public_model_task_retained_capacity(@check_environment.PublicModelTaskDeclaration) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_public_source_environment_matches(@client_source_publication.PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment) -> Bool
 

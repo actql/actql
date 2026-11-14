@@ -1087,7 +1087,13 @@ pub fn client_model_parked_read_capacity_available(@physical_resources.OriginalR
 
 pub fn client_model_provider_defaults_binding(ClientModelProviderDefaults) -> @run_publication.RunEvidenceValue
 
+pub fn client_model_provider_defaults_construction_extent(String, String, String, String, @check_environment.Limits) -> @check_environment.RegistryConstructionExtent?
+
 pub fn client_model_provider_defaults_generation(ClientModelProviderDefaults, @check_environment.ResolvedModelProviderDefaults) -> @check_environment.ModelGeneration?
+
+pub fn client_model_provider_defaults_resolution_extents(ClientModelProviderDefaults, Int64?) -> (@check_environment.RegistryConstructionExtent, @check_environment.RegistryConstructionExtent)
+
+pub fn client_model_provider_defaults_retained_extent(ClientModelProviderDefaults) -> @check_environment.RegistryConstructionExtent?
 
 pub fn client_model_provider_defaults_usage(ClientModelProviderDefaults) -> (Int, Int, Int)
 

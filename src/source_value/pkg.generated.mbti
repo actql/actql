@@ -81,6 +81,8 @@ pub fn start_program_json_source_preflight(String, ParseLimits, source_path? : S
 
 pub fn take_json_source_parser(JsonSourcePreflight) -> Result[JsonParse, JsonSourcePreflightIssue]
 
+pub fn yaml_literal_construction_extent(Int, Int, Int, Int) -> JsonLiteralConstructionExtent?
+
 // Errors
 
 // Types and methods

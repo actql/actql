@@ -86,6 +86,8 @@ pub fn local_mock_profile_predecessor_body() -> String
 
 pub fn local_standard_account_configuration(LocalStandardAccountSubjects) -> Result[String, LocalStandardProfileIssue]
 
+pub fn local_standard_account_configuration_prepared(LocalStandardAccountSubjects, (AccountConfigurationConstruction) -> Bool) -> Result[String, LocalStandardProfileIssue]?
+
 pub fn local_standard_profile_body() -> String
 
 pub fn local_standard_profile_identity() -> BootstrapProfile
