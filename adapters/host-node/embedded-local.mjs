@@ -8409,7 +8409,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
     const shutdown = installedHostShutdown(opened);
     try {
       return installedRemoteHttpTransport(opened, {authenticate, loopbackHttp}, shutdown,
-        installHttpRequestPreparation(preparation, profiles, originals));
+        installHttpRequestPreparation(preparation, profiles, originals, {rawInput: true}));
     } catch (cause) {
       // No transport was returned. The SAME Host shutdown owns all acquired
       // children, including a failed close; initial control is its last duty.

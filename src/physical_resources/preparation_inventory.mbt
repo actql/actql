@@ -128,7 +128,7 @@ pub fn[I, P] begin_preparation_capacity_inventory(
     owner.body is Some(_) ||
     owner.borrowers != 0 ||
     owner.active_phase_work is Some(_) ||
-    owner.last_work_phase != -1 ||
+    owner.last_work_phase != preparation_work_unclaimed ||
     owner.retirement_claimed {
     return Err(ChangedOriginalState)
   }

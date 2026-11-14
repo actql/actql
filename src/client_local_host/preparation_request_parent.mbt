@@ -274,10 +274,10 @@ let request_preparation_fixed_control_envelope : @execution.PreparationRepresent
   // Coheld return wrapper for the shared post-lowering default selection.
   // Original selected limits remain retained on the same Request.
   // HTTP's same-parent raw input record/Some, baseline tuple and parent slot:
-  // 3H/4R/5W. This is retained control, not a byte or transport allowance.
+  // 3H/4R/7W. This is retained control, not a byte or transport allowance.
   record_headers: 246L,
   reference_slots: 441L,
-  scalar_words: 515L,
+  scalar_words: 517L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }
@@ -782,6 +782,12 @@ pub fn[I] abort_request_preparation_after_cleanup(
   owner.intent_source_quote = None
   owner.native_intake_base = None
   owner.native_intake_wire_bytes = 0
+  if owner.http_input is Some(original) && original.work is Some(work) {
+    match @resources.finish_preparation_phase_work64(work) {
+      Err(issue) => return Err(Work(issue))
+      Ok(_) => original.work = None
+    }
+  }
   owner.http_input = None
   owner.intent_peak_live = false
   owner.held_program = None

@@ -2,8 +2,10 @@
 // Constructor DATA on the SAME Request, not another Resource or input issuer.
 priv struct ClientRequestHttpInput {
   base : (Int64, Int64)
+  wire_limit : Int
   mut wire : Int
   mut chunks : Int
+  mut quantum : Int
   mut json_attempted : Bool
   mut work : @resources.PreparationPhaseWork64?
 }
@@ -38,6 +40,7 @@ pub fn[I] reserve_request_http_input(
   wire : Int,
   chunks : Int,
   quantum : Int,
+  wire_limit : Int,
 ) -> Result[Unit, ClientRequestPreparationIssue] {
   guard owner.phase == Open && !owner.intent_attempted &&
     owner.snapshot_base is None && owner.native_intake_base is None else {
@@ -46,7 +49,9 @@ pub fn[I] reserve_request_http_input(
   guard owner.input is Some(original) && physical_equal(original, input) else {
     return Err(ForeignOriginal)
   }
-  guard request_http_copy_bytes(wire, chunks, quantum) is Some(bytes) else {
+  guard wire_limit > 0 && wire_limit < 2147483519 &&
+    wire <= wire_limit + 1 && quantum <= wire_limit + 1 &&
+    request_http_copy_bytes(wire, chunks, quantum) is Some(bytes) else {
     return Err(Policy)
   }
   if owner.http_input is None {
@@ -56,13 +61,17 @@ pub fn[I] reserve_request_http_input(
         .map_err(issue => ClientRequestPreparationIssue::Capacity(issue)),
       () => owner.phase = Open,
     )
+    let base = match base {
+      Err(issue) => return Err(issue)
+      Ok(value) => value
+    }
     owner.http_input = Some({
-      base: base?, wire: 0, chunks: 0, json_attempted: false, work: None,
+      base, wire_limit, wire: 0, chunks: 0, quantum: 0, json_attempted: false, work: None,
     })
   }
   let original = owner.http_input.unwrap()
-  guard !original.json_attempted && wire >= original.wire &&
-    chunks >= original.chunks else { return Err(WrongPhase) }
+  guard original.wire_limit == wire_limit && !original.json_attempted && wire >= original.wire &&
+    chunks >= original.chunks && quantum >= original.quantum else { return Err(WrongPhase) }
   guard @execution.checked_preparation_add_product(original.base.0, bytes, 1L)
     is Some(r) &&
     @execution.checked_preparation_add_product(original.base.1, bytes, 1L)
@@ -73,9 +82,13 @@ pub fn[I] reserve_request_http_input(
       .map_err(issue => ClientRequestPreparationIssue::Capacity(issue)),
     () => owner.phase = Open,
   )
-  reserved?
+  match reserved {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   original.wire = wire
   original.chunks = chunks
+  original.quantum = quantum
   Ok(())
 }
 
@@ -100,43 +113,62 @@ pub fn[I] prepare_request_http_json(
   original.json_attempted = true
   owner.phase = Selecting
   let mut cursor : @source.JsonSourcePreflight? = None
-  let result = preparation_module_call(
+  let result : Result[Unit, ClientRequestPreparationIssue] = preparation_module_call(
     () => {
-      let work = @resources.begin_preparation_phase_work64(
+      let work = match @resources.begin_preparation_phase_work64(
         owner.capacity, input, @resources.HttpInputPreflight,
         wire.length().to_int64() + 1L,
-      ).map_err(issue => ClientRequestPreparationIssue::Work(issue))?
+      ) {
+        Err(issue) => return Err(Work(issue))
+        Ok(value) => value
+      }
       original.work = Some(work)
-      let source = @source.start_json_source_preflight(wire, {
+      let source = match @source.start_json_source_preflight(wire, {
         max_input_bytes: Int::max(1, 3 * wire.length()),
         max_nodes: Int::max(1, wire.length()),
         max_depth: @publication_host.client_standard_program_preparation_limits().checking.input.source.max_depth,
-      }, data_keys=true).map_err(_ => ClientRequestPreparationIssue::Policy)?
+      }, data_keys=true) {
+        Err(_) => return Err(Policy)
+        Ok(value) => value
+      }
       cursor = Some(source)
       while true {
-        let poll = @source.advance_json_source_preflight(source, 4096)
-          .map_err(_ => ClientRequestPreparationIssue::Policy)?
+        let poll = match @source.advance_json_source_preflight(source, 4096) {
+          Err(_) => return Err(Policy)
+          Ok(value) => value
+        }
         let (geometry, spent) = match poll {
           @source.JsonSourceContinue(work~) => (None, work)
           @source.JsonSourceReady(value, work~) => (Some(value), work)
-          @source.JsonSourceFailed(_, work~) => {
-            @resources.spend_preparation_phase_work64(work, work.to_int64())
-            |> ignore
-            return Err(Policy)
+          @source.JsonSourceFailed(_, work=spent) => {
+            match @resources.spend_preparation_phase_work64(work, spent.to_int64()) {
+              Err(issue) => return Err(Work(issue))
+              Ok(_) => return Err(Policy)
+            }
           }
         }
-        @resources.spend_preparation_phase_work64(work, spent.to_int64())
-          .map_err(issue => ClientRequestPreparationIssue::Work(issue))?
+        match @resources.spend_preparation_phase_work64(work, spent.to_int64()) {
+          Err(issue) => return Err(Work(issue))
+          Ok(_) => ()
+        }
         if geometry is Some(value) {
           @source.cancel_json_source_preflight(source)
           cursor = None
+          // The same preflight/work has ended before the native-tree phase
+          // grows. A live phase-work receipt cannot authorize that resize.
+          match @resources.finish_preparation_phase_work64(work) {
+            Err(issue) => return Err(Work(issue))
+            Ok(_) => original.work = None
+          }
           let nodes = value.node_upper.to_int64()
           let units = nodes + value.quoted_raw_utf16_units.to_int64()
           guard request_snapshot_data_bytes(units, nodes) is Some(tree) else {
             return Err(Policy)
           }
-          let (r, e) = @resources.preparation_capacity_working_extents(owner.capacity, input)
-            .map_err(issue => ClientRequestPreparationIssue::Capacity(issue))?
+          let (r, e) = match @resources.preparation_capacity_working_extents(owner.capacity, input) {
+            Err(issue) => return Err(Capacity(issue))
+            Ok(value) => value
+          }
           guard @execution.checked_preparation_add_product(r, tree, 1L) is Some(r) &&
             @execution.checked_preparation_add_product(e, tree, 1L) is Some(e) else {
             return Err(Policy)
@@ -154,7 +186,12 @@ pub fn[I] prepare_request_http_json(
   if original.work is Some(work) {
     let closed = @resources.finish_preparation_phase_work64(work)
     if closed is Ok(_) { original.work = None }
-    if result is Ok(_) { closed.map_err(issue => Work(issue))? }
+    if result is Ok(_) {
+      match closed {
+        Err(issue) => return Err(Work(issue))
+        Ok(_) => ()
+      }
+    }
   }
   result
 }
