@@ -1506,6 +1506,8 @@ pub fn client_program_infer_execution_restoring(@client_infer_host.Execution) ->
 
 pub fn client_program_infer_execution_stopped(@client_infer_host.Execution) -> Bool
 
+pub fn client_program_infer_funded_stopped_attempt_count(@client_infer_host.Execution) -> Int
+
 pub fn client_program_infer_has_unknown_calls(@client_infer_host.Execution) -> Bool
 
 pub fn client_program_infer_identity_pending(@client_infer_host.Execution) -> Bool
@@ -1741,6 +1743,8 @@ pub fn client_program_installed_effect_content_preparation_provider(@client_loca
 pub fn client_program_installed_effect_control_wire_bound(Int, Int) -> Result[Int, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_duckdb_source_input_prepare(String, String, String, String, String, String) -> Result[@client_local_host.ClientInstalledEffectSourceInput, @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_installed_effect_funded_model_selection_count(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity) -> Result[Int, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_host_input_capture_recipe_extent_prepare(String, Array[@execution_relation.ExecutionCapacity], Int, Int, Int) -> Result[@client_local_host.ClientInstalledEffectOperationExtent, @client_local_host.ClientInstalledManagedRunIssue]
 
@@ -3086,6 +3090,8 @@ pub fn client_program_original_effect_unit_artifact_definition(@run_publication_
 
 pub fn client_program_original_effect_unit_manifest_matches(@run_publication_host.ClientEffectLocalManifest, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectLocalInvocation, Array[@run_publication_host.ClientEffectLocalResultArtifact]) -> Bool
 
+pub fn client_program_original_infer_capture_inventory_capacity(@client_infer_host.Execution, @model_execution.OriginalModelPublicationCapacity) -> Result[(Int, Int64, Int64), @client_infer_host.Issue]
+
 pub fn client_program_original_mock_declaration(@model_execution.ModelMockInstallation) -> Result[@check_environment.NormalizedPublicModelTask, @model_execution.ModelMockInstallationIssue]
 
 pub fn client_program_original_mock_provider(@model_execution.ModelMockInstallation) -> Result[@model_execution.ModelProvider, @model_execution.ModelMockInstallationIssue]
@@ -3281,6 +3287,8 @@ pub fn client_program_prepare_multi_captured_local_installed_ledger(@run_publica
 pub fn client_program_prepare_multi_captured_local_ledger(@run_publication_host.PreparedClientProgram, Array[@actql/actql/connectors/duckdb/host.NativeHostConfiguration], Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?) -> @physical_resources.Ledger?
 
 pub fn client_program_prepare_original_mock(@check_environment.ModelMockProfile, @check_environment.PublicModelTaskDeclaration, @check_environment.NormalizedPublicModelTask, () -> String) -> Result[@model_execution.ModelMockInstallation, @model_execution.ModelMockInstallationIssue]
+
+pub fn client_program_prepare_original_restored_infer_send_mask(@client_infer_host.Execution) -> Result[Int, @client_infer_host.Issue]
 
 pub fn client_program_prepare_preconsumer_effect_source_unit(@run_publication_host.ClientEffectSourceUnitInputs, Int, @run_publication.PublicationContract, Int, Int, Int) -> Result[@run_publication_host.ClientEffectCombinedSourceUnit, @run_publication_host.ClientEffectAcquiredEvidenceIssue]
 

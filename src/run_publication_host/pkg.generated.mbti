@@ -1079,7 +1079,11 @@ pub fn client_model_current_state_match_current(@physical_resources.OriginalCurr
 
 pub fn client_model_current_state_read_bounds(@physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Result[@physical_resources.OriginalCurrentStateReadBounds, ClientModelReadPreparationIssue]
 
+pub fn client_model_handed_off_preparation_capacity_available(ClientModelReadPreparation, ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Bool
+
 pub fn client_model_handed_off_read_capacity_available(ClientModelReadScope, ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Bool
+
+pub fn client_model_input_materialization_matches(ClientModelReadPreparation, ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientInferCallScope, @execution_relation.PreparedInferRows, @execution_relation.CompletedOutput) -> Bool
 
 pub fn client_model_original_origin_field(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, @run_publication.RunEvidenceValue, String) -> Result[String, ClientModelOriginalOriginIssue]
 
@@ -1704,6 +1708,8 @@ pub fn finish_client_node_model_read_state(ClientNodeModelStateWriter, ClientCom
 pub fn finish_prepared_client_local_normalization(ClientLocalNormalizationPreparation) -> Result[ClientLocalNormalization, ClientLocalNormalizationIssue]
 
 pub fn grow_client_model_read_preparation_consumer_capacity(ClientModelReadPreparation, ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Result[Unit, ClientModelReadPreparationIssue]
+
+pub fn grow_client_model_read_preparation_consumer_span(ClientModelReadPreparation, ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Result[(Int64, Int64), ClientModelReadPreparationIssue]
 
 pub fn grow_client_model_read_preparing_capacity(ClientModelReadPreparation, ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Result[Unit, ClientModelReadPreparationIssue]
 
@@ -2337,6 +2343,8 @@ pub fn prepared_client_captured_task_source_matches(PreparedClientProgram, @exec
 
 pub fn prepared_client_check_environment_cid(PreparedClientProgram) -> String
 
+pub fn prepared_client_composed_infer_count(PreparedClientProgram) -> Int?
+
 pub fn prepared_client_composed_infer_occurrence(PreparedClientProgram) -> ClientInferOccurrence?
 
 pub fn prepared_client_composed_infer_occurrences(PreparedClientProgram) -> Array[ClientInferOccurrence]?
@@ -2356,6 +2364,8 @@ pub fn prepared_client_effect_computation_semantics_cid(PreparedClientEffectComp
 pub fn prepared_client_effect_computation_source(PreparedClientEffectComputation) -> @stage_syntax.Program
 
 pub fn prepared_client_effect_identity(PreparedClientEffectComputation) -> ClientProgramIdentity
+
+pub fn prepared_client_effect_infer_count(PreparedClientEffectComputation) -> Int?
 
 pub fn prepared_client_effect_infer_occurrence(PreparedClientEffectComputation) -> ClientInferOccurrence?
 

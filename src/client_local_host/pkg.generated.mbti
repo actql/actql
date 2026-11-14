@@ -298,6 +298,8 @@ pub fn client_infer_completed_result_artifact_input(ClientInferInputExecution, @
 
 pub fn client_infer_completion_preparation(ClientInferInputExecution, @execution_relation.PreparedInferRows) -> @execution_relation.CompletionPreparation?
 
+pub fn client_infer_retained_input_construction_capacity(Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_infer_retained_input_export_binding(ClientInferRetainedInputExport) -> String
 
 pub fn client_infer_retained_input_export_descriptor(ClientInferRetainedInputExport) -> String
@@ -450,6 +452,8 @@ pub fn export_client_source_capture(@execution_query.CapturedInputSource, @query
 
 pub fn export_client_whole_source_capture(@execution_query.CapturedInputSource, ClientInstalledWholeSourceCapacity, String) -> Result[(Array[String], String, String, Array[String]), ClientSourceCaptureIssue]
 
+pub fn export_original_client_infer_retained_input(@execution_relation.CompletedOutput, String, ClientInferInputMaterialization) -> Result[ClientInferRetainedInputExport, ClientInferRetainedInputIssue]
+
 pub fn[I, P] finish_effect_program_check_preparation(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.EffectComputationCandidate, ClientProgramCheckPreparationIssue]
 
 pub fn finish_program_capture(ClientProgramCapture) -> Result[@run_publication.PublicationContract, ClientClosedValuesPreparationIssue]
@@ -503,6 +507,8 @@ pub fn installed_effect_content_provider(ClientInstalledEffectContentPreparation
 pub fn installed_effect_contract_response_construction_capacity(Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn installed_effect_control_wire_bound(Int, Int) -> Result[Int, ClientInstalledManagedRunIssue]
+
+pub fn installed_effect_funded_model_selection_count(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity) -> Result[Int, ClientInstalledManagedRunIssue]
 
 pub fn installed_effect_http_response_construction_capacity(Int, Int, response_read_quantum? : Int) -> @execution_relation.ExecutionCapacity?
 
@@ -879,6 +885,8 @@ pub fn prepare_multi_captured_local_capacity_ledger(@run_publication_host.Prepar
 pub fn prepare_multi_captured_local_installed_ledger(@run_publication_host.PreparedClientProgram, Array[ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], ClientInstalledSequenceContracts, String, String?, String?) -> @physical_resources.Ledger?
 
 pub fn prepare_multi_captured_local_ledger(@run_publication_host.PreparedClientProgram, Array[@host.NativeHostConfiguration], Array[Int64], Array[Int64], ClientInstalledSequenceContracts, String, String?, String?) -> @physical_resources.Ledger?
+
+pub fn prepare_original_client_infer_input_materialization((@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientModelReadConsumer, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @ref.Ref[(Int64, Int64)]), @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferCallScope, @execution_relation.CompletedOutput, @execution_relation.PreparedInferRows, @execution_relation.CompletedRelationIdentityScan) -> Result[ClientInferInputMaterialization, ClientInferRetainedInputIssue]
 
 pub fn prepare_program_capture(ClientProgramPublication, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue]) -> Result[ClientProgramCapture, ClientClosedValuesPreparationIssue]
 
@@ -1272,6 +1280,8 @@ pub fn retained_effect_local_tasks_control_capacity(@physical_strategy.CheckedDA
 
 pub fn retained_installed_source_construction_capacity(@execution_relation.ExecutionCapacity) -> @execution_relation.ExecutionCapacity
 
+pub fn retire_client_infer_input_materialization(ClientInferInputMaterialization) -> Unit
+
 pub fn retire_installed_effect_capture_recovery(ClientInstalledEffectCaptureRecovery) -> Result[Unit, ClientInstalledManagedRunIssue]
 
 pub fn retire_installed_effect_captured_consumers(ClientInstalledManagedRun) -> Result[Bool, ClientInstalledManagedRunIssue]
@@ -1340,7 +1350,7 @@ pub fn start_client_original_serialization_prefix(@run_publication_host.ClientMo
 
 pub fn start_client_query_residual(@execution_query.QuerySequence, @execution_query.QueryReceipt, () -> Bool, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int, Int, max_name_bytes~ : Int) -> Result[@local.ManagedProviderExecution, ClientQueryResidualIssue]
 
-pub fn start_client_restored_composed_infer_input(@run_publication_host.ClientInferOccurrence, @execution_relation.GeneratedSequence, String, String, String, Array[String], () -> Bool, @execution_relation.SequenceExecutionLimits, @execution_relation.InferPreparationLimits, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[ClientInferInputExecution, ClientInferInputIssue]
+pub fn start_client_restored_composed_infer_input(@run_publication_host.ClientInferOccurrence, @execution_relation.GeneratedSequence, String, String, String, Array[String], () -> Bool, @execution_relation.SequenceExecutionLimits, @execution_relation.InferPreparationLimits, reference_issuer? : @value_admission.ReferenceIssuer, original_read? : (@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientModelReadConsumer, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @ref.Ref[(Int64, Int64)])?) -> Result[ClientInferInputExecution, ClientInferInputIssue]
 
 pub fn start_client_restored_infer_input(@run_publication_host.PreparedClientProgram, Int, Int, ClientInstalledSequenceContracts, String, String, String, String, Array[String], () -> Bool, @execution_relation.SequenceExecutionLimits, @execution_relation.InferPreparationLimits, fragment_body? : String?, ordered_body? : String?, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[ClientInferInputExecution, ClientInferInputIssue]
 
@@ -1548,6 +1558,17 @@ pub(all) enum ClientInferInputIssue {
   ProducerBinding(@execution_relation.ProducerBindingIssue)
   Capture(@execution_query.CapturedSourceIssue)
   RetainedInput(ClientInferRetainedInputIssue)
+}
+
+pub struct ClientInferInputMaterialization {
+  mut input : @execution_relation.CompletedOutput?
+  mut original : (@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientModelReadConsumer, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @ref.Ref[(Int64, Int64)])?
+  retained : Int64
+  execution : Int64
+  artifact_cid : String
+  task : Int
+  revision : Int
+  mut used : Bool
 }
 
 pub enum ClientInferInputPoll {
@@ -1927,5 +1948,6 @@ pub(all) enum LocalValuesResultExportIssue {
 pub type QueryBindingForeignFailure
 
 // Type aliases
+pub type ClientInferOriginalInputRead = (@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientModelReadConsumer, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @ref.Ref[(Int64, Int64)])
 
 // Traits
