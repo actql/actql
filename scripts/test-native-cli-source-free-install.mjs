@@ -20,6 +20,7 @@ import {admitInstalledLocalRuntime} from '../packages/native-cli/lib/local-runti
 import {canonicalText} from './check-canonical-json.mjs';
 import {nativeMockAcceptanceObservations} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {nativeLauncherEnvelope} from './native-cli-mock-scenario.mjs';
+import {observeNativeUnionRows, observeNativeUnionRowPolicy} from './native-cli-union-rows.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 
@@ -664,8 +665,13 @@ export async function observeNativeNumericOperatorScale({project, cli, assets, l
   // Statically excessive Values rows are RowsExceeded/InvalidInput in the
   // existing checker; this is distinct from an unclassified preparation failure.
   assert.equal(JSON.parse(refused.stderr).code, 'ACTQL_E_PROGRAM_INVALID');
+  const lowUnionRowPolicy = await observeNativeUnionRowPolicy({project: lowProject,
+    cli: (args, cwd, code = 0) => {
+      assert.equal(cwd, lowProject);
+      return lowCli(args, code);
+    }});
   return {...result, operator: {environmentCid: selected.environmentCid, maxRows: selected.maxRows,
-    lowPolicyRows: low.maxRows, lowPolicyRefused: true}};
+    lowPolicyRows: low.maxRows, lowPolicyRefused: true, lowUnionRowPolicy}};
 }
 
 export function nativeResourceShapeFixtures() {
@@ -1053,6 +1059,7 @@ async function observeInstalledSourceFree(input, observationPath) {
     assert.equal(JSON.parse(await readFile(join(project, 'actql.config.json'))).profile, undefined);
     const defaultNumeric = await observeNativeDefaultNumericQueries({project, cli: sourceFreeCli});
     const defaultUnionMetadata = await observeNativeDefaultUnionMetadata({root, cli: sourceFreeCli});
+    const defaultUnionRows = await observeNativeUnionRows({root, cli: sourceFreeCli});
     const fileSourceNumeric = await observeNativeFileSourceNumeric({root, cli});
     const fileTaskBoundary = await observeNativeFileTaskBoundary({root, cli, environment: env});
     await writeFile(join(project, 'query.sql'), 'SELECT 1 AS id\n');
@@ -1130,7 +1137,7 @@ async function observeInstalledSourceFree(input, observationPath) {
       artifact, scriptSha256: createHash('sha256').update(await readFile(fileURLToPath(import.meta.url))).digest('hex'),
       cliPackages: manifest.packages.map(({name, version, sha256}) => ({name, version, sha256})),
       registry: 'private-loopback-fixed-RC', registryRequests: registry.requested,
-      mockInitialization, catalogOnlyMockRefusal, plainInitialization, defaultNumeric, defaultUnionMetadata, fileSourceNumeric, fileTaskBoundary,
+      mockInitialization, catalogOnlyMockRefusal, plainInitialization, defaultNumeric, defaultUnionMetadata, defaultUnionRows, fileSourceNumeric, fileTaskBoundary,
       journalExhaustion, numericScale, resourceShapes,
       sourceFreeWork: records.filter(record => record.sourceFreeWork).map(record => record.sourceFreeWork),
       publicRegistryPublication: 'not-tested', records,
