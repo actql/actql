@@ -1594,7 +1594,18 @@ export async function createInstalledRowSource({moon, declaration, commands,
   // explicit legacy constructors keep their original raw-wire entry law.
   let acquisitionContracts = retainedAcquisitionContracts
     ? prepareInstalledSourceAcquisitionContracts(sourceInitialization, queryContract, evidenceContract) : undefined;
-  const sourceRefs = new Set(declared.views.map(view => view.source_ref));
+  const constructReadMetadata = () => {
+    const sourceRefs = new Set();
+    const sourceReadAccesses = Object.freeze(declared.views.map(view => {
+      sourceRefs.add(view.source_ref);
+      return Object.freeze({authorization, connection: site.connection,
+        sourceRef: view.source_ref, resource: view.resource});
+    }));
+    return Object.freeze({sourceRefs, sourceReadAccesses});
+  };
+  const {sourceRefs, sourceReadAccesses} = sourceInitialization === undefined
+    ? constructReadMetadata()
+    : sourceInitialization.prepareReadMetadata(declared, constructReadMetadata);
   if (!['maxPages', 'maxPageBytes', 'maxPageRows', 'maxCaptureRows']
     .every(key => Number.isSafeInteger(limits?.[key]) && limits[key] > 0 &&
       limits[key] <= 2_147_483_647)) {
@@ -1767,9 +1778,6 @@ export async function createInstalledRowSource({moon, declaration, commands,
   // Read disclosure and held-Run authority are per declared view. The
   // acquisition access stays installation-scoped; its checked preparation
   // supplies the one exact view and read tuple before provider I/O.
-  const sourceReadAccesses = Object.freeze(declared.views.map(view =>
-    Object.freeze({authorization, connection: site.connection,
-      sourceRef: view.source_ref, resource: view.resource})));
   const ordinarySubject = prepared => {
     const subject = directReadIdentity === undefined
       ? cid({version: 'actql-row-source-acquisition-read/0.1',

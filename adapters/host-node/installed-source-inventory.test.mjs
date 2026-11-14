@@ -222,7 +222,7 @@ for (const fault of ['policy', 'encoding', 'catalog', 'physical', 'missing-bindi
   });
 }
 
-test('inventory retains the 64 per-member and 128 aggregate read-authority caps', async t => {
+test('inventory admits a larger member while retaining its aggregate read-authority bound', async t => {
   const fixture = await installation(t);
   const refs = (name, count) => Array.from({length: count}, (_, index) =>
     `connector://${name}/records-${index}#v`);
@@ -230,9 +230,10 @@ test('inventory retains the 64 per-member and 128 aggregate read-authority caps'
     const declarations = counts.map((count, index) => profile(`member-${index}`,
       {refs: refs(`member-${index}`, count)}));
     const loading = fixture.loadInstalledSources(await fixture.paths(declarations), fixture.options);
-    if (counts[0] === 64 && counts[1] === 63) {
+    if (counts.reduce((total, count) => total + count, 0) <= 128) {
       const loaded = await loading;
-      assert.equal(loaded.sources.flatMap(fixture.installedSourceReadBindings).length, 128);
+      assert.equal(loaded.sources.flatMap(fixture.installedSourceReadBindings).length,
+        counts.reduce((total, count) => total + count, 0));
       await loaded.close();
     } else await assert.rejects(loading, primary('InvalidInstalledSourceReadAccesses'));
   }
