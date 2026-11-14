@@ -797,6 +797,22 @@ fn same_binding_name(left : NamePart, right : NamePart) -> Bool {
 }
 
 ///|
+// One original parser-work unit per UTF-16 visit. Two passes per operand
+// cover its existing ASCII fold and a full equality comparison. Debit before
+// either folded String is built; no new name meaning or budget is selected.
+fn QueryParser::binding_name_matches(
+  self : QueryParser,
+  left : NamePart,
+  right : NamePart,
+) -> Bool raise QueryAbort {
+  self.spend(left.value.length())
+  self.spend(left.value.length())
+  self.spend(right.value.length())
+  self.spend(right.value.length())
+  same_binding_name(left, right)
+}
+
+///|
 fn QueryParser::resolve_producer(
   self : QueryParser,
   relation : Array[NamePart],
@@ -811,7 +827,7 @@ fn QueryParser::resolve_producer(
     while index >= 0 {
       self.spend(1)
       let (authored, producer) = bindings[index]
-      if same_binding_name(relation[0], authored) {
+      if self.binding_name_matches(relation[0], authored) {
         return [producer]
       }
       index -= 1
@@ -1271,7 +1287,7 @@ fn QueryParser::mark_positional_output(
   if query.operations.is_empty() && query.bound_source is Some(bound) {
     for index in 0..<bindings.length() {
       self.spend(1)
-      if same_binding_name(bindings[index].name, bound) {
+      if self.binding_name_matches(bindings[index].name, bound) {
         bindings[index] = {
           ..bindings[index],
           query: self.mark_positional_output(bindings[index].query),
@@ -2635,8 +2651,11 @@ fn QueryParser::query(
       }
       let binding_start = self.peek().start
       let name = self.binding_name()
-      if scope.any(binding => same_binding_name(binding.0, name)) {
-        raise QueryAbort("Duplicate CTE name", self.peek().start)
+      for binding in scope {
+        self.spend(1)
+        if self.binding_name_matches(binding.0, name) {
+          raise QueryAbort("Duplicate CTE name", self.peek().start)
+        }
       }
       self.keyword("AS")
       let body = self.parenthesized()

@@ -26,6 +26,11 @@ test "metered output startup follows original default selection and preserves in
   let metered = local_module_metered_output_start_capacity(
     original, 0, sequence,
   ).unwrap()
+  let same = local_module_metered_output_start_capacity(original, 0, sequence).unwrap()
+  assert_true(
+    physical_equal(metered, same),
+    msg="reuse SAME prepared startup capacity, do not reconstruct its recipe",
+  )
   assert_true(metered.retained_bytes < full.retained_bytes)
   assert_true(metered.execution_bytes < full.execution_bytes)
   let replacement = managed_provider(_ => true, _ => Some(full), (_, _, _, _, _) => {

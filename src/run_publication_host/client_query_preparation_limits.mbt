@@ -5,7 +5,6 @@
 pub fn client_program_query_syntax_limits(
   limits : ClientProgramPreparationLimits,
 ) -> @query_syntax.QueryLimits {
-  let original = @source_frontend.syntax_limits()
   let lexical : @query_syntax.LexicalLimits = {
     max_source_bytes: limits.checking.input.source.max_input_bytes,
     max_tokens: limits.lowering.max_nodes,
@@ -13,7 +12,6 @@ pub fn client_program_query_syntax_limits(
     max_work: limits.lowering.max_work,
   }
   {
-    ..original,
     lexical,
     expression: {
       lexical,
@@ -22,6 +20,10 @@ pub fn client_program_query_syntax_limits(
       max_work: limits.lowering.max_work,
     },
     max_syntax_nodes: limits.lowering.max_nodes,
+    // Every authored or generated CTE binding spends an original syntax node
+    // before append. Use that SAME funded inventory, not a separate count100.
+    // Explicit QueryLimits remain the caller's distinct parser entry.
+    max_cte_count: limits.lowering.max_nodes,
     max_work: limits.lowering.max_work,
   }
 }
