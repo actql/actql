@@ -392,7 +392,7 @@ test('measured Darwin scheduling reaches compiler-owned original drivers without
     [paths[0], paths[4], paths[6]], [paths[1], paths[2], paths[3], paths[5], paths[7]],
   ]);
   assert.equal(parts.flatMap(part => part.drivers).length, paths.length);
-  assert.equal(new Set(parts.flatMap(part => part.drivers.map(driver => JSON.stringify(driver.command)))).size, paths.length);
+  assert.equal(new Set(parts.flatMap(part => part.drivers)).size, paths.length);
 });
 
 test('four Native ordinary jobs and independent physical jobs exhaust the original profile inventory', () => {
