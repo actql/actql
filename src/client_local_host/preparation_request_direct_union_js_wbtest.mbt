@@ -729,23 +729,35 @@ test "ordinary Source lexical work follows its same retained document through ch
 
 ///|
 test "ordinary CTE count follows the same funded syntax inventory above the old separate ceiling" {
-  let definitions = Array::makei(101, i => "c" + i.to_string() + " AS (SELECT " + i.to_string() + " AS n)")
+  let definitions = Array::makei(101, i => {
+    "c" + i.to_string() + " AS (SELECT " + i.to_string() + " AS n)"
+  })
   let document = "WITH " + definitions.join(",") + " SELECT n FROM c100"
   let (environment, publication) = request_query_publication_fixture()
   let (parent, input) = native_driver_parent(document)
   let result = prepare_request_default_source_computation_check(
-    parent, input, request_document_test_source(document, "sql"),
-    native_json_reader, environment, publication, [], None,
+    parent,
+    input,
+    request_document_test_source(document, "sql"),
+    native_json_reader,
+    environment,
+    publication,
+    [],
+    None,
     @publication_host.client_standard_effect_computation_limits(),
   )
   let calls = request_preparation_work_calls(parent)
   let original = parent.held_program
   abort_request_preparation_after_cleanup(parent).unwrap()
-  assert_true(result is Ok(_), msg=match result {
-    Ok(_) => "checked"
-    Err(QuerySyntax(Frontend(QuerySyntax(diagnostic)))) => @debug.to_string(diagnostic)
-    Err(issue) => direct_union_terminal_detail(issue)
-  })
+  assert_true(
+    result is Ok(_),
+    msg=match result {
+      Ok(_) => "checked"
+      Err(QuerySyntax(Frontend(QuerySyntax(diagnostic)))) =>
+        @debug.to_string(diagnostic)
+      Err(issue) => direct_union_terminal_detail(issue)
+    },
+  )
   assert_true(original is Some(_))
   assert_eq(calls, (1L, 1L, 1L, 0L))
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)

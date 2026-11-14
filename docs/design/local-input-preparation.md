@@ -3102,7 +3102,7 @@ the generated-Program envelope for the ordinary checker/compiler continuation.
 Reusing the generated Program must not apply the original raw SQL node bound
 to the expanded artifact. This transition changes only the input representation
 dimensions; generic explicit check/reuse APIs retain their supplied restrictions.
-Installed collection/join dimensions, depth, CTE policy and original target,
+Installed collection/join dimensions, depth, explicit parser policies and original target,
 Catalog, Parameter and Environment bindings remain independent.
 
 The ordinary initial selection derives its Source/tree nodes and structural

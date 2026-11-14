@@ -22,6 +22,10 @@ pub fn client_program_query_syntax_limits(
       max_work: limits.lowering.max_work,
     },
     max_syntax_nodes: limits.lowering.max_nodes,
+    // Every authored or generated CTE binding spends an original syntax node
+    // before append. Use that SAME funded inventory, not a separate count100.
+    // Explicit QueryLimits remain the caller's distinct parser entry.
+    max_cte_count: limits.lowering.max_nodes,
     max_work: limits.lowering.max_work,
   }
 }
