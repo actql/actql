@@ -480,12 +480,12 @@ export function installModelProviders(moon, register, assertHostRuntime,
     const resolveTaskDefaults = preparedDefaults === undefined
       ? modelDefaultsResolver(moon, providerId, bindingOriginals, assertNewTrustedRuntime,
         () => retained, defaultsCallbacks)
-      : function (selectedModel, taskMaxOutputTokens, limits) {
+      : function (selectedModel, taskMaxOutputTokens, limits, construction) {
         if (this !== retained) {
           throw Object.assign(new Error('InstalledModelDefaultsForeignOriginal'),
             {code: 'InstalledModelDefaultsForeignOriginal'});
         }
-        return preparedDefaults.resolveTaskDefaults(selectedModel, taskMaxOutputTokens, limits);
+        return preparedDefaults.resolveTaskDefaults(selectedModel, taskMaxOutputTokens, limits, construction);
       };
     retained = Object.freeze({provider, originalReadInstallation, originalReadRecipe, rawCaptureSelection,
       assertTrustedRuntime, assertNewTrustedRuntime, requireEagerSdkStartup,

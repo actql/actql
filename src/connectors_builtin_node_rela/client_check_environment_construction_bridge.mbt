@@ -113,13 +113,25 @@ pub fn client_program_check_environment_from_wire_construction_capacity(
   }
   client_check_environment_capacity(
     client_check_environment_add_extent(
-      peak,
+      client_check_environment_add_extent(peak, {
+        record_headers: 2L,
+        reference_slots: 1L,
+        scalar_words: 2L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      }),
       @publication_host.client_check_environment_wrapper_construction_extent(
         false,
       ),
     ),
     client_check_environment_add_extent(
-      peak,
+      client_check_environment_add_extent(peak, {
+        record_headers: 2L,
+        reference_slots: 1L,
+        scalar_words: 2L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      }),
       @publication_host.client_check_environment_wrapper_construction_extent(
         true,
       ),
@@ -129,8 +141,8 @@ pub fn client_program_check_environment_from_wire_construction_capacity(
 
 ///|
 /// Private installed composition cut: same wire, same seven selected flags and
-/// the original empty ModelTask reader. The full public compatibility entry
-/// continues to admit populated ModelTasks through its separate owner/path.
+/// the complete original ModelTask reader. The full public compatibility entry
+/// uses this same complete ModelTask admission.
 #export_name("clientProgramCheckEnvironmentFromWire")
 pub fn client_program_check_environment_from_wire(
   original : @check_environment.WireEnvironment,
@@ -142,17 +154,42 @@ pub fn client_program_check_environment_from_wire(
   calendar : Bool,
   text_rank : Bool,
 ) -> @program_check.CheckEnvironment? {
-  if @check_environment.member_count(
-      original,
-      @check_environment.ModelTaskContracts,
-    ) !=
-    0 ||
-    (sga && !selected_sga_supported()) {
+  if sga && !selected_sga_supported() {
     return None
   }
   @publication_host.admit_client_check_environment_from_wire(
     original,
     { text_time, veca, },
     { rela, sga, tea, calendar, text_rank, },
+  )
+}
+
+///|
+/// Same complete checker and semantic selections, borrowing the funded raw
+/// original instead of parsing or hashing its wire for a second time.
+#export_name("clientProgramCheckEnvironmentFromWireWithGraphProfile")
+pub fn client_program_check_environment_from_wire_with_graph_profile(
+  original : @check_environment.WireEnvironment,
+  text_time : Bool,
+  veca : Bool,
+  rela : Bool,
+  sga : Bool,
+  tea : Bool,
+  calendar : Bool,
+  text_rank : Bool,
+  numeric_profile_cid : String,
+  graph_law_cid : String,
+) -> @program_check.CheckEnvironment? {
+  if !selected_graph_supported() ||
+    graph_law_cid != @graph_contract.law_cid() ||
+    (sga && !selected_sga_supported()) {
+    return None
+  }
+  @publication_host.admit_client_check_environment_from_wire_with_numeric_profile(
+    original,
+    { text_time, veca, },
+    { rela, sga, tea, calendar, text_rank, },
+    numeric_profile_cid,
+    true,
   )
 }

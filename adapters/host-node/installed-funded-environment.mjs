@@ -116,6 +116,46 @@ export function readInstalledSourceEnvironment(services, moon, wire) {
   return composeEnvironment(services, moon, undefined, wire, undefined, undefined, true);
 }
 
+// The final Host checker consumes exact DATA text (including decomposed public
+// Task text). Core performs complete canonical/member validation. Every native
+// constructor below borrows its real original from the same funded parse.
+export function readInstalledHostEnvironment(services, moon, wire,
+  {textTime, calendar, numericProfileCid, graphLawCid}) {
+  const reader = installedSourceEnvironmentConstructionReader(services, moon);
+  const construct = (capacity, project) => reader.prepareNativeInput(Object.freeze({capacity, project}));
+  const parsed = construct(() => {
+    const {retained, workspace} = installedEnvironmentParseConstructionGeometry(wire);
+    return checked(moon.clientProgramInstalledSourceConstructionCapacity(
+      retained.nodes, retained.text, retained.wire, workspace.nodes, workspace.text, workspace.wire));
+  }, () => freezeDocument(JSON.parse(wire), wire));
+  const counts = parsed.counts, evidenceCid = parsed.document.evidence_bundle_cid;
+  const raw = construct(() => moon.clientProgramCheckEnvironmentWireConstructionCapacity(
+    counts.bytes, counts.nodes, counts.depth, counts.fields, counts.objects, counts.arrays,
+    counts.rootFields, counts.maxFields, counts.keyUtf16Units, counts.maxKeyUtf16Units,
+    counts.members, counts.snapshots, counts.catalogs, counts.manifestEntries), () => {
+      const value = moon.clientProgramReadCheckEnvironmentWire(wire, evidenceCid);
+      if (value === undefined) fail('InstalledCheckEnvironmentConflict');
+      return value;
+    });
+  const admitted = construct(() => moon.clientProgramCheckEnvironmentFromWireConstructionCapacity(raw), () => {
+    const value = moon.clientProgramCheckEnvironmentFromWireWithGraphProfile(raw,
+      textTime, true, true, true, true, calendar, false, numericProfileCid, graphLawCid);
+    if (value === undefined) fail('InstalledCheckEnvironmentConflict');
+    return value;
+  });
+  // This exact raw original and checker remain retained by the parent. No
+  // independently reconstructed DTO becomes a publication matcher here.
+  return construct(() => checked(moon.clientProgramInstalledSourceConstructionCapacity(
+    BigInt(counts.rootFields + 12), 0n, 0n, 0n, 0n, 0n)), () => {
+      const {evidence_bundle_cid: ignored, ...body} = parsed.document;
+      void ignored;
+      const value = Object.freeze({runtime: moon, admitted, raw, wire, evidenceCid,
+        body: Object.freeze(body)});
+      originals.set(value, {services, moon, reader, counts});
+      return value;
+    });
+}
+
 // Completion adopts the SAME already-held native/Core original. The existing
 // Core publication matcher is a nominal join, not a CID/Boolean authority.
 // A copied DTO, changed wire or independently constructed final Environment

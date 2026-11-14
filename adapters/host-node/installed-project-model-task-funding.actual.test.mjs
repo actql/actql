@@ -1,0 +1,126 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {createHash} from 'node:crypto';
+import {readFile, mkdtemp, writeFile, rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {pathToFileURL} from 'node:url';
+import {loadInstalledProjectConfiguration} from './installed-project-configuration.mjs';
+import {loadInstalledProjectModelTasks} from './installed-project-model-tasks.mjs';
+import {readInstalledHostEnvironment} from './installed-funded-environment.mjs';
+import {installModelProviders} from './installed-model.mjs';
+import {createInstalledLoaderParent} from './fixtures/installed-loader-parent.fixture.mjs';
+import {providerBindingOriginals} from '../../scripts/fixtures/model-provider-binding-fixture.mjs';
+
+assert.ok(process.env.ACTQL_TEST_PUBLIC_MODEL_TASK_RUNTIME,
+  'Select the actual matching Common runtime; this case may not skip');
+const native = await import(pathToFileURL(process.env.ACTQL_TEST_PUBLIC_MODEL_TASK_RUNTIME));
+const canonical = value => Array.isArray(value) ? '[' + value.map(canonical).join(',') + ']'
+  : value !== null && typeof value === 'object'
+    ? '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + canonical(value[key])).join(',') + '}'
+    : JSON.stringify(value);
+const original = value => {
+  const wire = canonical(value);
+  return {wire, cid: 'sha256:' + createHash('sha256').update(wire).digest('hex')};
+};
+const providerId = 'models/project-fixture';
+const limits = Object.freeze({maxBytes: 65536, maxNodes: 4096, maxDepth: 64,
+  maxMembers: 256, contractNodes: 4096, contractDepth: 64,
+  contractTextBytes: 65536, maxWork: 2097152});
+const baseWire = (await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
+const numeric = JSON.parse(await readFile(new URL('../../spec/contracts/actql-numeric-reduction.json', import.meta.url), 'utf8'));
+const graph = JSON.parse(await readFile(new URL('../../spec/dependencies/actql-graph-laws.json', import.meta.url), 'utf8'));
+
+async function fixture(t, {count = 129, small = false} = {}) {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-funded-model-registry-'));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const counters = {read: 0, normalize: 0, defaults: 0, reserve: 0, sends: 0, wire: 0, final: 0};
+  let current = true;
+  const assertCurrent = () => {if (!current) throw Object.assign(new Error('OriginalProjectLost'), {code: 'OriginalProjectLost'});};
+  const moon = {...native};
+  for (const [method, counter] of [['ReadPublicModelTask', 'read'],
+    ['NormalizeProjectModelTask', 'normalize'], ['ReadInstalledModelDefaults', 'defaults'],
+    ['ReadCheckEnvironmentWire', 'wire'], ['CheckEnvironmentFromWireWithGraphProfile', 'final']]) {
+    moon['clientProgram' + method] = (...args) => {
+      assert.ok(counters.reserve > 0, 'The actual parent must reserve before any constructor');
+      counters[counter]++;
+      return native['clientProgram' + method](...args);
+    };
+  }
+  moon.clientProgramReserveInstalledSourceConstruction = (...args) => {
+    counters.reserve++;
+    return native.clientProgramReserveInstalledSourceConstruction(...args);
+  };
+  if (small) moon.clientLocalPreparationResourceLimits = policy =>
+    native.clientLocalPreparationResourceLimits(policy, 2000000n, 2000000n);
+  const parent = createInstalledLoaderParent({root: join(directory, '.state'), moon, assertCurrent});
+  parent.open();
+  t.after(() => {current = true; return parent.close();});
+  const tasks = {};
+  for (let index = 0; index < count; index++) {
+    const name = `model-task:funded.${String(index).padStart(3, '0')}`;
+    tasks[name] = `./task-${index}.yaml`;
+    await writeFile(join(directory, `task-${index}.yaml`),
+      `task: ${name}\ninput:\n  notes: string\noutput:\n  enabled: boolean\ninstructions: Original é ${index}\nlimits:\n  max_output_tokens: 200\n`);
+  }
+  await writeFile(join(directory, 'actql.config.json'), '{"version":"actql-config/0.1","model_tasks":"./tasks.json"}');
+  await writeFile(join(directory, 'tasks.json'), canonical({version: 'actql-model-tasks/0.1', tasks,
+    providers: {[providerId]: {type: 'fixture'}}, default_provider: providerId}));
+  const project = await loadInstalledProjectConfiguration(moon, {directory});
+  const binding = providerBindingOriginals(providerId);
+  const handling = original({schema: 'actql.contract/0.1', id: 'funded-project-policy',
+    version: 'fixture-r1', kind: 'request_data_handling', body: {
+      accepted_classifications: ['public'], allowed_regions: ['fixture'], retention: 'none', training_use: 'forbidden'}});
+  binding.configurationContract = original({...JSON.parse(binding.configurationContract.wire),
+    required: ['endpoint', 'principal', 'selector', 'tenant', 'model_defaults']});
+  binding.configuration = original({...JSON.parse(binding.configuration.wire), model_defaults: {
+    default_model: 'first', models: [{model: 'first', data_handling: {...JSON.parse(handling.wire), cid: handling.cid},
+      generation_config: {temperature: 0, top_p: 1, max_output_tokens: 100}}]}});
+  const providers = installModelProviders(moon, () => [{providerId, bindingOriginals: binding,
+    validatePrompt: () => true, invoke() {counters.sends++; assert.fail('No registration-time Model invocation');}}],
+  assertCurrent, assertCurrent);
+  return {moon, parent, project, providers, counters, assertCurrent,
+    loseCurrent: () => {current = false;},
+    load: (selected = limits) => loadInstalledProjectModelTasks(moon, project, providers,
+      {limits: selected, assertCurrent, services: parent.services})};
+}
+
+test('actual same-parent loader registers 129 original Tasks once and funds complete nonempty final admission', async t => {
+  const f = await fixture(t), view = await f.load();
+  const tasks = view.originalsForRuntime(f.moon);
+  assert.equal(tasks.length, 129);
+  assert.equal(new Set(tasks.map(task => task.taskCid)).size, 129);
+  for (const task of tasks) {
+    assert.equal(JSON.parse(task.taskWire).task_id, task.name);
+    assert.equal(JSON.parse(task.taskWire).generation_config.max_output_tokens, 200);
+    assert.match(JSON.parse(task.promptWire).payload.instructions, /^Original é /u);
+  }
+  const projection = view.projectEnvironmentForRuntime(f.moon, baseWire,
+    JSON.parse(baseWire).evidence_bundle_cid, JSON.parse(baseWire));
+  const final = readInstalledHostEnvironment(f.parent.services, f.moon, projection.environmentWire,
+    {textTime: false, calendar: false, numericProfileCid: original(numeric).cid, graphLawCid: original(graph).cid});
+  assert.ok(final.admitted && final.raw);
+  assert.equal(final.body.model_task_contracts.length, 129);
+  assert.equal(f.counters.read, 129);
+  assert.equal(f.counters.normalize, 129, 'No earlier prefix is re-normalized to quote a later member');
+  assert.equal(f.counters.defaults, 1, 'The same three canonical originals and defaults profile are read once');
+  assert.equal(f.counters.wire, 1);
+  assert.equal(f.counters.final, 1);
+  assert.equal(f.counters.sends, 0);
+  f.loseCurrent();
+  assert.throws(() => view.originalsForRuntime(f.moon), {code: 'OriginalProjectLost'});
+});
+
+test('actual explicit maxTasks128 refuses 129 before acquiring or decoding a Task', async t => {
+  const f = await fixture(t);
+  await assert.rejects(f.load({...limits, maxTasks: 128}), {code: 'InstalledProjectTaskCountLimit'});
+  assert.equal(f.counters.read, 0); assert.equal(f.counters.normalize, 0);
+  assert.equal(f.counters.defaults, 0); assert.equal(f.counters.sends, 0);
+});
+
+test('actual smaller original Resource refuses the next constructor without Model I/O and closes', async t => {
+  const f = await fixture(t, {count: 1, small: true});
+  await assert.rejects(f.load(), error => error.code === 'MoonBitHostFailure' || error.code === 'PreparationCapacityExceeded');
+  assert.equal(f.counters.read, 0, 'Current Task decoder must not precede its actual parent refusal');
+  assert.equal(f.counters.normalize, 0); assert.equal(f.counters.sends, 0);
+});
