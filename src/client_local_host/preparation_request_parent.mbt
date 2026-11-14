@@ -162,6 +162,7 @@ struct ClientRequestPreparation[I] {
   ]?
   mut compiled_effect : @publication_host.PreparedClientEffectComputation?
   mut effect_plan : ClientInstalledEffectManagedPlan?
+  mut program_normalization : ClientRequestProgramNormalization?
   mut program_data : @checked.ParsedCheckDataEstimate?
   mut program_plan_quote : (Int64, Int64)?
   mut program_measurement_quote : (Int64, Int64)?
@@ -273,10 +274,9 @@ let request_preparation_fixed_control_envelope : @execution.PreparationRepresent
   // 1H/1R/1W, retained before any fallible syntax grow/current callback.
   // Coheld return wrapper for the shared post-lowering default selection.
   // Original selected limits remain retained on the same Request.
-  // HTTP's same-parent raw input record/Some, baseline tuple and parent slot:
-  // 3H/4R/7W. This is retained control, not a byte or transport allowance.
+  // HTTP controls3H/4R/7W and one original normalization reference1R coexist.
   record_headers: 246L,
-  reference_slots: 441L,
+  reference_slots: 442L,
   scalar_words: 517L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
@@ -428,6 +428,7 @@ fn[I] begin_request_preparation_original(
     effect_capacity: None,
     compiled_effect: None,
     effect_plan: None,
+    program_normalization: None,
     program_data: None,
     program_plan_quote: None,
     program_measurement_quote: None,
@@ -768,6 +769,10 @@ pub fn[I] abort_request_preparation_after_cleanup(
       }
     }
   }
+  match finish_request_program_normalization_work(owner) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   match finish_request_program_artifact_work(owner) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -800,6 +805,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
   // Keep the original Effect until its last constructor borrower returns.
   // Its cached normalization custody is severed only after logical retirement.
   owner.effect_plan = None
+  owner.program_normalization = None
   owner.program_data = None
   owner.program_plan_quote = None
   owner.program_measurement_quote = None

@@ -1561,7 +1561,7 @@
     {
       "module": "src/client_local_host/preparation_request_program_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "f88793c5735b24ff14f3d76c73a62ff2bf0540d49eb0b7cdc90732ad3045eadb",
+      "sha256": "e72b7c254adacd9d7b7014f465eef2ebe49dfe9ceb7abe5c3d24bab2d6ce2312",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -1683,6 +1683,10 @@
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Responsibility:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "inputsOutputs": [
@@ -1693,12 +1697,20 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Checked compiler configuration at the installed module boundary"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "identity": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Identity:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "ownership": [
@@ -1709,12 +1721,20 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The preparation-owned Pure source-free route admits that actual retained body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "synchronization": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Synchronization:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "failure": [
@@ -1729,12 +1749,20 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"Request installed module preserves exact one-byte-short refusal before its original factory\""
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "cancellation": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Cancellation:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "resources": [
@@ -1745,12 +1773,20 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The preparation-owned Pure source-free route admits that actual retained body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "extension": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Extension:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "verification": [
@@ -1781,6 +1817,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"successful Request artifact retires returned compiler scratch before runtime adoption\""
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ]
           }

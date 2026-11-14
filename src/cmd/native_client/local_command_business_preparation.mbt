@@ -120,19 +120,17 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   let intent = self.with_business_request(capture, () => {
     self.construct_business_intent()
   })
-  let preparation = self.prepare_business_request(capture, intent, environment)
-  let mut normalization = None
+  let (preparation, normalization) = self.prepare_business_request(
+    capture, intent, environment,
+  )
   let (requirements, file_source) = match
     @local_host.native_client_submitted_preparation(preparation) {
     Computation(prepared) => {
       // This original Pure route retains its unchanged normalization and
       // requirements. An Effect is never coerced into its body or authority.
-      normalization = Some(
-        @run_host.issue_prepared_client_local_normalization(prepared).unwrap_or_else(() => {
-            stop("LocalOriginalNormalizationNotInstalled")
-          },
-        ),
-      )
+      guard normalization is Some(_) else {
+        stop("LocalOriginalNormalizationNotInstalled")
+      }
       let assets = runtime.assets
       if @run_host.prepared_client_acquisition_count(prepared) != 0 {
         let selected = self
