@@ -1039,7 +1039,7 @@ async function observeInstalledSourceFree(input, observationPath) {
       const focused=new URL('./test-execution.mjs',import.meta.url).href;
       const fixture=fileURLToPath(new URL('./test-native-local-cli.test.mjs',import.meta.url));
       await run(process.execPath,['--input-type=module','-e',
-        `import {runFocusedTests} from ${JSON.stringify(focused)};process.exitCode=runFocusedTests('node',[${JSON.stringify(fixture)}],{cwd:process.cwd(),expectedTests:12});`]);
+        `import {runFocusedTests} from ${JSON.stringify(focused)};process.exitCode=runFocusedTests('node',[${JSON.stringify(fixture)}],{cwd:process.cwd(),expectedTests:13});`]);
     };
     // Node launches only the installed npm entry. Neither it nor the Native child
     // can discover a compiler, a repository executable, a provider or a Node Host.
