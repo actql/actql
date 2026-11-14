@@ -6,7 +6,7 @@ import {mockTemplates} from './native-cli-mock-scenario.mjs';
 // Two ordinary installed fixtures supply a maximum-only smoke check. Their
 // process stop/cleanup deadline and the formal 30-sample profile are separate.
 export function assessOrdinaryNativeApprovalSmoke(scenarios) {
-  const failures = [], samples = [], maximumMs = 10000;
+  const failures = [], samples = [], maximumMs = nativeApprovalTarget.maxMs;
   if (!Array.isArray(scenarios) || scenarios.length !== mockTemplates.length) {
     failures.push('Both original Native mock scenarios are required');
   }
