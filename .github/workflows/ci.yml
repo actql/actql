@@ -367,9 +367,9 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
   # Linux keeps both portable targets and eight complete Native common drivers.
-  # The original JS row has its own status boundary before scarce Mac fan-out.
-  # Native Mac workloads start early; three Core slots leave room for them and
-  # Python. Every Core row shares the same steps and remains mandatory when selected.
+  # Darwin's four original profiles start after target selection, alongside Native
+  # Mac workloads. Python retains its lint/JS boundary. Every Core row shares the
+  # same steps; the final join still requires selected JS, lint and preflight.
   core-common:
     needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && (contains(fromJSON(needs.select-targets.outputs.targets), 'wasm') || contains(fromJSON(needs.select-targets.outputs.targets), 'native')) }}
@@ -650,12 +650,12 @@ jobs:
     timeout-minutes: ${{ matrix.target == 'native' && 90 || 30 }}
     steps: *core_steps
   core-darwin:
-    needs: [select-targets, lint, core-js]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !cancelled() && needs.lint.result == 'success' && ((needs.select-targets.outputs.profile == 'full' && contains(fromJSON(needs.select-targets.outputs.targets), 'js') && needs.core-js.result == 'success') || ((needs.select-targets.outputs.profile != 'full' || !contains(fromJSON(needs.select-targets.outputs.targets), 'js')) && needs.core-js.result == 'skipped')) && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && contains(fromJSON(needs.select-targets.outputs.targets), 'native') }}
+    needs: [select-targets]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !cancelled() && needs.select-targets.result == 'success' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && contains(fromJSON(needs.select-targets.outputs.targets), 'native') }}
     name: core (${{ matrix.target }}${{ matrix.target == 'native' && format(' {0}', matrix.partition) || '' }})
     strategy:
       fail-fast: false
-      max-parallel: 3
+      max-parallel: 4
       matrix:
         target: [native]
         partition: [scoped, source, '1/2', '2/2']
