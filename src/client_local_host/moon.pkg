@@ -73,6 +73,7 @@ import {
 options(
   targets: {
     "effect_model_catalog_selection_js_wbtest.mbt": [ "js" ],
+    "client_local_normalization_union_request_js_wbtest.mbt": [ "js" ],
     "native_file_task_boundary_js_wbtest.mbt": [ "js" ],
     "collection_request_finalization_js_wbtest.mbt": [ "js" ],
     "managed_import_reentry_js_wbtest.mbt": [ "js" ],
