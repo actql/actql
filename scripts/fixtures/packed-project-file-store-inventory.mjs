@@ -40,8 +40,13 @@ const targets = async expected => {
 };
 const validateRows = (rows, original) => {
   assert.equal(rows.length, original.expectedProjection.length);
-  for (let index = 0; index < rows.length; index++) {
-    const {content, ...fields} = rows[index];
+  // Listing metadata does not declare a path candidate key or a total order.
+  // Compare all literal rows by path without adding an authored sort or
+  // changing the actual full Result sequence retained for cold Saved.
+  const compared = caseId === 'rows101'
+    ? rows.toSorted((left, right) => left.path.localeCompare(right.path)) : rows;
+  for (let index = 0; index < compared.length; index++) {
+    const {content, ...fields} = compared[index];
     const expected = original.expectedProjection[index];
     assert.deepEqual(fields, caseId === 'members17'
       ? {...expected, media_type: 'application/x-ndjson'} : expected);

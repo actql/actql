@@ -13,7 +13,7 @@ export function projectFileStoreRows101() {
     source:'SELECT f.path AS path, f.size_bytes AS size_bytes, c.content AS content '+
       'FROM LIST_FILES(source) AS f '+
       'JOIN source.contents AS c ON f.resource = c.resource AND f.version = c.version '+
-      'ORDER BY path |> RESULT answer '+
+      '|> RESULT answer '+
       '|> EFFECT STORE destination.files SET (path = path, content = content)',
     inputs:Object.freeze(inputs.map(Object.freeze)),
     expectedWrites:101,expectedDefinitions:1,resultName:'answer',
