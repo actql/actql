@@ -219,3 +219,51 @@ test "normalization Request cached success checks original current without repea
   )
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "normalization Request first cached original checks current before its first entrance" {
+  let current = Ref(true)
+  let calls = Ref(0)
+  let action : Ref[(() -> Unit)?] = Ref(None)
+  let (parent, input) = normalization_request_control_fixture(current=() => {
+    calls.val += 1
+    if action.val is Some(run) { run() }
+    current.val
+  })
+  let original = @publication_host.issue_prepared_client_local_normalization(
+    parent.compiled_program.unwrap(),
+  ).unwrap()
+  assert_true(parent.program_normalization is None)
+  let usage = @resources.ledger_usage(parent.ledger)
+  current.val = false
+  let before = calls.val
+  assert_true(
+    prepare_request_program_normalization(parent, input)
+    is Err(Preparation(Capacity(_))),
+  )
+  assert_eq(calls.val, before + 1)
+  assert_true(parent.program_normalization is None)
+  assert_eq(@resources.ledger_usage(parent.ledger), usage)
+  current.val = true
+  let refused = Ref(false)
+  action.val = Some(() => {
+    action.val = None
+    refused.val = prepare_request_program_normalization(parent, input)
+      is Err(Preparation(WrongPhase)) &&
+      abort_request_preparation_after_cleanup(parent) is Err(WrongPhase)
+  })
+  let before = calls.val
+  let reused = prepare_request_program_normalization(parent, input).unwrap()
+  assert_true(physical_equal(original, reused))
+  assert_true(refused.val)
+  assert_eq(calls.val, before + 1)
+  assert_true(parent.program_normalization is None)
+  assert_true(request_program_normalization_work(parent, input) is None)
+  assert_eq(@resources.ledger_usage(parent.ledger), usage)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_true(
+    prepare_request_program_normalization(parent, input)
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
