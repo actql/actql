@@ -644,7 +644,7 @@ for (const [name, entries, producerCount, residentSeconds, remainingMinutes] of 
       (name === 'native-separated-network' ? '-${{ matrix.profile }}' : '') + '" --entries ' + entries + ' --seconds 900' +
       (entries === 'all' ? ' --http-jobs 2' : '') +
       (residentSeconds === 900 ? '' : ' --resident-seconds ' + residentSeconds) +
-      (name === 'native-macos' ? ' --lanes 2' : ''));
+      (entries === 'all' ? ' --lanes 2' : ''));
     assert.equal(preparation.if, undefined);
     assert.equal(preparation['continue-on-error'], undefined);
     // Only the macOS Resident cold build selects 1200 seconds; all other
