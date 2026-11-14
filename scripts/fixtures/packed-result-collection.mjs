@@ -467,13 +467,22 @@ try {
     assert(Array.isArray(largeNames) && largeNames.length === 1);
     const expectedLarge = Object.fromEntries(Array.from({length: 17}, (_, n) => [`f${n}`, 'x'.repeat(64000)]));
     const largeResult = large.result(largeNames[0]);
-    assert.deepEqual(await span('all-large-row', () => largeResult.all()), [expectedLarge]);
+    const largeRows = await span('all-large-row', () => largeResult.all());
+    assert.deepEqual(largeRows, [expectedLarge]);
+    const largeWireBytes = Buffer.byteLength(JSON.stringify(largeRows[0]));
+    assert.equal(largeWireBytes, 1088144);
     await span('large-row-explicit-refusal', () => assert.rejects(
       largeResult.all({maxRowWireBytes: 1048576}), {code: 'ResultRowWireLimit'}));
     assert.deepEqual(await span('large-row-SAME-Run-recovery', () => largeResult.all()), [expectedLarge]);
     report.currentRunResult.complete = true;
-    report.largeRow = {rows: 1, fields: 17, textUnitsPerField: 64000,
+    report.largeRow = {ref: large.ref, resultName: largeNames[0],
+      rows: 1, fields: 17, textUnitsPerField: 64000, wireBytes: largeWireBytes,
       aboveLegacyRowWireBytes: 1048576, explicitRefusal: 'ResultRowWireLimit', sameRunRecovery: true, complete: true};
+    // Extend the original handoff only after this actual Run's full read and
+    // refusal/recovery checks. Keep the independent 100000-row original too.
+    const original = JSON.parse(await readFile(handoffPath, 'utf8'));
+    await save(handoffPath, {...original, largeRow: {ref: large.ref, resultName: largeNames[0],
+      rows: 1, fields: 17, textUnitsPerField: 64000, wireBytes: largeWireBytes}});
   } else {
     const original = JSON.parse(await readFile(handoffPath, 'utf8'));
     assert.equal(original.count, 100000);
@@ -484,6 +493,30 @@ try {
     assert.equal(report.submits, 0);
     report.currentRunResult.complete = true;
     report.cases.push({count: original.count, complete: true});
+    if (original.largeRow !== undefined) {
+      const large = original.largeRow;
+      assert.deepEqual(Object.keys(large).sort(),
+        ['fields', 'ref', 'resultName', 'rows', 'textUnitsPerField', 'wireBytes']);
+      assert.equal(large.rows, 1); assert.equal(large.fields, 17);
+      assert.equal(large.textUnitsPerField, 64000); assert.equal(large.wireBytes, 1088144);
+      assert(large.ref !== undefined && typeof large.resultName === 'string' && large.resultName.length > 0);
+      report.currentRunResult = {kind: 'saved', ref: large.ref, resultName: large.resultName,
+        purpose: 'large-row', complete: false};
+      const retained = await span('attach-large-row', () => client.attach(large.ref));
+      const expectedLarge = Object.fromEntries(Array.from({length: 17}, (_, n) => [`f${n}`, 'x'.repeat(64000)]));
+      const rows = await span('original-large-Saved-FIRST', () => retained.result(large.resultName).all());
+      assert.deepEqual(rows, [expectedLarge]);
+      assert.equal(Buffer.byteLength(JSON.stringify(rows[0])), 1088144);
+      assert.equal((await span('large-status-AFTER-Saved', () => retained.status())).status, 'succeeded');
+      assert.equal(report.submits, 0);
+      report.currentRunResult.complete = true;
+      report.largeRow = {...large, complete: true};
+    } else {
+      // A later capture failure must not hide the earlier original small-row
+      // Saved result. Its missing large-row prerequisite stays explicit; the
+      // parent requires it whenever capture completed that large original.
+      report.largeRow = {complete: false, unexecutedReason: 'Requires completed original large-row handoff'};
+    }
   }
 } catch (error) {failed = true; primary = error; report.primary = {name: error?.name, code: error?.code};}
 finally {

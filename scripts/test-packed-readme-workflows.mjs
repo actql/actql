@@ -160,10 +160,40 @@ export async function runCollectionPhase({collection, command, record, capturePi
         boundedBatches: true, batchBytes: true, earlyBreak: true, readerCancellation: true});
       assert.deepEqual(actual.oversizedRow, {rows: 1, arrayElements: 20000, maxRowRetainedValueBytes: 1048576,
         expectedRefusal: 'ResultRowRetainedLimit', complete: true});
-      assert.deepEqual(actual.largeRow, {rows: 1, fields: 17, textUnitsPerField: 64000,
+      assert(actual.largeRow?.ref !== undefined);
+      assert.equal(typeof actual.largeRow.resultName, 'string'); assert(actual.largeRow.resultName.length > 0);
+      assert.deepEqual(actual.largeRow, {ref: actual.largeRow.ref, resultName: actual.largeRow.resultName,
+        rows: 1, fields: 17, textUnitsPerField: 64000, wireBytes: 1088144,
         aboveLegacyRowWireBytes: 1048576, explicitRefusal: 'ResultRowWireLimit', sameRunRecovery: true, complete: true});
       assert.equal(actual.originalProgramsRemovedAfterFirstClose, 6);
-    } else assert.deepEqual(actual.cases, [{count: 100000, complete: true}]);
+    } else {
+      assert.deepEqual(actual.cases, [{count: 100000, complete: true}]);
+      const original = JSON.parse(await readFile(join(collection, 'original.json'), 'utf8'));
+      const captured = JSON.parse(await readFile(join(collection, 'capture.observation.json'), 'utf8'));
+      assert.equal(captured.pid, capturePid); assert.equal(captured.phase, 'capture');
+      assert.equal(captured.firstClose, 'returned');
+      assert.deepEqual(captured.aliveScopedFD, {before: 0, after: 0}); assert.deepEqual(captured.cleanup, []);
+      const small = captured.cases.find(value => value.count === 100000 && value.complete === true);
+      assert(small); assert.equal(original.count, 100000);
+      assert.deepEqual(original.ref, small.ref); assert.equal(original.resultName, small.resultName);
+      if (original.largeRow !== undefined) {
+        const large = original.largeRow;
+        assert.deepEqual(Object.keys(large).sort(),
+          ['fields', 'ref', 'resultName', 'rows', 'textUnitsPerField', 'wireBytes']);
+        assert.equal(large.rows, 1); assert.equal(large.fields, 17);
+        assert.equal(large.textUnitsPerField, 64000); assert.equal(large.wireBytes, 1088144);
+        assert.equal(captured.largeRow?.complete, true);
+        for (const name of Object.keys(large)) assert.deepEqual(large[name], captured.largeRow[name]);
+        assert.deepEqual(actual.largeRow, {...large, complete: true});
+      } else {
+        // A failed later capture does not erase an earlier completed Result.
+        // It also cannot claim completion of the missing large Saved check.
+        assert.notEqual(captured.complete, true); assert.notEqual(captured.largeRow?.complete, true);
+        assert.deepEqual(actual.largeRow,
+          {complete: false, unexecutedReason: 'Requires completed original large-row handoff'});
+        record.largeRowUnexecutedReason = actual.largeRow.unexecutedReason;
+      }
+    }
     record.completed = true; record.status = 'passed';
   } catch (error) {
     observed ??= error?.commandResult;
