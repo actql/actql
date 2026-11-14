@@ -18,6 +18,8 @@ pub fn read_bounded_text_file_with_custody(String, String, Int64, trim_newline? 
 
 pub fn read_observed_ordinary_text_file_in_current_read_context_with_custody(String, String, Int, (Int64) -> Bool) -> Result[String, NativeBoundedTextFailure]
 
+pub fn read_observed_text_file_in_current_read_context_with_custody(String, String, Int, (Int64) -> Bool) -> Result[String, NativeBoundedTextFailure]
+
 // Errors
 
 // Types and methods

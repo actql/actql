@@ -397,3 +397,25 @@ pub fn read_observed_ordinary_text_file_in_current_read_context_with_custody(
     prepare_payload=Some(prepare_payload),
   )
 }
+
+///|
+/// Same before-payload preparation port with the existing managed-name role.
+/// The caller keeps its entered original Read and finite preparation owner;
+/// neither this callback nor the observed file size issues capacity or access.
+pub fn read_observed_text_file_in_current_read_context_with_custody(
+  root_path : String,
+  name : String,
+  diagnostic_ceiling : Int,
+  prepare_payload : (Int64) -> Bool,
+) -> Result[String, NativeBoundedTextFailure] {
+  read_bounded_text_file_selected(
+    root_path,
+    name,
+    2147483518L,
+    false,
+    Some(diagnostic_ceiling),
+    true,
+    false,
+    prepare_payload=Some(prepare_payload),
+  )
+}
