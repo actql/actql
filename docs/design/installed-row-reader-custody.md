@@ -85,6 +85,14 @@ business Run or authorize a metadata request.
 
 ## Original public connection declarations
 
+Shared Project metadata admission derives its finite JSON and text geometry
+from the exact original encoded wire, rather than a separate fixed file or
+member ceiling. It keeps the existing structural depth and strict schema,
+duplicate and Unicode checks. This DATA bound is not physical funding: the
+caller must retain the same finite pre-read/admission owner before encoding,
+parsing or retaining declarations. Node and Native readers keep their own
+currentness, capacity, custody and retirement duties.
+
 The existing Project configuration Owner admits the closed connectors document
 and keeps each connection's logical name, Connector locator and exact original
 UTF-8 value span. It validates the entire bounded envelope, including unused
