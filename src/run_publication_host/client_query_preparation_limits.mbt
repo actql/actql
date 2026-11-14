@@ -5,7 +5,6 @@
 pub fn client_program_query_syntax_limits(
   limits : ClientProgramPreparationLimits,
 ) -> @query_syntax.QueryLimits {
-  let original = @source_frontend.syntax_limits()
   let lexical : @query_syntax.LexicalLimits = {
     max_source_bytes: limits.checking.input.source.max_input_bytes,
     max_tokens: limits.lowering.max_nodes,
@@ -13,7 +12,6 @@ pub fn client_program_query_syntax_limits(
     max_work: limits.lowering.max_work,
   }
   {
-    ..original,
     lexical,
     expression: {
       lexical,
