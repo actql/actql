@@ -51,6 +51,13 @@ test('portable assignment preserves whole original cohorts and every original Sa
   assert.equal(selected.length, originals.length);
   assert.equal(new Set(selected).size, originals.length);
   for (const cohort of originals) assert.equal(selected.filter(value => value === cohort).length, 1);
+  for (const part of parts) for (const profile of part) {
+    const original = profiles.find(value => value.name === profile.name);
+    for (const [index, cohort] of profile.cohorts.entries()) {
+      assert.strictEqual(original.cohorts[profile.cohortIndexes[index]], cohort,
+        'a selected Host and its cold Saved sample retain the original global cohort index');
+    }
+  }
   assert(inventories.every(values => values.length > 0));
   assert(parts.every(profiles => profiles.some(profile => profile.inputs.successes.length > 0)));
   const largest = Math.max(...profiles.flatMap(profile => profile.cohorts.map(cohort =>

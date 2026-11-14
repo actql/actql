@@ -1191,7 +1191,7 @@ async function exercisePackedGraphArgumentChecks(mode) {
   if (primary !== undefined) throw primary;
 }
 // Public check must also work from installed tarballs, without repository imports.
-async function exercisePublicCheck(options) {
+async function exercisePublicCheck(options, directory) {
   const client = await connect(options);
   try {
   const first = await client.check('SELECT 1 AS n', {kind: 'text', scope: 'bound_input', format: 'sql'});
@@ -1200,7 +1200,6 @@ async function exercisePublicCheck(options) {
   const invalid = await client.check('SELECT missing AS n', {kind: 'text', scope: 'bound_input', format: 'sql'});
   assert.equal(invalid.report.verdict, 'invalid');
   assert.notEqual(invalid.report.context_ref, first.report.context_ref);
-  const directory = options.mode === 'remote' ? remoteDirectory : localDirectory;
   const beforeColumnChecks = observe(directory)();
   await exerciseUnaliasedColumnOrigins(client, publicCheckSdk);
   assert.deepEqual(observe(directory)(), beforeColumnChecks,
@@ -1230,7 +1229,7 @@ async function exercisePublicCheck(options) {
   } finally { await client.close(); }
 }
 if (transport === undefined || transport === 'local') await exercisePublicCheck({mode: 'local', owner: 'local', durability: 'durable',
-  installation: {directory: localDirectory, sourceProfilePath, hostCapacityPolicy}});
+  installation: {directory: localDirectory, sourceProfilePath, hostCapacityPolicy}}, localDirectory);
 // Extend the same public harness; no second lifecycle/fault matrix. Each
 // physical spelling has independently authored rows and its own explicit Host.
 async function exerciseExactPhysicalTargets() {
@@ -1451,7 +1450,7 @@ try {
       const options = {mode: 'remote',
         endpoint: `https://127.0.0.1:${server.address().port}/`,
         token: 'fixture-token', durability: 'durable'};
-      if (index === 0) await exercisePublicCheck(options);
+      if (index === 0) await exercisePublicCheck(options, directory);
       await exercisePublicQueryInput(connect, options,
         {requestPrefix: 'packed-http', observe: observe(directory), prepareCase,
           completedCase: recordCohort('remote', directory, cohort, authorization ?? httpAuthorization), ...cohort});

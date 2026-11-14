@@ -32,6 +32,39 @@ async function fixtureSyntax(path) {
   return {source, nodes};
 }
 
+test('partitioned public check observes the same original directory as its HTTP Host', async () => {
+  const {nodes} = await fixtureSyntax('./fixtures/packed-public-query.mjs');
+  const checks = nodes.filter(node => node.type === 'FunctionDeclaration' &&
+    node.id.name === 'exercisePublicCheck');
+  assert.equal(checks.length, 1);
+  assert.deepEqual(checks[0].params.map(node => node.name), ['options', 'directory']);
+  const observations = nodes.filter(node => node.start > checks[0].start && node.end < checks[0].end &&
+    node.type === 'CallExpression' && node.callee.name === 'observe');
+  assert.equal(observations.length, 2);
+  assert(observations.every(node => node.arguments[0].name === 'directory'));
+  const calls = nodes.filter(node => node.type === 'CallExpression' &&
+    node.callee.name === 'exercisePublicCheck');
+  assert.equal(calls.length, 2, 'both original public check entrances remain selected');
+  const remote = calls.find(node => node.arguments[0].name === 'options');
+  assert.equal(remote.arguments[1]?.name, 'directory');
+  const local = calls.find(node => node !== remote);
+  assert.equal(local.arguments[1]?.name, 'localDirectory');
+  const loop = nodes.filter(node => node.type === 'ForOfStatement' &&
+    node.start < remote.start && node.end > remote.end)
+    .sort((a, b) => (a.end - a.start) - (b.end - b.start))[0];
+  const directory = loop.body.body.flatMap(node => node.declarations ?? [])
+    .find(node => node.id.name === 'directory');
+  assert.equal(directory.init.callee.name, 'cohortDirectory');
+  assert.equal(directory.init.arguments[0].name, 'remoteDirectory');
+  assert.equal(directory.init.arguments[1].object.name, 'cohortIndexes');
+  assert.equal(directory.init.arguments[1].property.name, 'index');
+  const hosts = nodes.filter(node => node.start > loop.start && node.end < loop.end &&
+    node.type === 'CallExpression' && node.callee.name === 'openInstalledRemoteHttpHost');
+  assert.equal(hosts.length, 1);
+  assert.equal(hosts[0].arguments[0].properties.find(node => node.key.name === 'directory')
+    .value.name, 'directory', 'check observation cannot select an unopened base-root Journal');
+});
+
 for (const [name, expression] of Object.entries({
   normal: {gte: [{field: 'amount'}, {literal: 20}]},
   unsupportedPredicate: {gt: [{add: [{field: 'id'}, {literal: 1}]}, {literal: 2}]},
