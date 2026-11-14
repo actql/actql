@@ -269,7 +269,20 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
   const fileDigest = 'c0e298e3407e0d4b966926b7e4054d269a86c74e18ddd5552d5d119370b79695';
   const fileSelector = '    "native_file_task_boundary_js_wbtest.mbt": [ "js" ],\n';
   const fileBody = gitTree(root, fileRevision).read(path).toString();
-  assert.deepEqual(currentPackageConfigurations[path], {revision: fileRevision, digest: fileDigest, rule});
+  const unionRevision = 'bad3df76f10ae158ab579b33a4b9d1232eee58cf';
+  const unionDigest = '73ce0addad1ed0fee070cd0ae738e91dc2e857c877e14e57951f4de4392cdcfb';
+  const unionSelector = '    "preparation_request_direct_union_js_wbtest.mbt": [ "js" ],\n';
+  const unionBody = gitTree(root, unionRevision).read(path).toString();
+  assert.equal(hash(unionBody), unionDigest);
+  assert.equal(Buffer.byteLength(unionBody), 10957);
+  assert.equal(Buffer.byteLength(unionSelector), 64);
+  assert.equal(unionBody.split(unionSelector).length, 2);
+  assert.equal(unionBody.replace(unionSelector, ''), fileBody,
+    'only the literal direct UNION Request JS selector extends the complete prior descriptor');
+  assert.deepEqual(packageImports(unionBody).imports, packageImports(fileBody).imports);
+  execFileSync('git', ['merge-base', '--is-ancestor', fileRevision, unionRevision], {cwd: root});
+  execFileSync('git', ['merge-base', '--is-ancestor', unionRevision, 'HEAD'], {cwd: root});
+  assert.deepEqual(currentPackageConfigurations[path], {revision: unionRevision, digest: unionDigest, rule});
   assert.equal(hash(fileBody), fileDigest);
   assert.equal(fileBody.split(fileSelector).length, 2);
   execFileSync('git', ['merge-base', '--is-ancestor', readRevision, fileRevision], {cwd: root});
@@ -470,9 +483,10 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
   assert.equal(currentPackageConfigurationReviewFor(request(path, hash(intakeRevision))), null);
   assert.deepEqual(packageImports(body).imports,
     [...packageImports(previous).imports, 'actql/actql/capacity_policy'].sort());
-  assert.equal(currentTree.read(path).toString(), fileBody);
+  assert.equal(currentTree.read(path).toString(), unionBody);
   assert.equal(hash(currentTree.read('toolchain.json')), toolchainDigest);
-  assert.equal(currentPackageConfigurationReviewFor(request(path, fileDigest))?.revision, fileRevision);
+  assert.equal(currentPackageConfigurationReviewFor(request(path, unionDigest))?.revision, unionRevision);
+  assert.equal(currentPackageConfigurationReviewFor(request(path, fileDigest)), null);
   assert.equal(currentPackageConfigurationReviewFor(request(path, readDigest)), null);
   assert.equal(currentPackageConfigurationReviewFor(request(path, modelDigest)), null);
   assert.equal(currentPackageConfigurationReviewFor(request(path, digest)), null);
@@ -496,7 +510,7 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
   assert.deepEqual(selected.directories.find(entry => entry.path === 'src/logical_request_scope/*')?.members, scopeMembers);
   assert.deepEqual(packageImports(currentTree.read('src/logical_request_scope/moon.pkg').toString()).imports,
     ['actql/actql/canonical_value', 'actql/actql/encode_core', 'actql/actql/sha256', 'moonbitlang/core/encoding/utf8'].sort());
-  for (const member of [...members, ...catalogMembers, ...scopeMembers, ...[reentrySelector, keyedSelector, originalSelector, valuesSelector, provenanceSelector, ...selectors, ...successorSelectors, ...completionSelectors, ...workSelectors, ...readSelectors, fileSelector].map(selector =>
+  for (const member of [...members, ...catalogMembers, ...scopeMembers, ...[reentrySelector, keyedSelector, originalSelector, valuesSelector, provenanceSelector, ...selectors, ...successorSelectors, ...completionSelectors, ...workSelectors, ...readSelectors, fileSelector, unionSelector].map(selector =>
     'src/client_local_host/' + JSON.parse(selector.trim().split(':')[0]))]) {
     assert(selected.paths.includes(member), member);
     assert.equal(currentTree.entries.get(member)?.kind, 'blob');
@@ -507,7 +521,16 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
     assert.equal(currentTree.entries.get(member)?.kind, 'blob');
     assert.equal(currentTree.entries.get(member)?.mode, '100644');
   }
+  const localMembers = [...currentTree.entries.keys()].filter(member => member.startsWith('src/client_local_host/') &&
+    !member.slice('src/client_local_host/'.length).includes('/')).sort();
+  assert(localMembers.includes('src/client_local_host/preparation_request_direct_union_js_wbtest.mbt'));
+  assert.deepEqual(selected.directories.find(entry => entry.path === 'src/client_local_host/*')?.members, localMembers);
   for (const changed of [previous, callbackBody, valuesBody, effectBody, body, reentryBody, catalogBody, fourSelectorBody, currentBody, modelBody, requestSelectorBody, selectorBody, readBody,
+    fileBody,
+    unionBody.replace(unionSelector, unionSelector.replace('"js"', '"native"')),
+    unionBody.replace(unionSelector, unionSelector.replace('"js"', '"wasm"')),
+    unionBody.replace(unionSelector, unionSelector.replace('.mbt', '_unreviewed.mbt')),
+    unionBody + '\noptions(pre_build: {command: "unreviewed"})\n',
     fileBody.replace(fileSelector, fileSelector.replace('"js"', '"native"')),
     fileBody.replace(fileSelector, fileSelector.replace('.mbt', '_unreviewed.mbt')),
     readBody.replace(modelImport, ''), readBody.replace('@infer_host,', '@unreviewed_model,'),
@@ -532,7 +555,7 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
       .unresolved.includes('Unreviewed package configuration: ' + path));
   }
   for (const delta of [{target: 'native'}, {target: 'wasm'}, {toolchainDigest: '0'.repeat(64)}])
-    assert.equal(currentPackageConfigurationReviewFor({...request(path, fileDigest), ...delta}), null);
+    assert.equal(currentPackageConfigurationReviewFor({...request(path, unionDigest), ...delta}), null);
 });
 
 test('historical Local Host review preserves the original carrier, Source builder and Model completion preimages', () => {
