@@ -201,11 +201,16 @@ test('Native caller consumes the same checked package closure without changing i
     full: true, platformScope: env.ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE,
   });
   assert.equal(platformPackages, undefined);
+  const linuxBinding = source.match(/^const linuxCommonImporters = [^\n]+;$/mu)?.[0];
+  assert(linuxBinding, 'Retain the actual preceding platform binding in this extracted consumer');
+  const linuxCommonImporters = runInNewContext(linuxBinding + '\nlinuxCommonImporters;',
+    {platformScope: env.ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE});
+  assert.equal(linuxCommonImporters, false, 'This authenticated PR closure has no Linux platform override');
   for (const partition of [undefined, '1/2', '2/2', '1/4', '4/4', 'http', 'source', 'scoped']) {
     let calls = 0;
     runInNewContext(source.slice(start, end), {
       full: true, root: '/same/source', args: ['--release'], partition,
-      executionPackages: packages, platformPackages, compilerEnvironment: {},
+      executionPackages: packages, platformPackages, linuxCommonImporters, compilerEnvironment: {},
       nativeCoreTestSelection(root, args, options) {
         calls++;
         assert.equal(root, '/same/source');
@@ -339,8 +344,10 @@ test('the actual repository Native compiler retains full profiles and partitions
   assert.equal(selection.moonTests, undefined);
   assert.deepEqual(selection.targets, ['js', 'wasm', 'native']);
   assert(selection.reason.includes(moonGraphFailure));
+  assert.equal(selection.event, 'pull_request');
+  assert.equal(gateJobRequired(selection, 'main-performance'), true, 'Ready full input must retain positive performance acceptance');
   for (const name of gateJobs) assert.equal(gateJobRequired(selection, name),
-    !['focused-tests', 'main-performance', 'health-quick'].includes(name), name);
+    !['focused-tests', 'health-quick'].includes(name), name);
   const executionPackages = nativeMoonPackages({CI_PLAN:JSON.stringify({sourceRevision:hash, selection})});
   assert.equal(executionPackages, undefined, 'Full fallback must not narrow the original Native entrance');
   const selected = nativeCoreTestSelection(repository, ['--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize'],
