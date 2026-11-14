@@ -209,15 +209,93 @@ test "native submission preparation refusals have no original semantic observati
       parent.compiled_program is None && parent.compiled_effect is None,
     )
     let before = @resources.ledger_usage(parent.ledger)
-    // An absent original cannot supply a report, location or verdict. Even a
-    // malformed audience body must not invoke a replacement projection.
+    if index == 1 || index == 2 {
+      // These two refusals retain their actual input decoder issue, not a
+      // semantic CheckOutcome. The existing StageLimit is an analysis limit;
+      // the noncanonical key is the closed invalid-structure input reason.
+      assert_true(
+        if index == 1 {
+          terminal
+          is Preparation(ProgramJson(Syntax(Structure(StageLimit, ..))))
+        } else {
+          terminal is Preparation(ProgramJson(Syntax(Decode(_))))
+        },
+      )
+      let child = parent.program_json.unwrap()
+      let original = child.structural_issue.unwrap()
+      let indexed = child.indexed.unwrap()
+      assert_true(child.program is None && parent.held_program is None)
+      assert_true(parent.program_check is None)
+      assert_true(
+        request_observation_project(parent, [0], terminal, "malformed")
+        is Err(ForeignOriginal),
+      )
+      assert_eq(@resources.ledger_usage(parent.ledger), before)
+      // A closed original input issue has no Source audience dependency. Even
+      // this malformed publication DATA cannot create a checker or compiler.
+      let report = project_request_check_outcome(
+          parent,
+          input,
+          terminal,
+          "malformed",
+          "ctx:" + "a".repeat(64),
+          "program",
+          "rev:" + "b".repeat(64),
+          text.length(),
+          None,
+          0,
+          None,
+          0,
+          "corr:" + "c".repeat(32),
+          None,
+        )
+        .unwrap()
+        .unwrap()
+      assert_true(report.contains("\"outcome\":\"completed\""))
+      assert_true(report.contains("\"document_id\":\"program\""))
+      assert_true(report.contains("\"kind\":\"structured\""))
+      assert_true(report.contains("\"revision\":\"rev:" + "b".repeat(64)))
+      if index == 1 {
+        assert_true(report.contains("\"verdict\":\"undetermined\""))
+        assert_true(report.contains("\"code\":\"analysis_budget_exhausted\""))
+        assert_true(report.contains("\"reasons\":[]"))
+        assert_false(report.contains("program_structure_invalid"))
+      } else {
+        assert_true(report.contains("\"verdict\":\"invalid\""))
+        assert_true(report.contains("\"code\":\"program_structure_invalid\""))
+        assert_true(report.contains("\"issue\":\"invalid_structure\""))
+        assert_false(report.contains("analysis_budget_exhausted"))
+      }
+      assert_true(physical_equal(child.structural_issue.unwrap(), original))
+      assert_true(physical_equal(child.indexed.unwrap(), indexed))
+      assert_true(child.program is None && parent.held_program is None)
+      assert_true(parent.program_check is None)
+      let after = @resources.ledger_usage(parent.ledger)
+      assert_eq(after.planning_work, before.planning_work)
+      assert_true(
+        after.reserved_retention_bytes > before.reserved_retention_bytes,
+      )
+    } else {
+      // Unsupported bindings and invalid defaults stop elsewhere. They own no
+      // retained structural issue or semantic result; do not fabricate either.
+      assert_true(
+        request_observation_project(parent, input, terminal, "malformed")
+        is Ok(None),
+      )
+      assert_eq(@resources.ledger_usage(parent.ledger), before)
+    }
+    assert_true(
+      parent.compiled_program is None && parent.compiled_effect is None,
+    )
+    if parent.program_check is Some(child) {
+      assert_true(child.check_outcome is None)
+    }
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
     assert_true(
       request_observation_project(parent, input, terminal, "malformed")
       is Ok(None),
     )
-    assert_eq(@resources.ledger_usage(parent.ledger), before)
-    abort_request_preparation_after_cleanup(parent).unwrap()
-    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
   }
 }
 
