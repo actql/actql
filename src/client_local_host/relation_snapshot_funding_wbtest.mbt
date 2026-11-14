@@ -243,7 +243,6 @@ test "acknowledged snapshot reuses only retired export backing before exact relo
     // existing receiving recipe retains its original policy and column view.
     let policy = value.requirements.capacity_plan.imports
     let reload = @local.local_import_retention_capacity({
-      ..policy,
       max_rows: 2,
       values: { ..policy.values, max_nodes: 4, max_text_bytes: 4, },
       wire: { ..policy.wire, max_bytes: 19, max_nodes: 5, },
@@ -265,10 +264,12 @@ test "acknowledged snapshot reuses only retired export backing before exact relo
     // This component releases its actual test-owned chunks before modeling
     // the physical adapter's seal ACK; real Store order is checked in Node.
     parts.clear()
+    let reentry_refused = Ref(false)
     (snapshot.release_source)(content.cid, () => {
-      assert_true((snapshot.begin_reload)() is Err(_))
+      reentry_refused.val = (snapshot.begin_reload)() is Err(_)
       true
     }).unwrap()
+    assert_true(reentry_refused.val)
     assert_eq(@resources.ledger_usage(value.ledger), saved_usage)
     let needed = reload - export_extent
     let available = needed - (if short { 1L } else { 0L })

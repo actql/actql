@@ -1,5 +1,5 @@
 ///|
-fn retained_metadata_test_cursor(text : String) -> @decode.Cursor raise {
+fn retained_metadata_test_cursor(text : String) -> @decode.Cursor {
   @decode.admit(
     @source.parse_json(
       text,
