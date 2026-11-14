@@ -123,15 +123,21 @@ if (selection) console.log('Native test selection: ' + JSON.stringify({cases: se
     source: selection.profiles.source.cases,
     scoped: selection.profiles.scoped.cases, physical: selection.profiles.physicalCases,
     repeatedGeometry: selection.profiles.repeatedGeometryCases}}));
-const projectConfiguration = full || args.some(arg => arg.includes('cmd/native_client'))
+// Linux ordinary importers keep the compiler-selected case/profile inputs, not
+// the unrelated Darwin executable fixtures provisioned by the unscoped owner.
+// Preserve original full Darwin and focused package matching behaviour.
+const requiresFixture = (...packages) => full ? !linuxCommonImporters ||
+  ['ordinary', 'http', 'source', 'scoped'].some(name => selection.profiles[name].args?.some(input =>
+    packages.some(path => input === path || input.startsWith(path + '/') || path.startsWith(input + '/')))) :
+  args.some(arg => packages.some(path => arg.includes(path.slice('src/'.length))));
+const projectConfiguration = requiresFixture('src/cmd/native_client')
   ? nativeProjectConfigurationFixture(namespace)
   : {ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT: undefined};
-const privateHost = full || args.some(arg =>
-  arg.includes('platform_native/filesystem') || arg.includes('platform_native/client_host'))
+const privateHost = requiresFixture('src/platform_native/filesystem', 'src/platform_native/client_host')
   ? nativePrivateHostFixture(namespace) : {};
-const originalSigning = full || args.some(arg => arg.includes('platform_native/signature'))
+const originalSigning = requiresFixture('src/platform_native/signature')
   ? nativeOriginalSigningFixture(namespace) : {};
-const processRegion = full || args.some(arg => arg.includes('platform_native/host_bootstrap'))
+const processRegion = requiresFixture('src/platform_native/host_bootstrap')
   ? nativeProcessRegionFixture(root, namespace) : {};
 const clientCheckpoint = (full ? !partition || nativeCoreCheckpointRequired(selection.profiles) :
   args.some(arg => arg.includes('platform_native/client_host')))
@@ -146,13 +152,12 @@ const fileReceiptCheckpoint = Object.fromEntries(Object.entries(clientCheckpoint
   .filter(([key]) => key.startsWith('ACTQL_TEST_CLIENT_FILE_RECEIPT_')));
 // Only the final Native test child receives the injection environment. The
 // existing checkpoint producers and other preparation commands do not.
-const readerCustody = full || args.some(arg =>
-  arg.includes('platform_native/client_host') || arg.includes('cmd/native_client'))
+const readerCustody = requiresFixture('src/platform_native/client_host', 'src/cmd/native_client')
   ? nativeRuntimeReaderCustodyFixture(root, namespace) : {};
 // The WAL inspection fixture must use exec, not SQLite in a forked child.
 // macOS system SQLite calls platform services that are unsafe before exec.
 let walFixture;
-if (full || args.some(arg => arg.includes('platform_native/remote_journal'))) {
+if (requiresFixture('src/platform_native/remote_journal')) {
   walFixture = join(namespace, 'unclosed-sqlite-fixture');
   const compiled = spawnSync('cc', ['-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',
     join(root, 'scripts/fixtures/native-unclosed-sqlite.c'), '-o', walFixture,
@@ -161,9 +166,9 @@ if (full || args.some(arg => arg.includes('platform_native/remote_journal'))) {
     throw new Error(`Native WAL fixture compilation failed: ${compiled.error?.message ?? compiled.signal ?? compiled.status}`);
   }
 }
-const clientFiles = full || args.some(arg => arg.includes('cmd/native_client'))
+const clientFiles = requiresFixture('src/cmd/native_client')
   ? nativeClientFileFixture(namespace) : {};
-const httpLifetime = full || args.some(arg => arg.includes('cmd/native_remote_resident_site'))
+const httpLifetime = requiresFixture('src/cmd/native_remote_resident_site')
   ? nativeHttpLifetimeFixture(namespace) : {};
 const fixtureEnvironment = {
   ...process.env,
@@ -209,12 +214,13 @@ const fixtureEnvironment = {
     `node-bindings-${process.platform}-${process.arch}`,
     process.platform === 'darwin' ? 'libduckdb.dylib' : 'libduckdb.so'),
   ACTQL_TEST_NATIVE_SQLITE_ROOT: namespace,
-  ...(full || args.some(arg => arg.includes('platform_native/bounded_files'))
+  ...(requiresFixture('src/platform_native/bounded_files')
     ? {ACTQL_TEST_NATIVE_BOUNDED_FILES_ROOT: join(namespace, 'bounded-files')} : {}),
 };
 // Keep physical file inputs separate from the selected-provider environment.
 // Only the ordinary child/focused Arena caller receives these fresh originals.
-const ordinaryProcess = (full ? selection.profiles.ordinary.args !== null :
+const ordinaryProcess = (full ? selection.profiles.ordinary.args !== null &&
+  requiresFixture('src/platform_native/installed_arena_control', 'src/platform_native/row_source', 'src/cmd/native_client') :
   args.some(arg => arg.includes('platform_native/installed_arena_control')))
   ? nativeCoreOrdinaryProcessFixture(namespace) : {};
 const checkChild = result => {

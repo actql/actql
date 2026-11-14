@@ -87,6 +87,7 @@ function selectedPreparation(profiles, {linux = true, full = true, args = ['--re
   runInNewContext(source.slice(begin, end), {
     full, linuxCommonImporters: linux, selection: {profiles}, args, partition,
     root: '/original', namespace: '/original/namespace', compilerEnvironment: {},
+    nativeClientFileResponseTestFile: 'src/platform_native/client_host/file_response_physical_scoped_wbtest.mbt',
     process: {platform: linux ? 'linux' : 'darwin'}, join,
     nativeProjectConfigurationFixture: record('project'), nativePrivateHostFixture: record('private'),
     nativeOriginalSigningFixture: record('signing'), nativeProcessRegionFixture: record('process'),
