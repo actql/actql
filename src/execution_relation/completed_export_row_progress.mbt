@@ -383,8 +383,9 @@ fn completed_export_payload_fragment_bound(
 
 ///|
 /// A poll yields within a row, not only between rows. The ordinary row reader
-/// returns complete rows. Numerically funded physical batches may drain a
-/// provisional row across frames; only the final receipt establishes identity.
+/// returns complete rows. Physical batches may drain a provisional row across
+/// frames; only the final receipt establishes identity. Caller-owned prepaid
+/// backing and an optional numerical grow callback retain their own duties.
 /// Traversal steps do not replace or double-charge logical value work.
 pub fn advance_completed_output_export(
   stream : CompletedOutputExport,
@@ -501,14 +502,14 @@ pub fn advance_completed_output_export(
         }
       }
       if batch &&
-        before_batch_growth is Some(_) &&
         cursor.full_wire_bound > stream.max_batch_bytes {
         let pending = @encode.observed_writer_usage(stream.writer).0 -
           stream.drained_bytes
-        // The original numerical callback has already funded this whole
-        // measured row, including coheld builder/String/Store alternatives.
-        // Drain before the next bounded emission, without measuring the row
-        // again or entering another Resource admission for each fragment.
+        // Physical fragments keep the SAME bounded writer whether its caller
+        // prepaid export backing or supplied the original growth callback.
+        // The callback, when present, has already funded this measured row.
+        // Drain before the next bounded emission without changing either
+        // funding path or entering Resource admission for every fragment.
         if pending > 0 &&
           completed_export_payload_fragment_bound(stream, cursor) >
           stream.max_batch_bytes - pending {
