@@ -76,6 +76,61 @@ const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml',
   import.meta.url), 'utf8'));
 const coreStep = workflow.jobs['core-darwin'].steps.find(step => step.name === 'Test common core');
 
+function selectedPreparation(profiles, {linux = true, full = true, args = ['--release'], partition = '1/8'} = {}) {
+  const source = readFileSync(new URL('test-native-core.mjs', import.meta.url), 'utf8');
+  const predicate = source.indexOf('const requiresFixture = ');
+  const begin = predicate < 0 ? source.indexOf('const projectConfiguration = ') : predicate;
+  const end = source.indexOf('const fixtureEnvironment = ', begin);
+  assert(begin > 0 && end > begin);
+  const calls = [];
+  const record = name => () => { calls.push(name); return {}; };
+  runInNewContext(source.slice(begin, end), {
+    full, linuxCommonImporters: linux, selection: {profiles}, args, partition,
+    root: '/original', namespace: '/original/namespace', compilerEnvironment: {},
+    nativeClientFileResponseTestFile: 'src/platform_native/client_host/file_response_physical_scoped_wbtest.mbt',
+    process: {platform: linux ? 'linux' : 'darwin'}, join,
+    nativeProjectConfigurationFixture: record('project'), nativePrivateHostFixture: record('private'),
+    nativeOriginalSigningFixture: record('signing'), nativeProcessRegionFixture: record('process'),
+    nativeRuntimeReaderCustodyFixture: record('reader'), nativeClientFileFixture: record('files'),
+    nativeHttpLifetimeFixture: record('http'), nativeClientCheckpointFixture: record('checkpoint'),
+    nativeCoreCheckpointRequired: profiles => profiles.ordinary.args?.some(path => path.startsWith('src/platform_native/client_host')) ||
+      profiles.scoped.tests.some(test => test.source.startsWith('src/platform_native/client_host/')),
+    spawnSync() { calls.push('wal'); return {status: 0}; },
+  });
+  return calls;
+}
+const preparationProfiles = (ordinary = [], scoped = []) => ({
+  ordinary: {args: ordinary.length ? ['--release', ...ordinary] : null, cases: ordinary.length},
+  http: {args: null, cases: 0}, source: {args: null, cases: 0},
+  scoped: {args: scoped.length ? scoped.map(test => test.source) : null, cases: scoped.length, tests: scoped},
+});
+
+test('Linux ordinary preparation does not acquire unrelated Darwin fixtures after actual profile selection', () => {
+  assert.deepEqual(selectedPreparation(preparationProfiles(['src/stage_results', 'src/run_publication_host/original_wbtest.mbt'])), []);
+});
+
+test('selected Native fixture owners keep their original package file and scoped preparations', () => {
+  for (const [path, expected] of [
+    ['src/cmd/native_client/original_wbtest.mbt', ['project', 'reader', 'files']],
+    ['src/platform_native/filesystem', ['private']],
+    ['src/platform_native/signature/original_wbtest.mbt', ['signing']],
+    ['src/platform_native/host_bootstrap/process_region_wbtest.mbt', ['process']],
+    ['src/platform_native/remote_journal', ['wal']],
+    ['src/cmd/native_remote_resident_site', ['http']],
+    ['src/platform_native/client_host/original_wbtest.mbt', ['private', 'checkpoint', 'reader']],
+  ]) assert.deepEqual(selectedPreparation(preparationProfiles([path])), expected, path);
+  const scoped = [{source: 'src/platform_native/client_host/original_physical_scoped_wbtest.mbt', index: 0}];
+  assert.deepEqual(selectedPreparation(preparationProfiles([], scoped)), ['private', 'checkpoint', 'reader']);
+  assert.deepEqual(selectedPreparation(preparationProfiles(['src/platform_native/signature-copy', 'src/cmd/native_client_copy/original_wbtest.mbt'])), []);
+});
+
+test('full Darwin and focused Native preparations retain their original fixture selection', () => {
+  assert.deepEqual(selectedPreparation(preparationProfiles(['src/stage_results']), {linux: false}),
+    ['project', 'private', 'signing', 'process', 'reader', 'wal', 'files', 'http']);
+  assert.deepEqual(selectedPreparation(preparationProfiles(), {full: false, args: ['--deny-warn', 'src/platform_native/filesystem/private_root_wbtest.mbt']}), ['private']);
+  assert.deepEqual(selectedPreparation(preparationProfiles(), {full: false, args: ['--deny-warn', 'src/platform_native/trusted_clock']}), []);
+});
+
 test('Reader custody injection loads on the supported Native host profile', () => {
   const checkout = fileURLToPath(new URL('../', import.meta.url));
   const parent = join(checkout, '_build', 'native-reader-helper-tests');
