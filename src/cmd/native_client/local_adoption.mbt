@@ -90,7 +90,7 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
   }
   let installation_files : Array[String] = []
   if @decode.lookup(fields, "installation_files") is Some(files) {
-    guard @decode.elements(files) is Ok(files) && files.length() <= 8 else {
+    guard @decode.elements(files) is Ok(files) else {
       stop("InvalidLocalInstallationSelection")
     }
     for file in files {

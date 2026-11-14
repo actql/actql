@@ -105,7 +105,7 @@ fn source_value_limits(
 fn source_rates(
   cursor : @decode.Cursor,
 ) -> Array[@cost.WorkRate] raise ClientStop {
-  guard @decode.elements(cursor) is Ok(elements) && elements.length() <= 16 else {
+  guard @decode.elements(cursor) is Ok(elements) else {
     stop("InvalidLocalSourceInstallation")
   }
   elements.map(element => {
@@ -329,9 +329,6 @@ fn local_source_installation(
       stop("InvalidLocalSourceInstallation")
     },
   )
-  if profiles.length() > 32 {
-    stop("InvalidLocalSourceInstallation")
-  }
   let estimates : Array[@dispatch.DispatchEstimateProfile] = profiles.map(profile => {
     let profile = @decode.closed_object(profile, [
       "local_rates", "native_rates", "native_capacity", "output_rows_per_mille",
