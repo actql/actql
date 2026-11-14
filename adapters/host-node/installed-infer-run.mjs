@@ -400,7 +400,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       restoredInput = token === undefined ? undefined : {token, snapshot: token.snapshot,
         capturedContent: modelController.capturedContent(token, plan.runDefinition.identity),
         capturedContentBinding: modelController.capturedContentBinding(token, plan.runDefinition.identity),
-        sendMask: modelController.state(existingModel.inventory).slots.map(slot => slot.state === 'Unsent'),
+        sendSlots: () => modelController.state(existingModel.inventory).slots,
         savedScope: modelController.savedScope(plan, preparedProgram, selected, token)};
       sources = restoredInput === undefined
         ? keyed ? [acquiredContent?.sourceEvidence, acquiredContent?.keyedSourceEvidence]

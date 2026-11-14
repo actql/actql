@@ -204,7 +204,7 @@ pub fn restrict_model_send_slots(
     !(active.phase is Input) ||
     !execution_input_unadvanced(active) ||
     active.model_send_mask is Some(_) ||
-    eligible.length() > 128 {
+    (eligible.length() > 128 && !original_restored_send_mask_current(active, eligible.length())) {
     return Err(IncompleteExecution)
   }
   active.model_send_mask = Some(eligible.copy())

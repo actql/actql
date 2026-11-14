@@ -87,3 +87,11 @@ pub fn client_program_original_infer_capture_inventory_capacity(
 ) -> Result[(Int, Int64, Int64), @infer_host.Issue] {
   @infer_host.original_infer_capture_inventory_capacity(active, capacity)
 }
+
+///|
+#export_name("clientProgramPrepareOriginalRestoredInferSendMask")
+pub fn client_program_prepare_original_restored_infer_send_mask(
+  active : @infer_host.Execution,
+) -> Result[Int, @infer_host.Issue] {
+  @infer_host.prepare_original_restored_send_mask(active)
+}

@@ -232,7 +232,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     child.token = await modelController.prime(child.record);
     assertCurrent();
     child.restoredInput = {token: child.token, snapshot: child.token.snapshot,
-      sendMask: modelController.state(child.record.inventory).slots.map(slot => slot.state === 'Unsent'),
+      sendSlots: () => modelController.state(child.record.inventory).slots,
       savedScope: modelController.savedScope(plan, preparedProgram, child.selection, child.token)};
   }
   if (matched.size !== records.length) throw new Error('ModelResumeForeignInventory');

@@ -7,6 +7,7 @@ struct OriginalInferIdentityBody {
   mut retained : Int64
   mut execution : Int64
   mut snapshot : String?
+  mut send_mask_funded : Int
 }
 
 ///|
@@ -23,9 +24,11 @@ fn prepare_original_infer_identity_body(
 ) -> Result[OriginalInferIdentityBody?, Issue] {
   guard read is Some(read) else { return Ok(None) }
   guard @relation.preparation_representation_cost({
-      record_headers: 1L,
-      reference_slots: 2L,
-      scalar_words: 2L,
+      // SAME original context tuple/Ref and scalar-only emitter report.
+      // No new owner: the actual claimed Read retains every later prefix.
+      record_headers: 10L,
+      reference_slots: 16L,
+      scalar_words: 16L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })
@@ -49,6 +52,7 @@ fn prepare_original_infer_identity_body(
       retained: r,
       execution: e,
       snapshot: None,
+      send_mask_funded: -1,
     }),
   )
 }
@@ -101,6 +105,19 @@ fn prepare_original_infer_scope_snapshot(
     return Err(InvalidAdvance)
   }
   match grow_original_infer_facts_span(active, next) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  // Future journal export uses these SAME completed emitter observations.
+  // Pay before the existing Read hands off to Model; export never grows a
+  // handed-off/Ready owner or quotes by policy maxima.
+  guard active.identity is Some(identity) &&
+    @relation.completed_relation_identity_scan_body_receipt(identity) is Some(receipt) &&
+    @relation.completed_relation_identity_scan_body(identity, receipt) is Some(input_body) else {return Err(InvalidAdvance)}
+  let (count, bytes, nodes, depth, columns) = @relation.completed_relation_export_scalar_geometry(receipt)
+  guard count == @relation.prepared_infer_rows_count(rows) &&
+    @input.client_infer_retained_input_construction_capacity(count, bytes, nodes, depth, columns, input_body.length()) is Some(exporting) else {return Err(InvalidAdvance)}
+  match grow_original_infer_facts_span(active, exporting) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }

@@ -1,0 +1,160 @@
+///|
+// Actual checked129 Model prefix/export/saved scope and numerical Read. The
+// provider and byte grants are explicit fixtures, not ordinary Store/runtime.
+fn original_129_restore_read(
+  fresh : Execution,
+  retained : Int64,
+) -> (
+  @resources.Ledger,
+  @publication_host.ClientModelReadPreparation,
+  @publication_host.ClientModelReadConsumer,
+) {
+  let bound = fresh.run_binding.unwrap()
+  let ledger = @resources.create_ledger({
+    ..fresh.limits.model.ledger,
+    retained_bytes: retained,
+    execution_bytes: 67108864L,
+  }).unwrap()
+  let bootstrap = @resources.reserve_capacity(ledger, 3L, 2L).unwrap()
+  let scope = @publication_host.begin_client_model_read_scope(
+    bound.compiled,
+    bound.definition,
+    fresh.plan.unwrap(),
+    ledger,
+    bootstrap,
+    1024,
+    260,
+    0,
+  ).unwrap()
+  let read = @publication_host.prepare_client_model_read(scope, 7L, 5L).unwrap()
+  let consumer = @publication_host.claim_client_model_read_preparation(
+    read,
+    bound.compiled,
+    bound.definition,
+    fresh.plan.unwrap(),
+    7L,
+    5L,
+  ).unwrap()
+  (ledger, read, consumer)
+}
+
+///|
+fn original_129_restoring_prefix(fresh : Execution) -> @relation.GeneratedSequence {
+  let limits = {...@publication_host.client_standard_values_sequence_limits(), max_rows: 129}
+  let semantic = @lower.prepare_sequence_prefix(
+    @publication_host.client_infer_occurrence_preparation(fresh.occurrence), 1, limits).unwrap()
+  let contracts = @relation.admit_relation_registry(
+    @canonical.from_json(@json.parse(infer_fixture_registry), 10000, 100, 100000),
+    @canonical.from_json(@json.parse(infer_fixture_values), 10000, 100, 100000),
+    {max_body_bytes:100000,max_body_nodes:10000,max_body_depth:100}).unwrap()
+  @relation.prepare_generated_sequence(contracts, semantic, [], [], 100000, 10000).unwrap()
+}
+
+///|
+test "original129 retained input roundtrip keeps legacy100 and foreign current small budget guards" {
+  let (fresh, fresh_ledger, fresh_consumer, fresh_calls) = original_129_snapshot_fixture()
+  let prepared = prepared_call_set(fresh).unwrap()
+  let input = @model.prepared_model_input(prepared).unwrap()
+  assert_true(
+    @input.export_client_infer_retained_input(input, "same-binding") is Err(_),
+  )
+  let exported = export_prepared_input(fresh, prepared, "same-binding").unwrap()
+  let rows = @input.client_infer_retained_input_export_rows(exported)
+  assert_eq(rows.length(), 129)
+  let descriptor = @input.client_infer_retained_input_export_descriptor(
+    exported,
+  )
+  let prefix = original_129_restoring_prefix(fresh)
+  let bound = fresh.run_binding.unwrap()
+  let current = Ref(true)
+  let saved = @publication_host.read_client_infer_saved_call_scope(
+    bound.compiled,
+    bound.definition,
+    fresh.occurrence,
+    fresh.plan.unwrap(),
+    call_scope_snapshot(fresh).unwrap(),
+    "sha256:" + "a".repeat(64),
+    () => current.val,
+  ).unwrap()
+  let calls = Ref(0)
+  fn restore(read, consumer) {
+    start_original_restored_composed(
+      fresh.occurrence,
+      fresh.plan.unwrap(),
+      prefix,
+      original_funded_start_provider(calls),
+      "same-binding",
+      descriptor,
+      rows,
+      () => current.val,
+      saved,
+      fresh.limits,
+      bound.compiled,
+      bound.definition,
+      consumer,
+      7L,
+      5L,
+      4194304L,
+      4194304L,
+      input_body_read=Some(read),
+    )
+  }
+  let (small_ledger, small_read, small_consumer) = original_129_restore_read(
+    fresh, 4096L,
+  )
+  assert_true(restore(small_read, small_consumer) is Err(_))
+  assert_eq(calls.val, 0)
+  original_composed_test_release(small_ledger, small_consumer)
+  let (ledger, read, consumer) = original_129_restore_read(fresh, 67108864L)
+  let (foreign_ledger, foreign_read, foreign_consumer) = original_129_restore_read(
+    fresh, 67108864L,
+  )
+  assert_true(restore(foreign_read, consumer) is Err(_))
+  assert_eq(calls.val, 0)
+  original_composed_test_release(ledger, consumer)
+  original_composed_test_release(foreign_ledger, foreign_consumer)
+  let (ledger, read, consumer) = original_129_restore_read(fresh, 67108864L)
+  current.val = false
+  let before = @resources.ledger_usage(ledger)
+  assert_true(restore(read, consumer) is Err(_))
+  assert_eq(@resources.ledger_usage(ledger), before)
+  current.val = true
+  let active = restore(read, consumer).unwrap()
+  assert_eq(
+    @relation.completed_row_count(
+      @input.client_infer_completed_input(active.input).unwrap(),
+    ),
+    129,
+  )
+  let before_mask = @resources.ledger_usage(ledger).reserved_retention_bytes
+  assert_eq(prepare_original_restored_send_mask(active).unwrap(), 129)
+  assert_true(
+    @resources.ledger_usage(ledger).reserved_retention_bytes > before_mask,
+  )
+  restrict_model_send_slots(active, Array::make(129, false)).unwrap()
+  bind_dispatch_admission(active, fresh.dispatch_admission.unwrap()).unwrap()
+  let mut ready = false
+  for _ in 0..<200000 {
+    if prepared_call_set(active) is Some(prepared) {
+      assert_eq(@model.prepared_model_call_count(prepared), Some(129))
+      ready = true
+      break
+    }
+    assert_true(advance(active, 1).unwrap() is Continue(..))
+  }
+  assert_true(ready)
+  assert_eq(calls.val, 0)
+  assert_true(cancel(active))
+  assert_true(original_129_finish(active) is Stopped(..))
+  assert_true(cleanup(active).unwrap())
+  // The original Read still pays for receiving/export aliases after Model
+  // cleanup; only its enclosing actual retirement returns that prefix.
+  assert_true(@resources.ledger_usage(ledger).reserved_retention_bytes > 10L)
+  original_composed_test_release(ledger, consumer)
+  assert_true(cancel(fresh))
+  assert_true(original_129_finish(fresh) is Stopped(..))
+  assert_true(cleanup(fresh).unwrap())
+  original_composed_test_release(fresh_ledger, fresh_consumer)
+  assert_eq(fresh_calls.val, 0)
+  assert_eq(calls.val, 0)
+}

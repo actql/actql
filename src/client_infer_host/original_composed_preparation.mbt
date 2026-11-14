@@ -126,7 +126,9 @@ pub fn start_original_restored_composed(
   }
   // The existing retained-input owner checks binding, descriptor, rows and
   // current custody. Failure keeps the same entered consumer for cleanup.
-  start_restored_composed_input(
+  let original_read = identity_body.map(body => (input_body_read.unwrap(), consumer,
+    compiled, definition, plan, Ref((body.retained, body.execution))))
+  let started = start_restored_composed_input(
     occurrence,
     plan,
     prefix,
@@ -139,7 +141,14 @@ pub fn start_original_restored_composed(
     limits,
     saved_scope=Some(saved_scope),
     reference_issuer?,
-  ).map(active => {
+    original_read~,
+  )
+  // A failed constructor still leaves its actual Resource growth retained.
+  if identity_body is Some(body) && original_read is Some((_, _, _, _, _, held)) {
+    body.retained = held.val.0
+    body.execution = held.val.1
+  }
+  started.map(active => {
     retain_original_model_preparation(
       active,
       compiled,

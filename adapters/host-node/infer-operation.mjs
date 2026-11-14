@@ -1329,8 +1329,23 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     // owner before any fallible binding, without granting permission to run.
     retainOperation?.(operation);
     if (durableCalls) checked(moon.clientProgramRequireInferCallEntry(active));
-    if (restoredInput !== undefined) checked(moon.clientProgramRestrictInferSendSlots(active,
-      restoredInput.sendMask));
+    if (restoredInput !== undefined) {
+      let mask = restoredInput.sendMask;
+      if (typeof restoredInput.sendSlots === 'function') {
+        // The restored original input now exists on its SAME claimed Read.
+        // Admit the exact boolean arrays BEFORE invoking the existing journal
+        // read and map. No token/Task maximum or reserve-method presence funds it.
+        const count = originalConsumer !== undefined && originalInputBodyRead !== undefined &&
+          typeof moon.clientProgramPrepareOriginalRestoredInferSendMask === 'function'
+          ? checked(moon.clientProgramPrepareOriginalRestoredInferSendMask(active)) : undefined;
+        if (count !== undefined && !codecInt(count)) throw new Error('InferOriginalSendMaskUnavailable');
+        const slots = restoredInput.sendSlots();
+        if (!Array.isArray(slots) || count === undefined && slots.length > 128 ||
+            count !== undefined && slots.length !== count) throw new Error('InferOriginalSendMaskUnavailable');
+        mask = slots.map(slot => slot.state === 'Unsent');
+      }
+      checked(moon.clientProgramRestrictInferSendSlots(active, mask));
+    }
     if (quantityCapacity !== undefined) {
       const {limits, perAttempt} = quantityCapacity;
       checked(moon.clientProgramBindInferQuantityCapacity(active,

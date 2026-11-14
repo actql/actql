@@ -67,7 +67,7 @@ function fixture({claimIssue, startIssue} = {}) {
 function expectOriginalStart(f) {
   const p = f.originalPreparation;
   const expected = [f.occurrence, f.graph, f.prefix, f.inputs, f.provider,
-    f.rawCompiled, f.rawDefinition, f.consumer, 7n, 5n, 100n, 0n, f.sources];
+    f.rawCompiled, f.rawDefinition, f.consumer, 7n, 5n, 100n, 0n, f.sources, undefined];
   assert.deepEqual(f.calls[0], ['claim', p.read, f.rawCompiled, f.rawDefinition, f.graph, 7n, 5n]);
   assert.equal(f.calls[1][0], 'start');
   assert.equal(f.calls[1].length, expected.length + 1);
@@ -806,3 +806,60 @@ for (const refusal of [undefined, 'lowering']) {
     }
   });
 }
+
+// Actual original operation/custody with explicit numerical Core ports. The
+// donated count is not real Core/ordinary129 round-trip runtime evidence.
+test('restored original129 funds lazy map before journal view and restricts the same complete Saved mask', async () => {
+  const f=originalRestoredFixture();let funded=false,maps=0;
+  f.originalPreparation.inputBodyRead=f.originalPreparation.read;
+  f.moon.clientProgramPrepareOriginalRestoredInferSendMask=active=>{
+    assert.strictEqual(active,f.active);f.calls.push(['fund-mask']);funded=true;return {$tag:1,_0:129};
+  };
+  const slots=Array.from({length:129},()=>({state:'SavedSuccess'}));
+  slots.map=function(callback){assert.equal(funded,true);maps++;return Array.prototype.map.call(this,callback);};
+  f.restoredInput.sendMask=undefined;
+  f.restoredInput.sendSlots=()=>{assert.equal(funded,true);f.calls.push(['read-slots']);return slots;};
+  f.moon.clientProgramRestrictInferSendSlots=(active,mask)=>{
+    assert.strictEqual(active,f.active);assert.equal(mask.length,129);assert(mask.every(value=>value===false));
+    f.calls.push(['mask']);return {$tag:1,_0:undefined};
+  };
+  const operation=openNodeInferOperation({...f.options,originalPreparation:undefined,
+    restoredPreparation:f.originalPreparation,restoredInput:f.restoredInput});
+  assert.equal(maps,1);
+  const names=f.calls.map(call=>call[0]);
+  assert(names.indexOf('retain')<names.indexOf('fund-mask'));
+  assert(names.indexOf('fund-mask')<names.indexOf('read-slots'));
+  assert(names.indexOf('read-slots')<names.indexOf('mask'));
+  await operation.close();assert.equal(originalReadCleaned(f.originalPreparation.read),true);
+});
+
+for (const issue of ['ForeignRead','ChangedOriginalState','RetentionLimit']) {
+  test(`lazy129 ${issue} refuses before journal view/map and retains original for first cleanup`, async () => {
+    const f=originalRestoredFixture(),cause=Object.freeze({issue});let reads=0;
+    f.originalPreparation.inputBodyRead=f.originalPreparation.read;
+    f.moon.clientProgramPrepareOriginalRestoredInferSendMask=()=>({$tag:0,_0:cause});
+    f.restoredInput.sendMask=undefined;f.restoredInput.sendSlots=()=>{reads++;assert.fail('no view before numeric admission');};
+    let failure;
+    try {openNodeInferOperation({...f.options,originalPreparation:undefined,
+      restoredPreparation:f.originalPreparation,restoredInput:f.restoredInput});} catch(error){failure=error;}
+    assert.strictEqual(failure.cause,cause);assert.equal(reads,0);
+    assert.equal(originalReadCleaned(f.originalPreparation.read),false);
+    assert(failure.cleanupOwner);await failure.cleanupOwner.close();
+    assert.equal(originalReadCleaned(f.originalPreparation.read),true);
+  });
+}
+
+test('legacy or changed-count129 cannot allocate a lazy boolean map from method presence',async()=>{
+  for (const funded of [false,true]) {
+    const f=originalRestoredFixture();let maps=0;
+    const slots=Array.from({length:funded?130:129},()=>({state:'SavedSuccess'}));
+    slots.map=()=>{maps++;assert.fail('unfunded or changed count before map');};
+    if(funded){f.originalPreparation.inputBodyRead=f.originalPreparation.read;f.moon.clientProgramPrepareOriginalRestoredInferSendMask=()=>({$tag:1,_0:129});}
+    f.restoredInput.sendMask=undefined;f.restoredInput.sendSlots=()=>slots;
+    let failure;
+    try {openNodeInferOperation({...f.options,originalPreparation:undefined,
+      restoredPreparation:f.originalPreparation,restoredInput:f.restoredInput});}catch(error){failure=error;}
+    assert.match(failure.message,/InferOriginalSendMaskUnavailable/);assert.equal(maps,0);
+    await failure.cleanupOwner.close();assert.equal(originalReadCleaned(f.originalPreparation.read),true);
+  }
+});

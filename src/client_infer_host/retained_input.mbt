@@ -162,6 +162,16 @@ pub fn export_prepared_input(
     @model.prepared_model_input(prepared) is Some(input) else {
     return Err(@input.BindingMismatch)
   }
+  if active.identity_body is Some(body) && body.snapshot is Some(_) &&
+    active.original_preparation is Some(original) && original.read is Claimed(consumer) &&
+    active.run_binding is Some(bound) && active.plan is Some(plan) {
+    active.advancing = true
+    let exported = @input.export_original_client_infer_retained_input(input, binding,
+      (body.read, consumer, bound.compiled, bound.definition, plan, Ref((body.retained, body.execution))))
+    active.advancing = false
+    if active.cancelled || active.reclaimed {return Err(@input.CustodyUnavailable)}
+    return exported
+  }
   @input.export_client_infer_retained_input(input, binding)
 }
 
@@ -371,6 +381,7 @@ pub fn start_restored_composed_input(
   saved_scope? : @publication_host.ClientInferSavedCallScope? = None,
   reference_issuer? : @admitted.ReferenceIssuer,
   root? : (@relation.GeneratedSequence?, @resources.Ledger)? = None,
+  original_read? : @input.ClientInferOriginalInputRead? = None,
 ) -> Result[Execution, Issue] {
   if sources is Some(value) &&
     !@publication_host.client_infer_composed_sources_matches(value, occurrence) {
@@ -409,6 +420,7 @@ pub fn start_restored_composed_input(
         bounds.input,
         bounds.mapping,
         reference_issuer?,
+        original_read~,
       )
     },
     composed_sources=sources,

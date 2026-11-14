@@ -416,7 +416,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       if (modelToken !== undefined) {
         restoredModelInput = {
           token: modelToken, snapshot: modelToken.snapshot,
-          sendMask: modelController.state(modelRecord.inventory).slots.map(slot => slot.state === 'Unsent'),
+          sendSlots: () => modelController.state(modelRecord.inventory).slots,
           savedScope: modelController.savedScope(modelPlan, acquired.prepared, infer, modelToken),
         };
         current();
@@ -451,7 +451,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       modelPlan = plan;
       const restoredInput = restoredModelInput ?? (modelToken === undefined ? undefined : {
         token: modelToken, snapshot: modelToken.snapshot,
-        sendMask: modelController.state(modelRecord.inventory).slots.map(slot => slot.state === 'Unsent'),
+        sendSlots: () => modelController.state(modelRecord.inventory).slots,
         savedScope: modelController.savedScope(plan, acquired.prepared, infer, modelToken),
       });
       if (savedOriginal && multiple && checked(
@@ -1217,7 +1217,7 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
         if (savedSources === undefined) savedSources = snapshot.sourceContinuation;
         else if (canonicalJson(savedSources) !== canonicalJson(snapshot.sourceContinuation)) throw new Error('ModelSourceClosureMismatch');
         child.restoredInput = {token: child.token, snapshot,
-          sendMask: modelController.state(child.record.inventory).slots.map(slot => slot.state === 'Unsent'),
+          sendSlots: () => modelController.state(child.record.inventory).slots,
           savedScope: modelController.savedScope(plan, acquired.prepared, child.selection, child.token)};
       }
       if (matched.size !== records.length) throw new Error('ModelResumeForeignInventory');
