@@ -6,7 +6,8 @@ import {pathToFileURL} from 'node:url';
 import test from 'node:test';
 import {createInstalledHostServices, retireInstalledSourceInitialization, withInstalledSourceLoading}
   from './installed-host-services.mjs';
-import {composeInstalledSourceEnvironment, composeInstalledInventoryEnvironment, releaseRetiredInstalledEnvironmentComposition} from './installed-funded-environment.mjs';
+import {composeInstalledSourceEnvironment, composeInstalledInventoryEnvironment, releaseRetiredInstalledEnvironmentComposition,
+  admitInstalledSourceFinalEnvironment, assertInstalledEnvironmentPublicationOriginal} from './installed-funded-environment.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
 import {createInstalledLoaderParent} from './fixtures/installed-loader-parent.fixture.mjs';
@@ -68,6 +69,74 @@ function fixture() {
     inventory: (previous, member, accept = () => false) => composeInstalledInventoryEnvironment(services, moon, baseWire, previous, member, accept),
     close: () => retireInstalledSourceInitialization(services)};
 }
+
+const finalProfiles = Object.freeze({textTime:false,
+  numericProfileCid:'sha256:'+'a'.repeat(64),graphLawCid:'sha256:'+'b'.repeat(64)});
+// Spy for this NEW bridge's caller forwarding only. The old retained namespace
+// still lacks the graph/numeric port; shared Core tests separately exercise
+// that real selection. This is not an actual new-ABI or normal qualification.
+function installFinalForwarder(f, calls) {
+  const capacity=f.moon.clientProgramInstalledSourceConstructionCapacity;
+  const compose=f.moon.clientProgramComposeInstalledSourceConstructionCapacity;
+  let finalControls;
+  f.moon.clientProgramInstalledSourceConstructionCapacity=(...values)=>{
+    const result=capacity(...values);
+    if (values[0]===8n && values.slice(1).every(value=>value===0n)) finalControls=result._0;
+    return result;
+  };
+  // Keep the fixture's outer reservation observer envelope, while the new
+  // final native input itself gets an ACTUAL typed constructor quantity.
+  f.moon.clientProgramComposeInstalledSourceConstructionCapacity=(original,providers)=>
+    original===finalControls ? native.clientProgramComposeInstalledSourceConstructionCapacity(original,providers)
+      : compose(original,providers);
+  f.moon.clientProgramCheckEnvironmentFromWireWithGraphProfile = (raw,...flags) => {
+    assert.equal(f.events.at(-1),'reserve');
+    calls.push({raw,flags});
+    return native.clientProgramCheckEnvironmentFromWire(raw,...flags.slice(0,7));
+  };
+}
+
+test('final Source checker caller funds a new wrapper on the same actual wire and retains nominal publication', () => {
+  const f=fixture(), value=f.compose(baseWire), calls=[];
+  installFinalForwarder(f,calls);
+  const reads=f.state.reads;
+  const final=admitInstalledSourceFinalEnvironment(f.services,f.moon,value,finalProfiles);
+  assert.equal(f.state.reads,reads,'no second original wire parser');
+  assert.equal(final.wire,value.wire);assert.equal(final.body,value.body);
+  assert.equal(calls.length,1);
+  assert.deepEqual(calls[0].flags,[false,true,true,true,true,false,false,
+    finalProfiles.numericProfileCid,finalProfiles.graphLawCid]);
+  const prepared=native.clientProgramPreparePublicSourceEnvironment(final.admitted,
+    JSON.stringify({environmentCid:final.evidenceCid,aliases:[]}));
+  assert.ok(prepared);
+  assert.doesNotThrow(()=>assertInstalledEnvironmentPublicationOriginal(f.services,f.moon,final,prepared,final.wire));
+  assert.throws(()=>assertInstalledEnvironmentPublicationOriginal(f.services,f.moon,value,prepared,final.wire),
+    {code:'ForeignInstalledEnvironmentOriginal'});
+  assert.equal(f.close(),true);
+});
+
+test('final Source checker caller refuses copied foreign or current-lost originals before new construction', () => {
+  const a=fixture(),b=fixture(), value=a.compose(baseWire), calls=[];
+  installFinalForwarder(a,calls);installFinalForwarder(b,calls);
+  assert.throws(()=>admitInstalledSourceFinalEnvironment(a.services,a.moon,{...value},finalProfiles),
+    {code:'ForeignInstalledEnvironmentOriginal'});
+  assert.throws(()=>admitInstalledSourceFinalEnvironment(b.services,b.moon,value,finalProfiles),
+    {code:'ForeignInstalledEnvironmentOriginal'});
+  a.state.current=false;
+  assert.throws(()=>admitInstalledSourceFinalEnvironment(a.services,a.moon,value,finalProfiles),
+    {message:'OriginalLost'});
+  assert.equal(calls.length,0);a.state.current=true;a.close();b.close();
+});
+
+test('final Source checker caller preserves reservation refusal and refuses absent new runtime port', () => {
+  const f=fixture(),value=f.compose(baseWire),calls=[];
+  assert.throws(()=>admitInstalledSourceFinalEnvironment(f.services,f.moon,value,finalProfiles),
+    {code:'InstalledFinalEnvironmentRuntimeUnavailable'});
+  installFinalForwarder(f,calls);
+  const cause=new Error('OriginalQuotaRefusal');f.state.refuse=true;f.state.cause=cause;
+  assert.throws(()=>admitInstalledSourceFinalEnvironment(f.services,f.moon,value,finalProfiles),error=>error===cause);
+  assert.equal(calls.length,0);f.state.refuse=false;f.close();
+});
 
 test('generated Environment constructors are prefunded once and reuse exact same-owner originals', () => {
   const f = fixture();

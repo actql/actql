@@ -136927,8 +136927,9 @@
     },
     {
       "module": "adapters/host-node/installed-funded-environment.mjs",
-      "sha256": "0a5766ebdc47b5a0f5a0dd225c3f683b6467cd26c7ed9189815a533548f6bf59",
+      "sha256": "f34bd6e19ad19dfe873931459a9214eb010f1c683ad473ae32c09b988d4bb693",
       "exports": [
+        "admitInstalledSourceFinalEnvironment",
         "assertInstalledEnvironmentPublicationOriginal",
         "bindInstalledEnvironmentConstruction",
         "composeInstalledInventoryEnvironment",
@@ -136937,6 +136938,38 @@
         "releaseRetiredInstalledEnvironmentComposition"
       ],
       "operations": [
+        {
+          "name": "admitInstalledSourceFinalEnvironment",
+          "parameters": [
+            "services",
+            "moon",
+            "value",
+            "textTime",
+            "numericProfileCid",
+            "graphLawCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "admitInstalledSourceFinalEnvironment/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "admitInstalledSourceFinalEnvironment/currentReader/currentReader",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "admitInstalledSourceFinalEnvironment/result/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "admitInstalledSourceFinalEnvironment/result/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
         {
           "name": "assertInstalledEnvironmentPublicationOriginal",
           "parameters": [
@@ -137207,6 +137240,11 @@
         {
           "operations": [
             "<module>",
+            "admitInstalledSourceFinalEnvironment",
+            "admitInstalledSourceFinalEnvironment/current/current",
+            "admitInstalledSourceFinalEnvironment/currentReader/currentReader",
+            "admitInstalledSourceFinalEnvironment/result/init:capacity/init:capacity",
+            "admitInstalledSourceFinalEnvironment/result/init:project/init:project",
             "assertInstalledEnvironmentPublicationOriginal",
             "bindInstalledEnvironmentConstruction",
             "bindInstalledEnvironmentConstruction/bindInstalledEnvironmentConstruction",
@@ -137248,7 +137286,8 @@
             "composeInstalledSourceEnvironment",
             "releaseRetiredInstalledEnvironmentComposition",
             "assertInstalledEnvironmentPublicationOriginal",
-            "readInstalledSourceEnvironment"
+            "readInstalledSourceEnvironment",
+            "admitInstalledSourceFinalEnvironment"
           ],
           "attributes": {
             "responsibility": [
@@ -138695,8 +138734,8 @@
   ],
   "counts": {
     "modules": 194,
-    "operations": 5497,
-    "exports": 1190,
+    "operations": 5502,
+    "exports": 1191,
     "explicitContractGroups": 550
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."

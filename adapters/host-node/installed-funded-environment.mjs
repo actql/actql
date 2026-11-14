@@ -186,7 +186,7 @@ function composeEnvironment(services, moon, baseInput, sourceInput, effectInput,
         const admitted = moon.clientProgramCheckEnvironmentFromWire(raw, false, false, true, false, false, false, false);
         if (admitted === undefined) fail('InstalledCheckEnvironmentConflict');
         const value = Object.freeze({runtime: moon, body, wire, evidenceCid, admitted});
-        originals.set(value, {services, moon, reader, counts});return value;
+        originals.set(value, {services, moon, reader, counts, raw});return value;
       });
     };
     const input = value => {
@@ -276,6 +276,68 @@ function composeEnvironment(services, moon, baseInput, sourceInput, effectInput,
     current();return result;
   } catch (cause) {owner.failed = true;owner.cause = cause;throw cause;}
   finally {owner.busy = false;}
+}
+
+// The final Host selects profiles on this SAME admitted WireEnvironment. The
+// earlier intermediate checker stays retained; no body is copied, credited
+// back or reclassified as current authority. Changed wires and Calendar's
+// distinct artifact constructor keep their independent complete route.
+export function admitInstalledSourceFinalEnvironment(services, moon, value,
+  {textTime, numericProfileCid, graphLawCid}) {
+  const owner = owners.get(services), record = originals.get(value);
+  const reader = installedSourceEnvironmentConstructionReader(services, moon);
+  if (owner === undefined || owner.failed || owner.busy || owner.reader !== reader ||
+      record === undefined || record.native !== undefined || record.retired === true ||
+      record.services !== services || record.moon !== moon || record.reader !== reader ||
+      record.raw === undefined || typeof textTime !== 'boolean' ||
+      typeof numericProfileCid !== 'string' || typeof graphLawCid !== 'string') {
+    fail('ForeignInstalledEnvironmentOriginal');
+  }
+  const quote = moon.clientProgramCheckEnvironmentFromWireConstructionCapacity;
+  const admit = moon.clientProgramCheckEnvironmentFromWireWithGraphProfile;
+  if (typeof quote !== 'function' || typeof admit !== 'function') {
+    fail('InstalledFinalEnvironmentRuntimeUnavailable');
+  }
+  owner.busy = true;
+  try {
+    const current = () => {
+      if (owners.get(services) !== owner || owner.reader !== reader ||
+          originals.get(value) !== record || record.retired === true) {
+        fail('ForeignInstalledEnvironmentOriginal');
+      }
+    };
+    // Resource performs original currentness before/after these latched
+    // synchronous callbacks. Do not reenter its public reader from inside
+    // capacity/project; there check only our already captured nominal parts.
+    const currentReader = () => {
+      if (installedSourceEnvironmentConstructionReader(services, moon) !== reader) {
+        fail('ForeignInstalledEnvironmentOriginal');
+      }
+      current();
+    };
+    currentReader();
+    const result = reader.prepareNativeInput(Object.freeze({capacity() {
+      current();
+      const native = Reflect.apply(quote, moon, [record.raw]);
+      if (native === undefined) fail('InstalledEnvironmentModelConstructionUnavailable');
+      // Final DTO/index records, returned association and the selected numeric
+      // profile wrapper borrow originals. They own no new body/text backing.
+      const controls = checked(moon.clientProgramInstalledSourceConstructionCapacity(8n,0n,0n,0n,0n,0n));
+      return checked(moon.clientProgramComposeInstalledSourceConstructionCapacity(controls,[native]));
+    }, project() {
+      current();
+      const admitted = Reflect.apply(admit, moon, [record.raw,textTime,true,true,true,true,false,false,
+        numericProfileCid,graphLawCid]);
+      if (admitted === undefined) fail('InstalledCheckEnvironmentConflict');
+      current();
+      const result = Object.freeze({runtime:moon,body:value.body,wire:value.wire,
+        evidenceCid:value.evidenceCid,admitted});
+      originals.set(result,{services,moon,reader,counts:record.counts,raw:record.raw});
+      return result;
+    }}));
+    currentReader();return result;
+  } catch (cause) {owner.failed=true;owner.cause=cause;throw cause;}
+  finally {owner.busy=false;}
 }
 
 // Only the existing Source retirement ACK authorizes dropping this retained
