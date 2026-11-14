@@ -224,8 +224,17 @@ test('actual Native cache preparation admits only selected halves and Scoped whi
       output: existsSync(output) ? readFileSync(output, 'utf8') : '',
       environment: existsSync(environment) ? readFileSync(environment, 'utf8') : ''};
   };
+  const parts = workflow.jobs['core-darwin'].strategy.matrix.partition;
+  const selected = parts.filter(partition => runInNewContext(
+    prepare.if.replace(/^\$\{\{\s*|\s*\}\}$/gu, ''), {
+      matrix: {target: 'native', partition}, fromJSON: JSON.parse,
+      contains: (values, value) => values.includes(value),
+    }));
+  assert.deepEqual([...selected].sort(), ['1/2', '2/2', 'scoped']);
+  assert.deepEqual(parts.filter(partition => !selected.includes(partition)), ['source'],
+    'Only the explicitly uncached Source profile may omit this actual entry');
   const prefixes = new Set();
-  for (const partition of ['1/2', '2/2', 'scoped']) {
+  for (const partition of selected) {
     const actual = invoke(partition); assert.ifError(actual.error);
     assert.equal(actual.calls.length, 3);
     assert.match(actual.output, /^key-prefix=ordinary-c-v1-darwin-arm64-fixture-image-[a-f0-9]{64}-/u);
