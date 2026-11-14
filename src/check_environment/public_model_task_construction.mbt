@@ -109,10 +109,10 @@ fn model_task_contract_construction(
 pub fn normalized_public_model_task_retained_extent(
   value : NormalizedPublicModelTask,
 ) -> RegistryConstructionExtent {
-  // Normalized1H10R1W; resolved1H4R1W and a possible override generation
+  // Normalized1H10R4W; resolved1H4R1W and a possible override generation
   // copy1H1R3W. Both final wires and their exact original CIDs remain owned.
   {
-    record_headers: 7L, reference_slots: 15L, scalar_words: 5L,
+    record_headers: 7L, reference_slots: 15L, scalar_words: 8L,
     owned_utf16_units: value.task_wire.length().to_int64() +
       value.task_cid.length().to_int64() + value.prompt_wire.length().to_int64() +
       value.prompt_cid.length().to_int64(),
@@ -144,7 +144,7 @@ pub fn public_model_task_normalization_construction_extent(
     reference_slots: 4L * writer.reference_slots + 2L * hash.reference_slots +
       emission.reference_slots + 15L,
     scalar_words: 4L * writer.scalar_words + 2L * hash.scalar_words +
-      emission.scalar_words + 5L,
+      emission.scalar_words + 8L,
     owned_utf16_units: 4L * writer.owned_utf16_units + 2L * hash.owned_utf16_units +
       2L * limits.bodies.max_bytes.to_int64() + 142L,
     owned_wire_bytes: 2L * limits.bodies.max_bytes.to_int64() +
