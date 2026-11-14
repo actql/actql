@@ -61,7 +61,7 @@ async function unionRowsFixture(t, fault) {
     if (fault === 'late-row' && original.entry.branches === 25) values[values.length - 1] += 100;
     if (fault === 'duplicate' && original.entry.duplicates) values.pop();
     if (fault === 'cold' && cold) values[0] += 100;
-    if (args.at(-1) === 'csv') return reply('n\n' + values.map(n =>
+    if (args.at(-1) === 'csv') return reply((fault === 'csv-header' ? '"foreign"' : fault === 'csv-unquoted-header' ? 'n' : fault === 'csv-extra-column' ? '"n","other"' : '"n"') + '\n' + values.map(n =>
       fault === 'csv-null' && n === 0 ? '' : n).join('\n') + '\n');
     return reply(values.map(n => JSON.stringify(fault === 'schema' ? {foreign: n} : {n})).join('\n') + '\n');
   };
@@ -79,7 +79,7 @@ test('UNION row oracle requires direct and CTE 10/11/24/25/40 complete values an
   assert(result.cases.every(value => value.firstCloseObserved && value.coldSavedWithoutInput && value.recoveredAfterInvalidQuery));
   assert.equal(fixture.calls.filter(value => value.args[0] === 'init').length, 1);
 });
-for (const fault of ['late-row', 'duplicate', 'schema', 'close', 'cold', 'csv-null']) {
+for (const fault of ['late-row', 'duplicate', 'schema', 'close', 'cold', 'csv-null', 'csv-header', 'csv-unquoted-header', 'csv-extra-column']) {
   test(`UNION row oracle refuses ${fault} without replacing the original`, async t => {
     const fixture = await unionRowsFixture(t, fault);
     await assert.rejects(observeNativeUnionRows(fixture));

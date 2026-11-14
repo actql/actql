@@ -64,7 +64,7 @@ export async function observeNativeUnionRows({root, cli}) {
     const csv = await cli(['result', state.run_id, '--format', 'csv'], project);
     firstClose(csv);
     const [header, ...values] = csv.stdout.trim().split(/\r?\n/u);
-    assert.equal(header, 'n', 'CSV exposes exactly the same original column');
+    assert.equal(header, '"n"', 'CSV exposes exactly the same original column');
     assert(values.every(value => /^(?:0|[1-9][0-9]*)$/u.test(value)),
       'Every CSV cell retains the original nonnull integer, including zero');
     assert.deepEqual(values.map(Number).sort((a, b) => a - b), entry.rows.map(({n}) => n).sort((a, b) => a - b));
