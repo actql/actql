@@ -29,27 +29,27 @@ test('scarce Mac admission waits for lint and the original JS row while Native M
   for (const job of [darwin, workflow.jobs['python-wheels']])
     assert.deepEqual(job.needs, ['select-targets', 'lint', 'core-js']);
   assert.deepEqual(workflow.jobs['native-macos-workloads'].needs, ['select-targets']);
-  const evaluate = (job, targets, lint = 'success', result = targets.includes('js') ? 'success' : 'skipped', stopped = false) =>
+  const evaluate = (job, targets, lint, result, stopped = false, profile = 'full') =>
     runInNewContext(job.if.slice(3, -2), {
       github: {event: {repository: {visibility: 'public', private: false}}}, inputs: {},
-      needs: {'select-targets': {outputs: {profile: 'full', targets: JSON.stringify(targets), python_wheels: 'true'}},
+      needs: {'select-targets': {outputs: {profile, targets: JSON.stringify(targets), python_wheels: 'true'}},
         lint: {result: lint}, 'core-js': {result}},
       toJSON: JSON.stringify, fromJSON: JSON.parse, contains: (values, value) => values.includes(value),
       always: () => true, cancelled: () => stopped,
     });
   for (const targets of [['js'], ['wasm'], ['native'], ['js', 'wasm'], ['js', 'native'], ['wasm', 'native'], ['js', 'wasm', 'native']]) {
     const actual = [];
-    if (evaluate(js, targets)) actual.push({target: 'js', partition: '1/4'});
-    if (evaluate(common, targets)) for (const target of targets) for (const partition of common.strategy.matrix.partition)
+    if (evaluate(js, targets, 'success', targets.includes('js') ? 'success' : 'skipped')) actual.push({target: 'js', partition: '1/4'});
+    if (evaluate(common, targets, 'success', targets.includes('js') ? 'success' : 'skipped')) for (const target of targets) for (const partition of common.strategy.matrix.partition)
       if (!common.strategy.matrix.exclude.some(row => row.target === target && row.partition === partition)) actual.push({target, partition});
-    if (evaluate(darwin, targets)) for (const partition of darwin.strategy.matrix.partition) actual.push({target: 'native', partition});
+    if (evaluate(darwin, targets, 'success', targets.includes('js') ? 'success' : 'skipped')) for (const partition of darwin.strategy.matrix.partition) actual.push({target: 'native', partition});
     const expected = [
       ...(targets.includes('js') ? [{target: 'js', partition: '1/4'}] : []),
       ...(targets.includes('wasm') ? [{target: 'wasm', partition: '1/4'}] : []),
       ...(targets.includes('native') ? [...nativeCoreLinuxCommonPartitions, '1/2', '2/2', 'source', 'scoped']
         .map(partition => ({target: 'native', partition})) : []),
     ];
-    assert.deepEqual(actual.map(JSON.stringify).sort(), expected.map(JSON.stringify).sort());
+    assert.deepEqual(actual.map(row => JSON.stringify(row)).sort(), expected.map(row => JSON.stringify(row)).sort());
     for (const lint of ['success', 'failure', 'cancelled', 'skipped', undefined])
       for (const result of ['success', 'failure', 'cancelled', 'skipped', undefined]) for (const stopped of [false, true]) {
         const admitted = !stopped && lint === 'success' && result === (targets.includes('js') ? 'success' : 'skipped');
@@ -57,32 +57,44 @@ test('scarce Mac admission waits for lint and the original JS row while Native M
         assert.equal(evaluate(workflow.jobs['python-wheels'], targets, lint, result, stopped), admitted);
       }
   }
+  // Targeted Draft wheel acceptance does not select full Core. Its absent JS
+  // row is legitimate only when the original full-only predicate omits it.
+  for (const profile of ['draft', 'draft-focused']) for (const lint of ['success', 'failure', 'cancelled', 'skipped', undefined])
+    for (const result of ['success', 'failure', 'cancelled', 'skipped', undefined]) for (const stopped of [false, true]) {
+      assert.equal(evaluate(js, ['js'], lint, result, stopped, profile), false);
+      assert.equal(evaluate(common, ['js'], lint, result, stopped, profile), false);
+      assert.equal(evaluate(darwin, ['js'], lint, result, stopped, profile), false);
+      assert.equal(evaluate(workflow.jobs['python-wheels'], ['js'], lint, result, stopped, profile),
+        !stopped && lint === 'success' && result === 'skipped');
+    }
 });
 
 test('Core runner split caps only Darwin and retains the complete original matrix union', () => {
-  const common = workflow.jobs['core-common'], darwin = workflow.jobs['core-darwin'];
-  assert(common && darwin);
+  const js = workflow.jobs['core-js'], common = workflow.jobs['core-common'], darwin = workflow.jobs['core-darwin'];
+  assert(js && common && darwin);
   assert.equal(common['runs-on'], 'ubuntu-24.04');
   assert.equal(common.strategy['max-parallel'], undefined);
   assert.equal(darwin['runs-on'], 'macos-15');
-  assert.equal(darwin.strategy['max-parallel'], 4);
+  assert.equal(darwin.strategy['max-parallel'], 3);
   assert.deepEqual({...darwin.strategy.matrix, partition: [...darwin.strategy.matrix.partition].sort()},
     {target: ['native'], partition: [...nativeCoreCiPartitions].sort()});
   assert.deepEqual(darwin.strategy.matrix.partition,
-    ['scoped', '1/2', 'source', '2/2']);
+    ['scoped', 'source', '1/2', '2/2']);
   assert.equal(common.strategy.matrix.target, '${{ fromJSON(needs.select-targets.outputs.targets) }}');
   assert.deepEqual(common.strategy.matrix.partition, ['1/4', ...nativeCoreLinuxCommonPartitions]);
   const rows = job => ['js', 'wasm', 'native'].flatMap(target => job.strategy.matrix.partition.map(partition => ({target, partition})))
     .filter(row => !job.strategy.matrix.exclude.some(x => x.target === row.target && x.partition === row.partition));
-  const selected = [...rows(common), ...nativeCoreCiPartitions.map(partition => ({target: 'native', partition}))];
+  const selected = [{target: 'js', partition: '1/4'}, ...rows(common), ...nativeCoreCiPartitions.map(partition => ({target: 'native', partition}))];
   assert.equal(selected.length, 14);
   assert.equal(new Set(selected.map(row => JSON.stringify(row))).size, 14);
   assert.deepEqual(selected, [{target: 'js', partition: '1/4'}, {target: 'wasm', partition: '1/4'},
     ...nativeCoreLinuxCommonPartitions.map(partition => ({target: 'native', partition})),
     ...nativeCoreCiPartitions.map(partition => ({target: 'native', partition}))]);
   assert.equal(common.steps, darwin.steps, 'One YAML-anchored step owner preserves all original commands and environments');
-  for (const job of [common, darwin]) {
-    assert.deepEqual(job.needs, ['select-targets']);
+  assert.deepEqual(js.needs, ['select-targets']);
+  assert.deepEqual(common.needs, ['select-targets']);
+  assert.deepEqual(darwin.needs, ['select-targets', 'lint', 'core-js']);
+  for (const job of [js, common, darwin]) {
     assert.equal(job.strategy['fail-fast'], false);
     assert.equal(job['timeout-minutes'], "${{ matrix.target == 'native' && 90 || 30 }}");
   }
@@ -91,27 +103,28 @@ test('Core runner split caps only Darwin and retains the complete original matri
 
 test('Core runner aggregate requires every selected matrix and refuses missing failed or skipped work', () => {
   const core = workflow.jobs.core;
-  assert.deepEqual(core.needs, ['select-targets', 'core-common', 'core-darwin']);
+  assert.deepEqual(core.needs, ['select-targets', 'core-js', 'core-common', 'core-darwin']);
   assert.equal(core['runs-on'], 'ubuntu-24.04');
   assert(core.if.includes('always()'));
   assert.equal(core['timeout-minutes'], 5);
   const step = core.steps[0];
   assert.deepEqual(step.env, {CORE_TARGETS: '${{ needs.select-targets.outputs.targets }}',
-    COMMON_RESULT: '${{ needs.core-common.result }}', DARWIN_RESULT: '${{ needs.core-darwin.result }}'});
+    JS_RESULT: '${{ needs.core-js.result }}', COMMON_RESULT: '${{ needs.core-common.result }}', DARWIN_RESULT: '${{ needs.core-darwin.result }}'});
   const run = values => spawnSync('bash', ['-eo', 'pipefail', '-c', step.run], {
     encoding: 'utf8', timeout: 5000, env: {...process.env, ...values},
   });
-  for (const targets of [['js'], ['wasm'], ['native'], ['js', 'wasm', 'native']]) {
-    const selected = targets.includes('native');
-    const success = {CORE_TARGETS: JSON.stringify(targets), COMMON_RESULT: 'success', DARWIN_RESULT: selected ? 'success' : 'skipped'};
+  for (const targets of [['js'], ['wasm'], ['native'], ['js', 'wasm'], ['js', 'native'], ['wasm', 'native'], ['js', 'wasm', 'native']]) {
+    const success = {CORE_TARGETS: JSON.stringify(targets),
+      JS_RESULT: targets.includes('js') ? 'success' : 'skipped',
+      COMMON_RESULT: targets.some(target => target === 'wasm' || target === 'native') ? 'success' : 'skipped',
+      DARWIN_RESULT: targets.includes('native') ? 'success' : 'skipped'};
     assert.equal(run(success).status, 0);
-    for (const value of ['failure', 'cancelled', 'skipped', ''])
-      assert.notEqual(run({...success, COMMON_RESULT: value}).status, 0);
-    for (const value of selected ? ['failure', 'cancelled', 'skipped', ''] : ['failure', 'cancelled', 'success', ''])
-      assert.notEqual(run({...success, DARWIN_RESULT: value}).status, 0);
+    for (const key of ['JS_RESULT', 'COMMON_RESULT', 'DARWIN_RESULT'])
+      for (const value of ['success', 'failure', 'cancelled', 'skipped', ''])
+        if (value !== success[key]) assert.notEqual(run({...success, [key]: value}).status, 0);
   }
   for (const targets of ['', '[]', 'null', '["other"]', '["native","native"]', 'invalid'])
-    assert.notEqual(run({CORE_TARGETS: targets, COMMON_RESULT: 'success', DARWIN_RESULT: 'success'}).status, 0);
+    assert.notEqual(run({CORE_TARGETS: targets, JS_RESULT: 'success', COMMON_RESULT: 'success', DARWIN_RESULT: 'success'}).status, 0);
 });
 
 test('normal Native object caching selects ordinary and Scoped jobs and retains their complete Core command', () => {

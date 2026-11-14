@@ -101,6 +101,18 @@ test('local Core uses original unpartitioned commands and budget after hosted ma
   assert.equal(readFileSync(join(f.root, 'calls'), 'utf8'), 'from workflow\n');
 });
 
+test('the extracted hosted JS row remains CI-only instead of selecting a partial local Core', t => {
+  const f = fixture(t), path = join(f.root, '.github/workflows/ci.yml');
+  const workflow = JSON.parse(readFileSync(path, 'utf8'));
+  workflow.jobs['core-js'] = workflow.jobs.core;
+  writeFileSync(path, JSON.stringify(workflow));
+  const result = f.run(['run', 'core-js', '--allow-heavy']);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /hosted JS matrix/u);
+  assert.equal(existsSync(join(f.root, 'calls')), false);
+  assert.equal(existsSync(join(f.root, '_build')), false);
+});
+
 test('local Core adapter runs complete unpartitioned coverage for the hosted Native partition expression', t => {
   const f = fixture(t), path = join(f.root, '.github/workflows/ci.yml');
   const workflow = JSON.parse(readFileSync(path, 'utf8'));
