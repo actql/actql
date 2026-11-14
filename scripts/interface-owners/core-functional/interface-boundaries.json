@@ -41907,7 +41907,7 @@
     },
     {
       "module": "src/client_local_host/preparation_program_compile.mbt",
-      "sha256": "21d80f22bacb939b744758d31c5ce2eebf51fbd078bfc15a7d9dafa5e2fea293",
+      "sha256": "27fba2b27947f6a3dedc017dc4346fc41630b548b1012cf02966ddf27605ff87",
       "exports": [],
       "operations": [
         {
@@ -46520,7 +46520,8 @@
             "[I]prepare_request_program_module_body",
             "[I]request_program_plan_quote",
             "[I]reserve_request_program_plan",
-            "[I]request_program_compilation_limits"
+            "[I]request_program_compilation_limits",
+            "request_program_plan_issue_is_sequence_limit"
           ],
           "exports": [],
           "attributes": {
@@ -47304,7 +47305,7 @@
           }
         }
       ],
-      "sha256": "a17494cd1fb2cfe4628fa3283b2fb5ea7d598107b5874aaa9c18c991ad19c57d",
+      "sha256": "f88793c5735b24ff14f3d76c73a62ff2bf0540d49eb0b7cdc90732ad3045eadb",
       "exports": [],
       "operations": [
         {
@@ -47382,6 +47383,10 @@
         {
           "name": "[I]retain_request_program_module_inputs",
           "declaration": "[ I ] retain_request_program_module_inputs ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , captured : ClientInstalledManagedCapturePlan ? , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ @ publication_host . PreparedClientProgram , ClientRequestProgramPlanIssue , ]"
+        },
+        {
+          "name": "request_program_plan_issue_is_sequence_limit",
+          "declaration": "request_program_plan_issue_is_sequence_limit ( issue : ClientRequestProgramPlanIssue , ) - > Bool"
         },
         {
           "name": "request_query_time_invocation_extent",
@@ -58804,7 +58809,9 @@
             "client_program_reserve_request_snapshot",
             "client_program_retire_installed_effect_capture_recovery",
             "strategy_begin_original_effect_free_captured_run",
-            "strategy_captured_run_preparation_limits"
+            "strategy_captured_run_preparation_limits",
+            "client_program_prepare_request_declared_file_model_graph",
+            "prepare_request_model_graph_with_file_declarations"
           ],
           "exports": [],
           "attributes": {
@@ -59645,6 +59652,10 @@
           "declaration": "client_program_prepare_request_computation_check ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , environment : @ program_check . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , source_catalog : @ program_check . PreparedSourceCatalog ? , source_preparation : @ stage_parameters . Source ? , ) - > Result [ @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , @ client_local_host . ClientRequestPreparationIssue , ]"
         },
         {
+          "name": "client_program_prepare_request_declared_file_model_graph",
+          "declaration": "client_program_prepare_request_declared_file_model_graph ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , occurrence : @ publication_host . ClientInferOccurrence , execution : @ check_environment . ModelExecutionContract , contracts : @ client_local_host . ClientInstalledSequenceContracts , declarations : Array [ @ client_row_source_host . RowDeclaration ] , ) - > Result [ @ publication_host . ClientInferPlanGraph , ClientRequestProgramModuleBridgeIssue , ]"
+        },
+        {
           "name": "client_program_prepare_request_effect_model_read_scope",
           "declaration": "client_program_prepare_request_effect_model_read_scope ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > Result [ @ publication_host . ClientModelReadScope , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
@@ -59901,6 +59912,10 @@
           "declaration": "client_program_retire_installed_effect_capture_recovery ( original : @ client_local_host . ClientInstalledEffectCaptureRecovery , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "prepare_request_model_graph_with_file_declarations",
+          "declaration": "prepare_request_model_graph_with_file_declarations ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , occurrence : @ publication_host . ClientInferOccurrence , execution : @ check_environment . ModelExecutionContract , contracts : @ client_local_host . ClientInstalledSequenceContracts , keyed_file_declarations : Array [ @ client_row_source_host . RowDeclaration ] ? , ) - > Result [ @ publication_host . ClientInferPlanGraph , ClientRequestProgramModuleBridgeIssue , ]"
+        },
+        {
           "name": "prepare_request_model_recovery_scopes_original",
           "declaration": "prepare_request_model_recovery_scopes_original ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , prepared : @ publication_host . PreparedClientProgram , compiled : @ publication_host . ClientCompiledRun , graphs : Array [ @ publication_host . ClientInferPlanGraph ] , selected : Array [ @ infer_host . Limits ] , model_retained_bytes : Array [ Int64 ] , model_execution_bytes : Array [ Int64 ] , read_retained_bytes : Array [ Int64 ] , read_execution_bytes : Array [ Int64 ] , max_reservations : Int , max_holdings : Int , max_delegations : Int , quantities : @ resources . QuantityAmounts ? , ) - > Result [ Array [ @ publication_host . ClientModelReadScope ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
@@ -59913,7 +59928,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "a61e135a7188a79ee0e1ca6240e39a685ef252716424f74a394ad7c90d3e20f9"
+      "sha256": "4f8e3112759992d8831f7cfdd60e220468ded0f14a2bce07d1e6d910f45f0099"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -73212,7 +73227,7 @@
           }
         }
       ],
-      "sha256": "36f199500710d1171d110098e5912f053eb030f932057c0a9071179f5912d909",
+      "sha256": "c6cd786048bd175e5b575d36393d80ab8e86ebe5ed00e95159d9380db9cca047",
       "exports": [],
       "operations": [
         {
@@ -88642,7 +88657,7 @@
     },
     {
       "module": "src/lowering_relation/sequence_preparation_demand.mbt",
-      "sha256": "bbf0926ae80d82b2cf6888b206b00042b45391396a4762697ecfd556d032598b",
+      "sha256": "e9f689d757af80d642f42a9b396ae9b10561e56e7d64f5bc2fabff1140814a6e",
       "exports": [],
       "operations": [
         {
@@ -88741,7 +88756,7 @@
     },
     {
       "module": "src/run_publication_host/client_sequence_preparation_demand.mbt",
-      "sha256": "c50f3a0a8f4e012dbbcd4fd6b62a3fb6a170c90878233837527cf0d4da5e8a82",
+      "sha256": "88745533faba0453f01a7c53f94e15f48de44f94a0ff3e75b33bc2fd1bd14424",
       "exports": [],
       "operations": [
         {

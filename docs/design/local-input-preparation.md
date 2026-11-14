@@ -3114,6 +3114,17 @@ cell, name and expression bounds. It does not traverse or rebuild the graph,
 reinterpret the input, or turn a task ordinal into an execution grant. Direct
 calls with an explicit smaller sequence budget still refuse.
 
+The same existing demand fold also retains the maximum full-sequence step
+count across its original pipeline owners. The shared module/compiler getter
+uses that count too; it must not reset a prepared 160-step pipeline to a
+separate 100-step default during fragment measurement. Per-task selection
+reads the same original inventory. The per-pipeline observation and aggregate
+may coexist with their new scalar, so the original compilation reservation
+prices two scalar words through the common tariff before these constructors.
+This adds no scan, capacity grant or replacement owner. The error owner alone
+recognizes exact nested sequence-budget failures for the existing analysis-limit
+projection; foreign, retired and general construction failures stay uncertain.
+
 
 These projections are immutable DATA in the existing Program owner, not a new
 Resource, authority or preparation controller. The same Request reserves the

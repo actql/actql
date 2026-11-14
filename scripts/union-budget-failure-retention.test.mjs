@@ -28,6 +28,7 @@ async function failurePort(t, close) {
   const originalRef = {authoredFailurePort: 'original'};
   const reportPath = join(root, 'union-budget-run.json');
   let closeCalls = 0;
+  const diagnostics = [];
   const client = {
     async check() { return {report: {verdict: 'invalid'}}; },
     newSubmission({nonce}) { return {nonce}; },
@@ -37,10 +38,11 @@ async function failurePort(t, close) {
   const running = consumer(assert, mkdir, readFile, writeFile,
     (...parts) => resolve(root, ...parts), async () => client,
     [unionBudgetCases[0]], async () => ({openPaths: []}),
-    {argv: ['node', 'fixture', 'run', join(root, 'handoff.json')]});
+    {argv: ['node', 'fixture', 'run', join(root, 'handoff.json')],
+      stderr: {write(line) { diagnostics.push(line); }}});
   // Observe this same promise immediately; never retry or detach its failure.
   const outcome = running.then(value => ({value}), error => ({error}));
-  return {primary, originalRef, reportPath, outcome, closeCalls: () => closeCalls};
+  return {primary, originalRef, reportPath, outcome, diagnostics, closeCalls: () => closeCalls};
 }
 
 test('original primary and reference are durable before the first close can hang', {timeout: 10000}, async t => {
@@ -59,6 +61,11 @@ test('original primary and reference are durable before the first close can hang
   assert.equal(pending.normalPackageAcceptance, false);
   assert.deepEqual(pending.references[0].ref, port.originalRef);
   assert.equal(port.closeCalls(), 1);
+  assert.equal(port.diagnostics.length, 1);
+  assert.equal(port.diagnostics[0], 'ACTQL_UNION_PENDING_CLOSE ' + JSON.stringify({
+    phase: 'run', lastFixture: 'direct-10', code: 'OriginalWaitFailure', closePending: true}) + '\n');
+  assert(!port.diagnostics[0].includes('authoredFailurePort'));
+  assert(!port.diagnostics[0].includes('original wait failure'));
   release.resolve();
   assert.equal((await port.outcome).error, port.primary);
   const final = JSON.parse(await readFile(port.reportPath, 'utf8'));

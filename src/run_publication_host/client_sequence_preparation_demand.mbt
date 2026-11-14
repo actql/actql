@@ -14,6 +14,7 @@ fn client_sequence_preparation_demand(
   let mut cells = 0L
   let mut projection_names = 0L
   let mut expression_nodes = 0L
+  let mut full_sequence_steps = 0
   for owner in owners {
     let demand = match
       @lower.prepared_sequence_preparation_demand(
@@ -25,6 +26,10 @@ fn client_sequence_preparation_demand(
       Err(_) => return Err(@strategy.GraphIssue::InvalidLimits)
     }
     remaining -= demand.work_used
+    full_sequence_steps = Int::max(
+      full_sequence_steps,
+      demand.full_sequence_steps,
+    )
     if demand.authored_literal_rows.to_int64() > 2147483647L - rows ||
       demand.authored_literal_cells.to_int64() > 2147483647L - cells ||
       demand.projection_name_bytes_bound.to_int64() >
@@ -46,6 +51,7 @@ fn client_sequence_preparation_demand(
     projection_name_bytes_bound: projection_names.to_int(),
     authored_expression_nodes: expression_nodes.to_int(),
     work_used: max_work - remaining,
+    full_sequence_steps,
   })
 }
 

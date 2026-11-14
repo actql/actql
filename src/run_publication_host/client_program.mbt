@@ -99,7 +99,7 @@ pub fn prepared_client_values_sequence_limits(
   client_sequence_limits_with_selected_demand(
     value.sequence_preparation_demand,
     original,
-    original.max_steps,
+    value.sequence_preparation_demand.full_sequence_steps,
     value.local_values_max_rows,
     Int::max(
       original.max_cells,
