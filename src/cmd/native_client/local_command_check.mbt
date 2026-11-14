@@ -895,13 +895,17 @@ fn LocalCommandPreparationOriginal::prepare_project_text_payload(
     local_project_text_payload_extent(bytes) is Some((r, e)) else {
     return Err(CommandUnavailable)
   }
+  // Keep each escaping text, but not a sum of completed Reader scratch peaks.
+  // The same bounded routine acknowledges Reader/Root close before returning
+  // its sole String. The existing temporary-peak port takes a maximum over
+  // the original base; it never refunds or acknowledges this Read's lifetime.
+  match
+    host.prepare_domain_original_read_retained_construction(read, r, 0L, r) {
+    Err(issue) => return Err(CommandRead(issue))
+    Ok(_) => ()
+  }
   host
-  .prepare_domain_original_read_retained_construction(
-    read,
-    r,
-    e,
-    Int64::max(r, e),
-  )
+  .prepare_domain_original_read_construction(read, 0L, e, e)
   .map_err(issue => CommandRead(issue))
 }
 
