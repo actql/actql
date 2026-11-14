@@ -1,5 +1,6 @@
 import {composeInstalledSourceEnvironment, composeInstalledInventoryEnvironment} from './installed-funded-environment.mjs';
 import {sourceAliasIdentityRow} from './source-alias-request.mjs';
+import {installedCanonicalTextConstructionShape} from './installed-check-environment-construction.mjs';
 import {captureSourceAliasConstruction,
   sourceAliasIdentityConstructionGeometry, sourceAliasCollectionConstructionGeometry,
   sourceMemberCollectionConstructionGeometry, sourceReferenceCollectionConstructionGeometry,
@@ -510,17 +511,21 @@ export function prepareInstalledSourceCheckpointInventory(profile, construct) {
   if (profile === undefined) return undefined;
   const members = profile.sources;
   let count = 0n, sourceRefUnits = 0n;
+  const sourceRefShape = {output: 0n, normalized: 0n};
   const observe = source => {
     for (const access of installedSourceReadAccesses(source)) {
       count++;
       sourceRefUnits += BigInt(access.sourceRef.length);
+      const shape = installedCanonicalTextConstructionShape(access.sourceRef);
+      sourceRefShape.output += shape.output;
+      sourceRefShape.normalized += shape.normalized;
     }
   };
   if (members === undefined) observe(profile);
   else for (const member of members) observe(member);
   // Preserve the singular installation's existing ordering.
   if (members === undefined && count === 1n) return undefined;
-  return construct(sourceCheckpointInventoryConstructionGeometry(count, sourceRefUnits), () => {
+  return construct(sourceCheckpointInventoryConstructionGeometry(count, sourceRefUnits, sourceRefShape), () => {
     const sources = [], installedSources = [], bindings = [], accesses = [], connections = new Set();
     const retain = source => {
       const authorization = source.readAuthorization;

@@ -77066,7 +77066,7 @@
     {
       "module": "adapters/host-node/installed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "34c820eaf54d0868ea8b37f2464928d3916f3a54af21b7ba08d5fe6e0afc3aca",
+      "sha256": "ace37185e11109afdf2e0341b787d49b82987f8e4ef1347222389238a7bce5b7",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -78315,6 +78315,7 @@
       "imports": [
         "../connectors-builtin/installations.generated.mjs",
         "./duckdb-physical-target.mjs",
+        "./installed-check-environment-construction.mjs",
         "./installed-check-environment.mjs",
         "./installed-connectors.mjs",
         "./installed-duckdb-source.mjs",
@@ -136686,8 +136687,10 @@
     },
     {
       "module": "adapters/host-node/installed-check-environment-construction.mjs",
-      "sha256": "90cb90fccb826006f56a505b219000034247308496330258ca1358e2f8390a42",
+      "sha256": "908997e46602db419eb05ee7e370fb32c8febcf24809316ee1e3b67890c97266",
       "exports": [
+        "installedCanonicalTextConstructionShape",
+        "installedCheckpointBindingCanonicalConstructionGeometry",
         "installedEnvironmentCompositionConstructionGeometry",
         "installedEnvironmentDataWriterConstructionGeometry",
         "installedEnvironmentDocumentConstructionGeometry",
@@ -136727,6 +136730,29 @@
         },
         {
           "name": "dataWriterShape/text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedCanonicalTextConstructionShape",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedCheckpointBindingCanonicalConstructionGeometry",
+          "parameters": [
+            "count",
+            "sourceOutput",
+            "sourceNormalized"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedCheckpointBindingCanonicalConstructionGeometry/installedCheckpointBindingCanonicalConstructionGeometry",
           "parameters": [
             "value"
           ],
@@ -136838,6 +136864,9 @@
             "addSequentialCanonical",
             "dataWriterShape",
             "dataWriterShape/text/text",
+            "installedCanonicalTextConstructionShape",
+            "installedCheckpointBindingCanonicalConstructionGeometry",
+            "installedCheckpointBindingCanonicalConstructionGeometry/installedCheckpointBindingCanonicalConstructionGeometry",
             "installedEnvironmentCompositionConstructionGeometry",
             "installedEnvironmentDataWriterConstructionGeometry",
             "installedEnvironmentDocumentConstructionGeometry",
@@ -136857,7 +136886,9 @@
             "installedEnvironmentParseConstructionGeometry",
             "installedEnvironmentDataWriterConstructionGeometry",
             "installedEnvironmentDocumentConstructionStages",
-            "installedEnvironmentMemberSortConstructionGeometry"
+            "installedEnvironmentMemberSortConstructionGeometry",
+            "installedCanonicalTextConstructionShape",
+            "installedCheckpointBindingCanonicalConstructionGeometry"
           ],
           "attributes": {
             "responsibility": [
@@ -136934,7 +136965,7 @@
     },
     {
       "module": "adapters/host-node/source-alias-construction.mjs",
-      "sha256": "f6d02eddc0f161cb6074927b0bb62577d1099c823640913ead7069a5dab54a10",
+      "sha256": "0380637ed04ce42772bc545e88f12761754cac8f7637cec63dafe239506b281b",
       "exports": [
         "captureSourceAliasConstruction",
         "sourceAliasBorrowedGeometry",
@@ -137059,7 +137090,8 @@
           "name": "sourceCheckpointInventoryConstructionGeometry",
           "parameters": [
             "count",
-            "sourceRefUnits"
+            "sourceRefUnits",
+            "sourceRefShape"
           ],
           "async": false
         },
@@ -137108,6 +137140,7 @@
       ],
       "imports": [
         "../host-common/runtime-result.mjs",
+        "./installed-check-environment-construction.mjs",
         "./source-alias-request.mjs",
         "node:util"
       ],
@@ -138016,8 +138049,8 @@
   ],
   "counts": {
     "modules": 194,
-    "operations": 5494,
-    "exports": 1188,
+    "operations": 5497,
+    "exports": 1190,
     "explicitContractGroups": 550
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."

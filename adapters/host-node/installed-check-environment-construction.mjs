@@ -42,6 +42,34 @@ function textShape(value) {
   }
   return {output, normalized};
 }
+
+// The same actual Local canonicalizer's scalar preflight. It constructs no
+// normalized String, JSON token, body or CID before its caller reserves.
+export function installedCanonicalTextConstructionShape(value) {
+  return textShape(value);
+}
+
+// The existing Checkpoint binding has three fixed String fields per Source.
+// Account admission later supplies two SHA256 CIDs (71 UTF16 units each), or
+// the shorter null configuration. No prospective CID or body is constructed.
+export function installedCheckpointBindingCanonicalConstructionGeometry(count, sourceOutput, sourceNormalized) {
+  if ([count, sourceOutput, sourceNormalized].some(value => typeof value !== 'bigint' || value < 0n) ||
+      sourceOutput < 2n * count) invalid();
+  const keyUnits = BigInt('source_ref'.length + 'configuration_cid'.length + 'context_cid'.length);
+  const outerKey = BigInt('source_authorization_bindings'.length);
+  const leaves = sourceOutput + 2n * 73n * count;
+  // Object braces, three quoted keys, colons and commas. Recursive counts
+  // include the actual scalar tokens, row, Array and outer object once each.
+  const rows = leaves + (keyUnits + 13n) * count;
+  const array = 2n + rows + (count === 0n ? 0n : count - 1n);
+  const output = array + outerKey + 5n;
+  const measured = {nodes: 8n * count + 3n, output,
+    recursive: leaves + rows + array + output,
+    normalized: sourceNormalized + (2n * 71n + keyUnits) * count + outerKey};
+  const workspace = zero();
+  addCanonical(workspace, measured, 1n, 1n);
+  return workspace;
+}
 function shape(value, parent = undefined, depth = 0) {
   if (depth > 256) invalid();
   let nodes = 1n, output, recursive = 0n, normalized = 0n, fields = 0n;
