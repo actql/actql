@@ -514,6 +514,7 @@ test('Native partition caller passes the complete compiler inventory before sele
           assert.equal(root, '/original'); assert.equal(originalArgs, args);
           assert.equal(options.env, env); assert.equal(options.partitionProfiles, true);
           assert.equal(options.ordinaryPartitions, linuxCommonImporters ? 8 : true);
+          assert.equal(options.measuredCompilerWeights, role === 'darwin');
           assert.equal(options.timeoutMs, 300_000);
           assert.equal(options.executionPackages, executionPackages);
           assert.equal(options.allowNestedFileInputs, role !== 'local');

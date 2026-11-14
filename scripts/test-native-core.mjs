@@ -89,6 +89,7 @@ const selection = full ? nativeCoreTestSelection(root, args,
   // One absolute metadata-preparation envelope covers four dry-run plans and
   // all original driver generations. It grants no extra test or C-build time.
   {env: compilerEnvironment, partitionProfiles: true,
+    measuredCompilerWeights: platformScope === 'darwin-differences',
     ordinaryPartitions: linuxCommonImporters ? 8 : partition?.endsWith('/4') ? 4 : Boolean(partition) && !['http', 'source', 'scoped', 'scoped-runtime', 'scoped-review'].includes(partition),
     // Physical jobs retain their complete profile even when an ordinary PR
     // closure has no member in it. An empty job cannot establish execution.

@@ -330,6 +330,36 @@ test('hosted scoped partitions preserve the disjoint original file index allocat
   assert.equal(JSON.stringify(profiles), original);
 });
 
+test('Darwin ordinary scheduling uses measured compiler units without balancing away original cases', () => {
+  const paths = ['src/cmd/native_client', 'src/query_integration', 'src/native_values_integration',
+    'src/platform_native/remote_values_host', 'src/cmd/native_remote_resident_site',
+    'src/platform_native/row_source', 'src/cmd/native_retained_case_probe', 'src/new-native-owner'];
+  const recordsFor = queryCases => paths.flatMap(directory => Array.from({length:
+    directory === 'src/query_integration' ? queryCases : 1}, (_, index) => ({
+    directory, source: `${directory}/original_test.mbt`, benchmark: false,
+    entry: [`${directory}/original-driver`, 'original_test.mbt', {index, original: true}],
+  })));
+  const records = recordsFor(40), original = JSON.stringify(records);
+  const args = ['--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize'];
+  const parts = nativeCoreOrdinaryPartitions(args, paths, records, 2, {measuredCompilerWeights: true});
+  assert.deepEqual(parts.map(part => part.args.slice(args.length)), [
+    [paths[0], paths[4], paths[6]], [paths[1], paths[2], paths[3], paths[5], paths[7]],
+  ]);
+  assert.deepEqual(parts.map(part => part.cases), [3, 44]);
+  assert.deepEqual(parts.flatMap(part => part.args.slice(args.length)).sort(), [...paths].sort());
+  for (const part of parts) assert.deepEqual(part.args.slice(0, args.length), args);
+  assert.deepEqual(nativeCoreOrdinaryPartitions(args, paths, recordsFor(1), 2,
+    {measuredCompilerWeights: true}).map(part => part.args), parts.map(part => part.args),
+  'one expensive compiler unit stays whole even when its original case count changes');
+  for (const count of [4, 8]) {
+    assert.deepEqual(nativeCoreOrdinaryPartitions(args, paths, records, count, {measuredCompilerWeights: true}),
+      nativeCoreOrdinaryPartitions(args, paths, records, count), 'Linux and four-way local plans keep their existing policy');
+  }
+  assert.throws(() => nativeCoreOrdinaryPartitions(args, paths, records, 2,
+    {measuredCompilerWeights: 'true'}), /Invalid Native compiler scheduling/u);
+  assert.equal(JSON.stringify(records), original);
+});
+
 test('four Native ordinary jobs and independent physical jobs exhaust the original profile inventory', () => {
   const paths = Array.from({length: 12}, (_, i) => `src/package-${i}`);
   const records = paths.flatMap(directory => Array.from({length: 3}, (_, index) => ({
