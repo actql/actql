@@ -34,17 +34,16 @@ export function createAccountConstruction({moon, prepareRead, current}) {
     if (owned === undefined) return true;
     // Only the actual owned Scope's two observations can end this hold. No
     // caller flag, replacement method or sibling's cleanup is an ACK.
-    const closed = Reflect.apply(owned.close, owned.original, []);
-    const pending = Reflect.apply(owned.pending, owned.original, []);
-    if (closed !== true || pending !== false) return false;
-    state.gate = undefined;
-    return true;
+    if (typeof owned.close !== 'function' || typeof owned.pending !== 'function') return false;
+    try {
+      const closed = Reflect.apply(owned.close, owned.original, []);
+      const pending = Reflect.apply(owned.pending, owned.original, []);
+      if (closed !== true || pending !== false) return false;
+      state.gate = undefined;
+      return true;
+    } catch (cause) {state.issue ??= cause; throw cause;}
   }
   async function closeAll() {
-    if (firstRead !== undefined) {
-      if (checked(moon.clientProgramCloseAccountRead(firstRead, true)) !== true) return false;
-      firstRead = undefined;
-    }
     for (const callback of retirements) {if (await callback() === false) return false;}
     retirements.length = 0;
     for (const state of frames) {
@@ -63,6 +62,12 @@ export function createAccountConstruction({moon, prepareRead, current}) {
         }
         if (!settleFrame(state)) return false;
       } finally {state.cleaning = false;}
+    }
+    // The original fixed facet/registry controls survive every pending frame
+    // and callback. Retire this constant cohort last, after actual child cleanup.
+    if (firstRead !== undefined) {
+      if (checked(moon.clientProgramCloseAccountRead(firstRead, true)) !== true) return false;
+      firstRead = undefined;
     }
     return true;
   }

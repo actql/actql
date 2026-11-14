@@ -60,20 +60,20 @@ test('funded original and synchronous current read support exact Account beyond 
   assert.equal(configuration.text, wire);
   frame.finish(false);
   assert.equal(f.facet.observe(read => readAccountCurrent(path, read)), wire);
-  assert.equal(f.live.size, 0);
+  assert.equal(f.live.size, 1); // the constant facet controls remain until Host close
   assert.equal(await f.facet.close(), true);
 }));
 
 test('original refusal occurs before Buffer backing or UTF8 decode and failed prefix stays held until cleanup', async () => files(async path => {
   await writeFile(path, 'x'.repeat(256));
-  const f = fixture(100n), frame = f.facet.begin();
+  const f = fixture(200n), frame = f.facet.begin();
   const allocate = Buffer.alloc;
   let allocations = 0;
   Buffer.alloc = (...args) => {allocations++; return allocate(...args);};
   try {await assert.rejects(readAccountOriginal(path, frame), {code: 'MoonBitHostFailure'});}
   finally {Buffer.alloc = allocate; frame.finish(false);}
   assert.equal(allocations, 0);
-  assert.equal(f.live.size, 1);
+  assert.equal(f.live.size, 2); // fixed facet plus failed original frame
   assert.equal(await f.facet.close(), true);
   assert.equal(f.live.size, 0);
 }));
@@ -88,7 +88,7 @@ test('unchanged exact wire reuses immutable Account DATA, changed wire admits fr
   const b = observeInstalledAccount(f.moon, authorization);
   assert.notEqual(b, a);
   assert.equal(f.admits(), 2);
-  assert.equal(f.live.size, 2); // both retained children coexist until retirement
+  assert.equal(f.live.size, 3); // fixed facet plus both retained children until retirement
   assert.throws(() => f.facet.observe(frame => frame.admit({}, 'x')), /ForeignAccountConstructionRuntime/);
   f.retire();
   assert.throws(() => f.facet.begin(), /Retired/);
@@ -108,7 +108,7 @@ test('unknown sync FD close is attempted once and never acknowledges parent reti
   assert.equal(await f.facet.close(), false);
   assert.equal(await f.facet.close(), false);
   assert.equal(attempts, 1);
-  assert.equal(f.live.size, 1);
+  assert.equal(f.live.size, 2); // fixed facet and unresolved original FD frame
 }));
 
 // Execute the exact Local wrapper and its real async Node constructor, with
@@ -129,7 +129,7 @@ const accountConstructorSource = originalFunctions('./local-account-config.mjs',
 ]);
 const nodeConstructorSource = originalFunctions('./authorization.mjs', ['createNodeAuthorizationGate']);
 const cid = 'sha256:' + '1'.repeat(64);
-function scopeFixture(limit = 100000n, {onGate} = {}) {
+function scopeFixture(limit = 100000n, {onGate, onClose} = {}) {
   const f = fixture(limit), originalGates = [], closes = [], receivers = [];
   const fixedControl = f.live.keys().next().value;
   // The installed facet has its own first fixed-control Read. Count only
@@ -168,6 +168,7 @@ function scopeFixture(limit = 100000n, {onGate} = {}) {
         closes[index] = (closes[index] ?? 0) + 1;
         receivers[index] ??= this;
         assert.strictEqual(this, receivers[index], 'Keep the captured original receiver through retry');
+        onClose?.(index);
         return Reflect.apply(gate.close, gate, []);
       }});
       onGate?.(gate);
@@ -213,3 +214,83 @@ test('account gate constructor-await close retains the already-created original 
   assert.equal(f.closes[0], 1, 'Retire the original constructed Scope, even when the gate was never returned');
   assert.equal(f.live.size, 0);
 });
+
+const deferred = () => {let resolve; const promise = new Promise(accept => {resolve = accept;}); return {promise, resolve};};
+
+test('account lifetime pending actual decision and failed sibling survive a healthy gate close', async () => {
+  const entered = deferred(), answer = deferred();
+  const f = scopeFixture();
+  const pending = await f.create({answeringAuthorities: ['fixture'], decide() {entered.resolve(); return answer.promise;}});
+  const decision = pending.authorize('acquisition', {connection: 'fixture', resource: 'rows', operation: 'read'})
+    .catch(error => error);
+  await entered.promise;
+  const healthy = await f.create();
+  const failed = f.facet.begin();
+  assert.throws(() => failed.prepare(1000000n, 1000000n), {code: 'MoonBitHostFailure'});
+  failed.finish(false);
+  const failures = f.live.size;
+  assert.equal(healthy.close(), true);
+  assert.equal(f.live.size, failures - 1, 'Do not retire the failed or physically pending sibling');
+  assert.equal(pending.close(), false);
+  assert.equal(pending.cleanupPending(), true);
+  assert.equal(await f.facet.close(), false);
+  assert.equal(f.retainedReads(), 2);
+  answer.resolve({decision: 'unavailable'});
+  await decision;
+  // The original decide Promise's own finally owns this pending slot. A closed
+  // caller wait alone is not that operation's completion or cleanup ACK.
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(pending.close(), true);
+  assert.equal(f.retainedReads(), 1, 'Only the failed original still belongs to Host cleanup');
+  assert.equal(await f.facet.close(), true);
+  assert.equal(f.live.size, 0);
+});
+
+test('account lifetime close reentry and concurrent Host close keep captured original methods once', async () => {
+  let published, recursive, firstHost, secondHost;
+  const f = scopeFixture(100000n, {onClose() {
+    recursive = published.close();
+    assert.equal(published.cleanupPending(), true);
+    firstHost = f.facet.close(); secondHost = f.facet.close();
+  }});
+  published = await f.create();
+  assert.equal(published.close(), true);
+  assert.equal(recursive, false);
+  assert.strictEqual(firstHost, secondHost);
+  assert.notStrictEqual(f.receivers[0], published, 'Use the retained original receiver, not the public close wrapper');
+  assert.equal(await firstHost, true);
+  assert.equal(await f.facet.close(), true);
+  assert.deepEqual(f.closes, [1]);
+  assert.equal(f.events.filter(event => event[0] === 'close').length, 2, 'One gate Read and the original fixed facet Read');
+  assert.equal(f.live.size, 0);
+});
+
+test('account lifetime original gate close failure is preserved until the same method actually completes', async () => {
+  const primary = new Error('OriginalScopeCloseFailure'); let attempts = 0;
+  const f = scopeFixture(100000n, {onClose() {if (++attempts === 1) throw primary;}});
+  const gate = await f.create();
+  assert.throws(() => gate.close(), error => error === primary);
+  assert.equal(gate.cleanupPending(), true);
+  assert.equal(f.retainedReads(), 1);
+  assert.equal(gate.close(), true);
+  assert.equal(f.retainedReads(), 0);
+  assert.deepEqual(f.closes, [2]);
+  assert.equal(await f.facet.close(), true);
+});
+
+test('account lifetime unknown original FD sibling never becomes an ACK through another gate cleanup', async () => files(async path => {
+  await writeFile(path, '{}');
+  const f = scopeFixture(), gate = await f.create(), close = fs.closeSync;
+  let closes = 0;
+  fs.closeSync = fd => {closes++; close(fd); throw new Error('OriginalNumericCloseUnknown');};
+  syncBuiltinESMExports();
+  try {
+    assert.throws(() => f.facet.observe(frame => readAccountCurrent(path, frame)), /OriginalNumericCloseUnknown/);
+  } finally {fs.closeSync = close; syncBuiltinESMExports();}
+  assert.equal(gate.close(), true);
+  assert.equal(f.retainedReads(), 1);
+  assert.equal(await f.facet.close(), false);
+  assert.equal(await f.facet.close(), false);
+  assert.equal(f.live.size, 2, 'Keep the fixed facet and the unresolved original Read');
+  assert.equal(closes, 1, 'Never retry a potentially reused numeric descriptor');
+}));
