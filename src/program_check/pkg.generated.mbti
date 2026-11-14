@@ -161,6 +161,8 @@ pub fn closed_values_local_owner_layout(Int) -> ClosedValuesLocalOwnerLayout?
 
 pub fn combine_classification(@check_environment.DataClassification, @check_environment.DataClassification) -> @check_environment.DataClassification
 
+pub fn compilation_artifact_pass_work_limit(CompileLimits) -> Int?
+
 pub fn complete_template_check(TemplateDeclarationPreparation) -> Result[TemplateCheckedProgram, TemplateConstructionIssue]
 
 pub fn completion_free_inventory_matches(CompletionFreeInventory, EffectProgramStaticCandidate) -> Bool

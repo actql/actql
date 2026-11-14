@@ -3118,16 +3118,47 @@ Explicit selected-limit entrances keep their original separate path and can
 still reject the same input under a smaller Stage budget.
 
 After Query lowering, the retained Program's constant-time Stage count selects
-the semantic structure bound. The existing generated checking-work policy uses
-the original standard work multiplied by
-`max(1, ceil(generated_stages / original_standard_stage_limit))`, with checked
-arithmetic. This remaining work selection is distinct from the common input
-structure: it is not exact consumed work or a conversion from Ledger dispatch
-planning work. The original phase meter still charges actual work on the same
-parent; no refund, second check or retry occurs. Depth, memory, artifact and
-other compiler restrictions remain separate. Its four immutable limit records
-retain their existing 4-header, 11-reference, 14-word fixed control quote.
-A repeated or reentrant entry refuses before selecting again.
+only the semantic structure bound. It does not multiply checking work at a
+Stage32 boundary. The same ordinary getter selects work before either encoded
+Source or native Program checking; the later lowering continuation preserves
+that original immutable selection. Repeated or reentrant preparation refuses
+before parsing/checking again. Depth, memory, artifact and other compiler
+restrictions remain separate. The existing four immutable limit records keep
+their original 4-header, 11-reference, 14-word fixed control quote.
+
+#### Default checking artifact work
+
+The checker owns the ordinary combined work ceiling, using the original work
+allowance W and its same aggregate artifact-byte/node quotas B and N:
+`W + 4B + 2N`. This replaces Stage grouping with the existing canonical work
+accounting; it is a selected ceiling, not an assertion that any of those maxima
+were consumed or that every valid input fits. Work remains one finite meter,
+not separate refillable per-kind or per-Stage budgets. The original standard
+profile itself remains unchanged; explicitly selected limits do not call this
+ordinary projection and retain their supplied work restriction.
+
+The logical pass correspondence comes from the original identity constructors.
+`identity_finish` charges one byte and one node pass, then depletes the same
+cumulative artifact quotas. `publication_metadata` charges three byte and two
+node passes for measurement, writing and UTF8 output, then depletes those same
+quotas; original witness/proof admission adds at most one further byte pass.
+The typed original Host/claim projection preserves those declared logical
+debits even when it can reuse an original wire holder. This describes the
+existing work model, not actual CPU instructions or a new cost per object.
+Preimage and complete-body charges occupy their own entries in the original
+cumulative artifact accounting; an internal helper cannot refill it.
+
+The common selector uses checked Int64 arithmetic and refuses a result beyond
+the original Int work ABI. It neither saturates to an unlimited maximum nor
+converts representation bytes, dispatch planning work or unused Resource extent
+into consumed Usage. The original synchronous observers still report their
+actual declared work deltas on the same phase receipt, including incomplete
+failure prefixes. All before-constructor Resource reservations, current,
+cancellation and failed-child retirement remain with their existing owners.
+The work projection adds no graph walk, parse, semantic check, compiler call,
+external callback, retained field or new Resource owner. It reuses the already
+funded immutable limit records and changes no artifact/depth/representation
+quota or explicit caller restriction.
 
 Sequence construction uses the same checked task owner and its retained
 pipeline node count for that task's full-step allowance, before selecting the

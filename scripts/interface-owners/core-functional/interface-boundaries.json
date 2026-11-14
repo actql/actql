@@ -43662,7 +43662,7 @@
     {
       "module": "src/client_local_host/preparation_request_intent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "64b7973cda57be6e997eaf73f770c8c98fe9cd993bc1eb40503cd2e14d7d99e1",
+      "sha256": "d62199b6fade564d3fc639d1ac6f2d9a56192f02f757906b03b4d76cf3ba7ab0",
       "role": "common-semantics",
       "owner": "Existing submitted-intent identity and original Request preparation Owners",
       "exports": [],
@@ -86595,7 +86595,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_default_document.mbt",
-      "sha256": "369349b0a464b0142c8285ba1154405fa89d1ca51691410eac58dcc37574d558",
+      "sha256": "7c2d3467d5842f084e60d3eae87d3c869c594edf1979a31c7dcfc40ab6837fc6",
       "exports": [],
       "operations": [
         {

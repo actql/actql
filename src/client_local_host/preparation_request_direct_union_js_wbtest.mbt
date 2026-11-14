@@ -89,11 +89,9 @@ test "default Request Query selects actual generated Stage inventory without rai
       assert_eq(selected.structure.stages, stages)
       assert_eq(
         selected.work,
-        if cte {
-          10000000
-        } else {
-          (3 * count + 31) / 32 * 10000000
-        },
+        @checked.compilation_artifact_pass_work_limit(
+          @publication_host.client_standard_program_preparation_limits().checking.compilation,
+        ).unwrap(),
       )
       assert_eq(parent._observed_query_parse_calls, 1L)
       assert_eq(parent._observed_query_lower_calls, 1L)
@@ -799,7 +797,9 @@ test "raw Native default selection consumes only its original funded wire withou
 test "ordinary checking artifact work uses its same finite codec inventory rather than Stage groups" {
   let (environment, publication) = request_query_publication_fixture()
   for count in [10, 11, 40] {
-    let parts = Array::makei(count, i => "SELECT " + (i % 3).to_string() + " AS n")
+    let parts = Array::makei(count, i => {
+      "SELECT " + (i % 3).to_string() + " AS n"
+    })
     let document = parts.join(" UNION ALL ")
     let (parent, input) = native_driver_parent(document)
     let result = prepare_request_default_source_computation_check(
@@ -816,10 +816,13 @@ test "ordinary checking artifact work uses its same finite codec inventory rathe
     let selected = parent.computation_limits.unwrap()
     let calls = request_preparation_work_calls(parent)
     abort_request_preparation_after_cleanup(parent).unwrap()
-    assert_true(result is Ok(_), msg=match result {
-      Ok(_) => "checked"
-      Err(issue) => direct_union_terminal_detail(issue)
-    })
+    assert_true(
+      result is Ok(_),
+      msg=match result {
+        Ok(_) => "checked"
+        Err(issue) => direct_union_terminal_detail(issue)
+      },
+    )
     let standard = @publication_host.client_standard_program_preparation_limits().checking.compilation
     // Independent envelope of the actual identity constructors: metadata
     // measure/write/UTF8 plus original admission, two node passes. This is a

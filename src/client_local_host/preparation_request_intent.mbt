@@ -98,6 +98,15 @@ pub fn[I] request_default_program_preparation_limits(
   // is not a constructor allocation or permission; the existing Source and
   // preparation owners still grow for their actual observations before use.
   let nodes = selected.max_input_bytes
+  // One common ordinary selection for captured/native/encoded inputs. The
+  // checker owner derives codec pass work from its SAME cumulative artifact
+  // quota. No later Stage grouping or default getter compounds this value.
+  guard @checked.compilation_artifact_pass_work_limit(
+      standard.checking.compilation,
+    )
+    is Some(work) else {
+    return Err(Preparation(ProgramCheck(Overflow)))
+  }
   Ok({
     ..standard,
     checking: {
@@ -113,6 +122,7 @@ pub fn[I] request_default_program_preparation_limits(
       },
       compilation: {
         ..standard.checking.compilation,
+        work,
         structure: {
           ..standard.checking.compilation.structure,
           stages: nodes,
