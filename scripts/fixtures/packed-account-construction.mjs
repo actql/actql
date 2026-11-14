@@ -48,9 +48,15 @@ async function withHost(id, options, action) {
       await client.close(); row.firstClose = 'returned';
     } catch (error) {row.firstClose = 'threw'; cleanup.push(error);}
     if (row.firstClose === 'returned') try {
-      const before = await observeRecordApprovalDescriptors([directory]);
+      // The process cwd is a directory reference in lsof, not a retained Host
+      // descriptor. Observe the actual state and explicit Account originals.
+      const roots = [options.stateDir,
+        ...(options.installation?.authorization?.accountConfig === undefined ? [] :
+          [options.installation.authorization.accountConfig])];
+      const before = await observeRecordApprovalDescriptors(roots);
       await setTimeout(100);
-      const after = await observeRecordApprovalDescriptors([directory]);
+      const after = await observeRecordApprovalDescriptors(roots);
+      row.scopedOpenPaths = {before: before.openPaths, after: after.openPaths};
       row.aliveScopedFD = {before: before.openPaths.length, after: after.openPaths.length};
       assert.deepEqual(row.aliveScopedFD, {before: 0, after: 0});
     } catch (error) {cleanup.push(error);}
@@ -85,11 +91,12 @@ async function refusedRead(result) {
 }
 
 await withHost('bootstrap', {stateDir: defaultState}, async (client, row, span) => {
+  // Default Account adoption is lazy and belongs to the first real Request.
+  await smallResult(client, row, span);
   originalDefault = await span('read-adopted-account', async () => JSON.parse(await readFile(defaultAccount, 'utf8')));
   row.accountId = originalDefault.account_id;
   row.profile = originalDefault.bootstrap?.profile_id;
   assert.equal(row.profile, 'actql-local-standard');
-  await smallResult(client, row, span);
 });
 if (report.cases[0].complete) {
   const original = await readFile(defaultAccount, 'utf8');
