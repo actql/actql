@@ -164,6 +164,16 @@ pub fn charge_planning(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  charge_planning_current(ledger, work)
+}
+
+///|
+// Only the closed original operation work segment below may consume this
+// immediate mutable-state cut. It is never exported as a current bypass.
+fn charge_planning_current(
+  ledger : Ledger,
+  work : Int,
+) -> Result[Unit, LedgerIssue] {
   if work < 0 {
     return Err(InvalidCharge)
   }
