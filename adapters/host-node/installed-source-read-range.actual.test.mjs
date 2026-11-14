@@ -11,6 +11,7 @@ import {composeInstalledSourceEnvironment} from './installed-funded-environment.
 import {installedSourceReadAccesses, installedSourceReadBindings} from './installed-source.mjs';
 import {createInstalledConnectorTable, installedConnectorForTable} from './installed-connectors.mjs';
 import {installedConnectors} from '../connectors-builtin/installations.generated.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
 
 const runtimeUrl = process.env.ACTQL_TEST_BOUND_CONSTRUCTION_RUNTIME === undefined
   ? new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url)
@@ -37,7 +38,8 @@ async function fixture(t, {denied = false} = {}) {
     resource_kind: 'record', fields: [{name: 'id', type: 'number', nullable: false}]}));
   let reads = 0, grants = 0, adapter, original;
   const decisions = [];
-  const authorization = {authorize: async value => {
+  const authorization = {authorize: async (kind, value) => {
+    assert.equal(kind, 'acquisition');
     decisions.push(value.resource);
     return {action: denied ? 'deny' : 'dispatch'};
   }, accountConfiguration: '{}', context: {contextCid: 'fixture-context'}};
@@ -77,7 +79,8 @@ async function fixture(t, {denied = false} = {}) {
   assert.ok(checkedEnvironment);
   const program = {version: 'actql/0.1', id: 'source-read-range', stages: [{id: 'scan',
     inputs: {remote: {connector: 'fixture', resource: 'records_64'}},
-    steps: [{select: ['id'], as: 'out'}], results: {r: {from: 'out', fields: ['id']}}},
+    steps: [{filter: 'true', as: 'all_rows'}, {select: ['id'], as: 'out'}],
+    results: {r: {from: 'out', fields: ['id']}}},
   {id: 'compute', inputs: {x: {result: {stage: 'scan', result: 'r'}}},
     steps: [{filter: 'id > 0'}, {select: ['id'], as: 'out'}],
     results: {r: {from: 'out', fields: ['id']}}}],
@@ -93,6 +96,10 @@ async function fixture(t, {denied = false} = {}) {
     values: JSON.stringify(aoa.execution_contracts['REL.values']),
     fragment: JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
     ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])};
+  // The existing query bridge consumes the original admitted contracts, not
+  // the raw registry String used by older compatibility fixtures.
+  inputs.registry = checked(f.moon.clientPrepareInstalledSequenceContracts(
+    registry, inputs.values, inputs.fragment, inputs.ordered));
   return {...f, adapter, inputs, access, authorization, decisions, events,
     counts: () => ({reads, grants})};
 }
