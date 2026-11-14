@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {runInNewContext} from 'node:vm';
 import {parse} from 'yaml';
+import {parse as parseJavaScript} from 'acorn';
 import {validatePackedPublicQueryArguments} from './packed-public-query-options.mjs';
 
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
@@ -73,8 +74,42 @@ test('packed CI parts refuse narrowing, duplicate parts and ambient selective ca
 
 test('portable and Native packed parts preserve both original complete campaigns', async () => {
   const source = readFileSync(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
-  assert(source.includes("if (ciPart !== 'native' && portableExtras) console.log(run(process.execPath, ['--test'"),
-    'Portable controls must not be executed again by the Native part');
+  const syntax = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const selectionNames = ['unionBudgetOnly', 'ciPart', 'portablePart', 'portableExtras'];
+  const selection = syntax.body.filter(node => node.type === 'VariableDeclaration' &&
+    node.declarations.length === 1 && selectionNames.includes(node.declarations[0].id.name));
+  assert.deepEqual(selection.map(node => node.declarations[0].id.name), selectionNames);
+  const campaign = syntax.body.find(node => node.type === 'ExpressionStatement' &&
+    node.expression.type === 'AwaitExpression' &&
+    node.expression.argument.callee?.name === 'withPackedQueryEvidence');
+  assert(campaign);
+  const controls = campaign.expression.argument.arguments.at(-1).body.body.filter(node =>
+    node.type === 'IfStatement' && source.slice(node.start, node.end)
+      .includes('scripts/analytic-offset-profiles.test.mjs'));
+  assert.equal(controls.length, 1);
+  const controlSource = [...selection, controls[0]].map(node => source.slice(node.start, node.end)).join('\n');
+  const expectedControls = ['--test', 'scripts/analytic-offset-profiles.test.mjs',
+    'scripts/distinct-join-order-source-input.test.mjs', 'scripts/graph-difference-source-input.test.mjs',
+    'scripts/graph-relation-join-source-input.test.mjs', 'scripts/public-query-profiles.test.mjs',
+    'scripts/packed-query-transports.test.mjs', 'scripts/graph-argument-check.test.mjs',
+    'scripts/graph-argument-origin-literals.test.mjs'];
+  for (const [args, selected] of [
+    [[], true], [['--ci-part=portable'], true], [['--ci-part=portable-1'], true],
+    [['--ci-part=portable-2'], false], [['--ci-part=portable-3'], false],
+    [['--ci-part=native'], false], [['--union-budget-only'], false],
+  ]) {
+    validatePackedPublicQueryArguments(args, {});
+    const calls = [];
+    runInNewContext(controlSource, {
+      process: {argv: ['node', 'driver.mjs', ...args], execPath: '/pinned/node'},
+      repository: '/original-source', console: {log() {}},
+      run: (command, files, directory) => {
+        calls.push({command, files: Array.from(files), directory}); return '';
+      },
+    }, {timeout: 100});
+    assert.deepEqual(calls, selected ? [{command: '/pinned/node', files: expectedControls,
+      directory: '/original-source'}] : [], `Portable control ownership: ${JSON.stringify(args)}`);
+  }
   const portableStart = source.indexOf("if (ciPart !== 'native' && portableExtras) {\nconsole.log(run('bash'");
   const portableEnd = source.indexOf('\nasync function exerciseNativeGraphSource', portableStart);
   assert(portableStart > 0 && portableEnd > portableStart);
