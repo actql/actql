@@ -1103,6 +1103,7 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
   const resources = captureEffectResources(effectResources);
   const limits = installedRowEffectConstructionLimits(suppliedLimits);
   const configuredMaxRows = Object.hasOwn(suppliedLimits ?? {}, 'maxRows') ? limits.maxRows : undefined;
+  const configuredMaxMembers = Object.hasOwn(suppliedLimits ?? {}, 'maxMembers') ? limits.maxMembers : undefined;
   if (write !== undefined && driver !== undefined) fail('InvalidInstalledRowEffectDriver');
   const standard = write === undefined ? undefined : deriveInstalledRowWrite(write, connectorRegistration);
   const owned = checkDriver(standard === undefined ? driver : standard.driver);
@@ -1216,7 +1217,7 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
     assertInstalledSourceConstruction(sourceInitialization, declaration, declared, environment, undefined, mappings, commands);
   }
   const adapter = createRowEffectStage([Object.freeze({moon, limits, owned, profile,
-    configuredMaxRows,
+    configuredMaxRows, configuredMaxMembers,
     installed, installedCommands, storeMappings, environmentWire, connectorId,
     connectorRegistration, connectorRevision, connection, site, authorization,
     runtimeBundleCid, bindingCid, ledgerRoot, continuationBinding, resources,
@@ -1244,7 +1245,8 @@ export function composeInstalledRowEffectOwners(effects, descriptors, environmen
       (owner.owned.recoverRequests !== undefined &&
         owner.owned.recoverMemberRequests === undefined))) fail('InstalledEffectSetOwnerMismatch');
   const first = owners[0];
-  if (descriptors.length > first.limits.maxMembers || owners.some(owner => owner.moon !== first.moon ||
+  if (owners.some(owner => owner.configuredMaxMembers !== undefined &&
+      descriptors.length > owner.configuredMaxMembers) || owners.some(owner => owner.moon !== first.moon ||
       owner.ledgerRoot !== first.ledgerRoot ||
       canonicalJson(owner.limits) !== canonicalJson(first.limits))) {
     fail('InstalledEffectSetOwnerMismatch');
@@ -1318,7 +1320,9 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const total = Math.min(2147483647, rows * members);
     const maxRows = owners.reduce((bound, owner) => owner.configuredMaxRows === undefined
       ? bound : Math.min(bound, owner.configuredMaxRows), total);
-    return Object.freeze({...limits, maxRows, maxRowsPerMember: Math.min(rows, maxRows)});
+    const maxMembers = owners.reduce((bound, owner) => owner.configuredMaxMembers === undefined
+      ? bound : Math.min(bound, owner.configuredMaxMembers), members);
+    return Object.freeze({...limits, maxMembers, maxRows, maxRowsPerMember: Math.min(rows, maxRows)});
   };
   const recipes = owners.flatMap(owner => owner.managedPlanRecipes === undefined
     ? [owner.managedPlanRecipe] : Object.values(owner.managedPlanRecipes));
@@ -1502,9 +1506,9 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     permissionsOf(member);
     return member;
   };
-  const membersOf = (prepared, unit) => {
+  const membersOf = (prepared, unit, maxMembers = limits.maxMembers) => {
     const effectIds = unit.effectIds;
-    if (effectIds.length > limits.maxMembers ||
+    if (effectIds.length > maxMembers ||
         new Set(effectIds).size !== effectIds.length) {
       fail('InstalledRowEffectUnitUnsupported');
     }
@@ -1519,7 +1523,12 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   const prepareManagedPlan = (facts, inputs) => {
     assertPrepared({moon, prepared: facts?.prepared, compilation: facts?.compilation});
     const unit = installedRowEffectUnit(moon, facts.compilation);
-    const members = membersOf(facts.prepared, unit);
+    // The original Request Effect construction borrow funds wrappers for the
+    // checked inventory before this entry. Explicit installer policy still
+    // narrows it; the member count grants no row work or physical sends.
+    const maxMembers = owners.reduce((bound, owner) => owner.configuredMaxMembers === undefined
+      ? bound : Math.min(bound, owner.configuredMaxMembers), unit.effectIds.length);
+    const members = membersOf(facts.prepared, unit, maxMembers);
     return prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, members,
       recipeFor: recipeOf});
   };
@@ -2478,7 +2487,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const contentBorrowers = [];
     const contentArtifacts = [];
     const requestChildren = [];
-    const memberCaptures = new Array(members.length);
+    const memberCaptures = [];
     const proposals = [], currents = [], rowsOf = [], observations = [];
     let sourceSet;
     const controlConstruction = managedEffect?.controlConstruction;
@@ -2545,6 +2554,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       if (typeof controlConstruction.retainInputs !== 'function') fail('InstalledEffectOperationRuntimeUnavailable');
       controlConstruction.retainInputs(inputs);
     }
+    memberCaptures.length = members.length;
     // Reserve each original member's capture body before export can append
     // proposal rows, parse their values or issue canonical CREATE inventory.
     // These SAME arrays and children survive through ordinary route retirement.
@@ -2968,7 +2978,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         plan.contractLimits.maxWireBytes, plan.contractLimits.maxNodes,
         plan.contractLimits.maxDepth))};
     const unit = facts.unit ?? installedRowEffectUnit(moon, compilation);
-    const members = membersOf(prepared, unit);
+    const members = membersOf(prepared, unit, runLimits(facts.managedEffect).maxMembers);
     bindRunResources(facts, members);
     const updateTargetSelections = facts.updateTargetSelections;
     const assertCurrent = selectionFence(facts, members, unit.stageIndex, updateTargetSelections);
@@ -3004,8 +3014,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
 
   // The members of a recovered capture, from its exact saved Preview and
   // continuation. The installation must still hold each Mapping.
-  const recoveredMembers = (body, provider, selected) => {
-    if (body.effects.length !== provider.members.length) {
+  const recoveredMembers = (body, provider, selected, maxMembers) => {
+    if (body.effects.length > maxMembers || body.effects.length !== provider.members.length) {
       fail('InstalledEffectContinuationMismatch');
     }
     return Object.freeze(body.effects.map((member, index) => {
@@ -3289,10 +3299,10 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const previewWire = control.effectComputationPreviewWire(preview);
     const body = managedEffect === undefined ? JSON.parse(previewWire)
       : managedEffect.controlConstruction.parsePreview(previewWire, true);
-    const members = recoveredMembers(body, provider, selected);
+    const limits = runLimits(managedEffect);
+    const members = recoveredMembers(body, provider, selected, limits.maxMembers);
     bindRunResources(facts, members);
     const assertCurrent = selectionFence(facts, members, provider.stage_index, updateTargetSelections);
-    const limits = runLimits(managedEffect);
     const runInvocationCid = body.invocation_cid;
     const dispatches = members.map(member =>
       memberDispatch(runInvocationCid, member));

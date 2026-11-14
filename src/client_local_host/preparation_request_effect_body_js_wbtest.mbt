@@ -283,14 +283,19 @@ test "Effect Request Plan grow keeps the same compiled original and quote at bot
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     }).unwrap()
+    let (member_retained, member_execution) = installed_effect_member_selection_layout(
+      1,
+    ).unwrap()
     let retained = bytes +
       proof_retained +
       direct_selector_field +
+      member_retained +
       @execution.execution_capacity_retained_bytes(phase)
     let execution = bytes +
       proof_retained +
       proof_scratch +
       direct_selector_field +
+      member_execution +
       @execution.execution_capacity_execution_bytes(phase)
     let limits = @resources.ledger_limits(parent.ledger)
     let block = @resources.reserve_capacity(

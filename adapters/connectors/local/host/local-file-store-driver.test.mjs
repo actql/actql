@@ -14,7 +14,7 @@ import {createLocalFileStoreDriver,LOCAL_STORE_LIMITS} from './installed-project
 
 const cid=digit=>'sha256:'+digit.repeat(64);
 const wire=value=>canonicalJson(value,{dataKeys:true});
-function fixture(){
+function fixture(runBounds={}){
   const run=Object.freeze({}),binding=Object.freeze({});
   const resource=Object.freeze({$actql_ref:'resource',version:'actql-resource-ref/0.1',
     provider_namespace:'local',resource_kind:'file_collection',provider_identity_cid:cid('a'),
@@ -25,6 +25,7 @@ function fixture(){
   const member={kind:'command',resource:'files',command:{commandRef:command.command_id,
     commandCid:command.contract_cid}};
   const limits={...LOCAL_STORE_LIMITS,maxFileBytes:1024};
+  const retainedLimits={...limits,...runBounds};
   let live=true,nativeCalls=0;
   const nativeFilesystem=Object.freeze(Object.fromEntries(['openFileRoot','openFileDirectory',
     'openRootFileWriter','fileRootCurrent','fileRootWrite','fileRootPublish','fileRootClose']
@@ -35,7 +36,7 @@ function fixture(){
     limits:{maxPathBytes:1024}},target:{resourceWire:wire(resource)},command,bindingCid:cid('1'),
     principalId:'reader',authorization:{configurationCid:cid('2')},assertCurrent(){},
     resources:{assertCurrent(original){assert.strictEqual(original,run);},limits(original){
-      assert.strictEqual(original,run);return limits;}},limits,nativeFilesystem});
+      assert.strictEqual(original,run);return retainedLimits;}},limits,nativeFilesystem});
   const selected=driver.describe({member,runOriginal:run,runInvocationCid:cid('3'),dispatchRequestCid:cid('4')});
   const prepare=(changes={})=>driver.prepareRequestChild({member,runOriginal:run,value,
     selector:resource,current:selected,content:name=>{assert.equal(name,'content');return borrowed;},
@@ -58,6 +59,33 @@ test('Local STORE retains original Content borrower and exact input before appro
   assert.equal(await child.release(),true);assert.equal(child.status().pending,false);
   assert.throws(()=>f.driver.requestFacts(prepared.request),{code:'ForeignLocalStoreRequest'});
   await f.site.close();assert.equal(f.nativeCalls(),0);
+});
+
+test('Local STORE retained inventory reconstructs 101 rows across 17 definitions before any send',async()=>{
+  const f=fixture({maxRows:1717,maxEffects:17}),children=[],entries=[];
+  try{
+    for(let index=0;index<101;index++){
+      const child=f.prepare({value:{...f.value,path:`out-${index}.jsonl`}});
+      children.push(child);entries.push(child.prepare());
+    }
+    const saved=f.driver.recoveryEntry({entries});
+    const members=Array.from({length:17},(_,memberIndex)=>({...f.member,memberIndex}));
+    const restored=f.driver.recoverRequests({runOriginal:f.run,members,
+      body:{effects:members.map(()=>({changes:Array.from({length:101},()=>({}))}))},
+      durable:{connectorRecovery:members.map(({memberIndex})=>({memberIndex,...saved}))},
+      runInvocationCid:cid('3'),dispatches:members.map(()=>cid('4'))});
+    assert.equal(restored.requests.length,17);
+    for(const requests of restored.requests){
+      assert.equal(requests.length,101);
+      assert.equal(f.driver.requestFacts(requests[100]).value.path,'out-100.jsonl');
+    }
+    const narrow=fixture();
+    assert.throws(()=>narrow.driver.recoverRequests({runOriginal:narrow.run,members,
+      body:{effects:members.map(()=>({changes:[{}]}))},durable:{connectorRecovery:[]}}),
+      {code:'InvalidLocalStoreRecovery'});
+    await narrow.site.close();
+    assert.equal(f.nativeCalls(),0);
+  }finally{for(const child of children)await child.release();await f.site.close();}
 });
 
 test('Local STORE rejects changed, missing and foreign originals before native acquisition',async()=>{

@@ -74,7 +74,10 @@ export async function installPreparedProjectLocalFileEffects({moon,preparation,s
       const limits=Object.freeze({...LOCAL_STORE_LIMITS,maxFileBytes:entry.limits.maxFileBytes});
       const {driver,site}=createLocalFileStoreDriver({entry,target,command,bindingCid,principalId,
         authorization,assertCurrent:current,resources,limits,nativeFilesystem,writerProfile});
-      const inputLimits=installedRowEffectConstructionLimits({maxRows:limits.maxRows,maxMembers:limits.maxEffects});
+      // Counts come from the same checked managed Plan and retained input
+      // inventory. These defaults still size the legacy recipe's byte limits;
+      // they are not an operator-selected row/member policy.
+      const inputLimits=installedRowEffectConstructionLimits();
       let effect;
       try{
         const managedPlanRecipe=prepareLocalFileStorePlanRecipe({moon,inputLimits,limits,writerProfile});
@@ -87,7 +90,7 @@ export async function installPreparedProjectLocalFileEffects({moon,preparation,s
           connectorRegistration:'local',connectorRevision:'local/0.1',connection,
           site,authorization,runtimeBundleCid,bindingCid,ledgerRoot,driver,effectResources:resources,
           issueOriginalCollectionReference:target.issueOriginalCollectionReference,
-          limits:inputLimits,managedPlanRecipe});
+          managedPlanRecipe});
         retain(effect); // Before a current/metadata callback can reject it.
         current();
         const original=installedRowEffectOwnerBinding(effect);
@@ -122,9 +125,11 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
     if(runOriginal===null||typeof runOriginal!=='object')fail('ForeignLocalStoreRun');
     synchronous(resources.assertCurrent(runOriginal));
     const actual=resources.limits(runOriginal);
-    if(Object.entries(limits).some(([name,value])=>!Number.isSafeInteger(actual?.[name])||actual[name]<value))
+    if(Object.entries(limits).some(([name,value])=>!Number.isSafeInteger(actual?.[name])||
+        (name==='maxRows'||name==='maxEffects'?actual[name]<0:actual[name]<value)))
       fail('LocalStoreEffectLimitsUnavailable');
     current();
+    return actual;
   };
   const memberCurrent=member=>{
     current();
@@ -180,8 +185,8 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
     if([...children].some(child=>child.status().pending))fail('LocalStoreCleanupPending');
   };
   const recover=({durable,body,memberIndexes,runOriginal,members,runInvocationCid,dispatches})=>{
-    runCurrent(runOriginal);
-    if(!Array.isArray(body?.effects)||body.effects.length>limits.maxEffects||
+    const runLimits=runCurrent(runOriginal);
+    if(!Array.isArray(body?.effects)||body.effects.length>runLimits.maxEffects||
         !Array.isArray(durable?.connectorRecovery))fail('InvalidLocalStoreRecovery');
     const indexes=memberIndexes??body.effects.map((_,index)=>index),restored=[],currents=[];
     let previous=-1;
@@ -195,7 +200,7 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
       const saved=JSON.parse(matches[0].wire);
       if(!closed(saved,['binding','requests'])||saved.binding!==bindingCid||
           cid(saved)!==matches[0].observationCid||!Array.isArray(saved.requests)||
-          saved.requests.length>limits.maxRows||saved.requests.length!==body.effects[index].changes.length)
+          saved.requests.length>runLimits.maxRows||saved.requests.length!==body.effects[index].changes.length)
         fail('InvalidLocalStoreRecovery');
       // Rebuilding approved DATA does not reconstruct a Content read grant.
       // A still-unattempted send must separately bind its restored original.
@@ -281,7 +286,7 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
     recoverRequests:recover,recoverMemberRequests:recover,
     prepareRecoveredContentChild({recovered,members,entries,memberIndexes,control,store,
       contentRun,principalId:actor,assertCurrent:checkCurrent,signal,limits:inputLimits,runOriginal}){
-      runCurrent(runOriginal);
+      const runLimits=runCurrent(runOriginal);
       if(typeof contentRun?.prepareRecoveredCommandContent!=='function'||
           recovered?.prepared===undefined||recovered.allowed===undefined||actor!==principalId)
         fail('OriginalEffectContentUnavailable');
@@ -292,7 +297,7 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
         memberCurrent(members[index]);
         for(const entry of entries[index])selected.push({state:own(entry.request,runOriginal),index});
       }
-      if(selected.length>limits.maxRows)fail('LocalStoreRecoveryLimit');
+      if(selected.length>runLimits.maxRows)fail('LocalStoreRecoveryLimit');
       const retained=[];
       let stopping=false,released=false,attempted=false,flight;
       const child=Object.freeze({

@@ -92,6 +92,21 @@ fn[I] request_effect_plan_quote(
       is Some(e) else {
       return Err(Policy)
     }
+    // This is the SAME checked member inventory, before the existing
+    // EffectPlanReserved borrow exposes it to the Host's wrapper constructors.
+    let headers = @checked.effect_program_static_headers(
+      @publication_host.prepared_client_effect_computation_candidate(prepared),
+    )
+    guard installed_effect_member_selection_layout(
+        @syntax.effect_header_count(headers),
+      )
+      is Some((member_retained, member_execution)) &&
+      @execution.checked_preparation_add_product(r, member_retained, 1L)
+      is Some(r) &&
+      @execution.checked_preparation_add_product(e, member_execution, 1L)
+      is Some(e) else {
+      return Err(Policy)
+    }
     // The captured Effect's existing schema walk also resolves its SAME
     // checked Result endpoints. Back the additional fixed scratch before
     // that call; no new graph, proof arrays or caller-selected bounds.

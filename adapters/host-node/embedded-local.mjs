@@ -1942,16 +1942,42 @@ async function openInstalledHost(originalInstallation, preparation) {
       // checks their nominal prepared/allowed/definition relationship; matching
       // strings alone cannot bind a copied handle or issue another Run/Ledger.
       const checkedRun = checked(moon.clientProgramBindCompiledEffectRun(prepared, allowed, definition));
+      const baseLimits = preparation.localFilesEffectLimits(moon);
+      const managed = facts.managedEffect;
+      let limits = baseLimits;
+      if (managed !== undefined) {
+        if (managed.runtime !== moon || managed.prepared !== prepared || managed.request !== identity ||
+            managed.closed || typeof managed.controlConstruction !== 'function' ||
+            typeof moon.clientProgramInstalledEffectManagedPlanShape !== 'function') {
+          throw clientOperationError('ForeignInstalledLocalFileEffectRun');
+        }
+        // The exact adopted Plan supplies only a refusal ceiling. Capture and
+        // recovery still fund actual rows on this Run's existing controls.
+        const shape = managed.controlConstruction(moon,
+          moon.clientProgramInstalledEffectManagedPlanShape, [managed.operationPlan]);
+        const rows = runtimeField(shape, 0), members = runtimeField(shape, 1);
+        if (!Number.isSafeInteger(rows) || rows < 0 || rows > 2147483647 ||
+            !Number.isSafeInteger(members) || members < 1 || members > 2147483647) {
+          throw clientOperationError('InstalledLocalFileEffectResourcesUnavailable');
+        }
+        limits = Object.freeze({...baseLimits, maxRows: Math.min(2147483647, rows * members),
+          maxEffects: members});
+      }
       let retained = localFileEffectRuns.get(prepared);
       if (retained === undefined) {
         if (localFileEffectRuns.size === 4096) throw clientOperationError('InstalledLocalFileEffectRunLimit');
         retained = {prepared, checkedRun, requestId, definitionWire,
-          original: Object.freeze({}), limits: preparation.localFilesEffectLimits(moon)};
+          original: Object.freeze({}), limits};
         localFileEffectRuns.set(prepared, retained);
         localFileEffectOriginals.set(retained.original, retained);
       } else if (retained.requestId !== requestId || retained.definitionWire !== definitionWire) {
         throw clientOperationError('ForeignInstalledLocalFileEffectRun');
-      } else retained.checkedRun = checkedRun;
+      } else {
+        if (Object.keys(limits).some(key => limits[key] !== retained.limits[key])) {
+          throw clientOperationError('ForeignInstalledLocalFileEffectRun');
+        }
+        retained.checkedRun = checkedRun;
+      }
       assertLocalFileEffectRunOriginal(retained.original);
       return retained.original;
     },

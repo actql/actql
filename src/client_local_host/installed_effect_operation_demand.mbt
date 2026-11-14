@@ -1317,13 +1317,24 @@ fn prepare_installed_effect_managed_plan_owned(
   }
   guard installed_direct_occurrences_layout(whole_sources.length())
     is Some((selector_retained, _)) &&
+    installed_effect_member_selection_layout(selected_operations.length())
+    is Some((member_retained, member_execution)) &&
     @execution.checked_preparation_add_product(controls, selector_retained, 1L)
+    is Some(controls) &&
+    @execution.checked_preparation_add_product(controls, member_retained, 1L)
     is Some(controls) &&
     @execution.checked_preparation_add_product(controls, phase_retained, 1L)
     is Some(controls) else {
     return Err(InsufficientCapacity)
   }
-  let temporary = temporary + phase_workspace
+  guard @execution.checked_preparation_add_product(
+      temporary + phase_workspace,
+      member_execution - member_retained,
+      1L,
+    )
+    is Some(temporary) else {
+    return Err(InsufficientCapacity)
+  }
   if retained > 9223372036854775807L - controls ||
     execution > 9223372036854775807L - controls - temporary {
     return Err(Unsupported)
