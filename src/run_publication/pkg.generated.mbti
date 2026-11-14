@@ -4,6 +4,7 @@ package "actql/actql/run_publication"
 import {
   "actql/actql/canonical_json",
   "actql/actql/decode_core",
+  "actql/actql/decode_shape",
   "actql/actql/encode_core",
   "actql/actql/relation_schema",
   "actql/actql/value_admission",
@@ -76,7 +77,13 @@ pub fn admit_effectful_final_run_evidence_chain(PublicationContract, Publication
 
 pub fn admit_effectful_final_run_evidence_with_outcomes(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Array[String], String, Int, Int, Int) -> Result[(PublicationContract, EffectSetApplyReceiptEvidence), EffectfulFinalChainIssue]
 
+pub fn admit_file_read_profile_contract(String, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
+
 pub fn admit_hashed_effect_dependency_body(String, String, String, Int, Int, Int, cursor? : @decode_core.Cursor?) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]
+
+pub fn admit_interactive_run_control_value(String, String, @canonical_json.CanonicalValue, Int, Int, Int) -> Result[@canonical_json.CanonicalValue, PublicationContractIssue]
+
+pub fn admit_interactive_run_evidence_value(String, @canonical_json.CanonicalValue, Int, Int, Int) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
 
 pub fn admit_local_effect_dependency_body(String, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]
 
@@ -103,6 +110,8 @@ pub fn admit_retained_effectful_final_run_evidence(PublicationContract, Publicat
 pub fn admit_run_evidence_value(String, String, Int, Int, Int) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
 
 pub fn admit_run_publication(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, PublicationContract) -> Result[RunPublicationAdmission, RunPublicationAdmissionIssue]
+
+pub fn admit_saved_compiled_plan_value(String, @canonical_json.CanonicalValue, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
 
 pub fn admit_saved_effect_file_operation_receipt(String, Bytes, Int, Int, Int, Int) -> Result[EffectFileOperationReceipt, EffectRowOutcomeIssue]
 
@@ -297,6 +306,8 @@ pub fn checked_publication_inventory_name(CheckedPublicationInventory, Int) -> R
 pub fn checked_publication_inventory_program_cid(CheckedPublicationInventory) -> String
 
 pub fn checked_publication_inventory_task(CheckedPublicationInventory, Int) -> Result[Int, PublicationInventoryIssue]
+
+pub fn cold_static_plan_validation_construction(String, Bool, Int, Int64, Int, Int, Int) -> StaticPlanValidationConstruction?
 
 pub fn complete_effect_preview_dispatch_keys(String, Array[Array[String]], String, String, Int, Int, Int) -> Result[String, EffectPreviewIdentityIssue]
 
@@ -516,11 +527,17 @@ pub fn existing_delivery_attempt_action_code(ExistingDeliveryAttemptAction) -> I
 
 pub fn feed_durable_result_row_frames(DurableResultRowFrames, Bytes) -> Result[Array[String], DurableResultRowFrameIssue]
 
+pub fn file_read_profile_contract_bindings(PublicationContract) -> (String, String, String)?
+
+pub fn file_read_profile_physical_source_contract_cid(PublicationContract) -> String?
+
 pub fn finish_content_bytes(ContentByteEncoder) -> Result[ContentByteCompletion, ContentSerializationIssue]
 
 pub fn finish_durable_result_row_frames(DurableResultRowFrames) -> Result[DurableResultRowFrameSummary, DurableResultRowFrameIssue]
 
 pub fn finish_result_delivery(ResultDeliverySerializer) -> Result[String, DeliverySerializationIssue]
+
+pub fn fresh_static_plan_validation_construction(String, Bool, Int) -> StaticPlanValidationConstruction?
 
 pub fn generated_content_issuer_evidence_cid(GeneratedContentReference) -> String
 
@@ -544,6 +561,10 @@ pub fn installation_publication_storage_binding_fields(InstallationPublicationSt
 
 pub fn installation_publication_storage_binding_wire(InstallationPublicationStorageBinding) -> String
 
+pub fn interactive_logical_map_binding_construction(RunEvidenceValue, PublicationContract, Int, Int, Int) -> InteractiveLogicalMapBindingConstruction?
+
+pub fn interactive_logical_map_binding_scanner_controls() -> (@decode_shape.CollectionConstructionExtent, Int, Int)
+
 pub fn issue_admitted_effect_failed_run_state_wire(EffectSetApplyReceiptEvidence, String, String, Array[String], Int, Int, Int) -> Result[String, RunStateIssue]
 
 pub fn issue_admitted_effect_reconciliation_run_state_wire(EffectSetApplyReceiptEvidence, String, String, Array[String], Int, Int, Int) -> Result[String, RunStateIssue]
@@ -554,7 +575,7 @@ pub fn issue_captured_effect_dependency_inventory(Array[CapturedEffectDependency
 
 pub fn issue_captured_source_input_relation(RunEvidenceValue, RunEvidenceValue, String, Int, PublicationContract, Int, Int, Int) -> Result[(PublicationContract, PublicationContract, PublicationContract), AcquisitionRelationIssue]
 
-pub fn issue_combined_acquisition_scope(Array[PublicationContract], Int, Int, Int) -> Result[PublicationContract, AcquisitionRelationIssue]
+pub fn issue_combined_acquisition_scope(Array[PublicationContract], Int, Int, Int, before_body? : ((String, @encode_core.EncodingConstructionGeometry) -> Bool)?) -> Result[PublicationContract, AcquisitionRelationIssue]
 
 pub fn issue_complete_local_result_artifact(String, String, ResultOrderingEvidence, PublicationContract, Int, Int, Int, Int) -> Result[PublicationContract, ResultArtifactIssuanceIssue]
 
@@ -572,7 +593,7 @@ pub fn issue_delivery_attempt(PublicationContract, PublicationContract, Publicat
 
 pub fn issue_delivery_record(PublicationContract, PublicationContract?, String, Int, String, Int?, String?, PublicationContract?, String?, String, Array[String], Int, Int, Int) -> Result[PublicationContract, DeliveryIssuanceIssue]
 
-pub fn issue_derived_input_relation(PublicationContract, ResultOrderingEvidence, PublicationContract, PublicationContract, Int, Int, Int) -> Result[PublicationContract, AcquisitionRelationIssue]
+pub fn issue_derived_input_relation(PublicationContract, ResultOrderingEvidence, PublicationContract, PublicationContract, Int, Int, Int, before_body? : ((String, @encode_core.EncodingConstructionGeometry) -> Bool)?) -> Result[PublicationContract, AcquisitionRelationIssue]
 
 pub fn issue_durable_result_binding(PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, String, Array[String], String, String, String, Int, Int, String, Int, Int, Int, schema_original? : CapturedEffectDependencyBody?) -> Result[PublicationContract, DurableResultBindingIssue]
 
@@ -603,6 +624,8 @@ pub fn issue_effect_table_input_artifact(PublicationContract, PublicationContrac
 pub fn issue_effectful_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[CapturedEffectSourceArtifact], Array[CapturedLocalEffectSourceEvidence], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], EffectPreviewIdentity, Array[(String, String)], Int, Int, Int, dependency_inventory? : CapturedEffectDependencyInventory?) -> Result[PublicationContract, CapturedRunIssuanceIssue]
 
 pub fn issue_effectful_final_run_receipt(PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Array[String], Int, Int, Int) -> Result[PublicationContract, EffectfulFinalReceiptIssuanceIssue]
+
+pub fn issue_file_lookup_transport(PublicationContract, @encode_core.EncodedDocument, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
 
 pub fn issue_generated_content_reference(GeneratedContentReference, @value_admission.ReferenceIssuer, @value_admission.ReferenceLimits) -> Result[@value_admission.CheckedValue, GeneratedContentReferenceIssue]
 
@@ -663,6 +686,8 @@ pub fn issue_succeeded_run_state(String, String, Array[String], Array[ResultAvai
 pub fn issue_succeeded_run_state_wire(String, String, Array[String], Array[String], Array[String], Array[String], Array[String], Int, Int, Int) -> Result[String, RunStateIssue]
 
 pub fn local_model_observation_matches_input(CapturedEffectDependencyBody, String, Int, RunEvidenceValue) -> Bool
+
+pub fn local_result_metadata_construction_geometry(String, String, String, String, String, Array[String], String, String, String, String, String, Int, Int, Int, Int) -> Result[Array[@encode_core.EncodingConstructionGeometry], ResultEvidenceIssuanceIssue]
 
 pub fn local_sdk_result_read_selection_cid(LocalSDKResultReadSelection) -> String
 
@@ -904,6 +929,8 @@ pub fn publication_contract_identity(PublicationContract) -> String
 
 pub fn publication_contract_identity_field(PublicationContract) -> String
 
+pub fn publication_contract_identity_field_for_name(String) -> String?
+
 pub fn publication_contract_json(PublicationContract) -> String
 
 pub fn publication_contract_name(PublicationContract) -> String
@@ -1012,6 +1039,8 @@ pub fn result_definition_name(ResultDefinition) -> String
 
 pub fn result_definition_program_cid(ResultDefinition) -> String
 
+pub fn result_delivery_serializer_extent(ResultDeliverySerializer) -> Result[ResultDeliverySerializerExtent, DeliverySerializationIssue]
+
 pub fn result_export_issuer_id() -> String
 
 pub fn result_material_holds_binding(ResultMaterialHolds) -> String
@@ -1057,6 +1086,8 @@ pub fn result_retention_clock_contract_cid(PublicationContract) -> Result[String
 pub fn result_retention_interval_state(PublicationContract, String) -> Result[String, DeliveryIssuanceIssue]
 
 pub fn result_retention_intervals_valid(PublicationContract) -> Bool
+
+pub fn result_retention_policy_construction_geometry(PublicationContract, String, Int, Int, Int) -> Result[@encode_core.EncodingConstructionGeometry?, PublicationContractIssue]
 
 pub fn result_serialization_contract_cid(String, Int, Int, Int) -> Result[String, DeliveryIssuanceIssue]
 
@@ -1106,6 +1137,10 @@ pub fn run_wait_ready(String, Int64?, Int, Int, Int) -> Result[Bool, RunWaitIssu
 
 pub fn run_wait_ready_until(String, Int64?, RunWaitUntil, Int, Int, Int) -> Result[Bool, RunWaitIssue]
 
+pub fn saved_compiled_plan_matches_definition(PublicationContract, PublicationContract, String?) -> Bool
+
+pub fn saved_compiled_plan_validation_construction(Int) -> @decode_shape.CollectionConstructionExtent?
+
 pub fn seal_completed_file_listing_observation(CompletedSourceObservationBody, Int, Array[CompletedFileListingReportRow]) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
 
 pub fn seal_completed_source_observation(CompletedSourceObservationBody) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
@@ -1115,6 +1150,8 @@ pub fn seal_publication_contract(String, String, Int, Int, Int) -> Result[Public
 pub fn seal_run_evidence_value(String, String, Int, Int, Int) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
 
 pub fn source_effect_catalog_dependencies(RunEvidenceValue) -> Result[Array[(String, String)], CapturedEffectDependencyIssue]
+
+pub fn source_unit_metadata_construction_geometry(Array[RunEvidenceValue], Array[RunEvidenceValue], Array[Int], PublicationContract, Int, Int, Int, include_union? : Bool) -> Result[Array[(String, @encode_core.EncodingConstructionGeometry)], AcquisitionRelationIssue]
 
 pub fn start_captured_result_snapshot(PublicationContract, PublicationContract, String, Array[String], Int, Int, Int, Int) -> Result[CapturedResultSnapshotPreparation, CapturedRunIssuanceIssue]
 
@@ -1885,6 +1922,22 @@ pub(all) enum GeneratedContentReferenceIssue {
 
 type InstallationPublicationStorageBinding
 
+pub(all) struct InteractiveLogicalMapBindingConstruction {
+  owner : @decode_shape.CollectionConstructionExtent
+  owned_utf16_units : Int64
+  steps : Int
+  ports : Int
+  outputs : Int
+  max_ports_per_step : Int
+  max_coordinate_units : Int
+  coordinate_retained_units : Int64
+  port_body_concat_units : Int64
+  step_key : (Int, Int, Int)
+  step_key_preimage_fields : Int
+  port_body : (Int, Int, Int)
+  port_complete : (Int, Int, Int)
+} derive(Eq, @debug.Debug)
+
 pub(all) enum LocalSDKReadSelectionIssue {
   InvalidBinding
   ForeignOriginal
@@ -2282,6 +2335,12 @@ pub(all) enum ResultDefinitionIssue {
 
 type ResultDeliverySerializer
 
+pub(all) struct ResultDeliverySerializerExtent {
+  schema : @canonical_json.CanonicalRepresentationExtent
+  field_backing_slots : Int64
+  field_text_utf16_units : Int64
+} derive(Eq, @debug.Debug)
+
 pub(all) enum ResultEvidenceIssuanceIssue {
   IssuanceWrongDefinition
   IssuanceInvalidIdentity
@@ -2522,6 +2581,19 @@ pub(all) enum SourceInputObservationIssue {
   Incomplete
   Mismatch(String)
   InvalidOrdering
+} derive(Eq, @debug.Debug)
+
+pub(all) struct StaticPlanValidationConstruction {
+  owner : @decode_shape.CollectionConstructionExtent
+  owned_utf16_units : Int64
+  owned_wire_bytes : Int64
+  pending_reference_items : Int64
+  unique_reference_items : Int64
+  max_record_references : Int
+  max_record_words : Int
+  unique_item_bytes : Int
+  unique_item_nodes : Int
+  unique_item_depth : Int
 } derive(Eq, @debug.Debug)
 
 type StoredGeneratedContentReference

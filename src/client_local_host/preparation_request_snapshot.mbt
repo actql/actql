@@ -71,7 +71,55 @@ pub fn[I] reserve_request_snapshot(
   )
   owner.phase = Open
   match outcome {
-    Err(issue) => Err(Capacity(issue))
+    Err(issue) => {
+      // Only this attempted grow's closed Resource kind can supply failure
+      // DATA. Pure scalar reads follow its original current boundary; no
+      // callback, second grow, input traversal or admission occurs here.
+      let dimension = match issue {
+        Resource(RetentionLimit) => Some("retention")
+        Resource(ExecutionLimit) => Some("execution")
+        _ => None
+      }
+      if dimension is Some(dimension) {
+        let old = match
+          @resources.preparation_capacity_reserved_extents(
+            owner.capacity,
+            input,
+          ) {
+          Ok(value) => value
+          Err(_) => return Err(Capacity(issue))
+        }
+        let limits = @resources.ledger_limits(owner.ledger)
+        let usage = @resources.ledger_usage(owner.ledger)
+        let available_r = limits.retained_bytes -
+          usage.held_bytes -
+          (usage.reserved_retention_bytes - old.0)
+        let available_e = limits.execution_bytes -
+          (usage.reserved_execution_bytes - old.1)
+        // An imported supplier can refuse despite room in this Ledger.
+        // Such failures retain the original opaque issue, never a guessed
+        // numerical shortage. Other reservations/holdings remain excluded.
+        if available_r >= 0L &&
+          available_e >= 0L &&
+          (if dimension == "retention" {
+            r > available_r
+          } else {
+            r <= available_r && e > available_e
+          }) {
+          return Err(
+            SnapshotCapacityExceeded(issue, {
+              phase: "request_snapshot",
+              dimension,
+              required_retention: r,
+              required_execution: e,
+              available_retention: available_r,
+              available_execution: available_e,
+            }),
+          )
+        }
+      }
+      Err(Capacity(issue))
+    }
     Ok(_) => {
       owner.snapshot_units = units
       owner.snapshot_values = values

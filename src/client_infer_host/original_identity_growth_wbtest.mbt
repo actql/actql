@@ -196,3 +196,119 @@ test "identity backing refusal precedes next construction and preserves same ret
   assert_true(release_original_infer_publication_capacity(capacity).unwrap())
   assert_true(cleanup(active).unwrap())
 }
+
+///|
+test "completed preconsumer Model scans original outcomes under its same publication borrower before whole Run binding" {
+  let calls = Ref(0)
+  let (active, ledger, _) = original_observation_test_start(
+    provider=original_funded_start_provider(calls),
+  )
+  assert_true(fixture_finish(active) is Complete(_, ..))
+  assert_eq(calls.val, 1)
+  let held = acquire_output(active).unwrap()
+  let bound = active.run_binding.unwrap()
+  let plan = active.plan.unwrap()
+  let capacity = reserve_original_infer_publication_capacity(active, 1L, 1L).unwrap()
+  let initial = preconsumer_model_unit_identity_start_capacity(
+    held,
+    bound.compiled,
+    bound.definition,
+    plan,
+  ).unwrap()
+  assert_true(
+    preconsumer_model_unit_identity_start_capacity(
+      held,
+      bound.compiled,
+      bound.compiled.plan,
+      plan,
+    )
+    is None,
+  )
+  let mut retained = @relation.execution_capacity_retained_bytes(initial)
+  let mut execution = @relation.execution_capacity_execution_bytes(initial)
+  grow_original_infer_publication_capacity(
+    active, capacity, retained, execution,
+  ).unwrap()
+  let scan = start_preconsumer_model_unit_identity(
+    held,
+    bound.compiled,
+    bound.definition,
+    plan,
+  ).unwrap()
+  let mut done = false
+  for _ in 0..<1000 {
+    let quote = @relation.completed_relation_identity_scan_next_construction_capacity(
+      scan,
+    ).unwrap()
+    retained = Int64::max(
+      retained,
+      @relation.execution_capacity_retained_bytes(quote),
+    )
+    execution = Int64::max(
+      execution,
+      @relation.execution_capacity_execution_bytes(quote),
+    )
+    grow_original_infer_publication_capacity(
+      active, capacity, retained, execution,
+    ).unwrap()
+    if @relation.advance_completed_relation_identity_scan(
+        scan,
+        31,
+        construction_capacity=Some(quote),
+      ).unwrap().0 {
+      done = true
+      break
+    }
+  }
+  assert_true(done)
+  let receipt = @relation.finish_completed_relation_identity_scan(scan).unwrap()
+  let writers = preconsumer_model_unit_observation_capacity(
+    held,
+    bound.compiled,
+    bound.definition,
+    plan,
+    receipt,
+    16384,
+  ).unwrap()
+  grow_original_infer_publication_capacity(
+    active,
+    capacity,
+    retained + @relation.execution_capacity_retained_bytes(writers),
+    execution + @relation.execution_capacity_execution_bytes(writers),
+  ).unwrap()
+  assert_true(
+    prepare_preconsumer_model_unit_observation(
+      held,
+      bound.compiled,
+      bound.definition,
+      plan,
+      receipt,
+      16384,
+      1000,
+      20,
+    )
+    is Some(_),
+  )
+  assert_eq(calls.val, 1)
+  @relation.cancel_completed_relation_export_receipt(receipt)
+  // finish already closes the scan; cancellation still severs its retained
+  // body aliases, but its Bool reports no new phase transition.
+  assert_false(@relation.cancel_completed_relation_identity_scan(scan))
+  assert_true(release_output(held))
+  assert_true(
+    preconsumer_model_unit_identity_start_capacity(
+      held,
+      bound.compiled,
+      bound.definition,
+      plan,
+    )
+    is None,
+  )
+  assert_true(release_original_infer_publication_capacity(capacity).unwrap())
+  assert_true(cleanup(active).unwrap())
+  let usage = @resources.ledger_usage(ledger)
+  // original_observation_test_start retains the independent bootstrap 3/2
+  // and original read 7/5. This child cannot ACK or settle that parent scope.
+  assert_eq(usage.reserved_retention_bytes, 3L + 7L)
+  assert_eq(usage.reserved_execution_bytes, 2L + 5L)
+}

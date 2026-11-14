@@ -6,7 +6,7 @@ import {dirname,join} from 'node:path';
 import {syncBuiltinESMExports} from 'node:module';
 import {fileDigest,packArchive,unpackArchive} from './ci-artifacts.mjs';
 import {hash} from './inventory.mjs';
-import {partIds,planDigest,plan} from './proof-parts.mjs';
+import {partIds,planDigest,plan,partRole} from './proof-parts.mjs';
 import {partSchema,partStages,capacityPartExecutions,validatePartEnvelope,validatePartInputs,requireValidation} from './ci-parts.mjs';
 import * as transport from './ci-parts.mjs';
 const digest='a'.repeat(64);
@@ -200,24 +200,35 @@ test('verified union member detects submillisecond source modification',t=>{
 const expected={context:{repository:'actql/actql',runId:'1',runAttempt:'1',testedSha:'b'.repeat(40),prHeadSha:null},
  source:{digest},exploration:{required:true},toolchain:{moonbit:{moonc:'pin'}},
  workflow:{ref:'actql/actql/.github/workflows/ci.yml@refs/heads/main',sha:'b'.repeat(40)},planDigest};
-function envelope(partId='L-C0') {
+function envelope(partId='L-C2') {
  const path=`${partId}-123-45-0000-normal-js.json`,boundary={workspace:`owner-${partId}`,target:'js',role:'normal'};
- return {schema:partSchema,partId,...structuredClone(expected),completedStages:[...partStages[partId]],
+ const value={schema:partSchema,partId,...structuredClone(expected),completedStages:[...partStages[partId]],
  restoration:{sourceRestored:true,fixtureClosed:true,workspacesClosed:true},
  files:[{path,kind:'file',size:1,sha256:digest}],evidence:{reports:[{path,sha256:digest}],owners:[boundary.workspace],
  receipts:[{path,sha256:digest,target:'js',boundary,buildIdentity:hash(JSON.stringify(boundary))}],
  observations:[{id:`${partId}-observation`,receipt:path,target:'js',owner:boundary.workspace,caseDigest:digest}]}};
+ if(partRole(partId)==='capacity-support') Object.assign(value.evidence,{owners:[],receipts:[],observations:[]});
+ return value;
 }
 const inputs=()=>partIds.map((partId,index)=>({partId,result:'success',artifactId:String(index+1),artifactDigest:digest,archiveDigest:digest,manifestDigest:digest}));
-test('fixed plan names exactly two capacity and two mutation producers',()=>{
- assert.deepEqual(partIds,['L-C0','L-C1','L-M0','L-M1']);
- assert.equal(Object.keys(plan.parts).length,4);
- assert.equal(plan.parts['L-C0'].obligations.finalNormal.caseCount,114);
- assert.equal(plan.parts['L-C1'].obligations.ownerLocalRestoration.caseCount,5);
- assert.equal(plan.parts['L-C1'].obligations.finalNormal,undefined);
+test('fixed plan names exactly four capacity and four mutation producers',()=>{
+ assert.deepEqual(partIds,['L-C2','L-C3','L-C4','L-C5','L-M2','L-M3','L-M4','L-M5']);
+ assert.equal(Object.keys(plan.parts).length,8);
+ assert.equal(plan.parts['L-C2'].obligations.finalNormal.caseCount,114);
+ assert.equal(plan.parts['L-C4'].obligations.ownerLocalRestoration.caseCount,3);
+ assert.equal(plan.parts['L-C4'].obligations.finalNormal,undefined);
 });
 for(const partId of partIds) test(`${partId} has distinct truthful PART envelope`,()=>{
  assert.doesNotThrow(()=>validatePartEnvelope(envelope(partId),expected,partId));
+});
+test('support envelope retains genuine reports without manufacturing any generic execution evidence',()=>{
+ const support=partIds.find(id=>partRole(id)==='capacity-support');
+ const original=envelope(support);
+ assert.doesNotThrow(()=>validatePartEnvelope(original,expected,support));
+ for(const field of ['owners','receipts','observations']) {
+  const changed=structuredClone(original);changed.evidence[field].push(envelope().evidence[field][0]);
+  assert.throws(()=>validatePartEnvelope(changed,expected,support),/Support cannot manufacture generic evidence/);
+ }
 });
 for(const [label,change] of Object.entries({
  missingStage:m=>m.completedStages.pop(),sealBeforeClose:m=>m.restoration.fixtureClosed=false,
@@ -227,16 +238,16 @@ for(const [label,change] of Object.entries({
  foreignSource:m=>m.source.digest='c'.repeat(64),
  duplicateReceipt:m=>m.evidence.receipts.push(m.evidence.receipts[0]),duplicateObservation:m=>m.evidence.observations.push(m.evidence.observations[0]),
  foreignOwner:m=>m.evidence.observations[0].owner='other',foreignTarget:m=>m.evidence.observations[0].target='native',
- unknownReceipt:m=>m.evidence.observations[0].receipt='missing',foreignPart:m=>m.partId='L-C1',unknownField:m=>m.fullSuccess=true,
+ unknownReceipt:m=>m.evidence.observations[0].receipt='missing',foreignPart:m=>m.partId='L-C4',unknownField:m=>m.fullSuccess=true,
  swappedCompiledOwner:m=>m.evidence.receipts[0].boundary.workspace='other',
  alteredFile:m=>m.files[0].sha256='c'.repeat(64),traversal:m=>m.files[0].path='../bad',
 })) test(`part seal rejects ${label}`,()=>{
- const m=envelope();change(m);assert.throws(()=>validatePartEnvelope(m,expected,'L-C0'));
+ const m=envelope();change(m);assert.throws(()=>validatePartEnvelope(m,expected,'L-C2'));
 });
-test('aggregate accepts exactly four successful distinct immutable inputs',()=>assert.doesNotThrow(()=>validatePartInputs(inputs())));
+test('aggregate accepts exactly eight successful distinct immutable inputs',()=>assert.doesNotThrow(()=>validatePartInputs(inputs())));
 for(const [label,change] of Object.entries({missing:x=>x.pop(),duplicate:x=>x[1]=x[0],extra:x=>x.push(x[0]),wrongOrder:x=>x.reverse(),
  failure:x=>x[2].result='failure',skipped:x=>x[3].result='skipped',cancelled:x=>x[0].result='cancelled',
- foreignPart:x=>x[0].partId='L-C2',duplicateArtifact:x=>x[1].artifactId=x[0].artifactId,
+ foreignPart:x=>x[0].partId='L-C9',duplicateArtifact:x=>x[1].artifactId=x[0].artifactId,
  noDigest:x=>delete x[0].archiveDigest,noManifest:x=>delete x[0].manifestDigest,noArtifact:x=>delete x[0].artifactId,
 })) test(`aggregate rejects ${label}`,()=>{const x=inputs();change(x);assert.throws(()=>validatePartInputs(x));});
 const validation=()=>({result:'success',outputs:{'tested-sha':expected.context.testedSha,'source-digest':expected.source.digest,'plan-digest':planDigest}});
@@ -250,10 +261,10 @@ test('synthetic validation is mandatory and bound to exact source and plan',()=>
 test('capacity transport keeps current Native evidence distinct from generic execution receipts',()=>{
  const primary={path:'primary'},restored={path:'restored'};
  const {report}=nativeParentInputs();
- assert.deepEqual(capacityPartExecutions({...report,executions:[primary]}),[primary]);
- assert.deepEqual(capacityPartExecutions({part:'L-C1',executions:[primary,restored],postRestore:{executions:[restored]}}),[primary,restored]);
- assert.throws(()=>capacityPartExecutions({part:'L-C0',executions:[primary]}));
- assert.throws(()=>capacityPartExecutions({part:'L-C0',executions:[primary],parentStartup:{execution:primary}}));
+ assert.deepEqual(capacityPartExecutions({...report,executions:[]}),[]);
+ assert.deepEqual(capacityPartExecutions({part:'L-C4',executions:[primary,restored],postRestore:{executions:[restored]}}),[primary,restored]);
+ assert.throws(()=>capacityPartExecutions({...report,executions:[primary]}));
+ assert.throws(()=>capacityPartExecutions({part:'L-C3',executions:[],parentStartup:{execution:primary}}));
 });
 
 // Synthetic transport bytes only. Production inspectPart first runs the real
@@ -284,7 +295,7 @@ function nativeParentInputs() {
   [directory+'binaries/'+hash(binary),binary],
   [directory+'originals/'+hash(JSON.stringify(body))+'.json',json(body)],
   [directory+'originals/'+hash(JSON.stringify(parent))+'.json',json(parent)]]);
- return {report:{part:'L-C0',source,parentStartup:parent},files,read:path=>{
+ return {report:{part:'L-C3',source,parentStartup:parent},files,read:path=>{
   assert(files.has(path),'Missing native parent transport input');return files.get(path);
  }};
 }

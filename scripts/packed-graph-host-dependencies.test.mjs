@@ -1,9 +1,84 @@
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
-import {basename, dirname, relative, resolve} from 'node:path';
+import {readFile, writeFile, mkdtemp, rm} from 'node:fs/promises';
+import {basename, dirname, join, relative, resolve} from 'node:path';
+import {tmpdir} from 'node:os';
+import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {graphPublicHostCases, graphPublicHostPattern} from './fixtures/graph-host-cases.mjs';
+import {createCommandEvidence, checkCommandEvidenceUpload} from './packed-query-evidence.mjs';
+import {assertTestExecution, testExecutionResult} from './test-execution.mjs';
+
+async function graphCommandFixture(t) {
+  const root = await mkdtemp(join(tmpdir(), 'actql-graph-command-'));
+  t.after(() => rm(root, {recursive:true, force:true}));
+  const repository = fileURLToPath(new URL('../', import.meta.url));
+  const source = await readFile(new URL('./test-packed-graph.mjs', import.meta.url), 'utf8');
+  const start = source.indexOf('async function run(');
+  const end = source.indexOf('\nfor (const name of CLIENT_PACKAGES)', start);
+  assert(start > 0 && end > start);
+  const environment = {...process.env, ACTQL_TEST_TOKEN:'SYNTHETIC-PRIVATE-GRAPH-TOKEN'};
+  const commandEvidence = createCommandEvidence({scratch:root, cwd:repository, env:environment});
+  const run = Function('commandEvidence', 'root', 'environment', 'writeFile', 'join',
+    'assertTestExecution', 'testExecutionResult', 'spawnSync',
+    `let sequence = 0; ${source.slice(start,end)}; return run;`)(commandEvidence, root,
+    environment, writeFile, join, assertTestExecution, testExecutionResult, spawnSync);
+  return {root, environment, commandEvidence, run};
+}
+
+test('packed Graph original nonzero child retains bounded redacted diagnostics for upload', async t => {
+  const {commandEvidence, run} = await graphCommandFixture(t);
+  await assert.rejects(run(process.execPath, ['-e',
+    "process.stdout.write('GraphActualChildFailure:'+process.env.ACTQL_TEST_TOKEN);" +
+    "process.stderr.write('OriginalGraphChildError');process.exitCode=7"]),
+  error => error.message.includes('status 7') && error.message.includes(commandEvidence.directory));
+  assert.equal(commandEvidence.summary.status, 'failed');
+  assert.equal(commandEvidence.summary.complete, false);
+  assert.equal(commandEvidence.summary.commands.length, 1);
+  assert.equal(commandEvidence.summary.commands[0].status, 7);
+  assert.equal(commandEvidence.summary.commands[0].outputLimitBytes, 1024 ** 2);
+  const stdout = await readFile(join(commandEvidence.directory,'001.stdout.log'), 'utf8');
+  assert.equal(stdout, 'GraphActualChildFailure:[REDACTED]');
+  assert.equal(await readFile(join(commandEvidence.directory,'001.stderr.log'), 'utf8'),
+    'OriginalGraphChildError');
+  checkCommandEvidenceUpload(commandEvidence.directory);
+});
+
+test('packed Graph exit zero with zero discovered cases still fails and retains its count refusal', async t => {
+  const {commandEvidence, run, root, environment} = await graphCommandFixture(t);
+  await assert.rejects(run(process.execPath, ['-e',
+    "console.log('ACTQL_TEST_SUMMARY '+JSON.stringify({success:true," +
+    "counts:{tests:0,passed:0,failed:0,cancelled:0,skipped:0,todo:0}}))"],
+  root, environment, true));
+  assert.equal(commandEvidence.summary.status, 'failed');
+  assert.equal(commandEvidence.summary.complete, false);
+  const [command] = commandEvidence.summary.commands;
+  assert.equal(command.status, 0);
+  assert.notEqual(command.verificationStatus, 0);
+  // The existing nonzero wrapper refuses zero discovery before returning counts.
+  assert.equal(command.counts, null);
+  assert.match(await readFile(join(commandEvidence.directory,'001.stdout.log'), 'utf8'),
+    /"tests":0/u);
+  checkCommandEvidenceUpload(commandEvidence.directory);
+});
+
+test('packed Graph CI retains command diagnostics after a failed consumer without uploading state', async () => {
+  const {parse} = await import('yaml');
+  const workflow = parse(await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
+  const steps = workflow.jobs['client-distribution-packed'].steps;
+  const selected = steps.find(step => step.id === 'packed-graph');
+  assert.equal(selected.run, 'node scripts/test-packed-graph.mjs');
+  assert.equal(selected.if, "${{ !cancelled() && steps.client-inputs.outcome == 'success' }}");
+  const upload = steps.find(step => step.name === 'Retain packed Graph child failure diagnostics');
+  assert.equal(upload.if, "always() && steps.packed-graph.outputs.evidence-directory != ''");
+  assert.equal(upload.uses, './.github/actions/upload-packed-query-evidence');
+  assert.equal(upload.with.directory, '${{ steps.packed-graph.outputs.evidence-directory }}');
+  const action = parse(await readFile(new URL('../.github/actions/upload-packed-query-evidence/action.yml',
+    import.meta.url), 'utf8'));
+  const paths = action.runs.steps.find(step => step.id === 'upload').with.path.trim().split('\n');
+  assert.deepEqual(paths, ['summary.json','*.summary.json','*.started.json','*.result.json',
+    '*.stdout.log','*.stderr.log'].map(name => '${{ inputs.directory }}/' + name));
+});
 
 test('packed Graph failure consumer retains its finite transitive fixtures', async () => {
   const scripts = fileURLToPath(new URL('./', import.meta.url));

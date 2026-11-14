@@ -99,6 +99,7 @@ pub fn start_original_restored_composed(
   model_retained_bytes : Int64,
   model_execution_bytes : Int64,
   reference_issuer? : @admitted.ReferenceIssuer,
+  input_body_read? : @publication_host.ClientModelReadPreparation? = None,
 ) -> Result[Execution, Issue] {
   if !@publication_host.client_infer_saved_call_scope_matches_run(
       saved_scope, compiled, definition,
@@ -141,6 +142,18 @@ pub fn start_original_restored_composed(
       model_execution_bytes,
       shared_mock=true,
     )
+    if input_body_read is Some(read) {
+      // Retain body bytes in the SAME first input identity scan. The existing
+      // grow authenticates this Read and entered consumer before construction;
+      // restoring a scope cannot replace that ownership or issue a new Read.
+      active.identity_body = Some({
+        read,
+        base_retained: read_retained_bytes,
+        base_execution: read_execution_bytes,
+        retained: read_retained_bytes,
+        execution: read_execution_bytes,
+      })
+    }
     active
   })
 }

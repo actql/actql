@@ -255,7 +255,7 @@ fn issue_client_captured_observation_from_template(
 }
 
 ///|
-/// The two acquired task occurrences, identities, requirements, and evidence
+/// All acquired task occurrences, identities, requirements, and evidence
 /// must cover the checked prefix exactly and in task order. No serialized CID
 /// may replace the live checked owner, and no successful side is sufficient.
 pub fn issue_client_multi_task_invocation(
@@ -297,7 +297,7 @@ pub fn issue_client_multi_task_invocation(
     identities,
     requirements,
     WireSourceObservations(source_evidence_wires, input_logical_wires),
-    2,
+    prepared_client_acquisition_count(prepared),
     authority_scope_cid,
     data_policy_cid,
     capture_started_at,
@@ -347,7 +347,7 @@ pub fn issue_client_effect_multi_captured_invocation(
     identities,
     requirements,
     WireSourceObservations(source_evidence_wires, input_logical_wires),
-    2,
+    prepared_client_acquisition_count(client_effect_program_view(prepared)),
     authority_scope_cid,
     data_policy_cid,
     capture_started_at,
@@ -381,7 +381,9 @@ fn issue_client_multi_capture_observation(
   let (source_count, input_count) = client_source_observation_counts(
     observations,
   )
-  if prepared_client_acquisition_count(prepared) != count ||
+  if count < 1 ||
+    !client_direct_observations_cover_sources(prepared, count) ||
+    prepared_client_acquisition_count(prepared) != count ||
     captures.length() != count ||
     identities.length() != count ||
     requirements.length() != count ||

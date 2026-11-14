@@ -91,6 +91,58 @@ fn original_keyed_publication_metadata_retained(
 }
 
 ///|
+// Quote from the same admitted schema and independently checked original
+// request wires, before publication emits an identity. The codec ceiling is
+// only a cap; it is not this correlation-only fixture's construction demand.
+fn original_keyed_publication_construction_quote(
+  keyed : @publication_host.ClientKeyedAcquisition,
+  requests : Array[String],
+) -> Int64 raise {
+  let binding = @publication_host.client_keyed_acquisition_binding(keyed)
+  let template = @sourceviews.keyed_join_request(binding.join)
+  assert_eq(@sourceviews.parameterized_keyed_request_field_count(template), 0)
+  let request = @sourceviews.parameterized_keyed_request(template)
+  let roles = @environment.source_correlation_pair_count(
+    @sourceviews.keyed_request_correlation(request),
+  ).to_int64()
+  assert_eq(roles, 2L)
+  assert_eq(requests.length(), 2)
+  let selected = @sourceviews.selected_contract(
+    @sourceviews.keyed_request_input(request),
+  )
+  let schema = @environment.reference_contract(
+    @environment.source_request_reference(selected),
+  )
+  let (schema_bytes, _) = @environment.member_usage(
+    @environment.contract_member(schema),
+  )
+  let mut bytes = @execution.checked_preparation_add_product(
+    4096L,
+    schema_bytes.to_int64(),
+    6L,
+  ).unwrap()
+  bytes = @execution.checked_preparation_add_product(bytes, roles, 128L).unwrap()
+  for wire in requests {
+    bytes = @execution.checked_preparation_add_product(
+      bytes,
+      wire.length().to_int64(),
+      6L,
+    ).unwrap()
+  }
+  assert_true(bytes < 16384L)
+  let count = requests.length().to_int64()
+  let slots = @execution.checked_preparation_add_product(0L, roles, count).unwrap()
+  let slots = @execution.checked_preparation_add_product(slots, roles, 1L).unwrap()
+  let slots = @execution.checked_preparation_add_product(slots, count, 1L).unwrap()
+  // This ordinary row lookup has no native-read control and one codec copy.
+  let (metadata, _) = @publication_host.client_protocol_metadata_construction_bytes(
+    Int64::min(bytes, 16384L).to_int(),
+    slots,
+  ).unwrap()
+  metadata
+}
+
+///|
 fn original_keyed_version_history(
   suffix? : Bool = false,
   content? : Bool = false,
@@ -862,7 +914,9 @@ fn original_keyed_version_history(
       None
     } else if publication_refusal {
       let before = @resources.ledger_usage(ledger)
-      let metadata = 16L * 16384L + 128L * 8L
+      let metadata = original_keyed_publication_construction_quote(
+        keyed, requested,
+      )
       let available = @resources.ledger_limits(ledger).retained_bytes -
         before.held_bytes -
         before.reserved_retention_bytes

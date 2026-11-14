@@ -20,7 +20,9 @@ acceptance. The workflow now schedules these independent workloads:
 - `client-distribution-mutations` runs the four original mutation commands
 - `client-distribution-packed` uses the shared tarballs for Delivery, dependency-free
   Local, Node, Workspace, Graph and Checkpoint acceptance without a source runtime build
-- `client-distribution-native` builds and tests the original Native Client transport
+- `native-cli-installed` builds the versioned Remote CLI, exercises its fresh
+  installation, and runs the unchanged Native Client transport/contract corpus
+  against that exact installed binary; no second plain Remote build is needed
 - `client-packed` uses the shared tarballs for normal Local asset and Sheets
   consumers, and runs the unchanged Embedded Checkpoint, single INFER,
   public SQL/Pipe and Result description acceptance, with existing evidence uploads
@@ -30,7 +32,8 @@ acceptance. The workflow now schedules these independent workloads:
   both Compute-count probes and all nine process-death boundaries
 
 The package consumers and source-backed distribution jobs depend on the exact
-package producer. Native Client transport and Salesforce start independently.
+package producer. Native Client transport shares the existing installed Remote owner and its exact
+normal package input; Salesforce starts independently.
 Salesforce's source-backed recovery imports require the Local runtime bridges;
 it prepares these in its own checkout before the existing gates.
 The existing distribution and installed-query workloads retain their 30-minute
@@ -40,7 +43,10 @@ own runner so the other installed-query consumers cannot consume that budget.
 Its complete command is unchanged and remains required by `client`.
 The old 53-command
 `check:distribution-client` local umbrella is unchanged. Its independent CI
-workloads retain all 49 remaining commands once; the four common source
+workloads retain the 48 remaining original commands once: only the duplicate
+plain Remote compiler is retired, while its transport suite uses the versioned
+installed binary through `ACTQL_TEST_NATIVE_CLIENT_BINARY`. The local umbrella
+still keeps its original build-and-test command. The four common source
 preparation commands repeat only in the three source-backed jobs. Each job has
 private installation, mutation and compiler state. After successful preparation,
 independent cases continue after a sibling failure and respect cancellation.
@@ -291,6 +297,23 @@ artifact transfer, private runtime/native builds and aggregation. Also report
 queue/dependency delay separately when available. A shorter wall span can cost
 more total runner time; added cold native compilation must remain visible.
 
+The packed consumer matrix separates connectors, INFER, portable SQL/Pipe and
+the complete Native Graph campaign. All four jobs download the same successful
+producer's exact artifact ID and retain the existing source/tarball checks.
+They never share application state, keys or an installed Host. Each campaign
+step has exactly one matrix owner; the existing Client aggregate requires the
+whole matrix to succeed, including its evidence-retention steps.
+
+`test-packed-public-query.mjs --ci-part=portable` retains the full Local/HTTPS
+corpus, original Saved/restart checks and public graph cases, omitting only the
+final Native campaign. `--ci-part=native` runs that complete original Native
+campaign, including its source-free control, after the common installation
+prerequisites. The two CI parts refuse narrower selectors and ambient `*_ONLY`
+overrides. Running without either option preserves the original serial route.
+Compilation occurs only in the Native part; the portable part does not install
+the Native compiler. Shared package-installation checks remain prerequisites,
+not additional independent acceptance samples.
+
 The pre-change observations are separate samples: main run
 [37008805516](https://github.com/actql/actql/actions/runs/37008805516) completed
 Client in 16m04s, and reporting-only PR run
@@ -331,10 +354,14 @@ those requirements justify the extra producer and dependency. The failed run's
 35,501 total job-seconds and 4,532-second final-check interval remain separate
 observations, never a successful optimization comparison.
 
-## Main performance observations
+## Ready PR and main performance observations
 
-Every public `main` push runs `main-performance` on Linux with the normal
-`client-packages` artifact from that same run. It does not rebuild packages or
+Every public `main` push and full Ready PR runs `main-performance` on Linux with
+the normal `client-packages` artifact from that same run. Draft and lightweight
+maintenance/focused profiles retain their skips and acquire no new producer.
+The selector and final aggregate require the same selected observation job;
+missing, failed, cancelled or unexpectedly skipped observations fail that gate.
+The job waits only for selection and its original package producer. It does not rebuild packages or
 start the heavy performance matrix. The existing ordinary consumer preparer,
 `benchmark-node-operations.mjs`, and `benchmark-node-process-operations.mjs`
 run in explicit `record-only` mode. Diagnostic/final acceptance modes and their

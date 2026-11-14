@@ -9,8 +9,8 @@ import { registrations } from './obligations.mjs';
 import { registry } from './registry.mjs';
 import { fileURLToPath } from 'node:url';
 import { mutationCampaignScope, fixedJsAction } from './fixed-js-scope.mjs';
-import { mutationNamesByPart } from './proof-parts.mjs';
-import { mutationPart, inspectMutationPart } from './mutation-parts.mjs';
+import { mutationNamesByPart, logicalMutationNamesByPart } from './proof-parts.mjs';
+import { mutationPart, logicalMutationPart, inspectMutationPart, inspectLogicalMutationPart } from './mutation-parts.mjs';
 import { mutationWorkspaces, workspaceIdentity } from './workspaces.mjs';
 import { hash, snapshot, checkBaseline } from './inventory.mjs';
 import { compareSemantics } from './evidence.mjs';
@@ -18,7 +18,8 @@ import { decision } from './exploration-impact.mjs';
 export async function runMutations(options = {}) {
   const {profile, mode, partId, revision, targets} = mutationCampaignScope(options);
   const {createExecutor, executions, root, toolchain} = await import('./execute.mjs');
-  const part = partId ? mutationPart(partId) : null;
+  const logical = Object.hasOwn(logicalMutationNamesByPart, partId);
+  const part = partId ? (logical ? logicalMutationPart(partId) : mutationPart(partId)) : null;
   const selectedVariants = part ? part.variants.map(name => {
     const variant = variants.find(variant => variant.name === name);
     assert(variant, `Missing reviewed mutation ${name}`); return variant;
@@ -158,7 +159,7 @@ export async function runMutations(options = {}) {
       explorationTarget: exploratory ? 'js' : null, searchDomain: 'fixed typed corpus filtered by reviewed mutation eligibility',
       meaning: 'known-site anchored mismatches; local minimum only under enumerated reductions and same anchor', results: results[selectedMode],
     };
-    if (part && profile === 'full') inspectMutationPart(report);
+    if (part && profile === 'full') (logical ? inspectLogicalMutationPart : inspectMutationPart)(report);
     reports.push(report);
     if (profile === 'full') writeFileSync(join(root, `.artifacts/relation-pipeline/${exploratory ? 'mutations' : 'fixed-mutations'}${part ? `-${partId}` : ''}.json`), JSON.stringify(report, null, 2) + '\n');
   }

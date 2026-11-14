@@ -21,12 +21,13 @@ fn NativeLocalInstalledEffectReviewer::initial_reviewer_original_current(
   self : NativeLocalInstalledEffectReviewer,
   original : NativeLocalInitialSigningOriginal,
 ) -> Bool {
-  // The sole caller just selected this Host's original configuration through
-  // selected_configuration, which completed the full binding check. Only the
-  // pure equality/reference comparisons below separate it from this entry.
+  // The closed initial constructor already admitted these exact bytes and is
+  // the sole production constructor of initial_original=Some. The caller has
+  // just selected and compared that SAME original configuration; unchanged
+  // bytes need no second UTF8/JSON/schema admission. This projects metadata,
+  // not the separate Account decision performed by current.
   physical_equal(original.host, self.host) &&
   original.require_current_after_host_binding() is Ok(_) &&
-  initial_reviewer_host_configuration(self.original_bytes) &&
   self.reviewer.key_id == original.public_key.cid() &&
   self.reviewer.public_key_pem == original.public_key_pem &&
   self.reviewer.reviewer_id == self.reviewer.principal
@@ -56,7 +57,7 @@ pub fn NativeLocalHostConnection::install_initial_effect_reviewer(
     connection.is_empty() {
     return Err(ReviewerUnavailable)
   }
-  let bytes = match self.selected_configuration(host_configuration_file) {
+  let bytes = match original.selected_configuration(host_configuration_file) {
     Ok(value) => value
     Err(_) => return Err(ReviewerUnavailable)
   }

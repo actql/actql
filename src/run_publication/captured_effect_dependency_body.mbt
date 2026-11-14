@@ -686,6 +686,8 @@ pub fn validate_captured_effect_dependency_bodies(
     let references : Array[CapturedEffectDependencyReference] = []
     for reference in body.node.references {
       let allowed = match reference.kind {
+        "read_execution_profile" =>
+          ["native_file_content_read", "declared_file_content_read"]
         "relation_producer" =>
           [
             "local_result_definition", "source_contract", "carrier_contract", "relation_schema",

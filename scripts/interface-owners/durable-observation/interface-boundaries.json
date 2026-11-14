@@ -373,7 +373,7 @@
     {
       "module": "adapters/host-common/observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b366705b5efcfe28da67e87ca7025635bf296517aa7c9d71cf5cede47b74dcbf",
+      "sha256": "cfbc37fb551abe62594d4c11c7c8a7eb8b81dd72c14a50ef57400412e80f2ab4",
       "exports": [
         "captureManagedRunObservation",
         "createHostObservationConnection",
@@ -383,6 +383,7 @@
         "observationTraceParent",
         "observationVersion",
         "projectEffectApplication",
+        "projectEffectPreflightFailure",
         "snapshotObservationContext",
         "validObservationContext"
       ],
@@ -760,6 +761,15 @@
           "async": false
         },
         {
+          "name": "projectEffectPreflightFailure",
+          "parameters": [
+            "projection",
+            "ref",
+            "primaryDiagnostic"
+          ],
+          "async": false
+        },
+        {
           "name": "recordEvents/recordEvents",
           "parameters": [
             "value"
@@ -878,7 +888,8 @@
             "selection/selection#2",
             "selection/selection#3",
             "snapshotObservationContext",
-            "validObservationContext"
+            "validObservationContext",
+            "projectEffectPreflightFailure"
           ],
           "exports": [
             "createHostObservationConnection",
@@ -889,7 +900,8 @@
             "observationVersion",
             "projectEffectApplication",
             "snapshotObservationContext",
-            "validObservationContext"
+            "validObservationContext",
+            "projectEffectPreflightFailure"
           ],
           "attributes": {
             "responsibility": [
@@ -900,54 +912,90 @@
               {
                 "path": "docs/design/node-host-observability.md",
                 "anchor": "Delivery remains an application callback even on that later turn:"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Inputs/outputs |"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ],
             "identity": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Identity |"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ],
             "ownership": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Ownership |"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Synchronization |"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ],
             "failure": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Failure |"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Cancellation |"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ],
             "resources": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Resources |"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ],
             "extension": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Extension |"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ],
             "verification": [
@@ -958,6 +1006,10 @@
               {
                 "path": "adapters/host-common/observation.test.mjs",
                 "anchor": "application callback state changes at actual delivery entry and thrown settlement only"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ]
           }
@@ -2449,7 +2501,7 @@
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3300686911206f83dd72542e1c1e55c53a9ec64a6e301a6f66f8887d6dd296fb",
+      "sha256": "3bc07bc15eacc3f4dca48272c2786de9439d861eecc6ed90df14ab043da4cbb7",
       "role": "physical-io",
       "owner": "Existing Model execution authority and Node Store/publication custody; F functional contract with A generated representation projection",
       "exports": [
@@ -2614,7 +2666,9 @@
         },
         {
           "name": "openNodeInferCaptureCustody/openNodeInferCaptureCustody",
-          "parameters": [],
+          "parameters": [
+            "preparePublication"
+          ],
           "async": true
         },
         {
@@ -3521,7 +3575,7 @@
     {
       "module": "adapters/host-node/infer-physical-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f13eb7b9c6506074cd33deef9e6c67723fe8b208b2b457d7061e5628a2686c65",
+      "sha256": "60d1d5ccb5a7b6e8d62b8519d12e4c31a28ef9e45c4067452b9d520373efc926",
       "exports": [
         "createInferPhysicalObservation"
       ],

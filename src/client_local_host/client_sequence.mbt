@@ -642,6 +642,7 @@ fn prepare_client_local_sequences_owned(
   fragment_body : String?,
   ordered_body : String?,
   task_count? : Int? = None,
+  source_free_max_work? : Int? = None,
   infer_prefix? : (Int, Int)? = None,
   infer_suffix? : (Int, Int)? = None,
   selected_task? : Int? = None,
@@ -652,6 +653,7 @@ fn prepare_client_local_sequences_owned(
     @publication_host.ClientQueryTimePreparation,
     @publication_host.ClientRequestIdentity,
   )? = None,
+  compilation_limits? : @publication_host.ClientPureCompilationLimits? = None,
 ) -> Result[Array[@execution.GeneratedSequence], ClientInstalledManagedRunIssue] {
   guard client_local_sequence_selection_matches(
     installed_contracts, values_body, fragment_body, ordered_body,
@@ -672,11 +674,26 @@ fn prepare_client_local_sequences_owned(
   // task owner. A larger Values profile must not revert to the default 100
   // after the first Values step; all other Fragment budgets stay independent.
   let fragment_rows = client_local_owner_sequence_limits(prepared).max_rows.to_int64()
-  let physical : @execution.RegistryLimits = {
-    max_body_bytes: 100000,
-    max_body_nodes: 10000,
-    max_body_depth: 100,
+  let physical : @execution.RegistryLimits = match compilation_limits {
+    Some(original) =>
+      {
+        max_body_bytes: original.max_wire_bytes,
+        max_body_nodes: original.max_nodes,
+        max_body_depth: original.max_depth,
+      }
+    None =>
+      { max_body_bytes: 100000, max_body_nodes: 10000, max_body_depth: 100, }
   }
+  // The Request already retains this exact compiler codec and selected work.
+  // These rejection bounds allocate nothing and never replace body admission.
+  let preparation_work = match compilation_limits {
+    Some(_) => client_local_source_free_max_work(source_free_max_work).unwrap()
+    None => 100000
+  }
+  // Generated-sequence and QueryTime APIs take wiring work and entry counts,
+  // not artifact bytes/nodes. Keep their original independent recipe bounds.
+  let sequence_construction_work = 100000
+  let sequence_construction_entries = 10000
   let graph = match prepared {
     Pure(value) => @publication_host.prepared_client_graph(value)
     Effect(value) =>
@@ -905,7 +922,7 @@ fn prepare_client_local_sequences_owned(
             @lower.prepare_fragment_pipeline(sequence, step, {
               max_roots: 100,
               max_pointer_bytes: 10000,
-              max_work: 100000,
+              max_work: preparation_work,
             }) {
             Ok(value) => value
             Err(_) => return Err(Unsupported)
@@ -919,16 +936,21 @@ fn prepare_client_local_sequences_owned(
           // Compute uses the same finite row/measurement profile as its
           // installed consumer. Acquisition keeps its independently selected
           // query guard; neither path obtains storage or an execution grant.
-          let value_bytes = if acquiring {
-            10000
+          let (value_bytes, semantic_work) = if acquiring {
+            (10000, 10000000L)
           } else {
-            let (values, _, measurement) = client_local_execution_limits()
-            Int::min(
-              client_local_import_limits_for_rows(
-                client_local_default_row_profile(),
-                values,
-              ).row.max_bytes,
-              measurement.max_bytes,
+            let (values, _, measurement) = client_local_execution_limits(
+              source_free_max_work~,
+            )
+            (
+              Int::min(
+                client_local_import_limits_for_rows(
+                  client_local_default_row_profile(),
+                  values,
+                ).row.max_bytes,
+                measurement.max_bytes,
+              ),
+              values.max_work.to_int64(),
             )
           }
           let logical : @lower.FragmentRowLimits = {
@@ -939,7 +961,9 @@ fn prepare_client_local_sequences_owned(
             } else {
               100000L
             },
-            max_work: 10000000L,
+            // Same selected value-weight allowance. The fragment still owns
+            // one cumulative semantic counter; provider control work is distinct.
+            max_work: semantic_work,
           }
           let ordered = @lower.kernel_body(kernel) is @lower.OrderedBindings(_)
           let request = match
@@ -976,14 +1000,28 @@ fn prepare_client_local_sequences_owned(
               contract,
               {
                 max_roots: 100,
-                max_nodes: 10000,
-                max_work: 100000,
-                max_text_bytes: 10000,
-                max_links: 10000,
+                max_nodes: physical.max_body_nodes,
+                max_work: preparation_work,
+                max_text_bytes: compilation_limits
+                .map(original => original.max_wire_bytes)
+                .unwrap_or(10000),
+                max_links: physical.max_body_nodes,
               },
               physical,
               logical,
               ordered=if ordered { ordered_contract } else { None },
+              // Preserve the existing runtime body profile independently of
+              // the wider same-Request artifact codec. The fixed constructor
+              // raises this floor to its actual checked Fragment extent.
+              runtime_body_floor=if compilation_limits is Some(_) {
+                Some({
+                  max_body_bytes: 100000,
+                  max_body_nodes: 10000,
+                  max_body_depth: 100,
+                })
+              } else {
+                None
+              },
             ) {
             Ok(value) => value
             Err(_) => return Err(Unsupported)
@@ -1005,8 +1043,8 @@ fn prepare_client_local_sequences_owned(
         sequence,
         contexts,
         [@lower.node_id(node)],
-        100000,
-        10000,
+        sequence_construction_work,
+        sequence_construction_entries,
       ).map_err(issue => {
         @publication_host.ClientTaskSequenceIssue::Generated(issue)
       })
@@ -1021,8 +1059,8 @@ fn prepare_client_local_sequences_owned(
         sequence,
         contexts,
         [@lower.node_id(node)],
-        100000,
-        10000,
+        sequence_construction_work,
+        sequence_construction_entries,
       ).map_err(issue => {
         @publication_host.ClientTaskSequenceIssue::Generated(issue)
       })
@@ -1035,8 +1073,8 @@ fn prepare_client_local_sequences_owned(
             contracts,
             contexts,
             client_local_owner_sequence_limits(prepared),
-            100000,
-            10000,
+            sequence_construction_work,
+            sequence_construction_entries,
             prepared_sequence=Some(sequence),
           )
         Effect(value) =>
@@ -1046,8 +1084,8 @@ fn prepare_client_local_sequences_owned(
             contracts,
             contexts,
             client_local_owner_sequence_limits(prepared),
-            100000,
-            10000,
+            sequence_construction_work,
+            sequence_construction_entries,
             prepared_sequence=Some(sequence),
           )
       }
@@ -1092,11 +1130,13 @@ fn prepare_client_local_sequences_owned(
         let bound = match prepared {
           Pure(value) =>
             @publication_host.bind_client_query_time_sequence(
-              value, task, sequence, original, request, 100000, 10000,
+              value, task, sequence, original, request, sequence_construction_work,
+              sequence_construction_entries,
             )
           Effect(value) =>
             @publication_host.bind_client_effect_query_time_sequence(
-              value, task, sequence, original, request, 100000, 10000,
+              value, task, sequence, original, request, sequence_construction_work,
+              sequence_construction_entries,
             )
         }
         match bound {

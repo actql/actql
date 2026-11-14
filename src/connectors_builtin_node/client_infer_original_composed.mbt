@@ -75,6 +75,7 @@ pub fn client_program_start_original_restored_composed_infer_execution(
   model_retained_bytes : Int64,
   model_execution_bytes : Int64,
   reference_issuer : @admitted.ReferenceIssuer?,
+  input_body_read : @publication_host.ClientModelReadPreparation?,
 ) -> Result[@infer_host.Execution, @infer_host.Issue] {
   @infer_host.start_original_restored_composed(
     occurrence,
@@ -95,6 +96,7 @@ pub fn client_program_start_original_restored_composed_infer_execution(
     model_retained_bytes,
     model_execution_bytes,
     reference_issuer?,
+    input_body_read~,
   )
 }
 
@@ -117,6 +119,7 @@ pub fn client_program_start_original_composed_infer_execution(
   model_retained_bytes : Int64,
   model_execution_bytes : Int64,
   sources : @publication_host.ClientInferComposedSources?,
+  input_body_read : @publication_host.ClientModelReadPreparation?,
 ) -> Result[@infer_host.Execution, @infer_host.Issue] {
   @infer_host.start_original_composed(
     occurrence,
@@ -133,5 +136,6 @@ pub fn client_program_start_original_composed_infer_execution(
     model_retained_bytes,
     model_execution_bytes,
     sources~,
+    input_body_read~,
   )
 }

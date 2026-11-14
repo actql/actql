@@ -512,6 +512,16 @@ function coldEffectReadFixture({failure} = {}) {
   return {f, run, view, read, savedScope, reads: () => reads, revoke() { current = false; }};
 }
 
+test('Effect Model publication requests its same original input body read without another preparation', () => {
+  const f = coldEffectReadFixture();
+  const prepared = f.view.prepareRead();
+  assert.strictEqual(prepared.read, f.read);
+  assert.strictEqual(prepared.inputBodyRead, f.read);
+  assert.equal(f.reads(), 1);
+  assert.throws(() => f.view.prepareRead(), {code: 'ForeignInstalledEffectModelScope'});
+  assert.equal(f.reads(), 1);
+});
+
 test('Effect Model cold read shares the same original parent scope and one-shot read with fresh preparation', () => {
   const f = coldEffectReadFixture();
   assert.throws(() => f.view.restoreRead({}), {code: 'InstalledEffectModelRuntimeUnavailable'});

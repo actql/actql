@@ -10,6 +10,11 @@ import sys
 import os
 import platform
 import shutil
+import signal
+import time
+import ast
+from unittest import mock
+from concurrent.futures import ThreadPoolExecutor
 
 SPEC = importlib.util.spec_from_file_location('remote_build', Path(__file__).with_name('produce-native-remote-scoped-runtime.py'))
 MODULE = importlib.util.module_from_spec(SPEC)
@@ -685,6 +690,226 @@ class LinuxBundleComposition(unittest.TestCase):
             self.assertIn('#define ACTQL_BUNDLE_STOCK_FILE_CONTROL_BYTES 4096\n', text)
             self.assertFalse(record['permission'])
             self.assertFalse(record['physicalAcquired'])
+
+class BuildProcessCustody(unittest.TestCase):
+    """Real short Python process trees, never a Native compiler or runtime."""
+
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.root = Path(self.directory.name)
+        self.addCleanup(self.stop_fixture)
+        self.script = self.root / 'original-build.py'
+        self.script.write_text('''import json, os, signal, subprocess, sys, time
+from pathlib import Path
+root=Path(sys.argv[1]); mode=sys.argv[2]
+descendant = """import json, os, signal, sys, time
+from pathlib import Path
+root=Path(sys.argv[1])
+signal.signal(signal.SIGTERM, signal.SIG_IGN)
+(root/'descendant.json').write_text(json.dumps({'pid':os.getpid(),'group':os.getpgrp()}))
+while not (root/'release').exists(): time.sleep(0.01)
+"""
+subprocess.Popen([sys.executable,'-c',descendant,str(root)])
+while not (root/'descendant.json').exists(): time.sleep(0.01)
+(root/'leader.json').write_text(json.dumps({'pid':os.getpid(),'group':os.getpgrp()}))
+if mode in ('leader-first','failed'): os._exit(7 if mode=='failed' else 0)
+signal.signal(signal.SIGTERM, signal.SIG_IGN)
+while True: signal.pause()
+''')
+
+    def stop_fixture(self):
+        # Only exact PIDs authored by this test; never its inherited group.
+        for name in ('descendant.json', 'leader.json'):
+            path = self.root / name
+            if path.exists():
+                try:
+                    os.kill(json.loads(path.read_text())['pid'], signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+
+    def exists(self, pid):
+        try:
+            os.kill(pid, 0)
+            return True
+        except ProcessLookupError:
+            return False
+
+    def wait_for(self, predicate):
+        deadline = time.monotonic() + 5
+        while not predicate():
+            self.assertLess(time.monotonic(), deadline, 'original fixture event unavailable')
+            time.sleep(0.01)
+
+    def run_build(self, mode, timeout=5):
+        command = [sys.executable, str(self.script), str(self.root), mode]
+        with (self.root / 'stdout').open('wb') as stdout, (self.root / 'stderr').open('wb') as stderr:
+            return MODULE._run_build_process(command, cwd=self.root, env=os.environ.copy(),
+                timeout=timeout, stdout=stdout, stderr=stderr, stop_grace_seconds=0.5)
+
+    def assert_original_stopped(self):
+        leader = json.loads((self.root / 'leader.json').read_text())
+        descendant = json.loads((self.root / 'descendant.json').read_text())
+        self.assertEqual(leader['group'], leader['pid'])
+        self.assertEqual(descendant['group'], leader['group'])
+        self.assertNotEqual(leader['group'], os.getpgrp())
+        self.assertFalse(self.exists(leader['pid']))
+        self.assertFalse(self.exists(descendant['pid']))
+
+    def test_success_keeps_original_arguments_environment_cwd_and_output(self):
+        script = "import json,os,sys; print(json.dumps([sys.argv[1:],os.getcwd(),os.environ['BUILD_FIXTURE'],os.getpid(),os.getpgrp()])); print('original stderr',file=sys.stderr)"
+        command = [sys.executable, '-c', script, 'literal argument']
+        before = {number: signal.getsignal(number) for number in (signal.SIGTERM, signal.SIGINT)}
+        with (self.root / 'stdout').open('wb') as stdout, (self.root / 'stderr').open('wb') as stderr:
+            result = MODULE._run_build_process(command, cwd=self.root,
+                env={**os.environ, 'BUILD_FIXTURE': 'same original'}, timeout=5,
+                stdout=stdout, stderr=stderr, stop_grace_seconds=0.5)
+        self.assertIs(result.args, command)
+        self.assertEqual(result.returncode, 0)
+        self.assertIsNone(result.stdout)
+        self.assertIsNone(result.stderr)
+        value = json.loads((self.root / 'stdout').read_text())
+        self.assertEqual(value[:3], [['literal argument'], str(self.root.resolve()), 'same original'])
+        self.assertEqual(value[3], value[4])
+        self.assertNotEqual(value[4], os.getpgrp())
+        self.assertEqual((self.root / 'stderr').read_text(), 'original stderr\n')
+        self.assertEqual(before, {number: signal.getsignal(number) for number in before})
+
+    def test_timeout_stops_original_term_resistant_descendants_and_stays_failed(self):
+        with self.assertRaises(subprocess.TimeoutExpired) as caught:
+            self.run_build('running', timeout=0.75)
+        self.assertEqual(caught.exception.timeout, 0.75)
+        self.assertEqual(caught.exception.cmd,
+            [sys.executable, str(self.script), str(self.root), 'running'])
+        self.assertFalse(caught.exception.build_cleanup_pending)
+        self.assert_original_stopped()
+
+    def test_leader_first_success_drains_original_descendant_before_return(self):
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            operation = executor.submit(self.run_build, 'leader-first')
+            try:
+                self.wait_for(lambda: (self.root / 'leader.json').exists() and
+                    not self.exists(json.loads((self.root / 'leader.json').read_text())['pid']))
+                self.assertFalse(operation.done(), 'zero leader exit is not descendant closure')
+            finally:
+                (self.root / 'release').touch()
+            self.assertEqual(operation.result(timeout=5).returncode, 0)
+        self.assert_original_stopped()
+
+    def test_zero_leader_exit_cannot_turn_descendant_timeout_into_success(self):
+        with self.assertRaises(subprocess.TimeoutExpired) as caught:
+            self.run_build('leader-first', timeout=0.75)
+        self.assertFalse(caught.exception.build_cleanup_pending)
+        self.assert_original_stopped()
+
+    def test_nonzero_build_keeps_cleanup_fault_as_secondary_diagnostic(self):
+        original = os.killpg
+
+        def refuse_term(group, requested):
+            if requested == signal.SIGTERM:
+                raise PermissionError('controlled original group stop refusal')
+            return original(group, requested)
+
+        try:
+            with mock.patch.object(MODULE.os, 'killpg', side_effect=refuse_term):
+                result = self.run_build('failed')
+            self.assertEqual(result.returncode, 7)
+            self.assertTrue(result.build_cleanup_pending)
+            self.assertEqual(result.build_cleanup_error, 'PermissionError')
+            self.assertTrue(self.exists(json.loads((self.root / 'descendant.json').read_text())['pid']))
+            # Execute the unchanged enclosing producer failure boundary itself,
+            # with this real original result. No Native constructor is run.
+            tree = ast.parse(Path(MODULE.__file__).read_text())
+            blocks = [node for node in ast.walk(tree) if isinstance(node, ast.If) and
+                      ast.unparse(node.test) == 'result.returncode' and any(
+                          isinstance(value, ast.Constant) and value.value ==
+                          'Ordinary Moon build failed; original stdout/stderr and C receipts retained'
+                          for value in ast.walk(node))]
+            self.assertEqual(len(blocks), 1)
+            boundary = ast.fix_missing_locations(ast.Module(body=blocks, type_ignores=[]))
+            with self.assertRaises(RuntimeError) as caught:
+                exec(compile(boundary, MODULE.__file__, 'exec'), {'result': result})
+            self.assertEqual(str(caught.exception),
+                'Ordinary Moon build failed; original stdout/stderr and C receipts retained')
+            self.assertIn('Original build process group cleanup remains unconfirmed', caught.exception.__notes__)
+            self.assertIn('Build group cleanup failed: PermissionError', caught.exception.__notes__)
+        finally:
+            path = self.root / 'leader.json'
+            if path.exists():
+                group = json.loads(path.read_text())['group']
+                self.assertNotEqual(group, os.getpgrp())
+                try:
+                    original(group, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                self.wait_for(lambda: not self.exists(
+                    json.loads((self.root / 'descendant.json').read_text())['pid']))
+        self.assertTrue(result.build_cleanup_pending, 'later test hygiene cannot rewrite the failed observation')
+
+    def interrupt_build(self, number, stop_fault=False):
+        module = Path(__file__).with_name('produce-native-remote-scoped-runtime.py')
+        worker = '''import importlib.util, os, sys, signal
+from pathlib import Path
+spec=importlib.util.spec_from_file_location('original_build',sys.argv[1])
+m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+root=Path(sys.argv[2])
+if sys.argv[3]=='stop-fault':
+ original=m.os.killpg
+ def refused(group,requested):
+  if requested!=0: raise PermissionError('controlled stop fault')
+  return original(group,requested)
+ m.os.killpg=refused
+with (root/'stdout').open('wb') as out,(root/'stderr').open('wb') as err:
+ m._run_build_process([sys.executable,str(root/'original-build.py'),str(root),'running'],cwd=root,env=os.environ.copy(),timeout=10,stdout=out,stderr=err,stop_grace_seconds=0.5)
+'''
+        child = subprocess.Popen([sys.executable, '-c', worker, str(module), str(self.root),
+                                  'stop-fault' if stop_fault else 'original'],
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        try:
+            self.wait_for(lambda: (self.root / 'leader.json').exists())
+            child.send_signal(number)
+            _, error = child.communicate(timeout=5)
+            self.assertEqual(child.returncode, -number, error)
+            if not stop_fault:
+                self.assert_original_stopped()
+            return error
+        finally:
+            if child.poll() is None:
+                child.kill()
+            child.communicate(timeout=5)
+
+    def test_sigterm_keeps_original_signal_after_stopping_its_build_group(self):
+        self.interrupt_build(signal.SIGTERM)
+
+    def test_sigint_keeps_original_interrupt_after_stopping_its_build_group(self):
+        self.interrupt_build(signal.SIGINT)
+
+    def test_sigterm_preserves_bounded_cleanup_fault_before_original_signal(self):
+        try:
+            error = self.interrupt_build(signal.SIGTERM, stop_fault=True)
+            prefix = b'ACTQL_NATIVE_BUILD_CLEANUP '
+            lines = [line for line in error.splitlines() if line.startswith(prefix)]
+            self.assertEqual(len(lines), 1)
+            self.assertLess(len(lines[0]), 512)
+            diagnostic = json.loads(lines[0][len(prefix):])
+            self.assertEqual(diagnostic, {'pending': True, 'signal': signal.SIGTERM,
+                                          'error': 'PermissionError'})
+            self.assertNotIn(str(self.root).encode(), lines[0])
+            self.assertTrue(self.exists(json.loads((self.root / 'descendant.json').read_text())['pid']))
+        finally:
+            path = self.root / 'leader.json'
+            if path.exists():
+                original = json.loads(path.read_text())
+                self.assertEqual(original['group'], original['pid'])
+                self.assertNotEqual(original['group'], os.getpgrp())
+                try:
+                    os.killpg(original['group'], signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                self.wait_for(lambda: not self.exists(
+                    json.loads((self.root / 'descendant.json').read_text())['pid']))
+        self.assertTrue(diagnostic['pending'], 'test hygiene cannot relabel the original uncertainty')
+
 
 if __name__ == '__main__':
     unittest.main()

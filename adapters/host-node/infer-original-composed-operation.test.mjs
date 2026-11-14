@@ -401,7 +401,9 @@ function originalRestoredFixture() {
 }
 
 test('original restored composed read uses its explicit cold port and same nominal original before saved input', async () => {
-  const f = originalRestoredFixture(), view = Object.freeze(f.originalPreparation);
+  const f = originalRestoredFixture();
+  f.originalPreparation.inputBodyRead = f.originalPreparation.read;
+  const view = Object.freeze(f.originalPreparation);
   let reads = 0;
   const original = {
     prepareRead() { assert.fail('saved input is never fresh preparation'); },
@@ -419,7 +421,7 @@ test('original restored composed read uses its explicit cold port and same nomin
   const expected = [f.occurrence, f.graph, f.prefix, f.provider,
     input.snapshot.binding, input.snapshot.descriptorWire, input.snapshot.rows,
     args[7], input.savedScope, f.rawCompiled, f.rawDefinition, f.consumer,
-    7n, 5n, 100n, 0n, undefined];
+    7n, 5n, 100n, 0n, undefined, view.read];
   sameArguments(args, expected);
   assert.equal(args[7](), true); input.token.available = false; assert.equal(args[7](), false);
   assert.strictEqual(component.operation().originalResourceScope(), view.scope);
@@ -431,6 +433,33 @@ function sameArguments(actual, expected) {
   assert.equal(actual.length, expected.length);
   actual.forEach((value, i) => assert.strictEqual(value, expected[i]));
 }
+
+test('original restored composed body Read omission keeps the legacy absent port', async () => {
+  const f = originalRestoredFixture();
+  const operation = openNodeInferOperation({...f.options, originalPreparation: undefined,
+    restoredPreparation: f.originalPreparation, restoredInput: f.restoredInput});
+  const args = f.calls.find(call => call[0] === 'restore').slice(1);
+  assert.equal(args.length, 18);
+  assert.equal(args[17], undefined);
+  assert.equal(Object.hasOwn(f.originalPreparation, 'inputBodyRead'), false);
+  await operation.close();
+  assert.equal(originalReadCleaned(f.originalPreparation.read), true);
+});
+
+test('original restored composed body Read refuses foreign DATA and accessors before claim', () => {
+  for (const accessor of [false, true]) {
+    const f = originalRestoredFixture(); let getters = 0;
+    Object.defineProperty(f.originalPreparation, 'inputBodyRead', accessor
+      ? {get() {getters++; return f.originalPreparation.read;}}
+      : {value: {...f.originalPreparation.read}});
+    assert.throws(() => openNodeInferOperation({...f.options, originalPreparation: undefined,
+      restoredPreparation: f.originalPreparation, restoredInput: f.restoredInput}),
+    {message: 'ForeignInferOriginalInputBodyRead'});
+    assert.equal(getters, 0);
+    assert.equal(f.calls.length, 0);
+    assert.equal(originalReadCleaned(f.originalPreparation.read), false);
+  }
+});
 
 test('original restored composed read refuses a fresh-only owner before issuing or claiming anything', () => {
   const f = originalRestoredFixture(); let reads = 0;

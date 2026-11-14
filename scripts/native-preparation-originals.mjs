@@ -2,8 +2,9 @@
 // capacity authority. A refusal never rebuilds or substitutes another artifact.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {lstatSync, readFileSync, realpathSync} from 'node:fs';
-import {isAbsolute, join} from 'node:path';
+import {execFileSync} from 'node:child_process';
+import {chmodSync, constants, copyFileSync, lstatSync, mkdirSync, readFileSync, realpathSync, writeFileSync} from 'node:fs';
+import {basename, dirname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 function data(path, item) {
@@ -100,6 +101,9 @@ export function preparedNativeCommand(root,entry,selected) {
   assert(['native_runtime_bundle','native_remote_resident_site'].includes(entry));
   const directory=join(canonical,entry),item=record.entries[entry];assert(item);
   if(entry==='native_remote_resident_site')assert(record.http,'Resident requires complete original HTTP preparation');
+  if(item.path===join(directory,'received.json')) {
+    return {kind:'received',binary:verifiedReceivedCommand(item,entry,selected)};
+  }
   assert.equal(item.path,join(directory,'build.json'));
   const body=json(item.path,item);
   assert.equal(body.source,selected.source);assert.equal(body.target,selected.target);
@@ -142,4 +146,242 @@ export function preparedNativeComponents(root,selected) {
     assert.equal(body[name].sha256,producer.library.sha256);
   }
   return directory;
+}
+
+const commandEntries=['native_runtime_bundle','native_remote_resident_site'];
+const digest=bytes=>({bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});
+const within=(path,root)=>path===root||path.startsWith(root+sep);
+function stableCommandInput(path,roots) {
+  assert(typeof path==='string'&&isAbsolute(path)&&resolve(path)===path);
+  if(path===roots.clang)return {role:'clang'};
+  const kind=['directory','repository','moon_home','sdk'].filter(key=>roots[key]!==null&&within(path,roots[key]))
+    .sort((a,b)=>roots[b].length-roots[a].length)[0];
+  const name=kind?relative(roots[kind],path).split(sep).join('/'):basename(path);
+  if(kind==='directory')return {kind,name};
+  if(kind==='repository'&&(name==='toolchain.json'||name==='moon.mod'||
+    name==='scripts/produce-native-remote-scoped-runtime.py'||
+    /^src\/cmd\/(?:native_runtime_bundle|native_remote_resident_site)\/initial_control_recipe(?:\.linux-x64)?\.json$/u.test(name)||
+    /^src\/.+\.(?:mbt|pkg|c|h|inc)$/u.test(name)||
+    /^packages\/python-local-runtime\/native\/pre-root\/.+\.(?:mi|core|c|h|inc|json|py|patch)$/u.test(name)))return {kind,name};
+  if(kind==='moon_home'&&(['installed.json','bin/moon','bin/moonc','lib/libmoonbitrun.o','lib/libbacktrace.a',
+    'lib/moonbit_simdutf.o','lib/simdutf.o'].includes(name)||
+    /^(?:include|lib\/runtime|lib\/core\/_build\/native\/release\/bundle)\/.+\.(?:mi|core|c|h|inc|json|py|patch)$/u.test(name)))return {kind,name};
+  if(kind==='sdk'&&name==='SDKSettings.json')return {kind,name};
+  if(!kind) {
+    if(/^python3(?:\.\d+)?$/u.test(name))return {role:'python'};
+    if(/^(?:[a-z0-9_]+-)*ar$/u.test(name))return {role:'ar'};
+    if(name==='libtool')return {role:'libtool'};
+  }
+  assert.fail('Unknown stable compiler input');
+}
+function commandSystemTool(role,target) {
+  assert(['python','ar','libtool'].includes(role));
+  if(target==='darwin-arm64'&&role!=='python')return realpathSync('/Library/Developer/CommandLineTools/usr/bin/'+role);
+  const name=role==='python'?'python3':role;
+  return realpathSync(execFileSync('/bin/sh',['-c','command -v '+name],{encoding:'utf8',timeout:5000}).trim());
+}
+function commandContext(entry,selected) {
+  assert(commandEntries.includes(entry),'Closed compiled command entry required');
+  assert.match(selected.source,/^[0-9a-f]{40}$/u);
+  assert(['darwin-arm64','linux-x64'].includes(selected.target));
+  return {repository:realpathSync(selected.repository),moon_home:realpathSync(selected.moon_home),
+    clang:realpathSync(selected.clang),sdk:selected.sdk===undefined?null:realpathSync(selected.sdk)};
+}
+function commandBody(body,entry,selected,directory) {
+  for(const key of ['source','target'])assert.equal(body[key],selected[key]);
+  assert.equal(body.entry,'src/cmd/'+entry);assert.equal(body.plan_only,false);
+  assert.equal(body.moon_build_exit,0);assert.equal(body.providers,1);assert.equal(body.core_modules,1);
+  assert.equal(body.compiler_backend,'pinned ordinary C (MOONBIT_NEW_NATIVE=0)');
+  assert.equal(body.compiler_profile,'ordinary Moon --release --strip');
+  assert.equal(body.installed_supplier,false);assert.equal(body.normal_profile,null);
+  assert.equal(body.runtime_cases,0);assert.equal(body.public_e2e,0);
+  for(const key of ['commands_completed','completed_c_steps'])assert(Number.isSafeInteger(body[key])&&body[key]>0);
+  assert.equal(body.executable.path,join(directory,'emission/native/release/build/cmd',entry,entry+'.exe'));
+  assert.equal(body.generated_c.path,body.executable.path.slice(0,-4)+'.c');
+}
+function checkedCommandFiles(body,inputs,commands,read,directory) {
+  assert(Array.isArray(inputs)&&inputs.length>0);assert(Array.isArray(commands));
+  assert.equal(commands.length,body.commands_completed);
+  assert.equal(new Set(inputs.map(x=>x.path)).size,inputs.length,'Duplicate original compiler input');
+  const planItem=inputs.find(x=>x.path===join(directory,'cc-plan.json'));assert(planItem);
+  const plan=JSON.parse(read(planItem).toString('utf8'));
+  assert(Array.isArray(plan.steps)&&plan.steps.length===body.completed_c_steps);
+  const outputs=[body.executable,body.generated_c];
+  for(const item of plan.allocator_inputs) {
+    const sourceInput=inputs.find(x=>x.path===item.path);
+    if(sourceInput)assert.deepEqual(sourceInput,item);
+    else {
+      assert(isAbsolute(item.path)&&resolve(item.path)===item.path&&within(item.path,directory));
+      read(item);outputs.push(item);
+    }
+  }
+  for(const step of plan.steps) {
+    assert(commands.some(x=>JSON.stringify(x)===JSON.stringify(step.selected)));
+    assert(isAbsolute(step.receipt)&&resolve(step.receipt)===step.receipt&&within(step.receipt,directory));
+    const receiptBytes=read({path:step.receipt});
+    const receipt=JSON.parse(receiptBytes.toString('utf8'));
+    assert.equal(receipt.exit,0);assert.deepEqual(receipt.selected,step.selected);
+    outputs.push({path:step.receipt,...digest(receiptBytes)},receipt.output);
+  }
+  return outputs;
+}
+
+// An inert command image, not a prepared Host. Origin receipts retain their
+// literal producer paths; only this bounded transport inventory is relocatable.
+export function exportNativeCompiledCommand(directory,destination,entry,selected) {
+  const roots={...commandContext(entry,selected),directory:realpathSync(directory)};
+  const body=json(join(directory,'build.json')),inputs=json(join(directory,'inputs.json'));
+  const commands=json(join(directory,'commands.json'));
+  commandBody(body,entry,selected,roots.directory);
+  for(const item of inputs) {
+    const shape=stableCommandInput(item.path,roots);
+    if(shape.role&&shape.role!=='clang')assert.equal(realpathSync(item.path),
+      (selected.systemTool??commandSystemTool)(shape.role,selected.target));
+    verifyOriginal(item);
+  }
+  const outputs=checkedCommandFiles(body,inputs,commands,item=>data(item.path,item.sha256===undefined?undefined:item),roots.directory);
+  const members=new Map();
+  for(const item of [...inputs.filter(x=>within(x.path,roots.directory)),...outputs]) {
+    assert(isAbsolute(item.path)&&resolve(item.path)===item.path&&within(item.path,roots.directory));verifyOriginal(item);
+    if(members.has(item.path))assert.deepEqual(members.get(item.path),item);
+    else members.set(item.path,item);
+  }
+  const executable=lstatSync(body.executable.path);assert((executable.mode&0o111)!==0);
+  mkdirSync(destination,{mode:0o700});mkdirSync(join(destination,'members'),{mode:0o700});
+  const transfer=(from,file,item)=>{
+    copyFileSync(from,join(destination,file),constants.COPYFILE_EXCL);
+    return {file,...digest(data(join(destination,file),item))};
+  };
+  const record={kind:'native-compiled-command-input',source:selected.source,target:selected.target,entry,roots,
+    receipt:transfer(join(directory,'build.json'),'origin-build.json'),
+    inputs:transfer(join(directory,'inputs.json'),'origin-inputs.json'),
+    commands:transfer(join(directory,'commands.json'),'origin-commands.json'),members:[]};
+  for(const [index,item] of [...members.values()].entries()) {
+    const file='members/'+String(index).padStart(6,'0');
+    transfer(item.path,file,item);record.members.push({file,original:item});
+  }
+  for(const item of inputs)verifyOriginal(item);
+  const path=join(destination,'command.json');writeFileSync(path,JSON.stringify(record)+'\n',{flag:'wx',mode:0o600});
+  return originalDescriptor(path);
+}
+
+function checkedCompiledInput(input,entry,selected,{seconds=600,readData=data}={}) {
+  assert(Number.isSafeInteger(seconds)&&seconds>0&&seconds<=1800);
+  const deadline=performance.now()+seconds*1000;
+  const check=()=>assert(performance.now()<deadline,'Original compiled-input verification budget exhausted');
+  const current=commandContext(entry,selected),record=JSON.parse(readData(input.path,input));
+  assert.deepEqual(Object.keys(record).sort(),['commands','entry','inputs','kind','members','receipt','roots','source','target']);
+  assert.equal(record.kind,'native-compiled-command-input');assert.equal(record.entry,entry);
+  for(const key of ['source','target'])assert.equal(record[key],selected[key]);
+  assert.deepEqual(Object.keys(record.roots).sort(),['clang','directory','moon_home','repository','sdk']);
+  for(const path of Object.values(record.roots).filter(x=>x!==null))assert(isAbsolute(path)&&resolve(path)===path);
+  const artifact=realpathSync(dirname(input.path));
+  const readNamed=(item,name)=>{
+    check();assert.equal(item.file,name);const bytes=readData(join(artifact,name),item);check();return bytes;
+  };
+  const receiptBytes=readNamed(record.receipt,'origin-build.json');
+  const body=JSON.parse(receiptBytes),inputs=JSON.parse(readNamed(record.inputs,'origin-inputs.json'));
+  const commands=JSON.parse(readNamed(record.commands,'origin-commands.json'));
+  commandBody(body,entry,selected,record.roots.directory);
+  assert(Array.isArray(record.members));
+  const members=new Map();
+  for(const [index,item] of record.members.entries()) {
+    check();
+    assert.equal(item.file,'members/'+String(index).padStart(6,'0'));
+    assert(isAbsolute(item.original.path)&&resolve(item.original.path)===item.original.path&&within(item.original.path,record.roots.directory));
+    assert(!members.has(item.original.path));
+    readData(join(artifact,item.file),item.original);members.set(item.original.path,item);
+  }
+  const staticInputs=[],tools=[];
+  const read=item=>{
+    check();const shape=stableCommandInput(item.path,record.roots);
+    if(shape.kind==='directory') {
+      const member=members.get(item.path);assert(member,'Missing original generated compiler input');
+      if(item.sha256!==undefined)assert.deepEqual(member.original,item);
+      return readData(join(artifact,member.file),member.original);
+    }
+    const path=shape.role==='clang'?current.clang:shape.role
+      ?(selected.systemTool??commandSystemTool)(shape.role,selected.target):join(current[shape.kind],shape.name);
+    assert(isAbsolute(path)&&realpathSync(path)===path);
+    if(shape.role&&shape.role!=='clang')tools.push({role:shape.role,path});
+    staticInputs.push({path,bytes:item.bytes,sha256:item.sha256});
+    return readData(path,item);
+  };
+  for(const item of inputs)read(item);
+  const outputs=checkedCommandFiles(body,inputs,commands,read,record.roots.directory);
+  const expected=new Map();
+  for(const item of [...inputs.filter(x=>within(x.path,record.roots.directory)),...outputs]) {
+    if(expected.has(item.path))assert.deepEqual(expected.get(item.path),item,'Conflicting original compiler output');
+    expected.set(item.path,item);
+  }
+  assert.equal(expected.size,members.size);
+  for(const [path,item] of expected)assert.deepEqual(members.get(path)?.original,item);
+  return {artifact,members,body,staticInputs,tools,check};
+}
+
+export function receiveNativeCompiledCommand(input,destination,entry,selected,{seconds=600}={}) {
+  const {artifact,members,body,staticInputs,check}=checkedCompiledInput(input,entry,selected,{seconds});
+  // Publication starts only after the complete selected source/tool/ABI and
+  // successful original compiler closure has been checked. No old inode is used.
+  check();mkdirSync(destination,{mode:0o700});
+  const binary=join(destination,'received-command.exe');
+  copyFileSync(join(artifact,members.get(body.executable.path).file),binary,constants.COPYFILE_EXCL);
+  chmodSync(binary,0o700);data(binary,body.executable);
+  for(const item of staticInputs)verifyOriginal(item);
+  check();
+  const stat=lstatSync(binary,{bigint:true});
+  const binding={kind:'received-native-command',source:selected.source,target:selected.target,entry,
+    originInput:{...input},executable:{...originalDescriptor(binary),
+      dev:String(stat.dev),ino:String(stat.ino),mode:String(stat.mode)}};
+  writeFileSync(join(destination,'received.json'),JSON.stringify(binding)+'\n',{flag:'wx',mode:0o600});
+  return binary;
+}
+
+// One current received preparation scope, not a history or authority cache.
+// A new process starts empty. Every original physical input must remain exact;
+// mutation invalidates the scope and takes the complete verification path.
+let receivedScope;
+const physicalFields=['dev','ino','size','mode','mtimeNs','ctimeNs'];
+function physical(path) {
+  const stat=lstatSync(path,{bigint:true});
+  assert(stat.isFile()&&!stat.isSymbolicLink());
+  return {path:realpathSync(path),...Object.fromEntries(physicalFields.map(key=>[key,stat[key]]))};
+}
+function samePhysical(path,original) {
+  const current=physical(path);
+  assert.equal(current.path,original.path);
+  for(const key of physicalFields)assert.equal(current[key],original[key]);
+}
+function verifiedReceivedCommand(item,entry,selected) {
+  const context=commandContext(entry,selected);
+  const key=JSON.stringify({item,entry,source:selected.source,target:selected.target,context});
+  if(receivedScope?.key===key&&receivedScope.systemTool===selected.systemTool) {
+    try {
+      for(const [path,original] of receivedScope.facts)samePhysical(path,original);
+      for(const {role,path} of receivedScope.tools)assert.equal(
+        (selected.systemTool??commandSystemTool)(role,selected.target),path);
+      return receivedScope.binary;
+    } catch { receivedScope=undefined; }
+  }
+  receivedScope=undefined;
+  const facts=new Map();
+  const readData=(path,expected)=>{
+    const before=physical(path),bytes=data(path,expected);samePhysical(path,before);
+    if(facts.has(path))samePhysical(path,facts.get(path));else facts.set(path,before);
+    return bytes;
+  };
+  const binding=JSON.parse(readData(item.path,item));
+  assert.deepEqual(Object.keys(binding).sort(),['entry','executable','kind','originInput','source','target']);
+  assert.equal(binding.kind,'received-native-command');assert.equal(binding.entry,entry);
+  for(const key of ['source','target'])assert.equal(binding[key],selected[key]);
+  const {body,tools}=checkedCompiledInput(binding.originInput,entry,selected,{readData});
+  const binary=join(dirname(item.path),'received-command.exe');
+  assert.equal(binding.executable.path,binary);
+  assert.equal(binding.executable.bytes,body.executable.bytes);
+  assert.equal(binding.executable.sha256,body.executable.sha256);
+  readData(binary,binding.executable);
+  assert((lstatSync(binary).mode&0o111)!==0);
+  for(const [path,original] of facts)samePhysical(path,original);
+  receivedScope={key,systemTool:selected.systemTool,facts,tools,binary};
+  return binary;
 }

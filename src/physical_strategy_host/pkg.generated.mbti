@@ -63,7 +63,11 @@ pub fn bind_captured_effect_command_key_workspace(CapturedEffectCommandKeyValida
 
 pub fn bind_captured_effect_command_target(CapturedEffectInputs, Int, @check_environment.StoreCommandBinding, @value_admission.CheckedValue, Int) -> Result[CapturedEffectCommandTarget, CapturedEffectProposalIssue]
 
+pub fn bind_captured_effect_completed_keyed_input(CapturedEffectRunDAG, Int, Int, @execution_relation.SuppliedRelationRead) -> Result[Unit, RunIssue]
+
 pub fn[T] bind_captured_effect_local_result_managed_export(CapturedEffectInputs, Int, @execution_relation.ManagedCompletedOutput[T], @execution_relation.ManagedPublicationBridge[T], @execution_relation.CompletedResultRelationExportPreparation) -> Result[CapturedEffectLocalResultExport, CapturedEffectLocalResultExportIssue]
+
+pub fn[T] bind_captured_effect_local_unit_result_managed_export(CapturedEffectLocalUnitInputs, Int, @execution_relation.ManagedCompletedOutput[T], @execution_relation.ManagedPublicationBridge[T], @execution_relation.CompletedResultRelationExportPreparation) -> Result[CapturedEffectLocalResultExport, CapturedEffectLocalResultExportIssue]
 
 pub fn bind_captured_effect_preview_inputs(CapturedEffectRunDAG, CapturedEffectInputs, @effect_program_binding.EffectProgramRunPreview, Int) -> Result[CapturedEffectPreviewInputs, RunIssue]
 
@@ -133,6 +137,8 @@ pub fn captured_dag_ledger(CapturedDAG) -> @physical_resources.Ledger
 
 pub fn captured_dag_strategy(CapturedDAG) -> StrategyRevision?
 
+pub fn captured_effect_apply_preflight_target_version_changed(CapturedEffectApplyPreflightIssue) -> Bool
+
 pub fn captured_effect_checked_proposal_row_available(CapturedEffectCheckedProposalRow) -> Bool
 
 pub fn captured_effect_checked_proposal_row_field_at(CapturedEffectCheckedProposalRow, Int) -> (String, @value_admission.CheckedValue)?
@@ -185,6 +191,8 @@ pub fn captured_effect_inputs_share_view(CapturedEffectInputs, Int, Int) -> Bool
 
 pub fn captured_effect_inputs_shared_capacity_current(CapturedEffectInputs, @physical_resources.SharedCapacity) -> Bool
 
+pub fn captured_effect_keyed_prefix_input_matches(CapturedEffectRunDAG, Int, Int, Int, @execution_relation.ProducerRead) -> Bool
+
 pub fn captured_effect_local_result_at(CapturedEffectInputs, Int) -> CapturedEffectLocalResult?
 
 pub fn captured_effect_local_result_borrow(CapturedEffectLocalResult) -> CapturedAnyResultBorrow
@@ -217,6 +225,8 @@ pub fn captured_effect_local_unit_acquired_source_matches(CapturedEffectLocalUni
 
 pub fn captured_effect_local_unit_inputs_match_computation(CapturedEffectLocalUnitInputs, @physical_strategy.CheckedEffectComputationDAG) -> Bool
 
+pub fn captured_effect_local_unit_inputs_match_inputs(CapturedEffectLocalUnitInputs, CapturedEffectInputs) -> Bool
+
 pub fn captured_effect_local_unit_inputs_match_run(CapturedEffectLocalUnitInputs, CapturedEffectRunDAG) -> Bool
 
 pub fn captured_effect_local_unit_inputs_run_definition_cid(CapturedEffectLocalUnitInputs) -> String?
@@ -225,9 +235,15 @@ pub fn captured_effect_local_unit_result_at(CapturedEffectLocalUnitInputs, Int) 
 
 pub fn captured_effect_local_unit_result_count(CapturedEffectLocalUnitInputs) -> Int
 
+pub fn captured_effect_local_unit_result_export_matches_model_suffix(CapturedEffectLocalResultExport, CapturedEffectLocalUnitInputs, @physical_strategy.CheckedEffectComputationDAG, Int, Int, @execution_relation.CompletedOutput, @execution_relation.CompletedRelationExportReceipt) -> Bool
+
 pub fn captured_effect_local_unit_result_export_matches_receipt(CapturedEffectLocalUnitInputs, CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt) -> Bool
 
+pub fn captured_effect_local_unit_result_export_retained(CapturedEffectLocalUnitInputs, CapturedEffectLocalResultExport) -> Bool
+
 pub fn captured_effect_local_unit_result_matches_source(CapturedEffectLocalUnitInputs, CapturedEffectLocalResult, @execution_query.CapturedSourceRelationIdentity) -> Bool
+
+pub fn captured_effect_local_unit_source_ancestor_matches(CapturedEffectLocalUnitInputs, Int, @execution_query.CapturedSourceRelationIdentity) -> Bool
 
 pub fn captured_effect_plan_proof_matches(CapturedEffectPlanProof, CapturedEffectPreviewInputs, Int) -> Bool
 
@@ -313,7 +329,11 @@ pub fn captured_next_managed_producer(CapturedDAG) -> Int?
 
 pub fn captured_next_managed_producers(CapturedDAG) -> Array[Int]
 
+pub fn captured_next_task_has_prepared_input(CapturedDAG, Int) -> Bool
+
 pub fn captured_output_pin_materialized(CapturedOutputPin) -> @execution_relation.CompletedOutput
+
+pub fn captured_pending_task_input_output(CapturedDAG, Int, Int) -> @execution_relation.CompletedOutput?
 
 pub fn captured_releasable_managed_producers(CapturedDAG) -> Array[Int]
 
@@ -645,7 +665,7 @@ pub fn open_source_input_dag(@physical_strategy.CheckedDAG, @execution_query.Cap
 
 pub fn open_source_inputs_dag(@physical_strategy.CheckedDAG, Array[@execution_query.CapturedInputSource], @physical_resources.Ledger) -> Result[CapturedDAG, RunIssue]
 
-pub fn open_source_inputs_effect_run_dag(@physical_strategy.CheckedEffectRunDAG, @physical_strategy.CheckedDAG, Array[@execution_query.CapturedInputSource], @physical_resources.Ledger, keyed? : (Int, Int, @execution_relation.SuppliedRelationRead)?, models? : Array[(Int, Int, @execution_relation.CompletedOutput)], source_results? : Array[(Int, @execution_relation.GeneratedSequence, Array[(Int, Int, @execution_relation.ProducerRead)], @execution_relation.CompletedSegmentInputs)]) -> Result[CapturedEffectRunDAG, RunIssue]
+pub fn open_source_inputs_effect_run_dag(@physical_strategy.CheckedEffectRunDAG, @physical_strategy.CheckedDAG, Array[@execution_query.CapturedInputSource], @physical_resources.Ledger, keyed? : (Int, Int, @execution_relation.SuppliedRelationRead)?, models? : Array[(Int, Int, @execution_relation.CompletedOutput)], deferred_keyed? : (Int, Int)?, source_results? : Array[(Int, @execution_relation.GeneratedSequence, Array[(Int, Int, @execution_relation.ProducerRead)], @execution_relation.CompletedSegmentInputs)]) -> Result[CapturedEffectRunDAG, RunIssue]
 
 pub fn operational_candidate_positions(PolicyCandidateSet) -> Result[Array[Int], SearchIssue]
 
@@ -847,6 +867,8 @@ pub fn resident_task_offer(CapturedDAG, TaskOffer, ResidentProfile, Int64) -> Re
 
 pub fn retain_captured_effect_command_key_validation(CapturedEffectCommandKeyValidation) -> Result[Unit, CapturedEffectCommandKeyIssue]
 
+pub fn retain_captured_effect_local_unit_result_pending_inputs(CapturedEffectLocalResultExport, Int, Int) -> Result[Unit, CapturedEffectLocalResultExportIssue]
+
 pub fn retain_captured_task_allocation(CapturedDAG, Int, @physical_resources.Holding, release_confirmed? : () -> Bool) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn retain_task_execution_allocation(CapturedDAG, TaskExecution, Int64) -> Result[TaskRetainedAllocation, @physical_resources.LedgerIssue]
@@ -890,6 +912,8 @@ pub fn shared_work_duration(SharedWorkEstimate) -> @physical_cost.DurationEstima
 pub fn source_input_dag_matches_read(CapturedDAG, @execution_relation.SuppliedRelationRead) -> Bool
 
 pub fn source_input_dag_matches_read_at(CapturedDAG, @execution_relation.SuppliedRelationRead, Int) -> Bool
+
+pub fn source_input_dag_retains_completed_read_at(CapturedDAG, @execution_relation.SuppliedRelationRead, Int) -> Bool
 
 pub fn source_inputs_dag_matches_original(@physical_strategy.CheckedDAG, @physical_strategy.CheckedDAG) -> Bool
 

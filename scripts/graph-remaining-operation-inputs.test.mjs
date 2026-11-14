@@ -120,7 +120,7 @@ test('combined Graph selection stays narrow and rereads after both producers exi
   assert.equal(last.argument, null, 'cold reread completes before returning from this narrow mode');
   const corpus = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
   assert.ok(corpus.includes('graphRemainingOperationsOnly ? graphRemainingOperationInputs'));
-  assert.ok(corpus.includes('graphRemainingOperationCohortInputs(scopeInputs).flatMap(publicQueryCohorts)'));
+  assert.ok(corpus.includes('graphRemainingOperationCohortInputs(profile.inputs).flatMap(publicQueryCohorts)'));
   assert.ok(corpus.includes('saved.expectedSampleNames = [...boundaryNames]'));
   assert.ok(corpus.includes('cohort.samples.map(sample => sample.source.name), cohort.expectedSampleNames'));
   const reader = await readFile(new URL('./fixtures/string-values-restart.mjs', import.meta.url), 'utf8');

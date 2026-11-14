@@ -296,3 +296,155 @@ test "completed Request check projects original success before compiler and keep
     is Ok(None),
   )
 }
+
+///|
+test "structural Request projection keeps the current fence and rejects callback reentry" {
+  let action : Ref[(() -> Unit)?] = Ref(None)
+  let calls = Ref(0)
+  let input = [1]
+  let parent = begin_request_preparation(
+    request_parent_fixture(input, current=() => {
+      calls.val += 1
+      if action.val is Some(run) {
+        run()
+      }
+      true
+    }),
+    input,
+    client_local_resource_policy(),
+  ).unwrap()
+  let document = "{\"version\":\"actql/0.1\",\"id\":\"original\"}"
+  reserve_request_snapshot(parent, input, 1000L, 1000L).unwrap()
+  let (environment, publication) = request_query_publication_fixture()
+  let terminal = match
+    prepare_request_native_computation(
+      parent,
+      input,
+      request_native_test_value(document),
+      native_json_reader,
+      environment,
+      publication,
+      [],
+      @publication_host.client_standard_program_preparation_limits(),
+      @publication_host.client_standard_effect_computation_limits(),
+    ) {
+    Err(issue) => issue
+    Ok(_) => fail("the original malformed Program must reject")
+  }
+  let child = parent.program_json.unwrap()
+  let original = child.structural_issue.unwrap()
+  let indexed = child.indexed.unwrap()
+  let wire = "{\"environmentCid\":\"" +
+    @checked.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}"
+  let project = () => {
+    project_request_check_outcome(
+      parent,
+      input,
+      terminal,
+      wire,
+      "ctx:" + "a".repeat(64),
+      "program",
+      "rev:" + "b".repeat(64),
+      document.length(),
+      None,
+      0,
+      None,
+      0,
+      "corr:" + "c".repeat(32),
+      None,
+    )
+  }
+  let flags = Ref(0)
+  action.val = Some(() => {
+    if abort_request_preparation_after_cleanup(parent) is Err(WrongPhase) {
+      flags.val += 1
+    }
+    if clear_program_json_preparation(child) is Err(WrongPhase) {
+      flags.val += 2
+    }
+    if project() is Err(WrongPhase) {
+      flags.val += 4
+    }
+  })
+  let before = @resources.ledger_usage(parent.ledger)
+  let previous_calls = calls.val
+  let report = project().unwrap().unwrap()
+  action.val = None
+  assert_eq(flags.val, 7)
+  assert_eq(calls.val - previous_calls, 1)
+  assert_true(report.contains("\"issue\":\"missing_field\""))
+  assert_true(report.contains("\"pointer\":\"\""))
+  assert_true(physical_equal(child.structural_issue.unwrap(), original))
+  assert_true(physical_equal(child.indexed.unwrap(), indexed))
+  assert_true(
+    parent.phase == ProgramJson && child.phase == Failed && !child.busy,
+  )
+  let after = @resources.ledger_usage(parent.ledger)
+  assert_eq(after.planning_work, before.planning_work)
+  assert_true(after.reserved_retention_bytes > before.reserved_retention_bytes)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_true(child.structural_issue is None && child.indexed is None)
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "structural Request report workspace excludes unrelated Program string values" {
+  let deltas : Array[Int64] = []
+  for size in [1, 8192] {
+    let input = [size]
+    let parent = begin_request_preparation(
+      request_parent_fixture(input),
+      input,
+      client_local_resource_policy(),
+    ).unwrap()
+    let document = "{\"version\":\"actql/0.1\",\"id\":\"original\",\"unused\":\"" +
+      "x".repeat(size) +
+      "\"}"
+    reserve_request_snapshot(parent, input, 100000L, 100000L).unwrap()
+    let (environment, publication) = request_query_publication_fixture()
+    let terminal = match
+      prepare_request_native_computation(
+        parent,
+        input,
+        request_native_test_value(document),
+        native_json_reader,
+        environment,
+        publication,
+        [],
+        @publication_host.client_standard_program_preparation_limits(),
+        @publication_host.client_standard_effect_computation_limits(),
+      ) {
+      Err(issue) => issue
+      Ok(_) => fail("the same missing stages must reject")
+    }
+    let before = @resources.ledger_usage(parent.ledger).reserved_retention_bytes
+    let report = project_request_check_outcome(
+        parent,
+        input,
+        terminal,
+        "{\"environmentCid\":\"" +
+        @checked.checking_environment_cid(environment) +
+        "\",\"aliases\":[]}",
+        "ctx:" + "a".repeat(64),
+        "program",
+        "rev:" + "b".repeat(64),
+        document.length(),
+        None,
+        0,
+        None,
+        0,
+        "corr:" + "c".repeat(32),
+        None,
+      )
+      .unwrap()
+      .unwrap()
+    assert_true(report.contains("program_structure_invalid"))
+    deltas.push(
+      @resources.ledger_usage(parent.ledger).reserved_retention_bytes - before,
+    )
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+  assert_eq(deltas[0], deltas[1])
+}

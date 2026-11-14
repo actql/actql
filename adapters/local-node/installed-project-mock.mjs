@@ -549,6 +549,16 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       }
       const fileSuppliers = new Map(original.fileBindings.map(binding => {
         const physical = original.physical.find(value => value.resource === binding.data_resource);
+        const contentView = declared.views.find(view => view.resource === binding.content_resource);
+        const matches = moon.clientProgramRowSourceFileReadProfileMatches;
+        if (contentView === undefined || typeof matches !== 'function' ||
+            Reflect.apply(matches, moon, [declaration, contentView.source_ref,
+              physical.declaration, physical.resource, binding.identity_field,
+              binding.name_field, binding.version_field, binding.media_type_field,
+              binding.content_utf8_field, binding.path_field,
+              physical.itemsPath, physical.keyPath]) !== true) {
+          fail('InstalledMockPhysicalBindingUnavailable');
+        }
         const supplier = createFixtureFileSupplier({moon, physical,
           fields: {identity: binding.identity_field, name: binding.name_field, version: binding.version_field,
             mediaType: binding.media_type_field, contentUtf8: binding.content_utf8_field,
@@ -732,6 +742,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     const environmentWire = environmentOriginal.wire;
     current();
     return Object.freeze({realizationKey: mockRealization, environmentWire, environmentOriginal,
+      fileReadDeclarations: bundle.catalog.fileReadDeclarations,
       sources: Object.freeze(sources),
       mockWritableSource: bundle.writable === undefined ? undefined
         : sources[bundle.sources.indexOf(bundle.writable.source)],

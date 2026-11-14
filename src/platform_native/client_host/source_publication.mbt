@@ -7,6 +7,10 @@ pub(all) enum NativeClientSourcePublicationIssue {
   Service(@native_publication.NativeRunPublicationIssue)
   OriginalNormalizationMissing
   Normalization(@host.ClientLocalNormalizationIssue)
+  CapturedPublication(
+    @native_publication.NativeCapturedRunPublicationPreparationIssue
+  )
+  Policy(NativeClientRunJournalIssue)
 }
 
 ///|

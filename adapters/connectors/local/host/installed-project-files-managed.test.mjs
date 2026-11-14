@@ -56,15 +56,22 @@ async function fixture({pendingClose = false, currentAfterRead = true, closeGate
     clientProgramInstalledManagedRunCheck: () => ok(),
     clientProgramInstalledSourceReadRetire() {calls.push('core-read-retire'); return ok();},
   };
-  const raw = {retainChild() {assert.fail('No Native constructor selected');},
-    close() {assert.strictEqual(this, raw); calls.push('same-raw-close');
-      return closeGate === undefined ? {pending: !closeAllowed} : closeGate.then(() => ({pending: !closeAllowed}));}};
+  const newRaw = () => {
+    const raw = {retainChild() {assert.fail('No Native constructor selected');},
+      close() {assert.strictEqual(this, raw); calls.push('same-raw-close');
+        return closeGate === undefined ? {pending: !closeAllowed} : closeGate.then(() => ({pending: !closeAllowed}));}};
+    return raw;
+  };
   const sourceManaged = {assertCurrent() {if (!valid) throw new Error('OriginalProjectSourceChanged');},
     prepareRun() {calls.push('legacy-root'); return oldOriginal;},
-    prepareRead(owner, selected, parent, occurrence) {
+    prepareRead(owner, selected, parent, occurrence, intent) {
       assert.strictEqual(owner, prepared); assert.strictEqual(selected, declaration);
-      assert.strictEqual(parent, managed); assert.equal(occurrence.stage, 0);
-      calls.push('same-native-parent'); valid = currentAfterRead; return raw;
+      assert.strictEqual(parent, managed); assert.strictEqual(intent, request);
+      assert.equal(occurrence.stage, 0);
+      assert.equal(occurrence.input, occurrence.task);
+      assert.equal(occurrence.computeTask ?? occurrence.task, 0);
+      assert(occurrence.task < 2);
+      calls.push('same-native-parent'); valid = currentAfterRead; return newRaw();
     }};
   let profile;
   const install = factory(createHash, canonicalJson, checked, runtimeOptionalField, readFile, moduleUrl,
@@ -78,9 +85,9 @@ async function fixture({pendingClose = false, currentAfterRead = true, closeGate
       assert.strictEqual(originalProfile, profile); assert.strictEqual(invocation, expectedInvocation); calls.push('same-host-parent'); return managed;
     }});
   return {profile, prepared, request, managed, declaration, calls, get options() {return options;},
-    allowClose() {closeAllowed = true;}, prepareRead(originalRead = {}) {
+    allowClose() {closeAllowed = true;}, prepareRead(originalRead = {}, occurrence = {stage: 0, input: 0, task: 0}) {
       return options.prepareSourceRead({checkedOwner: prepared, effectful: false, declaration,
-        occurrence: {stage: 0, input: 0, task: 0}, managedRun: managed, originalRead});
+        occurrence, managedRun: managed, originalRead, requestIdentity: request});
     }};
 }
 
@@ -106,6 +113,38 @@ test('Local planned read keeps the same Core tuple and closes only its original 
   assert.deepEqual(await f.options.closeSourceRead(original), {pending: false});
   await f.profile.close();
   assert.deepEqual(f.calls, ['same-host-parent', 'same-native-parent', 'same-raw-close']);
+});
+
+test('Local planned second input keeps its distinct Source slot in the same Unit and parent', async () => {
+  const f = await fixture(); f.profile.prepareManagedRun({preparedProgram: f.prepared, requestIdentity: f.request});
+  const first = {}, second = {};
+  const firstTuple = {stage: 0, input: 0, task: 0, computeTask: 0};
+  const secondTuple = {stage: 0, input: 1, task: 1, computeTask: 0};
+  assert.strictEqual(f.prepareRead(first, firstTuple), first);
+  assert.strictEqual(f.prepareRead(second, secondTuple), second);
+  assert.throws(() => f.prepareRead({}, secondTuple), {code: 'LocalFilesSourcePreparationMismatch'});
+  assert.deepEqual(await f.options.closeSourceRead(first), {pending: false});
+  assert.deepEqual(await f.options.closeSourceRead(second), {pending: false});
+  await f.profile.close();
+  assert.equal(f.calls.filter(value => value === 'same-native-parent').length, 2);
+  assert.equal(f.calls.filter(value => value === 'same-raw-close').length, 2);
+});
+
+test('Local planned Source refuses swapped coordinates and foreign request or declaration before a new child', async () => {
+  const f = await fixture(); f.profile.prepareManagedRun({preparedProgram: f.prepared, requestIdentity: f.request});
+  const facts = {checkedOwner: f.prepared, effectful: false, declaration: f.declaration,
+    occurrence: {stage: 0, input: 1, task: 1, computeTask: 0}, managedRun: f.managed,
+    originalRead: {}, requestIdentity: f.request};
+  assert.throws(() => f.options.prepareSourceRead({...facts, requestIdentity: {}}),
+    {code: 'LocalFilesSourcePreparationMismatch'});
+  assert.throws(() => f.options.prepareSourceRead({...facts, declaration: {}}),
+    {code: 'LocalFilesSourcePreparationMismatch'});
+  assert.throws(() => f.options.prepareSourceRead({...facts, occurrence: {...facts.occurrence, task: 0}}));
+  assert.throws(() => f.options.prepareSourceRead({...facts, occurrence: {...facts.occurrence, computeTask: 1}}));
+  assert.strictEqual(f.options.prepareSourceRead(facts), facts.originalRead);
+  assert.deepEqual(await f.options.closeSourceRead(facts.originalRead), {pending: false});
+  await f.profile.close();
+  assert.equal(f.calls.filter(value => value === 'same-native-parent').length, 1);
 });
 
 test('Local planned read keeps pending cleanup and never acknowledges or reopens its consumed occurrence', async () => {
@@ -162,6 +201,11 @@ async function rowFixture({pending = false, empty = true, readFailure, recoveryG
     clientProgramInstalledManagedRunCheck: () => ok(),
     clientProgramDirectSourceCoordinates(checked) {
       assert.strictEqual(checked, owner); return ok([[0, 0, 0, 0]]);
+    },
+    clientProgramInstalledManagedSourceOccurrence(run, checked, intent, task) {
+      assert.strictEqual(run, parent); assert.strictEqual(checked, owner);
+      assert.strictEqual(intent, request); assert.equal(task, occurrence.task);
+      return ok({_0: occurrence.stage, _1: occurrence.input, _2: occurrence.task});
     },
     clientProgramInstalledManagedSourceInputKind(run, checked, intent) {
       assert.strictEqual(run, parent); assert.strictEqual(checked, owner);
@@ -405,6 +449,7 @@ test('timed original Local wrapper forwards the same Host invocation constructor
 async function effectSourceFixture({pending = false, changedAfterRead = false} = {}) {
   const owner = {}, request = {}, parent = {}, declaration = {}, read = {};
   const requirement = {}, acquisition = {}, capacity = {}, calls = [];
+  const occurrence = Object.freeze({stage: 0, input: 0, task: 0});
   let valid = true, closeAllowed = !pending;
   const scopeCid = 'sha256:' + 'a'.repeat(64), contextCid = 'sha256:' + 'b'.repeat(64);
   const declared = {views: [{resource: 'files', source_ref: 'local:files',
@@ -427,6 +472,12 @@ async function effectSourceFixture({pending = false, changedAfterRead = false} =
     clientProgramInstalledSourceReadAttachAcquisition: () => assert.fail('No replacement acquisition'),
     clientProgramEffectDirectSourceCoordinates(checkedOwner) {
       assert.strictEqual(checkedOwner, owner); return ok([[0, 0, 0, 0]]);
+    },
+    clientProgramInstalledEffectManagedSourceOccurrence(run, checkedOwner, intent, task) {
+      assert.strictEqual(run, parent); assert.strictEqual(checkedOwner, owner);
+      if (intent !== request) throw new Error('OriginalEffectRequestMismatch');
+      assert.equal(task, occurrence.task);
+      return ok({_0: occurrence.stage, _1: occurrence.input, _2: occurrence.task});
     },
     clientProgramInstalledEffectManagedSourceInputKind(run, checkedOwner, intent, index) {
       assert.strictEqual(run, parent); assert.strictEqual(checkedOwner, owner);
@@ -465,7 +516,7 @@ async function effectSourceFixture({pending = false, changedAfterRead = false} =
       authorize: async () => ({action: 'dispatch'})}),
     prepareManagedRun: () => assert.fail('Already adopted Effect must not issue a Pure Run')});
   const prepare = (intent = request, managedRun = parent) => profile.sources[0].prepare({
-    preparedEffect: owner, requestIdentity: intent, managedRun, occurrence: {stage: 0, input: 0, task: 0}});
+    preparedEffect: owner, requestIdentity: intent, managedRun, occurrence});
   return {profile, calls, prepare, allowClose() {closeAllowed = true;}};
 }
 

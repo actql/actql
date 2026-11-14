@@ -1460,6 +1460,8 @@ pub fn topology_sourceview_attachment_at(SourceViewCheckedTopology, Int) -> @sou
 
 pub fn topology_sourceviews(SourceViewCheckedTopology) -> @sourceview_resolution.PipelineInputs
 
+pub fn unresolved_analytic_policy_issue(ProgramOperationResolutionIndex, Int) -> ProgramOperationResolutionIssue?
+
 pub fn usage(PipelineContext) -> (Int, Int)
 
 pub fn validation_site_context(ExpressionValidationSite) -> ExpressionValidationContext
@@ -2891,6 +2893,7 @@ pub(all) enum OperationResolutionIndexIssue {
   BudgetExceeded
   ForeignOccurrence(Int)
   DuplicateResolution(Int)
+  MissingAnalyticCeiling(Int, String)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct OperationResolutionLimits {

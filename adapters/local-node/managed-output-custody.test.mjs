@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../host-common/runtime-result.mjs';
-import {beginManagedFailureProgress, recordManagedFailureExecutionSettled} from
+import {beginManagedFailureProgress, recordManagedFailureExecutionSettled, settleFailedManagedOperations} from
   '../host-common/managed-failure.mjs';
 import {closeCompletedLocalManagedOutput, refreshCompletedLocalManagedScratch} from './managed-output-custody.mjs';
 
@@ -327,3 +327,79 @@ test('completed scratch module bundles for the shared browser boundary without N
   assert.equal(result.outputFiles.length, 1);
   assert.ok(result.outputFiles[0].contents.length > 0);
 });
+
+test('original failure retry drains finite scratch after its borrowed reader returns', async () => {
+  let readerOpen = true, retired = 0n, closed = false, yielded = false;
+  const primary = new Error('OriginalRetentionRefusal');
+  const operations = {
+    close() { closed = true; },
+    settle() { assert.equal(closed, true); return {$tag: 1, _0: undefined}; },
+    cleanup_refresh() {
+      if (readerOpen) return false;
+      retired += 64n;
+      return retired >= 640n;
+    },
+    cleanup_local_continuation() { return readerOpen ? -1n : retired; },
+    advance() { assert.fail('cleanup must not advance another Compute'); },
+  };
+  const failure = settleFailedManagedOperations(
+    operations, checked, primary, beginManagedFailureProgress(moon, true, false),
+  );
+  const originalHandle = failure.cleanupHandle;
+  await continueLocalManagedFailureCleanup(failure, operations);
+  assert.equal(retired, 0n, 'the borrowed reader blocks automatic retirement');
+  assert.equal(originalHandle.status().pending, true);
+  assert.deepEqual(failure.cleanupDiagnostic, {
+    owner: 'local_managed', phase: 'refresh_cleanup', continuation: 'blocked',
+  });
+  readerOpen = false;
+  setTimeout(() => { yielded = true; }, 0);
+  const retry = originalHandle.retry();
+  assert.equal(originalHandle.retry(), retry, 'concurrent retries share the original flight');
+  await retry;
+  assert.equal(originalHandle.status().pending, false);
+  assert.equal(retired, 640n);
+  assert.equal(yielded, true);
+  assert.equal(failure.primaryFailure, primary);
+  assert.equal(failure.cleanupHandle, originalHandle);
+  assert.equal(failure.cleanupDiagnostic, undefined);
+  await originalHandle.retry();
+  assert.equal(retired, 640n, 'completed cleanup cannot refund or release twice');
+});
+
+for (const boundary of ['blocked', 'unsigned-blocked', 'stalled', 'reblocked', 'error']) {
+  test(`original failure retry retains ${boundary} cleanup without a release ACK`, async () => {
+    let attempts = 0, cursor = 0n, blocked = true;
+    const primary = new Error('OriginalRetentionRefusal');
+    const cleanupError = new Error('OriginalCleanupRefusal');
+    const operations = {
+      close() {},
+      settle() { return {$tag: 1, _0: undefined}; },
+      cleanup_refresh() {
+        attempts++;
+        if (boundary === 'error' && !blocked) throw cleanupError;
+        if (!blocked && boundary !== 'stalled') cursor += 64n;
+        return false;
+      },
+      cleanup_local_continuation() {
+        if (blocked) return boundary === 'unsigned-blocked' ? (1n << 64n) - 1n : -1n;
+        return cursor;
+      },
+      advance() { assert.fail('cleanup cannot restart Compute'); },
+    };
+    const failure = settleFailedManagedOperations(
+      operations, checked, primary, beginManagedFailureProgress(moon, true, false),
+    );
+    const handle = failure.cleanupHandle;
+    if (boundary !== 'blocked' && boundary !== 'unsigned-blocked') blocked = false;
+    if (boundary === 'reblocked') setTimeout(() => { blocked = true; }, 0);
+    const before = attempts;
+    const result = await handle.retry();
+    assert.equal(result.pending, true);
+    assert.equal(handle.status().pending, true);
+    assert.ok(attempts - before <= 2, 'a stalled, revoked or error-bearing witness is not polled');
+    assert.equal(failure.primaryFailure, primary);
+    assert.equal(failure.cleanupHandle, handle);
+    if (boundary === 'error') assert.ok(result.errors.includes(cleanupError));
+  });
+}

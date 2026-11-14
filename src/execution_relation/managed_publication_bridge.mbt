@@ -69,6 +69,65 @@ fn[T] prepare_managed_bridge_output_port(
 }
 
 ///|
+/// Geometry for re-admitting this already measured original. Policy ceilings
+/// remain the execution checks; they are not retained row/body demand.
+pub fn[T] managed_publication_bridge_import_geometry(
+  output : ManagedCompletedOutput[T],
+  material : ManagedRetainedOutput[T],
+  max_columns : Int,
+  max_row_bytes : Int,
+) -> ManagedPublicationBridgeLimits? {
+  if !managed_completed_output_available(output) ||
+    !managed_completed_output_matches_material(output, material) {
+    return None
+  }
+  let receipt = material.receipt
+  guard managed_output_value_row_wire_bound(
+      receipt,
+      None,
+      max_columns,
+      max_row_bytes,
+    )
+    is Some(bytes) else {
+    return None
+  }
+  // Cached canonical cell nodes plus row/field wrappers bound one parser
+  // window. Text/wire bytes remain a separate dimension, never node demand.
+  guard checked_preparation_add_product(1L, receipt.measured.2.to_int64(), 2L)
+    is Some(nodes) &&
+    checked_preparation_add_product(
+      nodes,
+      @schema.field_count(receipt.schema).to_int64(),
+      2L,
+    )
+    is Some(nodes) &&
+    nodes <= 2147483647L &&
+    receipt.measured_depth <= 2147483645 else {
+    return None
+  }
+  Some({
+    entries: Int::max(
+      output.bindings.length(),
+      @schema.field_count(receipt.schema),
+    ),
+    name_bytes: bytes,
+    max_rows: receipt.rows,
+    values: {
+      max_nodes: receipt.usage.nodes,
+      max_text_bytes: receipt.usage.text_bytes,
+      max_depth: receipt.measured_depth,
+      max_work: receipt.usage.work,
+    },
+    row: {
+      max_bytes: bytes,
+      max_nodes: nodes.to_int(),
+      max_depth: receipt.measured_depth + 2,
+      max_text_bytes: bytes,
+    },
+  })
+}
+
+///|
 pub fn[T] prepare_managed_publication_bridge(
   output : ManagedCompletedOutput[T],
   material : ManagedRetainedOutput[T],
@@ -217,8 +276,23 @@ pub fn[T] finish_managed_publication_bridge(
   bridge.rows.val = Some(rows)
   match complete_trusted_output(bridge.port, ()) {
     Ok(value) => {
-      bridge.completed = Some(value)
-      Ok(value)
+      // Only the existing full-copy rule can seal this original occurrence.
+      // Keep the bridge's readmission, generation and live callback unchanged.
+      let converted = match
+        bridge.output.material.receipt.completed_projection {
+        Some((identity, target)) if target == value.target &&
+          physical_equal(
+            bridge.output.material.receipt.owner,
+            @lower.sequence_owner(value.completion.sequence),
+          ) =>
+          {
+            ..value,
+            completion: { ..value.completion, result_identity: identity, },
+          }
+        _ => value
+      }
+      bridge.completed = Some(converted)
+      Ok(converted)
     }
     Err(issue) => {
       bridge.live.val = false

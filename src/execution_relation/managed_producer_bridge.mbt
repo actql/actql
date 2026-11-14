@@ -37,13 +37,24 @@ pub(all) enum ManagedProducerBridgeIssue {
 fn managed_schema_reference_free(
   schema : @schema.Schema,
   max_nodes : Int,
+  reserve? : ((Int) -> Bool)? = None,
 ) -> Bool? {
   if max_nodes < 0 {
     return None
   }
   let pending = []
+  let push = fn(contract) {
+    if reserve is Some(reserve) && !reserve(pending.length() + 1) {
+      false
+    } else {
+      pending.push(contract)
+      true
+    }
+  }
   for index in 0..<@schema.field_count(schema) {
-    pending.push(@schema.field_at(schema, index).unwrap().contract)
+    if !push(@schema.field_at(schema, index).unwrap().contract) {
+      return None
+    }
   }
   let mut remaining = max_nodes
   while pending.pop() is Some(contract) {
@@ -53,10 +64,12 @@ fn managed_schema_reference_free(
     remaining -= 1
     match contract.shape {
       @contract.ResourceRef(..) | @contract.ContentRef(..) => return Some(false)
-      @contract.Array(item, ..) => pending.push(item)
+      @contract.Array(item, ..) => if !push(item) { return None }
       @contract.Object(fields) =>
         for index in 0..<@contract.field_count(fields) {
-          pending.push(@contract.field_at(fields, index).unwrap().contract)
+          if !push(@contract.field_at(fields, index).unwrap().contract) {
+            return None
+          }
         }
       _ => ()
     }
@@ -195,6 +208,24 @@ pub fn[T] append_managed_producer_bridge_wire(
       Err(Admission(issue))
     }
   }
+}
+
+///|
+/// Completed admission quantities from this same live import buffer. Parser
+/// workspace must already be funded before append; this DATA is neither a
+/// refund nor permission to read a producer. The original append/current
+/// boundary supplies authority; this quantity read invokes no current port.
+pub fn[T] managed_producer_bridge_import_usage(
+  bridge : ManagedProducerBridge[T],
+) -> ValueUsage? {
+  if !bridge.live.val ||
+    bridge.finished ||
+    !bridge.admitted.buffer.open ||
+    bridge.admitted.buffer.reading {
+    return None
+  }
+  let budget = bridge.admitted.buffer.budget
+  Some({ nodes: budget.nodes, text_bytes: budget.text, work: budget.work, })
 }
 
 ///|

@@ -4,13 +4,13 @@
     {
       "name": "selected_relation_provider",
       "path": "src/connectors/local/selected_relation_provider.mbt",
-      "sourceDigest": "e42963ae653cff94ddd089a2c33a5f02d5da1a56efde8567f9a0caf7fbc20d55",
+      "sourceDigest": "187ea820725576df7510584c9b1c5707cc1ab338c4f9c6d3bf60f1728b9094e4",
       "binding": "managed_provider_with_numeric"
     },
     {
       "name": "cross_join_provider",
       "path": "src/connectors/local/cross_join_provider.mbt",
-      "sourceDigest": "0e2b820abd78a4391861332f8748682cb1b70c536dd05f9bc7126531bd197942",
+      "sourceDigest": "4a72e422dd1b3e5417065e9edbeb9369fa5736b9ef10e01802fd29930939dd14",
       "binding": "managed_provider"
     },
     {
@@ -69,7 +69,7 @@
     }
   ],
   "sourcePremises": {
-    "src/connectors/local/managed_provider.mbt": "c71bfd51bf16313deb4eb1f6d197ce618a5f4db4d24d963bdef92f941e401dc0",
+    "src/connectors/local/managed_provider.mbt": "aaf8b151ad412f768af6aaeec2ff78208cd1941dd68053f929a99aa7098ef106",
     "src/execution_relation/generated_sequence.mbt": "0e348f1ad56fa689a1121dc24f7909a43ea2bbd50e381afa052b10d6de4ae883"
   },
   "bounds": {

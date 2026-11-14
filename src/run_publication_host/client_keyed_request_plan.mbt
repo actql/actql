@@ -445,3 +445,45 @@ pub fn prepare_client_keyed_native_batch_plan(
   }
   Ok(plan)
 }
+
+///|
+/// Close the installed file-capture schedule before selecting its first send.
+/// Reuse every already prepared Request and the SAME lookup/parent. Native's
+/// explicit two-step caller remains unchanged; this grants no attempt or IO.
+pub fn finish_client_keyed_capture_request_plan(
+  state : ClientKeyedLookupInput,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, ClientKeyedRequestIssue] {
+  let identity = match
+    finish_client_keyed_lookup_request_plan(
+      state, max_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  // The existing typed protocol selection owns this distinction. Ordinary
+  // Source-only planning has no file profile and keeps its old closed plan;
+  // no failed preparation is treated as a fallback or as an IO grant.
+  if state.native_read_profile is None {
+    return Ok(())
+  }
+  guard @publication.lookup_request_key_set_tuple_count(identity.keys)
+    is Some(count) &&
+    @execution.checked_preparation_add_product(4096L, count.to_int64(), 128L)
+    is Some(bound) else {
+    return keyed_lookup_fail(state.left, Assembly("native_batch_plan_capacity"))
+  }
+  // This closed codec emits only three original CID strings, fixed names and
+  // one {batch_index,key_indices:[index]} per actual key. 4096 covers its fixed
+  // envelope;128 covers each bounded Int pair and fields. It never emits key
+  // Values here. Retain the selected ceiling without reserving that ceiling's
+  // bytes when the actual singleton schedule is tiny.
+  let bytes = Int64::min(max_bytes.to_int64(), bound).to_int()
+  match
+    prepare_client_keyed_native_batch_plan(state, bytes, max_nodes, max_depth) {
+    Ok(_) => Ok(())
+    Err(issue) => keyed_lookup_fail(state.left, issue)
+  }
+}

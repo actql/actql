@@ -165,3 +165,108 @@ test "Reviewer proof snapshot preserves cancellation revision and uncertain Effe
   assert_true(changed != original)
   host.close().unwrap()
 }
+
+///|
+// Same real nominal journal originals. The operation slot is the existing
+// closed-command mechanism, not a Reviewer grant or normal funding fixture.
+fn reviewer_snapshot_closed_record_fixture(
+  name : String,
+) -> (
+  NativeLocalHostConnection,
+  @host.ClientRequestIdentity,
+  @checkpoint.SealedCheckpoint,
+) raise {
+  let (host, _, request, artifact) = local_checkpoint_lookup_fixture(name)
+  let original = host.journal
+    .transaction(() => host.journal.retained(request))
+    .unwrap()
+    .unwrap()
+  host.journal.operation_active = true
+  host.journal.operation_record = Some(original)
+  (host, request, artifact)
+}
+
+///|
+test "closed Reviewer snapshot does not consume the next actual COMMIT failure" {
+  let (host, request, artifact) = reviewer_snapshot_closed_record_fixture(
+    "reviewer-snapshot-closed-original",
+  )
+  client_test_fail_commit(host.database, 1)
+  let snapshot = local_reviewer_proof_snapshot(
+    host.journal,
+    request,
+    artifact.checkpoint.run_definition_cid().unwrap(),
+    artifact.checkpoint_cid,
+  ).unwrap()
+  assert_eq(snapshot.artifact, artifact)
+  assert_eq(snapshot.state.status, @publication.WaitingCheckpoint)
+  assert_true(host.journal.transaction(() => Ok(())) is Err(TransactionUnknown))
+  assert_true(host.journal.fenced)
+  host.database.rollback().unwrap()
+  host.journal.operation_active = false
+  host.journal.invalidate_operation_record()
+  host.close().unwrap()
+}
+
+///|
+test "invalidated closed Reviewer record still requires the original transaction ACK" {
+  let (host, request, artifact) = reviewer_snapshot_closed_record_fixture(
+    "reviewer-snapshot-invalidated-original",
+  )
+  host.journal.invalidate_operation_record()
+  client_test_fail_commit(host.database, 1)
+  assert_true(
+    local_reviewer_proof_snapshot(
+      host.journal,
+      request,
+      artifact.checkpoint.run_definition_cid().unwrap(),
+      artifact.checkpoint_cid,
+    )
+    is Err(TransactionUnknown),
+  )
+  assert_true(host.journal.fenced)
+  host.database.rollback().unwrap()
+  host.journal.operation_active = false
+  host.journal.invalidate_operation_record()
+  host.close().unwrap()
+}
+
+///|
+test "closed Reviewer snapshot keeps foreign identity nested transaction and fence refusals" {
+  let (host, request, artifact) = reviewer_snapshot_closed_record_fixture(
+    "reviewer-snapshot-closed-refusals",
+  )
+  assert_true(
+    local_reviewer_proof_snapshot(
+      host.journal,
+      request,
+      "sha256:" + "f".repeat(64),
+      artifact.checkpoint_cid,
+    )
+    is Err(ForeignRun),
+  )
+  host.journal.transaction_active = true
+  assert_true(
+    local_reviewer_proof_snapshot(
+      host.journal,
+      request,
+      artifact.checkpoint.run_definition_cid().unwrap(),
+      artifact.checkpoint_cid,
+    )
+    is Err(Physical(@sqlite.Busy)),
+  )
+  host.journal.transaction_active = false
+  host.journal.fenced = true
+  assert_true(
+    local_reviewer_proof_snapshot(
+      host.journal,
+      request,
+      artifact.checkpoint.run_definition_cid().unwrap(),
+      artifact.checkpoint_cid,
+    )
+    is Err(Fenced),
+  )
+  host.journal.operation_active = false
+  host.journal.invalidate_operation_record()
+  host.close().unwrap()
+}

@@ -245,6 +245,10 @@ pub fn parameterized_keyed_static_request_wire(ParameterizedKeyedRequest, Int, I
 
 pub fn parameterized_request(ParameterizedRequest) -> DirectRequest
 
+pub fn parameterized_request_canonical_document(ParameterizedRequest, Int, Int, Int) -> Result[@encode_core.EncodedDocument, RequestWireIssue]
+
+pub fn parameterized_request_canonical_geometry(ParameterizedRequest, Int, Int, Int) -> Result[@encode_core.EncodingConstructionGeometry, RequestWireIssue]
+
 pub fn parameterized_request_document(ParameterizedRequest, Int, Int, Int) -> Result[@encode_core.EncodedDocument, RequestWireIssue]
 
 pub fn parameterized_request_field_at(ParameterizedRequest, Int) -> ParameterizedRequestField?

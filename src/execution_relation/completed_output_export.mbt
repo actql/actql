@@ -19,6 +19,10 @@ struct CompletedOutputExport {
   measurement_max_bytes : Int
   measurement_max_nodes : Int
   measurement_max_depth : Int
+  max_batch_bytes : Int
+  mut drained_bytes : Int
+  // 0 is unread, 1 preserves row consumers, 2 is physical publication only.
+  mut batch_mode : Int
   mut row : Int
   mut reading : Bool
   mut poll_steps : Int
@@ -528,6 +532,7 @@ pub fn cancel_completed_output_export(value : CompletedOutputExport) -> Unit {
 /// of storage, success, or a complete identity.
 pub fn next_completed_output_export(
   value : CompletedOutputExport,
+  batch? : Bool = false,
 ) -> Result[String?, CompletedExportIssue] {
   guard completed_output_export_workspace_slots(value.budget.limits, {
       max_columns: 0,
@@ -540,7 +545,8 @@ pub fn next_completed_output_export(
     return Err(Admission(InvalidCaptureLimits))
   }
   while true {
-    let result = match advance_completed_output_export(value, 64, slots) {
+    let result = match
+      advance_completed_output_export(value, 64, slots, batch~) {
       Ok(result) => result
       Err(issue) => return Err(issue)
     }
@@ -1002,4 +1008,34 @@ fn bind_completed_export_material(
     table: None,
     representation: Some(material),
   })
+}
+
+///|
+/// Borrow this export's same full physical completion, before or after view
+/// preparation. A Result projection does not replace the original input body.
+pub fn completed_result_export_preparation_source(
+  value : CompletedResultRelationExportPreparation,
+) -> CompletedOutput? {
+  if value.closed || !completed_output_available(value.rows.source) {
+    None
+  } else {
+    Some(value.rows.source)
+  }
+}
+
+///|
+/// Borrow only the exact completed source retained by this successful export.
+/// This neither admits another output nor restores a released receipt alias.
+pub fn completed_relation_export_original_source(
+  value : CompletedRelationExportReceipt,
+) -> CompletedOutput? {
+  guard value.rows.source is Some(source) else { return None }
+  let available = completed_output_available(source)
+  if available &&
+    value.rows.source is Some(actual) &&
+    physical_equal(actual, source) {
+    Some(source)
+  } else {
+    None
+  }
 }

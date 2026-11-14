@@ -16,6 +16,8 @@ export function nativeProjectConfigurationFixture(namespace) {
   };
   const write = (directory, name, body) => writeFileSync(join(directory, name), body,
     {mode: 0o600, flag: 'wx'});
+  write(namespace, 'native-file-task-boundary.json',
+    readFileSync(new URL('./fixtures/native-file-task-boundary.json', import.meta.url)));
   const configuration = state => JSON.stringify({version: 'actql-config/0.1',
     ...(state === undefined ? {} : {state_dir: state})});
   write(root, 'actql.config.json', configuration());
@@ -63,9 +65,9 @@ export function nativeProjectConfigurationFixture(namespace) {
       ? Buffer.alloc(65537, 0x20) : Buffer.from([0xc3, 0x28]));
   }
   // Exact public authored inputs, not an old business-state fixture.
-  for (const name of ['deal-review', 'deal-review-missing', 'deal-review-wrong-task', 'deal-review-nested-registry', 'deal-review-wrong-answer', 'deal-review-missing-task', 'deal-review-approval']) {
+  for (const name of ['deal-review', 'deal-review-missing', 'deal-review-wrong-task', 'deal-review-nested-registry', 'deal-review-wrong-answer', 'deal-review-missing-task', 'deal-review-approval', 'churn-risk']) {
     const path = directory(name);
-    for (const [originalPath, original] of Object.entries(projectTemplateFiles('deal-review-mock'))) {
+    for (const [originalPath, original] of Object.entries(projectTemplateFiles(name === 'churn-risk' ? 'churn-risk-mock' : 'deal-review-mock'))) {
       // Cold approval selects the original write implementation metadata only.
       // Missing Model registry/Task/answers and payload prove those are not replayed.
       if (name === 'deal-review-approval' && !['actql.config.json', 'connectors.json',

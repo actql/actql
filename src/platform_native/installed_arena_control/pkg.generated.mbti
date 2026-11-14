@@ -352,6 +352,7 @@ pub fn InstalledArenaHost::prepare_crypto_component(Self, InstalledArenaDomain, 
 pub fn InstalledArenaHost::prepare_domain(Self, InstalledArenaBackingBorrow, Int, Int64, @physical_resources.LedgerLimits) -> Result[InstalledArenaDomainAcquisition, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::prepare_domain_in_process(Self, InstalledArenaBackingBorrow, Int64, @physical_resources.LedgerLimits, initial_window? : Int64?) -> Result[InstalledArenaDomainAcquisition, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn[I] InstalledArenaHost::prepare_domain_initialization_child(Self, InstalledArenaDomain, I) -> Result[@host_bootstrap.NativeBackedLiveChildAcquisition[Self, InstalledArenaDomain, I], @host_bootstrap.NativeBackedExecutionIssue]
+pub fn[P] InstalledArenaHost::prepare_domain_nonmodel_prepared_work_entry(Self, InstalledArenaLocalHostResources, InstalledArenaOriginalRead, InstalledArenaRetainedExecution, @physical_resources.PreparedRunAdmission[P], P, Int64, Int64) -> Result[InstalledArenaNonModelWorkEntryAcquisition, InstalledArenaNonModelWorkEntryIssue]?
 pub fn InstalledArenaHost::prepare_domain_nonmodel_work_entry(Self, InstalledArenaLocalHostResources, InstalledArenaOriginalRead, InstalledArenaRetainedExecution, Int64, Int64) -> Result[InstalledArenaNonModelWorkEntryAcquisition, InstalledArenaNonModelWorkEntryIssue]?
 pub fn InstalledArenaHost::prepare_domain_original_read(Self, InstalledArenaDomain, InstalledArenaOriginalReadBudget) -> Result[InstalledArenaOriginalReadAcquisition, InstalledArenaOriginalReadIssue]
 pub fn InstalledArenaHost::prepare_domain_original_read_construction(Self, InstalledArenaOriginalRead, Int64, Int64, Int64) -> Result[Unit, InstalledArenaOriginalReadIssue]
@@ -458,7 +459,7 @@ pub fn InstalledArenaNonModelWorkEntry::finish_business_cleanup(Self) -> Bool
 pub fn InstalledArenaNonModelWorkEntry::grow_in_original_read(Self, Int64, Int64) -> Result[Unit, InstalledArenaNonModelWorkEntryIssue]
 pub fn InstalledArenaNonModelWorkEntry::matches_business_scope(Self, Bool) -> Bool
 pub fn InstalledArenaNonModelWorkEntry::owns_only_control(Self) -> Bool
-pub fn InstalledArenaNonModelWorkEntry::prepare_constructor_in_entered_scope(Self, Int64, Int64, Int64) -> Result[Unit, InstalledArenaNonModelWorkEntryIssue]
+pub fn InstalledArenaNonModelWorkEntry::prepare_constructor_in_entered_scope(Self, Int64, Int64, Int64, entered_ledger? : @physical_resources.Ledger?) -> Result[Unit, InstalledArenaNonModelWorkEntryIssue]
 pub fn InstalledArenaNonModelWorkEntry::take_entered_ledger(Self, InstalledArenaRetainedExecution, Int64, Int64) -> @physical_resources.Ledger?
 pub fn InstalledArenaNonModelWorkEntry::usage(Self) -> @physical_resources.LedgerUsage
 

@@ -342,6 +342,7 @@ pub(all) enum FixedComputeIssue {
   Cost(@physical_cost.CostIssue)
   Execution(@execution_relation.SequenceRunIssue)
   Guard(@execution_relation.FixedInputGuardIssue)
+  ControlWorkLimit
 }
 
 type FixedComputeRequest

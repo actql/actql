@@ -81,12 +81,13 @@ fn effect_plan_fixture_failure(
 // No physical dispatcher, permission, Resource root or ordinary package here.
 fn effect_operation_plan_inputs(
   rows? : String = "[{\"id\":1}]",
+  suffix? : Bool = false,
 ) -> (
   @publication_host.PreparedClientEffectComputation,
   @publication_host.ClientRequestIdentity,
   ClientInstalledSequenceContracts,
 ) {
-  let prepared = installed_effect_managed_fixture(rows~)
+  let prepared = installed_effect_managed_fixture(rows~, suffix~)
   let request = @publication_host.prepare_client_effect_request_identity(
     prepared,
     "sha256:" + "a".repeat(64),
@@ -107,6 +108,7 @@ fn effect_operation_plan_fixture(
   prepared : @publication_host.PreparedClientEffectComputation,
   request : @publication_host.ClientRequestIdentity,
   contracts : ClientInstalledSequenceContracts,
+  stage? : Int = 0,
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
   provider_factory? : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
@@ -132,7 +134,7 @@ fn effect_operation_plan_fixture(
   ).unwrap()
   let demand = prepare_installed_effect_operation_demand(
     prepared,
-    0,
+    stage,
     "save",
     [metadata],
     [send, send, capture],

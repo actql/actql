@@ -5,7 +5,8 @@ import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import { mutationNamesByPart } from './proof-parts.mjs';
+import { mutationNamesByPart, logicalMutationNamesByPart } from './proof-parts.mjs';
+import {inspectMutationPart} from './mutation-parts.mjs';
 
 // Exercise the real CLI orchestration with instrumented execution boundaries.
 // Actual compiler/oracle coverage remains in the complete pipeline-evidence job.
@@ -102,8 +103,20 @@ test('source restoration failure stops before healthy replay or success reports'
   assert.deepEqual(result.state.reports, {});
 });
 
+for (const part of Object.keys(logicalMutationNamesByPart)) {
+  test(`legacy logical ${part} keeps four variants and every original target without becoming a hosted fragment`, () => {
+    const result = run('verify', {part});
+    assert.equal(result.status, 0, result.stderr);
+    for (const report of Object.values(result.state.reports)) {
+      assert.deepEqual(report.results.map(value => value.name), logicalMutationNamesByPart[part]);
+      assert(report.results.every(value => value.executions.slice(-3).map(entry => entry.receipt.target).join(',') === 'js,wasm,native'));
+      assert.throws(() => inspectMutationPart(report), /Unknown proof part/u);
+    }
+    assert.equal(result.state.calls.length, logicalMutationNamesByPart[part].length * (3 + 5 + 6 + 6));
+  });
+}
 for (const part of Object.keys(mutationNamesByPart)) {
-  test(`${part} owns exactly its four fixed/fresh variants and fresh restored-source owner`, () => {
+  test(`${part} owns exactly its assigned fixed/fresh variants and fresh restored-source owner`, () => {
     const result = run('verify', { part });
     assert.equal(result.status, 0, result.stderr);
     const { calls, reports, lifecycle } = result.state;
@@ -115,7 +128,7 @@ for (const part of Object.keys(mutationNamesByPart)) {
       assert.notEqual(report.restorationOwner.id, report.workspaces.mutable.id);
       assert.deepEqual(report.closure, { mutable: true, pristine: true, restoration: true, sourceRestored: true });
     }
-    assert.equal(calls.length, 4 * (3 + 5 + 6 + 6));
+    assert.equal(calls.length, mutationNamesByPart[part].length * (3 + 5 + 6 + 6));
     assert.deepEqual(lifecycle.map(e => `${e.kind}:${e.id}`),
       ['create:mutable', 'create:pristine', 'close:mutable', 'close:pristine', 'create:restoration', 'close:restoration']);
     assert.equal(lifecycle.find(e => e.kind === 'create' && e.id === 'restoration').source, 'healthy');
@@ -125,7 +138,7 @@ for (const part of Object.keys(mutationNamesByPart)) {
     const result = run('verify', { part, required: false });
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(Object.keys(result.state.reports), [`fixed-mutations-${part}.json`]);
-    assert.equal(result.state.calls.length, 4 * 9);
+    assert.equal(result.state.calls.length, mutationNamesByPart[part].length * 9);
   });
 }
 for (const fail of ['first-fixed-post-restore:wasm', 'first-explore-post-restore:native', 'mutable-close', 'pristine-close', 'restoration-close']) {

@@ -1,3 +1,6 @@
+import {testNativeRemoteSiteControls} from './fixtures/native-remote-site-controls.mjs';
+import {prepareNativeResidentPortableCore} from './native-resident-portable-preparation.mjs';
+import {nativeHttpSourceCoverage, prepareNativeHttpCompilerScope} from './native-http-compiler-scope.mjs';
 import {nativeHttpLifetimeFixture} from './native-http-lifetime-fixture.mjs';
 import {nativeCoreHttpArguments} from './native-core-test-selection.mjs';
 import {installNativeApplicationBundle} from './native-application-bundle-fixture.mjs';
@@ -43,8 +46,9 @@ import {pinnedEngineContracts} from
   '../adapters/connectors/duckdb/node/test/pinned-engine-contracts.mjs';
 
 const focus = process.env.ACTQL_TEST_NATIVE_HTTP_FOCUS;
+const sourceCoverage = nativeHttpSourceCoverage(focus);
 if (focus !== undefined &&
-    !['effect-control-replay', 'remote-client-poll', 'core-http', 'core-source', 'http-retirement', 'http-symbol-unload',
+    !['http-packages', 'http-controls', 'effect-control-replay', 'remote-client-poll', 'site-cli-controls', 'core-http', 'core-source', 'http-retirement', 'http-symbol-unload',
       'http-constructor-retirement', 'resident-review-regressions',
       'resident-review-provider', 'resident-review-checkpoint',
       'resident-review-write'].includes(focus)) {
@@ -1049,7 +1053,10 @@ verification: try {
     host: nativeHttpHost, key: await readFile(join(root, 'server.key')),
     cert: await readFile(join(root, 'server.crt')), ca: await readFile(join(root, 'ca.crt')),
   });
-  const moon = join(
+  const compilerScope = ['http-packages', 'http-controls'].includes(focus)
+    ? prepareNativeHttpCompilerScope(fileURLToPath(new URL('../', import.meta.url)), root) : undefined;
+  const nativeBuildRoot = compilerScope?.targetDirectory ?? fileURLToPath(new URL('../_build', import.meta.url));
+  const moon = compilerScope?.moon ?? join(
     process.env.MOON_HOME ?? '',
     'bin',
     'moon',
@@ -1160,6 +1167,15 @@ verification: try {
     });
     break verification;
   }
+  if (focus === 'site-cli-controls') {
+    await testNativeRemoteSiteControls({
+      moon, nativeBuildRoot, repository: new URL('../', import.meta.url), root,
+      sqliteLibrary, library, nativeHttpOrigin, remoteRequestCid,
+      stalePollObserved, releaseStalePoll,
+    });
+    console.log('Native Site CLI query and stale-generation controls passed.');
+    break verification;
+  }
   if (focus === 'remote-client-poll') {
     // Reuse the real HTTPS peer and authored dispatch above. The child keeps
     // this event loop free to serve mTLS while enforcing nonzero test execution.
@@ -1255,15 +1271,14 @@ verification: try {
       `focused HTTP retirement tests failed: ${code ?? signal}`);
     break verification;
   }
-  execFileSync(moon, [
-    'build', '--target', 'js', '--release', 'src/connectors_builtin_node',
-    ...(focus?.startsWith('resident-review-') ? ['--jobs', '2'] : []),
-  ], {cwd: new URL('../', import.meta.url), stdio: 'inherit'});
-  const moonModule = await import(pathToFileURL(join(
-    new URL('../', import.meta.url).pathname,
-    '_build/js/release/build/connectors_builtin_node/' +
-      'connectors_builtin_node.js',
-  )).href);
+  const portableCorePath = prepareNativeResidentPortableCore(fileURLToPath(new URL('../', import.meta.url)), {
+    prepare: () => execFileSync(moon, [
+      'build', '--target', 'js', '--release', 'src/connectors_builtin_node',
+      ...(focus?.startsWith('resident-review-') ? ['--jobs', '2'] : []),
+    ], {cwd: new URL('../', import.meta.url), stdio: 'inherit'}),
+    preparation: focus?.startsWith('resident-review-') ? null : process.env.ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION
+  });
+  const moonModule = await import(pathToFileURL(portableCorePath).href);
   const portableRuntime = runtimeCore(moonModule);
   const runtimeControl = portableRuntime.remoteBundleControl;
   const credentialControl = portableRuntime.remoteCredentialControl;
@@ -1353,7 +1368,8 @@ verification: try {
   });
   const testEnvironment = {
     ...process.env,
-    ...(focus === undefined || focus === 'core-source' || focus === 'resident-review-write' ||
+    ...(compilerScope?.environment ?? {}),
+    ...(focus === undefined || focus === 'http-packages' || focus === 'http-controls' || focus === 'core-source' || focus === 'resident-review-write' ||
         focus === 'resident-review-regressions'
       ? {ACTQL_TEST_NATIVE_EFFECT_CREATE_FIXTURE: '1'} : {}),
     ...(effectReviewOrigin ? {
@@ -1479,7 +1495,7 @@ verification: try {
     }
     break verification;
   }
-  for (const packagePath of [
+  for (const packagePath of focus === 'http-controls' ? [] : [
     'src/platform_native/filesystem',
     'src/platform_native/sqlite',
     'src/platform_native/publication_store',
@@ -1496,17 +1512,21 @@ verification: try {
     'src/platform_native/credential_resource',
     'src/query_integration',
   ]) {
+    if (packagePath === 'src/platform_native/remote_resident_source_compute_tests' && !sourceCoverage.includeSource) continue;
     if (packagePath === 'src/query_integration') {
       // The retained Preview, retained Checkpoint and original-holder review
       // each perform one Provider read. Denied/duplicate paths perform no
       // additional read; mapped-create applies its one scoped Effect.
-      assert.deepEqual(bearerServers.effectTargets(), {reads: 3, writes: 1});
+      // The redistributed Darwin phase performs none of those Source actions;
+      // Linux and complete Darwin Core keep the original independent 3/1 check.
+      assert.deepEqual(bearerServers.effectTargets(), sourceCoverage.effectTargets);
       assert.deepEqual(bearerServers.effectCreatedValues(),
-        [{Id: '001000000000001AAA', Count__c: 3}]);
+        sourceCoverage.includeSource ? [{Id: '001000000000001AAA', Count__c: 3}] : []);
       resetNativeStoreTransfer();
       nativeStandardTransferCompletions.length = 0;
       await runNativeQueryTests(moon, 'http-client', {
         cwd: new URL('../', import.meta.url), env: testEnvironment,
+        ...(compilerScope ? {targetDirectory: compilerScope.targetDirectory} : {}),
       });
       await Promise.all(nativeStandardTransferCompletions);
       assert.equal(standardGateway.pending(), 0);
@@ -1573,6 +1593,7 @@ verification: try {
       throw new Error(`native HTTP test failed: ${code ?? signal}`);
     }
   }
+  if (focus === 'http-packages') break verification;
   // The control replay case must use a fresh finite peer: original report
   // bytes and accepted counts belong to this case, not the earlier client test.
   await effectCheckpointServer.close();
@@ -1587,8 +1608,8 @@ verification: try {
     'build', '--target', 'native', 'src/cmd/native_remote_credential',
   ], {cwd: new URL('../', import.meta.url), stdio: 'inherit'});
   const credentialExecutable = join(
-    new URL('../', import.meta.url).pathname,
-    '_build/native/debug/build/cmd/native_remote_credential/' +
+    nativeBuildRoot,
+    'native/debug/build/cmd/native_remote_credential/' +
       'native_remote_credential.exe',
   );
   const credentialHelp = execFileSync(
@@ -1685,110 +1706,18 @@ verification: try {
       throw new Error('revoked native credential started external I/O');
     }
   }
-  execFileSync(moon, [
-    'build', '--target', 'native', 'src/cmd/native_remote_site',
-  ], {cwd: new URL('../', import.meta.url), stdio: 'inherit'});
-  const executable = join(
-    new URL('../', import.meta.url).pathname,
-    '_build/native/debug/build/cmd/native_remote_site/' +
-      'native_remote_site.exe',
-  );
-  const journalPath = join(root, 'native-site-agent.sqlite3');
-  const revisionA = `sha256:${'a'.repeat(64)}`;
-  const revisionB = `sha256:${'b'.repeat(64)}`;
-  const common = [
-    '--sqlite-library', testEnvironment.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
-    '--journal-path', journalPath,
-    '--site-key', 'native-site',
-    '--site-generation', '1',
-    '--runtime-revision', revisionA,
-  ];
-  const startAgent = arguments_ => {
-    const child = spawn(executable, [...common, ...arguments_], {
-      cwd: new URL('../', import.meta.url),
-      env: {PATH: '/usr/bin:/bin', LANG: 'C'},
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-    const stdout = [];
-    const stderr = [];
-    child.stdout.on('data', chunk => stdout.push(chunk));
-    child.stderr.on('data', chunk => stderr.push(chunk));
-    return (async () => {
-      const [code, signal] = await once(child, 'exit');
-      return Object.freeze({
-        code,
-        signal,
-        stdout: Buffer.concat(stdout).toString('utf8'),
-        stderr: Buffer.concat(stderr).toString('utf8'),
-      });
-    })();
-  };
-  const runAgent = arguments_ => startAgent(arguments_);
-  const rejectedDispatch = await runAgent([
-    '--http-library', library,
-    '--ca', join(root, 'ca.crt'),
-    '--cert', join(root, 'client.crt'),
-    '--key', join(root, 'client.key'),
-    '--poll-url', `${nativeHttpOrigin}/outbound/poll`,
-    '--observation-url',
-    `${nativeHttpOrigin}/outbound/observation`,
-    'poll-once',
-  ]);
-  assert.notEqual(rejectedDispatch.code, 0);
-  assert.equal(
-    rejectedDispatch.stdout,
-    'actql-native-remote-site: dispatch requires a runtime-linked ' +
-      'Site component\n',
-  );
-  const queried = await runAgent([
-    '--http-library', library,
-    '--ca', join(root, 'ca.crt'),
-    '--cert', join(root, 'client.crt'),
-    '--key', join(root, 'client.key'),
-    '--poll-url', `${nativeHttpOrigin}/outbound/poll`,
-    '--observation-url',
-    `${nativeHttpOrigin}/outbound/status-observation`,
-    'poll-once',
-  ]);
-  assert.equal(queried.code, 0, queried.stderr);
-  assert.deepEqual(JSON.parse(queried.stdout), {
-    kind: 'not-seen',
-    request_cid: remoteRequestCid,
-    revision: 0,
+  await testNativeRemoteSiteControls({
+    moon, nativeBuildRoot, repository: new URL('../', import.meta.url), root,
+    sqliteLibrary, library, nativeHttpOrigin, remoteRequestCid,
+    stalePollObserved, releaseStalePoll,
   });
-  const staleProcess = startAgent([
-    '--http-library', library,
-    '--ca', join(root, 'ca.crt'),
-    '--cert', join(root, 'client.crt'),
-    '--key', join(root, 'client.key'),
-    '--poll-url', `${nativeHttpOrigin}/outbound/stale-poll`,
-    '--observation-url',
-    `${nativeHttpOrigin}/outbound/stale-observation`,
-    'poll-once',
-  ]);
-  await stalePollObserved;
-  const restarted = await runAgent([
-    'restart',
-    '--next-generation', '2',
-    '--next-runtime-revision', revisionB,
-  ]);
-  assert.equal(restarted.code, 0, restarted.stderr);
-  assert.deepEqual(JSON.parse(restarted.stdout), {reconciled_records: 0});
-  releaseStalePoll();
-  const fenced = await staleProcess;
-  assert.notEqual(fenced.code, 0);
-  const stale = await runAgent(['restart',
-    '--next-generation', '2',
-    '--next-runtime-revision', revisionB,
-  ]);
-  assert.notEqual(stale.code, 0);
   execFileSync(moon, [
     'build', '--target', 'native',
     'src/cmd/native_remote_application_site',
   ], {cwd: new URL('../', import.meta.url), stdio: 'inherit'});
   const applicationExecutable = join(
-    new URL('../', import.meta.url).pathname,
-    '_build/native/debug/build/cmd/native_remote_application_site/' +
+    nativeBuildRoot,
+    'native/debug/build/cmd/native_remote_application_site/' +
       'native_remote_application_site.exe',
   );
   const applicationVersion = await new Promise(resolve => {
@@ -2147,28 +2076,28 @@ verification: try {
     'src/cmd/native_remote_coordinator',
   ], {cwd: repositoryRoot, stdio: 'inherit'});
   const transferReceiver = join(
-    repositoryRoot,
-    '_build/native/debug/build/cmd/native_remote_transfer_receive/' +
+    nativeBuildRoot,
+    'native/debug/build/cmd/native_remote_transfer_receive/' +
       'native_remote_transfer_receive.exe',
   );
   const applicationInspector = join(
-    repositoryRoot,
-    '_build/native/debug/build/cmd/native_remote_application_inspect/' +
+    nativeBuildRoot,
+    'native/debug/build/cmd/native_remote_application_inspect/' +
       'native_remote_application_inspect.exe',
   );
   const nativeDirectTransferSite = join(
-    repositoryRoot,
-    '_build/native/debug/build/cmd/native_direct_transfer_site/' +
+    nativeBuildRoot,
+    'native/debug/build/cmd/native_direct_transfer_site/' +
       'native_direct_transfer_site.exe',
   );
   const nativeTransferStoreSite = join(
-    repositoryRoot,
-    '_build/native/debug/build/cmd/native_transfer_store_site/' +
+    nativeBuildRoot,
+    'native/debug/build/cmd/native_transfer_store_site/' +
       'native_transfer_store_site.exe',
   );
   const nativeRemoteCoordinator = join(
-    repositoryRoot,
-    '_build/native/debug/build/cmd/native_remote_coordinator/' +
+    nativeBuildRoot,
+    'native/debug/build/cmd/native_remote_coordinator/' +
       'native_remote_coordinator.exe',
   );
 

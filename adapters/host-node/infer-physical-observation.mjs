@@ -22,7 +22,7 @@ export function createInferPhysicalObservation({observation, reference, receiptA
         ref: {...reference, runDefinitionCid: receipt.runDefinitionCid},
         task: receipt.taskIndex, slot: receipt.ordinal, attempt: receipt.attemptIndex,
         attemptCid: facts.attemptCid, outcome: facts.outcome,
-      }, {segment: facts.attemptCid});
+      });
     } catch { observation.noteLoss(); }
   };
 }

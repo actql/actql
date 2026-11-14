@@ -227,7 +227,12 @@ fn selected_binding_rows_execution(
         }
       },
     ),
-  )
+  ).map(owner => {
+    owner.cleanup_continuation = Some(() => {
+      @execution.bounded_binding_rows_cleanup_continuation(active)
+    })
+    owner
+  })
 }
 
 ///|
@@ -478,7 +483,18 @@ fn bounded_relation_chain_capacity(
   }
   @execution.execution_capacity(
     base.retained_bytes,
-    Int64::max(base.execution_bytes, live_children + handles + preparation),
+    // This audited chain constructs bounded children and exact-count handles,
+    // not the generic sequence table/measurement workspace. Keep every child
+    // output, the live scratch peak and the original output-copy retention.
+    // Unreclaimed/family suffixes retain their complete generic floor.
+    Int64::max(
+      if reclaimed_prefix == count {
+        base.retained_bytes
+      } else {
+        base.execution_bytes
+      },
+      live_children + handles + preparation,
+    ),
   )
 }
 
@@ -940,7 +956,20 @@ fn bounded_relation_chain_execution_state(
         None
       },
     ),
-  ).map(active => (active, state))
+  ).map(active => {
+    active.cleanup_continuation = Some(fn() {
+      // Only the existing reverse cleanup cursor selects a stopped child.
+      // An active/pending input or an uninstrumented family remains blocked.
+      if !terminal.val || reclaimed.val || cleanup_index.val < 0 {
+        return -1L
+      }
+      state.children
+      .get(cleanup_index.val)
+      .map(managed_provider_cleanup_continuation)
+      .unwrap_or(-1L)
+    })
+    (active, state)
+  })
 }
 
 ///|

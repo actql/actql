@@ -201,7 +201,7 @@ fn issue_client_effect_local_table_artifact(
     TableSource(@strategy.captured_effect_table_input_borrow(input), definition),
     invocation,
     receipt,
-    run_invocation,
+    Some(run_invocation),
     retention,
     imported_scope
     .map(@publication.publication_contract_identity)

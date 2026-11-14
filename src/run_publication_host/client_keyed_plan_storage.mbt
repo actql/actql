@@ -25,15 +25,17 @@ fn client_keyed_plan_metadata_storage(
     }
   }
   guard selected is Some(binding) &&
-    @acquisition.keyed_join_left(binding.join) is @pipeline.Step(left_step) &&
-    @lower.node_at(@lower.bound_preparation(occurrence.preparation), left_step)
+    @lower.preparation_carrier_at(
+      @lower.bound_preparation(occurrence.preparation),
+      @acquisition.keyed_join_left(binding.join),
+    )
     is Some(left) &&
     @pipeline.input_at(
       @lower.pipeline(@lower.bound_preparation(occurrence.preparation)),
       input,
     )
     is Some((_, right)) &&
-    @carrier.relation_rows(@lower.node_output_carrier(left)) is Some(left_rows) &&
+    @carrier.relation_rows(left) is Some(left_rows) &&
     @carrier.complete_schema(left_rows) is Some(left_schema) &&
     @carrier.relation_rows(right) is Some(right_rows) &&
     @carrier.complete_schema(right_rows) is Some(right_schema) else {

@@ -74,12 +74,20 @@ pub fn NativeLocalHostConnection::install_effect_reviewer(
 }
 
 ///|
-fn NativeLocalInstalledEffectReviewer::current(
+// Same selected configuration/key projection only. This does not authorize a
+// Reviewer. Closed terminal projections use it after their enclosing current
+// read; each actual resolve entry still evaluates its own Account below.
+fn NativeLocalInstalledEffectReviewer::configuration_current(
   self : NativeLocalInstalledEffectReviewer,
 ) -> Bool {
-  if !self.reviewer.enabled ||
-    !(self.host.selected_configuration(self.file) is Ok(bytes) &&
-    bytes == self.original_bytes) {
+  if !self.reviewer.enabled {
+    return false
+  }
+  let selected = match self.initial_original {
+    Some(original) => original.selected_configuration(self.file)
+    None => self.host.selected_configuration(self.file)
+  }
+  if !(selected is Ok(bytes) && bytes == self.original_bytes) {
     return false
   }
   match self.initial_original {
@@ -89,13 +97,58 @@ fn NativeLocalInstalledEffectReviewer::current(
         return false
       }
   }
-  self.host.authorize({
+  true
+}
+
+///|
+fn NativeLocalInstalledEffectReviewer::current(
+  self : NativeLocalInstalledEffectReviewer,
+) -> Bool {
+  if !self.configuration_current() {
+    return false
+  }
+  let tuple : @authorization.AccessTuple = {
     principal: self.reviewer.principal,
     connection: self.reviewer.connection,
     resource: "run",
     operation: "resolve",
-  })
-  is Ok(@authorization.Allow(_))
+  }
+  let outcome = match self.initial_original {
+    Some(original) => original.authorize(tuple)
+    None => self.host.authorize(tuple)
+  }
+  outcome is Ok(@authorization.Allow(_))
+}
+
+///|
+// Terminal fence only, after the binding's independent current/resolve and
+// original approval-scope checks. No clock or user callback intervenes here.
+// Reuse the SAME saved Read's material, never its Account outcome.
+fn NativeLocalInstalledEffectReviewer::terminal_saved_host_current(
+  self : NativeLocalInstalledEffectReviewer,
+  host : NativeLocalHostConnection,
+  capture : NativeLocalJournalCapture,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  if !physical_equal(self.host, host) {
+    return Err(CustodyLost)
+  }
+  if self.initial_original is Some(original) &&
+    original.original_read is Some((actual_capture, _)) {
+    if !physical_equal(original.host, host) ||
+      !physical_equal(actual_capture, capture) {
+      return Err(OriginalResourceScopePending)
+    }
+    // Actual entered Read/material/Library plus the unchanged SQLite fence,
+    // physical DB generation and original lifetime. Expired/foreign Some
+    // refuses; it never selects the full legacy path as a substitute.
+    match original.check_initial_control_read_scope(host) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    return original.check_host_current()
+  }
+  // Configured and cold/legacy registrations retain their complete fence.
+  host.check_binding()
 }
 
 ///|
@@ -211,6 +264,11 @@ fn NativeLocalEffectReviewerBinding::original_current(
   self : NativeLocalEffectReviewerBinding,
 ) -> Bool {
   let now = (self.now)()
+  if self.installed.initial_original is Some(original) &&
+    original.original_read is Some(_) &&
+    original.check_callback_current() is Err(_) {
+    return false
+  }
   if self.approval_scope is SavedApproval(saved) {
     // The clock is a callback; enter the actual current Read only AFTER it.
     // The same typed query route retains invalidation and SQL return duties.
@@ -323,9 +381,15 @@ fn NativeLocalEffectReviewerBinding::read_current(
       @host.client_request_authority_scope_cid(self.request) => value
     _ => return None
   }
-  if !self.original_current() ||
-    !self.installed.current() ||
-    self.host.check_binding() is Err(_) {
+  if !self.original_current() || !self.installed.current() {
+    return None
+  }
+  let terminal = match self.approval_scope {
+    SavedApproval(saved) =>
+      self.installed.terminal_saved_host_current(self.host, saved.capture)
+    ResidentApproval(_) => self.host.check_binding()
+  }
+  if terminal is Err(_) {
     return None
   }
   Some({

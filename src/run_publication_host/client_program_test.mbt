@@ -27,7 +27,7 @@ test "ordinary values document prepares one named Effect-free result" {
       input,
       compilation: {
         work: 10000000,
-        artifacts: { bytes: 10000000, nodes: 1000000, depth: 100, },
+        artifacts: { bytes: 9000001, nodes: 900001, depth: 99, },
         structure: {
           stages: 2,
           steps: 10,
@@ -74,6 +74,9 @@ test "ordinary values document prepares one named Effect-free result" {
     Ok(value) => value
     Err(_) => fail("ordinary values preparation failed")
   }
+  assert_eq(prepared_client_artifact_limits(prepared), (9000001, 900001, 99))
+  let copied = with_prepared_client_values_row_limit(prepared, 100).unwrap()
+  assert_eq(prepared_client_artifact_limits(copied), (9000001, 900001, 99))
   assert_eq(prepared_client_result_count(prepared), 1)
   assert_eq(prepared_client_result_name(prepared, 0), Some("answer"))
   assert_eq(@strategy.graph_task_count(prepared_client_graph(prepared)), 1)

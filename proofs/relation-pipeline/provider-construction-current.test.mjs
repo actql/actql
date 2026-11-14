@@ -4,12 +4,24 @@ import {readFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {hash} from './inventory.mjs';
+import {selectedBeforeCleanupContinuation, selectedBeforeRowCleanupContinuation, selectedBeforeBoundedChainQuote,
+  managedBeforeCleanupContinuation} from './capacity/parent-control/provider-construction-source-review.mjs';
 import {providerConstructionBound, retainedProviderConstructionBound, inspectProviderConstruction} from './capacity/parent-control/provider-construction.mjs';
 import {adoptedConstructionReview, beforeAdoptedConstructionSource, retainedConstructionRead} from './capacity/parent-control/provider-construction-adopted-review.mjs';
 import {adoptedConstructionFixtureRead, retainedConstructionFixtureRead}
   from './fixtures/retained-construction-source.mjs';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const read = path => readFileSync(new URL(`../../${path}`, import.meta.url));
+test('reviewed chain quote cannot discard a retained or unreclaimed suffix floor', () => {
+  const source=read('src/connectors/local/selected_relation_provider.mbt').toString();
+  for(const [from,to] of [
+    ['if reclaimed_prefix == count {', 'if reclaimed_prefix > 0 {'],
+    ['        base.execution_bytes\n', '        0L\n'],
+  ]) {
+    const changed=source.replace(from,to);assert.notEqual(changed,source);
+    assert.throws(()=>selectedBeforeBoundedChainQuote(changed),/Changed reviewed representation delta/);
+  }
+});
 test('retained constructor fixtures bind every provider to its original source identity', () => {
   const original = JSON.parse(read('proofs/relation-pipeline/capacity/parent-control/provider-construction.json'));
   assert.equal(original.providers.length, 11);
@@ -57,7 +69,15 @@ test('current five-field candidate component derives 2432 without promoting hist
     /Unreviewed current constructor source/);
   // Property borrowing changes only an execution predicate before the
   // selected factory. Its entire constructor/callback tail remains exact.
-  const selectedBytes = read('src/connectors/local/selected_relation_provider.mbt');
+  const selectedBytes = Buffer.from(selectedBeforeBoundedChainQuote(
+    selectedBeforeCleanupContinuation(selectedBeforeRowCleanupContinuation(
+      read('src/connectors/local/selected_relation_provider.mbt').toString()))));
+  assert.equal(hash(selectedBytes),
+    'e42963ae653cff94ddd089a2c33a5f02d5da1a56efde8567f9a0caf7fbc20d55',
+    'Execution cleanup observer and bounded quote must preserve the complete prior Source');
+  assert.equal(hash(managedBeforeCleanupContinuation(read('src/connectors/local/managed_provider.mbt').toString())),
+    'c71bfd51bf16313deb4eb1f6d197ce618a5f4db4d24d963bdef92f941e401dc0',
+    'Execution-only callback slot/helper must preserve candidate construction');
   // The reviewed singleton PIVOT guard changes only the private prefix query.
   // It cannot affect a multi-child prefix or allocate another constructor.
   // Reverse that exact delta before the independent prior-Source checks.
@@ -95,8 +115,37 @@ test('current five-field candidate component derives 2432 without promoting hist
   // the actual constructor/lifecycle remain outside callback execution.
   const crossPath = 'src/connectors/local/cross_join_provider.mbt';
   const cross = read(crossPath).toString();
+  // The reviewed typed work refusal changes only the error mapper preceding
+  // the constructor. Reverse exactly that arm to authenticate the complete
+  // prior Source; candidate layout, captures and cleanup observer stay exact.
+  const typedWork = '    @execution.ControlWorkLimit => @connector.ControlWorkLimit\n';
+  assert.equal(cross.split(typedWork).length, 2, 'Reach the one typed work-refusal arm');
+  const beforeTypedWork = cross.replace(typedWork, '');
+  assert.equal(hash(beforeTypedWork),
+    'a02cf4c88fe349c5a71aaec5348e62f9af3555b530a8d97715a0f13255771590',
+    'Typed work classification must preserve the complete previously reviewed Source');
+  assert.equal(cross.slice(cross.indexOf('fn cross_join_provider(')),
+    beforeTypedWork.slice(beforeTypedWork.indexOf('fn cross_join_provider(')),
+    'Constructor and all execution/cleanup callback bodies remain unchanged');
+  for (const changed of [beforeTypedWork,
+    cross.replace(typedWork, typedWork + typedWork),
+    cross.replace(typedWork, '    @execution.ControlWorkLimit => @connector.Execution(@execution.InputLimit)\n')]) {
+    assert.throws(() => providerConstructionBound(path => path === crossPath ? changed : read(path)),
+      /Unreviewed current constructor source/);
+  }
   assert.equal(cross.split(bounded).length, 2, 'Reach the one reviewed CROSS JOIN capacity query');
-  const priorCross = cross.replace(bounded,
+  const cleanupObserver = `      ).map(owner => {
+        owner.cleanup_continuation = Some(() => {
+          @execution.bounded_cross_join_cleanup_continuation(active)
+        })
+        owner
+      })`;
+  assert.equal(cross.split(cleanupObserver).length, 2, 'Reach the one execution-only Cross Join observer');
+  const beforeObserver = beforeTypedWork.replace(cleanupObserver, '      )');
+  assert.equal(hash(beforeObserver),
+    '0e2b820abd78a4391861332f8748682cb1b70c536dd05f9bc7126531bd197942',
+    'Cross Join observer must preserve the complete prior candidate constructor Source');
+  const priorCross = beforeObserver.replace(bounded,
     '      @execution.generated_sequence_capacity(sequence, limits, measurement)');
   assert.equal(hash(priorCross),
     '74bd36805e65a2340a49d7c554cfea4b807a45676867560a3dd654a14ae89218');

@@ -36,6 +36,22 @@ fn NativeLocalPolicyAuthority::current_for(
 }
 
 ///|
+// Signing shares only the scoped immutable material/identity. Its RunRead
+// decision is evaluated again, independently of the ordinary Read's decision
+// table and the separate ReviewerResolve/HostSign checks.
+fn NativeLocalPolicyAuthority::current_signing_for(
+  self : NativeLocalPolicyAuthority,
+  journal : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+) -> Bool {
+  guard self.purpose is ReadRunMaterials else { return false }
+  guard self.current_material_for(journal, request) is Some(material) else {
+    return false
+  }
+  self.current_with_material_for(journal, request, material, fresh_account=true)
+}
+
+///|
 // The closed public operation shares its admitted material and exact Account
 // tuples. A new public operation or relevant invalidation observes current
 // originals again; internal getters and trusted reads do not create a frame.
@@ -65,6 +81,7 @@ fn NativeLocalPolicyAuthority::current_with_material_for(
     @sqlite.Database,
     NativeLocalAdoptionIssue,
   ],
+  fresh_account? : Bool = false,
 ) -> Bool {
   if !physical_equal(self.host.journal, journal) ||
     @host.client_request_authority_scope_cid(request) != self.scope {
@@ -108,7 +125,7 @@ fn NativeLocalPolicyAuthority::current_with_material_for(
     self.principal,
     self.connection,
     self.purpose,
-    capture=self.capture,
+    capture=if fresh_account { None } else { self.capture },
   )
 }
 
@@ -170,6 +187,7 @@ fn native_local_policy_authority_for(
   request : @host.ClientRequestIdentity,
   purpose : NativeLocalPolicyAuthorityPurpose,
   capture? : NativeLocalJournalCapture? = None,
+  fresh_account? : Bool = false,
 ) -> Result[NativeLocalPolicyAuthority, NativeClientRunJournalIssue] {
   if purpose is ReadResultPolicy(name) &&
     (name.is_empty() || name.length() > 128) {
@@ -204,7 +222,12 @@ fn native_local_policy_authority_for(
     capture,
     material,
   }
-  if !authority.current_for(host.journal, request) {
+  let allowed = if fresh_account {
+    authority.current_signing_for(host.journal, request)
+  } else {
+    authority.current_for(host.journal, request)
+  }
+  if !allowed {
     return Err(AuthorizationDenied)
   }
   Ok(authority)

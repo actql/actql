@@ -55,6 +55,43 @@ fn product_test_text(value : @canonical.CanonicalValue) -> String {
 }
 
 ///|
+test "fresh finite product Journal shares retained count policy without enlarging byte storage or legacy history" {
+  let finite = client_local_product_finite_originals(
+    "/Users/operator/.actql-local",
+    "/product/lib/sqlite.dylib",
+    "/product/lib/crypto.dylib",
+    "2026-10-12T00:00:00.000Z",
+    product_test_assets(),
+  ).unwrap()
+  for (originals, records) in [(product_test_originals(), 8), (finite, 100000)] {
+    let config = product_asset_value(
+      product_test_original(originals, "config.json"),
+    ).unwrap()
+    let settings = product_test_field(config, ["native", "local"])
+    assert_eq(
+      @canonical.stringify_value(
+        product_test_field(settings, ["journal_record_limit"]),
+        32,
+        2,
+        2,
+      ),
+      records.to_string(),
+    )
+    assert_eq(
+      @canonical.stringify_value(
+        product_test_field(settings, ["journal_snapshot_bytes"]),
+        32,
+        2,
+        2,
+      ),
+      "8388608",
+    )
+  }
+  assert_eq(product_default_store_objects(true), 100000)
+  assert_eq(product_default_store_objects(false), 8)
+}
+
+///|
 test "product originals grant only the finite source-free Account operations" {
   let originals = product_test_originals()
   let account = @authorization.admit_account_configuration_json(
@@ -286,7 +323,7 @@ test "product assembly refuses changed environment evidence and privileged asset
   for
     environment in [
       original.environment.replace(
-        old="2217670f3f4f54047e764878501863d4eaf37cf069ab741d7306a9d8985cc94f",
+        old="42e2125d9fbac72912fd67d8f619769810d5d4c606a362a4e569a89f32be54e0",
         new="0000000000000000000000000000000000000000000000000000000000000000",
       ),
       original.environment.replace(

@@ -9,6 +9,7 @@ import {createEmbeddedHostRegistry} from './embedded-local-lifecycle.mjs';
 import {issueNodeClientSubmissionEpoch} from './client-submission.mjs';
 import {sourcePreparationPort} from '../../packages/sdk/internal/private-source-preparation.mjs';
 import {submissionEpoch} from '../../packages/sdk/submission-fixture.mjs';
+import {localResourceResultReadLimits, snapshotRequestMemory} from './installed-host-policy.mjs';
 
 const source=readFileSync(new URL('./embedded-local.mjs',import.meta.url),'utf8');
 const ast=parse(source,{ecmaVersion:'latest',sourceType:'module'}),nodes=[];
@@ -43,6 +44,7 @@ const make=compileFunction(`return async function(input){
   };
   const host={},principalId='original',mode='local',namespaceId='original';
   const authorityScopeCid=input.scope,workspaceId=undefined,moon=input.moon,journal=input.journal;
+  const requestMemory=snapshotRequestMemory(input.requestMemory);
   const closeHostRequestJournal=()=>journal.close();
   const sourceProfile=input.source,installedEffect=undefined,diagnostic=undefined,observation=undefined;
   const fixtureRequestPreparation=Object.freeze(Object.fromEntries(
@@ -72,9 +74,9 @@ const make=compileFunction(`return async function(input){
   const ${declaration('bootstrapPort')};
   ${source.slice(returned[0].start,returned[0].end)};};`,
   ['baseCreateNodeInProcessClientHost','issueNodeClientSubmissionEpoch',
-    'sourcePreparationPort','clientOperationError'])(createNodeInProcessClientHost,
+    'sourcePreparationPort','clientOperationError','localResourceResultReadLimits','snapshotRequestMemory'])(createNodeInProcessClientHost,
       issueNodeClientSubmissionEpoch,sourcePreparationPort,
-      code=>Object.assign(new Error(code),{code}));
+      code=>Object.assign(new Error(code),{code}),localResourceResultReadLimits,snapshotRequestMemory);
 const deferred=()=>{let resolve;const promise=new Promise(done=>{resolve=done;});return {promise,resolve};};
 const ref={namespaceId:'original',authorityScopeCid:submissionEpoch.authorityScopeCid,
   runDefinitionCid:'sha256:'+'d'.repeat(64)};
@@ -83,7 +85,17 @@ const ref={namespaceId:'original',authorityScopeCid:submissionEpoch.authoritySco
 // explicit physical/Journal stopping ports. These counters do not issue a
 // startup/Source/Store supplier or qualify the literal installed README entry.
 async function createFixture({initialize,withSource=true,selected=true}={}){
-  const calls=[],moon={},journal={
+  // Explicit pure policy ports for this lifecycle fixture, not actual Common
+  // resource admission. The real installed projection remains in the caller.
+  const policy=Object.freeze({}),calls=[],moon={
+    clientLocalResourcePolicyOriginal:()=>policy,
+    clientLocalPreparationResourceLimits(original,retained,execution){
+      assert.equal(original,policy);assert.equal(retained,undefined);assert.equal(execution,undefined);
+      return [536870912n,536870912n,536870912n,10485760n,536870912n,100000n];
+    },
+    clientLocalResourcePolicyRowCeiling(original,retained,execution){
+      assert.equal(original,policy);assert.equal(retained,undefined);assert.equal(execution,undefined);return 100000;
+    }},journal={
     issueSubmissionEpoch(fields,runtime){assert.strictEqual(this,journal);
       assert.strictEqual(runtime,moon);assert.equal(fields.currentAuthorization,true);
       calls.push('epoch');return submissionEpoch;},close(){calls.push('journal');}};

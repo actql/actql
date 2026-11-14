@@ -20,6 +20,7 @@ export {deliverAuthorizedResult, describeAuthorizedResult, inspectAuthorizedDeli
 export function installNodeResultAccessService(configuration) {
   if (!exactKeys(configuration, [
     'store', 'control', 'authority', 'now', 'limits', 'frameLimits',
+    ...(Object.hasOwn(configuration ?? {}, 'readWorkspace') ? ['readWorkspace'] : []),
   ])) {
     throw new TypeError('InvalidNodeResultAccessService');
   }

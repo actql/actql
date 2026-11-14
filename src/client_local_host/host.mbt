@@ -395,11 +395,14 @@ fn open_checked_local_host(
     @strategy.graph_captured_prefix(@strategy.captured_dag_graph(run))
   } else if !captured_sources.is_empty() {
     if source is Some(_) ||
-      captured_sources.length() != 2 ||
+      captured_sources.length() !=
+      @strategy.graph_captured_prefix(
+        @publication_host.prepared_client_graph(prepared),
+      ) ||
       acquisition_ledger is None {
       return None
     }
-    2
+    captured_sources.length()
   } else if source is None {
     0
   } else {
@@ -488,7 +491,7 @@ fn open_checked_local_host(
   }
   let opened = if opened_run is Some(run) {
     Ok(run)
-  } else if captured_sources.length() == 2 {
+  } else if !captured_sources.is_empty() {
     @strategy.open_multi_captured_dag(
       @publication_host.prepared_client_graph(prepared),
       captured_sources,

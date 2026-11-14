@@ -333,6 +333,16 @@ pub fn row_input_acquisition_target(
 }
 
 ///|
+/// Borrow the original declared resource without copying its column inventory.
+/// This is immutable DATA; the caller still checks the original acquisition and
+/// performs its Account/current observation at the actual read boundary.
+pub fn row_input_acquisition_target_resource(
+  value : RowInputAcquisition,
+) -> String {
+  value.preparation.view.resource
+}
+
+///|
 pub fn row_input_acquisition_facts(
   value : RowInputAcquisition,
 ) -> @planning.QuerySourceEvidenceFacts {
@@ -706,7 +716,14 @@ pub fn check_row_input_compute_binding(
     capture.observation is InputObservation(observation) &&
     capture.run.physical is Some(physical) &&
     physical_equal(physical.ledger, @strategy.captured_dag_ledger(dag)) &&
-    @strategy.source_input_dag_matches_read_at(dag, observation.read, task) else {
+    (
+      @strategy.source_input_dag_matches_read_at(dag, observation.read, task) ||
+      @strategy.source_input_dag_retains_completed_read_at(
+        dag,
+        observation.read,
+        task,
+      )
+    ) else {
     return Err(InvalidState)
   }
   Ok(())

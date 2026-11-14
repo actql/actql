@@ -40,9 +40,10 @@ fn captured_protocol_rule_height(
 ///|
 test "captured protocol validation stack is schema-bounded not row-count bounded" {
   let nodes = protocol_schema_nodes()
-  // The closed json_file alternative adds53 to the original8879 slots.
+  // Closed json_file adds53 and declared-file body19/complete20 add39
+  // to the original8879 slots.
   // The earlier captured_run roots and height stay fixed.
-  assert_eq(nodes.length(), 8932)
+  assert_eq(nodes.length(), 8971)
   for complete in [false, true] {
     let root = generated_protocol_schema_root("captured_run", complete).unwrap()
     assert_eq(root, if complete { 2303 } else { 1882 })

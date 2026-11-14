@@ -51,6 +51,23 @@ pub fn captured_source_cell_identity_start_capacity(
 }
 
 ///|
+/// Structural workspace from the SAME captured table and selected value/wire
+/// bounds. This borrows metadata only; the original Source retains authority.
+pub fn captured_source_cell_identity_workspace_slots(
+  source : CapturedInputSource,
+  values : @execution.ValueLimits,
+  payload_wire : @execution.RowWireLimits,
+  logical_wire : @execution.RowWireLimits,
+) -> Int? {
+  @execution.completed_relation_identity_scan_workspace_slots(
+    source.output,
+    values,
+    payload_wire,
+    logical_wire,
+  )
+}
+
+///|
 pub fn start_captured_source_cell_identity(
   source : CapturedInputSource,
   max_rows : Int,

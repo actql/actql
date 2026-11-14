@@ -13,6 +13,44 @@ const scratch = async t => {
 };
 const json = async path => JSON.parse(await readFile(path, 'utf8'));
 
+test('current troubleshooting commands correspond to the CLI registry and project template', async () => {
+  const guide = await readFile(new URL('../docs/guides/debugging.md', import.meta.url), 'utf8');
+  const reference = await readFile(new URL('../docs/cli.md', import.meta.url), 'utf8');
+  const registry = (await readFile(new URL('../src/cmd/native_client/main.mbt', import.meta.url), 'utf8'))
+    .split('fn command() -> @argparse.Command {')[1].split('\n///|')[0];
+  const commands = new Set([...registry.matchAll(/@argparse\.Command\(\s*"([^"]+)"/gu)].map(match => match[1]));
+  const options = new Set([...registry.matchAll(/@argparse\.(?:OptionArg|FlagArg)\(\s*"([^"]+)"/gu)].map(match => match[1]));
+  for (const command of ['check', 'explain', 'status', 'reject', 'reconcile']) assert.ok(commands.has(command));
+  for (const unavailable of ['doctor', 'catalog']) assert.ok(!commands.has(unavailable));
+  assert.ok(!options.has('redact'));
+  const environment = guide.split('## The environment\n')[1].split('\n## Getting help')[0];
+  assert.match(environment, /does not implement `doctor` or the `catalog` commands/u);
+  assert.match(environment, /help.*does not inspect.*configuration/su);
+  const calls = [...environment.matchAll(/^actql (.*)$/gmu)].map(match => match[1]);
+  const files = projectTemplateFiles('churn-risk-mock');
+  assert.ok(Object.hasOwn(files, 'actql.config.json'));
+  assert.ok(Object.hasOwn(files, 'churn-risk.aql'));
+  assert.deepEqual(calls, [
+    '--mode local --config actql.config.json check churn-risk.aql --json',
+    '--mode local --config actql.config.json explain churn-risk.aql --json',
+    '--mode local --config actql.config.json status <existing-run-id> --json',
+  ]);
+  for (const option of ['mode', 'config', 'json']) assert.ok(options.has(option));
+  assert.match(guide, /no `--redact` option/u);
+  assert.doesNotMatch(guide, /actql[^\n]*--redact/u);
+  assert.match(reference, /`catalog` commands are v0\.1 targets, unavailable in the current Native CLI/u);
+  assert.match(reference, /`doctor` is a v0\.1 target, unavailable in the current Native CLI/u);
+});
+
+test('CLI reference does not advertise an unavailable automatic redaction option', async () => {
+  const reference = await readFile(new URL('../docs/cli.md', import.meta.url), 'utf8');
+  assert.doesNotMatch(reference, /^actql[^\n]*--redact/gmu);
+  const output = reference.split('## Output and exit codes\n')[1];
+  assert.match(output, /no `--redact` option/u);
+  assert.match(output, /manually remove/u);
+  assert.doesNotMatch(output, /replaces system names/u);
+});
+
 test('the Quickstart template prepares eight inputs and leaves state creation to the installation Owner', async t => {
   const root = await scratch(t), project = join(root, 'churn-risk');
   const result = scaffoldProject(project, 'churn-risk-mock');

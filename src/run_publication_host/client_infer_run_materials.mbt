@@ -386,7 +386,8 @@ fn read_plural_client_infer_run_graphs(
     let occurrence = occurrences[index]
     let object = match
       @decode.closed_object(@decode.element_at(root, index).unwrap(), [
-        "execution_contract_cid", "execution_contract_json", "stage", "step", "task",
+        "execution_contract_cid", "execution_contract_json", "native_read_profile",
+        "native_read_profile_kind", "stage", "step", "task",
       ]) {
       Ok(value) => value
       Err(_) => return Err(invalid)
@@ -415,6 +416,45 @@ fn read_plural_client_infer_run_graphs(
       Ok(value) => value
       Err(_) => return Err(invalid)
     }
+    let keyed_native_read = match
+      (
+        @decode.lookup(object, "native_read_profile_kind"),
+        @decode.lookup(object, "native_read_profile"),
+      ) {
+      (None, None) => None
+      (Some(kind), Some(value)) => {
+        guard @decode.text(kind) is Ok(kind) &&
+          (
+            kind == "native_file_content_read" ||
+            kind == "declared_file_content_read"
+          ) &&
+          @decode.text(value) is Ok(wire) &&
+          @publication.admit_file_read_profile_contract(
+            wire,
+            limits.max_evidence_bytes,
+            limits.max_evidence_nodes,
+            limits.max_evidence_depth,
+          )
+          is Ok(profile) &&
+          @publication.publication_contract_name(profile) == kind &&
+          client_composed_keyed_source_coordinates(occurrence.owner)
+          is Ok(Some((stage, input, join))) &&
+          stage == occurrence.stage &&
+          join < occurrence.step &&
+          prepare_client_keyed_acquisition(
+            occurrence.owner,
+            stage,
+            input,
+            1000000,
+            join_step=Some(join),
+          )
+          is Ok(keyed) else {
+          return Err(invalid)
+        }
+        Some((keyed, profile))
+      }
+      _ => return Err(invalid)
+    }
     let graph = match
       issue_installed_client_composed_infer_plan_graph(
         occurrence,
@@ -423,6 +463,7 @@ fn read_plural_client_infer_run_graphs(
         limits.max_evidence_bytes,
         limits.max_evidence_nodes,
         limits.max_evidence_depth,
+        keyed_native_read~,
       ) {
       Ok(value) => value
       Err(_) => return Err(invalid)
@@ -440,9 +481,7 @@ fn encode_client_infer_original_inventory(
   graphs : Array[ClientInferPlanGraph],
   limits : ClientValuesRunMaterialsLimits,
 ) -> Result[String, ClientTaskRunMaterialsIssue] {
-  if occurrences.length() < 2 ||
-    occurrences.length() > 128 ||
-    graphs.length() != occurrences.length() {
+  if occurrences.length() < 2 || graphs.length() != occurrences.length() {
     return Err(Binding(UnsupportedProgram))
   }
   let inventory = try {
@@ -466,6 +505,12 @@ fn encode_client_infer_original_inventory(
           limits.max_evidence_bytes,
           limits.max_evidence_nodes,
           limits.max_evidence_depth,
+          keyed_native_read=graph.keyed.map(component => {
+            (
+              component.original.fragments.acquisition,
+              component.original.profile,
+            )
+          }),
         ) {
         Ok(value) => value
         Err(_) => return Err(Binding(UnsupportedProgram))
@@ -487,6 +532,23 @@ fn encode_client_infer_original_inventory(
       )
       @encode.key(writer, "execution_contract_json")
       @encode.string_value(writer, @encode.finish(body))
+      if graph.keyed is Some(component) {
+        let kind = @publication.publication_contract_name(
+          component.original.profile,
+        )
+        guard kind == "native_file_content_read" ||
+          kind == "declared_file_content_read" else {
+          return Err(Binding(UnsupportedProgram))
+        }
+        // Same original compiler DATA, not an installation/current/read grant.
+        @encode.key(writer, "native_read_profile")
+        @encode.string_value(
+          writer,
+          @publication.publication_contract_json(component.original.profile),
+        )
+        @encode.key(writer, "native_read_profile_kind")
+        @encode.string_value(writer, kind)
+      }
       for (name, value) in [("stage", stage), ("step", step), ("task", task)] {
         @encode.key(writer, name)
         @encode.number_value(writer, value.to_double())

@@ -15,16 +15,20 @@ pub fn NativeClientRelationFileWork::prepare_result_export(
   if self.output_bridge is Some(_) {
     return Err(Configuration)
   }
-  guard self.requirements.publication_limits(
-      self.prepared,
-      limits.payload_wire.max_bytes,
-    )
-    is Some((row_limits, _)) else {
-    return Err(Configuration)
-  }
-  guard self.requirements.publication_entry_limits(self.prepared)
-    is Some((bridge_entries, _)) else {
-    return Err(Configuration)
+  let (row_limits, bridge_entries) = match self.plan {
+    QueryFileExecution(requirements) => {
+      guard requirements.publication_limits(
+          self.prepared,
+          limits.payload_wire.max_bytes,
+        )
+        is Some((rows, _)) &&
+        requirements.publication_entry_limits(self.prepared)
+        is Some((entries, _)) else {
+        return Err(Configuration)
+      }
+      (rows, entries)
+    }
+    WholeFileExecution(rows, entries, _) => (rows, entries)
   }
   let output_bridge = match
     self.execution.prepare_result_export(
@@ -33,6 +37,7 @@ pub fn NativeClientRelationFileWork::prepare_result_export(
       bridge_entries,
       limits.schema.max_bytes,
       limits,
+      publication=self.publication,
     ) {
     Err(issue) => return Err(LocalExport(issue))
     Ok(value) => value

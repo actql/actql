@@ -305,7 +305,12 @@ export function inspectCore(root, roots = coreRoots) {
     // in-memory DATA only; this review adds no runtime import or Host port.
     const capturedKeyExtentRef = owner === 'source_value' &&
       path === 'moonbitlang/core/ref';
-    const permitted = path === 'moonbitlang/core/debug' || collectedInputsRef || capturedKeyExtentRef ||
+    // The remaining checker optionally records its once-only call count in
+    // the caller's Ref[Int64]. This pinned mutable DATA is neither a Host
+    // callback nor an authority, and grants no other Owner a Ref import.
+    const checkerCallCountRef = owner === 'program_check' &&
+      path === 'moonbitlang/core/ref';
+    const permitted = path === 'moonbitlang/core/debug' || collectedInputsRef || capturedKeyExtentRef || checkerCallCountRef ||
       reviewedExternal(owner, path) !== undefined ||
       path.startsWith('actql/actql/') && packages.has(path.slice(12));
     if (!permitted) throw new Error(`UnreviewedPublicType: ${owner}: ${path}`);

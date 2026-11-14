@@ -159,6 +159,8 @@ export async function acceptInstalledNativeCli(directory) {
     const authorizationEnv = {...env, NODE_EXTRA_CA_CERTS: join(host, 'remote.crt')};
     await run(process.execPath, ['release-native-host-authorization.mjs', binary],
       {cwd: host, env: authorizationEnv});
+    await run(process.execPath, [join(repository, 'scripts/test-native-client.mjs')],
+      {cwd: repository, env: {...env, ACTQL_TEST_NATIVE_CLIENT_BINARY: binary}});
     assert.equal(hash(await readFile(binary)), artifact.binarySha256);
     assert.deepEqual(checkoutState(repository), source);
     await verifyNativeCliRelease(directory);
@@ -173,7 +175,8 @@ export async function acceptInstalledNativeCli(directory) {
         authorization,
       },
       scope: ['fresh npm installation', 'npm launcher Remote real Host', 'finite Account refusals',
-        'Node-free installed executable', 'closed state descriptors', 'unavailable Local init leaves no files'],
+        'Node-free installed executable', 'closed state descriptors', 'unavailable Local init leaves no files',
+        'original Native Client mTLS and contract corpus'],
       unverified: ['Linux Local execution', 'mock workflow execution', 'other platforms']};
   } catch (error) {failure = error; rejected = true;}
   try {await registry.close();}

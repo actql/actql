@@ -1,3 +1,4 @@
+import './local-values-retention-original.test.mjs';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
@@ -102,13 +103,13 @@ test('timed original downstream Task admission reuses first Run and never issues
 
 test('timed original downstream Values publication preserves first Run and full publication duties',()=>{
   const f=timedOriginalFixture(),original=f.build(),publicationOriginal={},seen=[];
-  const originalPlans=new WeakMap(),originalPlanLimits={},runPlanOriginal={};
+  const originalPlans=new WeakMap(),metadataLimits={},runPlanOriginal={};
   const retention=ast.body.find(x=>x.type==='FunctionDeclaration'&&x.id.name==='retainOriginalPlan');
-  const retainOriginalPlan=Function('originalPlans','originalPlanLimits',
-    'return ('+source.slice(retention.start,retention.end)+');')(originalPlans,originalPlanLimits);
+  const retainOriginalPlan=Function('originalPlans','limits',
+    'return ('+source.slice(retention.start,retention.end)+');')(originalPlans,metadataLimits);
   f.control.captureOriginalClientRunPlan=(compiled,prepared,definition,limits)=>{
     assert.equal(compiled,f.compilation);assert.equal(prepared,f.prepared);
-    assert.equal(definition,f.definition);assert.equal(limits,originalPlanLimits);
+    assert.equal(definition,f.definition);assert.equal(limits,metadataLimits);
     seen.push('retain');return runPlanOriginal;
   };
   const globals={checkedOriginalQueryInvocation:f.functions.checkedOriginalQueryInvocation,prepareQueryInvocation:()=>assert.fail('second time preparation'),bindQueryInvocation:()=>assert.fail('second bind'),instant:()=>assert.fail('second header'),randomUUID:()=>assert.fail('second Run'),policyCid:()=> 'policy',valuesExecutionContextCid:()=> 'context',limits:{},checkedLocalOutputLimits:(moon,p,v)=>{assert.equal(p,f.prepared);assert.equal(v,publicationOriginal);return {maxRows:10};},localPublicationPlan:value=>{seen.push('publication');return Object.freeze(value);},valuesAdmissions:new WeakMap(),retainOriginalPlan};

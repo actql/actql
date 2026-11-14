@@ -10,6 +10,18 @@ pub(all) enum CapturedEffectApplyPreflightIssue {
 } derive(Debug)
 
 ///|
+/// Classify only the retained failed check's typed cause. This performs no
+/// validation/current observation and grants no admission or mutation permit.
+pub fn captured_effect_apply_preflight_target_version_changed(
+  issue : CapturedEffectApplyPreflightIssue,
+) -> Bool {
+  match issue {
+    Guard(Current(@effect.StalePreview(_, _))) => true
+    _ => false
+  }
+}
+
+///|
 /// Evaluate every semantic apply obligation against one live captured Preview.
 /// The Host must authenticate current observations, reviewer authority, and
 /// payload custody before calling this function. A successful check is not a

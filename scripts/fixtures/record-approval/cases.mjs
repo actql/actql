@@ -31,7 +31,11 @@ export function hubspotUpdateCase(programs, selected) {
     effect: {document: programs.update, format: 'aql', resultName: 'updates',
       parameterDeclarations: {record_id: {type: 'string'}, next_name: {type: 'string'}},
       parameters: {record_id: recordId, next_name: nextName},
-      expectedRows: [{id: recordId, previous_name: previousName, next_name: nextName}]},
+      expectedRows: [{id: recordId, previous_name: previousName, next_name: nextName}],
+      ...(selected.variant === 'binary-source' ? {additionalResults: {
+        answer: [{id: recordId, left_name: previousName, right_id: recordId,
+          right_name: previousName, next_name: nextName}],
+      }} : {})},
     read: {document: programs.read, format: 'aql', resultName: 'main',
       parameterDeclarations: {record_id: {type: 'string'}}, parameters: {record_id: recordId},
       beforeRows: [{id: recordId, name: previousName}], afterRows: [{id: recordId, name: nextName}]},

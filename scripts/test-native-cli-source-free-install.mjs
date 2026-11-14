@@ -18,8 +18,370 @@ import {createOwnedScratch} from './owned-scratch.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
 import {admitInstalledLocalRuntime} from '../packages/native-cli/lib/local-runtime.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
+import {nativeMockAcceptanceObservations} from '../packages/native-cli/lib/project-scaffold.mjs';
+import {nativeLauncherEnvelope} from './native-cli-mock-scenario.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
+
+// Existing process counters measure these actual call sites, not SQL compiler
+// internals. In particular tag 17 counts a legacy JSON/submitted-intent helper;
+// zero there does not establish zero SQL parse, check or compilation work.
+export function requireNativeSourceFreeWorkCounts(operation, counters) {
+  assert(['check', 'run', 'sql', 'result'].includes(operation));
+  const selected = tag => {
+    const rows = counters.filter(row => row.tag === tag);
+    assert.equal(rows.length, 1, `Missing or duplicate Native work counter ${tag}`);
+    assert(Number.isSafeInteger(rows[0].count) && rows[0].count >= 0);
+    return rows[0].count;
+  };
+  const measured = {
+    checkingEnvironmentAdmissions: selected(21),
+    runInstallationAdmissions: selected(31),
+    productConfigurationStagePasses: selected(58),
+    packagedRuntimeOriginalChecks: selected(59),
+    legacyJsonOrSubmittedIntentHelperCalls: selected(17),
+    requestQueryParseCalls: selected(66),
+    requestQueryLowerCalls: selected(67),
+    requestSemanticCheckCalls: selected(68),
+    requestProgramCompileCalls: selected(69),
+  };
+  assert.equal(measured.checkingEnvironmentAdmissions, operation === 'result' ? 0 : 1,
+    'Repeated or missing checking Environment admission');
+  for (const name of ['runInstallationAdmissions', 'productConfigurationStagePasses',
+    'packagedRuntimeOriginalChecks']) assert.equal(measured[name], 1, `Repeated or missing ${name}`);
+  for (const name of ['requestQueryParseCalls', 'requestQueryLowerCalls', 'requestSemanticCheckCalls'])
+    assert.equal(measured[name], operation === 'result' ? 0 : 1, `Repeated or missing ${name}`);
+  assert.equal(measured.requestProgramCompileCalls, operation === 'run' || operation === 'sql' ? 1 : 0,
+    'Repeated or missing requestProgramCompileCalls');
+  return {operation, measured, unmeasured: {
+    otherCheckerPhaseCalls: null, immutableBodyReadmissionCalls: null,
+  }};
+}
+
+export async function observeNativeSourceFreeCommand({args, cwd, cli, environment}) {
+  assert(['check', 'run', 'sql', 'result'].includes(args[0]));
+  const flags = ['ACTQL_NATIVE_TIMINGS', 'ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS'];
+  const previous = flags.map(key => [key, environment[key]]);
+  let record;
+  try {
+    for (const key of flags) environment[key] = '1';
+    record = await cli(args, cwd);
+  } finally {
+    for (const [key, value] of previous) {
+      if (value === undefined) delete environment[key];
+      else environment[key] = value;
+    }
+  }
+  assert.equal(record.code, 0); assert.equal(record.signal, null);
+  const envelope = nativeLauncherEnvelope(record.stderr, 'required');
+  const groups = nativeMockAcceptanceObservations(envelope.native);
+  assert.equal(groups.length, 1, 'One original Native process required');
+  assert.equal(groups[0].events.length, 0, 'Source-free command repeated Model or Effect work');
+  // The existing parser owns the complete schema and tag inventory. Inspect
+  // only recording integrity and the selected existing counters afterward.
+  const rows = envelope.native.trimEnd().split('\n').map(line => {
+    const space = line.indexOf(' ');
+    return {marker: line.slice(0, space), value: JSON.parse(line.slice(space + 1))};
+  });
+  const meta = rows.find(row => row.marker === 'ACTQL_NATIVE_TIMINGS').value;
+  for (const key of ['initializing_drops', 'invalid_tags', 'invalid_amounts', 'clock_failures',
+    'stack_overflows']) assert.equal(meta[key], 0, `Incomplete Native counter recording: ${key}`);
+  assert.equal(meta.overflow, false, 'Overflowed Native work counters');
+  record.sourceFreeWork = {pid: groups[0].pid,
+    ...requireNativeSourceFreeWorkCounts(args[0], rows.filter(row => row.marker === 'ACTQL_NATIVE_COUNTER').map(row => row.value))};
+  return record;
+}
+
+// Independent expectations for the ordinary, unmodified init profile. These
+// cover Aggregate and Window semantics, unlike the separate large VALUES row-delivery case.
+export const nativeDefaultNumericQueries = Object.freeze([
+  {name: 'sum', sql: 'WITH x AS (SELECT 1 AS n UNION ALL SELECT 2 AS n) SELECT SUM(n) AS total FROM x', rows: [{total: 3}]},
+  {name: 'average', sql: 'WITH x AS (SELECT 1 AS n UNION ALL SELECT 2 AS n) SELECT AVG(n) AS total FROM x', rows: [{total: 1.5}]},
+  {name: 'decimal', sql: "WITH x AS (SELECT CAST('1.25' AS DECIMAL(8,2)) AS n UNION ALL SELECT CAST('2.75' AS DECIMAL(8,2)) AS n) SELECT SUM(n) AS total FROM x", rows: [{total: '4.00'}]},
+  {name: 'controls', sql: 'WITH x AS (SELECT 1 AS n UNION ALL SELECT 2 AS n) SELECT COUNT(*) AS count, MIN(n) AS minimum FROM x', rows: [{count: 2, minimum: 1}]},
+  {name: 'where', sql: 'WITH x AS (SELECT 1 AS n UNION ALL SELECT 2 AS n) SELECT n FROM x WHERE n > 1', rows: [{n: 2}]},
+  {name: 'grouped', sql: "WITH x AS (SELECT 'a' AS bucket, 1 AS n UNION ALL SELECT 'a' AS bucket, 2 AS n UNION ALL SELECT 'b' AS bucket, 4 AS n) SELECT bucket, SUM(n) AS total, AVG(n) AS average FROM x GROUP BY bucket ORDER BY bucket", rows: [{bucket: 'a', total: 3, average: 1.5}, {bucket: 'b', total: 4, average: 4}]},
+  {name: 'empty', sql: 'WITH x AS (SELECT 1 AS n WHERE FALSE) SELECT SUM(n) AS total, AVG(n) AS average, COUNT(n) AS count FROM x', rows: [{total: null, average: null, count: 0}]},
+  {name: 'nulls', sql: 'WITH x AS (SELECT CAST(NULL AS NUMBER) AS n UNION ALL SELECT CAST(NULL AS NUMBER) AS n) SELECT SUM(n) AS total, AVG(n) AS average, COUNT(n) AS count FROM x', rows: [{total: null, average: null, count: 0}]},
+  {name: 'mixed-null', sql: 'WITH x AS (SELECT 1 AS n UNION ALL SELECT CAST(NULL AS NUMBER) AS n UNION ALL SELECT 2 AS n) SELECT SUM(n) AS total, AVG(n) AS average FROM x', rows: [{total: 3, average: 1.5}]},
+  {name: 'parameters', sql: 'WITH x AS (SELECT @first AS n UNION ALL SELECT @second AS n) SELECT SUM(n) AS total, AVG(n) AS average FROM x', rows: [{total: 3, average: 1.5}], parameters: true},
+  {name: 'window-sum', sql: 'WITH x AS (SELECT 2 AS id, 5 AS n UNION ALL SELECT 1 AS id, 3 AS n) SELECT id, SUM(n) OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS total FROM x ORDER BY id', rows: [{id: 1, total: 3}, {id: 2, total: 8}]},
+  {name: 'window-row-number', sql: 'WITH x AS (SELECT 2 AS id UNION ALL SELECT 1 AS id) SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS ordinal FROM x ORDER BY id', rows: [{id: 1, ordinal: 1}, {id: 2, ordinal: 2}]},
+  {name: 'window-typed-null', sql: 'WITH x AS (SELECT 3 AS id, 5 AS n UNION ALL SELECT 1 AS id, CAST(NULL AS NUMBER) AS n UNION ALL SELECT 2 AS id, 3 AS n) SELECT id, SUM(n) OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS total FROM x ORDER BY id', rows: [{id: 1, total: null}, {id: 2, total: 3}, {id: 3, total: 8}]},
+]);
+
+export async function observeNativeDefaultNumericQueries({project, cli, queries = nativeDefaultNumericQueries}) {
+  assert(queries.length > 0 && queries.every(entry => nativeDefaultNumericQueries.includes(entry)));
+  const cases = join(project, 'numeric-cases');
+  await mkdir(cases, {mode: 0o700});
+  const rows = text => text.trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
+  const observations = [];
+  const retained = [];
+  const currentProject = join(cases, 'ordinary');
+  // Repeated admitted intents share one ordinary installation and its finite
+  // Journal policy. A fresh Host per query would conceal cumulative refusal.
+  await cli(['init', currentProject], project);
+  for (const entry of queries) {
+    const file = `numeric-${entry.name}.sql`;
+    await writeFile(join(currentProject, file), entry.sql, {flag: 'wx', mode: 0o600});
+    const parameters = entry.parameters ? ['--parameter-declarations-file', 'numeric-declarations.json',
+      '--parameters-file', 'numeric-parameters.json'] : [];
+    if (entry.parameters) {
+      await writeFile(join(currentProject, 'numeric-declarations.json'), JSON.stringify({first: {type: 'number'}, second: {type: 'number'}}), {flag: 'wx'});
+      await writeFile(join(currentProject, 'numeric-parameters.json'), '{"first":1,"second":2}', {flag: 'wx'});
+    }
+    const checked = JSON.parse((await cli(['check', file, '--format', 'sql', '--json', ...parameters], currentProject)).stdout);
+    assert.equal(checked.outcome, 'completed', `${entry.name}: completed check required`);
+    assert.equal(checked.report.verdict, 'verified', `${entry.name}: verified check required`);
+    assert.equal(checked.report.runnable.verdict, 'yes', `${entry.name}: runnable check required`);
+    const state = JSON.parse((await cli(['run', file, '--format', 'sql', '--json', ...parameters], currentProject)).stdout);
+    assert.equal(state.version, 'actql-run-state/0.1'); assert.equal(state.status, 'succeeded');
+    assert.equal(typeof state.run_id, 'string'); assert(state.run_id.length > 0);
+    assert(!retained.some(value => value.runId === state.run_id), 'Fresh submissions must have distinct original Runs');
+    assert.deepEqual(rows((await cli(['result', state.run_id, '--format', 'jsonl'], currentProject)).stdout), entry.rows);
+    // Every cli invocation is a separate process. Removing original inputs
+    // makes a new prepare or reexecution unable to replace the saved Result.
+    await unlink(join(currentProject, file));
+    if (entry.parameters) {
+      await unlink(join(currentProject, 'numeric-declarations.json'));
+      await unlink(join(currentProject, 'numeric-parameters.json'));
+    }
+    assert.deepEqual(rows((await cli(['result', state.run_id, '--format', 'jsonl'], currentProject)).stdout), entry.rows);
+    retained.push({runId: state.run_id, entry});
+    observations.push({name: entry.name, checkRunnable: 'yes', rows: entry.rows, coldSavedWithoutProgram: true});
+  }
+  for (const [invalid, sql] of [['numeric-invalid.sql', "SELECT SUM('not a number') AS total"],
+    ['numeric-invalid-syntax.sql', 'SELECT )']]) {
+    await writeFile(join(currentProject, invalid), sql, {flag: 'wx'});
+    const refusal = JSON.parse((await cli(['check', invalid, '--format', 'sql', '--json'], currentProject, 1)).stdout);
+    assert.equal(refusal.report.verdict, 'invalid'); assert.equal(refusal.report.runnable.verdict, 'no');
+    await unlink(join(currentProject, invalid));
+  }
+  assert.deepEqual(rows((await cli(['sql', nativeDefaultNumericQueries[0].sql, '--format', 'jsonl'], currentProject)).stdout), [{total: 3}]);
+  // Later successful submissions and rejected checks must not evict the oldest
+  // originals. These are Saved reads, never another run/sql or hidden Host.
+  for (const {runId, entry} of retained) {
+    assert.deepEqual(rows((await cli(['result', runId, '--format', 'jsonl'], currentProject)).stdout), entry.rows);
+    observations.find(value => value.name === entry.name).savedAfterLaterSubmissions = true;
+  }
+  return observations;
+}
+
+// Exercise the former 64 KiB Plan boundary with the ordinary init profile.
+// Public explain bytes do not measure the separately stored Run metadata row.
+export const nativeDefaultUnionCases = Object.freeze([
+  {branches: 11, total: 55}, {branches: 17, total: 136}, {branches: 24, total: 276},
+]);
+
+// The independent WITH-set golden emits values/derive/select for each
+// literal SELECT, N-1 UNION ALL appends, then SUM group/final projection.
+// Assert those original logical occurrences and their complete input/output
+// connections, rather than accepting any nonempty JSON as a retained Plan.
+function assertNativeUnionPlan(value, originalRef, branches) {
+  assert.equal(value.version, 'actql-run-plan-view/0.1');
+  assert.deepEqual(value.run_ref, originalRef, 'Saved explain must select the original Run reference');
+  const plan = value.plan_view;
+  assert.equal(plan?.version, 'actql-plan-view/0.1', 'Complete retained Plan required');
+  const cid = /^sha256:[0-9a-f]{64}$/u;
+  assert.match(plan.compiled_plan_cid, cid);
+  assert.equal(plan.observation, 'static');
+  assert.equal(plan.provider_io, 0);
+  const map = plan.logical_map;
+  assert.equal(map?.version, 'actql-logical-map/0.1');
+  assert.equal(map.compiled_plan_cid, plan.compiled_plan_cid);
+  assert.match(map.program_definition_cid, cid);
+  assert.match(map.self_cid, cid);
+  assert(Array.isArray(map.steps) && map.steps.length > 0, 'Complete logical steps required');
+  const counts = new Map(), outputs = new Map(), steps = new Set(), ports = new Set();
+  let lastOperator;
+  for (const step of map.steps) {
+    const arity = new Map([['values', 0], ['derive', 1], ['select', 1], ['append', 2], ['group', 1]]).get(step.operator);
+    assert.notEqual(arity, undefined, 'Unexpected operation in the original UNION/SUM fixture');
+    assert.match(step.step_id, cid);
+    assert(!steps.has(step.step_id), 'Distinct original logical occurrences required');
+    steps.add(step.step_id);
+    assert.equal(step.key?.version, 'actql-logical-step-key/0.1');
+    assert.equal(step.key.compiled_plan_cid, plan.compiled_plan_cid);
+    assert.equal(step.key.self_cid, step.step_id);
+    assert.equal(step.key.stage_ordinal, 0, 'This SQL retains the independent one-stage WITH-set shape');
+    assert.deepEqual(step.key.occurrence, {kind: 'operation', operation_ordinal: steps.size - 1});
+    assert(Array.isArray(step.ports));
+    const inputs = step.ports.filter(port => port.role === 'input');
+    const output = step.ports.filter(port => port.role === 'output');
+    assert.equal(inputs.length, arity, 'Retain every original input port');
+    assert.equal(output.length, 1, 'Retain the original output port');
+    assert.equal(step.ports.length, arity + 1);
+    for (const port of step.ports) {
+      assert.match(port.port_id, cid);
+      assert(!ports.has(port.port_id), 'Distinct original logical ports required');
+      ports.add(port.port_id);
+      assert.equal(port.carrier, 'relation');
+      if (port.role === 'input') {
+        assert(port.source, 'Original input producer required');
+        assert.equal(port.source.kind, 'logical_output', 'This source-free WITH uses same-stage producers');
+        assert(outputs.has(port.source.output_port_id), 'Original earlier output port required');
+        assert.equal(outputs.get(port.source.output_port_id), port.source.step_id,
+          'Retain the exact earlier logical producer, not a truncated graph');
+      }
+    }
+    outputs.set(output[0].port_id, step.step_id);
+    counts.set(step.operator, (counts.get(step.operator) ?? 0) + 1);
+    lastOperator = step.operator;
+  }
+  assert.equal(counts.get('values'), branches, 'Retain every literal SELECT seed');
+  assert.equal(counts.get('derive'), branches, 'Retain every literal evaluation before its projection');
+  assert.equal(counts.get('append'), branches - 1, 'Retain every UNION ALL occurrence');
+  assert.equal(counts.get('group'), 1, 'Retain the original SUM aggregate');
+  assert.equal(counts.get('select'), branches + 1, 'Retain branch projections and the final total projection');
+  assert.equal(map.steps.length, 4 * branches + 1, 'Complete current fixture lowering, not a public planning limit');
+  assert.equal(lastOperator, 'select', 'Retain the final aggregate projection');
+  const planBytes = Buffer.byteLength(JSON.stringify(plan), 'utf8');
+  if (branches === nativeDefaultUnionCases.at(-1).branches)
+    assert(planBytes > 65536, 'The largest complete inner Plan must actually cross the former 64 KiB boundary');
+  return {planBytes, logicalSteps: map.steps.length};
+}
+
+export async function observeNativeDefaultUnionMetadata({root, cli}) {
+  const project = join(root, 'ordinary-union-metadata');
+  await cli(['init', project], root);
+  const configuration = await readFile(join(project, 'actql.config.json'), 'utf8');
+  assert.equal(JSON.parse(configuration).profile, undefined, 'Ordinary default profile required');
+  const rows = text => text.trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
+  const observations = [], retained = [];
+  for (const {branches, total} of nativeDefaultUnionCases) {
+    const file = `union-${branches}.sql`;
+    const sql = 'WITH t AS (' + Array.from({length: branches}, (_, index) =>
+      `SELECT ${index} AS v`).join(' UNION ALL ') + ') SELECT SUM(v) AS total FROM t';
+    await writeFile(join(project, file), sql, {flag: 'wx', mode: 0o600});
+    const run = await cli(['run', file, '--format', 'sql', '--json'], project);
+    const state = JSON.parse(run.stdout);
+    assert.equal(state.version, 'actql-run-state/0.1');
+    assert.equal(state.status, 'succeeded', `${branches}-branch admission must succeed`);
+    assert.equal(typeof state.run_id, 'string'); assert(state.run_id.length > 0);
+    assert(!retained.some(value => value.runId === state.run_id), 'Distinct original Runs required');
+    await unlink(join(project, file));
+    // Every command is a new actual installed process. The invalid input must
+    // not poison the unchanged installation or cause Saved to reexecute SQL.
+    await cli(['sql', 'SELECT )', '--format', 'json'], project, 1);
+    assert.deepEqual(rows((await cli(['sql', 'SELECT 9821 AS n', '--format', 'jsonl'], project)).stdout), [{n: 9821}]);
+    const saved = await cli(['result', state.run_id, '--format', 'jsonl'], project);
+    assert.deepEqual(rows(saved.stdout), [{total}]);
+    const status = JSON.parse((await cli(['status', '--run-id', state.run_id, '--json'], project)).stdout);
+    assert.equal(status.kind, 'local_saved_run_state');
+    assert.equal(status.state?.version, 'actql-run-state/0.1');
+    assert.equal(status.state.run_id, state.run_id, 'Observe the same originally returned Run');
+    assert.equal(status.state.status, 'succeeded');
+    const originalRef = status.ref;
+    assert(originalRef && typeof originalRef === 'object' && !Array.isArray(originalRef));
+    assert.equal(typeof originalRef.namespaceId, 'string'); assert(originalRef.namespaceId.length > 0);
+    for (const field of ['authorityScopeCid', 'runDefinitionCid'])
+      assert.match(originalRef[field], /^sha256:[0-9a-f]{64}$/u);
+    const explain = await cli(['explain', '--run', state.run_id, '--json'], project);
+    const value = JSON.parse(explain.stdout);
+    const plan = assertNativeUnionPlan(value, originalRef, branches);
+    const again = await cli(['explain', '--run', state.run_id, '--json'], project);
+    assert.equal(again.stdout, explain.stdout, 'Repeated cold Saved explain must retain exact bytes');
+    assert.equal(await readFile(join(project, 'actql.config.json'), 'utf8'), configuration,
+      'Acceptance must not widen the ordinary project profile');
+    retained.push({runId: state.run_id, total});
+    observations.push({branches, total, runId: state.run_id, coldSavedWithoutProgram: true,
+      recoveryAfterInvalidQuery: true, repeatedExplainBytesIdentical: true,
+      planBytes: plan.planBytes, logicalSteps: plan.logicalSteps, storedRunMetadataBytes: null,
+      runElapsedMs: run.elapsedMs, savedElapsedMs: saved.elapsedMs,
+      explainElapsedMs: explain.elapsedMs, repeatedExplainElapsedMs: again.elapsedMs});
+  }
+  for (const {runId, total} of retained) {
+    assert.deepEqual(rows((await cli(['result', runId, '--format', 'jsonl'], project)).stdout), [{total}]);
+  }
+  return {profile: 'ordinary-unmodified-init', cases: observations, oldestSavedAfterLaterSubmissions: true};
+}
+
+export async function observeNativeFileSourceNumeric({root, cli}) {
+  const project = join(root, 'numeric-file-source');
+  await cli(['init', '--template', 'churn-risk-mock', project], root);
+  const program = join(project, 'numeric-source.sql');
+  const source = join(project, 'mock/data.json');
+  const original = await readFile(source);
+  await writeFile(program, "SELECT SUM(CASE WHEN trend = 'down' THEN 4 ELSE 12 END) AS total, AVG(CASE WHEN trend = 'down' THEN 4 ELSE 12 END) AS average FROM snowflake.usage_30d", {flag: 'wx'});
+  const checked = JSON.parse((await cli(['check', 'numeric-source.sql', '--format', 'sql', '--json'], project)).stdout);
+  assert.equal(checked.outcome, 'completed'); assert.equal(checked.report.verdict, 'verified');
+  assert.equal(checked.report.runnable.verdict, 'yes');
+  const state = JSON.parse((await cli(['run', 'numeric-source.sql', '--format', 'sql', '--json'], project)).stdout);
+  assert.equal(state.status, 'succeeded'); assert.equal(typeof state.run_id, 'string'); assert(state.run_id.length > 0);
+  const resultRows = text => text.trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
+  assert.deepEqual(resultRows((await cli(['result', state.run_id, '--format', 'jsonl'], project)).stdout), [{total: 16, average: 8}]);
+  assert.deepEqual(await readFile(source), original, 'The read-only aggregate must not change its file Source');
+  await unlink(program); await unlink(source);
+  const rows = resultRows((await cli(['result', state.run_id, '--format', 'jsonl'], project)).stdout);
+  assert.deepEqual(rows, [{total: 16, average: 8}]);
+  return {checkRunnable: 'yes', rows, completeResultBeforeInputRemoval: true,
+    coldSavedWithoutProgramOrSource: true};
+}
+
+// The exact same authored JSON is checked independently by the portable
+// client_local_host fixture. Its 30 Units retain 33 physical tasks, including
+// one real captured File Source; source-free UNION size is not its oracle.
+export async function observeNativeFileTaskBoundary({root, cli, environment}) {
+  const project = join(root, 'file-task-boundary');
+  await cli(['init', '--template', 'churn-risk-mock', project], root);
+  const file = 'file-task-boundary.json', source = join(project, 'mock/data.json');
+  const original = await readFile(source);
+  const wire = await readFile(new URL('./fixtures/native-file-task-boundary.json', import.meta.url));
+  await writeFile(join(project, file), wire, {flag: 'wx', mode: 0o600});
+  const checked = JSON.parse((await cli(['check', file, '--format', 'json', '--json'], project)).stdout);
+  assert.equal(checked.outcome, 'completed'); assert.equal(checked.report.verdict, 'verified');
+  assert.equal(checked.report.runnable.verdict, 'yes');
+  const command = async args => {
+    const flags = ['ACTQL_NATIVE_TIMINGS', 'ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS'];
+    const previous = flags.map(key => [key, environment[key]]);
+    let record;
+    try {
+      for (const key of flags) environment[key] = '1';
+      record = await cli(args, project);
+    } finally {
+      for (const [key, value] of previous) {
+        if (value === undefined) delete environment[key]; else environment[key] = value;
+      }
+    }
+    assert.equal(record.code, 0); assert.equal(record.signal, null);
+    const native = nativeLauncherEnvelope(record.stderr, 'required').native;
+    const groups = nativeMockAcceptanceObservations(native);
+    assert.equal(groups.length, 1, 'One original Native process required');
+    assert.equal(groups[0].events.length, 0, 'No Model or Effect work in this File fixture');
+    const rows = native.trimEnd().split('\n').map(line => {
+      const space = line.indexOf(' ');
+      return {marker: line.slice(0, space), value: JSON.parse(line.slice(space + 1))};
+    });
+    const meta = rows.find(row => row.marker === 'ACTQL_NATIVE_TIMINGS').value;
+    for (const key of ['initializing_drops', 'invalid_tags', 'invalid_amounts', 'clock_failures', 'stack_overflows'])
+      assert.equal(meta[key], 0, `Incomplete Native File observation: ${key}`);
+    assert.equal(meta.overflow, false);
+    const close = rows.find(row => row.marker === 'ACTQL_NATIVE_PHASE' && row.value.tag === 5).value;
+    assert.equal(close.begins, 1, 'Observe the first original command cleanup, without a retry');
+    assert.equal(close.ends, 1); assert.equal(close.active, 0); assert.equal(close.unmatched_end, 0);
+    // Tag 5 surrounds the actual command cleanup. Successful exit is also
+    // required; neither fact is independent physical FD/whole-Host ACK.
+    return {record, pid: groups[0].pid};
+  };
+  const run = await command(['run', file, '--format', 'json', '--json']);
+  const state = JSON.parse(run.record.stdout);
+  assert.equal(state.version, 'actql-run-state/0.1'); assert.equal(state.status, 'succeeded');
+  assert.equal(typeof state.run_id, 'string'); assert(state.run_id.length > 0);
+  const rows = text => text.trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
+  const first = await command(['result', state.run_id, '--result', 'answer', '--format', 'jsonl']);
+  // The authored churn template contains two usage rows. Do not derive this
+  // expectation from the compiler, a preview, or the delivered result itself.
+  assert.deepEqual(rows(first.record.stdout), [{id: 2}]);
+  assert.deepEqual(await readFile(source), original, 'The complete File Source must remain unchanged');
+  await unlink(join(project, file)); await unlink(source);
+  const cold = await command(['result', state.run_id, '--result', 'answer', '--format', 'jsonl']);
+  assert.notEqual(cold.pid, first.pid, 'Saved must use a separate Native process');
+  assert.deepEqual(rows(cold.record.stdout), [{id: 2}]);
+  return {runId: state.run_id, rows: [{id: 2}], fixtureSha256: createHash('sha256').update(wire).digest('hex'),
+    independentCheckedFixture: {tasks: 33, units: 30, acquisitions: 1, capturedPrefix: 1},
+    firstCommandCleanupObserved: true, independentPhysicalAck: false,
+    completeResultBeforeInputRemoval: true, coldSavedWithoutProgramOrSource: true};
+}
 
 // Read the actual delivered file, including its last row. A count, preview or
 // aggregate alone cannot establish the contents of the original stored Result.
@@ -87,8 +449,11 @@ export async function observeNativeNumericScale({project, cli, outputDirectory =
 // Explicit operator configuration through the existing Native adopt path. The
 // same installed assets/libraries remain originals; no product default changes
 // and no accepted Host is reconfigured. The actual Owners still decide admission.
-export async function prepareNativeNumericOperator({project, assets, libraries, runtimeWire, maxRows}) {
+export async function prepareNativeNumericOperator({project, assets, libraries, runtimeWire, maxRows,
+  journalRecordLimit = 8}) {
   assert(Number.isSafeInteger(maxRows) && maxRows > 0 && maxRows <= 100000);
+  // These are the explicit finite acceptance fixtures, not a product limit.
+  assert([1, 2, 8].includes(journalRecordLimit));
   assert(isAbsolute(project) && isAbsolute(libraries.sqlite) && isAbsolute(libraries.crypto));
   assert.equal(typeof runtimeWire, 'string'); JSON.parse(runtimeWire);
   const cid = value => 'sha256:' + createHash('sha256').update(canonicalText(value)).digest('hex');
@@ -152,7 +517,7 @@ export async function prepareNativeNumericOperator({project, assets, libraries, 
       check_environment: {file: 'environment.json', evidence_bundle_cid: environment.evidence_bundle_cid},
       local: {account_id: principal, principal, connection, state_parent: project, state_name: 'host',
         managed_root: project, sqlite_library: libraries.sqlite, signature_library: libraries.crypto,
-        submission_ttl_ms: 86400000, journal_record_limit: 8, journal_snapshot_bytes: 8388608,
+        submission_ttl_ms: 86400000, journal_record_limit: journalRecordLimit, journal_snapshot_bytes: 8388608,
         installation_files: ['run.json', 'read.json', 'retention.json', 'store.json', 'runtime.json', 'profile.json', 'file-read.json'],
         run_file: 'run.json', read_file: 'read.json', run_policy_profile_file: 'profile.json'},
     }},
@@ -169,6 +534,108 @@ export async function prepareNativeNumericOperator({project, assets, libraries, 
   await writeFile(join(project, 'runtime.json'), runtimeWire, {flag: 'wx', mode: 0o600});
   return {configuration: ['--mode', 'local', '--config-root', project, '--config-file', 'operator.json'],
     environmentCid: environment.evidence_bundle_cid, maxRows};
+}
+
+// This reads the original closed typed diagnostic from this deliberately
+// exhausted fixture. A generic refusal, Unknown or process exit is insufficient.
+export function requireNativeJournalCapacityRefusal(record) {
+  assert.equal(record.code, 1); assert.equal(record.signal, null);
+  assert.equal(record.stdout, '');
+  const envelope = nativeLauncherEnvelope(record.stderr, 'required');
+  const lines = envelope.native.trimEnd().split('\n');
+  const diagnostics = lines.filter(line => line.startsWith('ACTQL_NATIVE_'));
+  const publicLines = lines.filter(line => !line.startsWith('ACTQL_NATIVE_'));
+  assert.equal(publicLines.length, 1);
+  // Fresh submissions keep the CLI's original reconciliation IDs and warning;
+  // these are correlation data, not permission to retry or absence evidence.
+  assert.match(publicLines[0], /^actql-native-client: LocalSubmissionAcceptanceUnavailable originalSubmissionRequestId=sha256:[0-9a-f]{64} originalOperationAttemptId=cli-[0-9a-f]{64} \(reconcile with lookup-request; do not resend this operation\)$/u);
+  const groups = nativeMockAcceptanceObservations(diagnostics.join('\n') + '\n');
+  assert.equal(groups.length, 1); assert.equal(groups[0].events.length, 0);
+  const values = prefix => diagnostics.filter(line => line.startsWith(prefix))
+    .map(line => JSON.parse(line.slice(prefix.length)));
+  const metadata = values('ACTQL_NATIVE_TIMINGS ')[0];
+  for (const name of ['initializing_drops', 'invalid_tags', 'invalid_amounts',
+    'clock_failures', 'stack_overflows']) assert.equal(metadata[name], 0);
+  assert.equal(metadata.overflow, false);
+  const counters = new Map(values('ACTQL_NATIVE_COUNTER ').map(row => [row.tag, row.count]));
+  // Slot 8 also contains the returned Read inventory's retained peak. Keep
+  // that observation untouched; it cannot count Native failed acceptances.
+  assert.equal(counters.get(10), 7, 'Original Journal failure required');
+  assert.equal(counters.get(11), 5001, 'Original Journal CapacityExceeded required');
+  // This admission failure precedes business preparation in local_start.mbt.
+  // Compute cleanup also uses slots 14/15: do not read transaction tags after
+  // business work or an ambiguous/missing domain observation.
+  const phases = values('ACTQL_NATIVE_PHASE ');
+  for (const tag of [2, 3, 4]) {
+    const phase = phases.find(row => row.tag === tag);
+    assert(phase.begins === 0 && phase.ends === 0 && phase.active === 0,
+      'Only the original pre-business Journal admission failure qualifies');
+  }
+  for (const tag of [60, 61, 62, 63]) assert.equal(counters.get(tag), 0,
+    'Compute inventory overlap or unavailable observation cannot qualify transaction tags');
+  assert([0, 2].includes(counters.get(14)), 'Transaction Unknown cannot qualify this refusal');
+  const close = phases.find(row => row.tag === 5);
+  assert(close.begins > 0 && close.begins === close.ends && close.active === 0 &&
+    close.unmatched_end === 0, 'The original failed command must complete its first cleanup');
+  return {pid: groups[0].pid, publicFailure: 'LocalSubmissionAcceptanceUnavailable',
+    originalCause: 'Journal.CapacityExceeded', firstCommandCleanupObserved: true,
+    independentPhysicalAck: false,
+    nativeFailedAcceptanceCount: {status: 'unavailable', counterTag: 8,
+      reason: 'shared-with-original-read-inventory'}};
+}
+
+export async function observeNativeJournalExhaustion({project, cli, assets, libraries,
+  runtimeWire, environment}) {
+  await mkdir(project, {mode: 0o700});
+  const observations = [];
+  for (const limit of [1, 2]) {
+    const root = join(project, `limit-${limit}`);
+    const selected = await prepareNativeNumericOperator({project: root, assets, libraries,
+      runtimeWire, maxRows: 16, journalRecordLimit: limit});
+    const operator = (args, code = 0) => cli([...selected.configuration, ...args], root, code);
+    assert.equal(JSON.parse((await operator(['adopt', '--initialize-signing', '--json'])).stdout).kind,
+      'local_host_adopted');
+    const retained = [];
+    for (let index = 0; index <= limit; index++) {
+      const file = `intent-${index}.json`, expected = [{id: index + 1}];
+      const document = {version: 'actql/0.1', id: `journal-${limit}-${index}`,
+        stages: [{id: 'main', inputs: {}, steps: [{as: 'values', values: {
+          schema: {id: {type: 'number', nullable: false}}, rows: expected,
+        }}], results: {rows: {from: 'values', fields: ['id']}}}],
+        results: {answer0: {from: {stage: 'main', result: 'rows'}}}};
+      await writeFile(join(root, file), JSON.stringify(document), {flag: 'wx', mode: 0o600});
+      if (index === limit) {
+        const flags = ['ACTQL_NATIVE_TIMINGS', 'ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS'];
+        const previous = flags.map(key => [key, environment[key]]);
+        let refused;
+        try {
+          for (const key of flags) environment[key] = '1';
+          refused = requireNativeJournalCapacityRefusal(await operator(
+            ['run', file, '--format', 'json', '--json'], 1));
+        } finally {
+          for (const [key, value] of previous) {
+            if (value === undefined) delete environment[key]; else environment[key] = value;
+          }
+        }
+        observations.push({limit, acceptedSubmissions: retained.length,
+          failedFreshSubmissionAttempts: 1, refusal: refused});
+        continue;
+      }
+      const state = JSON.parse((await operator(['run', file, '--format', 'json', '--json'])).stdout);
+      assert.equal(state.status, 'succeeded');
+      assert.equal(typeof state.run_id, 'string'); assert(state.run_id.length > 0);
+      assert(!retained.some(value => value.runId === state.run_id));
+      retained.push({runId: state.run_id, expected});
+      await unlink(join(root, file));
+    }
+    for (const {runId, expected} of retained) {
+      const result = await operator(['result', runId, '--result', 'answer0', '--format', 'jsonl']);
+      assert.deepEqual(result.stdout.trim().split('\n').map(line => JSON.parse(line)), expected);
+    }
+    observations.at(-1).allOriginalSavedAfterRefusal = true;
+  }
+  return {scope: 'explicit-finite-Journal-policy', observations,
+    historyDeletion: false, postAdoptionPolicyChange: false};
 }
 
 export async function observeNativeNumericOperatorScale({project, cli, assets, libraries, runtimeWire}) {
@@ -227,6 +694,24 @@ export function nativeResourceShapeFixtures() {
   ];
 }
 
+// JSON Lines delimit records with LF, not Unicode line/paragraph separators.
+// Keep stream backpressure and buffer only the current record plus one chunk;
+// do not turn the complete Result into an in-memory array of lines.
+async function* nativeJsonlLines(input) {
+  input.setEncoding('utf8');
+  let pending = '';
+  for await (const chunk of input) {
+    pending += chunk;
+    let start = 0, end;
+    while ((end = pending.indexOf('\n', start)) !== -1) {
+      yield pending.slice(start, end);
+      start = end + 1;
+    }
+    pending = pending.slice(start);
+  }
+  if (pending.length) yield pending;
+}
+
 // Compare every actual delivered scalar, including Unicode normalization and
 // escaped controls. Neither a preview nor a digest alone is this oracle.
 export async function verifyNativeResourceRows(path, expectedRows, keyField = 'id') {
@@ -236,7 +721,7 @@ export async function verifyNativeResourceRows(path, expectedRows, keyField = 'i
     assert(Number.isSafeInteger(key)); assert(!expected.has(key), 'Unique expected resource key required');
     expected.set(key, row);
   }
-  const input = createReadStream(path), lines = createInterface({input, crlfDelay: Infinity});
+  const input = createReadStream(path), lines = nativeJsonlLines(input);
   const closed = new Promise(resolve => input.once('close', resolve));
   let rows = 0;
   try {
@@ -250,7 +735,7 @@ export async function verifyNativeResourceRows(path, expectedRows, keyField = 'i
       assert.deepEqual(row, expected.get(key), `Resource Result key ${key}`);
       seen.add(key); rows++;
     }
-  } finally {lines.close(); input.destroy(); await closed;}
+  } finally {input.destroy(); await closed;}
   assert.equal(rows, expectedRows.length, 'Complete resource Result required');
   // Every keyed row above has now been compared in full. Hash that verified
   // content in key order, not unspecified product traversal or delivery order.
@@ -554,6 +1039,10 @@ async function observeInstalledSourceFree(input, observationPath) {
     // can discover a compiler, a repository executable, a provider or a Node Host.
     env.PATH = join(root, 'empty-path');
     const cli = (args, cwd = project, code = 0) => run(process.execPath, [launcher, ...args], cwd, code);
+    // Observe the SAME required commands; never add another submission merely
+    // to count work. Invalid-input controls retain their original failure path.
+    const sourceFreeCli = (args, cwd = project, code = 0) => code === 0 && ['check', 'run', 'sql', 'result'].includes(args[0])
+      ? observeNativeSourceFreeCommand({args, cwd, cli, environment: env}) : cli(args, cwd, code);
     diagnoseFailure = () => observeFreshSubmissionFailureDiagnostic({
       root: join(root, 'submission-failure-diagnostic'), cli, environment: env});
     assert.equal((await cli(['--version'], root)).stdout, `${manifest.cohort.packageVersion}\n`);
@@ -562,6 +1051,10 @@ async function observeInstalledSourceFree(input, observationPath) {
     const plainInitialization = await observeTimingEnabledPlainInitialization({root, cli, environment: env});
     assert.equal(env.ACTQL_NATIVE_TIMINGS, undefined);
     assert.equal(JSON.parse(await readFile(join(project, 'actql.config.json'))).profile, undefined);
+    const defaultNumeric = await observeNativeDefaultNumericQueries({project, cli: sourceFreeCli});
+    const defaultUnionMetadata = await observeNativeDefaultUnionMetadata({root, cli: sourceFreeCli});
+    const fileSourceNumeric = await observeNativeFileSourceNumeric({root, cli});
+    const fileTaskBoundary = await observeNativeFileTaskBoundary({root, cli, environment: env});
     await writeFile(join(project, 'query.sql'), 'SELECT 1 AS id\n');
     const help = (await cli(['--help'])).stdout;
     assert.match(help, /Usage: actql/u);
@@ -570,7 +1063,7 @@ async function observeInstalledSourceFree(input, observationPath) {
     const checkText = (await cli(['check', 'query.sql', '--format', 'sql'])).stdout;
     assert.match(checkText, /Validation: Valid\nRunnable: yes/u);
     assert.doesNotMatch(checkText, /sha256:|"outcome"/u);
-    const checked = JSON.parse((await cli(['check', 'query.sql', '--format', 'sql', '--json'])).stdout);
+    const checked = JSON.parse((await sourceFreeCli(['check', 'query.sql', '--format', 'sql', '--json'])).stdout);
     assert.equal(checked.version, 'actql-check-outcome/0.1');
     assert.equal(checked.outcome, 'completed');
     assert.equal(checked.report.verdict, 'verified');
@@ -586,8 +1079,8 @@ async function observeInstalledSourceFree(input, observationPath) {
     const explainJsonVerbose = JSON.parse((await cli(['explain', 'query.sql', '--format', 'sql', '--json', '--verbose'])).stdout);
     assert.deepEqual(explainJsonVerbose, explained);
 
-    assert.deepEqual(rows((await cli(['sql', 'SELECT 2 AS id', '--format', 'jsonl'])).stdout), [{id: 2}]);
-    const state = JSON.parse((await cli(['run', 'query.sql', '--format', 'sql', '--json'])).stdout);
+    assert.deepEqual(rows((await sourceFreeCli(['sql', 'SELECT 2 AS id', '--format', 'jsonl'])).stdout), [{id: 2}]);
+    const state = JSON.parse((await sourceFreeCli(['run', 'query.sql', '--format', 'sql', '--json'])).stdout);
     assert.equal(state.version, 'actql-run-state/0.1');
     assert.equal(state.status, 'succeeded');
     assert.equal(typeof state.run_id, 'string'); assert(state.run_id.length > 0);
@@ -613,7 +1106,7 @@ async function observeInstalledSourceFree(input, observationPath) {
     for (let count = 0; count < 2; count++) {
       const saved = JSON.parse((await cli(['status', state.run_id, '--json'])).stdout);
       assert.equal(saved.run_id, state.run_id); assert.equal(saved.status, 'succeeded');
-      assert.deepEqual(rows((await cli(['result', state.run_id, '--format', 'jsonl'])).stdout), [{id: 1}]);
+      assert.deepEqual(rows((await sourceFreeCli(['result', state.run_id, '--format', 'jsonl'])).stdout), [{id: 1}]);
     }
     await cli(['result', state.run_id, '--format', 'jsonl', '--output', 'saved.jsonl']);
     assert.deepEqual(rows(await readFile(join(project, 'saved.jsonl'), 'utf8')), [{id: 1}]);
@@ -623,6 +1116,9 @@ async function observeInstalledSourceFree(input, observationPath) {
     }
     const numericLibraries = Object.fromEntries(localRuntime.libraries.map(item =>
       [item.role, join(platformRoot, item.path)]));
+    const journalExhaustion = await observeNativeJournalExhaustion({project: join(root, 'journal-exhaustion'),
+      cli, assets: numericAssets, libraries: numericLibraries, environment: env,
+      runtimeWire: await readFile(join(platformRoot, artifact.localRuntime.path), 'utf8')});
     const numericScale = await observeNativeNumericOperatorScale({project: join(root, 'numeric-operator'),
       cli, assets: numericAssets, libraries: numericLibraries,
       runtimeWire: await readFile(join(platformRoot, artifact.localRuntime.path), 'utf8')});
@@ -634,7 +1130,9 @@ async function observeInstalledSourceFree(input, observationPath) {
       artifact, scriptSha256: createHash('sha256').update(await readFile(fileURLToPath(import.meta.url))).digest('hex'),
       cliPackages: manifest.packages.map(({name, version, sha256}) => ({name, version, sha256})),
       registry: 'private-loopback-fixed-RC', registryRequests: registry.requested,
-      mockInitialization, catalogOnlyMockRefusal, plainInitialization, numericScale, resourceShapes,
+      mockInitialization, catalogOnlyMockRefusal, plainInitialization, defaultNumeric, defaultUnionMetadata, fileSourceNumeric, fileTaskBoundary,
+      journalExhaustion, numericScale, resourceShapes,
+      sourceFreeWork: records.filter(record => record.sourceFreeWork).map(record => record.sourceFreeWork),
       publicRegistryPublication: 'not-tested', records,
       unverified: ['Mock or live Connector bindings', 'Model inference', 'Effect approval', 'other platforms']};
   } catch (error) {

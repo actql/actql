@@ -1,5 +1,7 @@
 import {finiteWireNumberSource, wireNonControlIdPattern} from './client-wire-scalar-rules.mjs';
 import {execFileSync} from 'node:child_process';
+import {closeSync, mkdirSync, mkdtempSync, openSync, rmSync, writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {nativeCheckReportRules} from './client-check-report-rules.mjs';
 
@@ -234,7 +236,28 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
   const source = header + finiteWireNumberSource('native') + functions.filter(source => !testOnly.has(source)).join('\n') + '\n' + report;
   // Use the repository's pinned formatter, also required by the CI formatting gate.
   const formatter = process.env.MOON_HOME ? join(process.env.MOON_HOME, 'bin', 'moonfmt') : 'moonfmt';
-  const format = input => execFileSync(formatter, ['-'], {input, encoding: 'utf8', timeout: 10000});
+  const format = input => {
+    // The generated body exceeds ordinary pipe capacity. Supply a finite file
+    // as stdin so synchronous formatting needs no concurrent input-pipe writer.
+    // Keep the same formatter mode, output checks and execution deadline.
+    // Installed consumers may configure their temp root before creating their
+    // owned scratch. Freshness checks run first and use that same root.
+    const parent = tmpdir();
+    mkdirSync(parent, {recursive: true});
+    const directory = mkdtempSync(join(parent, 'actql-native-wire-'));
+    let fd;
+    try {
+      const path = join(directory, 'stdin.mbt');
+      writeFileSync(path, input, {encoding: 'utf8', mode: 0o600, flag: 'wx'});
+      fd = openSync(path, 'r');
+      return execFileSync(formatter, ['-'], {
+        stdio: [fd, 'pipe', 'pipe'], encoding: 'utf8', timeout: 10000,
+      });
+    } finally {
+      try { if (fd !== undefined) closeSync(fd); }
+      finally { rmSync(directory, {recursive: true, force: true}); }
+    }
+  };
   if (checkOutcomePredicates.size !== 1) throw Error('AmbiguousNativeCheckOutcomePredicate');
   return {nativeCheckOutcome: [...checkOutcomePredicates][0], native: format(source), nativeTests: format(header + observationFunctions
     .filter(source => testOnly.has(source)).join('\n') + '\n')};

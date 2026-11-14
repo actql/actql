@@ -9,7 +9,8 @@ const text = value => typeof value === 'string' && value.trim().length > 0;
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 export async function runRecordApprovalCommand({argv, programDirectory, connect,
-  runPhase, createDefinition, log = value => console.log(JSON.stringify(value))}) {
+  runPhase, createDefinition, retainProgramInputs = false, log = value => console.log(JSON.stringify(value))}) {
+  if (typeof retainProgramInputs !== 'boolean') throw new TypeError('InvalidRecordApprovalFixtureMode');
   const [phase, configurationPath, receiptPrefix] = argv;
   if (argv.length !== 3 || !['check', 'capture', 'approve', 'recover'].includes(phase) ||
       !text(configurationPath) || !text(receiptPrefix)) {
@@ -31,7 +32,18 @@ export async function runRecordApprovalCommand({argv, programDirectory, connect,
       !['keyId', 'reviewerId', 'privateKeyPath'].every(name => text(signer[name])))) {
     throw new TypeError('InvalidRecordApprovalSigner');
   }
-  const programs = {update: await readFile(new URL('update.aql', programDirectory), 'utf8'),
+  let programs;
+  if (retainProgramInputs && ['approve', 'recover'].includes(phase)) {
+    try {programs = JSON.parse(await readFile(receiptPrefix + '.programs.json', 'utf8'));}
+    catch (cause) {
+      if (cause?.code === 'ENOENT') throw cause;
+      throw new TypeError('InvalidRecordApprovalRetainedPrograms');
+    }
+    if (!object(programs) || Object.keys(programs).sort().join(',') !== 'read,update' ||
+        !text(programs.update) || !text(programs.read)) {
+      throw new TypeError('InvalidRecordApprovalRetainedPrograms');
+    }
+  } else programs = {update: await readFile(new URL('update.aql', programDirectory), 'utf8'),
     read: await readFile(new URL('read.aql', programDirectory), 'utf8')};
   // Use the connector's existing independent case contract before connecting.
   // This is configuration readiness, not Program/Host/provider admission.
@@ -39,6 +51,13 @@ export async function runRecordApprovalCommand({argv, programDirectory, connect,
   if (phase === 'check') {
     log({phase, status: 'ready', connected: false});
     return;
+  }
+  if (retainProgramInputs && phase === 'capture') {
+    // Only authored fixture input. The existing workflow still compares its
+    // complete Program hashes/parameters/oracles to the captured binding on
+    // reopen; this receipt grants no Host, current or approval authority.
+    await writeFile(receiptPrefix + '.programs.json', JSON.stringify(programs) + '\n',
+      {encoding: 'utf8', mode: 0o600, flag: 'wx'});
   }
   // Capture/recovery never open the operator key. Approval loads it only after
   // the existing workflow has re-read the SAME original sealed Review.

@@ -37,6 +37,7 @@ pub(all) enum FixedComputeIssue {
   Cost(@cost.CostIssue)
   Execution(@execution.SequenceRunIssue)
   Guard(@execution.FixedInputGuardIssue)
+  ControlWorkLimit
 }
 
 ///|

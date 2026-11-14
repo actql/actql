@@ -61,6 +61,111 @@ pub fn[P] prepared_run_usage_isolated(
 }
 
 ///|
+// Same backed input erasure as the existing admission. Returning this retained
+// holder internally creates no borrower, token, Ledger or current observation.
+fn[P] prepared_run_native_body(
+  value : PreparedRunAdmission[P],
+  prepared : P,
+  ledger : Ledger,
+) -> Result[PreparationBodyBorrow[P], ImportedChildLedgerIssue] {
+  match value {
+    NodePreparedRun(_) => Err(Unavailable)
+    BackedPreparedRun(original) => {
+      match check_backed_prepared_run_binding(original, prepared, ledger) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      match original.holder {
+        None => Err(Unavailable)
+        Some(holder) => Ok(holder)
+      }
+    }
+  }
+}
+
+///|
+/// Exact original running-body debit, not free space or a new allowance. This
+/// immutable Native projection observes no external current callback.
+pub fn[P] prepared_run_native_capacity(
+  value : PreparedRunAdmission[P],
+  prepared : P,
+  ledger : Ledger,
+) -> Result[(Int64, Int64), ImportedChildLedgerIssue] {
+  let holder = match prepared_run_native_body(value, prepared, ledger) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  preparation_body_borrow_reserved_extents(holder).map_err(issue => {
+    match issue {
+      Resource(issue) => ImportedChildLedgerIssue::Resource(issue)
+      _ => Unavailable
+    }
+  })
+}
+
+///|
+/// Back the fixed Native Work constructor on the SAME body reservation before
+/// its first child. Absolute targets survive refusal without a second debit.
+/// The existing runtime-phase engine owns current, resize and reentry. This
+/// neither reserves another token nor changes attempts, holdings or history;
+/// the original preparation remains the physical-retirement/release Owner.
+pub fn[P] reserve_prepared_run_native_work_capacity(
+  value : PreparedRunAdmission[P],
+  prepared : P,
+  ledger : Ledger,
+  retained_peak : Int64,
+  execution_peak : Int64,
+) -> Result[Unit, ImportedChildLedgerIssue] {
+  let holder = match prepared_run_native_body(value, prepared, ledger) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  if !preparation_body_usage_isolated(holder, ledger) {
+    return Err(Unavailable)
+  }
+  (holder.reserve_phase_original)(
+    prepared,
+    retained_peak,
+    execution_peak,
+    NativeWork,
+  ).map_err(issue => {
+    match issue {
+      Resource(issue) => ImportedChildLedgerIssue::Resource(issue)
+      _ => Unavailable
+    }
+  })
+}
+
+///|
+/// Continue the same fixed Native Work's body debit before its next quoted
+/// constructor while original Source/output children coexist. The existing
+/// running-phase latch/current/resize engine is unchanged. No child token,
+/// slot maximum, attempt, holding, grant or cleanup owner is replaced.
+pub fn[P] grow_prepared_run_native_work_capacity(
+  value : PreparedRunAdmission[P],
+  prepared : P,
+  ledger : Ledger,
+  retained_peak : Int64,
+  execution_peak : Int64,
+) -> Result[Unit, ImportedChildLedgerIssue] {
+  let holder = match prepared_run_native_body(value, prepared, ledger) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  (holder.reserve_phase_original)(
+    prepared,
+    retained_peak,
+    execution_peak,
+    NativeWork,
+  ).map_err(issue => {
+    match issue {
+      Resource(issue) => ImportedChildLedgerIssue::Resource(issue)
+      _ => Unavailable
+    }
+  })
+}
+
+///|
 pub fn[P] release_prepared_run_holder(
   value : PreparedRunAdmission[P],
 ) -> Result[Bool, ImportedChildLedgerIssue] {

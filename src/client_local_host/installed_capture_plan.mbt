@@ -632,3 +632,31 @@ fn installed_managed_capture_parent_fits(
     Some(EffectPlanPreparation(_)) => false
   }
 }
+
+///|
+/// Read the retained physical Plan's result bridge geometry through the same
+/// original preparation-owned Run. No current callback, Graph reconstruction,
+/// compiler, capacity computation or new output/read authority is issued.
+pub fn installed_managed_capture_publication_geometry_original(
+  value : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+) -> (@strategy.CheckedDAG, @execution.RetainedRowDecodeLimits, Int, Int)? {
+  guard installed_managed_preparation_admission_original(
+      value, prepared, request,
+    )
+    is Some(_) &&
+    value.captured_preparation is Some(plan) &&
+    physical_equal(plan.prepared, prepared) &&
+    physical_equal(plan.request, request) &&
+    plan.capacity_plan.graph is Some(graph) &&
+    physical_equal(graph, plan.graph) else {
+    return None
+  }
+  let entries = plan.capacity_plan.execution.rows.metadata_entries
+  let evidence_entries = plan.capacity_plan.execution.rows.retained_entries
+  if entries < 1 || evidence_entries < 1 {
+    return None
+  }
+  Some((plan.graph, plan.capacity_plan.imports.row, entries, evidence_entries))
+}

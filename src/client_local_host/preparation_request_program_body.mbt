@@ -48,6 +48,8 @@ pub fn[I] continue_request_program_preparation(
   owner.program_capacity = Some(next)
   owner.compiled_program = Some(prepared)
   owner.program_data = Some(data)
+  owner._observed_semantic_check_calls = child._observed_semantic_check_calls
+  owner._observed_program_compile_calls = child._observed_program_compile_calls
   transfer_program_check_input(child)
   child.busy = false
   owner.program_check = None
@@ -502,12 +504,14 @@ pub fn[I] prepare_request_program_module_body(
   provider_factory~ : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ],
+  source_free_max_work? : Int? = None,
   invocation? : (
     @publication_host.ClientQueryTimePreparation,
     @publication_host.ClientRequestIdentity,
     @publication_host.ClientCompiledRun,
     @publication.PublicationContract,
   )? = None,
+  runtime_compilation_limits? : @publication_host.ClientPureCompilationLimits? = None,
 ) -> Result[Unit, ClientRequestProgramPlanIssue] {
   prepare_request_program_module_body_owned(
     owner,
@@ -519,6 +523,8 @@ pub fn[I] prepare_request_program_module_body(
     retained_output~,
     provider_factory~,
     invocation~,
+    source_free_max_work~,
+    runtime_compilation_limits~,
   )
 }
 
@@ -652,12 +658,14 @@ fn[I] prepare_request_program_module_body_owned(
   provider_factory~ : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ],
+  source_free_max_work? : Int? = None,
   invocation? : (
     @publication_host.ClientQueryTimePreparation,
     @publication_host.ClientRequestIdentity,
     @publication_host.ClientCompiledRun,
     @publication.PublicationContract,
   )? = None,
+  runtime_compilation_limits? : @publication_host.ClientPureCompilationLimits? = None,
 ) -> Result[Unit, ClientRequestProgramPlanIssue] {
   let prepared = match
     retain_request_program_module_inputs(
@@ -672,6 +680,20 @@ fn[I] prepare_request_program_module_body_owned(
     ) {
     Err(issue) => return Err(issue)
     Ok(value) => value
+  }
+  let selected_work = match
+    client_local_source_free_max_work(source_free_max_work) {
+    Some(work) => work
+    None => return Err(Preparation(Policy))
+  }
+  if captured is None {
+    if owner.program_source_free_max_work is Some(original) &&
+      original != selected_work {
+      return Err(Preparation(ForeignOriginal))
+    }
+    owner.program_source_free_max_work = Some(selected_work)
+  } else if source_free_max_work is Some(_) {
+    return Err(Preparation(Policy))
   }
   owner.phase = Selecting
   preparation_module_call(
@@ -742,6 +764,8 @@ fn[I] prepare_request_program_module_body_owned(
                   retained_output~,
                   provider_factory~,
                   query_time~,
+                  source_free_max_work=Some(selected_work),
+                  compilation_limits=runtime_compilation_limits,
                 ) {
                 Err(issue) => return Err(Installed(issue))
                 Ok(value) => {

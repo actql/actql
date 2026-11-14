@@ -48,6 +48,14 @@ function ownedFailure(reason, fallbackCode) {
   }
   failure.code = code;
   failure.primaryFailure = primary;
+  // Keep immutable diagnostic DATA through this existing ownership wrapper.
+  // The receiving public codec validates fields; never invoke an accessor.
+  try {
+    const diagnostic = Object.getOwnPropertyDescriptor(reason, 'primaryDiagnostic');
+    if (diagnostic !== undefined && Object.hasOwn(diagnostic, 'value')) {
+      failure.primaryDiagnostic = diagnostic.value;
+    }
+  } catch { /* A primitive or unavailable diagnostic leaves the original intact. */ }
   failure.cleanupErrors = Object.freeze(
     Array.isArray(member(reason, 'cleanupErrors'))
       ? [...member(reason, 'cleanupErrors')]
@@ -62,6 +70,18 @@ const FAILURE_AWAIT_STOP = 2;
 const FAILURE_SETTLE_OPERATIONS = 3;
 const FAILURE_REFRESH_CLEANUP = 4;
 const FAILURE_FINISHED = 5;
+
+// Optional observation from the original Local owner. An unsigned JS Int64
+// representation of -1 still means blocked, never runnable cleanup.
+function localCleanupContinuation(operations) {
+  if (typeof operations.cleanup_local_continuation !== 'function') return undefined;
+  try {
+    const value = operations.cleanup_local_continuation();
+    if (typeof value !== 'bigint' || value < -(1n << 63n) ||
+        value > (1n << 64n) - 1n) return undefined;
+    return BigInt.asIntN(64, value);
+  } catch { return undefined; }
+}
 
 const managedFailureProgresses = new WeakMap();
 const requiredProgressMethods = [
@@ -240,9 +260,9 @@ export function settleFailedManagedOperations(
     const state = cleanupState(upstream, upstreamRequired);
     const extra = additional.map(cleanup =>
       cleanupState(cleanup.handle, cleanup.handle != null));
-    let pending = true;
+    let pending = true, selected;
     const statusErrors = [];
-    try { pending = action() !== FAILURE_FINISHED; }
+    try { selected = action(); pending = selected !== FAILURE_FINISHED; }
     catch (error) { statusErrors.push(error); }
     return Object.freeze({
       pending,
@@ -252,31 +272,67 @@ export function settleFailedManagedOperations(
         ...cleanupErrors,
         ...statusErrors,
       ]),
+      ...(pending && Number.isInteger(selected) && selected >= 0 && selected < FAILURE_FINISHED
+        ? {cleanupDiagnostic: Object.freeze({
+          owner: typeof operations.cleanup_local_continuation === 'function' ? 'local_managed' : 'managed_operations',
+          phase: ['close_additional', 'close_operations', 'await_stop', 'settle_operations', 'refresh_cleanup'][selected],
+          continuation: (() => {
+            const cursor = localCleanupContinuation(operations);
+            return cursor === undefined ? 'unavailable' : cursor < 0n ? 'blocked' : 'runnable';
+          })(),
+        })} : {}),
     });
   };
+  const retryOnce = async () => {
+    drive();
+    if (cleanupState(upstream, upstreamRequired).pending &&
+        typeof member(upstream, 'retry') === 'function') {
+      try { await upstream.retry(); } catch (error) { record(error); }
+    }
+    for (const cleanup of additional) {
+      if (cleanupState(cleanup.handle, cleanup.handle != null).pending &&
+          typeof member(cleanup.handle, 'retry') === 'function') {
+        try { await cleanup.handle.retry(); }
+        catch (error) { record(error); }
+      }
+    }
+    drive();
+    return status();
+  };
+  let retryFlight;
   const handle = Object.freeze({
     status,
-    async retry() {
-      drive();
-      if (cleanupState(upstream, upstreamRequired).pending &&
-          typeof member(upstream, 'retry') === 'function') {
-        try { await upstream.retry(); } catch (error) { record(error); }
-      }
-      for (const cleanup of additional) {
-        if (cleanupState(cleanup.handle, cleanup.handle != null).pending &&
-            typeof member(cleanup.handle, 'retry') === 'function') {
-          try { await cleanup.handle.retry(); }
-          catch (error) { record(error); }
+    retry() {
+      if (retryFlight !== undefined) return retryFlight;
+      retryFlight = Promise.resolve().then(async () => {
+        // A borrowed reader can block the initial failure callback, then
+        // return before a later retry of this SAME handle. Continue only
+        // witnessed finite local retirement; external stalls/errors remain
+        // pending and no Compute, stop or release authority is synthesized.
+        let previous = localCleanupContinuation(operations);
+        let state = await retryOnce();
+        while (state.pending && state.errors.length === 0 &&
+            typeof previous === 'bigint' && previous >= 0n) {
+          const current = localCleanupContinuation(operations);
+          if (typeof current !== 'bigint' || current <= previous) break;
+          previous = current;
+          await new Promise(resolve => setTimeout(resolve, 0));
+          const ready = localCleanupContinuation(operations);
+          if (typeof ready !== 'bigint' || ready < previous) break;
+          state = await retryOnce();
         }
-      }
-      drive();
-      failure.cleanupErrors = status().errors;
-      failure.cleanupPending = status().pending;
-      return status();
+        failure.cleanupErrors = state.errors;
+        failure.cleanupPending = state.pending;
+        failure.cleanupDiagnostic = state.cleanupDiagnostic;
+        return state;
+      }).finally(() => { retryFlight = undefined; });
+      return retryFlight;
     },
   });
-  failure.cleanupErrors = status().errors;
-  failure.cleanupPending = status().pending;
+  const initial = status();
+  failure.cleanupErrors = initial.errors;
+  failure.cleanupPending = initial.pending;
+  failure.cleanupDiagnostic = initial.cleanupDiagnostic;
   failure.cleanupHandle = handle;
   return failure;
 }

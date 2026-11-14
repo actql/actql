@@ -225,3 +225,55 @@ test "preexisting partial initial key blocks both role generations and cold repa
   )
   assert_true(restored.close())
 }
+
+///|
+test "same-call Host control admission reads each authenticated role packet once" {
+  let host = initial_signing_original_fixture("initial-host-control-reads")
+  let original = host.restore_initial_host_signing_original().unwrap()
+  let control = host.database
+    .read("client_local_installation_custody", "host")
+    .unwrap().body
+  assert_eq(local_initial_signing_control_header(control).unwrap().length(), 3)
+  for _ in 0..<2 {
+    let before = native_timing_counter_value(1)
+    assert_true(before >= 0L)
+    let fields = read_local_initial_host_signing_control(host, control).unwrap()
+    // Each authenticated packet retains two epoch scans and its exact record
+    // read. The original Database reuses the statement for record reads, so
+    // only the two scans prepare SQL again. This does not count HMAC calls.
+    assert_eq(native_timing_counter_value(1) - before, 4L)
+    assert_eq(fields.public_key.cid(), original.public_key.cid())
+    assert_eq(fields.exported, original.exported)
+  }
+  host.close().unwrap()
+}
+
+///|
+test "same-call Host subject admission retains the third authenticated packet" {
+  let subject = ("host-machine", "host-cli", "key/initial-host-attestation")
+  let (host, _) = initial_reviewer_fixture(
+    "initial-host-subject-control-reads",
+    account=installed_host_subject_account,
+    host_signing_subject=Some(subject),
+  )
+  let original = host.restore_initial_host_signing_original().unwrap()
+  let control = host.database
+    .read("client_local_installation_custody", "host")
+    .unwrap().body
+  assert_eq(local_initial_signing_control_header(control).unwrap().length(), 4)
+  for _ in 0..<2 {
+    let before = native_timing_counter_value(1)
+    assert_true(before >= 0L)
+    let (fields, actual_subject) = read_local_initial_host_signing_control_with_subject(
+      host, control,
+    ).unwrap()
+    // Reviewer, Host and subject each prepare two epoch scans while their
+    // exact record reads reuse the original Database statement.
+    // Repeating this invocation proves that no result is cached across calls.
+    assert_eq(native_timing_counter_value(1) - before, 6L)
+    assert_eq(actual_subject, Some(subject))
+    assert_eq(fields.public_key.cid(), original.public_key.cid())
+    assert_eq(fields.exported, original.exported)
+  }
+  host.close().unwrap()
+}

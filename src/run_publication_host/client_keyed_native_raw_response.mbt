@@ -5,6 +5,8 @@ pub struct ClientKeyedNativeRawResponse {
   metadata : @publication.PublicationContract
   retention : @publication.PublicationContract
   holding : String
+  priv mut store_preparing : Bool
+  priv mut store_prepared : Bool
 }
 
 ///|
@@ -61,14 +63,36 @@ pub fn prepare_client_keyed_native_raw_response(
   let controls = @execution.preparation_representation_cost({
     record_headers: 22L,
     reference_slots: 39L,
-    scalar_words: 21L,
+    scalar_words: 23L,
     owned_utf16_units: 71L,
     owned_wire_bytes: 0L,
   }).unwrap()
+  // The declared-file supplier already has the exact closed binding and
+  // retention wires. Fund their bounded escaping plus this raw descriptor,
+  // rather than treating the accepted wire ceiling as allocated backing.
+  // Native keeps its original codec and reservation policy unchanged.
+  let codec_bytes = if @publication.publication_contract_name(
+      component.original.profile,
+    ) ==
+    "declared_file_content_read" {
+    let units = binding_wire.length().to_int64() +
+      @publication.publication_contract_json(retention).length().to_int64() +
+      content_cid.length().to_int64() +
+      captured_at.length().to_int64() +
+      activation.issuer_id.length().to_int64() +
+      component.original.response_data_policy_cid.length().to_int64()
+    guard @execution.checked_preparation_add_product(4096L, units, 6L)
+      is Some(bound) else {
+      return Err(Assembly("capacity_overflow"))
+    }
+    Int64::min(bound, limits.max_bytes.to_int64()).to_int()
+  } else {
+    limits.max_bytes
+  }
   let metadata_phase = match
     grow_keyed_lookup_protocol_metadata(
       state,
-      Int::max(limits.max_bytes, 2048),
+      Int::max(codec_bytes, 2048),
       2L,
       copies=3,
       extra_controls=controls,
@@ -112,7 +136,7 @@ pub fn prepare_client_keyed_native_raw_response(
     @publication.issue_result_retention_for_data_policy(
       retention,
       component.original.response_data_policy_cid,
-      limits.max_bytes,
+      codec_bytes,
       limits.max_nodes,
       limits.max_depth,
     ) {
@@ -126,11 +150,7 @@ pub fn prepare_client_keyed_native_raw_response(
     return Err(Assembly("native_raw_retention_unavailable"))
   }
   let body = try {
-    let writer = @encode.writer(
-      limits.max_bytes,
-      limits.max_nodes,
-      limits.max_depth,
-    )
+    let writer = @encode.writer(codec_bytes, limits.max_nodes, limits.max_depth)
     @encode.begin_object(writer)
     for
       (field, text) in [
@@ -169,7 +189,7 @@ pub fn prepare_client_keyed_native_raw_response(
     native_lookup_seal(
       "native_file_lookup_raw_response",
       body,
-      limits.max_bytes,
+      codec_bytes,
       limits.max_nodes,
       limits.max_depth,
     ) {
@@ -202,7 +222,13 @@ pub fn prepare_client_keyed_native_raw_response(
   } catch {
     _ => return Err(Assembly("native_raw_holding"))
   }
-  let result = { metadata, retention: source_retention, holding, }
+  let result = {
+    metadata,
+    retention: source_retention,
+    holding,
+    store_preparing: false,
+    store_prepared: false,
+  }
   match
     finish_keyed_lookup_protocol_metadata(
       state,

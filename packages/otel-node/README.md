@@ -60,6 +60,10 @@ authorization. Baggage and tracestate are neither propagated nor persisted.
   may include Owner-issued Run identity, task/attempt/slot ordinals and revision.
   A CID is not access permission. This first profile is single-scope Node, not
   hosted multi-tenant export.
+- Original Model entry/return facts are discrete logs correlated by attempt CID.
+  Their diagnostic delivery timestamps do not measure the physical invocation;
+  they cannot create duration spans. A replayed Saved response emits no new
+  physical invocation fact. Measured Source acquisition intervals remain spans.
 - `include`/`exclude` select fixed operation categories; exclusion wins. Empty
   selection disables observation. Missing all signals is complete disable and
   does not allocate the optional journal tables. Configuration is immutable.

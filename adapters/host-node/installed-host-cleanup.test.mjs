@@ -2,7 +2,11 @@ import assert from 'node:assert/strict';
 import './embedded-local-lifecycle.test.mjs';
 import './embedded-local-close-public.test.mjs';
 import test from 'node:test';
-import {mkdir, mkdtemp, open, rm} from 'node:fs/promises';
+import fsPromises, {mkdir, mkdtemp, open, readFile, rm} from 'node:fs/promises';
+import {syncBuiltinESMExports} from 'node:module';
+import {compileFunction} from 'node:vm';
+import {createServer} from 'node:http';
+import {parse} from 'acorn';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash, generateKeyPairSync} from 'node:crypto';
@@ -608,6 +612,151 @@ test('installed Host refuses requests after a failed physical close',
     const reopened = await openInstalledRemoteHttpHost({directory,
       authenticate: () => 'owner'});
     await reopened.close();
+  });
+
+test('first Remote Host close joins the original post-EOF Request and Store FD',
+  {timeout: 10000}, async t => {
+    const latch = () => {
+      let resolve;
+      const promise = new Promise(done => { resolve = done; });
+      return {promise, resolve};
+    };
+    const readEntered = latch(), allowRead = latch(), joinEntered = latch();
+    const originalOpen = fsPromises.open;
+    let store, server, reader, readFlight, handled, closing, lifetime;
+    let storeCloses = 0, finishes = 0, fdAtStoreClose;
+    const root = fileURLToPath(new URL('../../_build/host-init/', import.meta.url));
+    await mkdir(root, {recursive: true});
+    const directory = await mkdtemp(join(root, 'http-eof-close-'));
+    t.after(async () => {
+      allowRead.resolve();
+      await Promise.allSettled([readFlight, handled, closing]);
+      fsPromises.open = originalOpen;
+      syncBuiltinESMExports();
+      if (store !== undefined && !store.status().closed) await store.close();
+      if (server !== undefined) {
+        server.closeAllConnections();
+        await new Promise(resolve => server.close(resolve));
+      }
+      await rm(directory, {recursive: true, force: true});
+    });
+    store = await openLocalPublicationStore({directory,
+      storeAuthorityCid: `sha256:${'a'.repeat(64)}`, capacityBytes: 1024 * 1024,
+      maxObjectBytes: 65536, maxObjects: 100, maxContractNodes: 4096,
+      maxContractDepth: 64}, createPublicationContractControlFixture());
+    const wire = '{"answer":{"nullable":false,"type":"string"}}';
+    const identity = 'sha256:' + createHash('sha256').update(wire).digest('hex');
+    await store.putSemantic(wire, identity);
+    const selected = join(directory, 'contracts', identity.slice(7) + '.json');
+    fsPromises.open = async function(path, ...args) {
+      const handle = await Reflect.apply(originalOpen, this, [path, ...args]);
+      if (path === selected) {
+        reader = handle;
+        const stat = handle.stat;
+        handle.stat = async function(...args) {
+          readEntered.resolve();
+          await allowRead.promise;
+          return Reflect.apply(stat, this, args);
+        };
+      }
+      return handle;
+    };
+    syncBuiltinESMExports();
+
+    // Keep the whole HTTP handler and its real wire/preparation imports.
+    // Only Result delivery is an explicit fixture port, not Result authority.
+    const httpFile = new URL('./client-http.mjs', import.meta.url);
+    const httpSource = await readFile(httpFile, 'utf8');
+    const imports = parse(httpSource, {ecmaVersion: 'latest', sourceType: 'module'})
+      .body.filter(node => node.type === 'ImportDeclaration');
+    const delivery = 'export const deliverAuthorizedResult = (service, ...args) => service.deliver(...args);' +
+      'export const describeAuthorizedResult = () => {throw new Error("UnselectedDescription");};' +
+      'export const inspectAuthorizedDeliveryAttempt = () => {throw new Error("UnselectedDeliveryLookup");};';
+    assert.equal(imports.filter(node => node.source.value === './result-access.mjs').length, 1);
+    let httpModule = httpSource;
+    for (const node of [...imports].reverse()) {
+      const specifier = node.source.value === './result-access.mjs'
+        ? 'data:text/javascript;base64,' + Buffer.from(delivery).toString('base64')
+        : new URL(node.source.value, httpFile).href;
+      httpModule = httpModule.slice(0, node.source.start) + JSON.stringify(specifier) +
+        httpModule.slice(node.source.end);
+    }
+    const {createClientHttpHandler} = await import('data:text/javascript;base64,' +
+      Buffer.from(httpModule).toString('base64'));
+    const hostSource = await readFile(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+    const transport = parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'}).body
+      .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'installedRemoteHttpTransport');
+    assert(transport);
+    // Observe the actual handling collection's join, rather than sleeping or
+    // supplying a different shutdown implementation. The function is unchanged.
+    class Handling extends Set {
+      [Symbol.iterator]() {
+        assert.equal(this.size, 1);
+        assert(this.has(handled));
+        joinEntered.resolve();
+        return super[Symbol.iterator]();
+      }
+    }
+    const install = compileFunction('return (' + hostSource.slice(transport.start, transport.end) + ');',
+      ['createClientHttpHandler', 'Set'])(createClientHttpHandler, Handling);
+    const shutdown = createInstalledHostShutdown({
+      stop() {}, drain() {}, retire() {}, checkpoint() {}, journal() {}, source() {}, effect() {},
+      store() { storeCloses++; fdAtStoreClose = reader.fd; return store.close(); },
+    });
+    const host = install({diagnostic: {status: () => ({active: 0})}, hostOperations: {
+      authorizeConnection: () => true,
+      resultService: {async deliver(_request, sink) {
+        await sink.write(Buffer.from('{"value":1}\n'));
+        await sink.finish();
+      }},
+    }}, {authenticate: () => 'owner', loopbackHttp: true}, shutdown,
+    (operation, original) => {
+      assert.equal(operation, 'read');
+      lifetime = Object.freeze({body: original,
+        bindRequest(request) { assert.deepEqual(request.indexKey, original.ref); },
+        beforeReply() {},
+        async finish(terminal) {
+          assert.equal(this, lifetime);
+          assert.equal(terminal, 'returned');
+          finishes++;
+          readFlight = store.readSemanticBytes(identity, false);
+          assert.equal((await readFlight).toString(), wire);
+        },
+      });
+      return lifetime;
+    });
+    server = createServer((request, response) => {
+      handled = host.handler(request, response);
+      handled.catch(() => {});
+    });
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    const ref = {namespaceId: 'namespace', authorityScopeCid: `sha256:${'a'.repeat(64)}`,
+      runDefinitionCid: `sha256:${'b'.repeat(64)}`};
+    const response = await fetch(`http://127.0.0.1:${server.address().port}/actql/client/0.1/read`, {
+      method: 'POST', headers: {'content-type': 'application/json'},
+      body: JSON.stringify({connection: {mode: 'remote', owner: 'remote', runners: [], consentRefs: []},
+        ref, resultName: 'answer', format: 'jsonl', attemptId: 'post-eof-original'}),
+      signal: AbortSignal.timeout(3000),
+    });
+    assert.equal(response.status, 200);
+    assert.equal(await response.text(), '{"value":1}\n\x1e');
+    await readEntered.promise;
+    assert(reader.fd >= 0, 'the original Request still holds its real Store FD after HTTP EOF');
+    closing = host.close();
+    const boundary = await Promise.race([joinEntered.promise.then(() => 'joined'),
+      closing.then(() => 'closed', error => { throw error; })]);
+    assert.equal(boundary, 'joined');
+    assert.equal(storeCloses, 0);
+    assert.equal(finishes, 1);
+    assert(reader.fd >= 0);
+    allowRead.resolve();
+    await handled;
+    assert.equal((await closing).storeCleanupPending, false);
+    assert.equal(finishes, 1);
+    assert.equal(storeCloses, 1, 'the first Host close succeeds without cleanup retry');
+    assert.equal(fdAtStoreClose, -1, 'the original FD closes before Store retirement');
+    assert.equal(store.status().closed, true);
+    assert.deepEqual(shutdown.status().pending, []);
   });
 
 test('real Store deletion owner completes before Host close retry',

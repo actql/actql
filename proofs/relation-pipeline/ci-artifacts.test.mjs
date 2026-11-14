@@ -8,6 +8,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { parse } from 'yaml';
+import {partJobs} from './proof-parts.mjs';
 import { selectTargets } from '../../scripts/ci-targets.mjs';
 import { safePath, inventory, validateEnvelope, requiredStages, contextFromEnvironment,
   packArchive, unpackArchive, verifyArchive, joinEvidence, inspectProducerEvidence } from './ci-artifacts.mjs';
@@ -568,8 +569,8 @@ test('join independently rejects a capacity report claiming another tested revis
 const repositoryRoot = fileURLToPath(new URL('../../', import.meta.url));
 const workflow = parse(readFileSync(join(repositoryRoot, '.github/workflows/ci.yml'), 'utf8'));
 const { jobs } = workflow;
-const producerJobs = ['pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants'];
-const partNames = {'pipeline-mutations':'L-M0','pipeline-mutations-rest':'L-M1','pipeline-capacity':'L-C0','pipeline-capacity-mutants':'L-C1'};
+const producerJobs = Object.values(partJobs);
+const partNames = Object.fromEntries(Object.entries(partJobs).map(([part,job])=>[job,part]));
 const normalSchedule = "${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}";
 const runLines = job => jobs[job].steps.filter(step => step.run).flatMap(step => step.run.trim().split('\n'));
 const shell = (script, env) => spawnSync('bash', ['-eo', 'pipefail', '-c', script], {
@@ -582,7 +583,7 @@ function successfulNeeds() {
   } }])), 'pipeline-validation': {result:'success',outputs:{}}};
 }
 
-test('workflow partitions complete campaigns into exactly four owners with mandatory tests once', () => {
+test('workflow partitions complete campaigns into exactly eight owners with mandatory tests once', () => {
   const artifactCommand = 'node --test proofs/relation-pipeline/ci-artifacts.test.mjs';
   assert.equal(runLines('preflight').filter(line => line === artifactCommand).length, 1);
   assert.equal(jobs.preflight.steps.find(step => step.run === artifactCommand).if, undefined);
@@ -595,9 +596,9 @@ test('workflow partitions complete campaigns into exactly four owners with manda
   assert.deepEqual(listed.stdout.trim().split('\n').sort(),expected);
   for(const name of producerJobs) {
     const job=jobs[name], part=partNames[name], lines=runLines(name);
-    assert.equal(job.if,normalSchedule.replace(" }}", " && needs.select-targets.outputs.deep_proofs == 'true' }}")); assert.deepEqual(job.needs,['select-targets','preflight']);
+    assert.equal(job.if,normalSchedule.replace(" }}", " && needs.select-targets.outputs.deep_proofs == 'true' }}")); assert.deepEqual(job.needs,['select-targets']);
     assert.equal(job.strategy,undefined);assert.equal(job['runs-on'],'ubuntu-24.04');
-    assert.deepEqual(job.env,{ACTQL_PIPELINE_PART:part});
+    assert.deepEqual(job.env,{ACTQL_PIPELINE_PART:part,ACTQL_PIPELINE_PHASE_TIMING:'1'});
     assert(!lines.some(line=>line.includes('node --test')),'Synthetic tests run once elsewhere');
     assert.equal(lines.at(-1),`node proofs/relation-pipeline/ci-parts.mjs seal ${part}`);
     for(const step of job.steps.filter(step=>step.run)) {
@@ -610,11 +611,25 @@ test('workflow partitions complete campaigns into exactly four owners with manda
   }
   assert(runLines('pipeline-capacity').includes('node proofs/relation-pipeline/run.mjs all'));
   assert(!runLines('pipeline-capacity-mutants').includes('node proofs/relation-pipeline/run.mjs all'));
-  for(const command of ['mutation-action-archive.mjs seal','audit-target-regression.mjs','capacity/audit.mjs','capacity/audit-target-regression.mjs'])
+  for(const command of ['mutation-action-archive.mjs seal','audit-target-regression.mjs','capacity/audit-target-regression.mjs'])
     assert(runLines('pipeline-evidence').includes(`node proofs/relation-pipeline/${command}`));
+  assert(!runLines('pipeline-evidence').includes('node proofs/relation-pipeline/capacity/audit.mjs'));
+  const capacity = readFileSync(new URL('./capacity/audit-target-regression.mjs', import.meta.url), 'utf8');
+  assert.match(capacity, /if \(original.kind === 'capacity-union' && slot !== 'healthy'\)/u);
+  assert.match(capacity, /retained\.withUncompressed\(path => spawnSync\(process\.execPath,\s*\['proofs\/relation-pipeline\/capacity\/audit\.mjs', path\]/u);
+  assert(capacity.includes('inspectResult(slot, result);'));
+  assert(capacity.includes("assert.equal(result.status === 0, slot === 'healthy'"));
+  assert(capacity.includes("assert(Number.isInteger(result.status), 'Audit did not finish normally')"));
   assert.equal(jobs['pipeline-validation'].if,normalSchedule);
-  assert.deepEqual(jobs['pipeline-validation'].needs,['select-targets','preflight']);
+  assert.deepEqual(jobs['pipeline-validation'].needs,['select-targets']);
   assert(runLines('pipeline-validation').includes('node proofs/relation-pipeline/ci-parts.mjs validation'));
+  // Phase timing is stdout diagnostics for the eight selected producers only.
+  // Validation and the final authoritative evidence join keep their own gates.
+  assert.equal(workflow.env?.ACTQL_PIPELINE_PHASE_TIMING,undefined);
+  for(const [name,job] of Object.entries(jobs)) {
+    assert.equal(job.env?.ACTQL_PIPELINE_PHASE_TIMING,producerJobs.includes(name)?'1':undefined);
+    for(const step of job.steps??[]) assert.equal(step.env?.ACTQL_PIPELINE_PHASE_TIMING,undefined);
+  }
 });
 
 test('workflow downloads exact producer IDs only after its success and identity guard', () => {
@@ -656,6 +671,67 @@ test('workflow downloads exact producer IDs only after its success and identity 
   assert.deepEqual(workflow.permissions, { contents: 'read' });
 });
 
+test('workflow compacts only a successful audited union and preserves complete failure diagnostics', () => {
+  const final = jobs['pipeline-evidence'];
+  const upload = final.steps.find(step => step.with?.name?.startsWith('relation-pipeline-evidence-'));
+  const expected = [
+    '.artifacts/relation-pipeline/capacity/all.json',
+    '.artifacts/relation-pipeline/fixed-mutations.json',
+    '.artifacts/relation-pipeline/mutations.json',
+    '.artifacts/relation-pipeline/capacity/target-substitution/',
+    '.artifacts/pipeline-ci/join.json',
+    '.artifacts/pipeline-ci/action-original.json',
+    '.artifacts/relation-pipeline-target-regression/run-*/*.json',
+    '.artifacts/relation-pipeline-target-regression/run-*/*.log',
+  ];
+  const failure = final.steps.find(step => step.with?.name?.startsWith('relation-pipeline-evidence-incomplete-'));
+  const paths = step => step.with.path.trim().split('\n');
+  // Status functions belong in step conditions, not upload input expressions.
+  assert.equal(upload.if, '${{ success() }}');
+  assert.equal(failure.if, '${{ always() && !success() }}');
+  const enabled = (step, successful) => Function('success', 'always',
+    `return (${step.if.slice(4, -3)});`)(() => successful, () => true);
+  assert.deepEqual(paths(upload), expected);
+  assert.deepEqual(paths(failure), [
+    '.artifacts/relation-pipeline/', ...expected.slice(4),
+  ]);
+  assert(final.steps.indexOf(upload) < final.steps.indexOf(failure));
+  assert(final.steps.indexOf(failure) < final.steps.findIndex(step => step.id === 'pipeline-actions'));
+  assert.equal(upload.with['include-hidden-files'], true);
+  assert.equal(upload.with['if-no-files-found'], 'error');
+  const commands = [
+    'ci-parts.mjs join', 'mutation-action-archive.mjs seal', 'audit-target-regression.mjs',
+    'capacity/audit-target-regression.mjs',
+  ];
+  for (const command of commands) {
+    const step = final.steps.find(step => step.run === `node proofs/relation-pipeline/${command}`);
+    assert(step && final.steps.indexOf(step) < final.steps.indexOf(upload), command);
+    assert.equal(step.if, undefined, command);
+    assert.equal(step['continue-on-error'], undefined, command);
+    for (const outcome of ['failure', 'cancelled', 'skipped']) {
+      const outcomes = commands.map(value => value === command ? outcome : 'success');
+      const successful = outcomes.every(value => value === 'success');
+      assert.equal(enabled(upload, successful), false, `${command}: ${outcome}`);
+      assert.equal(enabled(failure, successful), true, `${command}: ${outcome}`);
+    }
+  }
+  // Cancellation or any other earlier failure must also retain the full root.
+  assert.equal(enabled(upload, true), true);
+  assert.equal(enabled(failure, true), false);
+  assert.equal(enabled(upload, false), false);
+  assert.equal(enabled(failure, false), true);
+  assert.equal(failure.with['include-hidden-files'], true);
+  assert.equal(failure.with['if-no-files-found'], 'error');
+  for (const name of producerJobs) {
+    const original = jobs[name].steps.find(step => step.id === 'evidence');
+    assert.equal(original.with['retention-days'], upload.with['retention-days'], name);
+    assert.equal(original.with.path, `.artifacts/pipeline-ci/${partNames[name]}/evidence.tar`);
+  }
+  assert(!paths(upload).some(path => /\/binaries\/|\/sources\/|L-[CM][0-9]/u.test(path)));
+  assert.equal(final.outputs['artifact-id'], '${{ steps.pipeline-actions.outputs.artifact-id }}');
+  assert.equal(final.outputs['artifact-digest'], '${{ steps.pipeline-actions.outputs.artifact-digest }}');
+});
+
 test('workflow producer guard rejects unsuccessful, missing or ambiguous producer identities', () => {
   const script = jobs['pipeline-evidence'].steps[0].run;
   const invoke = needs => shell(script, { PIPELINE_NEEDS: JSON.stringify(needs) });
@@ -686,22 +762,26 @@ test('workflow producer guard rejects unsuccessful, missing or ambiguous produce
 });
 
 test('global check continues to require the final pipeline-evidence verdict', t => {
-  const eventPath = put(scratch(t), 'event.json', JSON.stringify({action: 'synchronize', pull_request: {draft: false}}));
+  const root = scratch(t);
+  const eventPath = put(root, 'event.json', JSON.stringify({action: 'synchronize', pull_request: {draft: false}}));
   assert(jobs.check.needs.includes('pipeline-evidence'));
   assert(!producerJobs.some(name => jobs.check.needs.includes(name)), 'Final audited join remains the required check boundary');
   const script = jobs.check.steps.find(step => step.run).run;
-  const needs = Object.fromEntries(jobs.check.needs.map(name => [name, { result: ['focused-tests', 'main-performance', 'health-quick'].includes(name) ? 'skipped' : 'success' }]));
+  const needs = Object.fromEntries(jobs.check.needs.map(name => [name, { result: ['focused-tests', 'health-quick'].includes(name) ? 'skipped' : 'success' }]));
   const revision = 'b'.repeat(40);
   const selection = selectTargets(['.github/workflows/ci.yml']);
   assert.equal(selection.profile, 'full');
   assert.deepEqual(selection.targets, ['js', 'wasm', 'native']);
   assert.equal(selection.macos, true);
   const gateEnv = { GITHUB_EVENT_PATH: eventPath, GITHUB_SHA: revision, GITHUB_EVENT_NAME: 'pull_request', GITHUB_STEP_SUMMARY: '',
-    CI_PLAN: JSON.stringify({ sourceRevision: revision, selection }) };
+    CI_PLAN: '', RESULTS: '', CI_PLAN_PATH: join(root, 'plan.json'), RESULTS_PATH: join(root, 'results.json') };
+  const invoke = outcomes => shell(script
+    .replaceAll('${{ needs.select-targets.outputs.plan }}', JSON.stringify({ sourceRevision: revision, selection }))
+    .replaceAll('${{ toJSON(needs) }}', JSON.stringify(outcomes)), gateEnv);
   for (const result of ['failure', 'cancelled', 'skipped']) {
-    const child = shell(script, { RESULTS: JSON.stringify({ ...needs, 'pipeline-evidence': { result } }), ...gateEnv });
+    const child = invoke({ ...needs, 'pipeline-evidence': { result } });
     assert.notEqual(child.status, 0, result);
   }
-  assert.equal(shell(script, { RESULTS: JSON.stringify(needs), ...gateEnv }).status, 0);
+  assert.equal(invoke(needs).status, 0);
 });
 

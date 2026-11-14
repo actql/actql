@@ -7,7 +7,7 @@ priv struct ClientKeyedPlanFragmentInputs {
   left : ClientTaskPipelineInput
   joined : ClientTaskPipelineInput
   left_sources : Array[Int]
-  left_step : Int
+  left_target : @pipeline.Target
   join_step : Int
   final_step : Int
   left_node_id : String
@@ -88,31 +88,49 @@ fn prepare_client_keyed_plan_fragment_inputs(
   guard client_infer_occurrence_matches(occurrence, occurrence.owner) &&
     client_keyed_plan_acquisition_matches(acquisition, occurrence) &&
     physical_equal(acquisition.owner, occurrence.preparation) &&
-    acquisition.binding.stage == occurrence.stage &&
-    @acquisition.keyed_join_left(acquisition.binding.join)
-    is @pipeline.Step(left_step) else {
+    acquisition.binding.stage == occurrence.stage else {
     return Err(UnsupportedProgram)
   }
+  let left_target = @acquisition.keyed_join_left(acquisition.binding.join)
   let join_step = @acquisition.keyed_join_step(acquisition.binding.join)
   let final_step = occurrence.step - 1
-  guard left_step >= 0 &&
-    left_step < join_step &&
-    join_step <= final_step &&
-    @lower.node_at(@lower.bound_preparation(occurrence.preparation), left_step)
-    is Some(left_node) &&
-    @lower.node_at(@lower.bound_preparation(occurrence.preparation), final_step)
-    is Some(final_node) else {
+  let prepared = @lower.bound_preparation(occurrence.preparation)
+  guard join_step <= final_step &&
+    @lower.node_at(prepared, final_step) is Some(final_node) else {
     return Err(UnsupportedProgram)
+  }
+  let (left_step, left_output) = match left_target {
+    @pipeline.Step(step) => {
+      guard step >= 0 &&
+        step < join_step &&
+        @lower.node_at(prepared, step) is Some(node) else {
+        return Err(UnsupportedProgram)
+      }
+      (step, @lower.node_id(node))
+    }
+    @pipeline.Input(index) => {
+      guard @pipeline.input_at(@lower.pipeline(prepared), index)
+        is Some((name, _)) else {
+        return Err(UnsupportedProgram)
+      }
+      // An already checked input needs no preceding operation. Its empty
+      // prefix retains the same bound owner and original input port.
+      (-1, name)
+    }
   }
   let left = match
     prepare_client_task_pipeline_input(
       occurrence.preparation,
       left_step,
-      @lower.node_id(left_node),
+      left_output,
       None,
       Some(left_step),
       true,
       sequence_limits,
+      original_input=match left_target {
+        @pipeline.Input(index) => Some(index)
+        @pipeline.Step(_) => None
+      },
     ) {
     Ok(value) => value
     Err(issue) => return Err(Input(Pipeline(issue)))
@@ -130,9 +148,13 @@ fn prepare_client_keyed_plan_fragment_inputs(
     Ok(value) => value
     Err(issue) => return Err(Input(Pipeline(issue)))
   }
-  let left_sources = match client_keyed_prefix_sources(left, max_nodes) {
-    Ok(value) => value
-    Err(issue) => return Err(Input(issue))
+  let left_sources = match left_target {
+    @pipeline.Input(index) => [index]
+    @pipeline.Step(_) =>
+      match client_keyed_prefix_sources(left, max_nodes) {
+        Ok(value) => value
+        Err(issue) => return Err(Input(issue))
+      }
   }
   let prefix = "task_" +
     occurrence.task.to_string() +
@@ -144,7 +166,7 @@ fn prepare_client_keyed_plan_fragment_inputs(
     left,
     joined,
     left_sources,
-    left_step,
+    left_target,
     join_step,
     final_step,
     left_node_id: prefix + "_left",
@@ -168,7 +190,7 @@ fn measure_client_keyed_plan_fragments(
   let before = match
     measure_client_task_fragment_construction(
       original.occurrence.preparation,
-      @pipeline.Step(original.left_step),
+      original.left_target,
       None,
       original.left_node_id,
       original.left,
@@ -231,7 +253,7 @@ fn issue_client_keyed_plan_fragments(
   let before = match
     issue_client_task_fragment_body(
       original.occurrence.preparation,
-      @pipeline.Step(original.left_step),
+      original.left_target,
       None,
       original.left_node_id,
       before,

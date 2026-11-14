@@ -3,6 +3,11 @@ import assert from 'node:assert/strict';
 // Every public driver argument is named before any packing or consumer work.
 // An unknown selector must never fall through to the full corpus.
 const supported = new Set([
+  '--ci-part=portable',
+  '--ci-part=portable-1',
+  '--ci-part=portable-2',
+  '--ci-part=portable-3',
+  '--ci-part=native',
   '--abs-only',
   '--acquired-data-only',
   '--aggregate-filter-only',
@@ -159,6 +164,15 @@ const supported = new Set([
 export function validatePackedPublicQueryArguments(args, environment = process.env) {
   for (const argument of args) {
     assert.ok(supported.has(argument), `UnknownPackedPublicQueryArgument: ${argument}`);
+  }
+  assert.equal(environment.ACTQL_TEST_QUERY_CI_PART, undefined, 'PackedQueryCIPartMustBeExplicit');
+  if (args.some(argument => argument.startsWith('--ci-part='))) {
+    assert.equal(args.filter(argument => argument.startsWith('--ci-part=')).length, 1,
+      'PackedQueryCIPartMustBeUnique');
+    assert(args.every(argument => argument.startsWith('--ci-part=') || argument === '--keep-artifacts'),
+      'PackedQueryCIPartMustRetainFullCorpus');
+    assert(!Object.entries(environment).some(([name, value]) => /^ACTQL_TEST_.*_ONLY$/u.test(name) && value === '1'),
+      'PackedQueryCIPartConflictsWithEnvironment');
   }
   if (args.includes('--distinct-join-order-only') ||
       environment.ACTQL_TEST_DISTINCT_JOIN_ORDER_ONLY === '1') {

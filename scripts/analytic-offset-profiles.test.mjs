@@ -118,6 +118,7 @@ test('packed selection and normal corpus retain OFFSET plus current main routes'
     assert.ok(fixture.includes(`scopeInputs.refusals.push(...${variable}Refusals)`));
   }
   assert.ok(driver.includes("['scripts/fixtures/public-query-profiles.mjs', 'public-query-profiles.mjs']"));
-  assert.ok(fixture.includes('of publicQueryProfiles(scopeInputs)'));
+  assert.ok(fixture.includes('const profileCohorts = publicQueryProfiles(scopeInputs).map(profile => ({...profile,'));
+  assert.ok(fixture.includes('of partitionPublicQueryProfiles(profileCohorts, portablePart, inventoryKeys)'));
   assert.ok(fixture.includes("profileName === 'standard' ? '' : `-${profileName}`"));
 });

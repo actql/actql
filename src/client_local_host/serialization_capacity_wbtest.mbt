@@ -46,28 +46,29 @@ test "Content workspace reserves overlapping byte proof and cursor allowances in
   ).unwrap()
   // Retained: 8192 roots + 65 text units * 8 + 66 evidence nodes * 256.
   assert_eq(@execution.execution_capacity_retained_bytes(workspace), 25608L)
-  // Existing payload/logical export allowances: 1651 + 1717. Additional
+  // Payload/logical export allowances include 64 control bytes each:
+  // 1715 + 1781. Additional
   // identity/recheck/mapper/schema roots: 34 * 256; schema text: 17 * 8.
-  assert_eq(@execution.execution_capacity_execution_bytes(workspace), 37816L)
+  assert_eq(@execution.execution_capacity_execution_bytes(workspace), 37944L)
   let combined = @execution.add_execution_capacity(
     @execution.execution_capacity(1L, 2L).unwrap(),
     workspace,
   ).unwrap()
   assert_eq(@execution.execution_capacity_retained_bytes(combined), 25609L)
-  assert_eq(@execution.execution_capacity_execution_bytes(combined), 37818L)
-  for limit in [37817L, 37818L] {
+  assert_eq(@execution.execution_capacity_execution_bytes(combined), 37946L)
+  for limit in [37945L, 37946L] {
     let ledger = serialization_test_ledger(25609L, limit)
-    match @resources.reserve_attempt(ledger, 0L, 25609L, 37818L) {
+    match @resources.reserve_attempt(ledger, 0L, 25609L, 37946L) {
       Err(ExecutionLimit) => {
-        assert_eq(limit, 37817L)
+        assert_eq(limit, 37945L)
         assert_eq(@resources.ledger_usage(ledger).attempts, 0)
         assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
       }
       Ok(reservation) => {
-        assert_eq(limit, 37818L)
+        assert_eq(limit, 37946L)
         assert_eq(
           @resources.ledger_usage(ledger).reserved_execution_bytes,
-          37818L,
+          37946L,
         )
         @resources.settle_reservation(ledger, reservation).unwrap() |> ignore
         assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)

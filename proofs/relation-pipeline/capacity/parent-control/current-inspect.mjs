@@ -9,6 +9,8 @@ const token = id => assert(typeof id === 'string' && /^[1-9][0-9]*$/.test(id), '
 // Admission also binds the actual capture identities; byte equality alone
 // does not establish source correspondence.
 const sizes = {
+  owner: Array(8).fill('ref'),
+  cleanupContinuation: Array(5).fill('ref'),
   state: parentFields.state, environment: parentFields.startEnvironment,
   advance: parentFields.advance, cancel: parentFields.cancel,
   stopped: parentFields.stopped, cleanup: parentFields.cleanup,
@@ -27,7 +29,7 @@ function checkRecord(record, name) {
   const pointers = currentRequestedLayouts[name].fields.map((kind,i)=>kind==='ref'?currentRequestedLayouts[name].offsets[i]:null).filter(x=>x!==null);
   // Closures start with a non-GC code pointer of the same width. The lifted
   // start_next environment is data, not another dynamic callback owner.
-  if(['advance','cancel','stopped','cleanup','childWorkIssue'].includes(name)) pointers.shift();
+  if(['advance','cancel','stopped','cleanup','childWorkIssue','cleanupContinuation'].includes(name)) pointers.shift();
   assert.deepEqual(record.captures.map(c=>c.offset),pointers,`Current source/ABI pointer fields ${name}`);
 }
 export function inspectCurrentChain(records) {
@@ -39,6 +41,19 @@ export function inspectCurrentChain(records) {
   const callbacks=['advance','cancel','stopped','cleanup','childWorkIssue'];
   assert.equal(start.callbacks.length,callbacks.length);
   const mapping={...start.roots, cleanup_index:start.roots.cleanupIndex, start_next:envs[0].id};
+  const checkOwner = fact => {
+    checkRecord(fact.owner,'owner');assert.equal(fact.owner.id,start.parent);
+    checkRecord(fact.cleanupContinuation,'cleanupContinuation');
+    assert.deepEqual(sortedIds(fact.cleanupContinuation),
+      ['state','terminal','reclaimed','cleanupIndex'].map(n=>start.roots[n]).toSorted(),
+      'Actual cleanup continuation must borrow only the same state and reverse cursor');
+    const pointer=offset=>fact.owner.captures.find(c=>c.offset===offset)?.id;
+    for(const [i,offset] of [0,8,16,24,40].entries())
+      assert.equal(pointer(offset),fact.callbacks[i].id,'Owner substitutes lifecycle callback');
+    token(pointer(32));assert.equal(pointer(48),null,'Unmeasured retained completion');
+    assert.equal(pointer(56),fact.cleanupContinuation.id,'Owner loses cleanup continuation');
+  };
+  checkOwner(start);
   for(const [i,name] of callbacks.entries()) {
     checkRecord(start.callbacks[i],name);
     const wanted=chainCaptureRoles[name].filter(n=>Object.hasOwn(mapping,n)).map(n=>mapping[n]).filter(Boolean).toSorted();
@@ -52,6 +67,9 @@ export function inspectCurrentChain(records) {
   token(base.completed.elements[0]);token(base.completed.completions[0]);
   assert.equal(base.completed.elements[1],null);assert.equal(base.completed.completions[1],null);
   for(const f of phases) {
+    checkOwner(f);
+    assert.deepEqual(f.cleanupContinuation,start.cleanupContinuation,
+      'Cleanup continuation capture custody changed across cleanup');
     assert.equal(f.parent,start.parent);assert.equal(f.state.id,start.state.id);checkRecord(f.state,'state');
     assert.deepEqual(f.callbacks,start.callbacks,'Immutable parent captures changed across cleanup');
     const field = (record,offset) => record.captures.find(c=>c.offset===offset)?.id;
@@ -89,7 +107,12 @@ export function inspectCurrentChain(records) {
   // allocator/RSS claim, no invented size for scalar GC layouts or referents.
   return {scope:'one Native long-name serial chain, actual callback captures and metadata custody through stop/false/error/retry',
     actualPhases:phases.length,currentRequestedLayouts,
-    startup:inspectParentStartup(start,'native'),
+    startup:{...inspectParentStartup(start,'native'),
+      nativeStartupRequestedLower:inspectParentStartup(start,'native').nativeStartupRequestedLower +
+        currentRequestedLayouts.owner.requestedBytes - 64 + currentRequestedLayouts.cleanupContinuation.requestedBytes,
+      ownerBytes:currentRequestedLayouts.owner.requestedBytes,
+      cleanupContinuationBytes:currentRequestedLayouts.cleanupContinuation.requestedBytes,
+      layoutRevision:'current-eight-slot-execution',retainedCoreBoundExtended:false},
     scalarRefCount:5,scalarRefExtentPremise:'five single-field primitive Refs; at most eight payload bytes each under the pinned ABI; not measured from scalar GC descriptors',
     logicalExtraReservationBytes:512,logicalExtraReservationIsPhysicalBound:false,
     completePhysicalUpper:false,ledgerHoldingGenerationCorrespondence:false,

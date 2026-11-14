@@ -73,6 +73,7 @@ struct ManagedProviderExecution {
   mut reported_work : Result[Int64, ManagedProviderWorkIssue]
   mut child_work_issue : () -> ManagedProviderWorkIssue?
   mut retained_completion : (() -> Bool)?
+  mut cleanup_continuation : (() -> Int64)?
 }
 
 ///|
@@ -272,6 +273,7 @@ pub fn managed_provider_execution(
     reported_work: Ok(0L),
     child_work_issue: fn() { None },
     retained_completion: None,
+    cleanup_continuation: None,
   }
 }
 
@@ -447,6 +449,18 @@ pub fn cleanup_managed_provider(
   execution : ManagedProviderExecution,
 ) -> Result[Bool, @connector.FixedComputeIssue] {
   (execution.cleanup)()
+}
+
+///|
+/// Observe a stopped provider's actual finite private reclamation cursor.
+/// Absent, active or externally blocked owners cannot authorize continuation.
+pub fn managed_provider_cleanup_continuation(
+  execution : ManagedProviderExecution,
+) -> Int64 {
+  if !managed_provider_stopped(execution) {
+    return -1L
+  }
+  execution.cleanup_continuation.map(observe => observe()).unwrap_or(-1L)
 }
 
 ///|

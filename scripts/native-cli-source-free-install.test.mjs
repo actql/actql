@@ -6,8 +6,76 @@ import {finishSourceFreeObservations} from './test-native-cli-source-free-instal
 import {observeFreshSubmissionFailureDiagnostic, preserveOrdinaryFailureWithDiagnostic,
   observeNativeNumericScale, verifyNativeNumericRows, prepareNativeNumericOperator,
   observeNativeNumericOperatorScale, nativeResourceShapeFixtures, verifyNativeResourceRows,
-  observeNativeResourceOperatorShapes}
+  observeNativeResourceOperatorShapes, requireNativeSourceFreeWorkCounts, observeNativeSourceFreeCommand}
   from './test-native-cli-source-free-install.mjs';
+
+// Independent counter DATA checks, not Native execution or a second protocol
+// fixture. The shared diagnostic parser owns stream/schema validation.
+const sourceFreeCounterRows = (operation = 'run') => [
+  {tag: 21, count: operation === 'result' ? 0 : 1}, {tag: 31, count: 1}, {tag: 58, count: 1},
+  {tag: 59, count: 1}, {tag: 17, count: 7},
+  {tag: 66, count: operation === 'result' ? 0 : 1},
+  {tag: 67, count: operation === 'result' ? 0 : 1},
+  {tag: 68, count: operation === 'result' ? 0 : 1},
+  {tag: 69, count: operation === 'run' || operation === 'sql' ? 1 : 0},
+];
+
+test('source-free existing work counters distinguish actual SQL work from Saved and unrelated JSON helpers', () => {
+  for (const operation of ['check', 'run', 'sql', 'result']) {
+    const observed = requireNativeSourceFreeWorkCounts(operation, sourceFreeCounterRows(operation));
+    assert.equal(observed.measured.checkingEnvironmentAdmissions, operation === 'result' ? 0 : 1);
+    assert.equal(observed.measured.legacyJsonOrSubmittedIntentHelperCalls, 7);
+    assert.equal(observed.measured.requestQueryParseCalls, operation === 'result' ? 0 : 1);
+    assert.equal(observed.measured.requestProgramCompileCalls, operation === 'run' || operation === 'sql' ? 1 : 0);
+    assert.deepEqual(observed.unmeasured, {otherCheckerPhaseCalls: null, immutableBodyReadmissionCalls: null});
+  }
+});
+
+test('source-free existing work counters refuse doubled missing and duplicate actual admission work', () => {
+  for (const tag of [21, 31, 58, 59, 66, 67, 68, 69]) {
+    for (const count of [0, 2]) {
+      const rows = sourceFreeCounterRows().map(row => row.tag === tag ? {...row, count} : row);
+      assert.throws(() => requireNativeSourceFreeWorkCounts('run', rows), /Repeated or missing/u);
+    }
+    assert.throws(() => requireNativeSourceFreeWorkCounts('run', sourceFreeCounterRows().filter(row => row.tag !== tag)), /Missing or duplicate/u);
+    assert.throws(() => requireNativeSourceFreeWorkCounts('run', [...sourceFreeCounterRows(), {tag, count: 1}]), /Missing or duplicate/u);
+  }
+  assert.throws(() => requireNativeSourceFreeWorkCounts('result', sourceFreeCounterRows()), /checking Environment/u);
+  const recompiledCheck = sourceFreeCounterRows('check').map(row => row.tag === 69 ? {...row, count: 1} : row);
+  assert.throws(() => requireNativeSourceFreeWorkCounts('check', recompiledCheck), /requestProgramCompileCalls/u);
+});
+
+test('source-free existing work counters restore diagnostic flags and never retry a failed command', async () => {
+  for (const environment of [{}, {ACTQL_NATIVE_TIMINGS: '0', ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS: 'prior'}]) {
+    const before = {...environment}, failure = new Error('original command failure');
+    let calls = 0;
+    await assert.rejects(observeNativeSourceFreeCommand({args: ['run', 'query.sql'], cwd: '/selected', environment,
+      cli: async (args, cwd) => {
+        calls++; assert.deepEqual(args, ['run', 'query.sql']); assert.equal(cwd, '/selected');
+        assert.equal(environment.ACTQL_NATIVE_TIMINGS, '1');
+        assert.equal(environment.ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS, '1');
+        throw failure;
+      }}), error => error === failure);
+    assert.equal(calls, 1); assert.deepEqual(environment, before);
+  }
+});
+
+test('source-free existing work counters refuse stdout success without complete Native observations', async () => {
+  const environment = {}, calls = [];
+  await assert.rejects(observeNativeSourceFreeCommand({args: ['sql', 'SELECT 1 AS id'], environment,
+    cli: async args => {calls.push(args); return {code: 0, signal: null, stdout: '{"id":1}\n', stderr: ''};}}),
+  /launcher timing trailer missing/u);
+  assert.equal(calls.length, 1); assert.deepEqual(environment, {});
+});
+
+test('source-free existing work counters refuse failed exits and inapplicable operations without inventing counts', async () => {
+  const environment = {};
+  await assert.rejects(observeNativeSourceFreeCommand({args: ['result', 'original-run'], environment,
+    cli: async () => ({code: 1, signal: null, stdout: '{"id":1}\n', stderr: ''})}), {code: 'ERR_ASSERTION'});
+  await assert.rejects(observeNativeSourceFreeCommand({args: ['approve', 'original-run'], environment,
+    cli: async () => assert.fail('Approval is not this source-free measurement')}), {code: 'ERR_ASSERTION'});
+  assert.deepEqual(environment, {});
+});
 
 test('fresh submission diagnostic uses one independent project and restores its environment', async t => {
   const parent = await mkdtemp(join(tmpdir(), 'actql-submission-diagnostic-test-'));
@@ -586,6 +654,26 @@ test('Native resource oracle reads full scalars and rejects truncation, normaliz
     await writeRows(rows);
     await assert.rejects(verifyNativeResourceRows(path, expected));
   }
+});
+
+test('Native resource JSONL preserves Unicode separators across stream chunks and CRLF records', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-native-resource-unicode-lines-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const path = join(root, 'rows.jsonl');
+  // Cross the read stream chunk boundary, including multi-byte UTF-8 scalars.
+  const expected = [{id: 0, text: ('日本語😀\u2028\u2029').repeat(12000)},
+    {id: 1, text: 'before\u2028middle\u2029after\n\r'}];
+  for (const separator of ['\n', '\r\n']) {
+    for (const terminated of [true, false]) {
+      const wire = expected.map(row => JSON.stringify(row)).join(separator) + (terminated ? separator : '');
+      await writeFile(path, wire);
+      const complete = await verifyNativeResourceRows(path, expected);
+      assert.equal(complete.rows, 2);
+      assert.equal(complete.wireBytes, Buffer.byteLength(wire));
+    }
+  }
+  await writeFile(path, expected.map(row => JSON.stringify(row)).join('\u2028'));
+  await assert.rejects(verifyNativeResourceRows(path, expected));
 });
 
 test('Native resource keyed oracle accepts permutations and rejects duplicate or missing keys', async t => {

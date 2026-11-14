@@ -208,11 +208,30 @@ pub fn reserve_program_publication(
     execution > 9223372036854775807L - publication_projection_execution {
     return Err(Policy)
   }
-  let total_r = controls_retained + retained
-  let total_e = Int64::max(
+  let mut total_r = controls_retained + retained
+  let mut total_e = Int64::max(
     quote_execution,
     execution + publication_projection_execution,
   )
+  // Static row demand is an acceptance upper bound, not the constructor's
+  // actual completed material. Keep useful prepaid small envelopes, but do
+  // not reject a live Result merely because all future maximums cannot fit.
+  // This DATA selects the existing exact-writer path; it grants no capacity.
+  // Both this grow and every later constructor still check original current.
+  let ledger = owner.ledger.unwrap()
+  let limits = @resources.ledger_admission_limits(ledger)
+  let usage = @resources.ledger_usage(ledger)
+  if snapshot_prequoted &&
+    (
+      total_r - controls_retained >
+      limits.retained_bytes - usage.held_bytes - usage.reserved_retention_bytes ||
+      total_e - quote_execution >
+      limits.execution_bytes - usage.reserved_execution_bytes
+    ) {
+    snapshot_prequoted = false
+    total_r = controls_retained
+    total_e = quote_execution
+  }
   match reserve_program_publication_phase(holder, prepared, total_r, total_e) {
     Err(issue) => return Err(issue)
     Ok(_) => ()

@@ -36,7 +36,9 @@ if (coreArgs !== undefined) {
     'Invalid Native core fixture invocation');
 }
 const corePartition = process.env.ACTQL_TEST_NATIVE_CORE_PARTITION;
-assert(!corePartition || coreArgs !== undefined && (corePartition === '1/2' || corePartition === '2/2'),
+assert(!corePartition || Array.isArray(coreArgs) && coreArgs.length > 0 &&
+  Number.isSafeInteger(coreExpectedTests) && coreExpectedTests > 0 &&
+  /^[1-8]\/(?:2|4|8)$/u.test(corePartition) && Number(corePartition[0]) <= Number(corePartition.at(-1)),
   'Native Core partition requires its original selected case inventory');
 // The unchanged write-oracle package belongs to exactly one ordinary
 // partition. Its sibling retains the same peer but must make zero requests.
@@ -326,8 +328,10 @@ try {
   // The full Core child includes cold Native compilation and every selected
   // test. Its finite budget is separate from the ordinary fixture oracles.
   child = spawn(process.execPath, ['--input-type=module', '-e',
-    "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
-    "process.exitCode = runFocusedTests('moon', " + JSON.stringify(moonArgs) + ", " +
+    (coreArgs === undefined
+      ? "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode = runFocusedTests('moon', "
+      : "import {runMeasuredNativeTests} from './scripts/native-core-measured-tests.mjs'; process.exitCode = runMeasuredNativeTests(") +
+    JSON.stringify(moonArgs) + ", " +
     "{timeout: " + (originalLocalReview ? 600000 : coreArgs === undefined ? 180000 : 3600000) +
     ", expectedTests: " + JSON.stringify(coreExpectedTests) + ", evidenceScratch: " + JSON.stringify(root) + "});"],
 

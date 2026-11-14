@@ -82,9 +82,11 @@ let program_json_quote_control_bytes : Int64 = @execution.preparation_representa
 // carriers4H4R4W; ready forward alternatives2H2R2W; original debit tuple
 // and Result2H1R3W. Record/Some alternatives are conservatively co-counted.
 let program_json_driver_controls : @execution.PreparationRepresentationUnits = {
-  record_headers: 15L + 8L,
-  reference_slots: 19L + 12L,
-  scalar_words: 28L + 11L,
+  // One optional original-error alias and its conservative Some carrier stay
+  // live beside the existing failed index until the same parent's cleanup.
+  record_headers: 15L + 8L + 1L,
+  reference_slots: 19L + 12L + 2L,
+  scalar_words: 28L + 11L + 2L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }

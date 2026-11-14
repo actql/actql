@@ -136,6 +136,15 @@ pub fn enable_managed_row_measurements(
   if max_cells < 0 {
     return Err(Guard(InvalidLimits))
   }
+  guard managed_row_measurement_capacity_bytes(max_cells) is Some(bytes) else {
+    return Err(MeasurementIndexLimit)
+  }
+  if !fund_managed_output_metadata(stream.buffer.budget, bytes) {
+    return Err(Admission(CaptureLimit))
+  }
+  if !stream.open {
+    return Err(Closed)
+  }
   guard new_managed_row_measurements(max_cells) is Some(index) else {
     return Err(MeasurementIndexLimit)
   }

@@ -62,6 +62,42 @@ Validation or a projected wire alone establishes none of those observations.
 
 ## Representation and lifetime
 
+A complete managed representation copy preserves the original completion
+occurrence through the existing builder, receipt and publication bridge. The
+existing copy loop must commit every row, in order, from the same original
+owner and target. Partial, reordered, mixed-original or manually admitted rows
+cannot seal that association; equal row values or CIDs are insufficient. An
+empty original can transfer its occurrence without inventing row work. Failure
+or cancellation cannot issue a successful receipt.
+
+Only bounded identity, target and copy-progress metadata are retained, not the
+old row buffers or an additional output use. The common construction quote
+backs its 320 logical bytes using the existing representation tariffs and Task
+Ledger. The original and converted output still have their independent current,
+managed-generation, publication and cleanup fences. Sharing an occurrence does
+not grant execution, Model ownership or export authority.
+
+For a computed Effect suffix, the original captured task owner seals bounded
+completion DATA only after the actual output and its exact admitted inputs pass
+completion validation and resource settlement. It retains the consumed unary
+producer coordinate and the original completion occurrence, without rows,
+execution callbacks, input bindings or physical holdings. Each suffix edge must
+match that successful completion in the same checked Run and Unit; static graph
+reachability, a done flag alone, equal values or equal CIDs do not supply it.
+The original Model and final Result still require their complete current,
+availability, receipt and export lifetime fences. Historical correspondence is
+neither currentness nor permission and cannot reopen a retired Result.
+
+Only Effect DAGs allocate these completion records. The existing original
+Effect control reservation funds their bounded per-task representation beyond
+individual body/output retirement. The static Plan and actual-row control paths
+compose that cost once each as exclusive alternatives, not as per-task provider
+workspace. Stopping the Run revokes new artifact issuance and drops this DATA
+before the original control token retires; pending physical cleanup retains its
+existing owner and is not inferred from the DATA. Pure task construction, the
+320-byte representation-copy quote, global tariffs and policy ceilings remain
+unchanged.
+
 The Core record retains twelve fields and six bounded vectors: five snapshots
 of actual Result contract references, plus declared Result names from the
 admitted manifest. Existing decoded contracts and admitted Set facts are retained
@@ -76,3 +112,69 @@ overlap before admission. The getters supply no backing, and releasing immutable
 evidence references is not physical retirement. Resource children, pending
 callbacks, actual Store outputs and failed cleanup keep their existing owners
 and duties; consumed work, Unknown and no-resend history are not refunded.
+
+
+## Keyed input after an original producer Unit
+
+A keyed Model consumer with imported Results enters through the same checked
+Effect Host. Its upstream Source Units execute normally before the Local
+preparation callback awaits the existing keyed prefix and physical lookup. That
+callback runs before managed input selection and dispatch, retains the original
+partial cleanup owner before awaiting, and shares one pending attempt. A failed
+or cancelled attempt cannot bind an input or start a replacement lookup.
+
+The prefix borrows the actual predecessor Result reads from that DAG. Its
+completed-segment proof retains those exact inputs even when two independent
+Sources contributed to one Result port. The original Source acquisition handles
+remain in their checked order, and retain custody independently of the completed
+Source task's retired execution access. Source count is not Result-port count.
+
+The existing same-parent reservation funds prefix control and provider overlap
+before input-vector construction. A constructor failure before provider entry
+retains its pending-start cleanup; no absent handle is treated as a physical
+acknowledgement. Only the completed original lookup can add its checked supplied
+read to this still-unselected Model task. The same DAG, Plan, Scope and prior
+outputs continue; no Source task, compiler or Model invocation is repeated.
+
+
+When the keyed JOIN is the consumer's first operation, its left target is the
+imported Input itself. The same checked DAG's original ProducerRead and completed
+producer output supply that left directly. The retained proof distinguishes this
+from an executed prefix: there is no completed-segment receipt, prefix
+reservation, provider child or prefix work. The original sequence is borrowed
+only for its existing contracts/physical owner; it is never marked executed.
+The existing native left-identity consumer reads either genuine proof through
+the same original-output projection. Step-left consumers keep their original
+prefix, completion receipt, backing and cleanup.
+
+
+A preconsumer Unit Result backed by a managed Relation uses the original Host's
+completed physical record. The existing `beforeNext` await retains its exact
+import bridge on the Unit preparation record before reading rows. The checked
+Unit pin, managed completion/material and Result occurrence must agree; the
+cell/Source exporter is retained for its original representations and never
+casts a resident Result to cells. Import backing uses the original measured
+row/value inventory and finite row parser window on the same Plan parent.
+Per-row checks cover the original bridge, signal and local retirement only;
+full Host/Journal selection currentness remains at read/finish and dispatch
+boundaries rather than being amplified with the number of rows.
+
+The same derived full completion may bind an actual pending input of that
+captured DAG. It preserves the managed output inventory and distinct repeated
+receiving occurrences. A keyed consumer borrows that existing bound read;
+opening its lookup does not rerun the Source or JOIN. The Model's synchronous
+open consumes only the already prepared Artifact/Manifest cache. Cancellation
+or reentrant cleanup keeps the pending preparation and prevents later issuance.
+After consumers stop, cleanup cancels the original bridges/exports, returns the
+Unit pins and severs the resolved Promise/cache aliases. These local returns do
+not acknowledge physical stop, Store cleanup or publication.
+
+
+Preconsumer Source Artifact construction receives the publication definition
+holder retained by the original Model Plan and resolves its existing token.
+A Journal wire read may admit a contract with the same CID, but that separately
+constructed value does not replace the Plan's bound original. Journal start and
+currentness checks keep their existing admissions; the Artifact caller does not
+reissue a definition or weaken the Core original-equality guard. Its own typed
+Artifact Result supplies a bounded diagnostic at the Artifact boundary, distinct
+from the earlier export Result and without traversing private error payloads.

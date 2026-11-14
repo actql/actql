@@ -5,6 +5,7 @@ fn NativeLocalHostConnection::check_initial_host_attestation_grant_original_lock
   self : NativeLocalHostConnection,
   original : NativeLocalGrantOriginal,
   expected_run : String,
+  capture? : NativeLocalJournalCapture? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   guard original.grant is SigningGrant(grant) &&
     original.initial_issue is Some(_) else {
@@ -19,20 +20,38 @@ fn NativeLocalHostConnection::check_initial_host_attestation_grant_original_lock
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  self.check_initial_host_attestation_grant_after_submission_locked(
+    original,
+    capture~,
+  )
+}
+
+///|
+// Private continuation of the SAME grant/Request's just-checked Submission.
+// Only pure purpose selection may separate that check from this historical
+// control read. Independent callers keep the complete entry above.
+fn NativeLocalHostConnection::check_initial_host_attestation_grant_after_submission_locked(
+  self : NativeLocalHostConnection,
+  original : NativeLocalGrantOriginal,
+  capture? : NativeLocalJournalCapture? = None,
+) -> Result[Unit, NativeClientRunJournalIssue] {
+  guard original.grant is SigningGrant(grant) &&
+    original.initial_issue is Some(_) else {
+    return Err(CustodyLost)
+  }
   let scope = @credential.local_signing_credential_grant_scope(grant)
   let control = match
     self.database.read("client_local_installation_custody", "host") {
     Ok(value) if value.revision == 0L => value
     _ => return Err(CustodyLost)
   }
-  let fields = match
-    read_local_initial_host_signing_control(self, control.body) {
-    Ok(value) => value
-    Err(_) => return Err(CustodyLost)
-  }
-  let reviewer = match read_local_initial_signing_control(self, control.body) {
-    Ok(Some(value)) => value
-    _ => return Err(CustodyLost)
+  // One authenticated control admission already contains both original roles
+  // and the optional Host subject. Do not discard and admit the Reviewer again.
+  guard read_local_initial_signing_control_with_host_key(self, control.body)
+    is Ok(Some((reviewer, Some((fields, _))))) &&
+    fields.policy.cid() == reviewer.policy.cid() &&
+    fields.issuer == reviewer.issuer else {
+    return Err(CustodyLost)
   }
   let metadata = match
     read_local_initial_signing_issue_record(self, original, fields) {
@@ -56,6 +75,7 @@ fn NativeLocalHostConnection::check_initial_host_attestation_grant_original_lock
       scope.principal,
       metadata.connection,
       self.epoch.crypto,
+      capture~,
     )
     is Ok(authority) &&
     authority == scope.authority_scope_cid else {
@@ -65,8 +85,17 @@ fn NativeLocalHostConnection::check_initial_host_attestation_grant_original_lock
     .iter()
     .find_first(file => file.name == metadata.host_configuration_file)
     is Some(file) &&
-    file.content_cid == metadata.host_configuration_cid &&
-    self.selected_configuration(file.name) is Ok(body) &&
+    file.content_cid == metadata.host_configuration_cid else {
+    return Err(CustodyLost)
+  }
+  // The scope check above already joined this SAME Host/Library/Read. Select
+  // its admitted bytes without another full Source/package walk; the final
+  // physical/current fence after key-generation checks remains below.
+  let body = match capture {
+    Some(owner) => owner.selected_configuration_in_original_read(file.name)
+    None => self.selected_configuration(file.name)
+  }
+  guard body is Ok(body) &&
     body == file.body &&
     initial_reviewer_host_configuration(body) else {
     return Err(CustodyLost)

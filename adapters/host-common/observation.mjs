@@ -29,7 +29,8 @@ const attributeNames = ['actql.operation', 'actql.event', 'actql.observation.ver
   'actql.physical_stop', 'actql.run.definition_cid', 'actql.run.id',
   'actql.model.attempt_cid', 'http.request.method', 'http.route',
   'http.response.status_code', 'error.type', 'service.name', 'service.version',
-  'deployment.environment.name'];
+  'deployment.environment.name', 'actql.failure.phase', 'actql.failure.kind',
+  'actql.unit.ordinal', 'actql.step.ordinal'];
 const mandatoryAttributes = ['actql.operation', 'actql.event', 'actql.observation.version'];
 // These are presentation-only public spellings. Field membership, primitive
 // width and private snapshot order belong to the actual Core declaration.
@@ -181,6 +182,8 @@ const events = Object.freeze({
   model_call_replayed: ['recovery', 'attempt_replayed'],
   checkpoint_resolved: ['approval', 'checkpoint_resolved'],
   effect_application_observed: ['effect', 'application_observed'],
+  effect_preflight_failed: ['effect', 'dispatch_failed'],
+  effect_write_observed: ['effect', 'write_observed'],
 });
 const recordEvents = new Set(['segment_started', 'segment_ended', 'check_completed',
   'owner_observed', 'cancellation_requested', 'task_started', 'task_completed',
@@ -295,6 +298,14 @@ export function projectEffectApplication(projection, ref, result) {
   } catch { /* Optional metadata cannot change receipt or cleanup custody. */ }
 }
 
+// Same failed Core preflight metadata only. No observation can create a
+// semantic outcome, repeat validation or settle the original cleanup owner.
+export function projectEffectPreflightFailure(projection, ref, primaryDiagnostic) {
+  if (!projections.has(projection) || primaryDiagnostic === undefined) return;
+  try {projection.diagnostic('effect_preflight_failed', {ref, primaryDiagnostic});}
+  catch { /* Optional delivery cannot replace the original failure. */ }
+}
+
 // The installed Host supplies a captured original Core reader. Public callers
 // cannot acquire a Ledger or execution authority through this projection.
 export function captureManagedRunObservation(projection, ref, readUsage) {
@@ -405,6 +416,18 @@ export function installHostObservation(connection, {journal, runId} = {}) {
       }
       if (config.correlations.has('task') && Number.isSafeInteger(facts.task) && facts.task >= 0) {
         attributes['actql.task.ordinal'] = facts.task;
+      }
+      if (event === 'dispatch_failed' && config.eventLevel === 'diagnostic' &&
+          facts.primaryDiagnostic !== undefined) {
+        const failure = facts.primaryDiagnostic;
+        attributes['error.type'] = failure.code;
+        attributes['actql.failure.phase'] = failure.phase;
+        attributes['actql.failure.kind'] = failure.kind;
+        if (config.correlations.has('task')) {
+          if (Number.isSafeInteger(failure.task) && failure.task >= 0) attributes['actql.task.ordinal'] = failure.task;
+          if (Number.isSafeInteger(failure.unit) && failure.unit >= 0) attributes['actql.unit.ordinal'] = failure.unit;
+          if (Number.isSafeInteger(failure.step) && failure.step >= 0) attributes['actql.step.ordinal'] = failure.step;
+        }
       }
       if (config.correlations.has('attempt')) {
         if (Number.isSafeInteger(facts.attempt) && facts.attempt >= 0) attributes['actql.attempt.ordinal'] = facts.attempt;
@@ -663,9 +686,17 @@ export function installHostObservation(connection, {journal, runId} = {}) {
         return;
       }
       const mapping = events[name];
+      // The same typed pre-Model or Model failure is selectable through the existing
+      // infer signal, without subscribing a work collector to Run lifecycle.
+      if (name === 'dispatch_failed' && config.eventLevel === 'diagnostic' && config.allowed.has('infer') &&
+          ['original_model_acquired_effect_evidence', 'original_effect_source_unit_result_export', 'original_effect_source_unit_artifact', 'original_infer_component']
+            .includes(detail?.primaryDiagnostic?.phase)) {
+        emit('infer', 'dispatch_failed', {ref: detail.ref, primaryDiagnostic: detail.primaryDiagnostic});
+      }
       if (mapping) emit(mapping[0], mapping[1], {ref: detail?.ref,
         task: detail?.task, attempt: detail?.attempt, slot: detail?.slot,
-        attemptCid: detail?.attemptCid, outcome: detail?.outcome});
+        attemptCid: detail?.attemptCid, outcome: detail?.outcome,
+        ...(['dispatch_failed', 'effect_preflight_failed'].includes(name) ? {primaryDiagnostic: detail?.primaryDiagnostic} : {})});
     },
     status: () => Object.freeze({...counts, queued: queue.length,
       queuedBytes, active: pending.size, activeSegments, closed,

@@ -1,4 +1,37 @@
 ///|
+test "series execution counts complete bound submillisecond ranges exactly" {
+  let a = "1969-12-31T23:59:59.999999999Z"
+  let z = "1970-01-01T00:00:00.001Z"
+  let profiles = resolution_profiles(
+    operation_order_fixture(
+      "[{\"time_series\":{\"start\":{\"$param\":\"a\"},\"end\":{\"$param\":\"z\"},\"step\":1},\"as\":\"grid\"},{\"derive\":{\"x\":\"concat($p,to_string($n))\"}}]",
+      tea=true,
+      parameters="{\"p\":{\"type\":\"string\",\"default\":\"x\"},\"n\":{\"type\":\"number\",\"default\":1},\"a\":{\"type\":\"timestamp\",\"default\":\"" +
+        a +
+        "\"},\"z\":{\"type\":\"timestamp\",\"default\":\"" +
+        z +
+        "\"}}",
+    ),
+  )
+  let index = index_program_operation_resolutions(profiles, 10000000, 1000).unwrap()
+  let mut checked = 0
+  for i in 0..<operation_resolution_count(index) {
+    guard operation_resolution_at(index, i)
+      is Some(Execution(SeriesExecution(check))) else {
+      continue
+    }
+    assert_eq(check.row_count, 2L)
+    assert_eq(check.step_ms, 1L)
+    assert_eq(check.range.start, a)
+    assert_eq(check.range.end, z)
+    assert_true(check.range.start_parameter is Some(_))
+    assert_true(check.range.end_parameter is Some(_))
+    checked += 1
+  }
+  assert_eq(checked, 9)
+}
+
+///|
 test "series execution retains exact bound ranges and counts without generating rows" {
   let a = "2000-01-01T00:00:00.000Z"
   for empty in [false, true] {

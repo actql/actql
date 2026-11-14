@@ -164,3 +164,41 @@ test "wire conversion does not normalize invalid text or accept shape and parse 
     )
   }
 }
+
+///|
+test "retained wide array row keeps exact per-row node rejection independently of collection rows" {
+  let number = @contract.primitive(NumberType, nullable=false)
+  let array = @contract.array_contract(number, nullable=false).unwrap()
+  let schema = @schema.from_fields(
+    [(Unqualified("cells"), array)],
+    max_fields=1,
+    max_name_bytes=5,
+  ).unwrap()
+  let body = "[" + Array::make(20000, "0").join(",") + "]"
+  let wire = "{\"cells\":" + body + "}"
+  // One row Object, one Array and exactly 20,000 numeric leaves.
+  let exact : RetainedRowDecodeLimits = {
+    max_bytes: 65536,
+    max_nodes: 20002,
+    max_depth: 64,
+    max_text_bytes: 65536,
+  }
+  let decoded = decode_retained_row(schema, wire, exact).unwrap()
+  assert_eq(decoded.length(), 1)
+  assert_true(physical_equal(decoded[0].contract, array))
+  let writer = @encode.writer(65536, 20002, 64)
+  @admitted.emit_wire_value(decoded[0].value, writer)
+  assert_eq(@encode.finish(writer), body)
+  assert_true(
+    decode_retained_row(schema, wire, { ..exact, max_nodes: 20001, })
+    is Err(ShapeLimit),
+  )
+  assert_true(
+    decode_retained_row(schema, wire, { ..exact, max_nodes: 10000, })
+    is Err(ShapeLimit),
+  )
+  assert_true(
+    decode_retained_row(schema, wire, { ..exact, max_bytes: wire.length() - 1, })
+    is Err(InputLimit),
+  )
+}

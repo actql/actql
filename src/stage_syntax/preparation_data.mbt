@@ -78,8 +78,16 @@ fn preparation_step(
     // nodes. Keep every other operand conservative, including unknown syntax;
     // this cached construction fact does not admit or validate an operation.
     state.may_contain_expression_syntax = true
-    if @wire.object_length(value) is Some(_) {
-      state.possible_growth += @wire.observe_subtree_size(value).0
+    if @wire.object_length(value) is Some(fields) {
+      // Derive introduces at most its named output fields. Nested expression
+      // objects/arrays remain fully represented in the original node/text
+      // envelope; they cannot widen the surrounding row schema. Keep unknown
+      // and all other operands on their original conservative subtree bound.
+      state.possible_growth += if key == "derive" {
+        fields
+      } else {
+        @wire.observe_subtree_size(value).0
+      }
       if key == "rename" {
         for field in 0..<@wire.object_length(value).unwrap() {
           if @wire.text(@wire.field_at(value, field).unwrap().1) is Ok(label) {

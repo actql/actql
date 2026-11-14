@@ -68,6 +68,20 @@ fn NativeLocalJournalReadQueries::prepare_row_construction(
     is Some((retained, execution, raw)) else {
     return Err(CapacityExceeded)
   }
+  guard @execution.checked_preparation_add_product(
+      self.original.metadata_retained,
+      retained,
+      1L,
+    )
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(
+      self.original.metadata_retained,
+      execution,
+      1L,
+    )
+    is Some(execution) else {
+    return Err(CapacityExceeded)
+  }
   match
     self.original.host.prepare_domain_original_read_construction(
       self.original.read,

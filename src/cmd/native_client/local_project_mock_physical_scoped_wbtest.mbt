@@ -128,13 +128,22 @@ fn native_project_mock_model_backed_read(
   effect_recipe? : Bool = false,
   effect_material_restore? : Bool = false,
   effect_prepared_restore? : Bool = false,
+  pure_file_source? : Bool = false,
+  pure_file_plan? : Bool = false,
+  pure_file_control? : Bool = false,
+  pure_file_boundary? : Bool = false,
+  pure_file_budget_refusal? : Bool = false,
 ) -> Unit raise {
   // Reuse the existing real Native facility entry, as in Request/Effect's
   // physical component. This supplies no Command platform/Journal/Account.
   // Both physical facilities are created in the outer control lifetime.
   // Project metadata stays retained while its SAME immutable originals are
   // borrowed by the separate Request payload, as in the ordinary command.
-  let request_facility = if readme_request {
+  let request_facility = if readme_request ||
+    pure_file_source ||
+    pure_file_plan ||
+    pure_file_control ||
+    pure_file_boundary {
     Some(native_mock_readme_request_facility())
   } else {
     None
@@ -191,7 +200,23 @@ fn native_project_mock_model_backed_read(
   }
   host.enter_domain_original_read(read).unwrap()
   let mut request_issue : String? = None
-  if request_facility is Some(facility) {
+  if (
+      pure_file_source ||
+      pure_file_plan ||
+      pure_file_control ||
+      pure_file_boundary
+    ) &&
+    request_facility is Some(facility) {
+    request_issue = native_pure_file_request_in_metadata_read(
+      host,
+      read,
+      facility,
+      prepare_plan=pure_file_plan || pure_file_control || pure_file_boundary,
+      prepared_control=pure_file_control,
+      boundary=pure_file_boundary,
+      budget_refusal=pure_file_budget_refusal,
+    )
+  } else if request_facility is Some(facility) {
     request_issue = native_mock_readme_request_in_metadata_read(
       host,
       read,
@@ -1225,12 +1250,61 @@ fn native_mock_original_journal_body(
   arena
   .leave_local_host_phase(pair)
   .native_mock_journal_required("leave initial Read")
+  let read_counts = Ref(None)
+  let scope_digest_counts = Ref(None)
   let observed = native_mock_journal_adoption_result(
     capture.with_original_read(_ => {
       let account = match capture.configuration_in_original_read() {
         Ok(value) => value
         Err(_) => return None
       }
+      let scope = match
+        capture.authority_scope_cid_in_original_read("local-cli", "mock") {
+        Ok(value) => value
+        Err(_) => return None
+      }
+      let source_before = native_approval_counter(37)
+      let admission_before = native_approval_counter(33)
+      let package_before = native_approval_counter(16)
+      let sql_before = native_approval_counter(1)
+      let digest_before = native_approval_counter(26)
+      for _ in 0..<3 {
+        guard capture.configuration_in_original_read() is Ok(same) &&
+          same.configuration_cid() == account.configuration_cid() &&
+          capture.authority_scope_cid_in_original_read("local-cli", "mock")
+          is Ok(same_scope) &&
+          same_scope == scope else {
+          return None
+        }
+        guard capture
+          .original_host()
+          .unwrap()
+          .authority_scope_cid(
+            "local-cli",
+            "mock",
+            crypto,
+            capture=Some(capture),
+          )
+          is Ok(host_scope) &&
+          host_scope == scope else {
+          return None
+        }
+      }
+      scope_digest_counts.val = Some(
+        (digest_before, native_approval_counter(26)),
+      )
+      read_counts.val = Some(
+        (
+          source_before,
+          admission_before,
+          package_before,
+          sql_before,
+          native_approval_counter(37),
+          native_approval_counter(33),
+          native_approval_counter(16),
+          native_approval_counter(1),
+        ),
+      )
       let allow = @authorization.evaluate_account(account, {
           principal: "local-cli",
           connection: "mock",
@@ -1253,7 +1327,88 @@ fn native_mock_original_journal_body(
     fail("same adopted Account unavailable inside captured Read")
   }
   assert_true(allow && delegated)
+  let (digest_before, digest_after) = scope_digest_counts.val.unwrap()
+  assert_eq(digest_after - digest_before, 0L)
+  assert_true(
+    capture
+    .original_host()
+    .unwrap()
+    .authority_scope_cid("local-cli", "mock", crypto, capture=Some(capture))
+    is Err(@local_host.OriginalResourceScopePending),
+  )
   assert_true(configuration.has_prefix("sha256:"))
+  let (
+    source_before,
+    admission_before,
+    package_before,
+    sql_before,
+    source_after,
+    admission_after,
+    package_after,
+    sql_after,
+  ) = read_counts.val.unwrap()
+  assert_true(source_before > 0L && admission_before > 0L && sql_before > 0L)
+  assert_eq(source_after - source_before, 0L)
+  assert_eq(admission_after - admission_before, 0L)
+  assert_eq(package_after - package_before, 0L)
+  // These are DATA projections from an already admitted immutable material.
+  // The real signing/current SQL bounds belong to the normal approval case,
+  // whose original Store operation this Read-only fixture does not acquire.
+  assert_eq(sql_after - sql_before, 0L)
+  assert_true(capture.configuration_in_original_read() is Err(_))
+  let source_before = native_approval_counter(37)
+  let admission_before = native_approval_counter(33)
+  native_mock_journal_adoption_result(
+    capture.with_original_read(_ => {
+      capture.authority_scope_cid_in_original_read("local-cli", "mock")
+    }),
+    "new public Read revalidates original material",
+  )
+  |> native_mock_journal_adoption_result("fresh scope original")
+  |> ignore
+  assert_true(native_approval_counter(37) > source_before)
+  assert_eq(native_approval_counter(33) - admission_before, 1L)
+  // A real independently held Writer changes the original Source between
+  // public operations. The next entry must refuse before its callback, and
+  // cleanup must still retire that SAME original pair without a new grant.
+  arena
+  .enter_local_host_phase(pair, @initial_arena.HostRead)
+  .native_mock_journal_required("enter Source mutation Read")
+  let changed_root = @local_filesystem.open_private_root_in_current_read_context_with_custody(
+    path + "/product",
+    profile.diagnostic_ceiling,
+  ).native_mock_journal_required("open actual Source mutation Root")
+  let observed_account = changed_root
+    .observe_file("account.json")
+    .native_mock_journal_required("observe original Account Source")
+  let write_lock = changed_root
+    .acquire_lock("account.json.actql-write.lock")
+    .native_mock_journal_required("hold original Source write lock")
+  let writer = changed_root
+    .create_writer("changed-account.stage", 4096L)
+    .native_mock_journal_required("prepare Source mutation Writer")
+  writer.append(b"{}").native_mock_journal_required("write changed Source")
+  writer
+  .replace_observed_file(observed_account, write_lock)
+  .native_mock_journal_required("replace actual Source original")
+  |> ignore
+  writer
+  .close_retaining_files()
+  .native_mock_journal_required("close Source Writer")
+  write_lock
+  .close_checked()
+  .native_mock_journal_required("close Source write lock")
+  changed_root
+  .close()
+  .native_mock_journal_required("close Source mutation Root")
+  arena
+  .leave_local_host_phase(pair)
+  .native_mock_journal_required("leave Source mutation Read")
+  let callback_calls = Ref(0)
+  assert_true(
+    capture.with_original_read(_ => callback_calls.val += 1) is Err(_),
+  )
+  assert_eq(callback_calls.val, 0)
   assert_true(capture.close().issue() is None)
   // Journal close selects cleanup-only custody. Match the ordinary caller:
   // retire the remaining Read aliases in that SAME cleanup frame.
@@ -1311,4 +1466,13 @@ fn[T] Option::native_mock_journal_required(
     Some(value) => value
     None => fail(stage)
   }
+}
+
+///|
+// Existing opt-in diagnostics, read only. No reset or test-only admission path.
+extern "C" fn native_approval_counter_raw(tag : Int) -> Int64 = "actql_native_timing_counter_value"
+
+///|
+fn native_approval_counter(tag : Int) -> Int64 {
+  native_approval_counter_raw(tag)
 }

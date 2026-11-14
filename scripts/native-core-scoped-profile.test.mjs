@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync} from 'node:fs';
+import {existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, renameSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -138,6 +138,11 @@ test('preparation uses the normal verified source copier and preserves compiler/
     const result = spawnSync(selectedCompiler, ['-o', input.output, '-O2', input.source],
       {cwd: f.repository, env: prepared.environment, encoding: 'utf8', timeout: 5000});
     assert.equal(result.status, 7, result.stderr);
+    const timing = JSON.parse(result.stderr.split('\n').find(line => line.startsWith('ACTQL_NATIVE_CI_PHASE '))
+      .slice('ACTQL_NATIVE_CI_PHASE '.length));
+    assert.deepEqual({...timing, milliseconds: 0}, {phase: 'scoped-c-compiler', profile: 'runtime-values',
+      operation: 'link', milliseconds: 0, succeeded: false});
+    assert(Number.isSafeInteger(timing.milliseconds) && timing.milliseconds >= 0);
     const observed = JSON.parse(result.stdout);
     assert.equal(observed.original, 'same-original');
     assert.equal(observed.role, expected, 'explicit package compilers do not replace Moon PATH compilers');
@@ -156,6 +161,7 @@ test('preparation uses the normal verified source copier and preserves compiler/
   const reviewResult = spawnSync(review.environment.CC, ['-o',reviewInput.output,'-O2',reviewInput.source],
     {cwd:f.repository,env:review.environment,encoding:'utf8',timeout:5000});
   assert.equal(reviewResult.status, 7, reviewResult.stderr);
+  assert(reviewResult.stderr.includes('"profile":"scoped-review-values"'));
   const reviewArgs = JSON.parse(reviewResult.stdout).args;
   assert(reviewArgs.includes('-DACTQL_SCOPED_READ_ALLOCATOR'));
   assert(!reviewArgs.includes('-DACTQL_RUNTIME_MANAGED_VALUES=1'));
@@ -321,4 +327,74 @@ test('empty generated harnesses do not export an unlinked component provider', (
   assert.deepEqual(nativeCoreScopedCArguments(c, [...args, provider.output])
     .filter(value => value.includes('exported_symbol')),
     c.componentProviderOwner.symbols.map(symbol => '-Wl,-exported_symbol,_' + symbol));
+});
+
+test('Scoped cache decomposition follows original admission and preserves pthread and exact owned exports', async () => {
+  const {nativeCoreScopedCObjectCommands:decompose}=await import('./native-core-scoped-profile.mjs');
+  assert.equal(typeof decompose,'function');
+  const c=config(),input=c.inputs.at(-1),provider=c.inputs.find(x=>x.source.endsWith('/bootstrap_stub.c'));
+  const args=['-o',input.output,'-O2','-fwrapv',input.source,provider.output,'-lm','-pthread'];
+  const result=decompose(c,'/usr/bin/cc',args,'/owned/original.o');
+  assert(result.compile.includes('-pthread')&&result.link.includes('-pthread'));
+  assert.deepEqual(result.compile.slice(0,3),['-I/owned/read','-DACTQL_SCOPED_READ_ALLOCATOR','-DACTQL_RUNTIME_MANAGED_VALUES=1']);
+  assert(result.compile.includes('-O0')&&!result.compile.includes('-O2'));
+  assert.deepEqual(result.link.slice(-c.componentProviderOwner.symbols.length),c.componentProviderOwner.symbols.map(x=>'-Wl,-exported_symbol,_'+x));
+  assert.equal(decompose(c,'/usr/bin/cc',[...args,'-flto']),undefined);
+  assert.throws(()=>decompose(c,'/usr/bin/cc',[...args,'-DACTQL_SCOPED_READ_ALLOCATOR']));
+  assert.throws(()=>decompose({...c,componentProviderOwner:{...c.componentProviderOwner,sha256:'foreign'}},'/usr/bin/cc',args));
+});
+
+function softwareFixture(t) {
+  const f=fixture(t),tools=join(f.root,'tools');
+  for(const name of ['cc','c++','ar'])writeFileSync(join(tools,name),'#!/bin/sh\nexit 0\n',{mode:0o700});
+  const execute=(command,args)=>{
+    if(command==='python3'){
+      mkdirSync(args.at(-1));
+      return JSON.stringify({status:'review-source-only',target:'aarch64-apple-darwin',installed_supplier:false,
+        required_defines:['MOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC','ACTQL_SCOPED_READ_ALLOCATOR'],recipe_sha256:'original',patch_sha256:'original'});
+    }
+    if(command==='/bin/sh')return join(tools,args.at(-1));
+    return plan(f.repository,f.moonHome,args[args.indexOf('--target-dir')+1]);
+  };
+  const env={...process.env,MOON_HOME:f.moonHome};delete env.MOON_CC;delete env.CC;delete env.CXX;
+  const softwareDirectory=join(f.repository,'_build/native-core-scoped/compiler-software/runtime-values');
+  return {...f,softwareDirectory,options:{env,platform:'darwin',arch:'arm64',execute,softwareDirectory}};
+}
+
+test('Scoped software-only directory is exclusive and retires into its original fresh configuration owner', t => {
+  const f=softwareFixture(t),args=['--target','native','--release','--strip'];
+  const result=prepareNativeCoreScopedProfile(f.repository,f.scratch,args,f.options);
+  assert.equal(result.compilerInputs.sourceDirectory,join(f.softwareDirectory,'derived-read-source'));
+  assert.equal(result.targetDirectory,join(f.softwareDirectory,'target'));
+  assert(result.compilerInputs.configPath.startsWith(f.scratch+'/'));
+  const second=join(f.repository,'_build/second');mkdirSync(second);
+  assert.throws(()=>prepareNativeCoreScopedProfile(f.repository,second,args,f.options),{code:'EEXIST'});
+  assert.equal(typeof result.retireSoftware,'function');result.retireSoftware();result.retireSoftware();
+  assert(!existsSync(f.softwareDirectory));
+  assert(existsSync(join(f.scratch,'native-core-scoped-profile/retired-software/target')));
+});
+
+test('Scoped software preparation failure and replaced-path retirement preserve original failure and foreign owner', t => {
+  const f=softwareFixture(t),failure=new Error('original recipe failure');
+  assert.throws(()=>prepareNativeCoreScopedProfile(f.repository,f.scratch,['--target','native'],{
+    ...f.options,execute(){throw failure;}}),error=>error===failure);
+  assert(!existsSync(f.softwareDirectory));
+  assert(existsSync(join(f.scratch,'native-core-scoped-profile/retired-software')));
+  const next=join(f.repository,'_build/next');mkdirSync(next);
+  const result=prepareNativeCoreScopedProfile(f.repository,next,['--target','native'],f.options);
+  renameSync(f.softwareDirectory,f.softwareDirectory+'-original');mkdirSync(f.softwareDirectory);
+  const foreign=lstatSync(f.softwareDirectory).ino;
+  assert.throws(()=>result.retireSoftware(),/original software directory/u);
+  assert.equal(lstatSync(f.softwareDirectory).ino,foreign);
+  const invalid=join(f.repository,'_build/invalid');mkdirSync(invalid);
+  assert.throws(()=>prepareNativeCoreScopedProfile(f.repository,invalid,['--target','native'],{
+    ...f.options,softwareDirectory:join(f.repository,'_build/foreign')}),/profile software directory/u);
+});
+
+test('Scoped software parent alias refuses before creating any foreign child', t => {
+  const f=softwareFixture(t),foreign=join(f.root,'foreign-software');mkdirSync(foreign);
+  mkdirSync(join(f.repository,'_build/native-core-scoped'),{recursive:true});
+  symlinkSync(foreign,join(f.repository,'_build/native-core-scoped/compiler-software'),'dir');
+  assert.throws(()=>prepareNativeCoreScopedProfile(f.repository,f.scratch,['--target','native'],f.options),/never a path alias/u);
+  assert(!existsSync(join(foreign,'runtime-values')));
 });

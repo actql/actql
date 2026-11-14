@@ -6,6 +6,7 @@ struct ClientInferInputExecution {
   mut prefix : @local.ManagedProviderExecution?
   mut retained_input : ClientInferRetainedInput?
   mut sequence : @execution.GeneratedSequence?
+  producer_inputs : Array[@local.ManagedProviderInput]
   infer_step : Int
   owner : @lower.BoundPrepared
   target : @pipeline.Target
@@ -219,6 +220,9 @@ fn start_client_infer_input_sequence(
     is Some(provider) else {
     return Err(UnsupportedProgram)
   }
+  // Retain the exact snapshot passed to the provider before its start can
+  // reenter. Later caller mutation cannot replace this completed input proof.
+  let inputs = inputs.copy()
   let prefix = match
     @local.start_managed_provider_with_inputs_and_execution(
       provider,
@@ -235,6 +239,7 @@ fn start_client_infer_input_sequence(
     prefix: Some(prefix),
     retained_input: None,
     sequence: Some(sequence),
+    producer_inputs: inputs,
     infer_step: step,
     owner,
     target,
@@ -279,14 +284,14 @@ pub fn start_client_composed_infer_input(
     (
       @execution.generated_sequence_step_count(sequence) != step &&
       !(keyed is Some(_) &&
-      inputs.is_empty() &&
       @execution.generated_sequence_step_count(sequence) > step)
     ) {
     return Err(UnsupportedProgram)
   }
-  // The installed keyed root can borrow the retained full sequence. Only its
-  // checked JOIN-to-Model range is selected below, once; later occurrences
-  // never enter this executor. Other entries still require an exact prefix.
+  // The installed keyed root can borrow the retained full sequence with its
+  // explicit producer vector. The original lookup and every supplied port are
+  // checked below before selecting the JOIN-to-Model range once. Other entries
+  // still require an exact prefix; later occurrences never enter this executor.
   for index in 0..<step {
     if @execution.generated_sequence_step_index_at(sequence, index) !=
       Some(index) {
@@ -321,24 +326,49 @@ pub fn start_client_composed_infer_input(
       // verifies its live originals before execution. Explicit supplied vectors
       // still need every original binding check; empty DATA alone grants none.
       Some(_) if inputs.is_empty() => true
-      Some(sources) => {
-        guard inputs.length() == sources.length() + 1 &&
-          @publication_host.client_composed_keyed_lookup_input_slot(
-            lookup, occurrence,
-          )
-          is Some(slot) &&
-          slot == sources.length() &&
+      // One original joined Result can retain several Source ancestors. Only
+      // its actual Host/direct-output binding selects this two-port branch;
+      // a count, equal Result or raw Source cannot stand in for that binding.
+      Some(_) if inputs.length() == 2 &&
+        inputs[0] is @local.RelationInput(left) &&
+        @publication_host.client_composed_keyed_lookup_result_input_matches(
+          lookup, occurrence, left,
+        ) => {
+        guard inputs[1] is @local.SuppliedRelationInput(read) &&
           @publication_host.finish_client_keyed_lookup_input(lookup)
           is Ok(original) else {
           return Err(UnsupportedProgram)
         }
+        // A representation rebind preserves logical binding identity while
+        // retaining its own physical availability. Check that supplied read,
+        // then keep the existing final lookup/owner fence after callbacks.
+        @execution.producer_read_available(left) &&
+        @execution.supplied_relation_read_same_binding(read, original) &&
+        @execution.supplied_relation_read_available(read)
+      }
+      Some(sources) => {
+        guard inputs.length() == sources.length() + 1 &&
+          @publication_host.finish_client_keyed_lookup_input(lookup)
+          is Ok(original) else {
+          return Err(UnsupportedProgram)
+        }
+        // This is the ordered managed-producer vector, not the pipeline's
+        // raw Source input ordinal. Imported Result ports may precede a
+        // keyed Source whose raw ordinal is zero. The join receiver below
+        // checks the SAME original right read at its actual operation port.
+        let slot = sources.length()
         let mut matched = true
         for index, input in inputs {
           match input {
             @local.RelationInput(read) if index < sources.length() =>
-              if !@query.captured_source_matches_segment_input(
-                  sources[index],
-                  read,
+              if !@publication_host.client_composed_keyed_lookup_source_read_matches(
+                  lookup, occurrence, index, read,
+                ) {
+                matched = false
+              }
+            @local.SuppliedRelationInput(read) if index < slot =>
+              if !@publication_host.client_composed_keyed_lookup_source_supplied_read_matches(
+                  lookup, occurrence, index, read,
                 ) {
                 matched = false
               }
@@ -455,6 +485,7 @@ pub fn start_client_completed_infer_input(
     prefix: None,
     retained_input: None,
     sequence: None,
+    producer_inputs: [],
     infer_step: step,
     owner,
     target,
@@ -580,6 +611,110 @@ pub fn client_infer_completed_input(
     return None
   }
   Some(output)
+}
+
+///|
+/// Seal the exact external reads retained by this prefix owner after it has
+/// completed. The caller cannot supply substitute reads or completed rows.
+/// The copied per-input control inventory uses the existing input allowance;
+/// Artifact bodies remain borrowed from their original publication owner.
+pub fn client_infer_completed_result_artifact_input(
+  active : ClientInferInputExecution,
+  occurrence : @publication_host.ClientInferOccurrence,
+  plan : @publication_host.ClientInferPlanGraph,
+  import_index : Int,
+  artifact : @publication_host.ClientEffectLocalResultArtifact,
+  manifest : @publication_host.ClientEffectLocalManifest,
+) -> Result[
+  @publication_host.ClientInferResultArtifactInput,
+  @publication_host.ClientInferCallScopeIssue,
+] {
+  guard client_infer_completed_input_provenance(active)
+    is Some((output, sequence, bindings, proof)) else {
+    return Err(@publication_host.ForeignInput)
+  }
+  @publication_host.prepare_client_infer_fixed_result_artifact_input(
+    occurrence, plan, import_index, output, sequence, bindings, proof, artifact,
+    manifest,
+  )
+}
+
+///|
+// Keep the closed provider's exact completed external-port proof together.
+// This is input custody only; Artifact/manifest/occurrence admission stays
+// at the existing publication owner after the same original proof is retained.
+fn client_infer_completed_input_provenance(
+  active : ClientInferInputExecution,
+) -> (
+  @execution.CompletedOutput,
+  @execution.GeneratedSequence,
+  Array[(Int, Int, @execution.FixedRelationRead)],
+  @execution.CompletedSegmentInputs,
+)? {
+  guard !active.reclaimed &&
+    !active.cancelled &&
+    active.prefix_done &&
+    active.sequence is Some(sequence) &&
+    client_infer_completed_input(active) is Some(output) else {
+    return None
+  }
+  let bindings : Array[(Int, Int, @execution.FixedRelationRead)] = []
+  let count = @execution.generated_sequence_step_count(sequence)
+  let mut work = 0
+  for position in 0..<count {
+    guard @execution.generated_sequence_step_index_at(sequence, position)
+      is Some(step) &&
+      @lower.node_at(@lower.bound_preparation(active.owner), step) is Some(node) else {
+      return None
+    }
+    for port in 0..<@lower.node_input_count(node) {
+      if work >= active.limits.max_work {
+        return None
+      }
+      work += 1
+      let mut selected = None
+      for input in active.producer_inputs {
+        if work >= active.limits.max_work {
+          return None
+        }
+        work += 1
+        let read = match input {
+          @local.RelationInput(read) if @execution.producer_read_matches_operation_input(
+              read,
+              active.owner,
+              step,
+              port,
+            ) => Some(@execution.fixed_completed_relation_read(read))
+          @local.SuppliedRelationInput(read) if @execution.supplied_relation_read_matches_operation_input(
+              read,
+              active.owner,
+              step,
+              port,
+            ) => Some(@execution.fixed_supplied_relation_read(read))
+          _ => None
+        }
+        if read is Some(read) {
+          if selected is Some(_) {
+            return None
+          }
+          selected = Some(read)
+        }
+      }
+      if selected is Some(read) {
+        bindings.push((step, port, read))
+      }
+    }
+  }
+  guard @execution.retain_completed_fixed_segment_inputs(
+      output,
+      sequence,
+      bindings,
+      active.limits.max_work,
+    )
+    is Some(proof) else {
+    return None
+  }
+  Some((output, sequence, bindings, proof))
 }
 
 ///|
@@ -749,6 +884,7 @@ pub fn cleanup_client_infer_input(
   active.prefix = None
   active.retained_input = None
   active.sequence = None
+  active.producer_inputs.clear()
   active.reclaimed = true
   active.completed_input = None
   Ok(true)

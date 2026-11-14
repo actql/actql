@@ -110,6 +110,9 @@ fn[I, P] construct_program_json_preparation_owned(
   // It still issues the original first typed structural refusal.
   match @syntax.finish_program_input(indexed) {
     Err(issue) => {
+      // Keep this exact original failure beside its admitted index. Reporting
+      // borrows it; no decoder or successful checker outcome is reissued.
+      owner.structural_issue = Some(issue)
       owner.phase = Failed
       Err(Syntax(issue))
     }

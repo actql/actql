@@ -99,3 +99,49 @@ test "Native policy material cannot share another journal or authorize a differe
   other.close().unwrap()
   host.close().unwrap()
 }
+
+///|
+test "Native signing RunRead stays fresh and cannot substitute a named Result role" {
+  let host = policy_reuse_host_fixture("local-policy-signing-read")
+  let crypto = epoch_test_crypto()
+  let scope = host.authority_scope_cid("operator", "cli", crypto).unwrap()
+  let (request, _, _, _) = journal_test_run(
+    "signing-read",
+    "signing-read-run",
+    scope~,
+  )
+  let authority = native_local_policy_authority_for(
+    host,
+    crypto,
+    "operator",
+    "cli",
+    request,
+    ReadRunMaterials,
+    fresh_account=true,
+  ).unwrap()
+  assert_true(authority.current_signing_for(host.journal, request))
+  let named = native_local_policy_authority_for(
+    host,
+    crypto,
+    "operator",
+    "cli",
+    request,
+    ReadResultPolicy("answer"),
+  ).unwrap()
+  assert_true(named.current_for(host.journal, request))
+  assert_false(named.current_signing_for(host.journal, request))
+  assert_true(
+    native_local_policy_authority_for(
+      host,
+      crypto,
+      "foreign",
+      "cli",
+      request,
+      ReadRunMaterials,
+      fresh_account=true,
+    )
+    is Err(AuthorizationDenied),
+  )
+  host.close().unwrap()
+  assert_false(authority.current_signing_for(host.journal, request))
+}

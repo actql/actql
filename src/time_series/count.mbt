@@ -1,38 +1,4 @@
 ///|
-fn digits(text : String, start : Int, end : Int) -> Int {
-  let mut value = 0
-  for i in start..<end {
-    value = value * 10 + text[i].to_int() - 48
-  }
-  value
-}
-
-///|
-// The endpoint reader already validated this fixed-width UTC spelling. Count
-// milliseconds from year 0000, including its leap day; no host timezone API.
-fn timestamp_milliseconds(text : String) -> Int64 {
-  let year = digits(text, 0, 4)
-  let month = digits(text, 5, 7)
-  let day = digits(text, 8, 10)
-  let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
-  let before_month = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
-  let leap_day = if leap && month > 2 { 1 } else { 0 }
-  let days = 365 * year +
-    (year + 3) / 4 -
-    (year + 99) / 100 +
-    (year + 399) / 400 +
-    before_month[month - 1] +
-    day -
-    1 +
-    leap_day
-  days.to_int64() * 86400000L +
-  digits(text, 11, 13).to_int64() * 3600000L +
-  digits(text, 14, 16).to_int64() * 60000L +
-  digits(text, 17, 19).to_int64() * 1000L +
-  digits(text, 20, 23).to_int64()
-}
-
-///|
 fn known_count(
   start : Endpoint,
   end : Endpoint,
@@ -48,11 +14,24 @@ fn known_count(
 
 ///|
 fn count_range(a : String, z : String, step : Int64) -> Int64 {
-  let duration = timestamp_milliseconds(z) - timestamp_milliseconds(a)
-  // Valid endpoints span less than 2^49 milliseconds. Avoid duration+step-1:
-  // the admitted step can be as large as the maximum safe JSON integer.
-  let extra = if duration % step == 0L { 0L } else { 1L }
-  duration / step + extra
+  let start = @value.timestamp_instant(a).unwrap()
+  let end = @value.timestamp_instant(z).unwrap()
+  let mut seconds = end.seconds - start.seconds
+  let mut nanoseconds = end.nanoseconds - start.nanoseconds
+  if nanoseconds < 0 {
+    seconds -= 1L
+    nanoseconds += 1000000000
+  }
+  // Admitted, ordered endpoints span less than 2^49 whole milliseconds.
+  // Retain the fractional remainder instead of truncating it or overflowing
+  // an epoch-nanosecond/duration+step-1 intermediate over the full year domain.
+  let milliseconds = seconds * 1000L + (nanoseconds / 1000000).to_int64()
+  let extra = if milliseconds % step == 0L && nanoseconds % 1000000 == 0 {
+    0L
+  } else {
+    1L
+  }
+  milliseconds / step + extra
 }
 
 ///|
@@ -124,7 +103,7 @@ pub fn resolve_row_count(
   if step <= 0L || step > 9007199254740991L {
     return Err(InvalidStep)
   }
-  if a > z {
+  if @value.compare_timestamp_text(a, z) == Some(1) {
     return Err(ReversedRange)
   }
   Ok(count_range(a, z, step))

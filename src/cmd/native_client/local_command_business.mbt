@@ -57,6 +57,11 @@ priv struct LocalCommandBusinessOriginal {
   ]?
   mut request_body : @local_host.NativeClientSubmittedRequestBody?
   mut request_run : @local_values.ClientInstalledManagedRun?
+  mut file_entry : @local_host.NativeClientRelationFileWorkEntry?
+  mut file_work : @local_host.NativeClientRelationFileWork?
+  mut file_failure : @local_host.NativeClientRelationFileWorkFailure?
+  mut file_publication_failure : @local_host.NativeClientSourcePublicationIssue?
+  mut file_capacity : @local_values.ClientInstalledWholeSourceCapacity?
   mut request_retiring : Bool
   mut operation : @local_host.NativeLocalStoreOperation?
   model_work : Array[@local_host.NativeClientMockModelWork]
@@ -150,18 +155,12 @@ fn local_command_backed_business_profile(
   if kind == SavedResultRead {
     stop("LocalBusinessLayoutUnavailable")
   }
-  // The existing Local host admits at most 32 physical tasks. Declare their
-  // one-shot attempts, output holdings and bounded transfers before acquiring
-  // the facility; the exact Program quote below can still refuse this budget.
-  let task_capacity = 32
-  let limits : @initial_resources.LedgerLimits = {
-    planning_work: 100000,
-    attempts: task_capacity,
-    holdings: task_capacity,
-    transfer_bytes: task_capacity.to_int64() * 1000000L,
-    retained_bytes: 536870912L,
-    execution_bytes: 536870912L,
-  }
+  // Use the same finite graph-work and wire policy as ordinary Local
+  // preparation. Checked Program demand narrows this original before Run
+  // construction; this is neither a concurrency cap nor a refill on retry.
+  let limits = @local_values.client_local_preparation_initial_limits(
+    @local_values.client_local_resource_policy(),
+  ).unwrap_or_else(() => stop("LocalBusinessProfileUnavailable"))
   let payload = limits.retained_bytes + limits.execution_bytes
   let bytes = local_command_domain_bytes(payload).unwrap_or_else(() => {
     stop("LocalBusinessLayoutUnavailable")
@@ -395,6 +394,12 @@ fn LocalCommandPreparationOriginal::close_business_execution(
       Ok(_) => business.request_parent = None
     }
   }
+  if business.file_entry is Some(entry) {
+    if !entry.close_after_original_return() {
+      return Err(CommandBusinessChildren)
+    }
+    business.file_entry = None
+  }
   business.request_initial = None
   business.request_input = None
   business.request_intent = None
@@ -441,13 +446,9 @@ fn LocalCommandPreparationOriginal::require_business_program(
   }
   let needed = requirements.maximum_limits()
   let supplied = business.profile.limits
-  if needed.planning_work > supplied.planning_work ||
-    needed.attempts > supplied.attempts ||
-    needed.holdings > supplied.holdings ||
-    needed.transfer_bytes > supplied.transfer_bytes ||
-    needed.retained_bytes > supplied.retained_bytes ||
-    needed.execution_bytes > supplied.execution_bytes {
-    return Err(CommandUnavailable)
+  match local_command_business_capacity(needed, supplied) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   host
   .require_domain_retained_execution_current(execution)
@@ -530,8 +531,32 @@ fn LocalCommandPreparationOriginal::close_business_operation(
     }
     match operation.close_checked() {
       Err(issue) => return Err(CommandStoreOperation(issue))
-      Ok(_) => business.operation = None
+      Ok(_) => {
+        business.operation = None
+        // Cut its same original metadata/payload aliases before the parent C
+        // return. A false result is still pending and is checked again only
+        // after actual execution and Request physical retirement below.
+        if business.file_entry is Some(entry) {
+          ignore(entry.close_after_original_return())
+        }
+      }
     }
+  }
+  Ok(())
+}
+
+///|
+fn local_command_business_capacity(
+  needed : @initial_resources.LedgerLimits,
+  supplied : @initial_resources.LedgerLimits,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  if needed.planning_work > supplied.planning_work ||
+    needed.attempts > supplied.attempts ||
+    needed.holdings > supplied.holdings ||
+    needed.transfer_bytes > supplied.transfer_bytes ||
+    needed.retained_bytes > supplied.retained_bytes ||
+    needed.execution_bytes > supplied.execution_bytes {
+    return Err(CommandBusinessCapacity)
   }
   Ok(())
 }

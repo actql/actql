@@ -16,8 +16,9 @@ import {bindClientSourceOperation} from './client-source-operation.mjs';
 import {ledgerUsageDiagnostic, ledgerUsageHasPendingResources} from '../host-common/runtime-core.mjs';
 
 // Diagnostics must not become a second owner of execution/cleanup capabilities.
-// Read only inert own data; accessors and arbitrary thrown objects are not
-// invoked, traversed or retained by the returned diagnostic receipt.
+// Read only inert own data, including one existing primaryFailure diagnostic
+// slot. Accessors and error/cause chains are not invoked or traversed, and the
+// returned receipt retains no thrown object or cleanup capability.
 const dispatchFailureFields = Object.freeze(['primaryFailure', 'closeFailure',
   'cleanupFailure', 'finishFailure', 'releaseFailure', 'preparationRetirementFailure']);
 function dispatchFailureSnapshot(error) {
@@ -29,8 +30,90 @@ function dispatchFailureSnapshot(error) {
         typeof field.value === 'string' ? field.value : undefined;
     } catch { return undefined; }
   };
+  let primaryDiagnostic;
+  try {
+    let field = Object.getOwnPropertyDescriptor(error, 'primaryDiagnostic');
+    if (field === undefined) {
+      const primary = Object.getOwnPropertyDescriptor(error, 'primaryFailure');
+      if (primary !== undefined && Object.hasOwn(primary, 'value') && primary.value !== error) {
+        field = Object.getOwnPropertyDescriptor(primary.value, 'primaryDiagnostic');
+      }
+    }
+    if (field !== undefined && Object.hasOwn(field, 'value')) {
+      const data = {};
+      let validOrdinals = true;
+      for (const key of ['code', 'phase', 'kind', 'task', 'unit', 'step']) {
+        const member = Object.getOwnPropertyDescriptor(field.value, key);
+        if (member !== undefined && Object.hasOwn(member, 'value')) data[key] = member.value;
+        if ((key === 'task' || key === 'unit' || key === 'step') &&
+            (!Number.isSafeInteger(data[key]) || data[key] < 0 || data[key] > 2147483647)) {
+          validOrdinals = false;
+        }
+      }
+      const workLimit = Object.getOwnPropertyDescriptor(field.value, 'controlWorkLimit');
+      const localWork = data.phase === 'local_managed_advance' && data.kind === 'control_work' &&
+        Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647 &&
+        !Object.hasOwn(field.value, 'unit') && !Object.hasOwn(field.value, 'step') &&
+        workLimit !== undefined && Object.hasOwn(workLimit, 'value') &&
+        Number.isSafeInteger(workLimit.value) && workLimit.value >= 0 && workLimit.value <= 2147483647;
+      const valueLimit = Object.getOwnPropertyDescriptor(field.value, 'workLimit');
+      const valueWork = data.phase === 'local_managed_advance' && data.kind === 'value_capture_work' &&
+        Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647 &&
+        Number.isSafeInteger(data.step) && data.step >= 0 && data.step <= 2147483647 &&
+        !Object.hasOwn(field.value, 'unit') && !Object.hasOwn(field.value, 'controlWorkLimit') &&
+        valueLimit !== undefined && Object.hasOwn(valueLimit, 'value') &&
+        Number.isSafeInteger(valueLimit.value) && valueLimit.value >= 0 && valueLimit.value <= 2147483647;
+      const dimension = Object.getOwnPropertyDescriptor(field.value, 'dimension');
+      const resource = data.phase === 'local_managed_advance' && data.kind === 'resource' &&
+        Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647 &&
+        !Object.hasOwn(field.value, 'unit') && !Object.hasOwn(field.value, 'step') &&
+        !Object.hasOwn(field.value, 'controlWorkLimit') && !Object.hasOwn(field.value, 'workLimit') &&
+        dimension !== undefined && Object.hasOwn(dimension, 'value') &&
+        (dimension.value === 'retained_bytes' || dimension.value === 'execution_bytes');
+      if (data.code === 'MoonBitHostFailure' &&
+          (['original_model_acquired_effect_evidence', 'original_effect_source_unit_result_export', 'original_effect_source_unit_artifact', 'original_infer_component'].includes(data.phase) &&
+            validOrdinals || localWork || valueWork || resource) &&
+          typeof data.kind === 'string' && data.kind.length <= 96 &&
+          /^[a-z_]+(?:\.[a-z_]+)*$/u.test(data.kind)) {
+        if (localWork) data.controlWorkLimit = workLimit.value;
+        if (valueWork) data.workLimit = valueLimit.value;
+        if (resource) data.dimension = dimension.value;
+        primaryDiagnostic = Object.freeze(data);
+      }
+    }
+  } catch { /* Optional inert DATA cannot mask execution or cleanup. */ }
+  let cleanupDiagnostic;
+  try {
+    const original = Object.getOwnPropertyDescriptor(error, 'primaryFailure');
+    const field = Object.getOwnPropertyDescriptor(error, 'cleanupDiagnostic') ??
+      (original !== undefined && Object.hasOwn(original, 'value') && original.value != null
+        ? Object.getOwnPropertyDescriptor(original.value, 'cleanupDiagnostic') : undefined);
+    if (field !== undefined && Object.hasOwn(field, 'value')) {
+      const read = key => Object.getOwnPropertyDescriptor(field.value, key)?.value;
+      const owner = read('owner'), phase = read('phase'), continuation = read('continuation');
+      if (['local_managed', 'managed_operations'].includes(owner) &&
+          ['close_additional', 'close_operations', 'await_stop', 'settle_operations', 'refresh_cleanup'].includes(phase) &&
+          ['runnable', 'blocked', 'unavailable'].includes(continuation)) {
+        cleanupDiagnostic = Object.freeze({owner, phase, continuation});
+      }
+    }
+  } catch { /* Optional cleanup DATA does not observe or retry an owner. */ }
   return Object.freeze({name: text('name') ?? 'Error', code: text('code'),
-    message: typeof error === 'string' ? error : text('message')});
+    message: typeof error === 'string' ? error : text('message'),
+    ...(primaryDiagnostic === undefined ? {} : {primaryDiagnostic}),
+    ...(cleanupDiagnostic === undefined ? {} : {cleanupDiagnostic})});
+}
+
+// Only diagnostic custody moves here. An Unknown result keeps its outcome,
+// physical owner and current gates; a later cleanup refusal is not its cause.
+function retainDispatchPrimaryFailure(entry, result) {
+  try {
+    const primary = Object.getOwnPropertyDescriptor(result, 'primaryFailure');
+    if (!Object.hasOwn(entry, 'primaryFailure') &&
+        primary !== undefined && Object.hasOwn(primary, 'value')) {
+      entry.primaryFailure = primary.value;
+    }
+  } catch { /* Optional failure DATA cannot interrupt the original cleanup. */ }
 }
 
 // One original Core holder covers the ordinary configured Host and its
@@ -1206,6 +1289,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
               checkpoints?.journal.hasUnresolvedModelCalls(runId) !== true) {
             throw new Error('InstalledInferUnknownNotRecorded');
           }
+          retainDispatchPrimaryFailure(entry, result);
           // The owner made all permitted progress and retained an entered
           // call without a saved response. Physical stop is not an ordinary
           // failure and cannot turn that call into a completed barrier.
@@ -1263,13 +1347,16 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       await settleCleanup(entry);
       await finishRun(entry);
     }).catch(async cause => {
-      entry.primaryFailure = cause;
+      if (!Object.hasOwn(entry, 'primaryFailure')) entry.primaryFailure = cause;
       try {
-        const primaryFailure = cause instanceof CapturedRunPublicationError
-          ? cause.primaryFailure : cause;
+        const original = entry.primaryFailure;
+        const primaryFailure = original instanceof CapturedRunPublicationError
+          ? original.primaryFailure : original;
         diagnostic('dispatch_failed', {ref: accepted.ref,
           code: cause?.code ?? cause?.message ?? 'ClientDispatchFailed',
           primaryCode: primaryFailure?.code,
+          primaryDiagnostic: dispatchFailureSnapshot(primaryFailure)?.primaryDiagnostic,
+          cleanupDiagnostic: dispatchFailureSnapshot(primaryFailure)?.cleanupDiagnostic,
           issueTag: runtimeTag(primaryFailure?.cause),
           nestedIssueTag: runtimeTag(runtimeOptionalField(primaryFailure?.cause, 0))});
       } catch { /* Optional diagnostics cannot interrupt cleanup. */ }
@@ -1365,6 +1452,9 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       },
       }));
     }).then(async result => {
+      if (result?.status === 'needs_reconciliation') {
+        retainDispatchPrimaryFailure(entry, result);
+      }
       // A trusted installed Site may confirm that a pre-Preview refusal
       // performed no external Effect dispatch. Record that observation only
       // after its physical owner has stopped and cleanup has completed.
@@ -1375,7 +1465,18 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       await settleCleanup(entry);
       return result;
     }).catch(async cause => {
-      entry.primaryFailure = cause;
+      if (!Object.hasOwn(entry, 'primaryFailure')) entry.primaryFailure = cause;
+      try {
+        const original = entry.primaryFailure;
+        const primaryFailure = original instanceof CapturedRunPublicationError
+          ? original.primaryFailure : original;
+        diagnostic('dispatch_failed', {ref: entry.ref,
+          code: cause?.code ?? 'ClientDispatchFailed',
+          primaryCode: primaryFailure?.code,
+          primaryDiagnostic: dispatchFailureSnapshot(primaryFailure)?.primaryDiagnostic,
+          issueTag: runtimeTag(primaryFailure?.cause),
+          nestedIssueTag: runtimeTag(runtimeOptionalField(primaryFailure?.cause, 0))});
+      } catch { /* Optional diagnostics cannot interrupt original cleanup. */ }
       if (!entry.runInvoked) {
         // A refused execution barrier ran no Site callback. This is a
         // positive no-start observation, not an inferred physical stop.

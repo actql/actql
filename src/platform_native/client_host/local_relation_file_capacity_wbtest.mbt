@@ -124,13 +124,15 @@ test "relation Work composes the Common captured control exactly once" {
 test "relation entry Read constructor component is distinct from the reserved business bytes" {
   let (selection, limits) = relation_work_capacity_inputs()
   let read = native_relation_file_entry_read_capacity(selection, limits).unwrap()
-  // Independently authored H80/R83/S168 central-tariff vector. This is
+  // Independently authored H83/R86/S169 central-tariff vector. This is
   // constructor arithmetic, not a physical-entry or normal-profile proof.
-  assert_eq(@execution.execution_capacity_retained_bytes(read), 29346L)
-  assert_eq(@execution.execution_capacity_execution_bytes(read), 29346L)
-  let pending_prepare = 58L * 16L + 70L * 8L + 109L * 8L
+  // The private dedicated capacity variant adds H1/R1 (24 bytes). The
+  // clearable Prepared/compiler/definition tuple adds H2/R2/S1 (56 bytes).
+  assert_eq(@execution.execution_capacity_retained_bytes(read), 29426L)
+  assert_eq(@execution.execution_capacity_execution_bytes(read), 29426L)
+  let pending_prepare = 61L * 16L + 73L * 8L + 110L * 8L
   let never_entered_cancel = 22L * 16L + 13L * 8L + 59L * 8L
-  assert_eq(pending_prepare, 2360L)
+  assert_eq(pending_prepare, 2440L)
   assert_eq(never_entered_cancel, 928L)
   assert_eq(
     @execution.execution_capacity_retained_bytes(read),
@@ -148,7 +150,7 @@ test "relation entry Read constructor component is distinct from the reserved bu
 ///|
 test "relation entry authored minimum fixture and maximum constructor totals" {
   let (selection, limits) = relation_work_capacity_inputs()
-  assert_eq(relation_file_work_control_bytes().unwrap(), 47890L)
+  assert_eq(relation_file_work_control_bytes().unwrap(), 48234L)
   let minimum = {
     ..limits,
     page: { max_bytes: 1, max_nodes: 1, max_depth: 1, max_rows: 1, },
@@ -164,9 +166,9 @@ test "relation entry authored minimum fixture and maximum constructor totals" {
   }
   for
     (selected, bounded, work_bytes, read_bytes) in [
-      (selection, minimum, 270557L, 29346L),
-      (selection, limits, 23124056L, 29346L),
-      (paths, maximal, 296458808L, 32770L),
+      (selection, minimum, 270901L, 29426L),
+      (selection, limits, 23124400L, 29426L),
+      (paths, maximal, 296459152L, 32850L),
     ] {
     let work = native_relation_file_work_control_capacity(selected, bounded).unwrap()
     let read = native_relation_file_entry_read_capacity(selected, bounded).unwrap()
@@ -197,4 +199,19 @@ test "relation entry authored minimum fixture and maximum constructor totals" {
   assert_true(
     native_relation_file_entry_read_capacity(excessive, maximal) is None,
   )
+}
+
+///|
+test "Whole file UTC constructor covers both original samples without allocator reuse" {
+  let quoted = native_relation_whole_file_clock_capacity().unwrap()
+  // Independent two-sample vector, including byte/UTF16 payloads and carriers.
+  let one = 56L * 16L + 53L * 8L + 81L * 8L + 24L * 2L + 49L
+  let carriers = 5L * 16L + 6L * 8L + 2L * 8L
+  assert_eq(one, 2065L)
+  assert_eq(carriers, 144L)
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(quoted),
+    2L * one + carriers,
+  )
+  assert_eq(@execution.execution_capacity_execution_bytes(quoted), 4274L)
 }

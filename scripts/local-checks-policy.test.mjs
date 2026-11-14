@@ -1,3 +1,4 @@
+import {partJobs} from '../proofs/relation-pipeline/proof-parts.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {test} from 'node:test';
@@ -80,7 +81,8 @@ test('CI classification is an explicit reviewed list, independent of time budget
 test('split pipeline job wrappers require CI provenance, not a heavy override', () => {
   const workflow = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
   assert.deepEqual(Object.keys(ciOnlyPipelineJobs), [
-    'client-supported-versions', 'main-performance', 'pipeline-mutations', 'pipeline-capacity', 'pipeline-mutations-rest', 'pipeline-capacity-mutants', 'pipeline-validation', 'pipeline-evidence',
+    'native-workloads', 'native-macos-workloads',
+    'client-supported-versions', 'main-performance', ...Object.values(partJobs), 'pipeline-validation', 'pipeline-evidence',
   ]);
   for (const name of Object.keys(ciOnlyPipelineJobs)) {
     assert.match(workflow, new RegExp(`^  ${name}:$`, 'mu'));

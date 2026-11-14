@@ -9,6 +9,14 @@ priv enum NativeLocalWorkSourceOriginal {
     @planning.QueryRequirement,
     @rows.RowAcquisition
   )
+  WholeRelationFile(
+    @rows.RowDeclaration,
+    @sourceviews.SourceAcquisition,
+    @rows.RowInputAcquisition,
+    @local.ClientInstalledManagedRun,
+    @local.ClientInstalledWholeSourceCapacity,
+    @row_file.NativeRelationFilePreparedProvider
+  )
 }
 
 ///|
@@ -163,7 +171,7 @@ fn[T] NativeLocalValuesOriginalAccess::in_original_read(
           _ => Ok(())
         }
       })
-    RelationFile(_, _, _) =>
+    RelationFile(_, _, _) | WholeRelationFile(_, _, _, _, _, _) =>
       captured.with_current_adoption_material_in_original_read((
         host,
         material,
@@ -579,6 +587,21 @@ fn NativeLocalValuesOriginalAccess::source_allowed_in_original_read(
         principal: self.principal,
         connection: declaration.connector_id,
         resource,
+        operation: "read",
+      })
+      is Ok(@authorization.Allow(_))
+    }
+    WholeRelationFile(declaration, source, acquisition, _, _, _) => {
+      guard @rows.check_row_input_acquisition_original(
+          acquisition, declaration, source,
+        )
+        is Ok(_) else {
+        return false
+      }
+      captured.operation_account(host, material, {
+        principal: self.principal,
+        connection: declaration.connector_id,
+        resource: @rows.row_input_acquisition_target_resource(acquisition),
         operation: "read",
       })
       is Ok(@authorization.Allow(_))

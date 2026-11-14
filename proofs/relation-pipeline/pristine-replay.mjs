@@ -5,7 +5,7 @@ import {mkdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {randomUUID} from 'node:crypto';
-import {mutationNamesByPart} from './proof-parts.mjs';
+import {logicalMutationNamesByPart as mutationNamesByPart} from './proof-parts.mjs';
 import {snapshot, checkBaseline, hash} from './inventory.mjs';
 import {readExecutionFiles, validateExecutionOriginal} from './execution-original.mjs';
 import {registry} from './registry.mjs';

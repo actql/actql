@@ -2,12 +2,13 @@
 // This is not a shell parser or an authorization boundary. A focused selection
 // still needs an execution budget: its dependencies can be expensive to build.
 import {posix} from 'node:path';
+import {partJobs} from '../proofs/relation-pipeline/proof-parts.mjs';
 
 export const heavyJobs = Object.freeze([
-  'core', 'host', 'native-cli-installed', 'native-cli-linux-local', 'native', 'session-evidence',
-  'client-packages', 'client-distribution', 'client-packed', 'client-packed-composition', 'client-salesforce',
+  'core', 'host', 'native-cli-installed', 'native-cli-linux-local', 'native', 'native-http', 'session-evidence', 'session-controls',
+  'client-packages', 'client-readme-packed', 'client-distribution', 'client-packed', 'client-packed-composition', 'client-salesforce',
   'client-distribution-callers', 'client-distribution-mutations',
-  'client-distribution-packed', 'client-distribution-native',
+  'client-distribution-packed',
   'workers', 'connector-addition', 'duckdb-node', 'spec',
 ]);
 
@@ -15,12 +16,12 @@ export const heavyJobs = Object.freeze([
 // override. The underlying proof campaigns remain ordinary heavy work; this
 // registry does not classify or intercept their raw commands.
 export const ciOnlyPipelineJobs = Object.freeze({
+  'native-workloads': 'requires the owned hosted background command group lifecycle',
+  'native-macos-workloads': 'requires the owned hosted macOS background command group lifecycle',
   'client-supported-versions': 'requires exact same-run normal tarballs and the selected compatibility interpreter',
   'main-performance': 'requires exact same-run normal Client package artifact provenance',
-  'pipeline-mutations': 'requires real GitHub source/run/attempt/output metadata for producer begin, stage and seal',
-  'pipeline-capacity': 'requires real GitHub source/run/attempt/output metadata for producer begin, stage and seal',
-  'pipeline-mutations-rest': 'requires real GitHub source/run/attempt/output metadata for part sealing',
-  'pipeline-capacity-mutants': 'requires real GitHub source/run/attempt/output metadata for part sealing',
+  ...Object.fromEntries(Object.values(partJobs).map(job => [job,
+    'requires real GitHub source/run/attempt/output metadata for producer begin, stage and seal'])),
   'pipeline-validation': 'requires actual GitHub source provenance for mandatory validation output',
   'pipeline-evidence': 'requires sealed exact-artifact producer inputs from the same GitHub run and attempt',
 });

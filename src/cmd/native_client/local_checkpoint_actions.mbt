@@ -91,6 +91,8 @@ fn LocalCommandPreparationOriginal::restore_checkpoint_review(
   configuration : LocalCommandConfiguration,
   selected : @local_host.NativeLocalCheckpointSelection,
 ) -> Unit raise ClientStop {
+  native_timing_begin(38)
+  defer native_timing_end(38)
   guard self.journal is Some(actual) &&
     physical_equal(actual, capture) &&
     self.run_observation is Some(observation) &&

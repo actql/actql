@@ -2,6 +2,7 @@
 pub(all) enum ClientInteractivePlanIssue {
   ForeignCompilation
   InvalidReadLimits
+  ConstructionRefused
   MissingCheckedOccurrence
   UnsupportedCarrierContract
   Encoding

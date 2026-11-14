@@ -141,3 +141,53 @@ test('acquired Effect keeps its retained Model Definition instead of a separatel
   assert.deepEqual(missing.counts(),{calls:0,borrows:0});
   assert.equal(journalReads,0);
 });
+
+
+function hostInputFacadeFixture(direct) {
+  let body;
+  const inspect = node => {
+    if (node?.type === 'Property' && node.method && node.key.name === 'prepareInstalledOriginalComposedKeyedHostInput') {
+      assert.equal(body, undefined); body = source.slice(node.start, node.end);
+    }
+    for (const value of Object.values(node ?? {})) {
+      if (Array.isArray(value)) value.forEach(item => {if (item?.type) inspect(item);});
+      else if (value?.type) inspect(value);
+    }
+  };
+  inspect(parse(source, {ecmaVersion: 'latest', sourceType: 'module'})); assert(body);
+  const compiled = {kind: 'infer'}, nativeCompiled = {}, definition = {}, nativeDefinition = {};
+  const managedRun = {}, graph = {}, scope = {}, keyed = {}, host = {}, left = {}, prefix = {};
+  const originals = [{}, {}]; let borrows = 0, leftCalls = 0, prefixCalls = 0, actualInputs;
+  const captures = originals.map(original => {
+    const capture = {originalCapturedInput() {assert.strictEqual(this, capture); borrows++; return original;}};
+    return {inputKind: 'whole-input', capture};
+  });
+  const argumentsMatch = args => {
+    assert.deepEqual(args, [managedRun, scope, nativeCompiled, nativeDefinition, graph, keyed, originals, host]);
+  };
+  const moon = {clientProgramInstalledOriginalComposedKeyedHostInputLeft(...args) {
+    assert.strictEqual(this, moon); argumentsMatch(args); actualInputs = args[6]; leftCalls++;
+    return {$tag: 1, _0: direct ? left : undefined};
+  }, clientProgramStartInstalledOriginalComposedKeyedHostPrefix(...args) {
+    assert.strictEqual(this, moon); argumentsMatch(args); assert.strictEqual(args[6], actualInputs); prefixCalls++;
+    return {$tag: 1, _0: prefix};
+  }};
+  const token = value => {assert.strictEqual(value, definition); return nativeDefinition;};
+  const method = new Function('moon', 'compiledRunTokens', 'token', 'checked',
+    `return ({${body}}).prepareInstalledOriginalComposedKeyedHostInput;`)(moon,
+      new WeakMap([[compiled, nativeCompiled]]), token, checked);
+  return {invoke: () => method(managedRun, compiled, definition, graph, scope, keyed, captures, host),
+    left, prefix, counts: () => ({borrows, leftCalls, prefixCalls})};
+}
+
+test('same Host direct input facade preserves original read with one vector and no prefix constructor', () => {
+  const f = hostInputFacadeFixture(true), result = f.invoke();
+  assert.strictEqual(result.left, f.left); assert.equal(result.prefix, undefined); assert(Object.isFrozen(result));
+  assert.deepEqual(f.counts(), {borrows: 2, leftCalls: 1, prefixCalls: 0});
+});
+
+test('same Host Step input facade uses the same original vector for the existing prefix constructor', () => {
+  const f = hostInputFacadeFixture(false), result = f.invoke();
+  assert.strictEqual(result.prefix, f.prefix); assert.equal(result.left, undefined); assert(Object.isFrozen(result));
+  assert.deepEqual(f.counts(), {borrows: 2, leftCalls: 1, prefixCalls: 1});
+});

@@ -91,7 +91,10 @@ function sourceFreeModelPreparation(moon, control, prepared, plan, selected, mod
         model.read = control.prepareCheckedClientInferOriginalRead(plan.compiled,
           plan.runDefinition, selected.graph, scope, model.budget);
         return Object.freeze({control, compiled: plan.compiled, runDefinition: plan.runDefinition,
-          scope, read: model.read, publicationCapacity,
+          // This installed caller always hands the completed observation to
+          // inferTaskPublicationPlan; its existing body owner needs this SAME
+          // read. This does not enable retention in raw/private Model consumers.
+          scope, read: model.read, inputBodyRead: model.read, publicationCapacity,
           readRetainedBytes: model.budget.readRetainedBytes, readExecutionBytes: model.budget.readExecutionBytes,
           modelRetainedBytes: model.budget.modelRetainedBytes, modelExecutionBytes: model.budget.modelExecutionBytes});
       } catch (cause) {model.readFailure = cause; throw cause;}
@@ -617,7 +620,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         // already owns this Model input; consuming it still needs current
         // permission for its original installed Source.
         sourceContinuation = acquiredEffectContinuation({checkpoints, moon,
-          acquired: {kind: 'infer', prepared: preparedProgram, runDefinition: plan.runDefinition, control},
+          acquired: {kind: 'infer', prepared: preparedProgram, requestIdentity: plan.requestIdentity, runDefinition: plan.runDefinition, control},
           submission, declaredResults, principalId, unitId: 'composed-source-input', signal,
           currentRun: () => {try {current(); return true;} catch {return false;}},
           restore: {view: {kind: 'model_invocation', prepareAttemptId: null, runId,
@@ -672,7 +675,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       // Retain this SAME already captured Source before the Model checkpoint
       // stores its input. No acquisition, replacement capture or new grant.
       sourceContinuation = acquiredEffectContinuation({checkpoints, moon,
-        acquired: {kind: 'infer', prepared: preparedProgram, runDefinition: plan.runDefinition, control},
+        acquired: {kind: 'infer', prepared: preparedProgram, requestIdentity: plan.requestIdentity, runDefinition: plan.runDefinition, control},
         submission, declaredResults, principalId, unitId: 'composed-source-input', signal,
         currentRun: () => {try {current();return true;} catch {return false;}}});
       const source = {occurrence, preparedSource: acquiredInfer.preparedSource, adapter: acquiredInfer.adapter};

@@ -56,6 +56,7 @@ fn NativeLocalInitialHostAttestationPreparation::require_current_locked(
     host.check_initial_host_attestation_grant_original_locked(
       self.original,
       self.scope.run_definition_cid,
+      capture=self.account.original.reviewer.original_read.map(value => value.0),
     ) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -84,7 +85,17 @@ fn NativeLocalInitialHostAttestationPreparation::require_current(
     Err(issue) => return Err(HostAttestationProof(OriginalSigningProof(issue)))
     Ok(_) => ()
   }
-  if binding.read_current(
+  if self.reviewer_current.key.original.original_read is Some(_) &&
+    self.reviewer_current.materials.reviewer.approval_scope is SavedApproval(_) {
+    // require_current just completed this SAME material's registration read
+    // and terminal key/current checks. Only these identity/data comparisons
+    // intervene; do not add another whole caller/clock traversal. Independent
+    // Host Sign and the actual transaction/physical gates remain below.
+    if !physical_equal(self.reviewer_current.materials.reviewer, binding) ||
+      self.reviewer_current.materials.registration != authenticated.registration {
+      return Err(HostAttestationUnavailable)
+    }
+  } else if binding.read_current(
       authenticated.registration.selection,
       authenticated.registration.key_id,
     ) !=
@@ -147,6 +158,19 @@ pub fn NativeLocalInitialHostAttestationPreparation::prepare_signing(
 fn NativeLocalInitialHostAttestationSigning::require_current(
   self : NativeLocalInitialHostAttestationSigning,
 ) -> Result[Unit, NativeLocalInitialHostAttestationIssue] {
+  match self.require_original_frame() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  self.preparation.require_current()
+}
+
+///|
+// Intrinsic receiver/lifetime checks only. The actual role/current/row checks
+// remain separate; a valid receiver alone cannot authorize any protected work.
+fn NativeLocalInitialHostAttestationSigning::require_original_frame(
+  self : NativeLocalInitialHostAttestationSigning,
+) -> Result[Unit, NativeLocalInitialHostAttestationIssue] {
   match self.physical.require_original_owner() {
     Err(issue) => return Err(HostAttestationPhysical(issue))
     Ok(_) => ()
@@ -158,7 +182,7 @@ fn NativeLocalInitialHostAttestationSigning::require_current(
     physical_equal(actual, self) else {
     return Err(HostAttestationUnavailable)
   }
-  self.preparation.require_current()
+  Ok(())
 }
 
 ///|
@@ -206,6 +230,8 @@ pub fn NativeLocalInitialHostAttestationSigning::sign_once(
     Err(issue) => return Err(HostAttestationPhysical(issue))
     Ok(_) => ()
   }
+  native_timing_begin(34)
+  defer native_timing_end(34)
   if self.entered || self.closed {
     return Err(HostAttestationUnavailable)
   }
@@ -282,6 +308,12 @@ pub fn NativeLocalInitialHostAttestationSigning::sign_once(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  if retained_signature.val is None {
+    match preparation.account.original.reviewer.check_callback_current() {
+      Err(issue) => return Err(HostAttestationOriginal(issue))
+      Ok(_) => ()
+    }
+  }
   match host.journal.transaction(() => self.require_use_locked()) {
     Err(issue) => return Err(HostAttestationJournal(issue))
     Ok(_) => ()
@@ -292,6 +324,10 @@ pub fn NativeLocalInitialHostAttestationSigning::sign_once(
       let transport = match self.physical.sign_once() {
         Ok(value) => value
         Err(issue) => return Err(HostAttestationPhysical(issue))
+      }
+      match preparation.account.original.reviewer.check_callback_current() {
+        Err(issue) => return Err(HostAttestationOriginal(issue))
+        Ok(_) => ()
       }
       let signature = match
         local_initial_resolution_signature_standard(transport) {
@@ -317,6 +353,9 @@ pub fn NativeLocalInitialHostAttestationSigning::sign_once(
               preparation.original,
               signing_use,
               signature,
+              capture=preparation.account.original.reviewer.original_read.map(value => {
+                value.0
+              }),
               attested=Some(preparation.admitted),
               attested_limits=preparation.authenticated.limits,
             ) {
@@ -419,18 +458,74 @@ pub fn NativeLocalInitialHostAttestationSigning::close_checked(
 pub fn NativeLocalInitialHostAttestationSigning::admit_original_resolution(
   self : NativeLocalInitialHostAttestationSigning,
 ) -> Result[NativeClientRunRecord, NativeLocalInitialHostAttestationIssue] {
+  native_timing_begin(35)
+  defer native_timing_end(35)
   let wire = match self.original_verified_resolution() {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  self.admit_verified_resolution_in_same_call(wire)
+}
+
+///|
+// Only the existing saved-approval caller within its original Read uses this
+// closed handoff. sign_once returns the fully checked original wrapper; no
+// callback, clock sample or physical action intervenes before admission. Keep
+// independent public/history admission on the complete reader above.
+fn NativeLocalInitialHostAttestationSigning::sign_and_admit_original_resolution(
+  self : NativeLocalInitialHostAttestationSigning,
+) -> Result[NativeClientRunRecord, NativeLocalInitialHostAttestationIssue] {
+  guard self.preparation.account.original.reviewer.original_read is Some(_) &&
+    self.preparation.authenticated.binding.approval_scope is SavedApproval(_) else {
+    return Err(HostAttestationUnavailable)
+  }
+  let wire = match self.sign_once() {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  native_timing_begin(35)
+  defer native_timing_end(35)
+  self.admit_verified_resolution_in_same_call(wire)
+}
+
+///|
+// Private continuation of the same successful original-wire read. This has no
+// retained proof/cache slot: all current, signature and commit gates below
+// still execute against the actual receiver and original mutable Journal.
+fn NativeLocalInitialHostAttestationSigning::admit_verified_resolution_in_same_call(
+  self : NativeLocalInitialHostAttestationSigning,
+  wire : String,
+) -> Result[NativeClientRunRecord, NativeLocalInitialHostAttestationIssue] {
   let preparation = self.preparation
   let authenticated = preparation.authenticated
   let binding = authenticated.binding
   let host = binding.host
   let original = preparation.account.original
   let current = () => {
-    self.require_current() is Ok(_) &&
-    host.journal.transaction(() => self.require_use_locked()) is Ok(_)
+    if original.reviewer.original_read is Some(_) &&
+      binding.approval_scope is SavedApproval(_) {
+      // original_verified_resolution just completed this SAME material and
+      // retained subject. The verifier/commit callbacks must reobserve real
+      // physical originals and every mutable role/key/revision/cancel/use row,
+      // not restart the pure Scope/Submission/clock construction each time.
+      // original_current retains this actual clock and epoch expiry/watermark
+      // through the existing captured metadata Owner; a locked use alone does
+      // not replace that independent Submission lifetime check.
+      // No Account outcome is retained: require_use_locked evaluates Client
+      // RunRead, Reviewer resolve and independent Host Sign on every entry.
+      if self.require_original_frame() is Err(_) ||
+        !binding.original_current() ||
+        self.require_original_frame() is Err(_) {
+        return false
+      }
+      let checked = host.journal.transaction(() => self.require_use_locked())
+      // A physical/current/Account callback cannot retire this SAME receiver
+      // and leave its earlier successful mutable-row observation reusable.
+      checked is Ok(_) && self.require_original_frame() is Ok(_)
+    } else {
+      self.require_current() is Ok(_) &&
+      host.journal.transaction(() => self.require_use_locked()) is Ok(_)
+    }
   }
   if !current() {
     return Err(HostAttestationUnavailable)

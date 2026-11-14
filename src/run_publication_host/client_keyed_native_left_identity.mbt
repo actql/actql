@@ -45,16 +45,37 @@ pub fn prepare_client_keyed_native_left_identity(
   max_work : Int,
   workspace : Int,
 ) -> Result[ClientKeyedNativeLeftIdentity, ClientKeyedRequestIssue] {
+  prepare_client_keyed_native_left_identity_owned(
+    lookup,
+    max_rows,
+    values,
+    payload_wire,
+    logical_wire,
+    schema,
+    max_work,
+    Some(workspace),
+  )
+}
+
+///|
+// Explicit Native callers retain their selected workspace ceiling. The
+// installed captured-input entrance instead uses the existing scan geometry
+// for this SAME completed output and its already selected wire/value limits.
+fn prepare_client_keyed_native_left_identity_owned(
+  lookup : ClientKeyedLookupInput,
+  max_rows : Int,
+  values : @execution.ValueLimits,
+  payload_wire : @execution.RowWireLimits,
+  logical_wire : @execution.RowWireLimits,
+  schema : @execution.RelationSchemaIdentityLimits,
+  max_work : Int,
+  workspace : Int?,
+) -> Result[ClientKeyedNativeLeftIdentity, ClientKeyedRequestIssue] {
   guard native_left_identity_preplanning(lookup) &&
     lookup.left.composed is Some(original) &&
     original.plan.keyed is Some(component) &&
     client_keyed_left_available(lookup.left) &&
-    @execution.completed_segment_inputs_output(
-      original.completed,
-      original.sequence,
-      original.inputs,
-    )
-    is Some(output) else {
+    client_composed_keyed_original_output(original) is Some(output) else {
     return Err(Assembly("foreign_or_started_native_left_identity"))
   }
   // The preceding original-current/output observations may reenter this very
@@ -90,7 +111,7 @@ fn build_client_keyed_native_left_identity(
   logical_wire : @execution.RowWireLimits,
   schema : @execution.RelationSchemaIdentityLimits,
   max_work : Int,
-  workspace : Int,
+  workspace : Int?,
 ) -> Result[ClientKeyedNativeLeftIdentity, ClientKeyedRequestIssue] {
   // Original token H1/R7/W1 + two retained Some H2/R2/W2, with
   // scan/grow/finish/body/measurement tuple and success/refusal frontiers.
@@ -122,6 +143,21 @@ fn build_client_keyed_native_left_identity(
     ) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
+  }
+  // RowWorkspace is a structural-entry counter, not an allocated buffer or
+  // parent byte debit. Keep all selected writer/value limits unchanged. The
+  // actual scan still grows its original parent before each construction.
+  let workspace = match workspace {
+    Some(selected) => selected
+    None => {
+      guard @execution.completed_relation_identity_scan_workspace_slots(
+          output, values, payload_wire, logical_wire,
+        )
+        is Some(slots) else {
+        return Err(Assembly("native_left_workspace_geometry"))
+      }
+      slots
+    }
   }
   let scan = match
     @execution.start_completed_relation_identity_scan(
@@ -239,4 +275,31 @@ pub fn client_keyed_native_left_identity(
       _ => None
     }
   }
+}
+
+///|
+/// The completed checked prefix already bounded its rows and column inventory.
+/// Result-output row/width limits do not reclassify that earlier private input.
+/// Reuse its actual counts and the selected value/wire/work policies; never
+/// re-execute, copy or replace the original completed output.
+pub fn prepare_client_keyed_captured_left_identity(
+  lookup : ClientKeyedLookupInput,
+  limits : PublicationOutputExportLimits,
+  max_work : Int,
+) -> Result[ClientKeyedNativeLeftIdentity, ClientKeyedRequestIssue] {
+  guard lookup.left.composed is Some(original) &&
+    original.plan.keyed is Some(component) else {
+    return Err(Assembly("foreign_captured_left_identity"))
+  }
+  let width = component.original.left_fields.length()
+  prepare_client_keyed_native_left_identity_owned(
+    lookup,
+    lookup.rows,
+    limits.values,
+    { ..limits.payload_wire, max_columns: width, },
+    { ..limits.logical_wire, max_columns: width, },
+    { ..limits.schema, max_fields: width, },
+    max_work,
+    None,
+  )
 }

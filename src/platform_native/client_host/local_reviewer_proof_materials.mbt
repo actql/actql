@@ -39,6 +39,28 @@ fn local_reviewer_proof_snapshot(
   expected_run : String,
   expected_checkpoint : String,
 ) -> Result[NativeLocalReviewerProofSnapshot, NativeClientRunJournalIssue] {
+  if journal.operation_active && journal.operation_record is Some(_) {
+    match journal.check_transaction_context() {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    // Re-select only after the physical fence. An invalidated slot must take
+    // the full read transaction below, never a new unsnapshotted record read.
+    if journal.operation_active &&
+      !journal.fenced &&
+      !journal.transaction_active &&
+      !journal.publication_read_locked &&
+      journal.operation_record is Some(record) &&
+      @host.client_request_identity_relation(record.request, request) ==
+      @host.SameRequest {
+      return local_reviewer_proof_snapshot_from_admitted_record(
+        record, request, expected_run, expected_checkpoint,
+      ).map_err(issue => {
+        journal.invalidate_operation_record()
+        issue
+      })
+    }
+  }
   journal.transaction(() => {
     local_reviewer_proof_snapshot_locked(
       journal, request, expected_run, expected_checkpoint,
@@ -64,6 +86,20 @@ fn local_reviewer_proof_snapshot_locked(
     Ok(None) => return Err(CustodyLost)
     Err(issue) => return Err(issue)
   }
+  local_reviewer_proof_snapshot_from_admitted_record(
+    record, request, expected_run, expected_checkpoint,
+  )
+}
+
+///|
+// Pure projection of the same admitted record. Roles/current were observed
+// by the caller; this neither reads SQL nor issues a grant or a commit ACK.
+fn local_reviewer_proof_snapshot_from_admitted_record(
+  record : NativeClientRunRecord,
+  request : @host.ClientRequestIdentity,
+  expected_run : String,
+  expected_checkpoint : String,
+) -> Result[NativeLocalReviewerProofSnapshot, NativeClientRunJournalIssue] {
   if @host.client_request_identity_relation(record.request, request) !=
     @host.SameRequest ||
     @publication.publication_contract_identity(record.definition) !=
@@ -225,23 +261,79 @@ pub fn NativeLocalReviewerProofMaterials::require_current(
   if actual != self.original {
     return Err(ProofOriginal(Checkpoint(StaleRevision)))
   }
-  match self.key.read_current_reviewer(reviewer) {
-    Ok(value) if value == before => ()
-    Ok(_) => return Err(ProofUnavailable)
-    Err(issue) => return Err(ProofKey(issue))
+  match (self.key, reviewer.approval_scope) {
+    (InitialReviewerKey(key), SavedApproval(_)) if key.original.original_read
+      is Some(_) =>
+      // Only the trusted journal snapshot separated this SAME registration
+      // read from here. Keep its original projection instead of running the
+      // complete clock/Account/Checkpoint traversal twice. The final metadata
+      // read below still samples time, checks RunRead/revision/cancellation,
+      // and finishes this same physical key after its last callback.
+      match self.key.finish_original_projection() {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+    _ =>
+      match self.key.read_current_reviewer(reviewer) {
+        Ok(value) if value == before => ()
+        Ok(_) => return Err(ProofUnavailable)
+        Err(issue) => return Err(ProofKey(issue))
+      }
   }
   // The existing metadata Owner performs its own current RunRead before/after
   // the final original read. A same-Checkpoint callback observation cannot
   // hide an intervening cancellation or another control revision.
-  match
+  let now = (reviewer.now)()
+  let metadata = if self.key is InitialReviewerKey(key) &&
+    reviewer.approval_scope is SavedApproval(saved) &&
+    key.original.original_read is Some((capture, material)) {
+    if !physical_equal(saved.capture, capture) {
+      return Err(ProofUnavailable)
+    }
+    // The clock is an actual callback. Reobserve mutable physical originals
+    // before entering this SAME captured Read, never another capture or an
+    // unscoped metadata/adoption traversal. No cached Account outcome is passed.
+    match key.original.check_callback_current() {
+      Ok(_) => ()
+      Err(issue) => return Err(ProofKey(SigningCustody(issue)))
+    }
+    match
+      capture.with_current_adoption_material_in_original_read((
+        host,
+        current,
+        operations,
+      ) => {
+        if !physical_equal(host, reviewer.host) ||
+          !physical_equal(current, material) {
+          return Err(CustodyLost)
+        }
+        Ok(
+          host.lookup_submitted_checkpoint_metadata_with_operations(
+            reviewer.crypto,
+            reviewer.principal,
+            reviewer.connection,
+            reviewer.reference,
+            reviewer.request,
+            now,
+            operations=Some(operations),
+            capture=Some(capture),
+          ),
+        )
+      }) {
+      Ok(value) => value
+      Err(issue) => return Err(ProofKey(SigningCustody(issue)))
+    }
+  } else {
     reviewer.host.lookup_submitted_checkpoint_metadata(
       reviewer.crypto,
       reviewer.principal,
       reviewer.connection,
       reviewer.reference,
       reviewer.request,
-      (reviewer.now)(),
-    ) {
+      now,
+    )
+  }
+  match metadata {
     Ok(Some(value)) if value.revision == self.original.revision &&
       value.cancellation_requested == self.original.cancellation_requested &&
       value.state == self.original.state &&

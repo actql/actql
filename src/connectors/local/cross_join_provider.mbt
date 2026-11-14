@@ -4,6 +4,7 @@ fn bounded_cross_join_issue(
   step : Int,
 ) -> @connector.FixedComputeIssue {
   match issue {
+    @execution.ControlWorkLimit => @connector.ControlWorkLimit
     @execution.InputLimit => @connector.Execution(@execution.InputLimit)
     @execution.Rows(row_issue) =>
       @connector.Execution(@execution.Rows(step, row_issue))
@@ -149,7 +150,12 @@ fn cross_join_provider(
             }
           },
         ),
-      )
+      ).map(owner => {
+        owner.cleanup_continuation = Some(() => {
+          @execution.bounded_cross_join_cleanup_continuation(active)
+        })
+        owner
+      })
     },
   )
 }

@@ -39,6 +39,40 @@ fn prepare_local_initial_resolution_physical(
     Err(issue) => return Err(OriginalSigningProof(issue))
     Ok(_) => ()
   }
+  prepare_local_initial_resolution_library(key, scope)
+}
+
+///|
+// This private view has just completed the same key/material/subject current
+// checks after fresh authority selection. Keep every scope field and physical
+// projection check without re-entering that full traversal before any callback.
+// The Library child is still retained before the post-constructor current fence.
+fn NativeLocalInitialSigningCurrent::prepare_original_physical(
+  self : NativeLocalInitialSigningCurrent,
+) -> Result[
+  @crypto.OriginalKeySigningAttempt,
+  NativeLocalInitialResolutionSigningIssue,
+] {
+  guard self.materials.reviewer.approval_scope is SavedApproval(saved) &&
+    self.key.original.original_read is Some((capture, _)) &&
+    physical_equal(saved.capture, capture) else {
+    return prepare_local_initial_resolution_physical(self.key, self.scope)
+  }
+  match self.key.require_signing_scope_after_current(self.scope) {
+    Err(issue) => return Err(OriginalSigningProof(issue))
+    Ok(_) => ()
+  }
+  prepare_local_initial_resolution_library(self.key, self.scope)
+}
+
+///|
+fn prepare_local_initial_resolution_library(
+  key : NativeLocalInitialReviewerSigningKey,
+  scope : @credential.LocalSigningCredentialScope,
+) -> Result[
+  @crypto.OriginalKeySigningAttempt,
+  NativeLocalInitialResolutionSigningIssue,
+] {
   let public_key = match key.original.public_key.raw32() {
     Err(_) => return Err(OriginalSigningUnavailable)
     Ok(value) => value
@@ -97,20 +131,16 @@ fn NativeLocalReviewerProofMaterials::prepare_initial_original_signing(
   NativeLocalInitialResolutionSigning,
   NativeLocalInitialResolutionSigningIssue,
 ] {
-  let scope = match self.prepare_signing_scope(attempt_id) {
-    Err(issue) => return Err(OriginalSigningProof(issue))
-    Ok(value) => value
-  }
-  let current = match self.initial_signing_current(scope) {
+  let current = match self.prepare_initial_signing_current(attempt_id) {
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
+  let scope = current.scope
   let host = self.reviewer.host
   if host.reviewer_signing_attempt is Some(previous) && !previous.closed {
     return Err(OriginalSigningUnavailable)
   }
-  let physical = match
-    prepare_local_initial_resolution_physical(current.key, scope) {
+  let physical = match current.prepare_original_physical() {
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
@@ -281,6 +311,8 @@ fn NativeLocalInitialResolutionSigning::sign_original_once(
     Err(issue) => return Err(OriginalSigningPhysical(issue))
     Ok(_) => ()
   }
+  native_timing_begin(33)
+  defer native_timing_end(33)
   if self.entered || self.closed {
     return Err(OriginalSigningUnavailable)
   }
@@ -349,6 +381,12 @@ fn NativeLocalInitialResolutionSigning::sign_original_once(
   // All fallible/current callbacks have finished. Check the actual claimed
   // Credential and its live expiry/revocation in a fresh original snapshot,
   // then enter the no-user-callback physical signer directly.
+  if retained_signature.val is None {
+    match self.key.original.check_callback_current() {
+      Err(issue) => return Err(OriginalSigningOriginal(issue))
+      Ok(_) => ()
+    }
+  }
   match host.journal.transaction(() => current.require_locked()) {
     Err(issue) => return Err(OriginalSigningJournal(issue))
     Ok(_) => ()
@@ -362,6 +400,10 @@ fn NativeLocalInitialResolutionSigning::sign_original_once(
           // Absence of a returned signature is not evidence of no signing.
           return Err(OriginalSigningPhysical(issue))
         Ok(value) => value
+      }
+      match self.key.original.check_callback_current() {
+        Err(issue) => return Err(OriginalSigningOriginal(issue))
+        Ok(_) => ()
       }
       let signature = match
         local_initial_resolution_signature_standard(transport) {
@@ -387,6 +429,7 @@ fn NativeLocalInitialResolutionSigning::sign_original_once(
               original,
               signing_use,
               signature,
+              capture=self.key.original.original_read.map(value => value.0),
               prepared=match self.materials.proof {
                 ResolutionOriginal(proof) => Some(proof)
                 ApprovalOriginal(_) => None

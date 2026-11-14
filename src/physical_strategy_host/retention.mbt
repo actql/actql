@@ -2,6 +2,8 @@
 priv struct TaskLifetime {
   mut live : Bool
   mut pins : Int
+  // Sealed only by successful completion; survives row/execution reclamation.
+  mut completion : CapturedTaskCompletion?
 }
 
 ///|

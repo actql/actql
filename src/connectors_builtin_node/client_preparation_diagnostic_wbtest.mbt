@@ -1,4 +1,39 @@
 ///|
+test "snapshot shortage bridge projects only original typed Resource kind and its matching phase" {
+  let value : @client_local_host.ClientPreparationCapacityRefusal = {
+    phase: "request_snapshot",
+    dimension: "retention",
+    required_retention: 128L,
+    required_execution: 64L,
+    available_retention: 64L,
+    available_execution: 64L,
+  }
+  assert_eq(
+    client_program_request_snapshot_capacity_refusal(
+      Err(SnapshotCapacityExceeded(Resource(RetentionLimit), value)),
+    ),
+    Some(("request_snapshot", "retention", 128L, 64L, 64L, 64L)),
+  )
+  assert_eq(client_program_request_snapshot_capacity_refusal(Ok(())), None)
+  assert_eq(
+    client_program_request_snapshot_capacity_refusal(Err(ForeignOriginal)),
+    None,
+  )
+  assert_eq(
+    client_program_request_snapshot_capacity_refusal(
+      Err(Capacity(Resource(RetentionLimit))),
+    ),
+    None,
+  )
+  assert_eq(
+    client_program_request_snapshot_capacity_refusal(
+      Err(SnapshotCapacityExceeded(Resource(ExecutionLimit), value)),
+    ),
+    None,
+  )
+}
+
+///|
 // Pure DATA inputs reconstructed from the original GCS source-qualified helpers.
 // They do not issue a Site, credential, acquisition ticket or execution grant.
 // The independent full-run estimate is 3 * 2 * 8192 = 49152. An estimate
@@ -133,7 +168,7 @@ fn request_diagnostic_test_parent() -> (
   let original = request_diagnostic_test_original(
     request_diagnostic_test_loader(request_diagnostic_test_url()),
     receipt,
-    client_local_preparation_resource_limits(policy),
+    client_local_preparation_resource_limits(policy, None, None),
   )
   let initial = client_program_prepare_local_preparation_admission(
     original, receipt,
@@ -770,7 +805,7 @@ test "Request checked Source ARRAY refusal reaches existing public rejection wit
   let assets = @publication_host.client_local_product_assets()
   let environment = @publication_host.admit_client_check_environment(
     assets.environment,
-    "sha256:2217670f3f4f54047e764878501863d4eaf37cf069ab741d7306a9d8985cc94f",
+    "sha256:42e2125d9fbac72912fd67d8f619769810d5d4c606a362a4e569a89f32be54e0",
     { text_time: true, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()

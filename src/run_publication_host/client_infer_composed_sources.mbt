@@ -123,19 +123,10 @@ fn admit_client_infer_composed_sources_owned(
     !whole &&
     client_infer_prefix_owner_for_input(owner, 0, occurrence.step, true)
     is Some(_)
-  let whole_unit = whole &&
-    direct is Some(direct) &&
-    Array::makei(count, slot => slot).all(slot => {
-      client_direct_acquisition_occurrence_at(direct, slot).map(coordinate => {
-        coordinate.2 == occurrence.task
-      }) ==
-      Some(true)
-    })
-  let same_unit = keyed_unit || direct_unit || whole_unit
+  let same_unit = keyed_unit || direct_unit
   if !client_infer_occurrence_matches(occurrence, owner) ||
     count < 1 ||
-    count > 2 ||
-    (!same_unit && occurrence.task < count) ||
+    (!whole && !same_unit && occurrence.task < count) ||
     captures.length() != count ||
     identities.length() != count ||
     originals.length() != count ||
@@ -144,7 +135,7 @@ fn admit_client_infer_composed_sources_owned(
     return Err(ForeignInput)
   }
   let incoming : Array[(Int, Int)] = []
-  for index in 0..<@strategy.graph_data_count(graph) {
+  for index in 0..<(if whole { 0 } else { @strategy.graph_data_count(graph) }) {
     guard @strategy.graph_data_at(graph, index) is Some(edge) else {
       return Err(ForeignInput)
     }
@@ -154,7 +145,9 @@ fn admit_client_infer_composed_sources_owned(
       )
     }
   }
-  if incoming.length() != (if same_unit { 0 } else { count }) {
+  // Whole declarations are resolved per checked port below. A mixed Unit's
+  // one imported Result plus one inline Source is not two graph data edges.
+  if !whole && incoming.length() != (if same_unit { 0 } else { count }) {
     return Err(ForeignInput)
   }
   let pipeline = @lower.pipeline(
@@ -202,18 +195,16 @@ fn admit_client_infer_composed_sources_owned(
           @planning.source_acquisition_evidence_facts(original) is Some(facts) else {
           return Err(ForeignInput)
         }
-        let name = if whole_unit {
-          @acquisition.declaration(
-            @acquisition.mode_input(
-              @acquisition.source_acquisition_mode(original),
-            ),
-          ).input_name
-        } else {
-          guard source_task != occurrence.task &&
-            ports.length() == 1 &&
-            @pipeline.input_at(pipeline, ports[0].1) is Some((name, _)) else {
-            return Err(ForeignInput)
-          }
+        let name = match
+          model_effect_source_port_name(
+            @strategy.graph_program(owner.graph),
+            occurrence.stage,
+            Whole(original),
+          ) {
+          Some(name) => name
+          None => return Err(ForeignInput)
+        }
+        if source_task != occurrence.task {
           // An ordinary checked Stage edge names this exact producer. A keyed
           // prefix adds its existing completed lookup proof to the same edge;
           // the direct path retains its separate no-keyed-obligation check.
@@ -226,12 +217,20 @@ fn admit_client_infer_composed_sources_owned(
             ) {
             return Err(ForeignInput)
           }
-          name
         }
         (name, facts)
       }
     }
-    if names.contains(name) ||
+    if inputs.any(previous => {
+        previous.name == name &&
+        !model_effect_originals_share_result_port(
+          @strategy.graph_program(owner.graph),
+          occurrence.stage,
+          name,
+          previous.original,
+          originals[task],
+        )
+      }) ||
       !client_infer_source_tuple_matches(
         owner,
         captures[task],
@@ -414,11 +413,34 @@ fn client_infer_composed_source_boundary(
       })
     }
     if count != @strategy.graph_captured_prefix(graph) {
-      return false
+      let program = @strategy.graph_program(graph)
+      if count == 0 ||
+        !direct.checks.all(check => {
+          model_effect_checked_source_port_name(
+            program,
+            occurrence.stage,
+            check,
+          )
+          is Some(_)
+        }) {
+        return false
+      }
+      guard prepared_client_composed_infer_occurrences(occurrence.owner)
+        is Some(models) else {
+        return false
+      }
+      return !models.any(previous => {
+        previous.task < occurrence.task &&
+        direct.checks.all(check => {
+          model_effect_checked_source_port_name(program, previous.stage, check)
+          is Some(_)
+        }) &&
+        client_infer_composed_source_precedes(previous, occurrence)
+      })
     }
   }
   let count = @strategy.graph_captured_prefix(graph)
-  if count < 1 || count > 2 || occurrence.task < count {
+  if count < 1 || occurrence.task < count {
     return false
   }
   let incoming : Array[Int] = []
@@ -470,23 +492,33 @@ fn client_infer_composed_source_precedes(
 }
 
 ///|
+// The existing checked inheritance relation, without Source-current callbacks.
+// Scope admission owns live tuple validation; publication only borrows this
+// original Program/occurrence correspondence and its retained observations.
+fn client_infer_composed_source_origin_matches(
+  original : ClientInferOccurrence,
+  occurrence : ClientInferOccurrence,
+) -> Bool {
+  client_infer_occurrence_matches(original, occurrence.owner) &&
+  client_infer_occurrence_matches(occurrence, occurrence.owner) &&
+  (
+    client_infer_occurrence_coordinates(original) ==
+    client_infer_occurrence_coordinates(occurrence) ||
+    client_infer_composed_source_origin(occurrence).map(source => {
+      client_infer_occurrence_coordinates(source) ==
+      client_infer_occurrence_coordinates(original)
+    }) ==
+    Some(true)
+  )
+}
+
+///|
 pub fn client_infer_composed_sources_matches(
   value : ClientInferComposedSources,
   occurrence : ClientInferOccurrence,
 ) -> Bool {
   let original = value.occurrence
-  let same_occurrence = client_infer_occurrence_coordinates(original) ==
-    client_infer_occurrence_coordinates(occurrence)
-  if !client_infer_occurrence_matches(original, occurrence.owner) ||
-    !client_infer_occurrence_matches(occurrence, occurrence.owner) ||
-    (
-      !same_occurrence &&
-      client_infer_composed_source_origin(occurrence).map(source => {
-        client_infer_occurrence_coordinates(source) ==
-        client_infer_occurrence_coordinates(original)
-      }) !=
-      Some(true)
-    ) ||
+  if !client_infer_composed_source_origin_matches(original, occurrence) ||
     value.inputs.length() !=
     (if value.inputs.any(input => input.original is Whole(_)) {
       select_client_direct_acquisition_occurrences(occurrence.owner, 1000000)
@@ -496,8 +528,7 @@ pub fn client_infer_composed_sources_matches(
     } else {
       @strategy.graph_captured_prefix(occurrence.owner.graph)
     }) ||
-    value.inputs.is_empty() ||
-    value.inputs.length() > 2 {
+    value.inputs.is_empty() {
     return false
   }
   for task in 0..<value.inputs.length() {
@@ -519,28 +550,43 @@ pub fn client_infer_composed_sources_matches(
         _ => return false
       }
     Some((_, keyed, _)) => {
-      let acquisition = keyed.lookup.left.acquisition
-      let composed = client_composed_keyed_lookup_sources_match(
-        keyed.lookup,
-        original,
-        value.inputs.map(input => input.source),
-      )
-      if (
-          !composed &&
-          (
-            value.inputs.length() != 1 ||
-            !client_keyed_acquisition_matches_program(
-              acquisition,
-              occurrence.owner,
-            ) ||
-            !client_keyed_left_single_source_matches(
-              keyed.lookup.left,
-              value.inputs[0].source,
+      let inherited_host = client_infer_occurrence_coordinates(original) !=
+        client_infer_occurrence_coordinates(occurrence) &&
+        keyed.lookup.left.composed
+        .map(value => value.host is Some(_))
+        .unwrap_or(false)
+      if inherited_host {
+        if !client_composed_keyed_retained_observation_sources_match(
+            keyed,
+            original,
+            value.inputs.map(input => input.source),
+          ) {
+          return false
+        }
+      } else {
+        let acquisition = keyed.lookup.left.acquisition
+        let composed = client_composed_keyed_lookup_sources_match(
+          keyed.lookup,
+          original,
+          value.inputs.map(input => input.source),
+        )
+        if (
+            !composed &&
+            (
+              value.inputs.length() != 1 ||
+              !client_keyed_acquisition_matches_program(
+                acquisition,
+                occurrence.owner,
+              ) ||
+              !client_keyed_left_single_source_matches(
+                keyed.lookup.left,
+                value.inputs[0].source,
+              )
             )
-          )
-        ) ||
-        client_keyed_lookup_observation_wires(keyed) is None {
-        return false
+          ) ||
+          client_keyed_lookup_observation_wires(keyed) is None {
+          return false
+        }
       }
     }
   }

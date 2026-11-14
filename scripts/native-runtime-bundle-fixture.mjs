@@ -8,7 +8,7 @@ import {lstatSync, readFileSync, realpathSync} from 'node:fs';
 import {basename, dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {preparedNativeCommand, preparedNativeComponents, preparedNativeHttpReceipt,
-  verifyNativeHttpPreparation} from './native-preparation-originals.mjs';
+  verifyNativeHttpPreparation, receiveNativeCompiledCommand} from './native-preparation-originals.mjs';
 
 export function prepareNativeRuntimeBundle(repository, destination, options) {
   return prepareNativeCommand(repository, destination, 'native_runtime_bundle', options);
@@ -22,6 +22,7 @@ function prepareNativeCommand(repository, destination, entry, {
   execute = execFileSync, platform = process.platform, arch = process.arch,
   moonHome = process.env.MOON_HOME, seconds = 600,
   preparation = process.env.ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION,
+  compiledInput,
 } = {}) {
   assert(Number.isSafeInteger(seconds) && seconds > 0 && seconds <= 1800);
   const target = platform === 'darwin' && arch === 'arm64' ? 'darwin-arm64'
@@ -40,9 +41,23 @@ function prepareNativeCommand(repository, destination, entry, {
   const clang = realpathSync(platform === 'darwin' ? run('xcrun', ['--find', 'clang']).trim()
     : run('sh', ['-c', 'command -v clang']).trim());
   const sdk = platform === 'darwin' ? realpathSync(run('xcrun', ['--show-sdk-path']).trim()) : undefined;
+  if (compiledInput !== undefined) {
+    assert(preparation === undefined || preparation === null, 'One explicit preparation mode required');
+    const binary = receiveNativeCompiledCommand(compiledInput, destination, entry,
+      {source,target,clang,sdk,moon_home:realpathSync(moonHome),repository}, {seconds});
+    assert.equal(run('git', ['rev-parse', 'HEAD']).trim(), source);
+    assert.equal(run('git', ['status', '--porcelain']), '');
+    return binary;
+  }
   if (preparation !== undefined && preparation !== null) {
-    destination = preparedNativeCommand(preparation, entry, {source,target,clang,sdk,
-      moon_home:realpathSync(moonHome)});
+    const prepared = preparedNativeCommand(preparation, entry, {source,target,clang,sdk,
+      moon_home:realpathSync(moonHome),repository});
+    if (prepared.kind === 'received') {
+      assert.equal(run('git', ['rev-parse', 'HEAD']).trim(), source);
+      assert.equal(run('git', ['status', '--porcelain']), '');
+      return prepared.binary;
+    }
+    destination = prepared;
   } else run('python3', [join(repository, 'scripts/produce-native-remote-scoped-runtime.py'),
     '--source', source, '--moon-home', realpathSync(moonHome), '--clang', clang,
     ...(sdk === undefined ? [] : ['--sdk', sdk]), '--target', target,

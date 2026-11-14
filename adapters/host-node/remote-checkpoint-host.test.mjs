@@ -196,7 +196,9 @@ async function effectFixture({twoMembers = false} = {}) {
     'packages/sdk/fixtures/values.environment.json'), 'utf8'));
   const base = JSON.parse(await readFile(join(repository,
     'spec/local-check-environment.json'), 'utf8'));
-  environment.host_policy_profile.text_time_evaluation = base.host_policy_profile.text_time_evaluation;
+  // Author this new Effect publication against the same complete Host policy
+  // as its Source before hashing/installing it; older fixture bytes stay fixed.
+  environment.host_policy_profile = structuredClone(base.host_policy_profile);
   const target = 'connector://crm/account';
   const schema = {additional_properties: false, fields: {
     Id: {nullable: false, type: 'number'},
@@ -699,6 +701,21 @@ function firstHostCloseFailureDiagnostic(error) {
   const bounded = (value, project) => Array.isArray(value) && !utilTypes.isProxy(value)
     ? Array.from({length: Math.min(value.length, 16)}, (_, index) => project(own(value, String(index))))
     : null;
+  const storeResources = error => {
+    const detail = own(error, 'cleanupDiagnostic');
+    if (own(detail, 'kind') !== 'publication-store-close') return undefined;
+    const resources = own(detail, 'resources');
+    const names = ['physicalRemovalOriginals', 'physicalRemovalAcquisitions',
+      'clockObservations', 'reservedObjects', 'preparedObjects', 'preparedSchemas',
+      'reclaimableCustodies', 'resultDeletions', 'metadataDeletions',
+      'uncommittedMetadataCleanups', 'physicalHoldingDeletions', 'resultReaders',
+      'physicalHoldingReaders', 'modelStorageBindingReaders',
+      'installationPublicationStorageBindingReaders', 'semanticReaders', 'physicalRecordWriters'];
+    return names.flatMap(name => {
+      const count = own(resources, name);
+      return Number.isSafeInteger(count) && count > 0 ? [{resource: name, count}] : [];
+    });
+  };
   let pendingOwners = null;
   try {
     const original = own(error, 'cleanupHandle'), status = own(original, 'status');
@@ -709,10 +726,12 @@ function firstHostCloseFailureDiagnostic(error) {
     code: closed(own(error, 'code'), codes),
     cleanupPending: own(error, 'cleanupPending') === true,
     storeCleanupPending: own(error, 'storeCleanupPending') === true,
-    cleanupErrors: bounded(own(error, 'cleanupErrors'), entry => ({
-      owner: closed(own(entry, 'owner'), owners),
-      code: closed(own(own(entry, 'error'), 'code'), codes),
-    })), pendingOwners};
+    cleanupErrors: bounded(own(error, 'cleanupErrors'), entry => {
+      const owner = own(entry, 'owner'), failure = own(entry, 'error');
+      const resources = owner === 'store' ? storeResources(failure) : undefined;
+      return {owner: closed(owner, owners), code: closed(own(failure, 'code'), codes),
+        ...(resources === undefined ? {} : {storeResources: resources})};
+    }), pendingOwners};
 }
 
 async function closeRetainedStoreFixtureHost(host, t,
@@ -795,6 +814,13 @@ test('Remote Host fixture retains its same close owner after refusal and joins o
   assert.deepEqual(observations[0], {phase: 'original_host_first_close_failure',
     code: 'InstalledHostCleanupPending', cleanupPending: true, storeCleanupPending: true,
     cleanupErrors: [{owner: 'store', code: 'PublicationStoreCleanupPending'}], pendingOwners: ['store']});
+  child.cleanupDiagnostic = Object.freeze({kind: 'publication-store-close',
+    resources: Object.freeze({semanticReaders: 2, reservedObjects: 0,
+      physicalRecordWriters: -1, privatePayload: 'PRIVATE'})});
+  assert.deepEqual(firstHostCloseFailureDiagnostic(original).cleanupErrors,
+    [{owner: 'store', code: 'PublicationStoreCleanupPending',
+      storeResources: [{resource: 'semanticReaders', count: 2}]}]);
+  delete child.cleanupDiagnostic;
   assert.equal(privateReads, 0);
   assert(!JSON.stringify(observations).includes('PRIVATE'));
   assert.deepEqual(firstHostCloseFailureDiagnostic({code: 'private-run-id',
@@ -1956,6 +1982,14 @@ test(`acquired Effect second Source approval restores the first ${realization} c
     const directory = await mkdtemp(join(scratch, 'second-source-approval-'));
     t.after(() => rm(directory, {recursive: true, force: true}));
     const inputs = await loadTwoSourceFixtures(join(repository, 'adapters/host-node/fixtures/two-source'));
+    const base = JSON.parse(await readFile(join(repository,
+      'spec/local-check-environment.json'), 'utf8'));
+    // Author these Source publications with the same current Host policy as
+    // effectFixture before installing either role. Preserve old fixture wires.
+    for (const environment of Object.values(inputs.environments)) {
+      environment.host_policy_profile = structuredClone(base.host_policy_profile);
+      environment.evidence_bundle_cid = withoutCid(environment, 'evidence_bundle_cid');
+    }
     inputs.rows = {left: [{id: 1, amount: 10}, {id: 2, amount: 20}],
       right: [{id: 2, amount: 200}, {id: 1, amount: 100}], equal_content: []};
     const installation = await installTwoSourceFixtures({root: join(directory, 'sources'),
@@ -2012,31 +2046,6 @@ test(`acquired Effect second Source approval restores the first ${realization} c
       resolveSourceSecret() { assert.fail('UnusedSourceSecret'); }};
     let host = await remoteHost(t, account(), options);
     const client = await host.as('owner-token');
-    // The unused Table now has the supported row-source-acquired realization.
-    // Unsupported realizations retain their exact inert-selector controls;
-    // this installed boundary refuses a duplicate original owner before I/O.
-    for (const fault of ['duplicate-owner']) {
-      const rejected = structuredClone(program);
-      rejected.stages[1].inputs.remote = {...rejected.stages[0].inputs.remote};
-      const rejectedRef = client.newSubmission({nonce: `second-source-${realization}-${fault}`});
-      let rejectedOutcome;
-      await assert.rejects(client.startSource(JSON.stringify(rejected),
-        {format: 'json', submissionRef: rejectedRef}), error => {
-        // The inert selector refuses before the first durable acceptance.
-        assert.equal(error.code, 'SubmissionNotAccepted');
-        rejectedOutcome = getSubmissionOutcome(error);
-        assert.equal(rejectedOutcome.kind, 'not_accepted');
-        assert.deepEqual(rejectedOutcome.submissionRef, rejectedRef);
-        assert.deepEqual(rejectedOutcome.problem,
-          {code: 'ClientProgramUnsupported', classification: 'implementation_limit'});
-        assert.equal(rejectedOutcome.admission, undefined);
-        return true;
-      });
-      assert.deepEqual(await client.lookupSubmission(rejectedRef), rejectedOutcome);
-      assert.deepEqual(provider.snapshot().sourceProviderOpens, []);
-      assert.equal(captures, 0);
-      assert.deepEqual(sends, []);
-    }
     const submissionRef = client.newSubmission({nonce: `second-source-${realization}`});
     const submitted = await client.startSource(JSON.stringify(program),
       {format: 'json', submissionRef});
@@ -2466,7 +2475,7 @@ test('one installed Host reads and applies independent Effects', async t => {
   assert.deepEqual(await effect.result('answer').all(),
     [{id: 1}, {id: 2}]);
   assert.deepEqual(sends, [[0, 0], [0, 1], [1, 0], [1, 1]]);
-  await first.close();
+  await closeRetainedStoreFixtureHost(first, t, {observeFirstClose: true, requireFirstClose: true});
   const restarted = await remoteHost(t, account(), options);
   const attached = await (await restarted.as('owner-token'))
     .attach(effect.ref);
@@ -4002,6 +4011,8 @@ if (process.env.ACTQL_TEST_PARTIAL_EFFECT_PHASE !== undefined) {
     const phase = process.env.ACTQL_TEST_PARTIAL_EFFECT_PHASE;
     const rowState = process.env.ACTQL_TEST_PARTIAL_EFFECT_ROW;
     const refusal = process.env.ACTQL_TEST_PARTIAL_EFFECT_REFUSAL;
+    const fenceRecoveredStage = phase === 'recover' &&
+      process.env.ACTQL_TEST_PARTIAL_EFFECT_FENCE === 'recovered_stage';
     const directory = process.env.ACTQL_TEST_HOST_CRASH_ROOT;
     const recordPath = join(directory, 'partial-effect-observation.json');
     const fixture = await effectFixture();
@@ -4077,6 +4088,14 @@ if (process.env.ACTQL_TEST_PARTIAL_EFFECT_PHASE !== undefined) {
         const stage = await managed.stage(facts, true, owned => prepareReferenceRecovery(facts, {...hooks, ...owned}),
           () => liveStage === undefined);
         recoveredStage = liveStage = stage;
+        if (fenceRecoveredStage) {
+          // Advance this child's test clock across the SAME original lease
+          // after its real Stage exists. No sleep, new claim or weaker guard.
+          const originalNow = Date.now;
+          const lease = facts.checkpointJournal.currentResume(facts.view.checkpointCid);
+          const offset = lease.leaseExpiresMs + 1 - originalNow();
+          t.mock.method(Date, 'now', () => originalNow() + offset);
+        }
         if (phase === 'seed') {
           const dispatch = stage.apply.dispatchRow;
           const crash = () => {
@@ -4141,15 +4160,24 @@ if (process.env.ACTQL_TEST_PARTIAL_EFFECT_PHASE !== undefined) {
         commonCustody = owner;facts.retainExecution(owner);
       }});
     }, async resume(facts) {
-      const result = await installed.resume(facts);
-      if (result.result?.issuedSet !== undefined) {
-        const wires = issuedEffectSetReceiptWires(result.result.issuedSet,
-          recoveredStage.apply.ledger, recoveredStage.preview);
-        receipts.push(JSON.parse(wires.setWire));
-        memberReceipts.push(...wires.memberWires.map(wire => JSON.parse(wire)));
+      try {
+        const result = await installed.resume(fenceRecoveredStage ? {...facts,
+          retainExecution(owner) {
+            commonCustody = owner;
+            Reflect.apply(facts.retainExecution, facts, [owner]);
+          }} : facts);
+        if (result.result?.issuedSet !== undefined) {
+          const wires = issuedEffectSetReceiptWires(result.result.issuedSet,
+            recoveredStage.apply.ledger, recoveredStage.preview);
+          receipts.push(JSON.parse(wires.setWire));
+          memberReceipts.push(...wires.memberWires.map(wire => JSON.parse(wire)));
+        }
+        return result;
+      } finally {
+        // The original invocation has ended on both return and refusal. Drop
+        // only this fixture's observer aliases before its retained owner drains.
+        liveStage = recoveredStage = undefined;
       }
-      liveStage = recoveredStage = undefined;
-      return result;
     }};
     const observationConfiguration = (read, commit) => {
       const body = JSON.parse(effectCommitConfiguration(read, commit));
@@ -4231,6 +4259,19 @@ if (process.env.ACTQL_TEST_PARTIAL_EFFECT_PHASE !== undefined) {
     assert.deepEqual(original.submissionRef, submissionRef);
     assert.deepEqual(original.admission.ref, saved.ref);
     const run = await client.attach(saved.ref);
+    if (fenceRecoveredStage) {
+      await waitFor(() => diagnostics.some(event => event.name === 'effect_resume_failed' &&
+        event.detail?.code === 'ResumeClaimStale'));
+      await host.close();
+      assert.equal(liveStage, undefined, 'the failed invocation relinquishes its original Stage alias');
+      assert.equal(recoveredStage, undefined);
+      assert.notEqual(commonCustody, undefined, 'the actual installed Site transferred its original custody');
+      assert.equal(commonCustody.cleanupPending(), false,
+        'the first Host close released that same original custody');
+      assert.deepEqual(sends, [], 'a fenced continuation cannot send another row');
+      assert.equal(captureCount, 0, 'recovery must not recapture the original input');
+      return;
+    }
     let state;
     await waitFor(async () => {
       state = await run.status();

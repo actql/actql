@@ -461,16 +461,18 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
             run={prepared:checkedOwner,request:requestIdentity,value:managedRun,effectful:true,reads:new Map()};
             sharedRuns.set(checkedOwner,run);
           }
-          const index=occurrence.stage;
+          const index=occurrence?.task;
           if(run===undefined||run.retired||run.failed||effectful!==run.effectful||
-              declaration!==entry.declaration||occurrence.input!==0||
+              declaration!==entry.declaration||
+              !['stage','input','task'].every(name=>Number.isSafeInteger(occurrence?.[name])&&occurrence[name]>=0)||
+              !Number.isSafeInteger(occurrence.computeTask??index)||(occurrence.computeTask??index)<0||
               !Number.isSafeInteger(index)||index<0||run.reads.has(index)||
               managedRun!==run.value||originalRead===undefined||
-              requestIdentity!==undefined&&requestIdentity!==run.request)fail('LocalFilesSourcePreparationMismatch');
+              requestIdentity!==run.request)fail('LocalFilesSourcePreparationMismatch');
           // The original Host validates its own adopted parent before it
           // retains the physical child. No second Core current callback is
           // needed between the shared read selection and this same handoff.
-          const raw=sourceManaged.prepareRead(checkedOwner,declaration,run.value,occurrence);
+          const raw=sourceManaged.prepareRead(checkedOwner,declaration,run.value,occurrence,run.request);
           const read={raw,entry,owner:run,index,value:originalRead,reader:undefined,physical:undefined,close:undefined,closeCaptured:false,
             retain:undefined,closed:false,attempted:false};
           run.reads.set(index,read);
@@ -653,7 +655,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
           // A consumed occurrence keeps its original read and any pending
           // cleanup. Reject before another Core getter can return that same
           // read and a failed second preparation could retire the first.
-          if(original?.reads.has(facts.occurrence?.stage))fail('LocalFilesSourcePreparationMismatch');
+          if(original?.reads.has(facts.occurrence?.task))fail('LocalFilesSourcePreparationMismatch');
           const forwarded=original===undefined?facts:Object.freeze({...facts,
             managedRun:original.value,requestIdentity:original.request});
           const prepared=await adapter.prepare(forwarded);

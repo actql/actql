@@ -7,6 +7,117 @@ import { minimalRepository, runDriver, successful } from './fixtures/execution-d
 const targets = ['js', 'wasm', 'native'];
 const fixture = 'src/query_integration/relation_pipeline_batch_wbtest.mbt';
 
+test('opt-in phase timing preserves JS calls, observations and canonical receipts', t => {
+  const results = [];
+  for (const enabled of [false, true]) {
+    const result = runDriver(minimalRepository(t), String.raw`
+const executor = createExecutor(undefined, {targets: ['js'], jobs: 1});
+const values = [executor.execute([makeCase()], registry, 'js', false, 'normal')[0],
+  executor.execute([makeCase('never-log-this-case-id', -2, 2)], registry, 'js', true, 'changed')[0]];
+assert.equal(calls().length, 2);
+assert.deepEqual(calls().map(call => call.compiled), [true, false]);
+for (const entry of executions) {
+  assert.deepEqual(readFileSync(join(root, entry.path)), Buffer.from(JSON.stringify(entry.receipt) + '\n'));
+  assert.equal(digest(JSON.stringify(entry.receipt)), entry.digest);
+}
+executor.close();
+const directory = join(root, '.artifacts/pipeline-execution-timing');
+const records = existsSync(directory) ? readdirSync(directory).map(name => {
+  const text = readFileSync(join(directory, name), 'utf8');
+  assert(Buffer.byteLength(text) < 2048);
+  assert(!text.includes(root) && !text.includes('never-log-this-case-id'));
+  return JSON.parse(text);
+}).sort((a, b) => a.sequence - b.sequence) : [];
+if (${enabled}) {
+  assert.equal(records.length, 2);
+  assert.deepEqual(records.map(record => record.returned), [true, true]);
+  assert.deepEqual(records.map(record => record.counts.priorArtifactChecks), [0, 1]);
+  assert.deepEqual(records.map(record => record.counts.archivedFiles), [1, 0]);
+  for (const record of records) {
+    assert.equal(record.version, 'actql-pipeline-execution-phase-timing/0.1');
+    assert.equal(record.target, 'js');
+    assert.equal(record.lastPhase, 'receiptIO');
+    assert.equal(record.counts.cases, 1);
+    assert.equal(record.counts.observations, 1);
+    assert(record.counts.toolFiles > 0 && record.counts.toolBytes > 0);
+    assert(record.counts.inputBytes > 0 && record.counts.outputBytes > 0);
+    assert.deepEqual(Object.keys(record.milliseconds), ['workspaceBefore', 'toolsBefore',
+      'fixturePreparation', 'priorArtifacts', 'inputEvidenceIO', 'spawnBuildRun', 'outputIO',
+      'toolsAfter', 'observations', 'workspaceAfter', 'finalArtifacts', 'archive', 'receiptIO']);
+    for (const value of Object.values(record.milliseconds)) assert(Number.isFinite(value) && value >= 0);
+    assert(record.totalMilliseconds >= Object.values(record.milliseconds).reduce((sum, n) => sum + n, 0));
+  }
+} else assert.equal(existsSync(directory), false);
+// Owners and compiled identities stay independent between these runs. Compare
+// only underlying commands/inputs and observations, never relabel receipts.
+report({records, work: calls().map(call => ({target: call.target, args: call.args,
+  inputs: call.inputs.map(({source, steps, correspondence}) => ({source, steps, correspondence}))})),
+  values: values.map(({rows, checked, registered, observedCorrespondence}) =>
+    ({rows, checked, registered, observedCorrespondence}))});
+`, {ACTQL_PIPELINE_PHASE_TIMING: enabled ? '1' : ''});
+    const data = successful(result);
+    const summaries = result.stdout.split('\n').filter(line => line.startsWith('ACTQL_PIPELINE_PHASE_TIMING:'))
+      .map(line => JSON.parse(line.slice('ACTQL_PIPELINE_PHASE_TIMING:'.length)));
+    assert.deepEqual(summaries, data.records);
+    results.push(data);
+  }
+  assert.deepEqual(results[0].work, results[1].work);
+  assert.deepEqual(results[0].values, results[1].values);
+});
+
+test('opt-in phase timing preserves JS failures and a failed diagnostic write', t => {
+  const result = runDriver(minimalRepository(t), String.raw`
+const originalWorkspace = workspaceIdentity(root, 'normal');
+let failWorkspace = false, workspaceCalls = 0;
+const workspace = {...originalWorkspace, check() {
+  assert.equal(this, workspace);
+  workspaceCalls++;
+  if (failWorkspace) throw undefined;
+  return originalWorkspace.check();
+}};
+const executor = createExecutor(workspace, {targets: ['js'], jobs: 1});
+configure({mode: 'compile-failure'});
+assert.throws(() => executor.execute([makeCase()], registry, 'js'), /Generated observation execution failed/);
+assert.equal(calls().length, 1);
+assert.equal(executions.length, 0);
+failWorkspace = true;
+let caught = false;
+try { executor.execute([makeCase()], registry, 'js'); }
+catch (error) { caught = true; assert.equal(error, undefined); }
+assert.equal(caught, true, 'the original thrown undefined must remain a failure');
+assert.equal(calls().length, 1);
+assert.equal(executions.length, 0);
+failWorkspace = false;
+configure({});
+assert.deepEqual(executor.execute([makeCase()], registry, 'js')[0].rows, [[1, null, 1]]);
+const directory = join(root, '.artifacts/pipeline-execution-timing');
+const files = readdirSync(directory);
+const records = files.map(name => JSON.parse(readFileSync(join(directory, name), 'utf8')))
+  .sort((a, b) => a.sequence - b.sequence);
+assert.deepEqual(records.map(record => record.returned), [false, false, true]);
+assert.deepEqual(records.map(record => record.lastPhase), ['outputIO', 'workspaceBefore', 'receiptIO']);
+assert.equal(records[1].counts.toolFiles, 0);
+assert.equal(records[1].milliseconds.spawnBuildRun, 0);
+const occupied = join(directory, files.find(name => name.endsWith('-0.json')).replace(/-0\.json$/, '-3.json'));
+writeFileSync(occupied, 'original-diagnostic-file');
+assert.deepEqual(executor.execute([makeCase()], registry, 'js')[0].rows, [[1, null, 1]]);
+assert.equal(readFileSync(occupied, 'utf8'), 'original-diagnostic-file');
+assert.equal(calls().length, 3);
+assert.equal(executions.length, 2);
+assert.equal(workspaceCalls, 6);
+executor.close();
+report({records, calls: calls().map(({target, args}) => ({target, args})), receipts: executions.length});
+`, {ACTQL_PIPELINE_PHASE_TIMING: '1'});
+  const data = successful(result);
+  const summaries = result.stdout.split('\n').filter(line => line.startsWith('ACTQL_PIPELINE_PHASE_TIMING:'))
+    .map(line => JSON.parse(line.slice('ACTQL_PIPELINE_PHASE_TIMING:'.length)));
+  assert.equal(summaries.length, 4);
+  assert.deepEqual(summaries.slice(0, 3), data.records);
+  assert.equal(summaries[3].returned, true, 'a failed diagnostic write cannot replace the result');
+  assert.equal(data.calls.length, 3);
+  assert.equal(data.receipts, 2);
+});
+
 test('executor writes compact canonical receipts without changing observation or digest identity', t => {
   successful(runDriver(minimalRepository(t), String.raw`
 const executor = createExecutor(undefined, {targets: ['js'], jobs: 1});

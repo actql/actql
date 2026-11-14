@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {runFocusedTests} from './test-execution.mjs';
+import {readCiInput} from './ci-input.mjs';
 
 export const focusedFamily = 'query-fixed-requests';
 export const focusedPackage = 'src/query_integration';
@@ -224,7 +225,7 @@ export function runFocusedPlan(plan, {cwd = process.cwd(), run = runFocusedTests
   }
 }
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  const plan = JSON.parse(process.env.CI_PLAN ?? 'null');
+  const plan = readCiInput('CI_PLAN');
   assert.equal(plan?.sourceRevision, gitDefault(['rev-parse', 'HEAD']).trim(), 'Focused plan belongs to another checkout');
   const selection = plan?.selection;
   assert(['focused-tests', 'draft-focused'].includes(selection?.profile), 'Invalid focused execution profile');

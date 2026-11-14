@@ -179,19 +179,12 @@ pub fn issue_client_whole_native_effect_source_unit(
     is Err(_) {
     return Err(Invocation(ForeignSourceObservation))
   }
-  let request = match
-    @acquisition.parameterized_request_document(
-      @acquisition.source_acquisition_request(acquisition),
-      max_bytes,
-      max_nodes,
-      max_depth,
+  let (request, request_cid) = match
+    client_effect_whole_source_request_material(
+      acquisition, max_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
-    Err(_) => return Err(Invocation(Encoding))
-  }
-  let request_cid = match @sha.text_hex(@encode.document_text(request)) {
-    Ok(hash) => "sha256:" + hash
-    Err(_) => return Err(Invocation(Encoding))
+    Err(issue) => return Err(Invocation(issue))
   }
   let retention = match
     @publication.issue_result_retention_for_data_policy(
@@ -270,4 +263,30 @@ fn client_effect_source_unit_without_model(
     }
   }
   true
+}
+
+///|
+// One publication preimage for all Whole Source contribution/Unit issuers.
+// The original RowRun reserves its field-reference scratch before capture;
+// explicit semantic callers must back that same scratch before entering here.
+// A writer is synchronous, so its temporary array is gone before the next one.
+// Transport spelling and the original Request/binding indices stay unchanged.
+fn client_effect_whole_source_request_material(
+  acquisition : @acquisition.SourceAcquisition,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[(@encode.EncodedDocument, String), ClientEffectLocalInvocationIssue] {
+  @acquisition.parameterized_request_canonical_document(
+    @acquisition.source_acquisition_request(acquisition),
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+  .map_err(_ => ClientEffectLocalInvocationIssue::Encoding)
+  .bind(document => {
+    @sha.text_hex(@encode.document_text(document))
+    .map(hash => (document, "sha256:" + hash))
+    .map_err(_ => ClientEffectLocalInvocationIssue::Encoding)
+  })
 }

@@ -6,7 +6,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { gunzipSync } from 'node:zlib';
-import { retainCapacityRegressionFixture } from './regression-fixtures.mjs';
+import { capacityRegressionDescriptor, readCapacityRegressionText, retainCapacityRegressionFixture,
+  retainCapacityRegressionText } from './regression-fixtures.mjs';
 
 // Small transport/lifetime controls only. Real target, source/digest, byte,
 // edge, shrink and compiler validation still run in the original audit.
@@ -87,4 +88,19 @@ test('existing originals are never overwritten or removed when a temporary name 
   const before = readFileSync(retained.archivePath);
   await assert.rejects(retainCapacityRegressionFixture(path, { target: 'foreign' }), { code: 'EEXIST' });
   assert.deepEqual(readFileSync(retained.archivePath), before);
+});
+
+test('staged producer descriptors retain exact pretty wire without holding the serialized closure', async t => {
+  const path = fixture(t)('producer');
+  const wire = JSON.stringify({ source: { original: '😀' }, executions: ['original receipt'] }, null, 2) + '\n';
+  const retained = await retainCapacityRegressionText(path, wire);
+  const descriptor = capacityRegressionDescriptor(retained);
+  assert.deepEqual(Object.keys(descriptor), ['archivePath', 'sha256', 'bytes', 'compressedBytes']);
+  assert.equal(readCapacityRegressionText(descriptor), wire);
+  assert.equal(existsSync(path), false);
+  assert.throws(() => readCapacityRegressionText({ ...descriptor, bytes: 0 }), /extent/);
+  assert.throws(() => readCapacityRegressionText({ ...descriptor, sha256: 'foreign' }), /digest changed/);
+  assert.throws(() => readCapacityRegressionText({ ...descriptor, compressedBytes: 0 }), /extent changed/);
+  writeFileSync(descriptor.archivePath, 'changed archive');
+  assert.throws(() => readCapacityRegressionText(descriptor), /extent changed/);
 });

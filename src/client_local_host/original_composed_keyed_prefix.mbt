@@ -22,6 +22,8 @@ struct ClientOriginalComposedKeyedPrefix {
   mut root_index : Int
   mut started : Bool
   control_bytes : Int64
+  mut host : @strategy.CapturedEffectRunDAG?
+  host_sources : Array[@sourceviews.SourceAcquisition]
 }
 
 ///|
@@ -31,6 +33,8 @@ struct ClientOriginalComposedKeyedPrefix {
 // No byte coefficient is an admission policy, transport cap or row prediction.
 fn composed_keyed_root_control_bytes(
   sequences : Array[@execution.GeneratedSequence],
+  producer_sources? : Int = 0,
+  producer_tasks? : Int = 0,
 ) -> Int64? {
   let mut ports = 0L
   let mut columns = 0L
@@ -75,17 +79,47 @@ fn composed_keyed_root_control_bytes(
   // Each external read: exact binding/identity, restricted completion/liveness,
   // ProducerRead, columns, tuple and copied port slots. One bounded read cursor
   // and return/Some frames coexist during construction (included in this peak).
-  @execution.preparation_representation_cost({
+  let original : @execution.PreparationRepresentationUnits = {
     record_headers: 12L + 16L * roots + 13L * ports,
     reference_slots: 30L +
     33L * roots +
     29L * ports +
     2L * root_slots +
     4L * port_slots,
-    scalar_words: 16L + 14L * roots + 23L * ports + columns,
+    // Each retained producer also keeps its checked original task coordinate.
+    scalar_words: 16L + 15L * roots + 23L * ports + columns,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
-  })
+  }
+  if producer_sources == 0 && producer_tasks == 0 {
+    return @execution.preparation_representation_cost(original)
+  }
+  guard producer_sources > 0 &&
+    producer_tasks > 0 &&
+    producer_sources <= 2147483647 - producer_tasks &&
+    @execution.preparation_array_representation(
+      1L,
+      (producer_sources + producer_tasks).to_int64(),
+      false,
+    )
+    is Some(index) else {
+    return None
+  }
+  // Input construction and retained-left construction do not overlap. Each
+  // keeps one exact Source/task index plus its variant/Some frames. Their
+  // copied producer vector uses the existing two Root-vector slot envelope:
+  // caller map + retained copy, already simultaneous in the former left path.
+  @execution.compose_preparation_representation([
+    original,
+    index,
+    {
+      record_headers: 2L,
+      reference_slots: 3L,
+      scalar_words: 2L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+  ]).bind(@execution.preparation_representation_cost)
 }
 
 ///|
@@ -280,7 +314,13 @@ fn start_client_original_composed_keyed_prefix_owned(
     // is retained before upstream constructors; actual byte backing grows on
     // this same reservation before the main provider is eventually entered.
     let control_bytes = match
-      composed_keyed_root_control_bytes(roots.map(root => root.sequence)) {
+      composed_keyed_root_control_bytes(
+        roots.map(root => root.sequence),
+        producer_sources=sources.length(),
+        producer_tasks=@strategy.graph_task_count(
+          @publication_host.prepared_client_graph(plan.owner),
+        ),
+      ) {
       Some(value) => value
       None => return Err(Unavailable)
     }
@@ -319,6 +359,8 @@ fn start_client_original_composed_keyed_prefix_owned(
       root_index: 0,
       started: false,
       control_bytes,
+      host: None,
+      host_sources: [],
     }
     prefix.composed = Some(value)
     return Ok(value)
@@ -407,6 +449,8 @@ fn start_client_original_composed_keyed_prefix_owned(
       root_index: 0,
       started: true,
       control_bytes: 0L,
+      host: None,
+      host_sources: [],
     }
     prefix.composed = Some(value)
     value
@@ -430,6 +474,8 @@ fn retire_composed_keyed_prefix_input_aliases(
   value.roots.clear()
   value.sources.clear()
   value.captures = None
+  value.host = None
+  value.host_sources.clear()
 }
 
 ///|
@@ -689,6 +735,8 @@ pub fn complete_client_original_composed_keyed_prefix(
     max_entries,
     max_name_bytes,
     producers=value.roots.map(root => root.completed.unwrap()),
+    host=value.host,
+    host_sources=value.host_sources,
   ).map(left => {
     value.left = Some(left)
     left
@@ -713,5 +761,235 @@ pub fn start_installed_original_composed_keyed_prefix(
   }
   start_installed_original_composed_keyed_input_prefix(
     owner, scope, compiled, definition, plan, keyed, inputs, execution, measurement,
+  )
+}
+
+///|
+/// Start the existing keyed prefix from the SAME DAG's completed imported
+/// Result ports, after its upstream Unit has actually executed. No Source or
+/// upstream Unit provider is entered by this continuation.
+pub fn start_installed_original_composed_keyed_host_prefix(
+  owner : ClientInstalledManagedRun,
+  scope : @publication_host.ClientModelReadScope,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+  keyed : @publication_host.ClientKeyedAcquisition,
+  rows : Array[@row_source_host.RowCapturedInput],
+  host : @strategy.CapturedEffectRunDAG,
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+) -> Result[ClientOriginalComposedKeyedPrefix, ClientSerializationPrefixIssue] {
+  if owner.source_free_opening || owner.serialization_prefix is Some(_) {
+    return Err(Unavailable)
+  }
+  owner.source_free_opening = true
+  preparation_module_call(
+    () => {
+      guard require_installed_managed_run(owner) is Ok(ledger) &&
+        owner.preparation is Some(PlannedEffectManaged(_, selected)) &&
+        selected.model is Some(model) &&
+        physical_equal(model.compiled, compiled) &&
+        physical_equal(model.definition, definition) &&
+        physical_equal(model.graph, plan) &&
+        owner.source_free_captured is Some(run) &&
+        physical_equal(run, @strategy.captured_effect_run_dag(host)) else {
+        return Err(Unavailable)
+      }
+      let (task, _, _) = @publication_host.client_infer_occurrence_coordinates(
+        model._occurrence,
+      )
+      guard @strategy.next_captured_task(run) == Some(task) &&
+        selected.sequences.get(task) is Some(input_prefix) &&
+        @publication_host.client_keyed_acquisition_coordinates(keyed)
+        is Some((_, _, join)) &&
+        @lower.node_at(
+          @lower.bound_preparation(
+            @execution.generated_sequence_owner(input_prefix),
+          ),
+          join,
+        )
+        is Some(node) &&
+        @lower.node_input_target(node, 0) is Some(@pipeline.Step(left)) &&
+        @execution.select_generated_sequence_prefix(input_prefix, left)
+        is Some(sequence) &&
+        @local.local_bounded_relation_provider(execution, measurement, sequence)
+        is Some(provider) &&
+        @local.managed_provider_capacity(provider, sequence) is Some(capacity) else {
+        return Err(Unavailable)
+      }
+      let (original, captures, sources) = match
+        @publication_host.borrow_client_original_composed_keyed_input_captures(
+          scope,
+          compiled,
+          definition,
+          plan,
+          keyed,
+          rows,
+          installed=true,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Original(issue))
+      }
+      if !physical_equal(original, ledger) {
+        return Err(Unavailable)
+      }
+      // The existing controller quote includes the retained input/read vectors.
+      // Provider rows and execution overlap use its actual original capacity.
+      guard composed_keyed_root_control_bytes([sequence]) is Some(control) else {
+        return Err(Unavailable)
+      }
+      guard @execution.execution_capacity_inventory(
+          [
+            {
+              unit: QuotedBytes,
+              count: @execution.execution_capacity_retained_bytes(capacity),
+              copies: 1,
+            },
+            { unit: QuotedBytes, count: control, copies: 1, },
+          ],
+          [
+            {
+              unit: QuotedBytes,
+              count: @execution.execution_capacity_execution_bytes(capacity),
+              copies: 1,
+            },
+            { unit: QuotedBytes, count: control, copies: 1, },
+          ],
+          @execution.RetainedAlongsideExecution,
+        )
+        is Some(backing) else {
+        return Err(Unavailable)
+      }
+      let reservation = match
+        @resources.reserve_attempt(
+          ledger,
+          0L,
+          @execution.execution_capacity_retained_bytes(backing),
+          @execution.execution_capacity_execution_bytes(backing),
+          quantities=@resources.quantity_neutral_amounts(ledger),
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Physical(issue))
+      }
+      let prefix = serialization_prefix_reservation(ledger, reservation)
+      prefix.pending_start = true
+      owner.serialization_prefix = Some(prefix)
+      let inputs : Array[(Int, Int, @execution.ProducerRead)] = []
+      for position in 0..<@execution.generated_sequence_step_count(sequence) {
+        let step = @execution.generated_sequence_step_index_at(
+          sequence, position,
+        ).unwrap()
+        let node = @lower.node_at(
+          @lower.bound_preparation(
+            @execution.generated_sequence_owner(sequence),
+          ),
+          step,
+        ).unwrap()
+        for port in 0..<@lower.node_input_count(node) {
+          match @lower.node_input_target(node, port) {
+            Some(@pipeline.Input(input)) => {
+              let read = match
+                @strategy.captured_task_input(
+                  run,
+                  task,
+                  execution.rows.operation_entries,
+                  measurement.max_bytes,
+                  input_index=input,
+                ) {
+                Ok(value) => value
+                Err(_) => return Err(Unavailable)
+              }
+              inputs.push((step, port, read))
+            }
+            Some(@pipeline.Step(previous)) if previous < step => ()
+            _ => return Err(Unavailable)
+          }
+        }
+      }
+      let host_sources = sources
+        .mapi((slot, _) => {
+          @row_source_host.row_captured_inputs_source_original_at(
+            captures, slot,
+          )
+        })
+        .filter_map(value => value)
+      if !@publication_host.client_composed_keyed_host_inputs_match(
+          host, plan, ledger, sources, host_sources, inputs,
+        ) {
+        return Err(Unavailable)
+      }
+      let value : ClientOriginalComposedKeyedPrefix = {
+        prefix,
+        scope,
+        compiled,
+        definition,
+        plan,
+        keyed,
+        sources,
+        captures: Some(captures),
+        sequence,
+        inputs,
+        output: None,
+        left: None,
+        roots: [],
+        provider,
+        capacity,
+        execution,
+        measurement,
+        root_index: 0,
+        started: true,
+        control_bytes: control,
+        host: Some(host),
+        host_sources,
+      }
+      prefix.composed = Some(value)
+      start_retained_serialization_prefix_provider(
+        prefix,
+        sequence,
+        provider,
+        inputs.map(input => @local.managed_provider_relation_input(input.2)),
+        execution,
+        measurement,
+      ).map(_ => value)
+    },
+    () => owner.source_free_opening = false,
+  )
+}
+
+///|
+/// Select only a direct original imported Result. Step-left consumers return
+/// None and continue through the existing original prefix constructor.
+pub fn prepare_installed_original_composed_keyed_host_input_left(
+  owner : ClientInstalledManagedRun,
+  scope : @publication_host.ClientModelReadScope,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+  keyed : @publication_host.ClientKeyedAcquisition,
+  rows : Array[@row_source_host.RowCapturedInput],
+  host : @strategy.CapturedEffectRunDAG,
+  max_entries : Int,
+  max_name_bytes : Int,
+) -> Result[
+  @publication_host.ClientKeyedLeftRead?,
+  @publication_host.ClientKeyedRequestIssue,
+] {
+  if owner.source_free_opening || owner.serialization_prefix is Some(_) {
+    return Err(@publication_host.ForeignLeft)
+  }
+  guard require_installed_managed_run(owner) is Ok(_) &&
+    owner.preparation is Some(PlannedEffectManaged(_, selected)) &&
+    selected.model is Some(model) &&
+    physical_equal(model.compiled, compiled) &&
+    physical_equal(model.definition, definition) &&
+    prepared_installed_effect_model_sequence(selected, plan) is Ok(sequence) &&
+    owner.source_free_captured is Some(run) &&
+    physical_equal(run, @strategy.captured_effect_run_dag(host)) else {
+    return Err(@publication_host.ForeignLeft)
+  }
+  @publication_host.prepare_client_original_composed_keyed_host_input_left(
+    scope, compiled, definition, plan, keyed, rows, host, sequence, max_entries,
+    max_name_bytes,
   )
 }

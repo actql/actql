@@ -17,6 +17,17 @@ export type EmbeddedHostInstallation = Readonly<{
    * Positive signed 32-bit integer; the upper bound is the Core integer representation,
    * not an admitted workload size. Work, value, byte and resource admission still apply. */
   valuesMaxRows?: number;
+  /** Explicit positive signed-32-bit work limit for each source-free Local
+   * Compute fragment/sequence counter. Core supplies the default when omitted.
+   * The same selection also bounds preparation of those runtime Fragments.
+   * It does not limit original Program parsing/checking and is not a global
+   * Run/Host quota or memory grant. */
+  sourceFreeMaxWork?: number;
+  /** Finite initial Request/Run Ledger memory limits, selected before admission.
+   * Both safe-integer byte quantities are required; Core checks the installed
+   * envelope. Omission preserves the Core default. Not reserved RAM or RSS.
+   * Reopen with the same installation selection for original Saved reads. */
+  requestMemory?: Readonly<{retainedBytes: number; executionBytes: number}>;
   hostCapacityPolicy?: HostCapacityPolicy;
   hostLookupExecutionPolicy?: HostLookupExecutionPolicy;
   sourceProfilePath?: string;

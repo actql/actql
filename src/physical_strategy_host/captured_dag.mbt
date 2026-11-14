@@ -2,7 +2,7 @@
 /// Host-private serial execution state. Task success is not Program publication.
 /// A captured acquisition is borrowed; a source-free root is an ordinary task.
 struct CapturedDAG {
-  graph : CheckedDAG
+  mut graph : CheckedDAG
   offer_owner : StrategyOfferOwner
   original_sources : Array[@query.CapturedInputSource?]
   sources : Array[@query.CapturedInputSource?]
@@ -183,7 +183,7 @@ pub fn open_multi_captured_dag(
   ledger : @resources.Ledger,
   supplied? : Array[@execution.CapturedRows] = [],
 ) -> Result[CapturedDAG, RunIssue] {
-  if graph.captured_prefix_value() != 2 || graph_program_has_effects(graph) {
+  if graph.captured_prefix_value() < 1 || graph_program_has_effects(graph) {
     return Err(UnsupportedGraph)
   }
   open_checked_dag(graph, sources, ledger, supplied)
@@ -263,6 +263,56 @@ pub fn source_input_dag_matches_read_at(
       .unwrap_or(false)
     })
   })
+  .unwrap_or(false)
+}
+
+///|
+/// Retain cleanup custody for a Source whose exact producer completion was
+/// imported. Its execution read remains unavailable after completion; the
+/// original input and complete output provenance must still be live here.
+pub fn source_input_dag_retains_completed_read_at(
+  run : CapturedDAG,
+  read : @execution.SuppliedRelationRead,
+  task : Int,
+) -> Bool {
+  guard !run.stopped &&
+    run.graph.captured_prefix_value() == 0 &&
+    !run.graph.source_free_root_value() &&
+    task >= 0 &&
+    task < run.done.length() &&
+    run.done[task] &&
+    run.lifetimes[task].live &&
+    run.outputs.get(task).bind(value => value) is Some(output) &&
+    @execution.supplied_relation_read_available(read) &&
+    run.supplied_reads[task].any(port => {
+      port
+      .map(actual => {
+        @execution.supplied_relation_read_same_binding(actual, read)
+      })
+      .unwrap_or(false)
+    }) else {
+    return false
+  }
+  // The SAME committed task slot already proved its exact admitted inputs.
+  // Its retained representation may be Cells, managed Relation or Carrier;
+  // none becomes another execution read merely to keep Source custody.
+  let available = match output {
+    Materialized(value) => @execution.completed_output_available(value)
+    Managed(value) => @execution.managed_completed_reference_available(value)
+    CarrierManaged(value) =>
+      @execution.carrier_managed_completed_reference_available(value)
+  }
+  // Imported Source roots retain ProducerRead provenance from their original
+  // prefix; it must not be recast as a fresh SuppliedRelation execution.
+  // Availability can synchronously retire this exact slot/Run. Keep the same
+  // committed reference after that callback; this grants no execution access.
+  available &&
+  !run.stopped &&
+  run.lifetimes[task].live &&
+  run.outputs
+  .get(task)
+  .bind(value => value)
+  .map(actual => physical_equal(actual, output))
   .unwrap_or(false)
 }
 
@@ -484,6 +534,7 @@ fn open_checked_dag(
   retained_model? : (Int, Int, @execution.CompletedOutput)? = None,
   retained_models? : Array[(Int, Int, @execution.CompletedOutput)] = [],
   retained_source_tasks? : Array[(Int, @execution.CompletedOutput)] = [],
+  deferred_keyed? : (Int, Int)? = None,
 ) -> Result[CapturedDAG, RunIssue] {
   let count = graph.owners_count()
   if count == 0 {
@@ -624,7 +675,12 @@ fn open_checked_dag(
   }
   if !graph_ordered_inputs_complete(graph) &&
     retained_task is None &&
-    !retained_keyed_input {
+    !retained_keyed_input &&
+    !deferred_keyed
+    .map(original => {
+      graph_keyed_model_plan_inputs_complete(graph, original.0, original.1)
+    })
+    .unwrap_or(false) {
     return Err(UnsupportedGraph)
   }
   if supplied.length() + supplied_reads.length() != graph.supplied_slots_count() {
@@ -903,7 +959,21 @@ fn open_checked_dag(
   let lifetimes = Array::makei(count, _ => TaskLifetime::{
     live: true,
     pins: 0,
+    completion: None,
   })
+  // These exact completions passed the existing retained-input admission.
+  // An initial producer has no executed predecessor edge in this Run.
+  for task, output in outputs {
+    if graph_program_has_effects(graph) &&
+      output is Some(Materialized(original)) {
+      lifetimes[task].completion = Some({
+        producer: None,
+        original: Some(
+          @execution.completed_output_original_occurrence(original),
+        ),
+      })
+    }
+  }
   let resources : Array[TaskRetention?] = Array::make(count, None)
   for task in 0..<graph.captured_prefix_value() {
     resources[task] = Some({
@@ -993,12 +1063,7 @@ fn open_checked_dag(
     })
   }
   for (task, port, read) in supplied_reads {
-    let lifetime = lifetimes[task]
-    run.supplied_reads[task][port] = Some(
-      @execution.restrict_supplied_relation_read(read, fn() {
-        lifetime.live && !run.done[task] && !run.stopped
-      }),
-    )
+    retain_captured_original_supplied_read(run, task, port, read)
   }
   Ok(run)
 }
@@ -1055,9 +1120,15 @@ pub fn configure_captured_managed_identity_policy(
   host_policy : Bool,
 ) -> Bool {
   let mut started = false
-  for index in captured_compute_first_task(run)..<run.done.length() {
-    if run.done[index] {
-      started = true
+  // open_checked_dag admits original retained completions at generation zero.
+  // They did not execute on this DAG. Every actual committed task output
+  // advances this same generation; its completed slots still forbid policy
+  // installation even after the execution handle has retired.
+  if run.generation != 0 {
+    for index in captured_compute_first_task(run)..<run.done.length() {
+      if run.done[index] {
+        started = true
+      }
     }
   }
   if run.managed_identity_policy_sealed || run.running is Some(_) || started {
@@ -1910,6 +1981,10 @@ pub fn stop_captured_dag(run : CapturedDAG) -> Unit {
   }
   for index in 0..<run.inputs.length() {
     clear_captured_inputs(run, index)
+    // Stopped Runs cannot issue the Model/Effect export that consumes this
+    // historical DATA. Drop it before the original control owner retires;
+    // independent successful Result/physical cleanup owners are unchanged.
+    run.lifetimes[index].completion = None
     // Each supplied Read is restricted by a closure over this same DAG.
     // Stop already revoked that gate and cancelled the original execution;
     // remove only our cached borrow instead of keeping the reciprocal root.
@@ -2355,6 +2430,7 @@ pub fn open_source_inputs_effect_run_dag(
   ledger : @resources.Ledger,
   keyed? : (Int, Int, @execution.SuppliedRelationRead)? = None,
   models? : Array[(Int, Int, @execution.CompletedOutput)] = [],
+  deferred_keyed? : (Int, Int)? = None,
   source_results? : Array[
     (
       Int,
@@ -2442,6 +2518,7 @@ pub fn open_source_inputs_effect_run_dag(
       supplied_reads=reads,
       retained_models=models,
       retained_source_tasks=completed_sources,
+      deferred_keyed~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -2450,4 +2527,122 @@ pub fn open_source_inputs_effect_run_dag(
     captured.effect_dependency_outputs[dependency.task] = true
   }
   Ok({ checked, captured, })
+}
+
+///|
+/// Attach only the completed original keyed input while its same consumer has
+/// not been selected or started. Earlier committed task outputs remain intact.
+pub fn bind_captured_effect_completed_keyed_input(
+  value : CapturedEffectRunDAG,
+  task : Int,
+  step : Int,
+  read : @execution.SuppliedRelationRead,
+) -> Result[Unit, RunIssue] {
+  let run = value.captured
+  guard next_captured_task(run) == Some(task) &&
+    run.managed_selections[task] is None &&
+    run.activation_grant is None &&
+    graph_with_completed_keyed_model_input(run.graph, task, step, read)
+    is Some(graph) else {
+    return Err(NotReady)
+  }
+  let slots = graph
+    .supplied_slots_iter()
+    .filter(slot => {
+      slot.consumer == task &&
+      @execution.supplied_relation_read_matches_input(
+        read,
+        graph.owners_at(task).unwrap(),
+        slot.source_input,
+      )
+    })
+    .collect()
+  guard slots.length() == 1 &&
+    run.supplied_reads[task][slots[0].input] is None &&
+    next_captured_task(run) == Some(task) &&
+    run.managed_selections[task] is None &&
+    run.activation_grant is None else {
+    return Err(ForeignCapture)
+  }
+  let slot = slots[0]
+  run.graph = graph
+  retain_captured_original_supplied_read(run, task, slot.input, read)
+  run.generation += 1
+  Ok(())
+}
+
+///|
+/// The pending prefix borrows the exact committed predecessor binding already
+/// retained by this DAG. This predicate grants no new task or input lifetime.
+pub fn captured_effect_keyed_prefix_input_matches(
+  value : CapturedEffectRunDAG,
+  task : Int,
+  step : Int,
+  port : Int,
+  read : @execution.ProducerRead,
+) -> Bool {
+  let run = value.captured
+  guard !run.stopped &&
+    run.graph.owners_at(task) is Some(owner) &&
+    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.node_input_target(node, port) is Some(@pipeline.Input(input)) &&
+    run.inputs.get(task).bind(ports => ports.get(input)).bind(value => value)
+    is Some(original) &&
+    @execution.producer_read_same_binding(original, read) &&
+    @execution.producer_read_matches_operation_input(read, owner, step, port) &&
+    @execution.producer_read_available(read) else {
+    return false
+  }
+  !run.stopped
+}
+
+///|
+// Both initial and deferred supplied reads share this existing receiving-task
+// lifetime fence. A completed keyed lookup cannot outlive the Run as a grant.
+fn retain_captured_original_supplied_read(
+  run : CapturedDAG,
+  task : Int,
+  port : Int,
+  read : @execution.SuppliedRelationRead,
+) -> Unit {
+  let lifetime = run.lifetimes[task]
+  run.supplied_reads[task][port] = Some(
+    @execution.restrict_supplied_relation_read(read, fn() {
+      lifetime.live && !run.done[task] && !run.stopped
+    }),
+  )
+}
+
+///|
+/// Inspect the already bound original input of the SAME pending task. This is
+/// used after its exact managed Result bridge has been retained in inputs;
+/// it never changes the managed output inventory or issues another read.
+pub fn captured_pending_task_input_output(
+  run : CapturedDAG,
+  task : Int,
+  input : Int,
+) -> @execution.CompletedOutput? {
+  if run.stopped || next_captured_task(run) != Some(task) {
+    return None
+  }
+  run.inputs
+  .get(task)
+  .bind(ports => ports.get(input))
+  .bind(value => value)
+  .bind(@execution.producer_read_original_output)
+}
+
+///|
+/// Immutable presence of an original read already retained for the next task.
+/// Selection observes no current callback; captured_task_input still verifies
+/// that same bound read before the selected provider can consume it.
+pub fn captured_next_task_has_prepared_input(
+  run : CapturedDAG,
+  input : Int,
+) -> Bool {
+  guard !run.stopped && next_captured_task(run) is Some(task) else {
+    return false
+  }
+  run.inputs.get(task).bind(ports => ports.get(input)).bind(value => value)
+  is Some(_)
 }

@@ -69,3 +69,23 @@ void open({installation: {verifyRequestValuePolicy: () => admittedPolicyCid}});
 void connect({mode: 'local', installation: {verifyRequestValuePolicy: () => ({classification: 'public'})}});
 // @ts-expect-error A boolean Promise cannot acknowledge policy verification.
 void open({installation: {verifyRequestValuePolicy: async () => true}});
+
+// Finite source-free runtime work is a Host installation selection, distinct
+// from the normative capacity contract and compiler/check work.
+void open({installation: {sourceFreeMaxWork: 30000000}});
+void connect({mode: 'local', installation: {sourceFreeMaxWork: 30000000}});
+void openInstalledRemoteHttpHost({directory: '/tmp/typecheck-only',
+  authenticate: () => 'owner', sourceFreeMaxWork: 30000000});
+// @ts-expect-error Work selection is a numeric signed-Int boundary, not text.
+void open({installation: {sourceFreeMaxWork: '30000000'}});
+
+// Finite memory selects the initial Request/Run ceiling, not an allocation.
+const memory = {retainedBytes: 1073741824, executionBytes: 1073741824} as const;
+void open({installation: {requestMemory: memory}});
+void connect({mode: 'local', installation: {requestMemory: memory}});
+void openInstalledRemoteHttpHost({directory: '/tmp/typecheck-only',
+  authenticate: () => 'owner', requestMemory: memory});
+// @ts-expect-error Both independent byte ceilings are required.
+void open({installation: {requestMemory: {retainedBytes: 1073741824}}});
+// @ts-expect-error Byte ceilings are exact numeric configuration, not text.
+void open({installation: {requestMemory: {retainedBytes: '1073741824', executionBytes: 1073741824}}});

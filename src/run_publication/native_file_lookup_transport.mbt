@@ -1,10 +1,42 @@
 ///|
+/// Admit the two existing file implementations from the original bounded
+/// version field. Parse once and retain the ordinary complete shape, identity,
+/// nested-reference and canonical-wire checks. This selects no current reader.
+pub fn admit_file_read_profile_contract(
+  wire : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, PublicationContractIssue] {
+  let complete = match
+    parse_contract_wire(wire, max_bytes, max_nodes, max_depth) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let name = match optional_string(@json.object_field(complete, "version")) {
+    Some("actql-native-file-content-read/0.1") => "native_file_content_read"
+    Some("actql-declared-file-content-read/0.1") => "declared_file_content_read"
+    _ => return Err(InvalidField("version"))
+  }
+  admit_publication_contract_material(
+    contract_spec(name).unwrap(),
+    complete,
+    wire,
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
 /// Pure identities from an already admitted implementation descriptor. The
 /// selected Source capability and actual provider remain Host-owned duties.
-pub fn native_file_read_profile_contract_bindings(
+pub fn file_read_profile_contract_bindings(
   profile : PublicationContract,
 ) -> (String, String, String)? {
-  guard profile.name == "native_file_content_read" &&
+  guard ["native_file_content_read", "declared_file_content_read"].contains(
+      profile.name,
+    ) &&
     optional_string(
       @json.object_field(profile.value, "source_view_contract_cid"),
     )
@@ -19,12 +51,14 @@ pub fn native_file_read_profile_contract_bindings(
 }
 
 ///|
-/// Original physical SourceView identity of this admitted Native descriptor.
+/// Original physical SourceView identity of this admitted file descriptor.
 /// It selects an immutable body, never permission to read that Source.
-pub fn native_file_read_profile_physical_source_contract_cid(
+pub fn file_read_profile_physical_source_contract_cid(
   profile : PublicationContract,
 ) -> String? {
-  if profile.name != "native_file_content_read" {
+  if !["native_file_content_read", "declared_file_content_read"].contains(
+      profile.name,
+    ) {
     return None
   }
   optional_string(
@@ -33,19 +67,19 @@ pub fn native_file_read_profile_physical_source_contract_cid(
 }
 
 ///|
-/// The actual existing Native reader performs single-key version-checked file
+/// The selected declared-file reader performs single-key version-checked file
 /// reads, without pagination or retry. This closes only its implementation
 /// transport DATA; neither an HTTP profile nor another execution is implied.
 /// Caller same-parent backing precedes construction. The original measured
 /// static document is embedded unchanged, without re-observing its Ref fields.
-pub fn issue_native_file_lookup_transport(
+pub fn issue_file_lookup_transport(
   profile : PublicationContract,
   static_request : @encode.EncodedDocument,
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[PublicationContract, PublicationContractIssue] {
-  guard native_file_read_profile_contract_bindings(profile)
+  guard file_read_profile_contract_bindings(profile)
     is Some((source, request, response)) else {
     return Err(InvalidField("native_file_read_profile"))
   }
@@ -96,5 +130,43 @@ pub fn issue_native_file_lookup_transport(
   }
   seal_publication_contract(
     "native_file_lookup_transport", body, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// Compatibility projection for the explicitly Native implementation only.
+pub fn native_file_read_profile_contract_bindings(
+  profile : PublicationContract,
+) -> (String, String, String)? {
+  if profile.name != "native_file_content_read" {
+    return None
+  }
+  file_read_profile_contract_bindings(profile)
+}
+
+///|
+pub fn native_file_read_profile_physical_source_contract_cid(
+  profile : PublicationContract,
+) -> String? {
+  if profile.name != "native_file_content_read" {
+    return None
+  }
+  file_read_profile_physical_source_contract_cid(profile)
+}
+
+///|
+/// Preserve the existing Native entrance and its implementation restriction.
+pub fn issue_native_file_lookup_transport(
+  profile : PublicationContract,
+  static_request : @encode.EncodedDocument,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, PublicationContractIssue] {
+  if profile.name != "native_file_content_read" {
+    return Err(InvalidField("native_file_read_profile"))
+  }
+  issue_file_lookup_transport(
+    profile, static_request, max_bytes, max_nodes, max_depth,
   )
 }

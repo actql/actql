@@ -2,14 +2,21 @@
 // encrypted evidence Store and public Client signature format. Full Program
 // capture/apply/publication acceptance is a separate installed-Host test.
 import assert from 'node:assert/strict';
-import {generateKeyPairSync, sign} from 'node:crypto';
+import {createHash, generateKeyPairSync, sign} from 'node:crypto';
+import {readFileSync} from 'node:fs';
+import fsPromises from 'node:fs/promises';
+import {syncBuiltinESMExports} from 'node:module';
+import {compileFunction} from 'node:vm';
+import {parseExpressionAt} from 'acorn';
 import {mkdir, mkdtemp, rm} from 'node:fs/promises';
 import {join} from 'node:path';
+import {spawnSync} from 'node:child_process';
 import test from 'node:test';
 import './effect-authorization-options.test.mjs';
 import './client-effect-target-checkpoints.test.mjs';
 import './client-two-source-checkpoints.test.mjs';
 import './effect-target-read-continuation.test.mjs';
+import './acquired-effect-source-authorization.test.mjs';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
@@ -19,6 +26,10 @@ import {signedAnswer} from '../../packages/sdk/checkpoints.mjs';
 import {checkpointEffectReviewDouble} from './fixtures/checkpoint-effect-review.fixture.mjs';
 import {authorizationDispatchFacts} from
   '../host-common/authorization-gate.mjs';
+import {installedHostShutdown} from './embedded-local-lifecycle.mjs';
+import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
+import {createPublicationContractControlFixture} from
+  '../host-common/publication-contract-control.fixture.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const reviewer = generateKeyPairSync('ed25519');
@@ -45,6 +56,7 @@ async function fixture(t, {read = 'allow', effectRequiredClaims = [],
   await mkdir(scratch, {recursive: true});
   const root = await mkdtemp(join(scratch.pathname, 'host-'));
   const opened = new Set();
+  let preserved = false;
   let clock = Date.parse('2026-09-27T00:00:00.000Z');
   const open = async () => {
     const installed = await installRemoteCheckpoints({root, namespaceId: 'local',
@@ -66,10 +78,98 @@ async function fixture(t, {read = 'allow', effectRequiredClaims = [],
   };
   t.after(async () => {
     for (const installed of opened) await close(installed);
-    await rm(root, {recursive: true, force: true});
+    if (!preserved) await rm(root, {recursive: true, force: true});
+    else t.diagnostic('Retained failed Checkpoint fixture: ' + root);
   });
-  return {open, close, clock, advance(ms) { clock += ms; }};
+  return {open, close, clock, root, preserve() {preserved = true;}, advance(ms) { clock += ms; }};
 }
+
+test('Host first close joins the original pre-dispatch Effect resume Store reader', async t => {
+  // Exercise the actual Host port expression, Checkpoint stop, Store FD and
+  // shutdown. The resume callback and unused dispatch/journal ports are
+  // explicit fixtures; this issues no business Run, send or physical-stop ACK.
+  const latch = () => {let resolve; const promise = new Promise(done => {resolve = done;}); return {promise, resolve};};
+  const allowRead = latch(), readEntered = latch(), drainEntered = latch();
+  const originalOpen = fsPromises.open;
+  let store, readFlight, closing, originalFd;
+  t.after(async () => {
+    allowRead.resolve();
+    fsPromises.open = originalOpen; syncBuiltinESMExports();
+    await readFlight?.catch(() => {});
+    await closing?.catch(() => {});
+    // Fixture hygiene after an original red, never a replacement first-close
+    // positive. The same real FD must finish before this Store can release.
+    if (store !== undefined && !store.status().closed) await store.close();
+  });
+  const f = await fixture(t), installed = await f.open();
+  const directory = join(f.root, 'pending-publication');
+  store = await openLocalPublicationStore({directory, storeAuthorityCid: cid('a'),
+    capacityBytes: 1024 * 1024, maxObjectBytes: 65536, maxObjects: 100,
+    maxContractNodes: 4096, maxContractDepth: 64}, createPublicationContractControlFixture());
+  const wire = '{"answer":{"nullable":false,"type":"string"}}';
+  const identity = 'sha256:' + createHash('sha256').update(wire).digest('hex');
+  await store.putSemantic(wire, identity);
+  const selected = join(directory, 'contracts', identity.slice(7) + '.json');
+  fsPromises.open = async function(path, ...args) {
+    const handle = await Reflect.apply(originalOpen, this, [path, ...args]);
+    if (path === selected) {
+      originalFd = handle;
+      const stat = handle.stat;
+      handle.stat = async function(...args) {
+        readEntered.resolve(); await allowRead.promise;
+        return Reflect.apply(stat, this, args);
+      };
+    }
+    return handle;
+  };
+  syncBuiltinESMExports();
+  const flights = new Map(), values = flights.values;
+  flights.values = function() {drainEntered.resolve(); return Reflect.apply(values, this, []);};
+  const sweep = async () => {
+    if (readFlight !== undefined) return true;
+    readFlight = store.readSemanticBytes(identity, false);
+    flights.set('original-resume', readFlight);
+    readFlight.finally(() => flights.delete('original-resume')).catch(() => {});
+    return true;
+  };
+  const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const marker = 'await checkpoints.start(', start = source.indexOf(marker) + marker.length;
+  assert(start >= marker.length && source.indexOf(marker, start) < 0);
+  const expression = parseExpressionAt(source, start, {ecmaVersion: 'latest', sourceType: 'module'});
+  const port = compileFunction('return (' + source.slice(expression.start, expression.end) + ');',
+    ['inspectHeld', 'resumeHeld', 'abandonHeld', 'observeHeldRun', 'cancelHeldRun',
+      'modelController', 'sweepModelRuns', 'modelResumeFlights', 'effectRun', 'sweepEffectRuns', 'effectResumeFlights', 'effectRetirementFlights'])(
+    ...Array.from({length: 5}, () => () => assert.fail('No business continuation is issued')),
+    undefined, undefined, new Map(), {}, sweep, flights, new Map());
+  await installed.start(port);
+  await readEntered.promise;
+  assert(originalFd.fd >= 0, 'the same original semantic read really owns an open FD');
+  let storeCloses = 0, fdAtStoreClose;
+  const shutdown = installedHostShutdown({
+    checkpoints: {stop: () => installed.stop(), close: () => f.close(installed)},
+    dispatchOwner: {drain() {}}, retireTerminalEffects() {}, journal: {close() {}},
+    store: {close() {storeCloses++; fdAtStoreClose = originalFd.fd; return store.close();}},
+  });
+  closing = shutdown.close();
+  const boundary = await Promise.race([drainEntered.promise.then(() => ({kind: 'joined'})),
+    closing.then(() => ({kind: 'closed'}), error => ({kind: 'failed', error}))]);
+  if (boundary.kind === 'failed') {
+    const original = boundary.error.cleanupErrors?.find(item => item.owner === 'store')?.error;
+    t.diagnostic(JSON.stringify({code: boundary.error.code,
+      storeCode: original?.code, semanticReaders: original?.cleanupDiagnostic?.resources?.semanticReaders}));
+    throw boundary.error;
+  }
+  assert.equal(boundary.kind, 'joined');
+  assert.equal(storeCloses, 0, 'stop must join this original before entering Store close');
+  assert(originalFd.fd >= 0);
+  allowRead.resolve();
+  assert.equal((await readFlight).toString(), wire);
+  await closing;
+  assert.equal(storeCloses, 1, 'the first Host close succeeds without a retry');
+  assert.equal(fdAtStoreClose, -1, 'only the original FD close supplied the physical observation');
+  assert.equal(flights.size, 0);
+  assert.equal(store.status().closed, true);
+});
 
 for (const boundary of ['preparation', 'acquisition']) {
   test(`epoch-bound ${boundary} does not enter an unsupported pre-Run wait`, async t => {
@@ -576,3 +676,144 @@ test('deferred target read is unsupported, not denied or checkpointed',
     assert.deepEqual(installed.journal.listPending(), []);
     gate.close();
   });
+
+
+// Same-stage inputs keep distinct read permissions even when they use the
+// same installation, tuple and physical backing. Resume uses a new process;
+// only sealed Journal/evidence and public signed answers cross that boundary.
+test('same-stage Source waits have distinct bounded identities and cold original answer matching', async t => {
+  const source = delegatedSource();
+  const f = await fixture(t, {source});
+  try {
+    const installed = await f.open();
+    const occurrences = [0, 1].map(input => ({...readOccurrence(), stage: 0, input, task: input, computeTask: 0}));
+    const options = occurrences.map((occurrence, input) => ({...sourceOptions(occurrence),
+      unitId: 'source-unit', continuation: async () => JSON.stringify({original: input})}));
+    let gate = await installed.computationSourceAuthorization(options[0]);
+    const first = await gate.authorize();
+    assert.equal(first.action, 'waiting'); gate.close();
+    const [summary] = (await installed.listCheckpoints({principalId: 'reviewer', after: '', limit: 10})).items;
+    const answer = await signedAnswer(summary, 'approved', {keyId: 'reviewer-key', reviewerId: 'reviewer',
+      sign: bytes => sign(null, bytes, reviewer.privateKey)}, new Date(f.clock).toISOString());
+    assert.equal((await installed.resolve({principalId: 'reviewer', items: [answer]})).results[0].status, 'committed');
+    const firstClaim = installed.journal.claimResume('source-scope', {claimant: 'first-source', leaseMs: 60000,
+      binding: installed.binding, expectedCheckpointCid: summary.checkpointCid});
+    assert.equal(firstClaim.action, 'claimed');
+    gate = await installed.computationSourceAuthorization(options[0]);
+    const firstRead = await gate.resume({resumption: {claim: {checkpointCid: summary.checkpointCid, claim: firstClaim.claim}}});
+    assert.equal(firstRead.action, 'dispatch'); firstRead.admission.enter(); gate.close();
+    const nextJournal = {...installed.journal, persistCheckpoint: checkpoint =>
+      installed.journal.completeResume(firstClaim.claim, {checkpoint})};
+    gate = await installed.computationSourceAuthorization({...options[1], journalPort: nextJournal});
+    const second = await gate.authorize();
+    assert.equal(second.action, 'waiting', JSON.stringify(second)); gate.close();
+    assert.notEqual(second.checkpoint.checkpointId, first.checkpoint.checkpointId);
+    for (const id of [first.checkpoint.checkpointId, second.checkpoint.checkpointId]) {
+      assert.match(id, /^[A-Za-z0-9._:-]{1,128}$/u);
+    }
+    await f.close(installed);
+    const child = spawnSync(process.execPath, ['--input-type=module', '-e', `
+      import assert from 'node:assert/strict';
+      import {readFileSync} from 'node:fs';
+      import {sign,createPrivateKey} from 'node:crypto';
+      import {installRemoteCheckpoints} from './adapters/host-node/client-checkpoints.mjs';
+      import {runtimeCore} from './adapters/host-common/runtime-core.mjs';
+      import {signedAnswer} from './packages/sdk/checkpoints.mjs';
+      import * as moon from './_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+      const input=JSON.parse(readFileSync(0,'utf8'));
+      const privateKey=createPrivateKey(input.reviewerPrivate);
+      const installed=await installRemoteCheckpoints({...input.install,
+        now:()=>input.clock,contractControl:runtimeCore(moon).publicationControl});
+      try {
+        const [summary]=(await installed.listCheckpoints({principalId:'reviewer',after:'',limit:10})).items;
+        assert.equal(summary.checkpointCid,input.secondCid);
+        const wrong={...input.firstAnswer,checkpointCid:summary.checkpointCid};
+        assert.notEqual((await installed.resolve({principalId:'reviewer',items:[wrong]})).results[0].status,'committed');
+        assert.equal(installed.journal.activeRunCheckpoint('source-scope').checkpointCid,input.secondCid);
+        const view=installed.journal.inspect(input.secondCid);
+        assert.deepEqual(await installed.computationContinuation(view),{original:1});
+        const answer=await signedAnswer(summary,'approved',{keyId:'reviewer-key',reviewerId:'reviewer',
+          sign:bytes=>sign(null,bytes,privateKey)},new Date(input.clock).toISOString());
+        assert.equal((await installed.resolve({principalId:'reviewer',items:[answer]})).results[0].status,'committed');
+        const claim=installed.journal.claimResume('source-scope',{claimant:'cold-second-source',leaseMs:60000,
+          binding:installed.binding,expectedCheckpointCid:summary.checkpointCid});
+        assert.equal(claim.action,'claimed');
+        const gate=await installed.computationSourceAuthorization({...input.options,
+          beforeDefer:async()=>assert.fail('cold resume must not issue another Checkpoint'),
+          continuation:async()=>assert.fail('cold resume must use the original sealed continuation')});
+        try {
+          const read=await gate.resume({resumption:{claim:{checkpointCid:summary.checkpointCid,claim:claim.claim}}});
+          assert.equal(read.action,'dispatch'); read.admission.enter();
+          assert.throws(()=>read.admission.enter(),{code:'ResumeAdmissionConsumed'});
+          assert.equal(installed.hasUnresolvedSourceStart('source-scope',input.options.runDefinitionCid),true);
+        } finally {gate.close();}
+      } finally {await installed.close();}
+      console.log(JSON.stringify({coldOriginal:true,wrongAnswerRefused:true,firstClose:true}));
+    `], {cwd: new URL('../../', import.meta.url), encoding: 'utf8', timeout: 30000,
+      input: JSON.stringify({clock: f.clock, secondCid: second.checkpoint.checkpointCid, firstAnswer: answer,
+        reviewerPrivate: pem(reviewer.privateKey), options: {...options[1], beforeDefer: undefined, continuation: undefined},
+        install: {root: f.root, namespaceId: 'local', authorityScopeCid: cid('3'), ownerPrincipal: 'owner', siteKey: 'local',
+          realizationKey: 'source-free-values', environmentCid: cid('4'), source,
+          authorization: {accountConfiguration: configuration('allow'), leaseMs: 60000,
+            effectRequiredClaims: [], resumeAfterAnswer: false,
+            reviewers: [{keyId: 'reviewer-key', reviewerId: 'reviewer', principalId: 'reviewer', publicKey: pem(reviewer.publicKey)}],
+            reviewReaders: ['reviewer'], hostKey: {keyId: 'host-key', privateKey: pem(host.privateKey)}}}})});
+    assert.equal(child.status, 0, child.stdout + child.stderr);
+    assert.deepEqual(JSON.parse(child.stdout.trim()), {coldOriginal: true, wrongAnswerRefused: true, firstClose: true});
+  } catch (error) {f.preserve(); throw error;}
+});
+
+
+test('Source Checkpoint identifiers remain bounded for long original Run identifiers', async t => {
+  const f = await fixture(t, {source: delegatedSource()});
+  try {
+    const installed = await f.open();
+    const ids = [];
+    for (const suffix of ['a', 'b']) {
+      // The current continuation evidence owner prefixes this original with
+      // `effect-`; exercise its full admitted 128-character storage identity.
+      const runId = 'r'.repeat(120) + suffix;
+      const gate = await installed.computationSourceAuthorization({...sourceOptions(), runId});
+      try {
+        const waiting = await gate.authorize();
+        assert.equal(waiting.action, 'waiting', JSON.stringify(waiting));
+        assert.equal(waiting.checkpoint.runId, runId);
+        assert.match(waiting.checkpoint.checkpointId, /^[A-Za-z0-9._:-]{1,128}$/u);
+        ids.push(waiting.checkpoint.checkpointId);
+      } finally {gate.close();}
+    }
+    assert.notEqual(ids[0], ids[1], 'the same read scope on different original Runs remains distinct');
+  } catch (error) {f.preserve(); throw error;}
+});
+
+for (const [name, checkpointId, unresolved] of [
+  ['sealed legacy Source identity remains recognized after original entry', 'source-scope-source-0', true],
+  ['arbitrary Source-like identity is not an original read-scope identity', 'source-' + 'f'.repeat(64), false],
+]) {
+  test(name, async t => {
+    const f = await fixture(t, {source: delegatedSource()});
+    try {
+      const installed = await f.open();
+      // Model an already sealed record using the original Journal admission;
+      // only the historical identifier recipe differs, not its signed scope.
+      const journalPort = {...installed.journal, persistCheckpoint: checkpoint =>
+        installed.journal.persistCheckpoint({...checkpoint,
+          body: {...checkpoint.body, checkpoint_id: checkpointId}})};
+      const gate = await installed.computationSourceAuthorization({...sourceOptions(), journalPort});
+      try {
+        assert.equal((await gate.authorize()).action, 'waiting');
+        const [summary] = (await installed.listCheckpoints({principalId: 'reviewer', after: '', limit: 10})).items;
+        const answer = await signedAnswer(summary, 'approved', {keyId: 'reviewer-key', reviewerId: 'reviewer',
+          sign: bytes => sign(null, bytes, reviewer.privateKey)}, new Date(f.clock).toISOString());
+        assert.equal((await installed.resolve({principalId: 'reviewer', items: [answer]})).results[0].status, 'committed');
+        const claim = installed.journal.claimResume('source-scope', {claimant: 'original-source', leaseMs: 60000,
+          binding: installed.binding, expectedCheckpointCid: summary.checkpointCid});
+        const decision = await gate.resume({resumption: {claim: {checkpointCid: summary.checkpointCid, claim: claim.claim}}});
+        assert.equal(decision.action, 'dispatch'); decision.admission.enter();
+        assert.equal(installed.hasUnresolvedSourceStart('source-scope', cid('1')), unresolved);
+        assert.equal(installed.hasUnresolvedSourceStart('other-run', cid('1')), false);
+        assert.equal(installed.hasUnresolvedSourceStart('source-scope', cid('9')), false);
+      } finally {gate.close();}
+    } catch (error) {f.preserve(); throw error;}
+  });
+}

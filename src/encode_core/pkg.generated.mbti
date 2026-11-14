@@ -99,7 +99,11 @@ pub fn hashing_writer(Int, Int, Int) -> Writer raise EncodeFailure
 
 pub fn key(Writer, String) -> Unit raise EncodeFailure
 
+pub fn measurement_operation_construction_extent() -> MeasurementOperationConstruction
+
 pub fn measuring_writer(Int, Int, Int) -> Writer raise EncodeFailure
+
+pub fn measuring_writer_construction_extent(Int, Int) -> @decode_shape.CollectionConstructionExtent?
 
 pub fn null_value(Writer) -> Unit raise EncodeFailure
 
@@ -108,6 +112,8 @@ pub fn number_value(Writer, Double) -> Unit raise EncodeFailure
 pub fn observed_writer_usage(Writer) -> (Int, Int, Int)
 
 pub fn ordered_key(Writer, String) -> Unit raise EncodeFailure
+
+pub fn quoted_string_construction_extent(String) -> (Int64, Int64)?
 
 pub fn start_ordered_key(Writer, String) -> OrderedKeyEmitCursor raise EncodeFailure
 
@@ -164,6 +170,14 @@ pub(all) struct HashWriterConstructionInventory {
   scalar_words : Int64
   owned_utf16_units : Int64
   owned_wire_bytes : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) struct MeasurementOperationConstruction {
+  collections : @decode_shape.CollectionConstructionExtent
+  owned_utf16_units : Int64
+  max_string_utf16_units : Int64
+  max_record_references : Int
+  max_record_words : Int
 } derive(Eq, @debug.Debug)
 
 type OrderedKeyEmitCursor

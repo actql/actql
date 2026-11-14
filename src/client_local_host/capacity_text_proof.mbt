@@ -92,7 +92,10 @@ fn client_local_scalar_text_inventory(
       // Count groups only copy checked scalar keys and emit Number counts.
       // Schemas and typed children remain checked across the complete original sequence.
       let supported = match step {
-        @lower.ValuesStep(_) | @lower.AppendStep(_) => true
+        // CrossJoin copies checked cells and names. Its complete input/output
+        // schemas and every original expression still pass the same proof.
+        @lower.ValuesStep(_) | @lower.AppendStep(_) | @lower.CrossJoinStep(_) =>
+          true
         @lower.RowStep(kernel) =>
           match @lower.kernel_body(kernel) {
             @lower.SnapshotMap(_)

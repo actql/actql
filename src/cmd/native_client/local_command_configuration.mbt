@@ -73,6 +73,7 @@ fn local_admitted_check_environment(
     evidence,
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    numeric_profile_cid=Some(@numeric.cid(@numeric.builtin_profile())),
   )
 }
 

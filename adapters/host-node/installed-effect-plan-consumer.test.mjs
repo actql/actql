@@ -12,6 +12,9 @@ import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
 import {prepareInstalledRowCaptureChild} from './installed-row-capture-cleanup.mjs';
 import {prepareInstalledEffectRequestChild} from './installed-effect-plan.mjs';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
+import {checkedRequestSnapshotPreparation, requestProgramCapacityRefusal}
+  from './client-program-preparation.mjs';
+import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {retainUpdateTargetSelection, originalUpdateTargetSelectionsCid, updateTargetSelectionMatchesRun}
   from './update-target-original-shape.mjs';
 
@@ -33,6 +36,9 @@ test('two whole Effect inputs retain distinct source slots on the same checked C
   const moon = {
     clientProgramEffectAcquisitionCount: () => 2,
     clientProgramEffectDirectSourceCoordinates: actual => {assert.strictEqual(actual, prepared);
+      return ok([[0, 0, 0, 0], [0, 1, 1, 0]]);},
+    clientProgramInstalledEffectManagedPlanSourceCoordinates(actual, owner, identity) {
+      assert.strictEqual(actual, plan); assert.strictEqual(owner, prepared); assert.strictEqual(identity, request);
       return ok([[0, 0, 0, 0], [0, 1, 1, 0]]);},
     clientProgramSelectInstalledEffectSourceInput(actual, identity, stage, input) {
       assert.strictEqual(actual, prepared); assert.strictEqual(identity, request); assert.equal(stage, 0);
@@ -130,6 +136,9 @@ test('Effect managed native and row Sources borrow the same current Plan in eith
       admitsSource: ref => ref === requirements[index].ref, prepare() {}, open() {}}));
     const moon = {clientProgramEffectAcquisitionCount: () => 2,
     clientProgramEffectDirectSourceCoordinates: () => ({$tag: 1, _0: [[0, 0, 0, 0], [1, 0, 1, 1]]}),
+      clientProgramInstalledEffectManagedPlanSourceCoordinates(actual, owner, identity) {
+        assert.strictEqual(actual, plan); assert.strictEqual(owner, prepared); assert.strictEqual(identity, request);
+        return ok([[0, 0, 0, 0], [1, 0, 1, 1]]);},
       clientProgramSelectInstalledEffectSourceInput(p, r, task, input) {
         assert.strictEqual(p, prepared); assert.strictEqual(r, request); assert.equal(input, 0);
         calls.push(`request-${task}`); return ok(task);
@@ -163,6 +172,9 @@ test('Effect managed native selection preserves original current and foreign ref
   let current = plan, requirement = {ref: 'source'}, nativeCalls = 0, refuseNative = false;
   const moon = {clientProgramEffectAcquisitionCount: () => 1,
     clientProgramEffectDirectSourceCoordinates: () => ({$tag: 1, _0: [[0, 0, 0, 0]]}),
+    clientProgramInstalledEffectManagedPlanSourceCoordinates(actual, owner, identity) {
+      assert.strictEqual(actual, plan); assert.strictEqual(owner, prepared); assert.strictEqual(identity, request);
+      return ok([[0, 0, 0, 0]]);},
     clientProgramSelectInstalledEffectSourceInput: () => ok({}),
     clientProgramSelectedSourceInputKind: () => 'query', clientProgramSelectedSourceInputRef: () => 'source',
     clientProgramQueryRequirementSourceRef: value => value.ref,
@@ -250,6 +262,9 @@ test('retained mixed Effect Sources select original Requests without a Row-only 
   });
   const moon = {clientProgramEffectAcquisitionCount: () => 2,
     clientProgramEffectDirectSourceCoordinates: () => ({$tag: 1, _0: [[0, 0, 0, 0], [1, 0, 1, 1]]}),
+    clientProgramInstalledEffectManagedPlanSourceCoordinates(actual, owner, identity) {
+      assert.strictEqual(actual, plan); assert.strictEqual(owner, prepared); assert.strictEqual(identity, request);
+      return ok([[0, 0, 0, 0], [1, 0, 1, 1]]);},
     clientProgramSelectInstalledEffectSourceInput(p, r, task, input) {
       assert.strictEqual(this, moon); assert.strictEqual(p, prepared); assert.strictEqual(r, request);
       assert.equal(input, 0); calls.push(`select-${task}`); return ok(selections[task]);
@@ -1003,9 +1018,11 @@ function retainedRequestSourceMember(path, name, kind = 'Property') {
 // Actual manager functions, with explicit Core/resource/current ports. No
 // synthetic port here certifies native backing or an ordinary installation.
 function retainedRequestManagerFixture({throwOnRetain = false, failure, missing = false, reentry = false,
-  document, materialWire, missingMaterial = false, materialFailure = false, materialReentry = false} = {}) {
+  document, materialWire, missingMaterial = false, materialFailure = false, materialReentry = false,
+  snapshotFailure, snapshotRefusal} = {}) {
   const parent = {}, intent = {}, request = {}, originals = {}, receipts = new WeakMap(), producers = new Set();
   const requestProducers = new WeakMap(), calls = [], liveRuns = new Set(), counts = {current: 0};
+  const diagnostics = [];
   let reserved = false, materialReserved = false;
   const wire = document ?? JSON.stringify({kind: 'aql', input: {format: 'sql', text: "SELECT 'e\u0301😀'"}, parameters: null});
   const moon = {clientProgramRetainRequestSubmittedIntent(p, receipt, original) {
@@ -1029,11 +1046,20 @@ function retainedRequestManagerFixture({throwOnRetain = false, failure, missing 
     assert.strictEqual(this, moon);assert.strictEqual(actualParent,parent);
     assert.strictEqual(receipts.get(receipt).preparation.parent,parent);
     assert.equal(typeof units,'bigint');assert.equal(typeof values,'bigint');
-    calls.push('reserve-snapshot');reserved=true;return ok();
+    calls.push('reserve-snapshot');
+    if (snapshotFailure) throw snapshotFailure;
+    if (snapshotRefusal) return snapshotRefusal.result;
+    reserved=true;return ok();
   }};
+  if (snapshotRefusal) moon.clientProgramRequestSnapshotCapacityRefusal = function (result) {
+    assert.strictEqual(this, moon); assert.strictEqual(result, snapshotRefusal.result);
+    return snapshotRefusal.fact;
+  };
   if (missing) delete moon.clientProgramRetainRequestSubmittedIntent;
   if (missingMaterial) delete moon.clientProgramReserveRequestRetainedProgramMaterial;
   const context = {runtime: moon}, ports = {closing: false, closed: false, originals, receipts, producers, liveRuns, snapshotClientRequest,
+    checkedRequestSnapshotPreparation, requestProgramCapacityRefusal,
+    diagnostic: diagnosticObserver((name, detail) => diagnostics.push({name, detail})),
     requestProducers, callbacks: {preparationContext: () => context, validator() {}, retainedValidator() {}},
     current() {counts.current++;}, requestPreparationAvailable: () => true, assertRequestPreparationControl() {},
     retainSourceInitializationMaterial() {}, retireInitialPreparation() {},
@@ -1051,12 +1077,13 @@ function retainedRequestManagerFixture({throwOnRetain = false, failure, missing 
       if (value !== wire) assert(materialReserved, 'same Request material reservation BEFORE decoded originals');
       calls.push('decode'); return JSON.parse(value);}},
     freezeInput(value) {return Object.freeze(value);}};
-  const code = 'const ' + retainedRequestSourceMember('./ordinary-source-managed.mjs', 'producerFor', 'VariableDeclarator') + ';' +
+  const code = 'const ' + retainedRequestSourceMember('./ordinary-source-managed.mjs', 'reportCapacityRefusal', 'VariableDeclarator') + ';const ' +
+    retainedRequestSourceMember('./ordinary-source-managed.mjs', 'producerFor', 'VariableDeclarator') + ';' +
     retainedRequestSourceMember('./ordinary-source-managed.mjs', 'beginProducer', 'FunctionDeclaration') +
     ';const view = ({' + ['retainRequestInput','captureSourceSnapshot','bindSourceSnapshot','bindSourceRequest']
       .map(name => retainedRequestSourceMember('./ordinary-source-managed.mjs',name)).join(',') + '});return view;';
   const view = new Function(...Object.keys(ports), code)(...Object.values(ports));
-  return {view, parent, intent, request, calls, receipts, producers, requestProducers, wire, counts};
+  return {view, parent, intent, request, calls, receipts, producers, requestProducers, wire, counts, diagnostics};
 }
 
 test('retained manager decodes only after its same parent and keeps exact intent input aliases', () => {
@@ -1549,6 +1576,36 @@ test('retained manager captures held input through the same funded snapshot with
   assert.equal(producer.body,retained.body);assert.equal(producer.preparation.snapshot,retained.body);
   assert.equal(f.requestProducers.get(f.request).deref(),producer);
   assert.throws(()=>f.view.retainRequestInput(f.request,undefined,captured),{code:'ForeignInstalledSourceProducer'});
+});
+
+test('retained manager preserves an original snapshot exception without a capacity diagnostic', async () => {
+  const original = new Error('Original snapshot reservation failure');
+  const f = retainedRequestManagerFixture({snapshotFailure: original});
+  const captured = Object.freeze({kind: 'program', input: Object.freeze({version: 'actql/0.1'})});
+  assert.throws(() => f.view.retainRequestInput(f.request, undefined, captured), error => error === original);
+  assert.deepEqual(f.calls, ['open-parent', 'reserve-snapshot', 'original-cleanup', 'producer-return']);
+  assert.equal(f.producers.size, 0); assert.equal(f.requestProducers.has(f.request), false);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(f.diagnostics, []);
+});
+
+test('retained manager reports the actual typed snapshot refusal while preserving its original cause', async () => {
+  const issue = {}, result = {$tag: 0, _0: issue};
+  const fact = {_0: 'request_snapshot', _1: 'retention', _2: 128n, _3: 64n, _4: 64n, _5: 64n};
+  const f = retainedRequestManagerFixture({snapshotRefusal: {result, fact}});
+  const captured = Object.freeze({kind: 'program', input: Object.freeze({version: 'actql/0.1'})});
+  assert.throws(() => f.view.retainRequestInput(f.request, undefined, captured), error => {
+    assert.equal(error.code, 'MoonBitHostFailure'); assert.strictEqual(error.cause, issue);
+    return true;
+  });
+  assert.deepEqual(f.calls, ['open-parent', 'reserve-snapshot', 'original-cleanup', 'producer-return']);
+  assert.equal(f.producers.size, 0); assert.equal(f.requestProducers.has(f.request), false);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(f.diagnostics, [{name: 'preparation_capacity_refused', detail: {
+    phase: 'request_snapshot', dimension: 'retention', requiredRetentionBytes: '128',
+    requiredExecutionBytes: '64', availableRetentionBytes: '64', availableExecutionBytes: '64',
+  }}]);
+  assert(Object.isFrozen(f.diagnostics[0].detail));
 });
 
 test('retained manager refuses ambiguous captured and typed intent inputs before opening a parent', () => {

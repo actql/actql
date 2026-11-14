@@ -15,7 +15,8 @@ const issueCodes = Object.freeze({
   values_profile_unsupported: 'ClientProgramUnsupported',
   needs_inputs: 'ClientProgramNeedsInputs',
   check_invalid_input: 'ClientProgramInvalidInput',
-  check_invalid_configuration: 'ClientProgramPreparationFailure',
+  // A typed checker configuration refusal precedes submission and Run admission.
+  check_invalid_configuration: 'ClientProgramRejected',
   check_unsupported: 'ClientProgramImplementationLimit',
   check_compile_limit: 'ClientProgramAnalysisLimit',
   check_missing_input: 'ClientProgramNeedsInputs',
@@ -71,15 +72,33 @@ function projectCapacityRefusal(moon, result) {
   if (typeof project !== 'function') fail('InvalidHostRuntimeResult');
   const value = Reflect.apply(project, moon, [result]);
   if (value === undefined) fail('InvalidHostRuntimeResult');
+  return capacityRefusalValue(value, 'source_free_plan');
+}
+function capacityRefusalValue(value, expectedPhase) {
   const phase = runtimeField(value, 0), dimension = runtimeField(value, 1);
   const amounts = [2, 3, 4, 5].map(index => runtimeField(value, index));
-  if (phase !== 'source_free_plan' || !['retention', 'execution'].includes(dimension) ||
+  if (phase !== expectedPhase || !['retention', 'execution'].includes(dimension) ||
       amounts.some(amount => typeof amount !== 'bigint' || amount < 0n || amount > 9223372036854775807n) ||
       (dimension === 'retention' ? amounts[0] <= amounts[2]
         : amounts[0] > amounts[2] || amounts[1] <= amounts[3])) fail('InvalidHostRuntimeResult');
   return Object.freeze({phase, dimension,
     requiredRetentionBytes: amounts[0].toString(), requiredExecutionBytes: amounts[1].toString(),
     availableRetentionBytes: amounts[2].toString(), availableExecutionBytes: amounts[3].toString()});
+}
+
+// Preserve the original checked error and its Core cause. Only the fixed
+// snapshot projection can add diagnostic DATA to the existing association.
+export function checkedRequestSnapshotPreparation(moon, result) {
+  const project = moon.clientProgramRequestSnapshotCapacityRefusal;
+  if (runtimeIsError(result) && typeof project === 'function') {
+    const value = Reflect.apply(project, moon, [result]);
+    if (value !== undefined) {
+      const capacity = capacityRefusalValue(value, 'request_snapshot');
+      try {return checked(result);}
+      catch (error) {capacityRefusals.set(error, capacity); throw error;}
+    }
+  }
+  return checked(result);
 }
 
 // Read only the original typed Request result. The existing Common projection

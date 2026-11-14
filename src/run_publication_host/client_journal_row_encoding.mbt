@@ -28,6 +28,10 @@ pub fn client_run_journal_row_body(
   record : ClientRunJournalEncoding,
   local_run_policy_originals? : String? = None,
   run_observation_originals? : String? = None,
+  before_construction? : ((Int, Int, Int) -> Result[
+    Unit,
+    ClientJournalEncodingIssue,
+  ])? = None,
 ) -> Result[Bytes, ClientJournalEncodingIssue] {
   let request = match client_request_identity_record_wire(record.request) {
     Ok(value) => value
@@ -39,6 +43,7 @@ pub fn client_run_journal_row_body(
     @publication.publication_contract_json(record.definition),
     local_run_policy_originals~,
     run_observation_originals~,
+    before_construction~,
   )
 }
 
@@ -51,16 +56,82 @@ fn client_run_journal_row_body_from_wires(
   definition : String,
   local_run_policy_originals? : String? = None,
   run_observation_originals? : String? = None,
+  comparison_bytes? : Int? = None,
+  before_construction? : ((Int, Int, Int) -> Result[
+    Unit,
+    ClientJournalEncodingIssue,
+  ])? = None,
 ) -> Result[Bytes, ClientJournalEncodingIssue] {
   if local_run_policy_originals is Some(wire) &&
-    @utf8.encode(wire).length() > 8192 {
+    @scalar.admit_utf8_length(wire, 8192) is Err(_) {
     return Err(CapacityExceeded)
   }
   if record.task_materials_cid is Some(cid) && !valid_client_request_cid(cid) {
     return Err(Encoding)
   }
+  // Derive constructor geometry from immutable originals; this is not a new
+  // allowance. Only the observation field may exceed the legacy row profile.
+  let fixed = "{\"cancellation_requested\":false,\"checkpoint\":null,\"dispatch_reserved\":false,\"effect_material_originals\":\"\",\"local_run_policy_originals\":\"\",\"physical_start_claimed\":false,\"publication_binding\":null,\"publication_policy_originals\":\"\",\"request\":\"\",\"run_definition\":\"\",\"run_observation_originals\":\"\",\"task_materials_cid\":\"\",\"version\":\"actql-native-client-run-row/0.1\"}"
+    .length()
+    .to_int64()
+  let other_units = request.length().to_int64() +
+    definition.length().to_int64() +
+    record.checkpoint.map(value => value.length().to_int64()).unwrap_or(0L) +
+    record.publication_binding
+    .map(value => value.length().to_int64())
+    .unwrap_or(0L) +
+    record.publication_policy_originals
+    .map(value => value.length().to_int64())
+    .unwrap_or(0L) +
+    record.effect_material_originals
+    .map(value => value.length().to_int64())
+    .unwrap_or(0L) +
+    record.task_materials_cid
+    .map(value => value.length().to_int64())
+    .unwrap_or(0L) +
+    local_run_policy_originals
+    .map(value => value.length().to_int64())
+    .unwrap_or(0L)
+  let observation_units = run_observation_originals
+    .map(value => value.length().to_int64())
+    .unwrap_or(0L)
+  let (maximum, construction_base) = match before_construction {
+    None => (131072, 0L)
+    Some(_) => {
+      guard @execution.checked_preparation_add_product(fixed, other_units, 6L)
+        is Some(base) &&
+        @execution.checked_preparation_add_product(base, observation_units, 6L)
+        is Some(bound) &&
+        bound > 0L &&
+        bound < 2147483519L else {
+        return Err(CapacityExceeded)
+      }
+      (bound.to_int(), base)
+    }
+  }
+  // A canonical comparison cannot construct beyond the already funded original
+  // body, including rejected noncanonical candidates. Ordinary writers retain
+  // their independently observed construction bound.
+  let maximum = match comparison_bytes {
+    Some(bytes) if bytes > 0 => Int::min(maximum, bytes)
+    Some(_) => return Err(CapacityExceeded)
+    None => maximum
+  }
   try {
-    let writer = @encode.writer(131072, 32, 4)
+    let batch_units = 65L * 256L
+    if before_construction is Some(reserve) {
+      let initial = @execution.checked_preparation_add_product(
+        construction_base,
+        Int64::min(observation_units, batch_units),
+        6L,
+      ).unwrap()
+      match reserve(Int64::min(initial, maximum.to_int64()).to_int(), 32, 4) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+    }
+    let writer = @encode.writer(maximum, 32, 4)
+    let mut observed_field_bytes = 0
     @encode.begin_object(writer)
     @encode.key(writer, "cancellation_requested")
     @encode.bool_value(writer, record.cancellation_requested)
@@ -97,8 +168,41 @@ fn client_run_journal_row_body_from_wires(
     @encode.key(writer, "run_definition")
     @encode.string_value(writer, definition)
     if run_observation_originals is Some(originals) {
+      let (before_field, _, _) = @encode.writer_progress(writer)
       @encode.key(writer, "run_observation_originals")
-      @encode.string_value(writer, originals)
+      match before_construction {
+        None => @encode.string_value(writer, originals)
+        Some(reserve) => {
+          let cursor = @encode.start_string_value(writer, originals)
+          let mut done = false
+          while !done {
+            for _ in 0..<256 {
+              if @encode.advance_string_value(cursor) {
+                done = true
+                break
+              }
+            }
+            if !done {
+              let (emitted, _, _) = @encode.writer_progress(writer)
+              guard @execution.checked_preparation_add_product(
+                  construction_base + emitted.to_int64(),
+                  batch_units,
+                  6L,
+                )
+                is Some(next) else {
+                return Err(CapacityExceeded)
+              }
+              match
+                reserve(Int64::min(next, maximum.to_int64()).to_int(), 32, 4) {
+                Err(issue) => return Err(issue)
+                Ok(_) => ()
+              }
+            }
+          }
+        }
+      }
+      let (after_field, _, _) = @encode.writer_progress(writer)
+      observed_field_bytes = after_field - before_field
     }
     if record.task_materials_cid is Some(cid) {
       @encode.key(writer, "task_materials_cid")
@@ -107,6 +211,12 @@ fn client_run_journal_row_body_from_wires(
     @encode.key(writer, "version")
     @encode.string_value(writer, "actql-native-client-run-row/0.1")
     @encode.end_object(writer)
+    let (emitted, _, _) = @encode.writer_progress(writer)
+    // The observed route enlarges only the private observation field, never
+    // the combined legacy fields or their independent semantic limits.
+    if emitted - observed_field_bytes > 131072 {
+      return Err(CapacityExceeded)
+    }
     Ok(@utf8.encode(@encode.finish(writer)))
   } catch {
     @encode.OutputLimit => Err(CapacityExceeded)

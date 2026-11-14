@@ -5,31 +5,50 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {runInNewContext} from 'node:vm';
 import test from 'node:test';
+import {parse} from 'acorn';
 import {nativeProjectConfigurationFixture, nativeProjectContentCaseFixture}
   from './native-project-configuration-fixture.mjs';
-import {nativeClientFileResponseTestFile} from './native-core-test-selection.mjs';
+import {nativeClientFileResponseTestFile, nativeCoreScopedTestEnvironment}
+  from './native-core-test-selection.mjs';
 
 test('Native staged import quote belongs only to its exact scoped Request case', () => {
   const wrapper = readFileSync(new URL('./test-native-core.mjs', import.meta.url), 'utf8');
+  const module = parse(wrapper, {ecmaVersion: 'latest', sourceType: 'module'});
+  const predicate = module.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(value => value.id.name === 'requiresFixture'));
+  assert(predicate, 'Use the actual selected-fixture predicate, not a successful stub');
   const fixtureStart = wrapper.indexOf('const fixtureEnvironment = {');
   const fixtureEnd = wrapper.indexOf('\n};', fixtureStart);
   assert(fixtureStart >= 0 && fixtureEnd > fixtureStart);
   const fixtureBody = wrapper.slice(fixtureStart + 'const fixtureEnvironment = '.length, fixtureEnd + 2);
-  const base = runInNewContext('(' + fixtureBody + ')', {
+  const base = runInNewContext(wrapper.slice(predicate.start, predicate.end) + '\n(' + fixtureBody + ')', {
     process: {env: {ACTQL_TEST_NATIVE_IMPORT_QUOTE: 'ambient',
       ACTQL_TEST_NATIVE_FILE_RECEIPT_ROOT: '/ambient/file',
       ACTQL_TEST_CLIENT_FILE_RECEIPT_APPROVE_RESOLUTION_WIRE: 'ambient-file-receipt'}, platform: 'darwin', arch: 'arm64'},
-    full: false, args: [], namespace: '/original', root: '/checkout', join,
+    full: false, linuxCommonImporters: false, args: [], namespace: '/original', root: '/checkout', join,
     httpLifetime: {}, clientFiles: {}, bundle: {}, clientCheckpoint: {}, fileReceiptCheckpoint: {}, privateHost: {},
     originalSigning: {}, processRegion: {}, readerCustody: {}, projectConfiguration: {}, walFixture: undefined,
   });
   assert.equal(base.ACTQL_TEST_NATIVE_IMPORT_QUOTE, undefined, 'ordinary children must not inherit the marker');
   assert.equal(base.ACTQL_TEST_NATIVE_FILE_RECEIPT_ROOT, undefined);
   assert.equal(base.ACTQL_TEST_CLIENT_FILE_RECEIPT_APPROVE_RESOLUTION_WIRE, undefined);
-  const start = wrapper.indexOf('{...fixtureEnvironment, ...scoped.environment,');
-  const end = wrapper.indexOf('}}));', start);
-  assert(start >= 0 && end > start);
-  const environment = wrapper.slice(start, end + 1);
+  const environments = [];
+  function visit(node) {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'CallExpression' && node.callee.name === 'spawn') {
+      const env = node.arguments[2]?.properties?.find(value => value.key?.name === 'env')?.value;
+      if (env?.properties?.some(value => value.type === 'SpreadElement' &&
+        value.argument.type === 'MemberExpression' && value.argument.object.name === 'scoped' &&
+        value.argument.property.name === 'environment')) environments.push(env);
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  }
+  visit(module);
+  assert.equal(environments.length, 1, 'One actual async scoped child environment required');
+  const environment = wrapper.slice(environments[0].start, environments[0].end);
   const source = 'src/cmd/native_client/local_project_mock_request_physical_scoped_wbtest.mbt';
   const authored = readFileSync(new URL('../' + source, import.meta.url), 'utf8');
   const names = [...authored.matchAll(/^test "([^"]+)"/gmu)].map(match => match[1]);
@@ -43,6 +62,7 @@ test('Native staged import quote belongs only to its exact scoped Request case',
       physical: {ACTQL_TEST_INSTALLED_PROCESS_ROOT: '/original/physical'},
       content: {ACTQL_TEST_NATIVE_CONTENT_LOOKUPS: '2', ACTQL_TEST_NATIVE_STORE_ROOT: '/original/content'},
       nativeClientFileResponseTestFile,
+      nativeCoreScopedTestEnvironment,
       fileReceiptCheckpoint: {ACTQL_TEST_CLIENT_FILE_RECEIPT_APPROVE_RESOLUTION_WIRE: 'original-file-receipt'},
       test: {source: selectedSource, index},
     });
@@ -58,6 +78,8 @@ test('Native project Content ports retain original contracts and independent aut
   const root = mkdtempSync(join(tmpdir(), 'native-project-content-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));
   const fixture = nativeProjectConfigurationFixture(root);
+  assert.deepEqual(readFileSync(join(root, 'native-file-task-boundary.json')),
+    readFileSync(new URL('./fixtures/native-file-task-boundary.json', import.meta.url)));
   for (const [key, name] of [['QUERY_CONTRACT', 'actql-query-acquisition.json'],
     ['EVIDENCE_CONTRACT', 'actql-query-process-evidence.json']]) {
     assert.equal(fixture['ACTQL_TEST_NATIVE_' + key],

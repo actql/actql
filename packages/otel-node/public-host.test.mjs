@@ -15,7 +15,7 @@ import {AsyncLocalStorageContextManager} from '@opentelemetry/context-async-hook
 import {createNodeHostObservability} from './index.mjs';
 import {connect as localConnect} from '../local-node/index.mjs';
 import {openInstalledRemoteHttpHost} from '../local-node/http-host.mjs';
-import {connect as remoteConnect, getSubmissionCheckObservation,
+import {connect as remoteConnect, getSubmissionCheckObservation, getSubmissionOutcome,
   getCheckInput, resolveCheckLocation} from '../sdk/index.mjs';
 import {records, attributes, field, assertNoMetricExemplars} from './test/otlp-fixture.mjs';
 
@@ -49,7 +49,7 @@ function requestRows(path) {
 
 for (const [transport, mode] of [['local', 'normal'], ['https', 'normal'],
   ['local', 'export-failure'], ['local', 'overflow'], ['local', 'disabled'],
-  ['https', 'unsampled-parent']]) {
+  ['https', 'unsampled-parent'], ['local', 'denied-run-read']]) {
 test(`public ${transport} Host: ${mode} observations preserve execution`, async t => {
   const root = await mkdtemp(join(tmpdir(), 'actql-otel-public-'));
   const sink = await collect(t, mode === 'export-failure');
@@ -61,7 +61,11 @@ test(`public ${transport} Host: ${mode} observations preserve execution`, async 
   const owner = userInfo().username;
   const installation = {directory: join(root, 'host'), observation: adapter.connection,
     authorization: {accountConfiguration: JSON.stringify({version: 'actql-execution-account-config/0.1',
-      account_id: 'otel-acceptance', entries: [{entry_id: 'write', outcome: 'allow',
+      account_id: 'otel-acceptance', entries: [{entry_id: 'read-original', outcome: 'allow',
+        principal: {any_of: [owner]}, connection: {all: true},
+        resource: {any_of: mode === 'denied-run-read' ? ['result/answer'] : ['result/answer', 'run']},
+        operation: {any_of: ['read']}, exclusions: []},
+      {entry_id: 'write', outcome: 'allow',
         principal: {all: true}, connection: {all: true}, resource: {all: true},
         operation: {any_of: ['write']}, exclusions: []}]}),
     hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},
@@ -115,7 +119,7 @@ test(`public ${transport} Host: ${mode} observations preserve execution`, async 
       catch (error) { rejected = error; }
       const checked = getSubmissionCheckObservation(rejected);
       assert.equal(checked?.report.verdict, 'invalid',
-        'structured submission diagnostics survive observation wiring');
+        `structured submission diagnostics survive observation wiring (${rejected?.code}; ${getSubmissionOutcome(rejected)?.problem?.code}; ${rejected?.cause?.code})`);
       const reason = checked.report.reasons.find(reason =>
         reason.code === 'program_structure_invalid');
       assert.equal(reason?.facts.issue, 'missing_field');
@@ -128,16 +132,21 @@ test(`public ${transport} Host: ${mode} observations preserve execution`, async 
     }
     const run = await client.startSource(program, {format: 'json',
       submissionRef: client.newSubmission({nonce: 'first-observed-run'})});
-    assert.equal((await run.wait()).status, 'succeeded');
-    assert.deepEqual(await run.result('answer').all(),
-      [{id: 1, secret: sentinel}, {id: 2, secret: sentinel}]);
-    assert.equal(requestRows(journal), 1);
-    if (mode === 'normal') {
-      assert.equal((await run.status()).status, 'succeeded');
-      const before = adapter.status().projection.repeated;
-      for (let n = 0; n < 2; n++) assert.equal((await run.status()).status, 'succeeded');
-      assert.equal(adapter.status().projection.repeated, before + 2,
-        'each unchanged public status suppresses the same Owner fact');
+    if (mode === 'denied-run-read') {
+      await assert.rejects(run.wait(), {code: 'ClientConnectionDenied'},
+        'observation never supplies the missing original Run read permission');
+    } else {
+      assert.equal((await run.wait()).status, 'succeeded');
+      assert.deepEqual(await run.result('answer').all(),
+        [{id: 1, secret: sentinel}, {id: 2, secret: sentinel}]);
+      assert.equal(requestRows(journal), 1);
+      if (mode === 'normal') {
+        assert.equal((await run.status()).status, 'succeeded');
+        const before = adapter.status().projection.repeated;
+        for (let n = 0; n < 2; n++) assert.equal((await run.status()).status, 'succeeded');
+        assert.equal(adapter.status().projection.repeated, before + 2,
+          'each unchanged public status suppresses the same Owner fact');
+      }
     }
     await client.close();
     if (server) { await new Promise(resolve => server.close(resolve)); server = undefined; }
@@ -145,6 +154,7 @@ test(`public ${transport} Host: ${mode} observations preserve execution`, async 
   });
   const logs = Buffer.concat(sink.packets.filter(packet => packet.path === '/v1/logs').map(packet => packet.body));
   for (const packet of sink.packets) assert.equal(packet.body.includes(Buffer.from(sentinel)), false);
+  if (mode === 'denied-run-read') return;
   if (mode === 'disabled') {
     assert.equal(sink.packets.length, 0);
     assert.equal(adapter.status().projection.dropped, 0);

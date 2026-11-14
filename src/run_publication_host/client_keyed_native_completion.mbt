@@ -79,13 +79,41 @@ fn prepare_native_keyed_lookup_completion(
     @environment.lookup_execution_ceiling(policy, @environment.TotalDurationMs) {
     return Err(LookupLimit("duration_ms"))
   }
+  // The declared-file route has a frozen singleton inventory already. Its
+  // accounting/receipt emit only fixed field spellings, bounded numeric counts
+  // and CID references per original; actual time/issuer text is quoted here.
+  // Preserve the Native codec policy; do not allocate the declared wire ceiling.
+  let codec_bytes = if @publication.publication_contract_name(
+      component.original.profile,
+    ) ==
+    "declared_file_content_read" {
+    let text = issuer.length().to_int64() +
+      started_at.length().to_int64() +
+      recorded_at.length().to_int64() +
+      @publication.publication_contract_json(left.scope).length().to_int64() +
+      client_keyed_acquisition_source_evidence_facts(original.keyed)
+      .map(facts => facts.source_ref.length().to_int64())
+      .unwrap_or(0L)
+    guard @execution.checked_preparation_add_product(
+        8192L,
+        order.length().to_int64(),
+        4096L,
+      )
+      is Some(fixed) &&
+      @execution.checked_preparation_add_product(fixed, text, 6L) is Some(bound) else {
+      return Err(Assembly("capacity_overflow"))
+    }
+    Int64::min(bound, max_bytes.to_int64()).to_int()
+  } else {
+    max_bytes
+  }
   // Existing protocol workspace plus the actual original-pair/sort inventory.
   // The two bounded writers allocate at most max_bytes each; they never build
   // an unbounded intermediate JSON array before applying the wire ceiling.
   let phase = match
     grow_keyed_lookup_protocol_metadata(
       lookup,
-      max_bytes,
+      codec_bytes,
       4L * order.length().to_int64() + 4L,
       copies=10,
     ) {
@@ -95,7 +123,7 @@ fn prepare_native_keyed_lookup_completion(
   let result = match
     build_native_keyed_lookup_completion(
       lookup, original, component, request, left, identity, batch, started_at, recorded_at,
-      issuer, elapsed, max_bytes, max_nodes, max_depth,
+      issuer, elapsed, codec_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -104,22 +132,34 @@ fn prepare_native_keyed_lookup_completion(
   // receipt or resets actual consumed work after a partial failure.
   lookup.native_completion = Some(result)
   lookup.left.observed_ms = now_ms
-  finish_keyed_lookup_protocol_metadata(
-    lookup,
-    phase,
-    max_nodes,
-    max_depth,
-    [
-      result.accounting,
-      result.receipt,
-      result.relation,
-      result.retention,
-      result.evidence,
-      @publication.result_ordering_evidence_contract(result.ordering),
-      @publication.result_ordering_derivation_contract(result.ordering),
-    ],
-    evidence=[result.input, result.source],
-  )
+  match
+    finish_keyed_lookup_protocol_metadata(
+      lookup,
+      phase,
+      max_nodes,
+      max_depth,
+      [
+        result.accounting,
+        result.receipt,
+        result.relation,
+        result.retention,
+        result.evidence,
+        @publication.result_ordering_evidence_contract(result.ordering),
+        @publication.result_ordering_derivation_contract(result.ordering),
+      ],
+      evidence=[result.input, result.source],
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  if @publication.publication_contract_name(component.original.profile) ==
+    "declared_file_content_read" {
+    prepare_declared_file_lookup_dependencies(
+      lookup, result, max_nodes, max_depth,
+    )
+  } else {
+    Ok(())
+  }
 }
 
 ///|

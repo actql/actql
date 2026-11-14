@@ -45,3 +45,33 @@ test "preparation geometry does not prove unknown operands expression free" {
   )
   assert_true(program_preparation_data(program).may_contain_expression_syntax)
 }
+
+///|
+test "derived field growth counts output names instead of nested expression nodes" {
+  let program = preparation_operand_program(
+    "{\"as\":\"v\",\"derive\":{\"cells\":{\"array\":[" +
+    "{\"literal\":0},".repeat(39) +
+    "{\"literal\":0}]}}}",
+  )
+  let original = program_preparation_data(program)
+  assert_eq(original.possible_growth, 1)
+  assert_true(original.may_contain_expression_syntax)
+  assert_true(physical_equal(original, program_preparation_data(program)))
+}
+
+///|
+test "derived nested objects retain both independent output field names" {
+  let program = preparation_operand_program(
+    "{\"as\":\"v\",\"derive\":{\"first\":{\"object\":{\"inner\":{\"literal\":1}}},\"second\":\"first.inner + 1\"}}",
+  )
+  assert_eq(program_preparation_data(program).possible_growth, 2)
+}
+
+///|
+test "unknown object operands retain their conservative subtree growth" {
+  let program = preparation_operand_program(
+    "{\"as\":\"v\",\"unknown_operand\":{\"body\":{\"array\":[{\"literal\":0}]}}}",
+  )
+  assert_eq(program_preparation_data(program).possible_growth, 5)
+  assert_true(program_preparation_data(program).may_contain_expression_syntax)
+}

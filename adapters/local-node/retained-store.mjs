@@ -45,14 +45,15 @@ export function localComputeFaultInjection(configuration) {
 // A per-invocation Host callback resumes the SAME Local driver only after
 // current authority or Store custody is ready. Existing Store configuration
 // remains immutable and can be shared by other runs.
-export function withLocalExecutionPauseHandler(configuration, handlePause) {
+export function withLocalExecutionPauseHandler(configuration, handlePause, beforePrepare) {
   if (typeof handlePause !== 'function') {
     throw new TypeError('InvalidLocalExecutionPauseHandler');
   }
+  if (beforePrepare !== undefined && typeof beforePrepare !== 'function') throw new TypeError('InvalidLocalBeforePrepare');
   const installed = configuration === undefined ? {} : configurations.get(configuration);
   if (installed === undefined) throw new TypeError('InvalidLocalStoreConfiguration');
   const derived = Object.freeze({});
-  configurations.set(derived, {...installed, handlePause});
+  configurations.set(derived, {...installed, handlePause, beforePrepare});
   return derived;
 }
 export function localExecutionPauseHandler(configuration) {
@@ -60,4 +61,12 @@ export function localExecutionPauseHandler(configuration) {
   const installed = configurations.get(configuration);
   if (installed === undefined) throw new TypeError('InvalidLocalStoreConfiguration');
   return installed.handlePause;
+}
+
+// Same per-invocation Local configuration; no public task or authority issuer.
+export function localExecutionBeforePrepare(configuration) {
+  if (configuration === undefined) return undefined;
+  const installed = configurations.get(configuration);
+  if (installed === undefined) throw new TypeError('InvalidLocalStoreConfiguration');
+  return installed.beforePrepare;
 }

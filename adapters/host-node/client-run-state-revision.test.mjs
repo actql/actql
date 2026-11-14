@@ -13,6 +13,7 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {issueInstalledUnpublishedRunState, issueInstalledRunControlObservation} from '../host-common/run-state-observation.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
+import {configureInferEvidence} from './infer-evaluation-evidence.mjs';
 
 const control = runtimeCore(moon).publicationControl;
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -136,7 +137,7 @@ test('Effect cancellation callers share one actual Journal admission for unchang
   function visit(node) {
     if (node === null || typeof node !== 'object') return;
     if (node.type === 'VariableDeclaration' && node.declarations.length === 1 &&
-        ['openEffectTargetReads', 'executeEffectComputation'].includes(node.declarations[0].id.name)) {
+        ['prepareMockModelInputs', 'openEffectTargetReads', 'executeEffectComputation'].includes(node.declarations[0].id.name)) {
       declarations.set(node.declarations[0].id.name, source.slice(node.start, node.end));
     }
     for (const child of Object.values(node)) {
@@ -145,9 +146,10 @@ test('Effect cancellation callers share one actual Journal admission for unchang
     }
   }
   visit(ast);
-  assert.equal(declarations.size, 2);
+  assert.equal(declarations.size, 3);
   const prepared = Object.freeze({}), requestIdentity = Object.freeze({});
   const managed = Object.freeze({value: Object.freeze({})}), plan = Object.freeze({});
+  const evidenceConfiguration = configureInferEvidence(undefined);
   // Journal storage and contract admission are real; execution/compilation
   // ports isolate the actual Host cancellation consumers from provider work.
   const ports = {
@@ -164,6 +166,7 @@ test('Effect cancellation callers share one actual Journal admission for unchang
       assert.strictEqual(actualRequest, requestIdentity);
       return managed;
     }},
+    mockModels: {prepareAnswersForRuntime() {assert.fail('This cancellation fixture has no physical Mock Model input');}},
     checkpoints: {}, installedEffect: undefined,
     dispatchOwner: {track(actual, options) {
       assert.strictEqual(actual, ref);
@@ -179,16 +182,19 @@ test('Effect cancellation callers share one actual Journal admission for unchang
     openAcquiredEffectComputation: async options => options,
     earlyMockEffectPlans: new WeakMap(), localSnapshotConfiguration: undefined,
     runContent: undefined, authorization: undefined, diagnostic() {}, now: () => at,
-    effectSubmissions: new WeakMap(), modelController: undefined,
+    effectSubmissions: new WeakMap(), modelController: undefined, evidenceConfiguration,
     clientOperationError: code => Object.assign(new Error(code), {code}),
   };
-  const execute = compileFunction(`${declarations.get('openEffectTargetReads')}\n` +
+  const execute = compileFunction(`${declarations.get('prepareMockModelInputs')}\n` +
+    `${declarations.get('openEffectTargetReads')}\n` +
     `${declarations.get('executeEffectComputation')}\nreturn executeEffectComputation;`,
   Object.keys(ports))(...Object.values(ports));
   const facts = Object.freeze({ref, prepared, identity: requestIdentity, compilation: {}, preparedExecution: {},
     updateTargetSelections: Object.freeze([]), assertUpdateSelectionCurrent() {}});
   selectedReads = 0;
   const first = await execute(facts);
+  assert.ok(Object.hasOwn(first, 'inferEvidence'));
+  assert.strictEqual(first.inferEvidence, evidenceConfiguration);
   for (let index = 0; index < 4; index++) {
     first.assertUpdateSelectionCurrent();
     assert.equal(first.sourceContinuation.currentRun(), true);

@@ -3071,6 +3071,48 @@ projected as evidence that the authored input was invalid. The SQL/Pipe entry
 alone does not qualify the other Source document controllers or ordinary
 installed/backend execution.
 
+### Query Program preparation limits
+
+The ordinary Request selects its SQL/Pipe lexical and expression/node bounds
+from the existing finite `ClientProgramPreparationLimits`. It forwards that
+same selection through the original Source-input parser when present. Its
+lowerer and canonical Program emitter use the selected compiler artifact
+envelope, since generated Program material is not the original SQL wire.
+The default captured Source caller obtains its raw-input byte/Text envelope
+from `request_default_program_preparation_limits` on the same observed snapshot.
+The explicit caller retains its supplied profile. Native document input keeps
+its existing document-derived profile. No path replaces those selections with
+the standard profile after parsing or rescans the captured input.
+
+After lowering, the same existing Request `computation_limits` slot retains
+the generated-Program envelope for the ordinary checker/compiler continuation.
+Reusing the generated Program must not apply the original raw SQL node bound
+to the expanded artifact. This transition changes only the input representation
+dimensions; generic explicit check/reuse APIs retain their supplied restrictions.
+Installed collection/join dimensions, depth, CTE policy and original target,
+Catalog, Parameter and Environment bindings remain independent.
+
+These projections are immutable DATA in the existing Program owner, not a new
+Resource, authority or preparation controller. The same Request reserves the
+actual document/syntax and expanded-material coexistence before either call.
+The original builder starts with empty storage and the encoder starts with an
+empty StringBuilder; ceiling values do not allocate their full capacity. Smaller
+explicit limits still refuse. Generic legacy callers that omit a selection
+retain their existing frontend defaults.
+
+The original parser/lowerer is called once. Currentness, wrong-phase, foreign
+original and reentry checks remain before use; cancellation and retirement
+remain on the same Request. A refused lexical prefix remains an incomplete
+observation, and a failed lowerer stays consumed rather than reparsing or
+retrying with larger limits. The Request large-literal component and the
+explicitly narrowed token/output tests exercise this connection separately
+from ordinary installed Result-read acceptance. A selected memory ceiling is
+still an independent finite admission: the large-literal compiler component
+checks a successful explicitly selected budget and the smaller original
+Ledger's exact refusal before compiler entry. Both retain the same original
+Program, and cleanup returns the original reservation; no full-ceiling
+allocation, replacement Ledger or increased product default is introduced.
+
 ### Source document Request continuation
 
 The existing public JSON/YAML Source spellings select their explicit Program
@@ -3180,6 +3222,23 @@ disclose protected Source information. The existing submission/disclosure owner
 must still establish the actual audience and original input binding. It cannot
 replace that obligation with a generic error-code whitelist or treat an
 uncertain Host exception as known nonacceptance.
+
+An actual Request snapshot grow can separately retain its original typed
+Resource retention/execution refusal with scalar demand and available extents.
+The same failed attempt supplies those facts; a pure reservation observation
+excludes other live reservations and held bytes without a second current check,
+snapshot, parse, grow or retry. A supplier refusal that does not correspond to
+an exceeded local extent remains opaque. No new Owner, retained Request field,
+capacity allowance or permission is created by this failure DATA.
+
+The fixed Node/RelA bridge projects only that snapshot issue and matching
+dimension. The adapter retains the original checked exception/cause and uses
+the existing diagnostic association and bounded delivery. Copied exception
+properties and unrelated/current/cleanup failures cannot supply this witness.
+A failed SDK capture precedes completed snapshot publication and exchange;
+this boundary observation is distinct from a durable `not_accepted` receipt or
+an accepted Run's terminal failure. Missing public receipts alone do not prove
+the boundary, and diagnostic loss remains incomplete evidence.
 
 
 ### Run-held original compilation
@@ -5356,6 +5415,18 @@ provider, Source, writer, holding, Store or parent release.
 
 ## Live original Request refusal observation
 
+A structural Program refusal retains its original syntax issue beside the
+same admitted input index until Request cleanup. Projection checks both
+identities, reserves report and pointer workspace on the same parent before
+the current callback, and checks them again before using the existing original
+input diagnostic builder. It does not parse or check another Program or create
+a semantic outcome. The original cursor is forwarded through the existing
+optional input-body argument. Native inputs without original key-spelling spans
+keep the proven root pointer; no deeper authored location is invented.
+The pointer workspace uses the existing locator's 65-component search bound,
+including overlapping prefix vectors. Failed-child cleanup clears the issue
+with the original index; the existing busy/current fence also covers projection.
+
 A public check observation can borrow the same still-live Request check refusal.
 The Node projection accepts the original `Result` returned by that Request's
 check call, together with its existing parent and original input receipt. The
@@ -5924,6 +5995,52 @@ the separately parsed child families. A later reader's independent parser remain
 its own funded boundary. This excludes an absent constructor, without reducing
 any original parser's rejection bound or acknowledging physical cleanup.
 
+### Derived output width remains separate from expression storage
+
+The original Stage envelope's `preparation_step` counts an object-form `derive`
+by its named output fields. This matches the existing relation checker: each
+key introduces at most one output column, independently of the nested expression
+shape. The same envelope retains that scalar count; no later tree walk, parser,
+schema constructor or semantic admission is added. Replacement and collision
+rules remain with the original checker. Other operands, including unknown
+objects and sequential arrays, retain their previous conservative bounds.
+
+Nested literal and expression nodes, text and collection storage remain in the
+same admitted Program's original data estimate. They do not also become row
+width multiplied across every operation and result. The Request, checker,
+compiler and Plan construction keep their existing same-owner reservations,
+current checks and borrow/retirement rules; this geometry grants no capacity or
+execution permission. Smaller explicit memory limits can still refuse before
+the compiler, and returning a construction borrow is not a cleanup ACK. These
+synchronous DATA projections add no cancellation or external callback boundary.
+Extensions to another operand must establish its actual output-width bound;
+unknown syntax is not assumed narrow. The focused geometry and original Request
+tests distinguish nested storage, multiple named fields, conservative unknown
+operands, finite refusal and final reservation cleanup.
+
+### Checked expression demand in the default sequence
+
+The existing sequence-preparation inventory composes the cached annotation
+counts of the same checked operation bindings. Each binding access spends its
+original bounded inventory work; it does not traverse the expression or literal
+again. The immutable `authored_expression_nodes` scalar stays with that original
+preparation, with checked overflow and the same cleanup owner.
+
+The prepared default sequence projects its expression-node and scalar-literal
+node envelopes from the larger of the unchanged installed default and this
+actual checked count. These are compiler rejection bounds, not reservations or
+execution grants. Work, depth, literal text, row, binding and other independent
+limits retain their original selection. An explicit sequence limit is passed
+unchanged and can still reject the same expression after a broader cached
+sequence succeeded. The Request continues to reserve its actual coexisting
+data on its original finite Ledger; no ceiling is allocated by this projection.
+This synchronous metadata adds no callback, currentness or cancellation
+boundary. New operation forms must retain their checked binding ownership;
+the projection cannot infer an expression or authorize a provider. The focused
+consumer checks the same original sequence, explicit refusal, compiler-call
+counts and final reservation cleanup. Complete module and Run admission remain
+separate existing boundaries.
+
 ### Codec geometry stays with its original construction role
 
 The existing JSON writer can retain construction geometry during the same
@@ -6191,3 +6308,123 @@ identity and permission rules. Source payload access and child cleanup remain
 inside the original entered Read; original parent retirement and accounting
 snapshots remain separate. This lifetime ordering does not supply the normal
 Host's required constructor/control backing by itself.
+
+### Request actual-work observations
+
+The existing Request retains four scalar counts for original query parsing,
+query lowering, the remaining semantic check, and Pure Program compilation.
+The existing observed operations accept an optional `calls_out` reference and
+increment it only after their own original/input/phase guards, immediately
+before the selected work. Source and publication wrappers forward that same
+reference. A declined grow, consumed registry, foreign publication, cached
+return or read-only projection contributes no work. A parser or checker that
+actually consumes a failed prefix remains one attempted work call.
+
+The Request copies its check child's two scalar counts before the existing
+child clear or typed continuation. These numbers survive payload retirement;
+they retain no input, Program, credentials, authority or cleanup witness. The
+parent's four words and child's two words are included in their original fixed
+control quotes. The two temporary check/compiler Ref/Some observations are
+conservatively co-counted in that same child quote. Parser/lowerer observations
+and bounded Native before/after snapshots use the existing Request control
+group, without a second reservation or changed semantic limit.
+
+The Native caller reads the same parent's scalar snapshots inside its existing
+entered Request interval, adds only the difference to diagnostic slots 66--69,
+and leaves its primary result and all current/return/retirement boundaries
+unchanged. A decreasing observation invalidates the existing recorder; missing,
+truncated or overflowed diagnostics cannot establish a successful count.
+Portable Core does not import Native, invoke a telemetry callback, or retain a
+global cache. These diagnostic counts are DATA, never capacity or permission.
+
+The existing mandatory installed source-free consumer checks the same SELECT
+and Number aggregate commands: parse/lower/remaining-check once, compilation
+once for run/sql, no compilation for check, and none of those operations for
+Saved Result. Original runnable, exact rows and input-removal/Saved assertions
+remain required. Legacy JSON helper tag 17 is a distinct observation; neither
+it nor the four selected counts proves the absence of other checker phases or
+complete immutable-body readmission. Those remain explicitly unmeasured.
+
+### Complete Pure Source invocation inventory
+
+A captured Pure invocation uses the exact checked graph's nonempty captured
+prefix. Its ordered captures, identities, Query requirements, Source evidence
+and input logical values must all cover that inventory. Repeated use of one
+Catalog Source remains a distinct nominal checked occurrence; equal row or
+contract CIDs cannot replace its owner or another capture. The original direct
+coverage check still refuses an unobserved keyed request, while keyed custody
+continues through its separate original observation path.
+
+Both original typed observations and wire admission use this same inventory
+and the existing bounded evidence grammar. Source-free invocation remains a
+separate path, and Model or serialization evidence cannot be discharged by
+ordinary Source observations. No cardinality constant replaces checked
+coverage, wire limits, authority or original capture liveness.
+
+Each final Result's policy must cover every original Source response in the
+checked Program, including downstream keyed responses. That check applies to
+all cardinalities, rather than only two acquisitions. Missing, duplicate and
+equal-CID foreign response originals remain invalid; the existing conservative
+policy join and its complete dependency closure are unchanged. These reads do
+not grant a provider operation, create a Ledger, retain a new physical child,
+or weaken the original cleanup and retirement duties.
+
+### Installed module runtime codecs
+
+The default Node, RelA and Native request callers retain the compiler codec
+selected by the same Request checker. They forward that same immutable record
+into installed runtime-fragment construction as well as the final compiler.
+Demand nodes, links and text and artifact bytes, nodes and
+depth use those original bounds; preparation work keeps the already selected
+finite source-free work counter. A later constructor does not silently restore
+the smaller legacy codec after checking the original Program.
+
+The optional runtime codec is separate from an explicitly supplied final compiler
+codec. Omitting it preserves the legacy runtime bounds and original factory-before-
+final-encoding refusal order. Supplying a smaller runtime codec still refuses
+before provider construction. Neither codec is Resource admission or a reservation:
+the existing Request owner still admits actual constructor demand before allocation,
+and a larger rejection ceiling does not preallocate its full extent.
+
+Generated-sequence and QueryTime binding constructors separately consume wiring
+work and entry counts. Those original recipe bounds remain 100,000 work and
+10,000 entries; compiler byte/node ceilings must never occupy those argument
+positions. Neither domain is an actual Resource reservation.
+
+### Immediate leaf runtime traversal demand
+
+The existing bounded single binding-row constructor may borrow required
+Number/Boolean input cells and return those same immutable scalar values.
+Its checked leaf proof covers input/prior-slot aliases, admitted literals and
+Null; both complete input and output schemas must remain required immediate
+scalar shapes. Its measuring writer and charged RowWorkspace cursors allocate
+no canonical body or decoded value forest. Their rejection ceilings therefore
+do not reserve a maximum-sized body or node forest. Depth, every logical root
+and row occurrence, operation workspace and actual retained output/copy overlap
+remain independently funded. The original byte/node/depth, work and current
+checks still execute.
+
+Text, recursive or constructed values and all generic/nonleaf paths retain the
+full physical envelope. A larger unused codec bound changes no immediate-leaf
+demand; it does not enlarge permission or credit finished/source storage before
+its original owner acknowledges release. Snapshot import still uses the exact
+finished receipt and grows the same Task reservation before construction.
+
+### Value-root entries and internal row decoding
+
+A constructed Array may retain many child values while using only one
+continuation frame. Existing expression scopes therefore receive the SAME
+RowWorkspace entry bound, separately from the unchanged continuation depth
+counter. The scope starts with empty arrays and grows on demand. Original
+per-element slot admission and logical live-byte checks still precede mutation;
+no declared maximum is allocated when the scope opens. Generic, ordered,
+predicate, aggregate and inference mapping callers use that same distinction.
+
+The default generated Local import profile also carries its existing complete
+checked record inventory into the per-row decoder. The node ceiling uses the
+original per-row node width plus the existing wrapper allowance, keeping the
+legacy floor. It never substitutes collection rows times width. Unknown
+inventories and separately selected explicit import profiles retain their
+original route. Cumulative value/work/identity checks, byte/depth bounds and
+SDK per-row retention controls remain independent. Quote and decoder consume
+the same selected profile under the original Task reservation.

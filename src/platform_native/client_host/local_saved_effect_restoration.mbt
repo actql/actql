@@ -382,6 +382,8 @@ pub fn NativeLocalSavedEffectReview::complete_approval_restoration_in_original_r
   self : NativeLocalSavedEffectReview,
   now : Double,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
+  native_timing_begin(32)
+  defer native_timing_end(32)
   guard !self.retired &&
     self._retained_restoration is Some(restoration) &&
     restoration.attempted &&

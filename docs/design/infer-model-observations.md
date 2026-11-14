@@ -154,3 +154,44 @@ body and schema. Input backing remains on the original Read, outcome backing
 on its original publication reservation; aliases retire before those respective
 owners return capacity. Native physical domain backing and durable Store
 admission remain obligations of their actual Host and publication owners.
+
+## Completed producer Results before a Model consumer
+
+A Model importing a completed Unit reads that Unit's semantic Result Artifact.
+Its two original Source observations remain distinct ancestry; they do not
+become two input ports merely because both contributed to the same JOIN.
+The effective input map names the one checked Result binding, while the saved
+Scope retains its authenticated Artifact and complete Source ancestry.
+
+The original input executor snapshots the exact producer reads before entering
+its provider. After that prefix completes, it seals the existing completed
+segment proof from those retained reads and binds the checked import to the
+producer's original Artifact and manifest. Equal rows, another read of the
+same producer, a foreign import index, or retired custody cannot substitute.
+These are borrowed controls under the existing input lifetime. Cleanup cuts
+their aliases only after the existing children settle.
+
+An upstream Source Unit can prepare local semantic evidence while later Models
+are still pending. It does not issue a complete Run observation. Final
+publication binds the actual original Run context without changing an early
+Artifact's body or identity. Similarly, a completed Model Unit can project its
+own input/outcome observation before a subsequent Model starts; this does not
+complete the all-Model observation inventory. Variable semantic bodies and
+retained inventories must be funded on the same original parent before their
+constructors, independently of codec limits and fixed Common controls.
+
+The Local preconsumer boundary can retain a managed Unit's full publication
+bridge as the same Run's pending input. Input selection then uses the existing
+captured-relation constructor and its original read checks; it must not import
+that producer again merely because its managed generation is still present in
+the output map. The successful Artifact receipt retains that same completed
+source after its export preparation finishes. A resident Result import borrows
+this exact source and proves that the completed pre-Model segment consumed it
+through the original checked input port. Equal rows, another import or a
+released receipt cannot substitute for this correspondence. Cell Results keep
+their original direct completion path.
+
+A Model component's typed call-scope failure can be projected through the
+existing dispatch diagnostic as a bounded category and original occurrence
+coordinates. Projection observes no input body, current callback or permission,
+and cannot replace the first failure or change cleanup and publication.

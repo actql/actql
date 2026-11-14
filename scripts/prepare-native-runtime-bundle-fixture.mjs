@@ -8,10 +8,13 @@ import {fileURLToPath} from 'node:url';
 import {prepareNativeResidentHttpComponent,prepareNativeResidentSite,prepareNativeRuntimeBundle,prepareNativeRuntimeBundleLibraries}
   from './native-runtime-bundle-fixture.mjs';
 import {originalDescriptor} from './native-preparation-originals.mjs';
+import {prepareNativeResidentPortableRuntime} from './native-resident-portable-preparation.mjs';
+import {prepareNativeParallel} from './native-preparation-lanes.mjs';
+import {prepareNativeQuerySoftware} from './native-query-preparation.mjs';
 
 const args=process.argv.slice(2),options={};
 for(let i=0;i<args.length;i+=2) {
-  assert(['--destination','--entries','--seconds','--resident-seconds','--http-jobs'].includes(args[i]) && args[i+1]!==undefined);
+  assert(['--destination','--entries','--seconds','--resident-seconds','--http-jobs','--lanes'].includes(args[i]) && args[i+1]!==undefined);
   assert.equal(options[args[i]],undefined);options[args[i]]=args[i+1];
 }
 assert(options['--destination']);
@@ -22,6 +25,7 @@ const residentSeconds=Number(options['--resident-seconds']??seconds);
 assert(Number.isSafeInteger(residentSeconds) && residentSeconds>0 && residentSeconds<=1800);
 const httpJobs=Number(options['--http-jobs']??1);
 assert(Number.isSafeInteger(httpJobs) && [1,2].includes(httpJobs));
+const lanes=Number(options['--lanes']??1);assert([1,2].includes(lanes));
 const target=process.platform==='darwin' && process.arch==='arm64'?'darwin-arm64'
   :process.platform==='linux' && process.arch==='x64'?'linux-x64':undefined;
 assert(target,'No selected native preparation target');
@@ -57,6 +61,7 @@ function timedPreparation(phase, prepare) {
   }
 }
 mkdirSync(destination,{mode:0o700});
+function serialPreparation() {
 const entries={};
 for(const [name,prepare,selected] of [
   ['native_runtime_bundle',prepareNativeRuntimeBundle,selection!=='resident'],
@@ -80,6 +85,21 @@ const sharedOpenSSL=process.env.ACTQL_TEST_NATIVE_OPENSSL_SOURCE_ARCHIVE??
 const httpReceipt=selection==='bundle'?undefined:
   timedPreparation('http_component',()=>
     prepareNativeResidentHttpComponent(repository,join(destination,'http'),{seconds,tlsArchive:sharedOpenSSL,tlsJobs:httpJobs}));
+const portableReceipt = selection === 'all' ? join(destination, 'portable-runtime.json') : undefined;
+if (portableReceipt !== undefined) timedPreparation('portable_runtime', () =>
+  prepareNativeResidentPortableRuntime(repository, portableReceipt));
+  return {entries,components,httpReceipt,portableReceipt};
+}
+const {entries,components,httpReceipt,portableReceipt}=lanes===2
+  ?await prepareNativeParallel({repository,destination,source,target,selection,seconds,residentSeconds,httpJobs,moonHome,clang,sdk})
+  :serialPreparation();
+// The same completed preparation owns one default Native Query image. Only
+// software is shared; the later HTTP and Remote fixtures retain fresh roots,
+// keys, ports, environment, original Moon commands and exact execution counts.
+let queryReceipt;
+if(target==='darwin-arm64'&&selection==='all')timedPreparation('query_software',()=>{
+  queryReceipt=prepareNativeQuerySoftware(repository,destination,{env:{...process.env,MOON_HOME:moonHome}});
+});
 assert.equal(run('git',['rev-parse','HEAD']).trim(),source);
 assert.equal(run('git',['status','--porcelain']),'');
 writeFileSync(join(destination,'preparation.json'),JSON.stringify({source,target,moon_home:moonHome,
@@ -88,5 +108,7 @@ writeFileSync(join(destination,'preparation.json'),JSON.stringify({source,target
   {flag:'wx',mode:0o600});
 if(process.env.GITHUB_ENV!==undefined)appendFileSync(process.env.GITHUB_ENV,
   'ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION='+destination+'\n'+
+  (queryReceipt===undefined?'':'ACTQL_TEST_NATIVE_QUERY_PREPARATION='+queryReceipt+'\n')+
+  (portableReceipt===undefined?'':'ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION='+portableReceipt+'\n')+
   (httpReceipt===undefined?'':'ACTQL_TEST_NATIVE_HTTP_COMPONENT_RECEIPT='+httpReceipt+'\n'));
 console.log(JSON.stringify({source,target,preparation:destination,entries:Object.keys(entries)}));

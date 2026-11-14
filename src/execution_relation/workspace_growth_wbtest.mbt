@@ -96,9 +96,10 @@ test "working growth cannot accept a callback that reenters the same attachment"
   let reentered = Ref(true)
   let owner : Ref[WorkspaceGrowth?] = Ref(None)
   let growth = working_growth_fixture(_ => {
-    reentered.val = grow_workspace(owner.val.unwrap(), 20, 0L)
+    reentered.val = grow_workspace(owner.val.unwrap(), 0, 0L)
     Ok(())
   })
+  growth.retained_outputs = Some(0L)
   owner.val = Some(growth)
   let workspace = { ..row_workspace(100), growth: Some(growth), }
   assert_false(reserve_slots(workspace, 5))
@@ -106,6 +107,114 @@ test "working growth cannot accept a callback that reenters the same attachment"
   assert_eq(workspace.live, 0)
   assert_eq(growth.slots, 0)
   assert_eq(growth.funded, 0L)
+}
+
+///|
+test "unchanged workspace quote preserves live roots and cumulative output funding" {
+  let requests : Array[Int64] = []
+  let growth = {
+    ..working_growth_fixture(bytes => {
+      requests.push(bytes)
+      Ok(())
+    }),
+    live_ceiling: 1048576L,
+    retained_outputs: Some(0L),
+  }
+  let workspace = { ..row_workspace(100), growth: Some(growth), }
+  let limits : LogicalLimits = {
+    max_input_rows: 1L,
+    max_value_bytes: 100L,
+    max_live_value_bytes: 100L,
+    max_work: 1000L,
+  }
+  let budget = logical_budget(limits, 100, 100, 10, growth=Some(growth)).unwrap()
+  assert_true(reserve_slots(workspace, 7))
+  let first = reserve_logical_bytes(budget, 10L).unwrap()
+  let output = funded_row_output(growth)
+  append_admitted_output(output, [funded_row_number(output, 1.0)]).unwrap()
+  assert_eq(growth.used, 1824L)
+  release_logical_root(budget, first).unwrap()
+  release_slots(workspace, 7)
+  // This second output uses the same already-funded page, without going
+  // through grow_workspace. Its retained charge must survive peak reuse.
+  append_admitted_output(output, [funded_row_number(output, 2.0)]).unwrap()
+  assert_eq(growth.used, 2352L)
+  assert_true(reserve_slots(workspace, 7))
+  let second = reserve_logical_bytes(budget, 10L).unwrap()
+  assert_eq((growth.slots, growth.logical, growth.text), (7, 10L, 0L))
+  assert_eq((growth.used, growth.retained_outputs), (2352L, Some(1056L)))
+  assert_eq(requests, [16384L])
+  // A larger workspace still recomposes the complete simultaneous demand.
+  assert_true(reserve_slots(workspace, 1))
+  assert_eq(growth.used, 2608L)
+  release_slots(workspace, 8)
+  release_logical_root(budget, second).unwrap()
+  assert_true(cancel_admitted_output(output))
+  assert_eq((workspace.live, budget.live), (0, 0L))
+  assert_eq((growth.slots, growth.logical), (0, 0L))
+  assert_eq((growth.used, growth.retained_outputs), (2608L, Some(1056L)))
+}
+
+///|
+test "unmetered workspace keeps explicit retained quotes separate from output metering" {
+  let requests : Array[Int64] = []
+  let growth = working_growth_fixture(bytes => {
+    requests.push(bytes)
+    Ok(())
+  })
+  assert_true(
+    grow_workspace(growth, 5, 10L, text=Some(20L), retained=Some(100L)),
+  )
+  assert_eq((growth.used, growth.retained_outputs), (904L, None))
+  assert_true(grow_workspace(growth, 5, 10L, retained=Some(200L)))
+  assert_eq(growth.used, 1004L)
+  assert_true(grow_workspace(growth, 5, 10L))
+  assert_eq((growth.used, growth.funded), (804L, 1004L))
+  assert_eq(requests, [904L, 1004L])
+  assert_false(
+    grow_workspace(growth, 5, 10L, retained=Some(9223372036854775807L)),
+  )
+  assert_true(growth.failed)
+  assert_eq((growth.used, growth.funded), (804L, 1004L))
+  assert_false(grow_workspace(growth, 5, 10L))
+}
+
+///|
+test "unchanged workspace quote retains invalid busy failed and retained decrease refusal" {
+  for condition in 0..<6 {
+    let growth = {
+      ..working_growth_fixture(_ => Ok(())),
+      retained_outputs: Some(0L),
+    }
+    assert_true(
+      grow_workspace(growth, 5, 10L, text=Some(20L), retained=Some(100L)),
+    )
+    growth.busy = condition == 0
+    growth.failed = condition == 1
+    assert_false(
+      grow_workspace(
+        growth,
+        if condition == 2 {
+          -1
+        } else {
+          5
+        },
+        if condition == 3 {
+          -1L
+        } else {
+          10L
+        },
+        text=Some(if condition == 4 { -1L } else { 20L }),
+        retained=Some(if condition == 5 { 99L } else { 100L }),
+      ),
+    )
+    assert_true(growth.failed)
+    assert_eq((growth.used, growth.funded), (904L, 1000L))
+    assert_eq((growth.slots, growth.logical, growth.text), (5, 10L, 20L))
+    assert_eq(growth.retained_outputs, Some(100L))
+    growth.busy = false
+    assert_false(grow_workspace(growth, 5, 10L))
+  }
 }
 
 ///|

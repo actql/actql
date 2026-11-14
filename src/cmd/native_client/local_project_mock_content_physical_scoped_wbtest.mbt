@@ -2626,6 +2626,7 @@ fn[T] Result::native_content_lookup_stage(
         @run_host.SourceLogical(_) => "SourceLogical"
         @run_host.SourceObservation(_) => "SourceObservation"
         @run_host.Derivation(_) => "Derivation"
+        @run_host.Dependency(_) => "Dependency"
         @run_host.CompletedIdentity(value) => {
           let cause = match value {
             @execution.Unavailable => "Unavailable"

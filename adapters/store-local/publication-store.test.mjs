@@ -2810,7 +2810,14 @@ test('existing prepared schemas retain real readers and owners without new durab
     assert.equal(second.created, false);
     assert.equal(first.prepared.status().pending, true);
     assert.equal(second.prepared.status().pending, true);
-    await assert.rejects(store.close(), code('PublicationStoreCleanupPending'));
+    await assert.rejects(store.close(), error => {
+      assert.equal(error.code, 'PublicationStoreCleanupPending');
+      assert.equal(error.cleanupDiagnostic.kind, 'publication-store-close');
+      assert.equal(error.cleanupDiagnostic.resources.preparedSchemas, 1);
+      assert(Object.isFrozen(error.cleanupDiagnostic.resources));
+      assert.equal(store.status().closed, false);
+      return true;
+    });
     await first.prepared.release();
     assert.equal(second.prepared.status().pending, true);
     await second.prepared.release();

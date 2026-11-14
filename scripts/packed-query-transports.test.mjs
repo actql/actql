@@ -32,6 +32,39 @@ async function fixtureSyntax(path) {
   return {source, nodes};
 }
 
+test('partitioned public check observes the same original directory as its HTTP Host', async () => {
+  const {nodes} = await fixtureSyntax('./fixtures/packed-public-query.mjs');
+  const checks = nodes.filter(node => node.type === 'FunctionDeclaration' &&
+    node.id.name === 'exercisePublicCheck');
+  assert.equal(checks.length, 1);
+  assert.deepEqual(checks[0].params.map(node => node.name), ['options', 'directory']);
+  const observations = nodes.filter(node => node.start > checks[0].start && node.end < checks[0].end &&
+    node.type === 'CallExpression' && node.callee.name === 'observe');
+  assert.equal(observations.length, 2);
+  assert(observations.every(node => node.arguments[0].name === 'directory'));
+  const calls = nodes.filter(node => node.type === 'CallExpression' &&
+    node.callee.name === 'exercisePublicCheck');
+  assert.equal(calls.length, 2, 'both original public check entrances remain selected');
+  const remote = calls.find(node => node.arguments[0].name === 'options');
+  assert.equal(remote.arguments[1]?.name, 'directory');
+  const local = calls.find(node => node !== remote);
+  assert.equal(local.arguments[1]?.name, 'localDirectory');
+  const loop = nodes.filter(node => node.type === 'ForOfStatement' &&
+    node.start < remote.start && node.end > remote.end)
+    .sort((a, b) => (a.end - a.start) - (b.end - b.start))[0];
+  const directory = loop.body.body.flatMap(node => node.declarations ?? [])
+    .find(node => node.id.name === 'directory');
+  assert.equal(directory.init.callee.name, 'cohortDirectory');
+  assert.equal(directory.init.arguments[0].name, 'remoteDirectory');
+  assert.equal(directory.init.arguments[1].object.name, 'cohortIndexes');
+  assert.equal(directory.init.arguments[1].property.name, 'index');
+  const hosts = nodes.filter(node => node.start > loop.start && node.end < loop.end &&
+    node.type === 'CallExpression' && node.callee.name === 'openInstalledRemoteHttpHost');
+  assert.equal(hosts.length, 1);
+  assert.equal(hosts[0].arguments[0].properties.find(node => node.key.name === 'directory')
+    .value.name, 'directory', 'check observation cannot select an unopened base-root Journal');
+});
+
 for (const [name, expression] of Object.entries({
   normal: {gte: [{field: 'amount'}, {literal: 20}]},
   unsupportedPredicate: {gt: [{add: [{field: 'id'}, {literal: 1}]}, {literal: 2}]},
@@ -1587,14 +1620,14 @@ test('canonical query launcher forwards one selected envelope to deadline and co
   };
   visit(syntax);
   assert.equal(declarations.length, 2);
-  const invoke = Function('run', 'process', 'root', 'runtimeEnvironment', 'acceptanceTimeout', 'Date',
+  const invoke = Function('run', 'process', 'root', 'runtimeEnvironment', 'acceptanceTimeout', 'Date', 'portablePart', 'ciPart',
     declarations.map(node => source.slice(node.start, node.end)).join('\n'));
-  for (const environment of [{}, {ACTQL_TEST_QUERY_TIMEOUT_MS: '1800000'}]) {
+  for (const portablePart of [undefined, 1, 2, 3]) for (const environment of [{}, {ACTQL_TEST_QUERY_TIMEOUT_MS: '1800000'}]) {
     const selected = selectAcceptanceTimeout(environment);
     const calls = [];
     invoke((...args) => { calls.push(args); return ''; },
       {execPath: process.execPath, argv: []}, 'owned-consumer', {original: 'unchanged'}, selected,
-      {now: () => 1000});
+      {now: () => 1000}, portablePart, portablePart === undefined ? undefined : `portable-${portablePart}`);
     assert.equal(calls.length, 1);
     const [command, args, root, passed, timeout] = calls[0];
     assert.equal(command, process.execPath);
@@ -1604,6 +1637,7 @@ test('canonical query launcher forwards one selected envelope to deadline and co
     assert.equal(passed.ACTQL_TEST_QUERY_TIMEOUT_MS, String(selected));
     assert.equal(passed.ACTQL_TEST_QUERY_DEADLINE, String(1000 + selected));
     assert.equal(passed.ACTQL_TEST_QUERY_EXPECT_FULL_CORPUS, '1');
+    assert.equal(passed.ACTQL_TEST_QUERY_CI_PART, portablePart === undefined ? undefined : `portable-${portablePart}`);
     assert.equal(timeout, selected);
     const owner = createTransportOwner({deadline: Date.now() + selected - 100, timeoutMs: selected,
       forward() {}});

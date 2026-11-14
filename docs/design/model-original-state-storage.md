@@ -115,6 +115,30 @@ The Host retains the same Plan, Run, generated sequences, Source holdings and
 Effect dependency ports; it does not recompile or mark omitted ancestors as
 newly executed.
 
+When the installed original observation requires input dependency bodies, the
+restoring caller forwards the same checked `inputBodyRead` through its existing
+start boundary. As on the live path, the first identity scan retains those
+bodies only after the original Read/consumer/Run capacity check. Observation
+borrows that scan's actual receipt; it does not reopen input or scan it again.
+Omitting the optional Read preserves the existing body-free path. A foreign
+Read, insufficient capacity or cancellation cannot authorize body construction
+or Model dispatch, and the original cleanup owner remains responsible.
+
+Restored Model publication can borrow the same authenticated Saved scope and
+the enclosing computation's actual retained Result-import evidence. It checks
+the original compiled Run, Plan, input artifact, effective inputs and named
+observations, then each checked import's original owner, producer, interface,
+borrow and Manifest. The Model Invocation retains those import observations;
+their existing Relations and acquisition Scope keep the Source ancestry.
+The producer Artifact also retains its actual acquired-Source witness through
+the import owner. The receiving helper matches that witness's Source identity
+to the real captured producer, then checks its logical input and Source
+evidence against the Saved observation. A shared input name, Run identity or
+equal logical rows alone cannot establish this correspondence.
+Historical observations alone cannot create direct acquisition evidence, and
+this path neither admits live Sources into a Saved input nor reopens a Source.
+Current custody is checked again before returning the borrowed publication.
+
 For the existing separate-task plural Model form, the same Plan retains the
 complete ordered graph and Scope inventory. Cold restoration borrows a nonempty
 ordered subset of actual completed members; unsent members keep their existing

@@ -152,6 +152,8 @@ pub fn managed_provider_carrier_complete(@managed_carrier_runtime.Material, Int6
 
 pub fn managed_provider_carrier_input(@managed_carrier_runtime.ProducerView) -> ManagedProviderInput
 
+pub fn managed_provider_cleanup_continuation(ManagedProviderExecution) -> Int64
+
 pub fn managed_provider_complete(@execution_relation.CompletedOutput, Int64, Int64) -> ManagedProviderPoll
 
 pub fn managed_provider_continue(Int64, Int64) -> ManagedProviderPoll

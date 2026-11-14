@@ -137,9 +137,9 @@ pub fn check_program_operation_ranges(
           Err(_) => return Err(ForeignOwner(i))
         }
       }
-      // Both timestamps already have fixed-width canonical UTC spelling, so
-      // lexicographic order is chronological, including millisecond precision.
-      if start.compare(end) > 0 {
+      // Admitted Timestamp Values may have different fractional widths. Keep
+      // their original spelling while comparing exact instants.
+      if @value.compare_timestamp_text(start, end) == Some(1) {
         return Err(ReversedRange(i))
       }
       entries.push({

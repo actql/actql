@@ -696,6 +696,64 @@ pub fn client_program_keyed_lookup_find(
 }
 
 ///|
+/// Prepare the original complete request inventory before any physical send.
+/// These ports retain the existing lookup owner, work and reservation.
+#export_name("clientProgramKeyedLookupRequestPlanStart")
+pub fn client_program_keyed_lookup_request_plan_start(
+  lookup : @publication_host.ClientKeyedLookupInput,
+) -> Result[Unit, @publication_host.ClientKeyedRequestIssue] {
+  @publication_host.start_client_keyed_lookup_request_plan(lookup)
+}
+
+///|
+#export_name("clientProgramKeyedLookupRequestPlanRetain")
+pub fn client_program_keyed_lookup_request_plan_retain(
+  lookup : @publication_host.ClientKeyedLookupInput,
+  request : @publication_host.ClientKeyedRequest,
+) -> Result[Unit, @publication_host.ClientKeyedRequestIssue] {
+  @publication_host.retain_client_keyed_lookup_planned_request(lookup, request)
+}
+
+///|
+#export_name("clientProgramKeyedLookupRequestPlanFinish")
+pub fn client_program_keyed_lookup_request_plan_finish(
+  lookup : @publication_host.ClientKeyedLookupInput,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, @publication_host.ClientKeyedRequestIssue] {
+  @publication_host.finish_client_keyed_capture_request_plan(
+    lookup, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// Borrow the original row already selected by the SAME frozen schedule.
+/// This projects control DATA only; Source permission still precedes IO.
+#export_name("clientProgramKeyedLookupNextPlannedRow")
+pub fn client_program_keyed_lookup_next_planned_row(
+  lookup : @publication_host.ClientKeyedLookupInput,
+) -> Result[Int, @publication_host.ClientKeyedRequestIssue] {
+  match @publication_host.client_keyed_lookup_next_planned_row(lookup) {
+    Some(row) => Ok(row)
+    None => Err(@publication_host.Assembly("unavailable_planned_request"))
+  }
+}
+
+///|
+/// Borrow the same prepared occurrence, without another request cursor.
+#export_name("clientProgramKeyedLookupPlannedRequest")
+pub fn client_program_keyed_lookup_planned_request(
+  lookup : @publication_host.ClientKeyedLookupInput,
+  row : Int,
+) -> Result[
+  @publication_host.ClientKeyedRequest,
+  @publication_host.ClientKeyedRequestIssue,
+] {
+  @publication_host.client_keyed_lookup_planned_request(lookup, row)
+}
+
+///|
 #export_name("clientProgramKeyedLookupRequestStart")
 pub fn client_program_keyed_lookup_request_start(
   lookup : @publication_host.ClientKeyedLookupInput,
@@ -767,7 +825,12 @@ pub fn client_program_keyed_lookup_accept_capture(
     Ok(value) => value
     Err(_) => return Err(Assembly("closed_capture"))
   }
-  @publication_host.begin_client_keyed_lookup_response(lookup, request, read)
+  @publication_host.begin_client_keyed_lookup_response(
+    lookup,
+    request,
+    read,
+    capture=Some(capture),
+  )
 }
 
 ///|
@@ -788,6 +851,28 @@ pub fn client_program_keyed_lookup_read(
   @publication_host.ClientKeyedRequestIssue,
 ] {
   @publication_host.finish_client_keyed_lookup_input(lookup)
+}
+
+///|
+/// Retain the original right identity/body before its first Model read.
+/// This is not a completed attempt receipt or permission to publish.
+#export_name("clientProgramKeyedLookupPublicationInput")
+pub fn client_program_keyed_lookup_publication_input(
+  lookup : @publication_host.ClientKeyedLookupInput,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @execution.SuppliedRelationRead,
+  @publication_host.ClientKeyedRequestIssue,
+] {
+  @publication_host.finish_client_keyed_lookup_publication_input(
+    lookup,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    retain_body=true,
+  )
 }
 
 ///|

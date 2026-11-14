@@ -21,6 +21,7 @@ fn original_keyed_environment_members(bodies : Array[String]) -> Json raise {
 // Declaration generation builds test inputs, never expected output/custody.
 fn original_keyed_declaration_environment(
   relation_versions? : Bool = false,
+  file_request_fields? : Bool = false,
 ) -> (@row_source_host.RowDeclaration, String) raise {
   let listing = "{\"media_type\":{\"nullable\":true,\"type\":\"string\"},\"modified_at\":{\"nullable\":true,\"type\":\"timestamp\"},\"name\":{\"nullable\":false,\"type\":\"string\"},\"path\":{\"nullable\":true,\"type\":\"string\"},\"resource\":{\"nullable\":false,\"resource_kind\":\"file\",\"type\":\"resource_ref\"},\"size_bytes\":{\"nullable\":true,\"type\":\"number\"},\"version\":{\"nullable\":false,\"type\":\"string\"}}"
   let content = "{\"content\":{\"media_type\":\"application/pdf\",\"nullable\":false,\"type\":\"content_ref\"},\"resource\":{\"nullable\":false,\"resource_kind\":\"file\",\"type\":\"resource_ref\"},\"version\":{\"nullable\":false,\"type\":\"string\"}}"
@@ -29,7 +30,7 @@ fn original_keyed_declaration_environment(
     resource_kind: "file",
     schema_wire: listing,
     schema_cid: "sha256:" + @sha.hex(@utf8.encode(listing)),
-    request_schema_wire: if relation_versions {
+    request_schema_wire: if relation_versions && !file_request_fields {
       None
     } else {
       Some(

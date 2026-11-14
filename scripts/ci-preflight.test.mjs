@@ -58,17 +58,28 @@ test('read-only ref lookup verifies exact ref/type and never follows token-beari
     await assert.rejects(readRef('actql/actql', 'pull/123/head', {token: 'fixture', fetchImpl: async () => result}));
   }
 });
-test('mandatory preflight admits every normal heavy primitive and does not serialize the compound spec suite', () => {
-  const heavy = ['core', 'host', 'client-packages', 'client-supported-versions', 'client-distribution', 'client-distribution-callers',
-    'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-packed-composition', 'client-salesforce',
-    'native-cli-installed', 'native-cli-linux-local', 'native', 'session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos',
+test('preflight remains mandatory at the final gate without delaying independent jobs', () => {
+  const heavy = ['core-js', 'core-common', 'core-darwin', 'host', 'client-packages', 'client-supported-versions', 'client-distribution', 'client-distribution-callers',
+    'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-composition', 'client-salesforce', 'client-readme-packed',
+    'native-cli-installed', 'native-cli-linux-local', 'native-workloads', 'native-http', 'session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos-workloads',
     'native-separated-network', 'workers', 'connector-addition', 'duckdb-node'];
   for (const name of [...heavy, 'lint', 'spec']) {
-    assert(jobs[name].needs.includes('preflight'), name);
+    assert(!jobs[name].needs.includes('preflight'), name);
     assert(!jobs[name].needs.includes('spec'), name);
-    assert(!/always\(|failure\(|cancelled\(/u.test(jobs[name].if), `${name} must retain implicit success()`);
+    if (name === 'core-darwin') {
+      assert.deepEqual(jobs[name].needs, ['select-targets', 'lint', 'core-js']);
+      assert(jobs[name].if.includes("always() && !cancelled() && needs.lint.result == 'success'"));
+    } else assert(!/always\(|failure\(|cancelled\(/u.test(jobs[name].if), `${name} must retain implicit success()`);
     assert.equal(jobs[name]['continue-on-error'], undefined);
   }
+  for (const [name, job] of Object.entries(jobs)) {
+    if (name === 'check') assert.equal(job.needs.filter(value => value === 'preflight').length, 1);
+    else assert(!job.needs?.includes('preflight'), name);
+  }
+  assert.deepEqual(jobs['native-http-macos'].needs,
+    ['select-targets', 'native-macos-workloads', 'native-http', 'core']);
+  assert.match(jobs['native-http-macos'].if, /always\(\)/u, 'The lightweight join must report a failed or missing original consumer');
+  assert.equal(jobs['native-http-macos']['continue-on-error'], undefined);
   assert.deepEqual(permissions, {contents: 'read'});
   assert.equal(jobs.preflight.steps[0].with['fetch-depth'], 0);
   assert.equal(jobs.preflight.steps[0].with['persist-credentials'], false);
@@ -136,7 +147,7 @@ test('operation evidence consistency is mandatory admission without changing the
   assert.deepEqual(selection.targets, ['js', 'wasm', 'native']);
   assert.equal(selection.macos, true);
   const results = Object.fromEntries(gateJobs.map(name =>
-    [name, {result: ['focused-tests', 'main-performance', 'health-quick'].includes(name) ? 'skipped' : 'success'}]));
+    [name, {result: ['focused-tests', 'health-quick'].includes(name) ? 'skipped' : 'success'}]));
   const plan = {sourceRevision: merge, selection};
   const context = {sourceRevision: merge, event: 'pull_request'};
   verifyGate(plan, results, context);
@@ -147,7 +158,7 @@ test('operation evidence consistency is mandatory admission without changing the
 });
 test('failed, skipped, cancelled or missing preflight cannot become a passing final gate', () => {
   const selection = selectTargets(['.github/workflows/ci.yml']);
-  const results = Object.fromEntries(gateJobs.map(name => [name, {result: ['focused-tests', 'main-performance', 'health-quick'].includes(name) ? 'skipped' : 'success'}]));
+  const results = Object.fromEntries(gateJobs.map(name => [name, {result: ['focused-tests', 'health-quick'].includes(name) ? 'skipped' : 'success'}]));
   const plan = {sourceRevision: merge, selection};
   const context = {sourceRevision: merge, event: 'pull_request'};
   verifyGate(plan, results, context);

@@ -151,10 +151,14 @@ pub fn parsed_check_registry_data_estimate(
 /// known prefix; it never fabricates full failure Usage or zero total work.
 pub fn observe_finish_parsed_check_registry(
   prepared : ParsedCheckRegistry,
+  calls_out? : Ref[Int64]? = None,
 ) -> Result[(CheckOutcome, Int, Bool), ParsedCheckPreludeIssue] {
   let before = match parsed_check_registry_remaining_work(prepared) {
     Err(issue) => return Err(issue)
     Ok(value) => value
+  }
+  if calls_out is Some(observed) {
+    observed.val += 1L
   }
   let outcome = match finish_parsed_check_registry(prepared) {
     Err(issue) => return Err(issue)

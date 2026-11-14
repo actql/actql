@@ -18,10 +18,21 @@ export function blockAfter(source,anchor) {
 // The caller may return Local scratch while the SAME provider keeps an
 // independently accepted completion. Full cleanup and retention are distinct.
 const release=`{
-  release_local_managed_provider_scratch(provider_execution,
+  let observe = fn() {
+    if provider_execution.val is Some(active) {
+      let cursor = @local.managed_provider_cleanup_continuation(active)
+      if cursor > provider_reclamation_steps.val {
+        provider_reclamation_steps.val = cursor
+      }
+    }
+  }
+  observe()
+  let released = release_local_managed_provider_scratch(provider_execution,
     provider_completion_retained,
     live.val && settled.val && (ordinary.val is Some(_) || carrier.val is Some(_)),
     final_provider_work,)
+  observe()
+  released
 }`;
 const providerScratch=`{
   guard provider.val is Some(active) else { return true }
@@ -282,6 +293,7 @@ const importReclaim=`{
 // These are correspondence premises for the existing conditional model, not
 // another capacity allowance or a proof of physical file/import reclamation.
 const cancelSnapshot=`{
+  save_output.val = None
   if stream.val is Some(value) { @execution.cancel_completed_output_export(value) }
   if receipt.val is Some(value) { @execution.cancel_completed_export_receipt(value) }
   if importing.val is Some(value) { @execution.cancel_completed_output_import(value) |> ignore }
@@ -397,7 +409,7 @@ export function checkDriverRetirementSource(read) {
   // shared mutation scope must already enclose the earlier transfer/current;
   // counting a new call alone cannot admit a weakened guard or per-copy latch.
   assert.equal((driver.match(/local_managed_input_writes_open\(/g)??[]).length,6,'Changed import/bridge write guards');
-  assert.equal(clean(blockAfter(driver,'fn with_local_managed_import_mutation(')),clean(`{
+  assert.equal(clean(blockAfter(driver,'fn[A] with_local_managed_import_mutation(')),clean(`{
     if active.val { return Err(Configuration(InputUnavailable)) }
     active.val = true
     let result = action()

@@ -22,7 +22,11 @@ pub fn issue_single_model_client_effect_direct_source_evidence(
   // admission/current callbacks here. The Model original and later raw-body
   // borrow retain their own actual current boundaries.
   if !physical_equal(scope.owner, sources.occurrence.owner) ||
-    !client_infer_occurrence_matches_plan(sources.occurrence, scope.plan) {
+    !client_infer_occurrence_matches_plan(scope.plan.occurrence, scope.plan) ||
+    !client_infer_composed_source_origin_matches(
+      sources.occurrence,
+      scope.plan.occurrence,
+    ) {
     return Err(Invocation(ForeignCapturedInput))
   }
   for input in sources.inputs {
@@ -52,6 +56,7 @@ fn build_model_effect_direct_sources(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  before_body? : ((String, @encode.EncodingConstructionGeometry) -> Bool)? = None,
 ) -> Result[
   Array[ClientEffectAcquiredEvidence],
   ClientEffectAcquiredEvidenceIssue,
@@ -106,6 +111,45 @@ fn build_model_effect_direct_sources(
       })
       continue
     }
+    if before_body is Some(back) {
+      if input.original is Whole(original) {
+        let shape = match
+          @acquisition.parameterized_request_canonical_geometry(
+            @acquisition.source_acquisition_request(original),
+            max_bytes,
+            max_nodes,
+            max_depth,
+          ) {
+          Ok(value) => value
+          Err(_) => return Err(Invocation(Encoding))
+        }
+        if !back("request_values", shape) {
+          return Err(Invocation(Encoding))
+        }
+      }
+      let (source, logical, _, _) = @publication.model_source_observation_originals(
+        input.observation,
+      )
+      let shapes = match
+        @publication.source_unit_metadata_construction_geometry(
+          [source],
+          [logical],
+          [@query.captured_source_relation_row_count(input.identity)],
+          retention,
+          max_bytes,
+          max_nodes,
+          max_depth,
+          include_union=false,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Relation(issue))
+      }
+      for (kind, shape) in shapes {
+        if !back(kind, shape) {
+          return Err(Invocation(Encoding))
+        }
+      }
+    }
     let material = match input.original {
       Query(requirement) => {
         let material = @planning.query_requirement_material(requirement)
@@ -117,18 +161,9 @@ fn build_model_effect_direct_sources(
         )
       }
       Whole(original) =>
-        @acquisition.parameterized_request_document(
-          @acquisition.source_acquisition_request(original),
-          max_bytes,
-          max_nodes,
-          max_depth,
+        client_effect_whole_source_request_material(
+          original, max_bytes, max_nodes, max_depth,
         )
-        .map_err(_ => ClientEffectLocalInvocationIssue::Encoding)
-        .bind(document => {
-          @sha.text_hex(@encode.document_text(document))
-          .map(hash => (document, "sha256:" + hash))
-          .map_err(_ => ClientEffectLocalInvocationIssue::Encoding)
-        })
     }
     let (request, request_cid) = match material {
       Ok(value) => value

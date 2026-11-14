@@ -122,6 +122,8 @@ fn start_local_managed_test_task_operations(
     Err(IdentityExport(_)) => fail("Local managed identity export failed")
     Err(CarrierSnapshot(_)) =>
       fail("Unexpected Carrier snapshot during Relation setup")
+    Err(@local_driver.ControlWorkLimit(_)) =>
+      fail("Local managed setup exhausted control work")
   }
   if grant is Some(value) {
     @strategy.authorize_captured_task_activation(run, task, value).unwrap()
@@ -190,6 +192,8 @@ fn start_local_managed_test_task_operations(
     Err(IdentityExport(_)) => fail("Local managed identity export failed")
     Err(CarrierSnapshot(_)) =>
       fail("Unexpected Carrier snapshot during Relation start")
+    Err(@local_driver.ControlWorkLimit(_)) =>
+      fail("Local managed start exhausted control work")
   }
   assert_eq(operations.inputs.length(), rows.length())
   if !finish_inputs {
@@ -220,6 +224,8 @@ fn start_local_managed_test_task_operations(
         Err(IdentityExport(_)) => fail("Local managed identity export failed")
         Err(CarrierSnapshot(_)) =>
           fail("Unexpected Carrier snapshot during Relation transfer")
+        Err(@local_driver.ControlWorkLimit(_)) =>
+          fail("Local managed transfer exhausted control work")
       }
     }
     (transfer.finish)().unwrap()
@@ -420,6 +426,8 @@ fn run_local_managed_test_task(
       fail("Local managed identity export failed")
     Err(@local_driver.CarrierSnapshot(_)) =>
       fail("Unexpected Carrier snapshot during Relation execution")
+    Err(@local_driver.ControlWorkLimit(_)) =>
+      fail("Local managed execution exhausted control work")
     Err(
       @local_driver.Configuration(
         @connector.Execution(@execution.Rows(_, @execution.InvalidRows))
@@ -469,6 +477,8 @@ fn run_local_managed_test_task(
       Err(IdentityExport(_)) => fail("Local managed identity export failed")
       Err(CarrierSnapshot(_)) =>
         fail("Unexpected Carrier snapshot during Relation finalization")
+      Err(@local_driver.ControlWorkLimit(_)) =>
+        fail("Local managed finalization exhausted control work")
     }
     assert_true(observation.progress >= finalization_progress)
     assert_true(observation.work >= 0L)

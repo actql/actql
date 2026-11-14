@@ -9,6 +9,8 @@ import {selectAcceptanceTimeout, createTransportOwner, requireCompleteInventory,
 import {decodeRetainedFixture, encodeRetainedFixture} from './retained-fixture-values.mjs';
 import {requireGraphArgumentCheckReport} from './graph-argument-check.mjs';
 
+const ciPart = process.env.ACTQL_TEST_QUERY_CI_PART;
+assert.ok(ciPart === undefined || /^portable-[123]$/u.test(ciPart), 'UnknownPackedPortablePart');
 const deadline = Number(process.env.ACTQL_TEST_QUERY_DEADLINE);
 const timeoutMs = selectAcceptanceTimeout(process.env);
 const owner = createTransportOwner({deadline, timeoutMs});
@@ -24,6 +26,7 @@ try {
     const reports = await Promise.all(transportModes.map(async mode => {
       const report = JSON.parse(await readFile(`transport-completion.${mode}.json`, 'utf8'));
       assert.equal(report.mode, mode);
+      assert.equal(report.ciPart, ciPart);
       assert.equal(report.complete, true);
       requireCompleteInventory(report.expectedInventory, report.completedInventory);
       return report;
@@ -38,14 +41,16 @@ try {
     if (process.env.ACTQL_TEST_QUERY_EXPECT_FULL_CORPUS === '1') {
       const registered = JSON.parse(await readFile('public-query-inventory.json', 'utf8'));
       assert.equal(registered.version, 'actql-public-query-fixture-inventory/0.1');
+      const selected = ciPart === undefined ? registered : JSON.parse(await readFile('public-query-portable-parts.json', 'utf8')).parts[ciPart];
+      assert.ok(selected && selected.totalCases > 0, 'Every portable part has a pinned nonempty inventory');
       for (const report of reports) {
-        assert.equal(report.completedInventory.length, registered.totalCases);
+        assert.equal(report.completedInventory.length, selected.totalCases);
         assert.equal(createHash('sha256').update(JSON.stringify(report.completedInventory)).digest('hex'),
-          registered.inventorySha256, 'full worker inventory must match the independent authored pin');
+          selected.inventorySha256, 'full worker inventory must match the independent authored pin');
       }
     }
-    if (process.env.ACTQL_TEST_GRAPH_DIAGNOSTICS_ONLY === '1' ||
-        process.env.ACTQL_TEST_QUERY_EXPECT_FULL_CORPUS === '1') {
+    if ((ciPart === undefined || ciPart === 'portable-1') && (process.env.ACTQL_TEST_GRAPH_DIAGNOSTICS_ONLY === '1' ||
+        process.env.ACTQL_TEST_QUERY_EXPECT_FULL_CORPUS === '1')) {
       const checks = await Promise.all(transportModes.map(async mode => {
         const report = JSON.parse(await readFile(`graph-argument-check.${mode}.json`, 'utf8'));
         requireGraphArgumentCheckReport(report, mode);

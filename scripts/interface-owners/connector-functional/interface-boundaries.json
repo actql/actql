@@ -14208,7 +14208,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "b197713798f4448e478790d326b2004333100355e636515532bcf9c3833653b2",
+      "sha256": "03f8270ee8efa02fc633c71ec046361c3d1df68ca1dd03ede14cd341bd52ea2f",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -14625,6 +14625,8 @@
             "chargeVerification",
             "capturedResourcePath",
             "keyedContent",
+            "lookupPublication",
+            "lookupOriginal",
             "access"
           ],
           "async": true
@@ -14651,7 +14653,9 @@
         },
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed",
-          "parameters": [],
+          "parameters": [
+            "bytes"
+          ],
           "async": true
         },
         {
@@ -14661,14 +14665,14 @@
         },
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed#10",
-          "parameters": [
-            "lookup"
-          ],
+          "parameters": [],
           "async": false
         },
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed#11",
-          "parameters": [],
+          "parameters": [
+            "lookup"
+          ],
           "async": false
         },
         {
@@ -14677,10 +14681,13 @@
           "async": false
         },
         {
+          "name": "createInstalledRowSource/openKeyed/openKeyed#13",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createInstalledRowSource/openKeyed/openKeyed#2",
-          "parameters": [
-            "bytes"
-          ],
+          "parameters": [],
           "async": true
         },
         {
@@ -14693,7 +14700,7 @@
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed#4",
           "parameters": [
-            "body"
+            "bytes"
           ],
           "async": true
         },
@@ -14702,26 +14709,28 @@
           "parameters": [
             "body"
           ],
-          "async": false
+          "async": true
         },
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed#6",
           "parameters": [
-            "charge"
+            "body"
           ],
           "async": false
         },
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed#7",
           "parameters": [
-            "rows",
             "charge"
           ],
           "async": false
         },
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed#8",
-          "parameters": [],
+          "parameters": [
+            "rows",
+            "charge"
+          ],
           "async": false
         },
         {
@@ -14748,6 +14757,7 @@
             "originalCaptures",
             "managedRun",
             "keyedContent",
+            "publication",
             "access",
             "maxWork",
             "quantum"
@@ -14869,12 +14879,20 @@
         {
           "name": "createInstalledRowSource/ordinaryRecoveryBinding",
           "parameters": [
-            "prepared"
+            "prepared",
+            "expected"
           ],
           "async": false
         },
         {
           "name": "createInstalledRowSource/ordinaryRecoveryBinding/ordinaryRecoveryBinding",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/ordinaryRecoveryBinding/ordinaryRecoveryBinding#2",
           "parameters": [
             "field",
             "index"
@@ -16117,6 +16135,7 @@
             "createInstalledRowSource/operationBindings/operationBindings",
             "createInstalledRowSource/ordinaryRecoveryBinding",
             "createInstalledRowSource/ordinaryRecoveryBinding/ordinaryRecoveryBinding",
+            "createInstalledRowSource/ordinaryRecoveryBinding/ordinaryRecoveryBinding#2",
             "createInstalledRowSource/ordinarySubject/ordinarySubject",
             "createInstalledRowSource/prepare",
             "createInstalledRowSource/prepare/authorizePreparation/authorizePreparation",
@@ -16187,7 +16206,8 @@
             "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets",
             "rowSourceCheckEnvironment",
             "text/text",
-            "valueCid/valueCid"
+            "valueCid/valueCid",
+            "createInstalledRowSource/openKeyed/openKeyed#13"
           ],
           "exports": [
             "createInstalledRowSource",

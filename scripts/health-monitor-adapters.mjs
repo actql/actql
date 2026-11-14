@@ -12,7 +12,7 @@ import {inventory, unpack} from './package-release.mjs';
 import {CLIENT_PACKAGES} from './packed-client-packages.mjs';
 import {verifyNodeBenchmarkPackages, nodeWarmSmallQueryFixtures, nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
-import {twoModelDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
+import {twoModelDealReviewFiles, twoModelWholeDealReviewFiles, twoModelJoinedWholeDealReviewFiles, twoModelJoinedInputsDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
 import {digest, jsonDigest, nodeColdStateKinds, nodeColdPublicPhases} from './health-monitor-report.mjs';
 
 const self = fileURLToPath(import.meta.url);
@@ -22,6 +22,7 @@ export const healthFixtures = Object.freeze({
   aggregate: nodeWarmSmallQueryFixtures.find(row => row.operation === 'warm-decimal-sum'),
   status: {status: 'succeeded', revision: 'same original observed revision'},
   workflow: 'adapters/host-node/fixtures/mock-project-effect-public.mjs',
+  workObservation: 'adapters/host-node/fixtures/work-observation.fixture.mjs',
 });
 
 export async function execute(command, args, {cwd, raw, name, timeout = 600_000, env = process.env, observeFirstResult = false} = {}) {
@@ -62,7 +63,8 @@ export async function execute(command, args, {cwd, raw, name, timeout = 600_000,
   return result;
 }
 
-export async function prepareHealthPackages({repository, root, source, retained, command}) {
+export async function prepareHealthPackages({repository, root, source, retained, command, normalLifecycle = false}) {
+  assert.equal(typeof normalLifecycle, 'boolean');
   const destination = join(root, 'packages'); await mkdir(destination);
   let manifest;
   if (retained) {
@@ -108,7 +110,8 @@ export async function prepareHealthPackages({repository, root, source, retained,
   assert.deepEqual(manifest.packages.map(row => row.name).sort(), CLIENT_PACKAGES.map(name => '@actql/' + name).sort());
   const consumer = join(root, 'consumer'); await mkdir(consumer);
   await writeFile(join(consumer, 'package.json'), '{"private":true,"type":"module"}\n');
-  await command('npm', ['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--no-save', '--omit=optional',
+  await command('npm', ['install', '--offline', normalLifecycle ? '--ignore-scripts=false' : '--ignore-scripts',
+    '--no-audit', '--no-fund', '--no-save', '--omit=optional',
     ...manifest.packages.map(row => {
       assert.equal(row.file, row.file.split('/').at(-1)); return resolve(dirname(retained), row.file);
     })], {cwd: consumer, name: 'install-node'});
@@ -334,31 +337,142 @@ export async function quickNodeMetrics({prepared, root, repository, command, cou
 
 export async function mockWorkflowMetrics({prepared, root, repository, command, counts, onMetric,
   template = 'churn-risk-mock', variant = 'readme'}) {
-  assert.ok(variant === 'readme' || variant === 'two-models' && template === 'deal-review-mock');
+  assert.ok(variant === 'readme' || ['two-models', 'two-models-whole', 'two-models-joined-inputs', 'two-models-joined-whole'].includes(variant) && template === 'deal-review-mock');
   const fixture = await readFile(join(repository, healthFixtures.workflow));
-  const files = variant === 'two-models' ? twoModelDealReviewFiles() : projectTemplateFiles(template);
+  const workFixture = await readFile(join(repository, healthFixtures.workObservation));
+  const files = variant === 'two-models-joined-inputs' ? twoModelJoinedInputsDealReviewFiles()
+    : variant === 'two-models-joined-whole' ? twoModelJoinedWholeDealReviewFiles()
+    : variant === 'two-models-whole' ? twoModelWholeDealReviewFiles()
+    : variant === 'two-models' ? twoModelDealReviewFiles() : projectTemplateFiles(template);
+  const program = variant !== 'readme' ? 'deal-review.program.json'
+    : template === 'deal-review-mock' ? 'deal-review.aql' : 'churn-risk.aql';
+  const answers = Object.values(JSON.parse(files['actql.config.json']).mock.answers)
+    .map(path => path.replace(/^\.\//u, ''));
+  const recoveryInputs = [program, ...answers];
+  assert.equal(new Set(recoveryInputs).size, recoveryInputs.length);
+  assert(recoveryInputs.every(path => Object.hasOwn(files, path)));
   assert.ok(['churn-risk-mock', 'deal-review-mock'].includes(template));
   const metric = {id: 'mock-workflow', kind: 'latency', target: 'node-local', temperature: 'cold', required: true,
-    unit: 'ms', requiredSamples: counts.coldSamples, fixtureSha256: jsonDigest({fixture: digest(fixture), files}),
-    samples: [], evidence: root};
+    unit: 'ms', requiredSamples: counts.coldSamples, fixtureSha256: jsonDigest({fixture: digest(fixture), workObservation: digest(workFixture), files}),
+    template, variant, samples: [], evidence: root};
   for (let iteration = 0; iteration < counts.coldSamples; iteration++) {
-    const project = join(root, `mock-project-${iteration}`); await mkdir(project);
+    const project = join(root, `mock-project-${template}-${variant}-${iteration}`); await mkdir(project);
     for (const [name, bytes] of Object.entries(files)) {
       await mkdir(dirname(join(project, name)), {recursive: true}); await writeFile(join(project, name), bytes, {flag: 'wx'});
     }
+    const originals = new Map(await Promise.all(recoveryInputs.map(async path => {
+      const info = await lstat(join(project, path));
+      assert(info.isFile() && info.nlink === 1);
+      return [path, {dev: info.dev, ino: info.ino}];
+    })));
     await writeFile(join(project, 'workflow.mjs'), fixture, {flag: 'wx'});
+    await writeFile(join(project, 'work-observation.fixture.mjs'), workFixture, {flag: 'wx'});
     await symlink(join(prepared.consumer, 'node_modules'), join(project, 'node_modules'), 'dir');
     const started = process.hrtime.bigint(), cpu = process.cpuUsage(), phases = [];
     try {
-      for (const [phase, expected] of [['capture', 9], ['approve', 11], ['recover', 7]]) {
-        const observation = await command(process.execPath, [join(project, 'workflow.mjs'), phase, join(project, 'handoff.json'),
+      for (const [phase, expected] of [['capture', 10], ['approve', 11], ['recover', 7]]) {
+        const args = [join(project, 'workflow.mjs'), phase, join(project, 'handoff.json'),
           ...(template === 'churn-risk-mock' ? [] : [template]),
-          ...(variant === 'readme' ? [] : [variant])],
-          {cwd: project, name: `workflow-${iteration}-${phase}`, timeout: 30_000});
-        const rows = observation.stdout.trim().split('\n').map(line => JSON.parse(line));
-        assert.equal(rows.filter(row => row.step && row.status === 'passed').length, expected);
-        assert.equal(rows.at(-1).status, 'passed'); assert.equal(rows.at(-1).firstFailedStep, null);
-        phases.push({phase, pid: observation.pid, wallNs: observation.wallNs, assertions: expected});
+          ...(variant === 'readme' ? [] : [variant])];
+        const record = {phase, command: process.execPath, args, cwd: project,
+          expectedAssertions: expected, completed: false, startedAt: new Date().toISOString()};
+        phases.push(record);
+        const path = join(project, `${phase}.observation.json`);
+        await writeFile(path, JSON.stringify(record, null, 2) + '\n', {mode: 0o600, flag: 'wx'});
+        let observation, phaseFailed = false, primary;
+        try {
+          if (phase !== 'capture') {
+            for (const input of recoveryInputs) {
+              await assert.rejects(lstat(join(project, input)), {code: 'ENOENT'});
+            }
+            record[phase === 'approve' ? 'originalInputsAbsentBeforeApproval' : 'originalInputsAbsentBeforeSaved'] = true;
+          }
+          observation = await command(process.execPath, args,
+            {cwd: project, name: `workflow-${template}-${variant}-${iteration}-${phase}`, timeout: 30_000});
+          Object.assign(record, {pid: observation.pid, wallNs: observation.wallNs,
+            exitCode: observation.code, signal: observation.signal ?? null});
+          const rows = observation.stdout.trim().split('\n').map(line => JSON.parse(line));
+          record.summary = rows.at(-1);
+          record.operations = rows.filter(row => typeof row.step === 'string');
+          // The command and its original outcome exist before fixture assertions.
+          await writeFile(path, JSON.stringify(record, null, 2) + '\n');
+          assert.equal(rows.filter(row => row.step && row.status === 'passed').length, expected);
+          for (const row of record.operations) {
+            const timing = row.timing;
+            assert(timing && ['wallNs', 'cpuUserUs', 'cpuSystemUs'].every(name =>
+              Number.isSafeInteger(timing[name]) && timing[name] >= 0));
+            assert(timing.wallNs > 0 && Date.parse(timing.endedAt) >= Date.parse(timing.startedAt));
+          }
+          assert.equal(record.summary.status, 'passed'); assert.equal(record.summary.firstFailedStep, null);
+          assert.deepEqual(record.summary.firstClose, {attempted: true, returned: true});
+          const work = record.summary.workObservation;
+          assert.equal(work?.complete, true, 'Require actual lossless Source/Model/write observation');
+          if (phase === 'capture') {
+            assert.equal(work.sourceAcquisitionStarts, 2);
+            assert.equal(work.modelCallStarts, variant === 'readme' ? 2 : 4);
+            assert.equal(work.effectReplacementReturns, 0);
+            if (['two-models-joined-inputs', 'two-models-joined-whole'].includes(variant)) {
+              assert.deepEqual(record.summary.modelInputObservation,
+                {complete: true, modelCalls: 4, joinedInputs: 2, confirmationInputs: 2});
+            }
+          } else {
+            assert.equal(work.sourceAcquisitionStarts, 0); assert.equal(work.modelCallStarts, 0);
+            assert.equal(work.effectReplacementReturns, phase === 'approve' ? 2 : 0);
+          }
+          if (phase === 'capture') {
+            // Only the authored inputs in this fresh private fixture may go.
+            // The child has exited and its FIRST public close returned. Keep
+            // config, captured state, target data and every original reference.
+            // Approval must consume the completed capture, not reacquire its
+            // Source or rerun Models from the removed Program/answer inputs.
+            record.inputRemoval = {completed: false, paths: []};
+            for (const input of recoveryInputs) {
+              const selected = join(project, input), info = await lstat(selected);
+              const original = originals.get(input);
+              assert(info.isFile() && info.nlink === 1);
+              assert.equal(info.dev, original.dev); assert.equal(info.ino, original.ino);
+              assert.equal(await readFile(selected, 'utf8'), files[input]);
+            }
+            for (const input of recoveryInputs) {
+              await unlink(join(project, input)); record.inputRemoval.paths.push(input);
+            }
+            record.inputRemoval.completed = true;
+          }
+          if (phase === 'recover') {
+            for (const input of recoveryInputs) {
+              await assert.rejects(lstat(join(project, input)), {code: 'ENOENT'});
+            }
+            record.originalInputsAbsentAfterSaved = true;
+          }
+          record.assertions = expected; record.completed = true;
+        } catch (error) {
+          phaseFailed = true; primary = error;
+          observation ??= error?.commandResult;
+          // A nonzero child can still have reported its original primary and
+          // first-close outcome. Preserve those DATA without replacing it.
+          try {
+            const rows = observation.stdout.trim().split('\n').map(line => JSON.parse(line));
+            record.operations = rows.filter(row => typeof row.step === 'string');
+            if (Object.hasOwn(rows.at(-1), 'firstClose')) record.summary = rows.at(-1);
+          } catch {}
+          try {
+            const partial = JSON.parse(await readFile(join(project, `${phase}.pending.json`), 'utf8'));
+            assert.equal(partial.phase, phase);
+            assert(Number.isSafeInteger(observation?.pid) && observation.pid > 0);
+            assert.equal(partial.pid, observation.pid);
+            record.partialObservation = partial;
+          } catch (diagnosticError) {
+            record.partialObservationUnavailable = nodeBenchmarkFailure(diagnosticError);
+          }
+          Object.assign(record, {pid: observation?.pid ?? null, wallNs: observation?.wallNs ?? null,
+            exitCode: observation?.code ?? null, signal: observation?.signal ?? null,
+            error: nodeBenchmarkFailure(error)});
+          throw error;
+        } finally {
+          record.endedAt = new Date().toISOString();
+          try {await writeFile(path, JSON.stringify(record, null, 2) + '\n');}
+          catch (error) {if (phaseFailed) throw primary; throw error;}
+        }
       }
       const used = process.cpuUsage(cpu);
       metric.samples.push({iteration, pid: process.pid, stateId: project, wallNs: Number(process.hrtime.bigint() - started),
@@ -375,6 +489,7 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
     } finally {await unlink(join(project, 'node_modules'));}
     await onMetric(metric);
   }
+  return metric;
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === self) {

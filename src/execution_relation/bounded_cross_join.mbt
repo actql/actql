@@ -43,6 +43,7 @@ priv struct BoundedCrossJoinState {
   mut checked_row : Array[@admitted.Value]
   mut output_recheck : @admitted.RecheckCursor?
   mut output_charge : BoundedOutputRowCharge?
+  mut reclamation_steps : Int64
 }
 
 ///|
@@ -53,6 +54,8 @@ pub(all) enum BoundedCrossJoinIssue {
   Capture(CaptureIssue)
   Completion(TrustedOutputIssue)
   Execution(@bounded.Issue)
+  // Only an exhausted cumulative ControlBudget; never row/workspace capacity.
+  ControlWorkLimit
 }
 
 ///|
@@ -111,7 +114,14 @@ fn cleanup_bounded_cross_join_state(state : BoundedCrossJoinState) -> Bool {
     state.output_charge = None
   }
   if state.output is Some(output) {
-    if !reclaim_bounded_admitted_output(output, state.accepted.val) {
+    let (released, removed) = reclaim_bounded_admitted_output_counted(
+      output,
+      state.accepted.val,
+    )
+    // Every row/cell reference is removed once; Int-sized row and field
+    // bounds keep the total below Int64's ceiling.
+    state.reclamation_steps += removed.to_int64()
+    if !released {
       return false
     }
     state.output = None
@@ -191,7 +201,7 @@ fn bounded_cross_join_step(
             return bounded_cross_join_failure(InputLimit, progress, used + 1)
           Err(ControlLimit) =>
             return bounded_cross_join_failure(
-              Rows(RowLimit),
+              ControlWorkLimit,
               progress,
               used + 1,
             )
@@ -228,7 +238,7 @@ fn bounded_cross_join_step(
         let name = @schema.reference_name(field.output)
         if !spend_control(state.control, 1) ||
           !spend_control_text(state.control, name) {
-          return bounded_cross_join_failure(Rows(RowLimit), progress, used)
+          return bounded_cross_join_failure(ControlWorkLimit, progress, used)
         }
         state.output_name = name
         state.source_name = @schema.reference_name(source)
@@ -253,7 +263,7 @@ fn bounded_cross_join_step(
         }
         if !spend_control(state.control, 1) ||
           !spend_control_text(state.control, state.source_name) {
-          return bounded_cross_join_failure(Rows(RowLimit), progress, used)
+          return bounded_cross_join_failure(ControlWorkLimit, progress, used)
         }
         if @schema.reference_name(candidate.name) == state.source_name {
           if !reserve_slots(state.workspace, 3) {
@@ -282,9 +292,13 @@ fn bounded_cross_join_step(
           state.right_row = 0
           continue
         }
-        if state.emitted >= state.output_ceiling ||
-          !spend_control(state.control, 1) ||
-          !reserve_slots(state.workspace, 2) {
+        if state.emitted >= state.output_ceiling {
+          return bounded_cross_join_failure(Rows(RowLimit), progress, used)
+        }
+        if !spend_control(state.control, 1) {
+          return bounded_cross_join_failure(ControlWorkLimit, progress, used)
+        }
+        if !reserve_slots(state.workspace, 2) {
           return bounded_cross_join_failure(Rows(RowLimit), progress, used)
         }
         state.checked_row = []
@@ -333,8 +347,10 @@ fn bounded_cross_join_step(
           @schema.field_at(state.output_schema, state.column) is Some(field) else {
           return bounded_cross_join_failure(InvalidExecution, progress, used)
         }
-        if !spend_control(state.control, 1) ||
-          !reserve_slots(state.workspace, 1) {
+        if !spend_control(state.control, 1) {
+          return bounded_cross_join_failure(ControlWorkLimit, progress, used)
+        }
+        if !reserve_slots(state.workspace, 1) {
           return bounded_cross_join_failure(Rows(RowLimit), progress, used)
         }
         if bounded_small_output_value(value) {
@@ -591,6 +607,7 @@ pub fn start_bounded_cross_join(
     checked_row: [],
     output_recheck: None,
     output_charge: None,
+    reclamation_steps: 0L,
   }
   let (session, token) = @bounded.start(
     engine,
@@ -641,6 +658,26 @@ pub fn bounded_cross_join_cleanup_pending(
   value : BoundedCrossJoinExecution,
 ) -> Bool {
   @bounded.cleanup_pending(value.session)
+}
+
+///|
+/// Only a stopped, unpublished private buffer can continue local reclamation.
+/// The cursor observes actual removals; it is not stop, release or work credit.
+pub fn bounded_cross_join_cleanup_continuation(
+  value : BoundedCrossJoinExecution,
+) -> Int64 {
+  if !@bounded.session_stopped(value.session) ||
+    value.accepted.val ||
+    !@bounded.cleanup_pending(value.session) {
+    return -1L
+  }
+  guard value.state.output is Some(output) &&
+    !output.buffer.open &&
+    output.buffer.reclaiming &&
+    !output.buffer.reading else {
+    return -1L
+  }
+  value.state.reclamation_steps
 }
 
 ///|

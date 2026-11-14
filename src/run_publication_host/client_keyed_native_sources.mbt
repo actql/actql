@@ -1,8 +1,16 @@
 ///|
+// Private cleanup ownership only; never a caller-supplied permission or proof.
+priv enum ClientKeyedSourceIdentityCustody {
+  ScannedHere
+  BorrowedOriginal
+}
+
+///|
 /// Captured Source metadata on the existing left/lookup owner. No Request,
 /// Source, Account or cleanup owner is created by this borrowed original.
 pub struct ClientKeyedNativeSourceEvidence {
   identity : @query.CapturedSourceRelationIdentity
+  priv identity_custody : ClientKeyedSourceIdentityCustody
   logical : @publication.RunEvidenceValue
   observation : @publication.RunEvidenceValue
   relation : @publication.PublicationContract
@@ -20,8 +28,12 @@ priv struct ClientKeyedNativeSourceState {
   sources : Array[ClientKeyedNativeSourceEvidence]
   mut source_scan : @query.CapturedSourceCellIdentityScan?
   mut source_identity : @query.CapturedSourceRelationIdentity?
+  mut source_identity_custody : ClientKeyedSourceIdentityCustody
   mut request : ClientRequestIdentity?
   mut relation : ClientKeyedNativeLeftRelation?
+  mut retention_base : @publication.PublicationContract?
+  mut dependency_bodies : Array[@publication.CapturedEffectDependencyBody]?
+  mut physical_source : (String, String)?
 }
 
 ///|
@@ -143,49 +155,9 @@ fn build_client_keyed_native_whole_source_evidence(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientKeyedNativeSourceEvidence, ClientKeyedRequestIssue] {
-  let state = match lookup.native_sources {
-    Some(state) => {
-      guard state.request is Some(same) &&
-        client_request_identity_relation(same, request) is SameRequest else {
-        return Err(Assembly("foreign_native_source_request"))
-      }
-      state
-    }
-    None => {
-      let array = @shape.reference_array_retained_extent(1L, 0L).unwrap()
-      let fixed = @execution.preparation_representation_cost({
-        record_headers: 3L + array.record_headers,
-        reference_slots: 7L + array.reference_slots,
-        scalar_words: 2L + array.scalar_words,
-        owned_utf16_units: 0L,
-        owned_wire_bytes: 0L,
-      }).unwrap()
-      match
-        keyed_lookup_body_grow(
-          lookup,
-          lookup.retained_bytes,
-          lookup.execution_bytes,
-          fixed,
-          None,
-        ) {
-        Err(issue) => return Err(issue)
-        Ok(_) => ()
-      }
-      guard !lookup.closed &&
-        lookup.native_sources is None &&
-        lookup.planned_requests is None else {
-        return Err(Assembly("claimed_native_source_state"))
-      }
-      let state = {
-        sources: [],
-        source_scan: None,
-        source_identity: None,
-        request: Some(request),
-        relation: None,
-      }
-      lookup.native_sources = Some(state)
-      state
-    }
+  let state = match keyed_lookup_source_metadata_state(lookup, request) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   // Entry record9R plus the retained EncodedDocument H1/R1/W3,
   // scan/identity/result/tuple/Some refusal frontiers, old/new
@@ -194,7 +166,7 @@ fn build_client_keyed_native_whole_source_evidence(
   let controls = @execution.preparation_representation_cost({
     record_headers: 25L,
     reference_slots: 39L + 16L * (index.to_int64() + 1L),
-    scalar_words: 25L,
+    scalar_words: 26L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()
@@ -246,17 +218,40 @@ fn build_client_keyed_native_whole_source_evidence(
     Ok(value) => value
     Err(issue) => return Err(Capture(issue))
   }
+  state.source_identity_custody = ScannedHere
   state.source_identity = Some(identity)
   state.source_scan = None
   // Existing metadata codec grows the same reservation before any body is
   // encoded. Keep completed identity/body backing alive beside these outputs.
+  let order_fields = @acquisition.parameterized_request_field_count(
+    @acquisition.source_acquisition_request(original),
+  )
+  guard @execution.preparation_array_representation(
+      if order_fields > 1 {
+        1L
+      } else {
+        0L
+      },
+      if order_fields > 1 {
+        order_fields.to_int64()
+      } else {
+        0L
+      },
+      true,
+    )
+    is Some(ordering) &&
+    @execution.preparation_representation_cost(ordering) is Some(ordering_bytes) &&
+    @execution.checked_preparation_add_product(controls, ordering_bytes, 1L)
+    is Some(document_controls) else {
+    return Err(Assembly("capacity_overflow"))
+  }
   let metadata_phase = match
     grow_keyed_lookup_protocol_metadata(
       lookup,
       max_bytes,
       7L,
       copies=7,
-      extra_controls=controls,
+      extra_controls=document_controls,
     ) {
     Err(issue) => return Err(issue)
     Ok(value) => value
@@ -299,7 +294,7 @@ fn build_client_keyed_native_whole_source_evidence(
     Err(issue) => return Err(SourceObservation(issue))
   }
   let request_document = match
-    @acquisition.parameterized_request_document(
+    @acquisition.parameterized_request_canonical_document(
       @acquisition.source_acquisition_request(original),
       max_bytes,
       max_nodes,
@@ -349,6 +344,7 @@ fn build_client_keyed_native_whole_source_evidence(
   }
   let result = {
     identity,
+    identity_custody: ScannedHere,
     logical,
     observation,
     relation,
@@ -444,10 +440,48 @@ pub fn prepare_client_keyed_native_left_relation(
   }
   // All Source logical/observation issuers above admitted complete original
   // captures. Never reinterpret unknown/partial external envelopes as complete.
+  // The declared-file consumer borrows already-retained Source bodies. Price
+  // its next closed envelopes from those original wires/CIDs, not the policy
+  // ceiling. Native's selected caller keeps its existing codec geometry.
+  let writer_bytes = if @publication.publication_contract_name(
+      component.original.profile,
+    ) ==
+    "declared_file_content_read" {
+    let mut units = issuer.length().to_int64() +
+      policy.cid.length().to_int64() +
+      @publication.publication_contract_json(retention).length().to_int64() +
+      left.producer_contract_cid.length().to_int64() +
+      left.logical_value_cid.length().to_int64() +
+      left.relation_schema_cid.length().to_int64() +
+      left.computation_contract_cid.length().to_int64() +
+      client_request_authority_scope_cid(request).length().to_int64()
+    for source in state.sources {
+      let borrowed_units = @publication.publication_contract_json(
+          source.relation,
+        )
+        .length()
+        .to_int64() +
+        @publication.publication_contract_json(source.scope).length().to_int64()
+      guard @execution.checked_preparation_add_product(
+          units, borrowed_units, 1L,
+        )
+        is Some(next) else {
+        return Err(Assembly("capacity_overflow"))
+      }
+      units = next
+    }
+    guard @execution.checked_preparation_add_product(4096L, units, 6L)
+      is Some(bytes) else {
+      return Err(Assembly("capacity_overflow"))
+    }
+    Int64::min(bytes, max_bytes.to_int64()).to_int()
+  } else {
+    max_bytes
+  }
   let metadata_phase = match
     grow_keyed_lookup_protocol_metadata(
       lookup,
-      max_bytes,
+      writer_bytes,
       state.sources.length().to_int64(),
       copies=5,
     ) {
@@ -466,7 +500,7 @@ pub fn prepare_client_keyed_native_left_relation(
   let scope = match
     @publication.issue_combined_acquisition_scope(
       state.sources.map(value => value.scope),
-      max_bytes,
+      writer_bytes,
       max_nodes,
       max_depth,
     ) {
@@ -477,12 +511,27 @@ pub fn prepare_client_keyed_native_left_relation(
     @publication.issue_result_retention_for_data_policy(
       retention,
       policy.cid,
-      max_bytes,
+      writer_bytes,
       max_nodes,
       max_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Identity(@publication.Contract(issue)))
+  }
+  // Derivation inputs are a sorted distinct CID set (artifacts.md), while
+  // state.sources and the checked computation retain every actual occurrence.
+  // Assemble that set from admitted originals before issuing the new body;
+  // never normalize or reseal an incoming evidence envelope.
+  let inputs = state.sources.map(value => {
+    @publication.publication_contract_identity(value.relation)
+  })
+  inputs.sort()
+  let mut index = inputs.length() - 1
+  while index > 0 {
+    if inputs[index] == inputs[index - 1] {
+      inputs.remove(index) |> ignore
+    }
+    index -= 1
   }
   let ordering = match
     @publication.issue_local_result_occurrence_evidence(
@@ -490,14 +539,12 @@ pub fn prepare_client_keyed_native_left_relation(
       left.logical_value_cid,
       left.relation_schema_cid,
       left.computation_contract_cid,
-      state.sources.map(value => {
-        @publication.publication_contract_identity(value.relation)
-      }),
+      inputs,
       @publication.publication_contract_identity(scope),
       policy.cid,
       issuer,
       client_request_authority_scope_cid(request),
-      max_bytes,
+      writer_bytes,
       max_nodes,
       max_depth,
     ) {
@@ -511,7 +558,7 @@ pub fn prepare_client_keyed_native_left_relation(
       selected_retention,
       left.rows,
       "complete",
-      max_bytes,
+      writer_bytes,
       max_nodes,
       max_depth,
     ) {
@@ -557,4 +604,63 @@ pub fn client_keyed_native_left_relation(
     return None
   }
   state.relation
+}
+
+///|
+// One original Source metadata inventory on the lookup for both installed
+// declared-file and Native writers. This neither owns physical Sources nor
+// issues another Request/current permission or a completed Model input.
+fn keyed_lookup_source_metadata_state(
+  lookup : ClientKeyedLookupInput,
+  request : ClientRequestIdentity,
+) -> Result[ClientKeyedNativeSourceState, ClientKeyedRequestIssue] {
+  let state = match lookup.native_sources {
+    Some(state) => {
+      guard state.request is Some(same) &&
+        client_request_identity_relation(same, request) is SameRequest else {
+        return Err(Assembly("foreign_native_source_request"))
+      }
+      state
+    }
+    None => {
+      let array = @shape.reference_array_retained_extent(1L, 0L).unwrap()
+      let fixed = @execution.preparation_representation_cost({
+        record_headers: 3L + array.record_headers,
+        reference_slots: 10L + array.reference_slots,
+        scalar_words: 3L + array.scalar_words,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      }).unwrap()
+      match
+        keyed_lookup_body_grow(
+          lookup,
+          lookup.retained_bytes,
+          lookup.execution_bytes,
+          fixed,
+          None,
+        ) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      guard !lookup.closed &&
+        lookup.native_sources is None &&
+        lookup.planned_requests is None else {
+        return Err(Assembly("claimed_native_source_state"))
+      }
+      let state = {
+        sources: [],
+        source_scan: None,
+        source_identity: None,
+        source_identity_custody: BorrowedOriginal,
+        request: Some(request),
+        relation: None,
+        retention_base: None,
+        dependency_bodies: None,
+        physical_source: None,
+      }
+      lookup.native_sources = Some(state)
+      state
+    }
+  }
+  Ok(state)
 }

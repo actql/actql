@@ -29,6 +29,15 @@ on:
         type: choice
         options: [diagnostic, final]
         default: diagnostic
+      performance_native_approval_only:
+        description: Run only fixed Native approval samples from the exact Native package inputs
+        type: boolean
+        default: false
+      performance_native_approval_runner:
+        description: Hosted Local acceptance runner; Darwin remains a separate local campaign
+        type: choice
+        options: [ubuntu-24.04]
+        default: ubuntu-24.04
       performance_package_run_id:
         description: Completed same-source normal CI run supplying existing Client tarballs
         type: string
@@ -123,6 +132,8 @@ jobs:
     with:
       priority-node-mode: ${{ inputs.performance_priority_node_mode }}
       priority-python-mode: ${{ inputs.performance_priority_python_mode }}
+      native-approval-only: ${{ inputs.performance_native_approval_only }}
+      native-approval-runner: ${{ inputs.performance_native_approval_runner }}
       package-run-id: ${{ inputs.performance_package_run_id }}
       package-artifact-id: ${{ inputs.performance_package_artifact_id }}
       native-package-run-id: ${{ inputs.performance_native_package_run_id }}
@@ -131,7 +142,7 @@ jobs:
       python-package-run-id: ${{ inputs.performance_python_package_run_id }}
       python-package-artifact-id: ${{ inputs.performance_python_package_artifact_id }}
       python-package-producer-job: ${{ fromJSON(inputs.performance_process_package_jobs || '{}').python || '' }}
-  # Admission checks complete before any normal runtime/proof runner starts.
+  # Mandatory admission runs independently and remains required by the final gate.
   preflight:
     needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
@@ -191,9 +202,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/ci-preflight.mjs
-  # Remaining independent lint diagnostics run after mandatory admission.
+  # Independent lint diagnostics need not wait for mandatory admission.
   lint:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -243,12 +254,26 @@ jobs:
         run: node --test scripts/ci-focused-tests.test.mjs
       - name: Test conservative CI target selection
         run: node --test scripts/ci-targets.test.mjs scripts/ci-main-base.test.mjs
+      - name: Test collection budget and required packed README selection
+        run: node --test adapters/host-node/local-result-read-policy.test.mjs adapters/host-node/client-result-collection-policy.test.mjs adapters/host-node/request-memory-policy.test.mjs adapters/local-node/managed-advance-diagnostic.test.mjs scripts/packed-readme-ci.test.mjs
+      - name: Test original Model failure and workflow observation
+        run: node --test adapters/host-node/infer-model-effect-control.test.mjs adapters/host-node/acquired-effect-unknown-primary.test.mjs adapters/host-node/mock-project-effect-public.test.mjs adapters/host-common/observation.test.mjs adapters/host-common/sqlite-transaction.test.mjs scripts/owner-fault-mutations.test.mjs
+      - name: Test connector Source profiles and independent request fixtures
+        run: node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- adapters/connectors/gcs/test/gcs-file-listing.test.mjs adapters/connectors/gcs/test/gcs-prefix-profile.test.mjs adapters/connectors/gcs/test/gcs-site-profile-bounds.test.mjs adapters/connectors/snowflake/test/snowflake-key-pair.test.mjs adapters/connectors/snowflake/test/snowflake-public-fixture.test.mjs adapters/connectors/kintone/test/installed-kintone-managed-loader.test.mjs adapters/connectors/kintone/test/kintone-managed-sequence.test.mjs
+      - name: Build Explorer component assets
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        run: npm run build --prefix packages/explorer
+      - name: Test Explorer gateway and UI components
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        run: node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- packages/explorer/*.test.mjs packages/explorer-ui/*.test.mjs
       - name: Test compiler-owned package selection and non-Moon input boundaries
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/ci-moon-test-plan.test.mjs
+      - name: Test ordinary operation performance policy oracles
+        run: node --test scripts/operation-performance.test.mjs scripts/operation-performance-policy.test.mjs scripts/native-approval-performance.test.mjs scripts/native-approval-cpu-diagnostic.test.mjs scripts/node-wait-cpu-diagnostic.test.mjs
       - name: Test ordinary operation performance assessment
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
-        run: node --test scripts/operation-performance.test.mjs scripts/benchmark-node-operations.test.mjs scripts/operation-performance-policy.test.mjs scripts/operation-performance-native-control.test.mjs scripts/benchmark-node-process-operations.test.mjs scripts/benchmark-node-sqlite.test.mjs scripts/benchmark-node-boundaries.test.mjs scripts/node-operation-fs-trace.test.mjs scripts/operation-performance-priority-transition.test.mjs scripts/operation-performance-transition-ci.test.mjs
+        run: node --test scripts/benchmark-node-operations.test.mjs scripts/operation-performance-native-control.test.mjs scripts/benchmark-node-process-operations.test.mjs scripts/benchmark-node-sqlite.test.mjs scripts/benchmark-node-boundaries.test.mjs scripts/node-operation-fs-trace.test.mjs scripts/operation-performance-priority-transition.test.mjs scripts/operation-performance-transition-ci.test.mjs
       - name: Test ordinary process collector protocols
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: python3 -I -B scripts/benchmark-ordinary-processes.test.py
@@ -258,6 +283,8 @@ jobs:
       - name: Test Client CI partition and aggregate requirements
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/client-ci.test.mjs scripts/native-cli-project-init.test.mjs scripts/native-cli-project-scaffold.test.mjs scripts/native-cli-linux-local-ci.test.mjs scripts/produce-native-cli-linux-local.test.mjs scripts/native-cli-source-free-install.test.mjs scripts/release-test-registry.test.mjs scripts/native-cli-linux-local-recipe.test.mjs scripts/ci-native-cli-installed.test.mjs scripts/native-cli-mock-scenario.test.mjs
+      - name: Test plain-init Native numeric result and refusal oracles
+        run: node --test scripts/native-cli-default-numeric.test.mjs
       - name: Test explicit release policy and publication refusal
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/release-policy.test.mjs scripts/release-version-schema.test.mjs scripts/release-set.test.mjs scripts/release-review.test.mjs scripts/release-promotion-review.test.mjs scripts/release-registry.test.mjs scripts/release-stage.test.mjs scripts/release-native-registry.test.mjs scripts/release-native-publish.test.mjs scripts/release-native-latest.test.mjs scripts/release-public-install.test.mjs scripts/release-python-install.test.mjs scripts/release-python-publish.test.mjs scripts/release-python-cold-verifier.test.mjs scripts/release-native-install.test.mjs scripts/release-lanes.test.mjs scripts/release-fixed-source.test.mjs scripts/native-standalone-release.test.mjs scripts/native-cli-version.test.mjs
@@ -266,12 +293,26 @@ jobs:
         run: |
           python3 -m pip install --disable-pip-version-check -e ./packages/python-sdk
           python3 -B packages/python-sdk/tests/run.py --pattern test_release_packaging_target.py
+      - name: Check the Python source-caller CI selection
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        run: node scripts/local-checks.mjs test node -- scripts/python-client-ci.test.mjs
+      - name: Install the pinned Python row-schema dependency
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        run: python3 -m pip install --disable-pip-version-check pydantic==2.12.5
+      - name: Test reviewed Python SDK and Local-source callers
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        run: node scripts/check-python-client.mjs --source-only
       - name: Test normal Python wheel acceptance harness guards
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: python3 -B scripts/test_ci_python_wheels.py
       - name: Test bounded compiler crash metadata privacy controls
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: python3 -B scripts/test_native_compiler_diagnostics.py
+      - name: Test Native preparation originals and bounded compiler orchestration
+        run: node --test scripts/native-preparation-originals.test.mjs scripts/native-runtime-bundle-fixture.test.mjs scripts/native-preparation-lanes.test.mjs scripts/native-remote-runtime-isolation.test.mjs scripts/native-core-linux-common.test.mjs scripts/native-http-phases.test.mjs
+      - name: Test CI lane coverage and bounded Native phase measurement
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        run: node --test scripts/ci-balanced-lanes.test.mjs scripts/packed-public-query-parts.test.mjs scripts/ci-session-lanes.test.mjs scripts/ci-native-lanes.test.mjs scripts/ci-native-background-groups.test.mjs scripts/native-core-measured-tests.test.mjs
       - name: Test read-only CI evidence reporting
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/ci-evidence.test.mjs
@@ -289,7 +330,7 @@ jobs:
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node scripts/check-node-without-duckdb.mjs
   focused-tests:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && (needs.select-targets.outputs.profile == 'focused-tests' || needs.select-targets.outputs.profile == 'draft-focused') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -309,8 +350,12 @@ jobs:
           echo "$toolchain/bin" >> "$GITHUB_PATH"
       - name: Check package and execute changed tests plus owning JS family
         env:
-          CI_PLAN: ${{ needs.select-targets.outputs.plan }}
-        run: node scripts/ci-focused-tests.mjs
+          CI_PLAN_PATH: ${{ runner.temp }}/actql-ci-plan.json
+        run: |
+          cat > "$CI_PLAN_PATH" <<'ACTQL_CI_PLAN_JSON'
+          ${{ needs.select-targets.outputs.plan }}
+          ACTQL_CI_PLAN_JSON
+          node scripts/ci-focused-tests.mjs
       - name: Upload focused execution diagnostics
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -319,28 +364,61 @@ jobs:
           path: _build/focused-evidence
           if-no-files-found: warn
           retention-days: 7
-  # One runner per target: check, then test, each with --deny-warn, as
-  # before. A target never shares a runner or _build with another.
-  core:
-    needs: [select-targets, preflight]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
-    name: core (${{ matrix.target }}${{ matrix.target == 'native' && format(' {0}/2', matrix.partition) || '' }})
+  # Linux keeps both portable targets and eight complete Native common drivers.
+  # The original JS row has its own status boundary before scarce Mac fan-out.
+  # Native Mac workloads start early; three Core slots leave room for them and
+  # Python. Every Core row shares the same steps and remains mandatory when selected.
+  core-common:
+    needs: [select-targets]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && (contains(fromJSON(needs.select-targets.outputs.targets), 'wasm') || contains(fromJSON(needs.select-targets.outputs.targets), 'native')) }}
+    name: core (${{ matrix.target }}${{ matrix.target == 'native' && format(' {0}', matrix.partition) || '' }})
     strategy:
       fail-fast: false
       matrix:
         target: ${{ fromJSON(needs.select-targets.outputs.targets) }}
-        partition: [1, 2]
+        partition: ['1/4', 'linux-common-1/8', 'linux-common-2/8', 'linux-common-3/8', 'linux-common-4/8', 'linux-common-5/8', 'linux-common-6/8', 'linux-common-7/8', 'linux-common-8/8']
         exclude:
           - target: js
-            partition: 2
+            partition: '1/4'
+          - target: js
+            partition: linux-common-1/8
+          - target: js
+            partition: linux-common-2/8
+          - target: js
+            partition: linux-common-3/8
+          - target: js
+            partition: linux-common-4/8
+          - target: js
+            partition: linux-common-5/8
+          - target: js
+            partition: linux-common-6/8
+          - target: js
+            partition: linux-common-7/8
+          - target: js
+            partition: linux-common-8/8
           - target: wasm
-            partition: 2
-    # Physical Native fixtures use the existing Darwin arm64 profile.
-    runs-on: ${{ matrix.target == 'native' && 'macos-15' || 'ubuntu-24.04' }}
+            partition: linux-common-1/8
+          - target: wasm
+            partition: linux-common-2/8
+          - target: wasm
+            partition: linux-common-3/8
+          - target: wasm
+            partition: linux-common-4/8
+          - target: wasm
+            partition: linux-common-5/8
+          - target: wasm
+            partition: linux-common-6/8
+          - target: wasm
+            partition: linux-common-7/8
+          - target: wasm
+            partition: linux-common-8/8
+          - target: native
+            partition: '1/4'
+    runs-on: ubuntu-24.04
     # Native keeps its full 60-minute child after the separate cold checkpoint
     # producers, with time for original failure diagnostics and cleanup.
     timeout-minutes: ${{ matrix.target == 'native' && 90 || 30 }}
-    steps:
+    steps: &core_steps
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
@@ -350,12 +428,90 @@ jobs:
       - name: Require the supported Core Native platform
         if: ${{ matrix.target == 'native' }}
         run: |
-          test "$(uname -s)" = Darwin
-          test "$(uname -m)" = arm64
+          if [[ "${{ matrix.partition }}" == linux-common-* ]]; then
+            test "$(uname -s)" = Linux
+            test "$(uname -m)" = x86_64
+          else
+            test "$(uname -s)" = Darwin
+            test "$(uname -m)" = arm64
+          fi
+      - name: Test pinned Native C compiler orchestration
+        if: ${{ matrix.target == 'native' && matrix.partition == '1/2' }}
+        run: node --test scripts/native-core-c-compiler.test.mjs
+      - name: Prepare pinned Native C object caching
+        id: native-c-object-cache
+        if: ${{ matrix.target == 'native' && contains(fromJSON('["1/2","2/2","scoped"]'), matrix.partition) }}
+        env:
+          CACHE_PARTITION: ${{ matrix.partition }}
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {createHash} from 'node:crypto';
+          import {execFileSync} from 'node:child_process';
+          import {appendFileSync, chmodSync, lstatSync, mkdirSync, readFileSync} from 'node:fs';
+          import {join} from 'node:path';
+          import {nativeCoreCCachePin as pin} from './scripts/native-core-c-compiler.mjs';
+          const tool = join(process.env.RUNNER_TEMP, 'actql-core-ordinary-c-cache-tool');
+          const cache = join(process.env.RUNNER_TEMP, 'actql-core-ordinary-c-cache');
+          mkdirSync(tool, {mode: 0o700});
+          mkdirSync(cache, {mode: 0o700});
+          const archive = join(tool, 'original.tar.gz');
+          execFileSync('/usr/bin/curl', ['--fail', '--location', '--silent', '--show-error',
+            '--connect-timeout', '20', '--max-time', '60', pin.url, '--output', archive],
+            {stdio: 'inherit', timeout: 65000});
+          const hash = value => createHash('sha256').update(value).digest('hex');
+          assert.equal(hash(readFileSync(archive)), pin.archiveSha256);
+          execFileSync('/usr/bin/tar', ['-xzf', archive, '-C', tool, '--strip-components=1',
+            `ccache-${pin.version}-darwin/ccache`], {stdio: 'inherit', timeout: 10000});
+          const binary = join(tool, 'ccache'), stat = lstatSync(binary);
+          assert(stat.isFile() && !stat.isSymbolicLink());
+          assert.equal(hash(readFileSync(binary)), pin.binarySha256);
+          chmodSync(binary, 0o700);
+          execFileSync(binary, ['--version'], {stdio: 'inherit', timeout: 5000});
+          const image = process.env.ImageVersion ?? 'unreported-image';
+          assert(/^[A-Za-z0-9_.-]+$/u.test(image));
+          assert(['1/2', '2/2', 'scoped'].includes(process.env.CACHE_PARTITION));
+          const profile = hash(Buffer.concat([readFileSync('toolchain.json'),
+            readFileSync('scripts/native-core-c-compiler.mjs'),
+            readFileSync('scripts/native-core-scoped-profile.mjs')]));
+          const prefix = `ordinary-c-v1-${process.platform}-${process.arch}-${image}-${profile}-${process.env.CACHE_PARTITION}-`;
+          appendFileSync(process.env.GITHUB_OUTPUT, `key-prefix=${prefix}\n`);
+          appendFileSync(process.env.GITHUB_ENV,
+            `ACTQL_TEST_NATIVE_CORE_CCACHE=${binary}\nACTQL_TEST_NATIVE_CORE_CCACHE_DIR=${cache}\n`);
+          if (process.env.CACHE_PARTITION === 'scoped') appendFileSync(process.env.GITHUB_ENV,
+            `ACTQL_TEST_NATIVE_CORE_SCOPED_SOFTWARE_ROOT=${join(process.cwd(), '_build/native-core-scoped/compiler-software')}\n`);
+          NODE
+      - name: Restore ordinary Native C objects
+        id: native-c-object-cache-restore
+        if: ${{ steps.native-c-object-cache.outcome == 'success' }}
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: |
+            ${{ runner.temp }}/actql-core-ordinary-c-cache
+            !${{ runner.temp }}/actql-core-ordinary-c-cache/tmp
+            !${{ runner.temp }}/actql-core-ordinary-c-cache/compiler.log
+          key: ${{ steps.native-c-object-cache.outputs.key-prefix }}${{ github.sha }}
+          restore-keys: ${{ steps.native-c-object-cache.outputs.key-prefix }}
+      - name: Mark current-job Native C compiler diagnostics
+        if: ${{ steps.native-c-object-cache.outcome == 'success' }}
+        run: |
+          node --input-type=module <<'NODE'
+          import {createHash} from 'node:crypto';
+          import {existsSync, readFileSync, writeFileSync} from 'node:fs';
+          import {join} from 'node:path';
+          const log = join(process.env.ACTQL_TEST_NATIVE_CORE_CCACHE_DIR, 'compiler.log');
+          const prefix = existsSync(log) ? readFileSync(log) : Buffer.alloc(0);
+          writeFileSync(join(process.env.RUNNER_TEMP, 'actql-core-c-log-baseline.json'),
+            JSON.stringify({bytes: prefix.length,
+              sha256: createHash('sha256').update(prefix).digest('hex')}), {flag: 'wx'});
+          NODE
       - name: Install existing scoped component producer dependencies
-        if: ${{ matrix.target == 'native' }}
+        if: ${{ matrix.target == 'native' && matrix.partition == 'scoped' }}
         run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
       - name: Check common core
+        # The full Native check belongs to the required 1/4 matrix member;
+        # every partition still compiles and executes its original tests.
+        if: ${{ matrix.target != 'native' || matrix.partition == '1/2' }}
         run: moon check --target "${{ matrix.target }}" --deny-warn
       - name: Check independent fixed Run materials identity
         run: node --test scripts/client-values-run-materials-vector.test.mjs scripts/client-publication-values-identity.test.mjs scripts/client-values-compilation-work.test.mjs scripts/client-source-publication-work.test.mjs
@@ -366,7 +522,7 @@ jobs:
           python3 -B scripts/native-compiler-diagnostics.py --start
           --context .artifacts/native-compiler-diagnostics/context.json
       - name: Test actual Native Reader callbacks and original empty compiler driver
-        if: ${{ matrix.target == 'native' }}
+        if: ${{ matrix.target == 'native' && !startsWith(matrix.partition, 'linux-common-') }}
         run: >-
           node scripts/local-checks.mjs test node --timeout-seconds 300 --
           --test-name-pattern '^Reader custody callbacks preserve'
@@ -382,14 +538,26 @@ jobs:
               (matrix.target != 'native' && success()) }}
         env:
           ACTQL_TEST_NATIVE_COMPILER_DIAGNOSTIC: ${{ matrix.target == 'native' && '1' || '' }}
-          ACTQL_TEST_NATIVE_CORE_PARTITION: ${{ matrix.target == 'native' && format('{0}/2', matrix.partition) || '' }}
-          CI_PLAN: ${{ needs.select-targets.outputs.plan }}
+          ACTQL_TEST_NATIVE_CORE_PARTITION: ${{ matrix.target == 'native' && !startsWith(matrix.partition, 'linux-common-') && matrix.partition || '' }}
+          ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE: ${{ matrix.target == 'native' && !startsWith(matrix.partition, 'linux-common-') && 'darwin-differences' || '' }}
+          ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS: ${{ matrix.target == 'native' && matrix.partition == 'scoped' && '2' || '1' }}
+          CI_PLAN_PATH: ${{ runner.temp }}/actql-ci-plan.json
         run: |
+          # Local full-Core execution has no hosted selection file.
+          if [ -n "$CI_PLAN_PATH" ]; then
+            cat > "$CI_PLAN_PATH" <<'ACTQL_CI_PLAN_JSON'
+          ${{ needs.select-targets.outputs.plan }}
+          ACTQL_CI_PLAN_JSON
+          fi
           if [ "${{ matrix.target }}" = native ]; then
             # Pinned Linux Native debug codegen exceeds the default 8 MiB
             # compiler stack. This does not change product resource budgets.
             if [ "$(uname -s)" = Linux ]; then
               ulimit -S -s 65536
+            fi
+            if [[ "${{ matrix.partition }}" == linux-common-* ]]; then
+              MOONBIT_NEW_NATIVE=0 node scripts/test-native-core-linux-common.mjs "${{ matrix.partition }}"
+              exit $?
             fi
             # Reopen remains within a run; the full run below starts fresh.
             ACTQL_TEST_NATIVE_CORE_PARTITION= node scripts/test-native-core.mjs --deny-warn -p platform_native/trusted_clock
@@ -400,7 +568,7 @@ jobs:
             # physical test execution serial under the original fixture roots.
             # Partition whole ordinary test packages before C generation. Each
             # runner keeps its own source/toolchain/build and original fixtures;
-            # only partition 1 owns the unchanged HTTP/Source/scoped profiles.
+            # physical profiles have independent runners and original fixtures.
             MOONBIT_NEW_NATIVE=0 node scripts/test-native-core.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose
           else
             if [ "${{ needs.select-targets.outputs.moon_test_selection }}" = true ]; then
@@ -416,6 +584,40 @@ jobs:
               node scripts/test-python-local-metadata-wasm.mjs _build/wasm/release/test/client_host_wasm/client_host_wasm.whitebox_test.wasm _build/wasm/release/test/client_host_wasm/__whitebox_test_info.json non_sdk_source_restore_wbtest.mbt
             fi
           fi
+      - name: Report ordinary Native C cache results
+        if: ${{ !cancelled() && steps.native-c-object-cache.outcome == 'success' }}
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {createHash} from 'node:crypto';
+          import {existsSync, readFileSync} from 'node:fs';
+          import {join} from 'node:path';
+          const log = join(process.env.ACTQL_TEST_NATIVE_CORE_CCACHE_DIR, 'compiler.log');
+          const baseline = JSON.parse(readFileSync(join(process.env.RUNNER_TEMP, 'actql-core-c-log-baseline.json'), 'utf8'));
+          const bytes = existsSync(log) ? readFileSync(log) : Buffer.alloc(0);
+          assert(Number.isSafeInteger(baseline.bytes) && baseline.bytes >= 0 && baseline.bytes <= bytes.length,
+            'Restored compiler log prefix changed');
+          assert.equal(createHash('sha256').update(bytes.subarray(0, baseline.bytes)).digest('hex'), baseline.sha256,
+            'Restored compiler log prefix changed');
+          const text = bytes.subarray(baseline.bytes).toString('utf8');
+          const results = {};
+          for (const match of text.matchAll(/ Result: (\w+)/gu))
+            results[match[1]] = (results[match[1]] ?? 0) + 1;
+          // Each key is separate: auxiliary storage results are not compilations.
+          console.log('Current-job compiler cache result keys:', JSON.stringify(results));
+          const links = [...text.matchAll(/^ACTQL_NATIVE_C_LINK (.+)$/gmu)].map(match => JSON.parse(match[1]));
+          console.log('Current-job fresh links:', JSON.stringify({attempts: links.length,
+            succeeded: links.filter(value => value.status === 0 && !value.signal && !value.error).length}));
+          NODE
+      - name: Save ordinary Native C objects
+        if: ${{ success() && steps.native-c-object-cache.outcome == 'success' && steps.native-c-object-cache-restore.outcome == 'success' && steps.native-c-object-cache-restore.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: |
+            ${{ runner.temp }}/actql-core-ordinary-c-cache
+            !${{ runner.temp }}/actql-core-ordinary-c-cache/tmp
+            !${{ runner.temp }}/actql-core-ordinary-c-cache/compiler.log
+          key: ${{ steps.native-c-object-cache-restore.outputs.cache-primary-key }}
       - name: Collect only current original Native compiler crash cause metadata
         if: ${{ failure() && matrix.target == 'native' && steps.native-compiler-diagnostic-start.outcome == 'success' }}
         timeout-minutes: 1
@@ -427,15 +629,81 @@ jobs:
         if: ${{ failure() && matrix.target == 'native' && steps.native-compiler-diagnostic-start.outcome == 'success' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: native-compiler-cause-${{ matrix.partition }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: native-compiler-cause-${{ github.job }}-${{ strategy.job-index }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             .artifacts/native-compiler-diagnostics/
             _build/native-reader-helper-tests/callbacks-*/callback-*.json
           if-no-files-found: warn
           retention-days: 14
+  core-js:
+    needs: [select-targets]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && contains(fromJSON(needs.select-targets.outputs.targets), 'js') }}
+    name: core (${{ matrix.target }}${{ matrix.target == 'native' && format(' {0}', matrix.partition) || '' }})
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [js]
+        partition: ['1/4']
+    runs-on: ubuntu-24.04
+    timeout-minutes: ${{ matrix.target == 'native' && 90 || 30 }}
+    steps: *core_steps
+  core-darwin:
+    needs: [select-targets, lint, core-js]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !cancelled() && needs.lint.result == 'success' && ((needs.select-targets.outputs.profile == 'full' && contains(fromJSON(needs.select-targets.outputs.targets), 'js') && needs.core-js.result == 'success') || ((needs.select-targets.outputs.profile != 'full' || !contains(fromJSON(needs.select-targets.outputs.targets), 'js')) && needs.core-js.result == 'skipped')) && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && contains(fromJSON(needs.select-targets.outputs.targets), 'native') }}
+    name: core (${{ matrix.target }}${{ matrix.target == 'native' && format(' {0}', matrix.partition) || '' }})
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        target: [native]
+        partition: [scoped, source, '1/2', '2/2']
+    runs-on: macos-15
+    timeout-minutes: ${{ matrix.target == 'native' && 90 || 30 }}
+    steps: *core_steps
+  core:
+    needs: [select-targets, core-js, core-common, core-darwin]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every selected original Core matrix
+        env:
+          CORE_TARGETS: ${{ needs.select-targets.outputs.targets }}
+          JS_RESULT: ${{ needs.core-js.result }}
+          COMMON_RESULT: ${{ needs.core-common.result }}
+          DARWIN_RESULT: ${{ needs.core-darwin.result }}
+        run: |
+          node -e '
+            const targets = JSON.parse(process.env.CORE_TARGETS || "null");
+            const valid = Array.isArray(targets) && targets.length > 0 &&
+              new Set(targets).size === targets.length && targets.every(target => ["js", "wasm", "native"].includes(target));
+            if (!valid || process.env.JS_RESULT !== (targets.includes("js") ? "success" : "skipped") ||
+                process.env.COMMON_RESULT !== (targets.some(target => target === "wasm" || target === "native") ? "success" : "skipped") ||
+                process.env.DARWIN_RESULT !== (targets.includes("native") ? "success" : "skipped")) {
+              console.error(`Core JS=${process.env.JS_RESULT || "missing"}, common=${process.env.COMMON_RESULT || "missing"}, Darwin=${process.env.DARWIN_RESULT || "missing"}`);
+              process.exitCode = 1;
+            }
+          '
   # Conditional proof and correspondence evidence beside the existing gates.
+  session-controls:
+    needs: [select-targets]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-toolchain
+      - name: Install audited Lean pin
+        run: |
+          node proofs/bounded-session/setup-lean.mjs
+          echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
+      - name: Reject invalid incremental action inputs and origins
+        run: node scripts/ci-session-controls.mjs
   session-evidence:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -457,8 +725,6 @@ jobs:
           echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
       - name: Reject invalid evidence derivations
         run: node --test proofs/bounded-session/evidence.test.mjs proofs/bounded-session/proof-check.test.mjs
-      - name: Reject invalid incremental action inputs and origins
-        run: node --test proofs/ci-evidence/*.test.mjs
       - name: Select fresh or verified-main acquisition for this live run and attempt
         env:
           ACTIONS_READ_TOKEN: ${{ github.token }}
@@ -514,121 +780,14 @@ jobs:
   # Isolated producers retain every campaign and never share source/build trees.
   # Evidence is from this run AND attempt; rerun all jobs after partial retries.
   # Fixed four-part plan: no matrix, shared mutable root or result reuse.
-  pipeline-mutations:
-    needs: [select-targets, preflight]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    env:
-      ACTQL_PIPELINE_PART: L-M0
-    outputs:
-      artifact-id: ${{ steps.evidence.outputs.artifact-id }}
-      artifact-digest: ${{ steps.evidence.outputs.artifact-digest }}
-      archive-digest: ${{ steps.seal.outputs.archive-digest }}
-      manifest-digest: ${{ steps.seal.outputs.manifest-digest }}
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          persist-credentials: false
-          fetch-depth: 0
-      - uses: ./.github/actions/setup-toolchain
-      - name: Install audited Lean pin
-        run: |
-          node proofs/bounded-session/setup-lean.mjs
-          echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
-      - name: Bind independently owned part to source and partition plan
-        run: node proofs/relation-pipeline/ci-parts.mjs begin L-M0
-      - name: Verify this part's independent three-operation baseline
-        run: |
-          node proofs/relation-pipeline/run.mjs js base
-          node proofs/relation-pipeline/ci-parts.mjs stage L-M0 baseline
-      - name: Verify assigned fixed and required fresh mutations on every target
-        run: |
-          node proofs/relation-pipeline/mutations.mjs verify
-          node proofs/relation-pipeline/ci-parts.mjs stage L-M0 mutations
-      - name: Validate local obligations and seal restored closed evidence
-        id: seal
-        run: node proofs/relation-pipeline/ci-parts.mjs seal L-M0
-      - name: Upload immutable part archive
-        id: evidence
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: relation-pipeline-L-M0-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
-          path: .artifacts/pipeline-ci/L-M0/evidence.tar
-          compression-level: 6
-          include-hidden-files: true
-          if-no-files-found: error
-      - name: Retain unsealed diagnostics when this part cannot finish
-        if: ${{ always() && steps.evidence.outcome != 'success' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: relation-pipeline-L-M0-incomplete-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
-          path: |
-            .artifacts/relation-pipeline/
-            !.artifacts/relation-pipeline/ci-seal.json
-          include-hidden-files: true
-          if-no-files-found: warn
-  pipeline-mutations-rest:
-    needs: [select-targets, preflight]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    env:
-      ACTQL_PIPELINE_PART: L-M1
-    outputs:
-      artifact-id: ${{ steps.evidence.outputs.artifact-id }}
-      artifact-digest: ${{ steps.evidence.outputs.artifact-digest }}
-      archive-digest: ${{ steps.seal.outputs.archive-digest }}
-      manifest-digest: ${{ steps.seal.outputs.manifest-digest }}
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          persist-credentials: false
-          fetch-depth: 0
-      - uses: ./.github/actions/setup-toolchain
-      - name: Install audited Lean pin
-        run: |
-          node proofs/bounded-session/setup-lean.mjs
-          echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
-      - name: Bind independently owned part to source and partition plan
-        run: node proofs/relation-pipeline/ci-parts.mjs begin L-M1
-      - name: Verify this part's independent three-operation baseline
-        run: |
-          node proofs/relation-pipeline/run.mjs js base
-          node proofs/relation-pipeline/ci-parts.mjs stage L-M1 baseline
-      - name: Verify assigned fixed and required fresh mutations on every target
-        run: |
-          node proofs/relation-pipeline/mutations.mjs verify
-          node proofs/relation-pipeline/ci-parts.mjs stage L-M1 mutations
-      - name: Validate local obligations and seal restored closed evidence
-        id: seal
-        run: node proofs/relation-pipeline/ci-parts.mjs seal L-M1
-      - name: Upload immutable part archive
-        id: evidence
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: relation-pipeline-L-M1-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
-          path: .artifacts/pipeline-ci/L-M1/evidence.tar
-          compression-level: 6
-          include-hidden-files: true
-          if-no-files-found: error
-      - name: Retain unsealed diagnostics when this part cannot finish
-        if: ${{ always() && steps.evidence.outcome != 'success' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: relation-pipeline-L-M1-incomplete-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
-          path: |
-            .artifacts/relation-pipeline/
-            !.artifacts/relation-pipeline/ci-seal.json
-          include-hidden-files: true
-          if-no-files-found: warn
   pipeline-capacity:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
-      ACTQL_PIPELINE_PART: L-C0
+      ACTQL_PIPELINE_PART: L-C2
+      ACTQL_PIPELINE_PHASE_TIMING: '1'
     outputs:
       artifact-id: ${{ steps.evidence.outputs.artifact-id }}
       artifact-digest: ${{ steps.evidence.outputs.artifact-digest }}
@@ -645,24 +804,24 @@ jobs:
           node proofs/bounded-session/setup-lean.mjs
           echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
       - name: Bind independently owned part to source and partition plan
-        run: node proofs/relation-pipeline/ci-parts.mjs begin L-C0
+        run: node proofs/relation-pipeline/ci-parts.mjs begin L-C2
       - name: Execute this part's structural capacity obligations
         run: |
-          node proofs/relation-pipeline/capacity/run.mjs all L-C0
-          node proofs/relation-pipeline/ci-parts.mjs stage L-C0 capacity
+          node proofs/relation-pipeline/capacity/run.mjs all L-C2
+          node proofs/relation-pipeline/ci-parts.mjs stage L-C2 capacity
       - name: Preserve the complete final registered corpus on every target
         run: |
           node proofs/relation-pipeline/run.mjs all
-          node proofs/relation-pipeline/ci-parts.mjs stage L-C0 final-normal
+          node proofs/relation-pipeline/ci-parts.mjs stage L-C2 final-normal
       - name: Validate local obligations and seal restored closed evidence
         id: seal
-        run: node proofs/relation-pipeline/ci-parts.mjs seal L-C0
+        run: node proofs/relation-pipeline/ci-parts.mjs seal L-C2
       - name: Upload immutable part archive
         id: evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: relation-pipeline-L-C0-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
-          path: .artifacts/pipeline-ci/L-C0/evidence.tar
+          name: relation-pipeline-L-C2-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: .artifacts/pipeline-ci/L-C2/evidence.tar
           compression-level: 6
           include-hidden-files: true
           if-no-files-found: error
@@ -670,19 +829,71 @@ jobs:
         if: ${{ always() && steps.evidence.outcome != 'success' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: relation-pipeline-L-C0-incomplete-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          name: relation-pipeline-L-C2-incomplete-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: |
+            .artifacts/relation-pipeline/
+            !.artifacts/relation-pipeline/ci-seal.json
+          include-hidden-files: true
+          if-no-files-found: warn
+  pipeline-capacity-support:
+    needs: [select-targets]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      ACTQL_PIPELINE_PART: L-C3
+      ACTQL_PIPELINE_PHASE_TIMING: '1'
+    outputs:
+      artifact-id: ${{ steps.evidence.outputs.artifact-id }}
+      artifact-digest: ${{ steps.evidence.outputs.artifact-digest }}
+      archive-digest: ${{ steps.seal.outputs.archive-digest }}
+      manifest-digest: ${{ steps.seal.outputs.manifest-digest }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-toolchain
+      - name: Install audited Lean pin
+        run: |
+          node proofs/bounded-session/setup-lean.mjs
+          echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
+      - name: Bind independently owned part to source and partition plan
+        run: node proofs/relation-pipeline/ci-parts.mjs begin L-C3
+      - name: Execute this part's structural capacity obligations
+        run: |
+          node proofs/relation-pipeline/capacity/run.mjs all L-C3
+          node proofs/relation-pipeline/ci-parts.mjs stage L-C3 capacity
+      - name: Validate local obligations and seal restored closed evidence
+        id: seal
+        run: node proofs/relation-pipeline/ci-parts.mjs seal L-C3
+      - name: Upload immutable part archive
+        id: evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relation-pipeline-L-C3-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: .artifacts/pipeline-ci/L-C3/evidence.tar
+          compression-level: 6
+          include-hidden-files: true
+          if-no-files-found: error
+      - name: Retain unsealed diagnostics when this part cannot finish
+        if: ${{ always() && steps.evidence.outcome != 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relation-pipeline-L-C3-incomplete-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
           path: |
             .artifacts/relation-pipeline/
             !.artifacts/relation-pipeline/ci-seal.json
           include-hidden-files: true
           if-no-files-found: warn
   pipeline-capacity-mutants:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
-      ACTQL_PIPELINE_PART: L-C1
+      ACTQL_PIPELINE_PART: L-C4
+      ACTQL_PIPELINE_PHASE_TIMING: '1'
     outputs:
       artifact-id: ${{ steps.evidence.outputs.artifact-id }}
       artifact-digest: ${{ steps.evidence.outputs.artifact-digest }}
@@ -699,20 +910,20 @@ jobs:
           node proofs/bounded-session/setup-lean.mjs
           echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
       - name: Bind independently owned part to source and partition plan
-        run: node proofs/relation-pipeline/ci-parts.mjs begin L-C1
+        run: node proofs/relation-pipeline/ci-parts.mjs begin L-C4
       - name: Execute this part's structural capacity obligations
         run: |
-          node proofs/relation-pipeline/capacity/run.mjs all L-C1
-          node proofs/relation-pipeline/ci-parts.mjs stage L-C1 capacity
+          node proofs/relation-pipeline/capacity/run.mjs all L-C4
+          node proofs/relation-pipeline/ci-parts.mjs stage L-C4 capacity
       - name: Validate local obligations and seal restored closed evidence
         id: seal
-        run: node proofs/relation-pipeline/ci-parts.mjs seal L-C1
+        run: node proofs/relation-pipeline/ci-parts.mjs seal L-C4
       - name: Upload immutable part archive
         id: evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: relation-pipeline-L-C1-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
-          path: .artifacts/pipeline-ci/L-C1/evidence.tar
+          name: relation-pipeline-L-C4-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: .artifacts/pipeline-ci/L-C4/evidence.tar
           compression-level: 6
           include-hidden-files: true
           if-no-files-found: error
@@ -720,14 +931,285 @@ jobs:
         if: ${{ always() && steps.evidence.outcome != 'success' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: relation-pipeline-L-C1-incomplete-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          name: relation-pipeline-L-C4-incomplete-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: |
+            .artifacts/relation-pipeline/
+            !.artifacts/relation-pipeline/ci-seal.json
+          include-hidden-files: true
+          if-no-files-found: warn
+  pipeline-capacity-mutants-rest:
+    needs: [select-targets]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      ACTQL_PIPELINE_PART: L-C5
+      ACTQL_PIPELINE_PHASE_TIMING: '1'
+    outputs:
+      artifact-id: ${{ steps.evidence.outputs.artifact-id }}
+      artifact-digest: ${{ steps.evidence.outputs.artifact-digest }}
+      archive-digest: ${{ steps.seal.outputs.archive-digest }}
+      manifest-digest: ${{ steps.seal.outputs.manifest-digest }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-toolchain
+      - name: Install audited Lean pin
+        run: |
+          node proofs/bounded-session/setup-lean.mjs
+          echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
+      - name: Bind independently owned part to source and partition plan
+        run: node proofs/relation-pipeline/ci-parts.mjs begin L-C5
+      - name: Execute this part's structural capacity obligations
+        run: |
+          node proofs/relation-pipeline/capacity/run.mjs all L-C5
+          node proofs/relation-pipeline/ci-parts.mjs stage L-C5 capacity
+      - name: Validate local obligations and seal restored closed evidence
+        id: seal
+        run: node proofs/relation-pipeline/ci-parts.mjs seal L-C5
+      - name: Upload immutable part archive
+        id: evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relation-pipeline-L-C5-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: .artifacts/pipeline-ci/L-C5/evidence.tar
+          compression-level: 6
+          include-hidden-files: true
+          if-no-files-found: error
+      - name: Retain unsealed diagnostics when this part cannot finish
+        if: ${{ always() && steps.evidence.outcome != 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relation-pipeline-L-C5-incomplete-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: |
+            .artifacts/relation-pipeline/
+            !.artifacts/relation-pipeline/ci-seal.json
+          include-hidden-files: true
+          if-no-files-found: warn
+  pipeline-mutations:
+    needs: [select-targets]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      ACTQL_PIPELINE_PART: L-M2
+      ACTQL_PIPELINE_PHASE_TIMING: '1'
+    outputs:
+      artifact-id: ${{ steps.evidence.outputs.artifact-id }}
+      artifact-digest: ${{ steps.evidence.outputs.artifact-digest }}
+      archive-digest: ${{ steps.seal.outputs.archive-digest }}
+      manifest-digest: ${{ steps.seal.outputs.manifest-digest }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-toolchain
+      - name: Install audited Lean pin
+        run: |
+          node proofs/bounded-session/setup-lean.mjs
+          echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
+      - name: Bind independently owned part to source and partition plan
+        run: node proofs/relation-pipeline/ci-parts.mjs begin L-M2
+      - name: Verify this part's independent three-operation baseline
+        run: |
+          node proofs/relation-pipeline/run.mjs js base
+          node proofs/relation-pipeline/ci-parts.mjs stage L-M2 baseline
+      - name: Verify assigned fixed and required fresh mutations on every target
+        run: |
+          node proofs/relation-pipeline/mutations.mjs verify
+          node proofs/relation-pipeline/ci-parts.mjs stage L-M2 mutations
+      - name: Validate local obligations and seal restored closed evidence
+        id: seal
+        run: node proofs/relation-pipeline/ci-parts.mjs seal L-M2
+      - name: Upload immutable part archive
+        id: evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relation-pipeline-L-M2-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: .artifacts/pipeline-ci/L-M2/evidence.tar
+          compression-level: 6
+          include-hidden-files: true
+          if-no-files-found: error
+      - name: Retain unsealed diagnostics when this part cannot finish
+        if: ${{ always() && steps.evidence.outcome != 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relation-pipeline-L-M2-incomplete-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: |
+            .artifacts/relation-pipeline/
+            !.artifacts/relation-pipeline/ci-seal.json
+          include-hidden-files: true
+          if-no-files-found: warn
+  pipeline-mutations-second:
+    needs: [select-targets]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      ACTQL_PIPELINE_PART: L-M3
+      ACTQL_PIPELINE_PHASE_TIMING: '1'
+    outputs:
+      artifact-id: ${{ steps.evidence.outputs.artifact-id }}
+      artifact-digest: ${{ steps.evidence.outputs.artifact-digest }}
+      archive-digest: ${{ steps.seal.outputs.archive-digest }}
+      manifest-digest: ${{ steps.seal.outputs.manifest-digest }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-toolchain
+      - name: Install audited Lean pin
+        run: |
+          node proofs/bounded-session/setup-lean.mjs
+          echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
+      - name: Bind independently owned part to source and partition plan
+        run: node proofs/relation-pipeline/ci-parts.mjs begin L-M3
+      - name: Verify this part's independent three-operation baseline
+        run: |
+          node proofs/relation-pipeline/run.mjs js base
+          node proofs/relation-pipeline/ci-parts.mjs stage L-M3 baseline
+      - name: Verify assigned fixed and required fresh mutations on every target
+        run: |
+          node proofs/relation-pipeline/mutations.mjs verify
+          node proofs/relation-pipeline/ci-parts.mjs stage L-M3 mutations
+      - name: Validate local obligations and seal restored closed evidence
+        id: seal
+        run: node proofs/relation-pipeline/ci-parts.mjs seal L-M3
+      - name: Upload immutable part archive
+        id: evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relation-pipeline-L-M3-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: .artifacts/pipeline-ci/L-M3/evidence.tar
+          compression-level: 6
+          include-hidden-files: true
+          if-no-files-found: error
+      - name: Retain unsealed diagnostics when this part cannot finish
+        if: ${{ always() && steps.evidence.outcome != 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relation-pipeline-L-M3-incomplete-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: |
+            .artifacts/relation-pipeline/
+            !.artifacts/relation-pipeline/ci-seal.json
+          include-hidden-files: true
+          if-no-files-found: warn
+  pipeline-mutations-rest:
+    needs: [select-targets]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      ACTQL_PIPELINE_PART: L-M4
+      ACTQL_PIPELINE_PHASE_TIMING: '1'
+    outputs:
+      artifact-id: ${{ steps.evidence.outputs.artifact-id }}
+      artifact-digest: ${{ steps.evidence.outputs.artifact-digest }}
+      archive-digest: ${{ steps.seal.outputs.archive-digest }}
+      manifest-digest: ${{ steps.seal.outputs.manifest-digest }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-toolchain
+      - name: Install audited Lean pin
+        run: |
+          node proofs/bounded-session/setup-lean.mjs
+          echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
+      - name: Bind independently owned part to source and partition plan
+        run: node proofs/relation-pipeline/ci-parts.mjs begin L-M4
+      - name: Verify this part's independent three-operation baseline
+        run: |
+          node proofs/relation-pipeline/run.mjs js base
+          node proofs/relation-pipeline/ci-parts.mjs stage L-M4 baseline
+      - name: Verify assigned fixed and required fresh mutations on every target
+        run: |
+          node proofs/relation-pipeline/mutations.mjs verify
+          node proofs/relation-pipeline/ci-parts.mjs stage L-M4 mutations
+      - name: Validate local obligations and seal restored closed evidence
+        id: seal
+        run: node proofs/relation-pipeline/ci-parts.mjs seal L-M4
+      - name: Upload immutable part archive
+        id: evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relation-pipeline-L-M4-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: .artifacts/pipeline-ci/L-M4/evidence.tar
+          compression-level: 6
+          include-hidden-files: true
+          if-no-files-found: error
+      - name: Retain unsealed diagnostics when this part cannot finish
+        if: ${{ always() && steps.evidence.outcome != 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relation-pipeline-L-M4-incomplete-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: |
+            .artifacts/relation-pipeline/
+            !.artifacts/relation-pipeline/ci-seal.json
+          include-hidden-files: true
+          if-no-files-found: warn
+  pipeline-mutations-rest-second:
+    needs: [select-targets]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      ACTQL_PIPELINE_PART: L-M5
+      ACTQL_PIPELINE_PHASE_TIMING: '1'
+    outputs:
+      artifact-id: ${{ steps.evidence.outputs.artifact-id }}
+      artifact-digest: ${{ steps.evidence.outputs.artifact-digest }}
+      archive-digest: ${{ steps.seal.outputs.archive-digest }}
+      manifest-digest: ${{ steps.seal.outputs.manifest-digest }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-toolchain
+      - name: Install audited Lean pin
+        run: |
+          node proofs/bounded-session/setup-lean.mjs
+          echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
+      - name: Bind independently owned part to source and partition plan
+        run: node proofs/relation-pipeline/ci-parts.mjs begin L-M5
+      - name: Verify this part's independent three-operation baseline
+        run: |
+          node proofs/relation-pipeline/run.mjs js base
+          node proofs/relation-pipeline/ci-parts.mjs stage L-M5 baseline
+      - name: Verify assigned fixed and required fresh mutations on every target
+        run: |
+          node proofs/relation-pipeline/mutations.mjs verify
+          node proofs/relation-pipeline/ci-parts.mjs stage L-M5 mutations
+      - name: Validate local obligations and seal restored closed evidence
+        id: seal
+        run: node proofs/relation-pipeline/ci-parts.mjs seal L-M5
+      - name: Upload immutable part archive
+        id: evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relation-pipeline-L-M5-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: .artifacts/pipeline-ci/L-M5/evidence.tar
+          compression-level: 6
+          include-hidden-files: true
+          if-no-files-found: error
+      - name: Retain unsealed diagnostics when this part cannot finish
+        if: ${{ always() && steps.evidence.outcome != 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relation-pipeline-L-M5-incomplete-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
           path: |
             .artifacts/relation-pipeline/
             !.artifacts/relation-pipeline/ci-seal.json
           include-hidden-files: true
           if-no-files-found: warn
   pipeline-validation:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -757,23 +1239,29 @@ jobs:
         run: node proofs/relation-pipeline/ci-parts.mjs validation
   pipeline-evidence:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !cancelled() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
-      !(needs.pipeline-mutations.result == 'skipped' && needs.pipeline-mutations-rest.result == 'skipped' &&
-        needs.pipeline-capacity.result == 'skipped' && needs.pipeline-capacity-mutants.result == 'skipped') }}
-    needs: [pipeline-mutations, pipeline-mutations-rest, pipeline-capacity, pipeline-capacity-mutants, pipeline-validation]
+      !(needs.pipeline-capacity.result == 'skipped' &&
+        needs.pipeline-capacity-support.result == 'skipped' &&
+        needs.pipeline-capacity-mutants.result == 'skipped' &&
+        needs.pipeline-capacity-mutants-rest.result == 'skipped' &&
+        needs.pipeline-mutations.result == 'skipped' &&
+        needs.pipeline-mutations-second.result == 'skipped' &&
+        needs.pipeline-mutations-rest.result == 'skipped' &&
+        needs.pipeline-mutations-rest-second.result == 'skipped') }}
+    needs: [pipeline-capacity, pipeline-capacity-support, pipeline-capacity-mutants, pipeline-capacity-mutants-rest, pipeline-mutations, pipeline-mutations-second, pipeline-mutations-rest, pipeline-mutations-rest-second, pipeline-validation]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     outputs:
       artifact-id: ${{ steps.pipeline-actions.outputs.artifact-id }}
       artifact-digest: ${{ steps.pipeline-actions.outputs.artifact-digest }}
     steps:
-      - name: Require all four producers and mandatory validation before transfer
+      - name: Require every producer and mandatory validation before transfer
         env:
           PIPELINE_NEEDS: ${{ toJSON(needs) }}
         run: |
           node -e '
             const assert = require("node:assert/strict");
             const jobs = JSON.parse(process.env.PIPELINE_NEEDS);
-            const names = ["pipeline-capacity", "pipeline-capacity-mutants", "pipeline-mutations", "pipeline-mutations-rest"];
+            const names = ["pipeline-capacity", "pipeline-capacity-support", "pipeline-capacity-mutants", "pipeline-capacity-mutants-rest", "pipeline-mutations", "pipeline-mutations-second", "pipeline-mutations-rest", "pipeline-mutations-rest-second"];
             assert.deepEqual(Object.keys(jobs).sort(), [...names, "pipeline-validation"].sort());
             assert.equal(jobs["pipeline-validation"].result, "success", "Required synthetic validation did not succeed");
             const ids = [];
@@ -785,7 +1273,7 @@ jobs:
                 assert.match(job.outputs[key] ?? "", /^[0-9a-f]{64}$/);
               ids.push(job.outputs["artifact-id"]);
             }
-            assert.equal(new Set(ids).size, 4, "Part artifacts must be distinct");
+            assert.equal(new Set(ids).size, names.length, "Part artifacts must be distinct");
           '
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -794,29 +1282,53 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 22.22.0
-      - name: Download exact L-M0 archive
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          artifact-ids: ${{ needs.pipeline-mutations.outputs.artifact-id }}
-          path: ${{ runner.temp }}/pipeline-ci/L-M0
-          merge-multiple: true
-      - name: Download exact L-M1 archive
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          artifact-ids: ${{ needs.pipeline-mutations-rest.outputs.artifact-id }}
-          path: ${{ runner.temp }}/pipeline-ci/L-M1
-          merge-multiple: true
-      - name: Download exact L-C0 archive
+      - name: Download exact L-C2 archive
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           artifact-ids: ${{ needs.pipeline-capacity.outputs.artifact-id }}
-          path: ${{ runner.temp }}/pipeline-ci/L-C0
+          path: ${{ runner.temp }}/pipeline-ci/L-C2
           merge-multiple: true
-      - name: Download exact L-C1 archive
+      - name: Download exact L-C3 archive
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.pipeline-capacity-support.outputs.artifact-id }}
+          path: ${{ runner.temp }}/pipeline-ci/L-C3
+          merge-multiple: true
+      - name: Download exact L-C4 archive
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           artifact-ids: ${{ needs.pipeline-capacity-mutants.outputs.artifact-id }}
-          path: ${{ runner.temp }}/pipeline-ci/L-C1
+          path: ${{ runner.temp }}/pipeline-ci/L-C4
+          merge-multiple: true
+      - name: Download exact L-C5 archive
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.pipeline-capacity-mutants-rest.outputs.artifact-id }}
+          path: ${{ runner.temp }}/pipeline-ci/L-C5
+          merge-multiple: true
+      - name: Download exact L-M2 archive
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.pipeline-mutations.outputs.artifact-id }}
+          path: ${{ runner.temp }}/pipeline-ci/L-M2
+          merge-multiple: true
+      - name: Download exact L-M3 archive
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.pipeline-mutations-second.outputs.artifact-id }}
+          path: ${{ runner.temp }}/pipeline-ci/L-M3
+          merge-multiple: true
+      - name: Download exact L-M4 archive
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.pipeline-mutations-rest.outputs.artifact-id }}
+          path: ${{ runner.temp }}/pipeline-ci/L-M4
+          merge-multiple: true
+      - name: Download exact L-M5 archive
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.pipeline-mutations-rest-second.outputs.artifact-id }}
+          path: ${{ runner.temp }}/pipeline-ci/L-M5
           merge-multiple: true
       - name: Validate every part before constructing the immutable complete union
         env:
@@ -831,15 +1343,29 @@ jobs:
         run: node proofs/relation-pipeline/mutation-action-archive.mjs seal
       - name: Reject internally consistent whole-report target substitutions
         run: node proofs/relation-pipeline/audit-target-regression.mjs
-      - name: Audit the complete structural capacity union
-        run: node proofs/relation-pipeline/capacity/audit.mjs
       - name: Retain every capacity target, byte, edge, shrink and compiler negative
         run: node proofs/relation-pipeline/capacity/audit-target-regression.mjs
-      - name: Retain exact-source original parts and derived audited evidence
-        if: always()
+      - name: Retain derived evidence after the complete successful audit
+        if: ${{ success() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: relation-pipeline-evidence-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: |
+            .artifacts/relation-pipeline/capacity/all.json
+            .artifacts/relation-pipeline/fixed-mutations.json
+            .artifacts/relation-pipeline/mutations.json
+            .artifacts/relation-pipeline/capacity/target-substitution/
+            .artifacts/pipeline-ci/join.json
+            .artifacts/pipeline-ci/action-original.json
+            .artifacts/relation-pipeline-target-regression/run-*/*.json
+            .artifacts/relation-pipeline-target-regression/run-*/*.log
+          include-hidden-files: true
+          if-no-files-found: error
+      - name: Retain complete received diagnostics after failure or cancellation
+        if: ${{ always() && !success() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relation-pipeline-evidence-incomplete-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
           path: |
             .artifacts/relation-pipeline/
             .artifacts/pipeline-ci/join.json
@@ -862,7 +1388,7 @@ jobs:
           if-no-files-found: error
   # Host, authorization, Checkpoint and retained-state owners.
   host:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -941,7 +1467,7 @@ jobs:
         run: npm run check:checkpoint-runtime
       - name: Test operation authorization and unchanged Run observations
         if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
-        run: node --test adapters/host-node/authorization-account-current.test.mjs adapters/host-node/local-account-current.test.mjs adapters/host-node/local-run-authorization.test.mjs adapters/host-node/client-run-state-revision.test.mjs adapters/host-node/client-run-observation-reuse.test.mjs adapters/host-common/run-state-clock-order.test.mjs adapters/host-node/client-run-stop-observation.test.mjs adapters/host-node/embedded-managed-compute-projection.test.mjs adapters/host-node/mock-effect-host-original.test.mjs adapters/host-node/embedded-managed-compute-lifecycle.test.mjs adapters/host-node/installed-managed-source.test.mjs adapters/host-node/embedded-source-environment-scope.test.mjs adapters/host-node/client-original-submitted-intent.test.mjs adapters/host-common/observation.test.mjs adapters/host-node/in-process-result-observation.test.mjs
+        run: node --test adapters/host-node/authorization-account-current.test.mjs adapters/host-node/local-account-current.test.mjs adapters/host-node/local-run-authorization.test.mjs adapters/host-node/client-run-state-revision.test.mjs adapters/host-node/client-run-observation-reuse.test.mjs adapters/host-common/run-state-clock-order.test.mjs adapters/host-node/client-run-stop-observation.test.mjs adapters/host-node/embedded-managed-compute-projection.test.mjs adapters/host-node/mock-effect-host-original.test.mjs adapters/host-node/embedded-managed-compute-lifecycle.test.mjs adapters/host-node/installed-managed-source.test.mjs adapters/host-node/embedded-source-environment-scope.test.mjs adapters/host-node/client-original-submitted-intent.test.mjs adapters/host-node/in-process-result-observation.test.mjs
       - name: Test native retained task file ownership
         if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: npm run check:native-retained-task-file
@@ -963,7 +1489,13 @@ jobs:
         run: node scripts/test-packed-run-host-core.mjs
       - name: Test original Local result authorization
         if: ${{ !cancelled() && steps.run-host-preparation.outcome == 'success' }}
-        run: node --test adapters/host-node/local-result-authorization.test.mjs adapters/host-node/local-result-read-policy.test.mjs
+        run: node --test adapters/host-node/local-result-authorization.test.mjs adapters/host-node/local-result-read-workspace.actual.test.mjs adapters/host-node/local-result-metadata-demand.actual.test.mjs adapters/host-node/local-result-read-policy.test.mjs adapters/host-node/ordinary-local-account.test.mjs
+      - name: Test original Local Source inventory and lookup policy
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
+        run: node --test adapters/host-node/ordinary-source-inventory.test.mjs adapters/host-node/local-files-lookup-policy.test.mjs
+      - name: Test original Model registration and material inventories
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
+        run: node --test adapters/host-node/installed-model-registration-snapshot.test.mjs adapters/host-node/request-model-material-resources.test.mjs
       - name: Build runtime packages without prebuilt bundles
         id: cold-runtime-preparation
         if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
@@ -978,7 +1510,7 @@ jobs:
   # Share only clean-checkout tarballs and their source/digest manifest.
   # Consumers retain fresh installs and private target/native build outputs.
   client-packages:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -1007,6 +1539,53 @@ jobs:
             ${{ runner.temp }}/actql-client-packages/actql-node-0.0.0-development.tgz
           if-no-files-found: error
           retention-days: 7
+  # Ready PRs must exercise the README consumers on the same ordinary tars.
+  # This is functional once per variant/Node, independent of speed profiles.
+  client-readme-packed:
+    name: client-readme-packed (${{ matrix.node }})
+    needs: [select-targets, client-packages]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22.22.0', '24']
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm ci
+      - name: Download the single normal Client artifact
+        uses: ./.github/actions/download-client-packages
+        with:
+          artifact-id: ${{ needs.client-packages.outputs.artifact-id }}
+          path: ${{ runner.temp }}/client-readme-input
+      - name: Test collection, original README workflows and Effect denial/cancel/current controls
+        run: node scripts/test-packed-readme-workflows.mjs "$RUNNER_TEMP/client-readme-packed"
+      - name: Preserve actual functional outcomes and failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: client-readme-packed-${{ matrix.node }}-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/client-readme-packed/summary.json
+            ${{ runner.temp }}/client-readme-packed/packages/*packages.json
+            ${{ runner.temp }}/client-readme-packed/*-mock-*.json
+            ${{ runner.temp }}/client-readme-packed/raw/*
+            ${{ runner.temp }}/client-readme-packed/mock-project-*/*.observation.json
+            ${{ runner.temp }}/client-readme-packed/mock-project-*/*.pending.json
+            ${{ runner.temp }}/client-readme-packed/mock-effect-control-*/*.observation.json
+            ${{ runner.temp }}/client-readme-packed/mock-effect-control-*/*.before-close.json
+            ${{ runner.temp }}/client-readme-packed/collection/*.observation.json
+            ${{ runner.temp }}/client-readme-packed/collection/*.pending.json
+            ${{ runner.temp }}/client-readme-packed/collection/*.progress.json
+            ${{ runner.temp }}/client-readme-packed/collection/*ref-before-wait*.json
+          if-no-files-found: error
+          retention-days: 7
   # Require the existing push-only monitor result; its timing warnings remain nonblocking.
   health-quick:
     needs: [client-packages]
@@ -1021,8 +1600,8 @@ jobs:
       package-artifact-id: ${{ needs.client-packages.outputs.artifact-id }}
   # Reuse the normal producer; this small trend lane is not the release matrix.
   main-performance:
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-    needs: [preflight, client-packages]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'pull_request' && github.event.pull_request.draft == false && needs['select-targets'].outputs.profile == 'full')) }}
+    needs: [select-targets, client-packages]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -1064,7 +1643,7 @@ jobs:
           node --input-type=module <<'NODE'
           import {readFileSync, appendFileSync} from 'node:fs';
           const root = process.env.RUNNER_TEMP + '/main-performance';
-          const lines = ['## Main performance observations', '',
+          const lines = ['## Record-only performance observations', '',
             'Three verified repetitions per family; median/max only, not an acceptance p95 or a regression verdict.',
             'Warm Result rereads the original Saved Run. Cross-process Saved is not measured here.',
             'Cold means a new process, not an evicted OS cache. Hosted runner variation requires matched environments.', '',
@@ -1096,7 +1675,7 @@ jobs:
           if-no-files-found: error
           retention-days: 90
   client-supported-versions:
-    needs: [select-targets, preflight, client-packages]
+    needs: [select-targets, client-packages]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -1129,7 +1708,7 @@ jobs:
         run: node scripts/ci-supported-node.mjs '${{ matrix.profile }}' '${{ matrix.node }}' "$RUNNER_TEMP"
   client-distribution:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
-    needs: [select-targets, preflight, client-packages]
+    needs: [select-targets, client-packages]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -1175,10 +1754,20 @@ jobs:
         if: ${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}
         env:
           TMPDIR: ${{ github.workspace }}/_build
-        run: node --test adapters/host-common/file-media-type-consumers.test.mjs adapters/host-node/installed-family-content.test.mjs scripts/packed-public-query-profile.test.mjs scripts/node-local-compile-cache.test.mjs scripts/node-local-owner-selection.test.mjs scripts/node-initial-control-open-routing.test.mjs adapters/host-node/initial-control-package-custody.test.mjs adapters/host-node/initial-control-image-source.test.mjs adapters/host-node/client-full-join-refusal.test.mjs adapters/host-node/installed-composed-infer-run.test.mjs adapters/host-common/strategy-usage.test.mjs adapters/host-node/ledger-usage-consumers.test.mjs adapters/host-node/composed-infer-provider.test.mjs adapters/host-node/infer-evaluation-evidence.test.mjs examples/infer-evaluation/capture-sink.test.mjs scripts/typed-json-literal-preparation.test.mjs scripts/typed-json-literal-public.test.mjs scripts/packed-client-packages.test.mjs scripts/packed-graph-host-dependencies.test.mjs scripts/packed-package-boundaries.test.mjs scripts/graph-composition-fixture.test.mjs scripts/packed-salesforce-model-materials.test.mjs scripts/dbt-compat-judge.test.mjs scripts/sga-surface-checker.test.mjs scripts/infer-owner-checker.test.mjs scripts/graph-surface-checker.test.mjs scripts/graph-public-host.test.mjs scripts/generate-client-publication-wire.test.mjs scripts/generate-client-host-wire.test.mjs packages/client-wire/index.test.mjs packages/client-wire/submission-check-observations.test.mjs packages/sdk/structured-program-check-observations.test.mjs packages/sdk/scoped-authoring-check.test.mjs packages/sdk/index.test.mjs packages/sdk/cancel-identity.test.mjs packages/sdk/read-progress.test.mjs packages/sdk/host-port.test.mjs packages/sdk/result-description.test.mjs packages/sdk/http-redirect.test.mjs packages/sdk/checkpoints.test.mjs packages/sdk/model-checkpoints.test.mjs adapters/host-node/installed-check-environment.test.mjs adapters/host-node/installed-host-policy.test.mjs adapters/host-node/remote-checkpoint-host.test.mjs adapters/host-node/client-effect-checkpoints.test.mjs adapters/host-node/client-effect-query-time.test.mjs adapters/host-node/installed-effect-site.test.mjs adapters/host-node/installed-effect-plan-current.test.mjs adapters/host-node/installed-effect-plan-consumer.test.mjs adapters/host-node/installed-effect-plan.test.mjs adapters/host-node/installed-row-effect-create-occurrence.test.mjs adapters/host-node/installed-row-write.test.mjs adapters/host-node/installed-effect-model-plan-consumer.test.mjs adapters/host-node/ordinary-node-resource-runtime.test.mjs adapters/connectors/notion/test/source-configuration-reader.test.mjs adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs adapters/connectors/calendar/test/installed-calendar-standard-reader.test.mjs adapters/connectors/gmail/test/installed-gmail-standard-reader.test.mjs adapters/connectors/gmail/test/installed-gmail-thread-standard-reader.test.mjs adapters/connectors/gmail/test/gmail-thread-sequence.test.mjs adapters/host-node/installed-update-targets.test.mjs adapters/host-node/recovered-command-content.test.mjs adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs adapters/connectors/local/host/local-file-store-driver.test.mjs adapters/connectors/local/host/local-file-store-authorization.test.mjs adapters/connectors/local/host/local-file-store-authorization-physical.test.mjs adapters/host-node/requested-effect-checkpoints.test.mjs adapters/connectors/local/host/local-file-store-target.test.mjs adapters/host-node/acquired-effect-computation.test.mjs adapters/host-node/acquired-effect-installed-capacity.test.mjs adapters/host-node/acquired-effect-source-binding.test.mjs adapters/host-node/remote-acquisition-checkpoint.test.mjs adapters/host-node/acquired-chain-capacity.test.mjs adapters/host-node/duckdb-import-boundary.test.mjs adapters/host-node/embedded-installation.test.mjs adapters/host-node/installed-infer.test.mjs adapters/host-node/installed-infer-capture.test.mjs adapters/host-node/model-resume-public.test.mjs adapters/host-node/model-resume-effect-public.test.mjs adapters/local-node/model-pause.test.mjs adapters/host-common/result-access-snapshot.test.mjs adapters/host-common/result-description.test.mjs adapters/host-node/client-check.test.mjs adapters/host-node/client-publication-limit-projection.test.mjs adapters/local-node/managed-failure-public.test.mjs adapters/host-node/client-result-alias-routing.test.mjs adapters/host-node/client-result-publication-envelope.test.mjs adapters/host-node/source-selector-check.test.mjs adapters/host-node/client-http.test.mjs adapters/host-node/in-process-client.test.mjs adapters/host-node/client-workspace-binding.test.mjs adapters/host-node/client-workspace-installed.test.mjs adapters/host-node/client-read-progress.test.mjs adapters/host-node/client-read-opening.test.mjs adapters/host-node/client-read-run-capacity.test.mjs adapters/host-node/client-values-row-limit.test.mjs adapters/host-node/client-values-join-profile.test.mjs adapters/host-node/client-sql-array-struct.test.mjs adapters/host-node/client-values-fragment-capacity.test.mjs adapters/host-node/client-values-capacity-custody.test.mjs adapters/host-node/client-submission-input.test.mjs adapters/host-node/client-cancel-response-loss.test.mjs adapters/host-node/client-cancellation-attempt-public.test.mjs adapters/host-node/client-cancellation-operation.test.mjs adapters/host-node/client-cancellation-public.test.mjs adapters/host-node/client-cancellation-attempt-installed.test.mjs adapters/host-node/client-effect-cancellation-public.test.mjs adapters/host-node/client-effect-uncertainty.test.mjs adapters/host-node/client-owner-cursor.test.mjs adapters/host-node/client-owner-observations.test.mjs adapters/host-node/client-owner-observations-public.test.mjs adapters/host-node/sqlite-effect-history-page.test.mjs packages/client-wire/owner-observations.test.mjs packages/sdk/owner-observations.test.mjs adapters/host-node/client-dispatch-owner.test.mjs adapters/host-node/infer-operation-approval.test.mjs adapters/host-node/client-confirmed-cancellation.test.mjs adapters/host-node/infer-dispatch-waiting.test.mjs adapters/host-node/installed-host-cleanup.test.mjs adapters/host-node/installed-effect-profile-cleanup.test.mjs adapters/host-node/installed-duckdb-source-owner.test.mjs adapters/host-node/client-request-journal.test.mjs adapters/host-node/ordinary-source-binding.test.mjs adapters/host-node/installed-row-source-binding-originals.test.mjs adapters/host-node/ordinary-project-source-managed.test.mjs adapters/connectors/local/host/installed-project-files-managed.test.mjs adapters/host-node/client-mock-source-occurrences.test.mjs adapters/host-node/embedded-values-cleanup.test.mjs adapters/local-node/managed-output-custody.test.mjs adapters/host-node/client-request-lookup.test.mjs adapters/host-node/client-run-attach.test.mjs adapters/host-node/client-run-state-fallback.test.mjs adapters/host-node/client-program-bridge.test.mjs adapters/host-node/public-source-preparation.test.mjs adapters/host-node/public-store-source-preparation.test.mjs adapters/host-node/local-values-plan.test.mjs adapters/host-node/local-values-plan-policy.test.mjs packages/sdk/delivery-observation.test.mjs adapters/host-node/client-delivery-observation.test.mjs adapters/host-node/effect-partial-refusal.test.mjs packages/sdk/request-observation.test.mjs packages/sdk/response-capture.test.mjs adapters/host-node/client-submission-epoch.test.mjs adapters/host-node/client-submitted-intent.test.mjs adapters/host-node/client-submission.test.mjs adapters/host-node/source-request-lineage.test.mjs adapters/host-node/journal-lifecycle-limits.test.mjs adapters/host-node/client-pre-admission-refusal.test.mjs adapters/host-node/client-submission-attempt.test.mjs adapters/host-node/client-submission-operation.test.mjs adapters/host-node/submission-epoch-public.test.mjs adapters/host-node/synthetic-held-values-public.test.mjs packages/sdk/submission-identity.test.mjs packages/sdk/submission-attempt.test.mjs scripts/connector-authoring.cli.test.mjs adapters/host-node/rest-source-metadata.test.mjs scripts/fixtures/external-rest/preparation.test.mjs scripts/fixtures/external-rest/marker-publication.test.mjs
+        run: node --test adapters/host-common/file-media-type-consumers.test.mjs adapters/host-node/installed-family-content.test.mjs scripts/packed-public-query-profile.test.mjs scripts/node-local-compile-cache.test.mjs scripts/node-local-owner-selection.test.mjs scripts/node-initial-control-open-routing.test.mjs adapters/host-node/initial-control-package-custody.test.mjs adapters/host-node/initial-control-image-source.test.mjs adapters/host-node/client-full-join-refusal.test.mjs adapters/host-node/local-analytic-preparation.test.mjs adapters/host-node/local-analytic-public.test.mjs adapters/host-node/installed-composed-infer-run.test.mjs adapters/host-common/strategy-usage.test.mjs adapters/host-node/ledger-usage-consumers.test.mjs adapters/host-node/composed-infer-provider.test.mjs adapters/host-node/infer-evaluation-evidence.test.mjs examples/infer-evaluation/capture-sink.test.mjs scripts/typed-json-literal-preparation.test.mjs scripts/typed-json-literal-public.test.mjs scripts/packed-client-packages.test.mjs scripts/packed-graph-host-dependencies.test.mjs scripts/packed-package-boundaries.test.mjs scripts/graph-composition-fixture.test.mjs scripts/packed-salesforce-model-materials.test.mjs scripts/dbt-compat-judge.test.mjs scripts/sga-surface-checker.test.mjs scripts/infer-owner-checker.test.mjs scripts/graph-surface-checker.test.mjs scripts/graph-public-host.test.mjs scripts/generate-client-publication-wire.test.mjs scripts/generate-client-host-wire.test.mjs packages/client-wire/index.test.mjs packages/client-wire/submission-check-observations.test.mjs packages/sdk/structured-program-check-observations.test.mjs packages/sdk/scoped-authoring-check.test.mjs packages/sdk/index.test.mjs packages/sdk/cancel-identity.test.mjs packages/sdk/read-progress.test.mjs packages/sdk/host-port.test.mjs packages/sdk/result-description.test.mjs packages/sdk/http-redirect.test.mjs packages/sdk/checkpoints.test.mjs packages/sdk/model-checkpoints.test.mjs adapters/host-node/installed-check-environment.test.mjs adapters/host-node/installed-host-policy.test.mjs adapters/host-node/remote-checkpoint-host.test.mjs adapters/host-node/client-effect-checkpoints.test.mjs adapters/host-node/client-effect-query-time.test.mjs adapters/host-node/installed-effect-site.test.mjs adapters/host-node/installed-effect-plan-current.test.mjs adapters/host-node/installed-effect-plan-consumer.test.mjs adapters/host-node/installed-effect-plan.test.mjs adapters/host-node/installed-row-effect-create-occurrence.test.mjs adapters/host-node/installed-row-write.test.mjs adapters/host-node/installed-effect-model-plan-consumer.test.mjs adapters/host-node/ordinary-node-resource-runtime.test.mjs adapters/connectors/notion/test/source-configuration-reader.test.mjs adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs adapters/connectors/calendar/test/installed-calendar-standard-reader.test.mjs adapters/connectors/gmail/test/installed-gmail-standard-reader.test.mjs adapters/connectors/gmail/test/installed-gmail-thread-standard-reader.test.mjs adapters/connectors/gmail/test/gmail-thread-sequence.test.mjs adapters/host-node/installed-update-targets.test.mjs adapters/host-node/recovered-command-content.test.mjs adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs adapters/connectors/local/host/local-file-store-driver.test.mjs adapters/connectors/local/host/local-file-store-authorization.test.mjs adapters/connectors/local/host/local-file-store-authorization-physical.test.mjs adapters/host-node/requested-effect-checkpoints.test.mjs adapters/connectors/local/host/local-file-store-target.test.mjs adapters/host-node/acquired-effect-computation.test.mjs adapters/host-node/acquired-effect-installed-capacity.test.mjs adapters/host-node/acquired-effect-source-binding.test.mjs adapters/host-node/remote-acquisition-checkpoint.test.mjs adapters/host-node/acquired-chain-capacity.test.mjs adapters/host-node/duckdb-import-boundary.test.mjs adapters/host-node/embedded-installation.test.mjs adapters/host-node/installed-infer.test.mjs adapters/host-node/installed-infer-capture.test.mjs adapters/host-node/model-resume-public.test.mjs adapters/host-node/model-resume-effect-public.test.mjs adapters/local-node/model-pause.test.mjs adapters/host-common/result-access-snapshot.test.mjs adapters/host-common/result-description.test.mjs adapters/host-node/client-check.test.mjs adapters/host-node/client-publication-limit-projection.test.mjs adapters/local-node/managed-failure-public.test.mjs adapters/host-node/client-result-alias-routing.test.mjs adapters/host-node/client-result-publication-envelope.test.mjs adapters/host-node/source-selector-check.test.mjs adapters/host-node/client-http.test.mjs adapters/host-node/in-process-client.test.mjs adapters/host-node/client-workspace-binding.test.mjs adapters/host-node/client-workspace-installed.test.mjs adapters/host-node/client-read-progress.test.mjs adapters/host-node/client-read-opening.test.mjs adapters/host-node/client-read-run-capacity.test.mjs adapters/host-node/client-values-row-limit.test.mjs adapters/host-node/client-values-join-profile.test.mjs adapters/host-node/client-sql-array-struct.test.mjs adapters/host-node/client-values-fragment-capacity.test.mjs adapters/host-node/client-values-capacity-custody.test.mjs adapters/host-node/client-submission-input.test.mjs adapters/host-node/client-cancel-response-loss.test.mjs adapters/host-node/client-cancellation-attempt-public.test.mjs adapters/host-node/client-cancellation-operation.test.mjs adapters/host-node/client-cancellation-public.test.mjs adapters/host-node/client-cancellation-attempt-installed.test.mjs adapters/host-node/client-effect-cancellation-public.test.mjs adapters/host-node/client-effect-uncertainty.test.mjs adapters/host-node/client-owner-cursor.test.mjs adapters/host-node/client-owner-observations.test.mjs adapters/host-node/client-owner-observations-public.test.mjs adapters/host-node/sqlite-effect-history-page.test.mjs packages/client-wire/owner-observations.test.mjs packages/sdk/owner-observations.test.mjs adapters/host-node/client-dispatch-owner.test.mjs adapters/host-node/infer-operation-approval.test.mjs adapters/host-node/client-confirmed-cancellation.test.mjs adapters/host-node/infer-dispatch-waiting.test.mjs adapters/host-node/installed-host-cleanup.test.mjs adapters/host-node/installed-effect-profile-cleanup.test.mjs adapters/host-node/installed-duckdb-source-owner.test.mjs adapters/host-node/client-request-journal.test.mjs adapters/host-node/client-keyed-lookup-journal.test.mjs adapters/store-local/lookup-raw-evidence.test.mjs adapters/host-node/ordinary-source-binding.test.mjs adapters/host-node/installed-row-source-binding-originals.test.mjs adapters/host-node/ordinary-project-source-managed.test.mjs adapters/connectors/local/host/installed-project-files-managed.test.mjs adapters/host-node/client-mock-source-occurrences.test.mjs adapters/host-node/embedded-values-cleanup.test.mjs adapters/local-node/managed-output-custody.test.mjs adapters/host-node/client-request-lookup.test.mjs adapters/host-node/client-run-attach.test.mjs adapters/host-node/client-run-state-fallback.test.mjs adapters/host-node/client-program-bridge.test.mjs adapters/host-node/public-source-preparation.test.mjs adapters/host-node/public-store-source-preparation.test.mjs adapters/host-node/local-values-plan.test.mjs adapters/host-node/local-values-plan-policy.test.mjs packages/sdk/delivery-observation.test.mjs adapters/host-node/client-delivery-observation.test.mjs adapters/host-node/effect-partial-refusal.test.mjs packages/sdk/request-observation.test.mjs packages/sdk/response-capture.test.mjs adapters/host-node/client-submission-epoch.test.mjs adapters/host-node/client-submitted-intent.test.mjs adapters/host-node/client-submission.test.mjs adapters/host-node/source-request-lineage.test.mjs adapters/host-node/journal-lifecycle-limits.test.mjs adapters/host-node/client-pre-admission-refusal.test.mjs adapters/host-node/client-submission-attempt.test.mjs adapters/host-node/client-submission-operation.test.mjs adapters/host-node/submission-epoch-public.test.mjs adapters/host-node/synthetic-held-values-public.test.mjs packages/sdk/submission-identity.test.mjs packages/sdk/submission-attempt.test.mjs scripts/connector-authoring.cli.test.mjs adapters/host-node/rest-source-metadata.test.mjs scripts/fixtures/external-rest/preparation.test.mjs scripts/fixtures/external-rest/marker-publication.test.mjs packages/provider-http/*.test.mjs
+      - name: Test pinned AI SDK provider contracts with GC
+        if: ${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}
+        env:
+          TMPDIR: ${{ github.workspace }}/_build
+        run: npm run check:provider-ai-sdk
+      - name: Test optional Node Host observation
+        if: ${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}
+        env:
+          TMPDIR: ${{ github.workspace }}/_build
+        run: npm run check:otel-node
   client-distribution-callers:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
-    needs: [select-targets, preflight, client-packages]
+    needs: [select-targets, client-packages]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -1402,9 +1991,17 @@ jobs:
         run: node scripts/local-checks.mjs test node -- adapters/host-node/installed-content-family-custody.test.mjs adapters/host-node/table-owned-site-retirement.test.mjs adapters/host-node/table-original-metadata.test.mjs
   client-distribution-mutations:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
-    needs: [select-targets, preflight, client-packages]
+    needs: [select-targets, client-packages]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {mutation: read-row, script: check-read-row-mutations.mjs}
+          - {mutation: submission-input, script: check-submission-input-mutations.mjs}
+          - {mutation: submission-check-observation, script: check-submission-check-observation-mutations.mjs}
+          - {mutation: effect-uncertainty, script: check-effect-uncertainty-mutations.mjs}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -1444,29 +2041,14 @@ jobs:
         env:
           TMPDIR: ${{ github.workspace }}/_build
         run: node scripts/generate-client-host-wire.mjs
-      - name: Test check read row mutations
+      - name: Test check ${{ matrix.mutation }} mutations
         if: ${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}
         env:
           TMPDIR: ${{ github.workspace }}/_build
-        run: node scripts/check-read-row-mutations.mjs
-      - name: Test check submission input mutations
-        if: ${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}
-        env:
-          TMPDIR: ${{ github.workspace }}/_build
-        run: node scripts/check-submission-input-mutations.mjs
-      - name: Test check submission check observation mutations
-        if: ${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}
-        env:
-          TMPDIR: ${{ github.workspace }}/_build
-        run: node scripts/check-submission-check-observation-mutations.mjs
-      - name: Test check effect uncertainty mutations
-        if: ${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}
-        env:
-          TMPDIR: ${{ github.workspace }}/_build
-        run: node scripts/check-effect-uncertainty-mutations.mjs
+        run: node scripts/${{ matrix.script }}
   client-distribution-packed:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
-    needs: [select-targets, preflight, client-packages]
+    needs: [select-targets, client-packages]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -1506,44 +2088,37 @@ jobs:
         run: node scripts/test-packed-workspace-connection.mjs
       - name: Test distribution test-packed-graph
         if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        id: packed-graph
         env:
           TMPDIR: ${{ github.workspace }}/_build
         run: node scripts/test-packed-graph.mjs
+      - name: Retain packed Graph child failure diagnostics
+        if: always() && steps.packed-graph.outputs.evidence-directory != ''
+        uses: ./.github/actions/upload-packed-query-evidence
+        with:
+          directory: ${{ steps.packed-graph.outputs.evidence-directory }}
+          name: packed-graph-${{ github.sha }}
       - name: Test distribution test-packed-client-checkpoint
         if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
         env:
           TMPDIR: ${{ github.workspace }}/_build
         run: node scripts/test-packed-client-checkpoint.mjs
-  client-distribution-native:
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
-    needs: [select-targets, preflight]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          persist-credentials: false
-          # The unchanged compatibility consumer reads public pre-extension SDKs.
-          fetch-depth: 0
-      - uses: ./.github/actions/setup-toolchain
-        with:
-          python: 'true'
-      - name: Build the original Native Client transport fixture
-        id: native-client-preparation
-        run: moon build --target native --release src/cmd/native_client
-      - name: Test the original Native Client transport fixture
-        if: ${{ !cancelled() && steps.native-client-preparation.outcome == 'success' }}
-        env:
-          TMPDIR: ${{ github.workspace }}/_build
-        run: node scripts/test-native-client.mjs
   client-packed:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
-    needs: [select-targets, preflight, client-packages]
+    needs: [select-targets, client-packages]
     runs-on: ubuntu-24.04
-    # The preceding packed checks took about 36 minutes before the selected
-    # Native build's 30-minute budget. Preserve time for that entire build,
-    # the remaining Result checks and always-on evidence retention.
-    timeout-minutes: 75
+    name: client-packed (${{ matrix.group }})
+    # Every group consumes the one same-run Client artifact. Private installed
+    # applications, Stores and keys remain independently owned by each case.
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [connectors, infer, query-portable-1, query-portable-2, query-portable-3, query-native]
+        include:
+          - {group: query-portable-1, query-part: portable-1}
+          - {group: query-portable-2, query-part: portable-2}
+          - {group: query-portable-3, query-part: portable-3}
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -1552,9 +2127,10 @@ jobs:
         with:
           python: 'true'
       - name: Select the packed Native Graph compiler
+        if: ${{ matrix.group == 'query-native' }}
+        timeout-minutes: 5
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes clang-19
+          bash scripts/ci-install-linux-clang.sh
           compiler_bin="$RUNNER_TEMP/packed-query-compiler"
           mkdir -m 700 "$compiler_bin"
           ln -s "$(realpath /usr/bin/clang-19)" "$compiler_bin/cc"
@@ -1567,103 +2143,152 @@ jobs:
           artifact-id: ${{ needs.client-packages.outputs.artifact-id }}
           path: ${{ runner.temp }}/actql-client-packages
       - name: Test packed Local runtime assets
-        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         run: node scripts/test-packed-local-node-assets.mjs
       - name: Test packed Sheets
-        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         run: node scripts/test-packed-sheets.mjs
       - name: Test packed HubSpot record approval and original Saved
-        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         env:
           ACTQL_TEST_PRESERVE_SCRATCH: '1'
         run: node scripts/test-packed-hubspot-source.mjs --ci --approval
       - name: Test packed kintone record approval and original Saved
-        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         env:
           ACTQL_TEST_PRESERVE_SCRATCH: '1'
         run: node scripts/test-packed-hubspot-source.mjs --ci --kintone-approval
       - name: Test packed Salesforce mock approval and original Saved
-        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         env:
           ACTQL_TEST_PRESERVE_SCRATCH: '1'
         run: node scripts/test-packed-hubspot-source.mjs --ci --mock-salesforce-approval
       - name: Test packed HubSpot mock approval and original Saved
-        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         env:
           ACTQL_TEST_PRESERVE_SCRATCH: '1'
         run: node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-approval
+      - name: Test packed HubSpot Whole-input mock approval and original Saved
+        id: packed-hubspot-whole
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
+        env:
+          ACTQL_TEST_PRESERVE_SCRATCH: '1'
+        run: node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-whole-approval
+      - name: Retain packed HubSpot Whole-input qualification and failure evidence
+        if: matrix.group == 'connectors' && always() && steps.packed-hubspot-whole.outputs.evidence-directory != ''
+        uses: ./.github/actions/upload-packed-query-evidence
+        with:
+          directory: ${{ steps.packed-hubspot-whole.outputs.evidence-directory }}
+          name: packed-hubspot-whole-${{ github.sha }}
+      - name: Test packed three-Source HubSpot mock approval and original Saved
+        id: packed-hubspot-three-source
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
+        env:
+          ACTQL_TEST_PRESERVE_SCRATCH: '1'
+        run: node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-three-source-approval
+      - name: Retain packed three-Source HubSpot qualification and failure evidence
+        if: matrix.group == 'connectors' && always() && steps.packed-hubspot-three-source.outputs.evidence-directory != ''
+        uses: ./.github/actions/upload-packed-query-evidence
+        with:
+          directory: ${{ steps.packed-hubspot-three-source.outputs.evidence-directory }}
+          name: packed-hubspot-three-source-${{ github.sha }}
+      - name: Test packed binary Whole JOIN HubSpot mock approval and original Saved
+        id: packed-hubspot-binary-source
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
+        env:
+          ACTQL_TEST_PRESERVE_SCRATCH: '1'
+        run: node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-binary-source-approval
+      - name: Retain packed binary Whole JOIN HubSpot qualification and failure evidence
+        if: matrix.group == 'connectors' && always() && steps.packed-hubspot-binary-source.outputs.evidence-directory != ''
+        uses: ./.github/actions/upload-packed-query-evidence
+        with:
+          directory: ${{ steps.packed-hubspot-binary-source.outputs.evidence-directory }}
+          name: packed-hubspot-binary-source-${{ github.sha }}
       - name: Test packed kintone mock approval and original Saved
-        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         env:
           ACTQL_TEST_PRESERVE_SCRATCH: '1'
         run: node scripts/test-packed-hubspot-source.mjs --ci --mock-kintone-approval
       - name: Test packed Embedded Local Checkpoint and Named Result
-        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         run: npm run check:packed-embedded-checkpoint
       - name: Test packed single INFER capture and replay
-        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        if: ${{ matrix.group == 'infer' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         id: packed-infer
         run: node scripts/test-packed-single-infer.mjs
       - name: Retain packed single INFER evidence
-        if: always() && steps.packed-infer.outputs.evidence-directory != ''
+        if: matrix.group == 'infer' && always() && steps.packed-infer.outputs.evidence-directory != ''
         uses: ./.github/actions/upload-packed-query-evidence
         with:
           directory: ${{ steps.packed-infer.outputs.evidence-directory }}
           name: packed-single-infer-${{ github.sha }}
       - name: Test packed named INFER evaluation with traces off and unsampled
-        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        if: ${{ matrix.group == 'infer' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         id: packed-infer-evaluation
         run: node scripts/test-packed-infer-evaluation.mjs
       - name: Retain packed INFER evaluation evidence
-        if: always() && steps.packed-infer-evaluation.outputs.evidence-directory != ''
+        if: matrix.group == 'infer' && always() && steps.packed-infer-evaluation.outputs.evidence-directory != ''
         uses: ./.github/actions/upload-packed-query-evidence
         with:
           directory: ${{ steps.packed-infer-evaluation.outputs.evidence-directory }}
           name: packed-infer-evaluation-${{ github.sha }}
       - name: Test packed acquired INFER capture and replay
-        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        if: ${{ matrix.group == 'infer' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         id: packed-acquired-infer
         run: node scripts/test-packed-acquired-infer.mjs
       - name: Retain packed acquired INFER evidence
-        if: always() && steps.packed-acquired-infer.outputs.evidence-directory != ''
+        if: matrix.group == 'infer' && always() && steps.packed-acquired-infer.outputs.evidence-directory != ''
         uses: ./.github/actions/upload-packed-query-evidence
         with:
           directory: ${{ steps.packed-acquired-infer.outputs.evidence-directory }}
           name: packed-acquired-infer-${{ github.sha }}
       - name: Test raw public SQL and Pipe through packed Local and HTTP
-        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        if: ${{ (matrix.group == 'query-portable-1' || matrix.group == 'query-portable-2' || matrix.group == 'query-portable-3') && !cancelled() && steps.client-inputs.outcome == 'success' }}
         id: packed-query
+        env:
+          ACTQL_TEST_QUERY_TIMEOUT_MS: '1800000'
+        run: |
+          node --test scripts/packed-query-evidence.test.mjs
+          node scripts/test-packed-public-query.mjs --ci-part=${{ matrix.query-part }}
+      - name: Retain packed public query evidence
+        if: (matrix.group == 'query-portable-1' || matrix.group == 'query-portable-2' || matrix.group == 'query-portable-3') && always() && steps.packed-query.outputs.evidence-directory != ''
+        uses: ./.github/actions/upload-packed-query-evidence
+        with:
+          directory: ${{ steps.packed-query.outputs.evidence-directory }}
+          name: packed-public-${{ matrix.group }}-${{ github.sha }}
+      - name: Test committed Result descriptions through packed Local and HTTP
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
+        # The description path reads retained metadata, including empty Results.
+        # It must be exercised from installed packages on both transports.
+        run: node scripts/test-packed-result-description.mjs
+        id: packed-result-description
+      - name: Retain packed Result description evidence
+        if: matrix.group == 'connectors' && always() && steps.packed-result-description.outputs.evidence-directory != ''
+        uses: ./.github/actions/upload-packed-query-evidence
+        with:
+          directory: ${{ steps.packed-result-description.outputs.evidence-directory }}
+          name: packed-result-description-${{ github.sha }}
+      - name: Test the complete packed Native Graph campaign
+        if: ${{ !cancelled() && matrix.group == 'query-native' && steps.client-inputs.outcome == 'success' }}
+        id: packed-query-native
         env:
           ACTQL_TEST_QUERY_TIMEOUT_MS: '1800000'
           ACTQL_TEST_NATIVE_QUERY_COMPILER: 'clang-19'
         run: |
           test "$(realpath "$(command -v cc)")" = "$(realpath /usr/bin/clang-19)"
           cc --version
-          node --test scripts/packed-query-evidence.test.mjs
-          node scripts/test-packed-public-query.mjs
-      - name: Retain packed public query evidence
-        if: always() && steps.packed-query.outputs.evidence-directory != ''
+          node scripts/test-packed-public-query.mjs --ci-part=native
+      - name: Retain packed Native query evidence
+        if: always() && matrix.group == 'query-native' && steps.packed-query-native.outputs.evidence-directory != ''
         uses: ./.github/actions/upload-packed-query-evidence
         with:
-          directory: ${{ steps.packed-query.outputs.evidence-directory }}
-          name: packed-public-query-${{ github.sha }}
-      - name: Test committed Result descriptions through packed Local and HTTP
-        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
-        # The description path reads retained metadata, including empty Results.
-        # It must be exercised from installed packages on both transports.
-        run: node scripts/test-packed-result-description.mjs
-        id: packed-result-description
-      - name: Retain packed Result description evidence
-        if: always() && steps.packed-result-description.outputs.evidence-directory != ''
-        uses: ./.github/actions/upload-packed-query-evidence
-        with:
-          directory: ${{ steps.packed-result-description.outputs.evidence-directory }}
-          name: packed-result-description-${{ github.sha }}
+          directory: ${{ steps.packed-query-native.outputs.evidence-directory }}
+          name: packed-public-query-native-${{ github.sha }}
   # Source composition gets the same full budget as the other packed consumers.
   # The preceding installed-query workloads must not consume its execution time.
   client-packed-composition:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
-    needs: [select-targets, preflight, client-packages]
+    needs: [select-targets, client-packages]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -1686,7 +2311,7 @@ jobs:
         run: node scripts/test-packed-salesforce-source.mjs
   # These source-backed checks need no packed artifact or other Client job.
   client-salesforce:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -1719,8 +2344,8 @@ jobs:
   # or unexpectedly skipped producers/consumers. No acceptance runs here.
   client:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
-      !(needs.client-packages.result == 'skipped' && needs.client-supported-versions.result == 'skipped' && needs.client-distribution.result == 'skipped' && needs.client-distribution-callers.result == 'skipped' && needs.client-distribution-mutations.result == 'skipped' && needs.client-distribution-packed.result == 'skipped' && needs.client-distribution-native.result == 'skipped' && needs.client-packed.result == 'skipped' && needs.client-packed-composition.result == 'skipped' && needs.client-salesforce.result == 'skipped') }}
-    needs: [client-packages, client-supported-versions, client-distribution, client-distribution-callers, client-distribution-mutations, client-distribution-packed, client-distribution-native, client-packed, client-packed-composition, client-salesforce]
+      !(needs.client-packages.result == 'skipped' && needs.client-supported-versions.result == 'skipped' && needs.client-distribution.result == 'skipped' && needs.client-distribution-callers.result == 'skipped' && needs.client-distribution-mutations.result == 'skipped' && needs.client-distribution-packed.result == 'skipped' && needs.native-cli-installed.result == 'skipped' && needs.client-packed.result == 'skipped' && needs.client-packed-composition.result == 'skipped' && needs.client-salesforce.result == 'skipped') }}
+    needs: [client-packages, client-supported-versions, client-distribution, client-distribution-callers, client-distribution-mutations, client-distribution-packed, native-cli-installed, client-packed, client-packed-composition, client-salesforce]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -1731,7 +2356,7 @@ jobs:
           node -e '
             const results = JSON.parse(process.env.RESULTS);
             let failed = false;
-            for (const job of ["client-packages", "client-supported-versions", "client-distribution", "client-distribution-callers", "client-distribution-mutations", "client-distribution-packed", "client-distribution-native", "client-packed", "client-packed-composition", "client-salesforce"]) {
+            for (const job of ["client-packages", "client-supported-versions", "client-distribution", "client-distribution-callers", "client-distribution-mutations", "client-distribution-packed", "native-cli-installed", "client-packed", "client-packed-composition", "client-salesforce"]) {
               const result = results[job]?.result;
               const ok = result === "success";
               console.log(`${ok ? "ok  " : "FAIL"} ${job}: ${result}`);
@@ -1742,7 +2367,7 @@ jobs:
   # Ordinary install acceptance is separate from transport mocks and source
   # unit tests. It consumes the same run's prepack-enabled Client tarballs.
   native-cli-installed:
-    needs: [select-targets, preflight, client-packages]
+    needs: [select-targets, client-packages]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 35
@@ -1750,6 +2375,8 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
+          # The original transport compatibility consumer retains its full Git history.
+          fetch-depth: 0
       - uses: ./.github/actions/setup-toolchain
       - name: Install Native compiler headers
         run: |
@@ -1775,7 +2402,7 @@ jobs:
           retention-days: 14
   # Separate positive Local cohort; the Remote/no-runtime regression is independent.
   native-cli-linux-local:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 50
@@ -1787,27 +2414,48 @@ jobs:
         with:
           python: 'true'
       - name: Install selected Linux compiler
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes clang-19
+        timeout-minutes: 5
+        run: bash scripts/ci-install-linux-clang.sh
       - name: Install existing component producer Python dependencies
         run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
       - name: Retain exact official component archives
         run: |
           python3 - <<'PY'
-          import hashlib, json, os, pathlib, urllib.request
+          import hashlib, json, os, pathlib, time, urllib.error, urllib.request
+          def retain_original(original, destination):
+              # Retry the same immutable GET within its original input budget.
+              assert 0 < original['bytes'] <= 5 * 1024 * 1024
+              deadline = time.monotonic() + 60
+              last_failure = None
+              for attempt in range(3):
+                  remaining = deadline - time.monotonic()
+                  if remaining <= 0:
+                      if last_failure is not None:
+                          raise last_failure
+                      raise TimeoutError('Original component download budget exhausted')
+                  try:
+                      with urllib.request.urlopen(original['url'], timeout=remaining) as response:
+                          data = response.read(original['bytes'] + 1)
+                      break
+                  except (urllib.error.URLError, ConnectionResetError, TimeoutError) as error:
+                      reason = error.reason if isinstance(error, urllib.error.URLError) else error
+                      delay = attempt + 1
+                      if (isinstance(error, urllib.error.HTTPError)
+                              or not isinstance(reason, (ConnectionResetError, TimeoutError))
+                              or attempt == 2 or delay >= deadline - time.monotonic()):
+                          raise
+                      last_failure = error
+                      time.sleep(delay)
+              assert len(data) == original['bytes'] and hashlib.sha256(data).hexdigest() == original['sha256']
+              with destination.open('xb') as output:
+                  output.write(data)
           root = pathlib.Path(os.environ['RUNNER_TEMP']) / 'native-cli-linux-local'
           inputs = root / 'inputs'
           inputs.mkdir(parents=True, exist_ok=False)
           sqlite = json.loads(pathlib.Path('packages/python-local-runtime/native/sqlite-component/source.json').read_text())['upstream']
           crypto = json.loads(pathlib.Path('packages/python-local-runtime/native/crypto-component/source.json').read_text())['source_targets']['x86_64-unknown-linux-gnu']
           for name, original in [('sqlite.zip', sqlite), ('libssl-dev.deb', crypto['package']), ('libssl3t64.deb', crypto['license']['package'])]:
-              assert 0 < original['bytes'] <= 5 * 1024 * 1024
-              with urllib.request.urlopen(original['url'], timeout=60) as response:
-                  data = response.read(original['bytes'] + 1)
-              assert len(data) == original['bytes'] and hashlib.sha256(data).hexdigest() == original['sha256']
-              with (inputs / name).open('xb') as output:
-                  output.write(data)
+              retain_original(original, inputs / name)
           PY
       - name: Produce normal selected Linux Local artifact
         run: |
@@ -1827,6 +2475,14 @@ jobs:
             "$RUNNER_TEMP/native-cli-linux-local/release" \
             "$RUNNER_TEMP/native-cli-linux-local/cohort.json" \
             "$RUNNER_TEMP/native-cli-linux-local/production/artifact"
+      - name: Require actual bounded Crypto allocator conformance
+        if: ${{ !cancelled() && steps.local_cohort.outcome == 'success' }}
+        timeout-minutes: 3
+        run: |
+          python3 scripts/test-native-crypto-allocator.py \
+            --source "$(git rev-parse HEAD)" --clang "$(realpath /usr/bin/clang-19)" \
+            --crypto-producer "$RUNNER_TEMP/native-cli-linux-local/production/crypto/producer.json" \
+            --output "$RUNNER_TEMP/native-cli-linux-local/crypto-allocator" --seconds 150
       - name: Require actual fresh installed source-free Local execution
         if: ${{ !cancelled() && steps.local_cohort.outcome == 'success' }}
         run: node scripts/test-native-cli-source-free-install.mjs "$RUNNER_TEMP/native-cli-linux-local/release"
@@ -1843,6 +2499,7 @@ jobs:
           path: |
             ${{ runner.temp }}/native-cli-linux-local/production/sqlite/process-producer.json
             ${{ runner.temp }}/native-cli-linux-local/production/crypto/producer.json
+            ${{ runner.temp }}/native-cli-linux-local/crypto-allocator/summary.json
             ${{ runner.temp }}/native-cli-linux-local/production/recipe/
             ${{ runner.temp }}/native-cli-linux-local/production/artifact/artifact.json
             ${{ runner.temp }}/native-cli-linux-local/production/artifact/native-producer/build.json
@@ -1856,8 +2513,8 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
   # Native storage, publication and control, and the Native retained path.
-  native:
-    needs: [select-targets, preflight]
+  native-http:
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 110
@@ -1868,6 +2525,39 @@ jobs:
       - uses: ./.github/actions/setup-toolchain
         with:
           python: 'true'
+      - name: Install existing scoped component producer dependencies
+        run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
+      - name: Select the original pinned Noble static Crypto inputs
+        timeout-minutes: 5
+        run: |
+          openssl_development="$(node -p 'const p=require("./packages/python-local-runtime/native/crypto-component/source.json").source_targets["x86_64-unknown-linux-gnu"].package; p.name+"="+p.version')"
+          openssl_runtime="$(node -p 'const p=require("./packages/python-local-runtime/native/crypto-component/source.json").source_targets["x86_64-unknown-linux-gnu"].license.package; p.name+"="+p.version')"
+          sudo apt-get update
+          sudo apt-get install --yes "$openssl_development" "$openssl_runtime" gnupg gpgv
+      # 4 sequential producers retain 900s each plus 30s caller allowance.
+      # The enclosing window also retains metadata and cleanup time.
+      - name: Test Node-free native storage publication and control
+        id: native-http
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-http
+        run: |
+          ulimit -S -s 65536
+          node scripts/test-native-http-client.mjs
+  native-workloads:
+    needs:
+      - select-targets
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          python: "true"
+      - name: Record the original Native job deadline
+        run: echo "ACTQL_NATIVE_CI_DEADLINE=$(node -p 'Date.now()+110*60*1000')" >> "$GITHUB_ENV"
       - name: Install existing scoped component producer dependencies
         run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
       - name: Test scoped bundle producer source and image metadata refusals
@@ -1888,7 +2578,7 @@ jobs:
         run: python3 -B scripts/test_native_working_origin.py
       - name: Retain Linux x64 process-provider original controls
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: linux-x64-owned-process-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
@@ -1900,9 +2590,7 @@ jobs:
           retention-days: 14
       - name: Test original Native bootstrap inventory FFI and domain lifetime
         timeout-minutes: 5
-        run: >-
-          node scripts/local-checks.mjs test moon --timeout-seconds 240 --
-          --target native src/platform_native/host_bootstrap/in_process_domain_wbtest.mbt
+        run: node scripts/local-checks.mjs test moon --timeout-seconds 240 -- --target native src/platform_native/host_bootstrap/in_process_domain_wbtest.mbt
       - name: Select the original pinned Noble static Crypto inputs
         timeout-minutes: 5
         run: |
@@ -1910,15 +2598,17 @@ jobs:
           openssl_runtime="$(node -p 'const p=require("./packages/python-local-runtime/native/crypto-component/source.json").source_targets["x86_64-unknown-linux-gnu"].license.package; p.name+"="+p.version')"
           sudo apt-get update
           sudo apt-get install --yes "$openssl_development" "$openssl_runtime" gnupg gpgv
-      # 4 sequential producers retain 900s each plus 30s caller allowance.
-      # The enclosing window also retains metadata and cleanup time.
       - name: Prepare exact-source scoped Native commands and components once
         id: native-preparation
         timeout-minutes: 65
         run: node scripts/prepare-native-runtime-bundle-fixture.mjs --destination "${{ runner.temp }}/native-scoped-preparation" --entries all --seconds 900 --http-jobs 2
+      - name: Start independent Native groups under the same preparation
+        id: native-background-start
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        run: node scripts/ci-native-background-groups.mjs start native
       - name: Retain scoped Native preparation source and compiler receipts
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: native-scoped-preparation-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
@@ -1927,46 +2617,6 @@ jobs:
             ${{ runner.temp }}/native-scoped-preparation/**/*.stderr
           if-no-files-found: warn
           retention-days: 14
-      - name: Test Node-free native storage publication and control
-        id: native-http
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
-        env:
-          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-http
-        run: |
-          ulimit -S -s 65536
-          node scripts/test-native-http-client.mjs
-      - name: Test Native Salesforce Effect preview
-        id: native-preview
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
-        env:
-          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-preview
-        run: |
-          ulimit -S -s 65536
-          node scripts/test-native-salesforce-effect-preview.mjs
-      - name: Test Native runtime bundle CLI
-        id: native-bundle-cli
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
-        env:
-          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-bundle-cli
-        run: |
-          ulimit -S -s 65536
-          node scripts/test-native-runtime-bundle-cli.mjs
-      - name: Test Native publication Store lock
-        id: native-publication-lock
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
-        env:
-          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-publication-lock
-        run: |
-          ulimit -S -s 65536
-          node scripts/test-native-publication-store-lock.mjs
-      - name: Test Native remote runtime
-        id: native-remote
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
-        env:
-          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-remote
-        run: |
-          ulimit -S -s 65536
-          node scripts/test-native-remote-runtime.mjs
       - name: Test Native Resident Effect computation
         id: native-effect
         if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
@@ -1977,20 +2627,17 @@ jobs:
           node scripts/test-native-resident-site.mjs --effect-computation-only
       - name: Retain original Native Effect failure observer summary
         if: ${{ !cancelled() && steps.native-effect.outcome == 'failure' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: native-effect-original-linux-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/native-tests/native-effect/*/resident-consumer-summary.json
           if-no-files-found: warn
           retention-days: 14
-      # Retain the original failure-only evidence before the longer independent Native groups.
       - name: Install debugger only for failed Linux Effect consumer diagnosis
         id: failure-debugger
         if: ${{ !cancelled() && steps.native-effect.outcome == 'failure' }}
         continue-on-error: true
         timeout-minutes: 5
-        # The required Crypto step already refreshed these package indexes.
-        # Debugger availability must not block the original Native tests.
         run: sudo apt-get install --yes --no-install-recommends gdb
       - name: Diagnose only failed Linux Effect consumer functions
         if: ${{ !cancelled() && steps.native-effect.outcome == 'failure' }}
@@ -2003,7 +2650,7 @@ jobs:
           node scripts/diagnose-native-resident-functions.mjs --output "${{ runner.temp }}/native-effect-functions/sanitized.json"
       - name: Retain only sanitized Linux Effect function availability
         if: ${{ !cancelled() && steps.native-effect.outcome == 'failure' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: native-effect-functions-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/native-effect-functions/sanitized.json
@@ -2017,103 +2664,12 @@ jobs:
         run: |
           ulimit -S -s 65536
           node scripts/test-native-resident-site.mjs
-      - name: Test Native Resident Source
-        id: native-source
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
-        env:
-          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-source
-        run: |
-          ulimit -S -s 65536
-          node scripts/test-native-resident-site.mjs --source-only
-      - name: Test Native observation replay
-        id: native-observation
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
-        env:
-          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-observation
-        run: |
-          ulimit -S -s 65536
-          node scripts/test-native-resident-site.mjs --observation-replay-only
-      - name: Test Native release recovery
-        id: native-release
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
-        env:
-          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-release
-        run: |
-          ulimit -S -s 65536
-          node scripts/test-native-resident-site.mjs --release-recovery-only
-      - name: Test Native cancellation
-        id: native-cancel
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
-        env:
-          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-cancel
-        run: |
-          ulimit -S -s 65536
-          node scripts/test-native-resident-site.mjs --cancel-only
-      # A failed Effect was already sampled before Site; otherwise preserve the original Site trigger.
-      - name: Install debugger only for failed Linux Effect consumer diagnosis (Site fallback)
-        id: site-failure-debugger
-        if: ${{ !cancelled() && steps.native-effect.outcome != 'failure' && steps.native-runtime-test.outcome == 'failure' }}
-        continue-on-error: true
-        timeout-minutes: 5
-        # The required Crypto step already refreshed these package indexes.
-        # Debugger availability must not block the original Native tests.
-        run: sudo apt-get install --yes --no-install-recommends gdb
-      - name: Diagnose only failed Linux Effect consumer functions (Site fallback)
-        if: ${{ !cancelled() && steps.native-effect.outcome != 'failure' && steps.native-runtime-test.outcome == 'failure' }}
-        continue-on-error: true
-        timeout-minutes: 6
-        env:
-          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-effect-function-state
-        run: |
-          ulimit -S -s 65536
-          node scripts/diagnose-native-resident-functions.mjs --output "${{ runner.temp }}/native-effect-functions/sanitized.json"
-      - name: Retain only sanitized Linux Effect function availability (Site fallback)
-        if: ${{ !cancelled() && steps.native-effect.outcome != 'failure' && steps.native-runtime-test.outcome == 'failure' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: native-effect-functions-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/native-effect-functions/sanitized.json
-          if-no-files-found: warn
-          retention-days: 14
-      - name: Test public packed Run materials against native resident Site
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
-        id: packed-materials
-        env:
-          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/packed-resident-materials
-        run: node scripts/test-packed-resident-materials.mjs
-      - name: Retain packed resident materials evidence
-        if: always() && steps.packed-materials.outputs.evidence-directory != ''
-        uses: ./.github/actions/upload-packed-query-evidence
-        with:
-          directory: ${{ steps.packed-materials.outputs.evidence-directory }}
-          name: packed-resident-materials-${{ github.sha }}
-      - name: Test packed exact dispatch recovery against native resident Site
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
-        id: packed-redelivery
-        env:
-          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/packed-resident-redelivery
-        run: node scripts/test-packed-resident-materials.mjs --redelivery-only
-      - name: Test packed Output report custody and ACK crash boundaries
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
-        id: packed-output-report
-        env:
-          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/packed-output-report
-        run: node scripts/test-packed-resident-materials.mjs --output-report-only
-      - name: Retain packed Output report evidence
-        if: always() && steps.packed-output-report.outputs.evidence-directory != ''
-        uses: ./.github/actions/upload-packed-query-evidence
-        with:
-          directory: ${{ steps.packed-output-report.outputs.evidence-directory }}
-          name: packed-output-report-${{ github.sha }}
-      - name: Retain packed exact redelivery evidence
-        if: always() && steps.packed-redelivery.outputs.evidence-directory != ''
-        uses: ./.github/actions/upload-packed-query-evidence
-        with:
-          directory: ${{ steps.packed-redelivery.outputs.evidence-directory }}
-          name: packed-resident-redelivery-${{ github.sha }}
+      - name: Require every original background case before final evidence
+        id: native-background
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' && steps.native-background-start.outcome == 'success' }}
+        run: node scripts/ci-native-background-groups.mjs wait "${{ steps.native-background-start.outputs.directory }}"
       - name: Verify registered Native retained product path
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
-        # Keep every module checked by release-artifacts.mjs, without building unrelated entries.
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' && steps.native-background.outcome == 'success' }}
         run: |
           moon build --target js --release src/benchmark_obligations src/connectors/duckdb/host_node \
             src/connectors_builtin_node src/physical_strategy_example src/physical_task_manifest_example \
@@ -2127,14 +2683,73 @@ jobs:
             "$RUNNER_TEMP/native-retained-calibration.json"
           ACTQL_NATIVE_CALIBRATION_PROFILE="$RUNNER_TEMP/native-retained-calibration.json" \
             node scripts/test-native-direct-pair.mjs
-  # The single result: every required job succeeded. A failure, a
-  # cancellation or an unexpected skip fails it; it runs even when a
-  # dependency failed. The macOS job may be skipped only where it is not
-  # scheduled (see its condition).
+      - name: Install debugger only for failed Linux Effect consumer diagnosis (Site fallback)
+        id: site-failure-debugger
+        if: ${{ !cancelled() && steps.native-effect.outcome != 'failure' && steps.native-runtime-test.outcome == 'failure' }}
+        continue-on-error: true
+        timeout-minutes: 5
+        run: sudo apt-get install --yes --no-install-recommends gdb
+      - name: Diagnose only failed Linux Effect consumer functions (Site fallback)
+        if: ${{ !cancelled() && steps.native-effect.outcome != 'failure' && steps.native-runtime-test.outcome == 'failure' }}
+        continue-on-error: true
+        timeout-minutes: 6
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-effect-function-state
+        run: |
+          ulimit -S -s 65536
+          node scripts/diagnose-native-resident-functions.mjs --output "${{ runner.temp }}/native-effect-functions/sanitized.json"
+      - name: Retain only sanitized Linux Effect function availability (Site fallback)
+        if: ${{ !cancelled() && steps.native-effect.outcome != 'failure' && steps.native-runtime-test.outcome == 'failure' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: native-effect-functions-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/native-effect-functions/sanitized.json
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Retain packed resident materials evidence
+        if: ${{ !cancelled() && steps.native-background.outputs.packed-materials-evidence-directory != '' }}
+        uses: ./.github/actions/upload-packed-query-evidence
+        with:
+          directory: ${{ steps.native-background.outputs.packed-materials-evidence-directory }}
+          name: packed-resident-materials-${{ github.sha }}
+      - name: Retain packed Output report evidence
+        if: ${{ !cancelled() && steps.native-background.outputs.packed-output-report-evidence-directory != '' }}
+        uses: ./.github/actions/upload-packed-query-evidence
+        with:
+          directory: ${{ steps.native-background.outputs.packed-output-report-evidence-directory }}
+          name: packed-output-report-${{ github.sha }}
+      - name: Retain packed exact redelivery evidence
+        if: ${{ !cancelled() && steps.native-background.outputs.packed-redelivery-evidence-directory != '' }}
+        uses: ./.github/actions/upload-packed-query-evidence
+        with:
+          directory: ${{ steps.native-background.outputs.packed-redelivery-evidence-directory }}
+          name: packed-resident-redelivery-${{ github.sha }}
+  native:
+    needs:
+      - select-targets
+      - native-workloads
+      - native-http
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every Native producer and independent consumer
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          node -e '
+            const results = JSON.parse(process.env.RESULTS);
+            for (const job of ["native-workloads", "native-http"]) {
+              if (results[job]?.result !== "success") {
+                console.error(`${job}: ${results[job]?.result ?? "missing"}`);
+                process.exitCode = 1;
+              }
+            }
+          '
   check:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
-    needs: [select-targets, preflight, lint, core, host, client, native-cli-installed, native-cli-linux-local, native, spec, session-evidence, pipeline-evidence, pipeline-validation, native-macos, python-wheels,
-      native-separated-network, workers, connector-addition, duckdb-node, focused-tests, main-performance, health-quick]
+    needs: [select-targets, preflight, lint, core, host, client, native-cli-installed, native-cli-linux-local, native, spec, session-evidence, session-controls, pipeline-evidence, pipeline-validation, native-macos, python-wheels,
+      native-separated-network, workers, connector-addition, duckdb-node, focused-tests, main-performance, health-quick, client-readme-packed]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -2147,9 +2762,16 @@ jobs:
           fetch-depth: 0
       - name: Require every selected integration obligation
         env:
-          RESULTS: ${{ toJSON(needs) }}
-          CI_PLAN: ${{ needs.select-targets.outputs.plan }}
-        run: node scripts/ci-targets.mjs gate
+          RESULTS_PATH: ${{ runner.temp }}/actql-ci-results.json
+          CI_PLAN_PATH: ${{ runner.temp }}/actql-ci-plan.json
+        run: |
+          cat > "$CI_PLAN_PATH" <<'ACTQL_CI_PLAN_JSON'
+          ${{ needs.select-targets.outputs.plan }}
+          ACTQL_CI_PLAN_JSON
+          cat > "$RESULTS_PATH" <<'ACTQL_CI_RESULTS_JSON'
+          ${{ toJSON(needs) }}
+          ACTQL_CI_RESULTS_JSON
+          node scripts/ci-targets.mjs gate
       - name: Set up pinned Node for the selected evidence consumer
         if: ${{ needs.session-evidence.result == 'success' || needs.pipeline-evidence.result == 'success' }}
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
@@ -2186,7 +2808,7 @@ jobs:
           path: .artifacts/pipeline-action-consumer/verified-actions.json
           if-no-files-found: error
   spec:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -2223,19 +2845,45 @@ jobs:
         run: git diff --exit-code
   # Ready PRs keep macOS for target/runtime-sensitive or unknown
   # inputs. The selector records why a portable PR omits this job.
-  native-macos:
-    needs: [select-targets, preflight]
+  native-http-macos:
+    needs: [select-targets, native-macos-workloads, native-http, core]
     if: >-
+      ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
+        needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.macos == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require the original macOS HTTP child after the complete Native join
+        env:
+          WORKLOAD_RESULT: ${{ needs.native-macos-workloads.result }}
+          HTTP_RESULT: ${{ needs.native-macos-workloads.outputs.native-http-result }}
+          LINUX_HTTP_RESULT: ${{ needs.native-http.result }}
+          DARWIN_CORE_RESULT: ${{ needs.core.result }}
+          CORE_TARGETS: ${{ needs.select-targets.outputs.targets }}
+        run: |
+          node -e '
+            const targets = JSON.parse(process.env.CORE_TARGETS || "null");
+            if (!Array.isArray(targets) || !targets.includes("native") ||
+                ["WORKLOAD_RESULT", "HTTP_RESULT", "LINUX_HTTP_RESULT", "DARWIN_CORE_RESULT"].some(key => process.env[key] !== "success")) {
+              console.error(`macOS Native workload=${process.env.WORKLOAD_RESULT || "missing"}, HTTP=${process.env.HTTP_RESULT || "missing"}, Linux HTTP=${process.env.LINUX_HTTP_RESULT || "missing"}, Darwin Core=${process.env.DARWIN_CORE_RESULT || "missing"}`);
+              process.exitCode = 1;
+            }
+          '
+  native-macos-workloads:
+    needs:
+      - select-targets
+    if: |-
       ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
         needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.macos == 'true' }}
     runs-on: macos-15
-    # Preserve the complete campaign plus selected source/component preparation.
     timeout-minutes: 115
+    outputs:
+      native-http-result: ${{ steps.native-background.outputs.native-http-result }}
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           persist-credentials: false
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
           node-version: 22.22.0
           cache: npm
@@ -2251,9 +2899,11 @@ jobs:
           toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
           echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
           echo "$toolchain/bin" >> "$GITHUB_PATH"
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - name: Record the original Native job deadline
+        run: echo "ACTQL_NATIVE_CI_DEADLINE=$(node -p 'Date.now()+115*60*1000')" >> "$GITHUB_ENV"
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
-          python-version: '3.12'
+          python-version: "3.12"
       - name: Install existing scoped component producer dependencies
         run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
       - name: Test macOS local execution ownership and cancellation
@@ -2266,80 +2916,23 @@ jobs:
           fi
           command -v gpg
           command -v gpgv
-      # The cold Resident production -O2 compile reached the 15-minute bound.
-      # Only it receives 1200s; the other 3 producers retain 900s each.
-      # Keep each 30s caller allowance plus metadata and cleanup time.
       - name: Prepare exact-source scoped Native commands and components once
         id: native-preparation
         timeout-minutes: 70
-        run: node scripts/prepare-native-runtime-bundle-fixture.mjs --destination "${{ runner.temp }}/native-scoped-preparation" --entries all --seconds 900 --http-jobs 2 --resident-seconds 1200
+        run: node scripts/prepare-native-runtime-bundle-fixture.mjs --destination "${{ runner.temp }}/native-scoped-preparation" --entries all --seconds 900 --http-jobs 2 --resident-seconds 1200 --lanes 2
+      - name: Start independent Native groups under the same preparation
+        id: native-background-start
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        run: node scripts/ci-native-background-groups.mjs start native-macos
       - name: Retain scoped Native preparation source and compiler receipts
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: native-scoped-preparation-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/native-scoped-preparation/**/*.json
             ${{ runner.temp }}/native-scoped-preparation/**/*.stdout
             ${{ runner.temp }}/native-scoped-preparation/**/*.stderr
-          if-no-files-found: warn
-          retention-days: 14
-      - name: Verify native macOS arm64 profile
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
-        run: |
-          test "$(uname -m)" = arm64
-          moon version --all
-      - name: Test native macOS retained task file ownership
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
-        run: npm run check:native-retained-task-file
-      - name: Test Node-free native storage publication and control
-        id: native-http
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
-        env:
-          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-http
-        run: |
-          node scripts/test-native-http-client.mjs
-      - name: Test Native Salesforce Effect preview
-        id: native-preview
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
-        env:
-          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-preview
-        run: |
-          node scripts/test-native-salesforce-effect-preview.mjs
-      - name: Test Native runtime bundle CLI
-        id: native-bundle-cli
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
-        env:
-          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-bundle-cli
-        run: |
-          node scripts/test-native-runtime-bundle-cli.mjs
-      - name: Test Native publication Store lock
-        id: native-publication-lock
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
-        env:
-          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-publication-lock
-        run: |
-          node scripts/test-native-publication-store-lock.mjs
-      - name: Test Native remote runtime
-        id: native-remote
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
-        env:
-          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-remote
-        run: |
-          node scripts/test-native-remote-runtime.mjs
-      - name: Test Native Resident Effect computation
-        id: native-effect
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
-        env:
-          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-effect
-        run: |
-          node scripts/test-native-resident-site.mjs --effect-computation-only
-      - name: Retain original Native Effect failure observer summary
-        if: ${{ !cancelled() && steps.native-effect.outcome == 'failure' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: native-effect-original-macos-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/native-tests/native-effect/*/resident-consumer-summary.json
           if-no-files-found: warn
           retention-days: 14
       - name: Test Native Resident Site
@@ -2349,37 +2942,35 @@ jobs:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-runtime-test
         run: |
           node scripts/test-native-resident-site.mjs
-      - name: Test Native Resident Source
-        id: native-source
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+      - name: Require every original background case before final evidence
+        id: native-background
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' && steps.native-background-start.outcome == 'success' }}
+        run: node scripts/ci-native-background-groups.mjs wait "${{ steps.native-background-start.outputs.directory }}"
+  native-macos:
+    needs:
+      - select-targets
+      - native-macos-workloads
+      - native-http-macos
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.macos == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every Native producer and independent consumer
         env:
-          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-source
+          RESULTS: ${{ toJSON(needs) }}
         run: |
-          node scripts/test-native-resident-site.mjs --source-only
-      - name: Test Native observation replay
-        id: native-observation
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
-        env:
-          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-observation
-        run: |
-          node scripts/test-native-resident-site.mjs --observation-replay-only
-      - name: Test Native release recovery
-        id: native-release
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
-        env:
-          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-release
-        run: |
-          node scripts/test-native-resident-site.mjs --release-recovery-only
-      - name: Test Native cancellation
-        id: native-cancel
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
-        env:
-          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-cancel
-        run: |
-          node scripts/test-native-resident-site.mjs --cancel-only
+          node -e '
+            const results = JSON.parse(process.env.RESULTS);
+            for (const job of ["native-macos-workloads", "native-http-macos"]) {
+              if (results[job]?.result !== "success") {
+                console.error(`${job}: ${results[job]?.result ?? "missing"}`);
+                process.exitCode = 1;
+              }
+            }
+          '
   python-wheels:
-    needs: [select-targets, preflight]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.python_wheels == 'true' }}
+    needs: [select-targets, lint, core-js]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !cancelled() && needs.lint.result == 'success' && ((needs.select-targets.outputs.profile == 'full' && contains(fromJSON(needs.select-targets.outputs.targets), 'js') && needs.core-js.result == 'success') || ((needs.select-targets.outputs.profile != 'full' || !contains(fromJSON(needs.select-targets.outputs.targets), 'js')) && needs.core-js.result == 'skipped')) && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.python_wheels == 'true' }}
     runs-on: macos-15
     timeout-minutes: 40
     steps:
@@ -2432,7 +3023,7 @@ jobs:
           retention-days: 14
   native-separated-network:
     name: native-separated-network (${{ matrix.profile }})
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -2503,7 +3094,7 @@ jobs:
           ulimit -S -s 65536
           npm run check:native-separated-network
   workers:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -2543,7 +3134,7 @@ jobs:
       - name: Build inspect and execute the Workers JS profile
         run: npm test --prefix adapters/workers
   connector-addition:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -2587,7 +3178,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
   duckdb-node:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20

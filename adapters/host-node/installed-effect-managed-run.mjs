@@ -364,7 +364,10 @@ function installedEffectModelMemberPreparation(run, member, publicationCapacity,
         ? control.prepareCheckedClientInferOriginalRead(model.compiled, definition, model.graph, scope, fields)
         : control.prepareCheckedClientInferNodeReadLayout(
           model.compiled, definition, model.graph, scope, physical.nodeInstallation);
-      return Object.freeze({...fields, read: member.modelRead});
+      // Effect publication consumes the original input body. Borrow the SAME
+      // read for its existing incremental construction owner, not another read
+      // or a blanket body-retention policy for ordinary Pure Model consumers.
+      return Object.freeze({...fields, read: member.modelRead, inputBodyRead: member.modelRead});
     } catch (cause) {member.modelReadFailure = cause; throw cause;}
   };
   const view = Object.freeze({...fields,

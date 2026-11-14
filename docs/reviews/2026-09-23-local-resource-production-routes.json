@@ -1539,7 +1539,7 @@
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/indexed_snapshot_wbtest.mbt",
-          "fixture": "retained row names stop in input snapshot output and capture phases"
+          "fixture": "retained row names stop in input output and capture traversal phases"
         },
         {
           "role": "derive_metadata_lookup",

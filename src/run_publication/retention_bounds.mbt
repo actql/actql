@@ -49,24 +49,9 @@ pub fn issue_result_retention_for_data_policy(
     _ => return Err(InvalidObject)
   }
   try {
-    @encode.begin_object(writer)
-    for
-      field in [
-        "available_until", "clock_contract_cid", "delete_by", "effective_data_policy_cid",
-        "extension_ceiling_at", "metadata_delete_by", "metadata_retention_policy_cid",
-        "retention_contract_cid", "version",
-      ] {
-      @encode.key(writer, field)
-      @encode.string_value(
-        writer,
-        if field == "effective_data_policy_cid" {
-          effective_data_policy_cid
-        } else {
-          contract_string(original, field).unwrap()
-        },
-      )
-    }
-    @encode.end_object(writer)
+    emit_result_retention_for_data_policy(
+      writer, original, effective_data_policy_cid,
+    )
     seal_publication_contract(
       "result_retention_policy",
       @encode.finish(writer),
@@ -76,5 +61,63 @@ pub fn issue_result_retention_for_data_policy(
     )
   } catch {
     _ => Err(InvalidObject)
+  }
+}
+
+///|
+fn emit_result_retention_for_data_policy(
+  writer : @encode.Writer,
+  original : PublicationContract,
+  effective_data_policy_cid : String,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  for
+    field in [
+      "available_until", "clock_contract_cid", "delete_by", "effective_data_policy_cid",
+      "extension_ceiling_at", "metadata_delete_by", "metadata_retention_policy_cid",
+      "retention_contract_cid", "version",
+    ] {
+    @encode.key(writer, field)
+    @encode.string_value(
+      writer,
+      if field == "effective_data_policy_cid" {
+        effective_data_policy_cid
+      } else {
+        contract_string(original, field).unwrap()
+      },
+    )
+  }
+  @encode.end_object(writer)
+}
+
+///|
+/// The existing emitter supplies the optional policy-adjusted retention body.
+/// A matching original is borrowed and needs no replacement construction.
+pub fn result_retention_policy_construction_geometry(
+  original : PublicationContract,
+  policy : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@encode.EncodingConstructionGeometry?, PublicationContractIssue] {
+  if original.name != "result_retention_policy" || !valid_contract_cid(policy) {
+    return Err(InvalidObject)
+  }
+  if contract_string(original, "effective_data_policy_cid") == Some(policy) {
+    return Ok(None)
+  }
+  let writer = @encode.construction_measuring_writer(
+    max_bytes, max_nodes, max_depth,
+  ) catch {
+    _ => return Err(Encoding)
+  }
+  try {
+    emit_result_retention_for_data_policy(writer, original, policy)
+    Ok(Some(@encode.finish_construction_measurement(writer)))
+  } catch {
+    _ => {
+      @encode.cancel_writer(writer)
+      Err(Encoding)
+    }
   }
 }

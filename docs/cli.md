@@ -2,7 +2,10 @@
 
 `actql` drives Programs from the command line: check them, see their plan, run
 them, approve what they want to write, and follow the Run until it ends. This
-page lists every command. For a guided first run, start with the
+page describes the workflow and the target discovery interface. The `catalog`
+and `doctor` entries below are not installed Native CLI commands; use
+`actql --help` to see the commands available in your installation.
+For a guided first run, start with the
 [Quickstart](getting-started/quickstart.md).
 
 ```sh
@@ -52,6 +55,20 @@ files, a `.actql` Store with its local signing key, and — with a template —
 a complete Program with mock fixtures that runs without credentials. The
 [Quickstart](getting-started/quickstart.md) starts from
 `actql init --template churn-risk-mock`.
+
+Fresh Native Local projects select the existing finite retained-record count
+of 100,000 for the Journal and Store. Journal snapshot storage remains bounded
+at 8 MiB; the count is not an allocation or a promise that every record fits.
+Each different admitted intent consumes its original retained slot and bytes.
+Checks and Saved reads do not consume a fresh-intent slot, and an original
+reference replay keeps its existing identity. Expiry does not erase history.
+Existing projects keep their original configuration; initialization does not
+resize an admitted owner. Operators can select smaller finite
+`native.local.journal_record_limit` and `journal_snapshot_bytes` values before
+adoption. Exhaustion reports `CapacityExceeded` before a fresh append. Preserve
+the retained project and use a separately initialized project for new work;
+do not delete Journal history or keys to recover capacity or recreate Saved
+results. The legacy absolute-profile initializer keeps its eight-record limit.
 
 ## Quick queries
 
@@ -157,9 +174,9 @@ flags override the file. The full schema is in the
 ## Core commands
 
 ```text
-actql check <program> [--params <file>] [--bindings <file>] [--json] [--redact]
-actql explain [<program>] [--params <file>] [--input <name=file>] [--stop-before <boundary>] [--verbose] [--json] [--redact]
-actql explain --run <run> [--verbose] [--json] [--redact]
+actql check <program> [--params <file>] [--bindings <file>] [--json]
+actql explain [<program>] [--params <file>] [--input <name=file>] [--stop-before <boundary>] [--verbose] [--json]
+actql explain --run <run> [--verbose] [--json]
 actql run <program> [--params <file>] [--input <name=file>] [--stop-before <boundary>]
                     [--deliver <result=format:file>] [--output <file>] [--receipt <file>] [--json]
 ```
@@ -227,7 +244,7 @@ override the configured files, and `--bindings <file>` for pre-bound inputs.
 ## Operations on a Run
 
 ```text
-actql status <run> [--watch [--until <state>]] [--timeout <duration>] [--json] [--redact]
+actql status <run> [--watch [--until <state>]] [--timeout <duration>] [--json]
 actql approve <checkpoint> [--signer <id>] [--wait] [--json]
 actql reject <checkpoint> [--signer <id>] [--json]
 actql cancel <run> [--json]
@@ -309,6 +326,12 @@ actql operation cancel <operation> [--json]
 
 What the configured Connectors and model tasks expose:
 
+`catalog` commands are v0.1 targets, unavailable in the current Native CLI.
+The forms below describe that target interface, not commands to use for
+current troubleshooting. Inspect the Catalog files selected by the project's
+configuration and use `check` or `explain` with the same Program to diagnose
+its visible resources; these do not replace Catalog inspection or refresh.
+
 ```text
 actql catalog list [--json]
 actql catalog show [<connector-id>] [--json]
@@ -320,12 +343,12 @@ actql discovery list --snapshot <cid> [--kind <kind>] [--selector <selector>] [-
 actql discovery read --snapshot <cid> --kind <kind> --selector <selector> --content-cid <cid> [--json]
 ```
 
-`catalog show salesforce` prints everything a Program can rely on for a
+The target `catalog show salesforce` command would print everything a Program can rely on for a
 connection: its sources with columns, types and keys, the Effects per
 resource with their preview strength, the operations with their inputs, the
 Capabilities, and the permissions each read and write needs
-([Connectors](connectors/README.md#what-catalog-show-tells-you)). It reads
-the Catalog the Host has stored; `catalog refresh <connector-id>` asks the
+([Connectors](connectors/README.md#what-catalog-show-tells-you)). That interface reads
+the Catalog the Host has stored; the target `catalog refresh <connector-id>` asks the
 external system for its current metadata.
 
 The language itself:
@@ -355,7 +378,6 @@ Local Host or create a Run. It works in an empty directory without credentials.
 actql lock [--output <file>]
 actql verify lock <lock> [--json]
 actql verify output <receipt> <output> [--json]
-actql doctor [--connect] [--json]
 actql version
 ```
 
@@ -371,9 +393,16 @@ Equal bytes may match several legitimate receipts: `--json` reports all distinct
 matching `receipt_cids`, `matching_receipt_count`, `supplied_receipt_count`,
 `byte_count`, `sha256`, and `verified: true`. Other valid receipts make no claim
 about unprovided files. Verification is an integrity check and grants no
-read, delivery or Effect authority. **`doctor`** reports the installation, the configuration it found
-and what is wrong with either, without contacting anything; `doctor --connect`
-also tries each configured connection and provider.
+read, delivery or Effect authority.
+
+`doctor` is a v0.1 target, unavailable in the current Native CLI. Its planned
+form is `actql doctor [--connect] [--json]`: local installation/configuration
+diagnostics, with explicit `--connect` for reachability checks. No current
+command supplies that combined diagnosis. `actql --help` and
+`actql <command> --help` describe syntax; they do not check configuration,
+Store files, keys or provider connectivity. See
+[environment troubleshooting](guides/debugging.md#the-environment) for the
+current same-Program and existing-Run diagnostics.
 
 ## Profiles
 
@@ -387,10 +416,11 @@ real systems.
 ## Output and exit codes
 
 Commands print a human summary by default and stable JSON with `--json`.
-Progress goes to stderr, results to stdout or the files you name. `--redact`
-replaces system names, resource names, parameter values and Preview values
-with stable placeholders and keeps structure, codes and locations; use it
-when sharing output.
+Progress goes to stderr, results to stdout or the files you name. The current
+Native CLI has no `--redact` option. Before sharing output, manually remove
+secrets and private names, parameter values, Run references and Preview values,
+while retaining relevant reason codes and report structure. This does not
+happen automatically; see [Getting help](guides/debugging.md#getting-help).
 
 | Exit code | Meaning |
 | --- | --- |

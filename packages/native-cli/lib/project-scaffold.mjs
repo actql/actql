@@ -175,12 +175,12 @@ export function nativeMockAcceptanceObservations(stderr) {
     if (prefix === 'ACTQL_NATIVE_PHASE' || prefix === 'ACTQL_NATIVE_COUNTER') {
       assert(current && !groups.has(current), 'Out-of-order Native timing row');
       const state = timing.get(current), phase = prefix === 'ACTQL_NATIVE_PHASE';
-      const fields = phase ? ['tag','name','begins','ends','inclusive_ns','exclusive_ns','active','overlap','unmatched_end'] : ['tag','name','count'];
+      const fields = phase ? ['tag','name','begins','ends','inclusive_ns','exclusive_ns','active','overlap','unmatched_end','sql_prepares','current_calls'] : ['tag','name','count'];
       exact(value, fields);
-      assert(Number.isInteger(value.tag) && value.tag >= 0 && value.tag < (phase ? 32 : 64), 'Invalid Native timing tag');
+      assert(Number.isInteger(value.tag) && value.tag >= 0 && value.tag < (phase ? 39 : 70), 'Invalid Native timing tag');
       const phaseNames = ['startup','config_auth','preparation','execution','save','close','saved_result','journal'];
-      const counterNames = {0:'sqlite_open_calls',1:'sqlite_prepare_calls',2:'sqlite_step_calls',3:'sqlite_exec_calls',16:'member_hash_calls',17:'parse_check_calls',18:'current_calls',19:'account_auth_calls',20:'run_record_save_calls',22:'host_authorize_calls',23:'captured_read_authorize_calls',24:'publisher_authorize_calls',25:'run_record_read_calls',26:'adoption_digest_calls',46:'backing_allocated_bytes',47:'backing_explicit_zeroed_bytes'};
-      sameField(value.name, phase ? phaseNames[value.tag] ?? 'private_phase' : counterNames[value.tag] ?? 'private_counter', 'Invalid Native timing name');
+      const counterNames = {0:'sqlite_open_calls',1:'sqlite_prepare_calls',2:'sqlite_step_calls',3:'sqlite_exec_calls',16:'member_hash_calls',17:'parse_check_calls',18:'current_calls',19:'account_auth_calls',20:'run_record_save_calls',22:'host_authorize_calls',23:'captured_read_authorize_calls',24:'publisher_authorize_calls',25:'run_record_read_calls',26:'adoption_digest_calls',46:'backing_allocated_bytes',47:'backing_explicit_zeroed_bytes',64:'signing_full_boundary_calls',65:'signing_helper_revalidation_calls',66:'request_query_parse_calls',67:'request_query_lower_calls',68:'request_semantic_check_calls',69:'request_program_compile_calls'};
+      sameField(value.name, phase ? phaseNames[value.tag] ?? {32:'approval_material_complete',33:'approval_reviewer_sign',34:'approval_host_sign',35:'approval_resolution_commit',36:'approval_apply',37:'approval_publish',38:'approval_checkpoint_restore'}[value.tag] ?? 'private_phase' : counterNames[value.tag] ?? 'private_counter', 'Invalid Native timing name');
       assert(fields.filter(key => key !== 'name').every(key => amount(value[key])), 'Invalid Native timing quantity');
       const seen = phase ? state.phases : state.counters;
       assert(!seen.has(value.tag), 'Duplicate Native timing row'); seen.add(value.tag); continue;
@@ -191,7 +191,7 @@ export function nativeMockAcceptanceObservations(stderr) {
       assert(timing.size < 2 && !timing.has(value.pid), 'Duplicate or excess Native timing process');
       sameField(value.origin, 'first_hook'); assert(amount(value.elapsed_ns));
       assert(typeof value.clock_current === 'boolean'); sameField(value.nested_inclusive, true);
-      sameField(value.phase_slots, 32); sameField(value.counter_slots, 64);
+      sameField(value.phase_slots, 39); sameField(value.counter_slots, 70);
       for (const name of ['invalid_tags','invalid_amounts','clock_failures','stack_overflows']) assert(amount(value[name]), 'Invalid Native recording field');
       assert(typeof value.overflow === 'boolean' && typeof value.parallel_observed === 'boolean');
       // Timing precision/phase diagnostics are not a new acceptance gate.
@@ -203,8 +203,8 @@ export function nativeMockAcceptanceObservations(stderr) {
     if (prefix === 'ACTQL_NATIVE_ACCEPTANCE_BEGIN') {
       exact(value, ['pid', 'count', 'limit', 'complete']);
       assert(current === value.pid && timing.has(value.pid) && !groups.has(value.pid), 'Missing or duplicate Native observation begin');
-      sameField(timing.get(value.pid).phases.size, 32, 'Incomplete Native phase rows');
-      sameField(timing.get(value.pid).counters.size, 64, 'Incomplete Native counter rows');
+      sameField(timing.get(value.pid).phases.size, 39, 'Incomplete Native phase rows');
+      sameField(timing.get(value.pid).counters.size, 70, 'Incomplete Native counter rows');
       sameField(value.limit, 32); sameField(value.complete, true, 'Incomplete Native observations');
       assert(Number.isSafeInteger(value.count) && value.count >= 0 && value.count <= 32, 'Invalid Native observation count');
       groups.set(value.pid, {pid: value.pid, count: value.count, events: [], ended: false});

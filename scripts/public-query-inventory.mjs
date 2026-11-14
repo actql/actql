@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {encodeRetainedFixture} from './fixtures/retained-fixture-values.mjs';
 import {publicQueryProfiles} from './fixtures/public-query-profiles.mjs';
 
-export async function registeredPublicQueryInventory() {
+export async function registeredPublicQueryInventory({includeInputs = false} = {}) {
 const root = new URL('../', import.meta.url);
 const fixtureRoot = new URL('scripts/fixtures/', root);
 const read = path => readFile(new URL(path, root), 'utf8');
@@ -102,6 +102,7 @@ const entries = profiles.flatMap(profile => kinds.flatMap(kind => profile.inputs
 const inventory = entries.map(entry => JSON.stringify(entry));
 const names = ['graph-subtraction-null-is-not-zero', 'graph-subtraction-conflict-needs-policy'];
 return {
+  ...(includeInputs ? {inputs, inventory, profileInputs: profiles} : {}),
   totalCases: inventory.length,
   inventorySha256: createHash('sha256').update(JSON.stringify(inventory)).digest('hex'),
   counts,

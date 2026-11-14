@@ -62,6 +62,7 @@ fn select_installed_effect_managed_host(
   bound : @publication_host.PreparedClientEffectRun,
   sources : Array[@query.CapturedInputSource],
   keyed? : @publication_host.ClientKeyedLookupInput? = None,
+  deferred_keyed? : Bool = false,
 ) -> Result[
   (
     @builtin.ConfiguredComputeHost[@strategy.RunIssue],
@@ -125,6 +126,7 @@ fn select_installed_effect_managed_host(
     plan,
     ledger,
     keyed~,
+    deferred_keyed~,
   )
 }
 
@@ -136,6 +138,7 @@ fn open_installed_effect_managed_host_original(
   plan : ClientInstalledEffectManagedPlan,
   ledger : @resources.Ledger,
   keyed? : @publication_host.ClientKeyedLookupInput? = None,
+  deferred_keyed? : Bool = false,
 ) -> Result[
   (
     @builtin.ConfiguredComputeHost[@strategy.RunIssue],
@@ -169,6 +172,20 @@ fn open_installed_effect_managed_host_original(
         return Err(ForeignOriginal)
       }
     }
+    let source_results = match keyed {
+      None => []
+      Some(lookup) => {
+        guard plan.model is Some(model) &&
+          @publication_host.client_composed_keyed_lookup_source_results(
+            lookup,
+            model._occurrence,
+          )
+          is Some(results) else {
+          return Err(ForeignOriginal)
+        }
+        results
+      }
+    }
     let completed_keyed = match keyed {
       None => None
       Some(lookup) => {
@@ -200,6 +217,16 @@ fn open_installed_effect_managed_host_original(
       sources,
       ledger,
       keyed=completed_keyed,
+      source_results~,
+      deferred_keyed=if deferred_keyed {
+        guard plan.model is Some(model) else { return Err(ForeignOriginal) }
+        let (task, _, step) = @publication_host.client_infer_occurrence_coordinates(
+          model._occurrence,
+        )
+        Some((task, step))
+      } else {
+        None
+      },
     )
   } else if keyed is Some(lookup) {
     guard plan.model is Some(model) &&
@@ -259,7 +286,11 @@ fn open_installed_effect_managed_host_original(
     0L,
     0L,
     0L,
-    captured_effect=if keyed is Some(_) { Some(captured) } else { None },
+    captured_effect=if keyed is Some(_) || deferred_keyed {
+      Some(captured)
+    } else {
+      None
+    },
   )
   match require_installed_managed_run(owner) {
     Err(issue) => {
@@ -273,4 +304,68 @@ fn open_installed_effect_managed_host_original(
       }
   }
   Ok(host.map(value => (value, captured, plan.sequences)))
+}
+
+///|
+/// Open the same checked Source-input DAG with its original keyed consumer
+/// pending. Only upstream tasks can execute until the actual lookup is bound.
+pub fn open_installed_effect_managed_deferred_keyed_host(
+  owner : ClientInstalledManagedRun,
+  bound : @publication_host.PreparedClientEffectRun,
+  sources : Array[@query.CapturedInputSource],
+) -> Result[
+  (
+    @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+    @strategy.CapturedEffectRunDAG,
+    Array[@execution.GeneratedSequence],
+  )?,
+  ClientInstalledManagedRunIssue,
+] {
+  if owner.source_free_opening || owner.source_free_captured is Some(_) {
+    return Err(AlreadyBound)
+  }
+  owner.source_free_opening = true
+  preparation_module_call(
+    () => {
+      select_installed_effect_managed_host(
+        owner,
+        bound,
+        sources.copy(),
+        deferred_keyed=true,
+      )
+    },
+    () => owner.source_free_opening = false,
+  )
+}
+
+///|
+pub fn bind_installed_effect_managed_keyed_host(
+  owner : ClientInstalledManagedRun,
+  host : @strategy.CapturedEffectRunDAG,
+  lookup : @publication_host.ClientKeyedLookupInput,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  guard !owner.source_free_opening &&
+    owner.preparation is Some(PlannedEffectManaged(_, plan)) &&
+    plan.model is Some(model) &&
+    owner.source_free_captured is Some(run) &&
+    physical_equal(run, @strategy.captured_effect_run_dag(host)) &&
+    require_installed_managed_run(owner) is Ok(ledger) &&
+    @publication_host.client_composed_keyed_lookup_matches_host(lookup, host) &&
+    @publication_host.client_composed_keyed_lookup_matches_model_parent(
+      lookup,
+      model.compiled,
+      model.definition,
+      model.graph,
+      ledger,
+    ) &&
+    @publication_host.finish_client_keyed_lookup_input(lookup) is Ok(read) else {
+    return Err(ForeignOriginal)
+  }
+  let (task, _, step) = @publication_host.client_infer_occurrence_coordinates(
+    model._occurrence,
+  )
+  @strategy.bind_captured_effect_completed_keyed_input(host, task, step, read).map_err(_ => {
+      ForeignOriginal
+    },
+  )
 }

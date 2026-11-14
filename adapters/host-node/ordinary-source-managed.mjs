@@ -5,9 +5,10 @@ import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.
 import {open} from 'node:fs/promises';
 import {types} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
-import {checkedRequestProgramPreparation, requestProgramCapacityRefusal} from './client-program-preparation.mjs';
+import {checkedRequestProgramPreparation, checkedRequestSnapshotPreparation,
+  requestProgramCapacityRefusal} from './client-program-preparation.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
-import {runtimeIsError} from '../host-common/compiler-binding.generated.mjs';
+import {runtimeIsError, runtimeOptionalField} from '../host-common/compiler-binding.generated.mjs';
 import {withOriginalFile} from './source-profile-json.mjs';
 import resourceRuntime from './ordinary-node-resource-runtime.cjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
@@ -911,8 +912,9 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             fail('ForeignInstalledSourceProducer');
           }
           if (state.snapshotUnits !== units || state.snapshotValues !== values) {
-            checked(state.context.runtime.clientProgramReserveRequestSnapshot(
-              state.parent, receipt, BigInt(units), BigInt(values)));
+            checkedRequestSnapshotPreparation(state.context.runtime,
+              state.context.runtime.clientProgramReserveRequestSnapshot(
+                state.parent, receipt, BigInt(units), BigInt(values)));
             state.snapshotUnits = units;state.snapshotValues = values;
           }
           // Retain the existing serializer's original wire before JSON.parse.
@@ -921,7 +923,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         });
         state.snapshot = captured;
         return captured;
-      } finally {state.snapshotting = false;}
+      } catch (cause) {reportCapacityRefusal(cause); throw cause;}
+      finally {state.snapshotting = false;}
     },
     bindSourceSnapshot(receipt, body) {
       current(); const producer = producerFor(receipt);
@@ -1006,6 +1009,10 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       const state = producer?.preparation;
       if (state === undefined) return undefined;
       if (!requestPreparationAvailable(state.context)) fail('NodeLocalPreparationAdmissionUnavailable');
+      const sourceFreeMaxWork = Object.getOwnPropertyDescriptor(state.context, 'sourceFreeMaxWork')?.value;
+      if (Object.hasOwn(state, 'sourceFreeMaxWork')) {
+        if (state.sourceFreeMaxWork !== sourceFreeMaxWork) fail('ForeignInstalledSourceProducer');
+      } else state.sourceFreeMaxWork = sourceFreeMaxWork;
       if (state.context.environment !== environment || state.adopting || state.preparing ||
           state.parent === undefined ||
           originalVerifier !== undefined && typeof originalVerifier !== 'function' ||
@@ -1183,7 +1190,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             if (state.compilationFamily === 'pure' && count === 0 && !state.requiresQueryTime) {
               checkedRequestProgramPreparation(moon,
                 moon.clientProgramPrepareRequestProgramModuleBody(state.parent,
-                  producer.receipt, contracts.admission, state.context.retainedRelationOutput),
+                  producer.receipt, contracts.admission, state.context.retainedRelationOutput, undefined,
+                  state.sourceFreeMaxWork),
                 moon.clientProgramRequestProgramModuleIssueCode);
             }
           } else fail('NodeManagedRunPlanUnavailable');
@@ -1310,7 +1318,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         return state.modelProviderBinding;
       });
     },
-    prepareModelGraph(prepared, request, occurrence, execution, serializationGraph, constructSerialized) {
+    prepareModelGraph(prepared, request, occurrence, execution, serializationGraph, constructSerialized, fileReadDeclarations) {
       current();
       const producer = producerForRequest(request), state = producer?.preparation;
       if (state?.preparationFailed) throw state.preparationFailure;
@@ -1326,7 +1334,13 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           Reflect.apply(readOriginal, moon, [state.holder]) !== prepared) {
         fail('ForeignInstalledSourceProducer');
       }
-      const construct = serializationGraph === undefined ? moon.clientProgramPrepareRequestModelGraph
+      if (fileReadDeclarations !== undefined && (!Array.isArray(fileReadDeclarations) ||
+          types.isProxy(fileReadDeclarations) || !Object.isFrozen(fileReadDeclarations))) {
+        fail('ForeignInstalledSourceProducer');
+      }
+      const construct = serializationGraph === undefined
+        ? fileReadDeclarations === undefined ? moon.clientProgramPrepareRequestModelGraph
+          : moon.clientProgramPrepareRequestDeclaredFileModelGraph
         : moon.clientProgramPrepareRequestSerializedModelGraph;
       const issue = moon.clientProgramRequestProgramModuleIssueCode;
       if (typeof construct !== 'function' || typeof issue !== 'function' ||
@@ -1334,7 +1348,9 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       return constructRequestDomain(state, () => {
         const result = serializationGraph === undefined
           ? Reflect.apply(construct, moon,
-            [state.parent, producer.receipt, occurrence, execution, contracts.admission])
+            fileReadDeclarations === undefined
+              ? [state.parent, producer.receipt, occurrence, execution, contracts.admission]
+              : [state.parent, producer.receipt, occurrence, execution, contracts.admission, fileReadDeclarations])
           : constructSerialized(state.parent, producer.receipt, occurrence,
             serializationGraph, execution, contracts.admission);
         state.modelGraph = checkedRequestProgramPreparation(moon, result, issue);
@@ -1496,7 +1512,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             const invocation = originalTimedInvocation(state, producer, prepared, constructInvocation, contracts);
             checkedRequestProgramPreparation(moon, Reflect.apply(module, moon,
               [state.parent, producer.receipt, contracts.admission,
-                state.context.retainedRelationOutput, invocation]), issue);
+                state.context.retainedRelationOutput, invocation, state.sourceFreeMaxWork]), issue);
             current();
             if (producer.finished || producer.preparation !== state || state.prepared !== prepared) {
               fail('ForeignInstalledSourceProducer');
@@ -2112,16 +2128,41 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     ...(project ? {} : {prepareRun(prepared) {
       return prepareRun(prepared, 'source-compute', undefined);
     }}),
-    prepareRead(prepared, declaration, originalRun, occurrence) {
+    prepareRead(prepared, declaration, originalRun, occurrence, requestIdentity) {
       const run = runFor(prepared);
       const declared = bundle?.sources.findIndex(source => source.declaration === declaration);
-      const index = project ? occurrence?.task : declared;
+      // A declaration is an installed factory, not an acquisition occurrence.
+      // Several published names can borrow it in the same checked Run. Keep
+      // each caller's original slot instead of coalescing its physical child.
+      const index = project || occurrence !== undefined ? occurrence?.task : declared;
       const expectedRun = run.producer.preparation === undefined ? run.original : run.value;
       if (declared === undefined || declared < 0 || run.prepared !== prepared ||
           expectedRun === undefined || expectedRun !== originalRun ||
-          project && (!Number.isSafeInteger(index) || index < 0 || index >= 32 ||
-            occurrence.stage !== index || occurrence.input !== 0) ||
+          occurrence !== undefined && (occurrence === null || !['stage', 'input', 'task'].every(name =>
+            Number.isSafeInteger(occurrence[name]) && occurrence[name] >= 0)) ||
+          project && (!Number.isSafeInteger(index) || index < 0 ||
+            !Number.isSafeInteger(occurrence.computeTask ?? index) ||
+            (occurrence.computeTask ?? index) < 0) ||
           run.children.some(child => child.index === index)) fail('InstalledSourcePreparationMismatch');
+      if (project) {
+        const state = run.producer.preparation;
+        const moon = state?.context.runtime;
+        const select = run.effectful ? moon?.clientProgramInstalledEffectManagedSourceOccurrence
+          : moon?.clientProgramInstalledManagedSourceOccurrence;
+        if (requestIdentity === undefined || typeof select !== 'function') fail('InstalledSourcePreparationMismatch');
+        // The retained Plan bounds this original Source slot and binds its
+        // authored stage/input and actual Compute task to the SAME Request.
+        // Source slots need not equal stages or Compute tasks.
+        const selected = checked(Reflect.apply(select, moon,
+          [expectedRun, prepared, requestIdentity, index]));
+        if (runtimeOptionalField(selected, 0) !== occurrence.stage ||
+            runtimeOptionalField(selected, 1) !== occurrence.input ||
+            runtimeOptionalField(selected, 2) !== (occurrence.computeTask ?? index) ||
+            runs.get(prepared) !== run || run.producer.preparation !== state ||
+            run.value !== expectedRun || run.children.some(child => child.index === index)) {
+          fail('InstalledSourcePreparationMismatch');
+        }
+      }
       const child = {index, attempted: false, closed: false, bytes: undefined, flight: undefined,
         closing: false, cleanup: undefined, cleanupStatus: undefined, cleanupRetry: undefined,
         reader: undefined, readerClose: undefined, readerStatus: undefined,
@@ -2243,8 +2284,12 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     if (source) {
       await callbacks.prepare(originals, view);
       bundle = callbacks.read(originals);
-      if (!Array.isArray(bundle.sources) || bundle.sources.length < 1 ||
-          bundle.sources.length > 128) fail('InstalledSourcePreparationMismatch');
+      // Retain the SAME initializer's complete inventory. It already owns its
+      // construction and selected Project limits; a second count ceiling here
+      // neither supplies backing nor changes the actual Request's demand.
+      if (!Array.isArray(bundle.sources) || bundle.sources.length < 1) {
+        fail('InstalledSourcePreparationMismatch');
+      }
     }
     current(); return view;
   } catch (cause) {

@@ -178,7 +178,7 @@ pub fn issue_imported_client_effect_local_result_artifact(
     ResultSource(borrow, definition),
     imported.invocation,
     receipt,
-    run_invocation,
+    Some(run_invocation),
     retention,
     @publication.publication_contract_identity(imported.scope),
     policy,

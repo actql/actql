@@ -286,7 +286,7 @@ pub fn single_relation_declaration_construction_inventory(
       // Relation field reference/schema descriptors; shared declaration controls,
       // reference lists, sort index tuples and retained RowDeclaredView.
       records: 32L + 8L * field_count.to_int64(),
-      record_references: 64L + 16L * field_count.to_int64(),
+      record_references: 65L + 16L * field_count.to_int64(),
       record_words: 32L + 8L * field_count.to_int64(),
       reference_arrays: 24L,
       reference_items: 64L + 8L * field_count.to_int64(),

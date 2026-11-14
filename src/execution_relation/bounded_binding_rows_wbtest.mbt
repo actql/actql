@@ -1476,14 +1476,16 @@ test "bounded binding rows resume vector expressions and complete exactly" {
 test "bounded vector expressions admit exact work and workspace" {
   let rows = "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]"
   // The two-row fixture executes both dot score and concatenation through the
-  // selected derive path. Its fixed control boundary is 160 units, including
-  // both input occurrences, expression transitions, and output names. The
+  // selected derive path. Its control boundary is138: the old160 minus two
+  // obsolete snapshot scans of id/left/right (2+4+5 UTF-8 bytes per row).
+  // Input occurrences, actual lookups, expression transitions and output names
+  // keep their full charges. The
   // simultaneous metadata, retained roots, and vector scratch peak at 34.
   for
     (limit_work, slots, accepted) in [
-      (160, 34, true),
-      (159, 34, false),
-      (160, 33, false),
+      (138, 34, true),
+      (137, 34, false),
+      (138, 33, false),
     ] {
     let (_, execution, _) = bounded_binding_rows_fixture(
       rows,
@@ -1695,11 +1697,12 @@ fn verify_selected_assertion_resources(
 
 ///|
 test "bounded selected where assertion admits exact work and workspace" {
-  // Two row starts (2), six snapshot entries with their UTF-8 names (28),
-  // two predicate evaluations (18), and six output names (22) cost 70.
+  // Two row starts (2), six shared snapshot entries (6), two predicate
+  // evaluations (18), and six output names (22) cost 48. Snapshot aliases
+  // retain checked names without traversing their 22 UTF-8 bytes again.
   // Nine metadata slots overlap two retained roots and three slots each for
   // snapshot, output row, and checked row, giving a peak of 20.
-  verify_selected_assertion_resources(false, 70, 20)
+  verify_selected_assertion_resources(false, 48, 20)
 }
 
 ///|
@@ -2146,15 +2149,16 @@ test "bounded selected filter cancels before publication" {
 ///|
 test "bounded selected derive admits exact work and workspace" {
   let rows = "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]"
-  // Two input and row-opening charges, six snapshot field charges, 22
-  // snapshot-name bytes, two eight-unit scalar expression evaluations,
-  // and 30 output-name bytes give 78 control units. The structural peak
-  // is 12 metadata slots plus 15 overlapping retained/row/expression slots.
+  // Two input and row-opening charges, six shared snapshot field charges,
+  // two eight-unit scalar expression evaluations, and 30 output-name bytes
+  // give 56 control units. Snapshot aliases do not traverse name bytes again.
+  // The structural peak is 12 metadata slots plus 15 overlapping retained/row/
+  // expression slots.
   for
     (work, slots, accepted) in [
-      (78, 27, true),
-      (77, 27, false),
-      (78, 26, false),
+      (56, 27, true),
+      (55, 27, false),
+      (56, 26, false),
     ] {
     let (_, execution, input) = bounded_binding_rows_fixture(
       rows,
@@ -2256,12 +2260,13 @@ test "bounded selected derive stops after work without publication" {
 ///|
 test "bounded selected filter admits exact work and workspace" {
   let rows = "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]"
-  // The fixed two-row comparison fixture has a 59-unit control boundary.
+  // The fixed two-row comparison costs 37 control units: the original 59
+  // less 22 name bytes no longer traversed by shared snapshot entries.
   // Metadata, retained roots, predicate scratch, and row views peak at 20.
   let (_, accepted, input) = bounded_binding_rows_fixture(
     rows,
     filter=true,
-    max_work=59,
+    max_work=37,
     max_entries=20,
   )
   let mut completed = false
@@ -2282,7 +2287,7 @@ test "bounded selected filter admits exact work and workspace" {
   assert_true(producer_read_available(input))
   assert_true(cleanup_bounded_binding_rows(accepted).unwrap())
 
-  for (work, slots) in [(58, 20), (59, 19)] {
+  for (work, slots) in [(36, 20), (37, 19)] {
     let (_, rejected, input) = bounded_binding_rows_fixture(
       rows,
       filter=true,
@@ -3156,6 +3161,63 @@ test "bounded selected take with offset beyond input completes empty" {
 }
 
 ///|
+test "bounded binding input reuses one cursor without retaining prior values" {
+  let (_, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",
+  )
+  let mut original : SteppedValueMeasure? = None
+  let mut cells = 0
+  let mut retained = false
+  for _ in 0..<1000 {
+    guard advance_bounded_binding_rows(execution, 1).unwrap()
+      is BoundedBindingRowsContinue(..) else {
+      fail("input charge finished without its retention boundary")
+    }
+    let state = execution.state
+    if state.phase is ChargeInput {
+      if state.charge_measure is Some(cursor) {
+        match original {
+          None => original = Some(cursor)
+          Some(first) => {
+            assert_true(physical_equal(first, cursor))
+            assert_true(physical_equal(first.frames, cursor.frames))
+          }
+        }
+        if cursor.frames.is_empty() {
+          cells = Int::max(cells, state.charge_row * 3 + state.charge_column)
+        }
+      }
+    } else if state.phase is RetainInputs {
+      assert_true(state.charge_measure is None)
+      assert_true(original.unwrap().frames.is_empty())
+      assert_eq(cells, 6)
+      assert_eq(state.input_values.nodes, 16)
+      assert_eq(state.input_values.text, 22)
+      assert_eq(state.input_values.work, 38)
+      retained = true
+      break
+    }
+  }
+  assert_true(retained)
+  let mut completed = false
+  for _ in 0..<1000 {
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => {
+        assert_eq(completed_row_count(output), 2)
+        assert_true(completed_cell(output, 1, 4) is Some(Number(11.0)))
+        completed = true
+        break
+      }
+      _ => fail("reused input measure changed the completed result")
+    }
+  }
+  assert_true(completed)
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+}
+
+///|
 test "bounded binding input value admission has an exact boundary" {
   let rows = "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]"
   // Each row contributes one row node, one number node, two vector nodes,
@@ -3198,7 +3260,12 @@ test "bounded binding input value admission has an exact boundary" {
     }
   }
   assert_true(producer_read_available(input))
+  assert_true(
+    advance_bounded_binding_rows(rejected, 1)
+    is Err(Execution(@bounded.Terminal)),
+  )
   assert_true(cleanup_bounded_binding_rows(rejected).unwrap())
+  assert_true(rejected.state.charge_measure is None)
 }
 
 ///|
@@ -3231,6 +3298,11 @@ test "bounded filter can stop inside an unused nested input cell" {
     is BoundedBindingRowsStopped(_, ..),
   )
   assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(execution.state.charge_measure is None)
+  assert_true(
+    advance_bounded_binding_rows(execution, 1)
+    is Err(Execution(@bounded.Terminal)),
+  )
   assert_true(producer_read_available(input))
 }
 

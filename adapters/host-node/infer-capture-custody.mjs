@@ -21,6 +21,7 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
   let reclaimed = false;
   let pendingHolding;
   let captureStored = false;
+  let capturePersisted = false;
   let issuanceComplete = false;
   let persistCapture;
   let attemptsStored = false;
@@ -89,7 +90,9 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     // Once a response has been accepted, reclamation cannot discard it
     // merely because a private write failed. Resume persistence of the same
     // common-owned evidence; this never reruns Compute or dispatch.
-    if (capture !== undefined && !captureStored) await persistCapture();
+    if (capture !== undefined && !capturePersisted) {
+      await persistCapture(false);
+    }
     if (capture === undefined && !replay) await persistStoppedAttempts();
     if (pendingHolding !== undefined) {
       await pendingHolding.commit();
@@ -350,60 +353,69 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
   let modelEvidence = [];
   let wire = '';
   let exportComplete = false;
-  persistCapture = async () => {
+  persistCapture = async (preparePublication = true) => {
     if (captureStored) return;
-    await persistSourceObservation();
-    modelEvidence.length = 0;
-    for (let slot = 0; slot < count; slot++) {
+    if (!capturePersisted) {
+      await persistSourceObservation();
+      modelEvidence.length = 0;
+      for (let slot = 0; slot < count; slot++) {
+        if (captureOnly) {
+          const entry = modelEntryFor?.(slot);
+          if (entry === undefined || durableSettlements.get(slot) !== entry.attemptCid) {
+            throw new Error('InferSettlementNotDurable');
+          }
+        }
+        // Replay already adopted verified slot records and their original
+        // attempt proofs. It must not issue a new physical attempt or accounting.
+        if (!replay && !captureOnly) {
+          const proof = operation.attemptEvidence(slot);
+          for (const [kind, name] of [
+            ['attempt', 'model_call_attempt'],
+            ['accounting', 'model_attempt_accounting'],
+            ['outcome', 'model_attempt_outcome'],
+            ['authority', 'model_dispatch_authority'],
+          ]) {
+            await holdEvidence(name, slot,
+              moon.clientProgramInferAttemptLeaf(proof, kind));
+          }
+          await holdAttachments(slot);
+          const adopted = operation.issuedSlotCapture(slot);
+          checked(moon.clientProgramBindInferSlotCapture(capture, slot, adopted));
+          await holdEvidence('model_slot_capture', slot, adopted);
+        }
+        const evidence = operation.invocationEvidenceView(control, slot);
+        if (evidence !== undefined) {
+          modelEvidence.push(evidence);
+        }
+      }
+      // captureOnly's whole bundle is not stored in this per-slot cell. Keep
+      // its existing bound; do not mistake a different Store's extent for it.
+      exporter ??= checked(moon.clientProgramStartInferCaptureExport(capture,
+        captureOnly ? 1048576 : maximumStoredCaptureWire(), 1000000));
+      while (!exportComplete) {
+        const progress = checked(moon.clientProgramAdvanceInferCaptureExport(
+          exporter, 256));
+        wire += runtimeField(progress, 1);
+        if (runtimeField(progress, 0)) { exportComplete = true; break; }
+        await yieldEventLoop();
+      }
       if (captureOnly) {
-        const entry = modelEntryFor?.(slot);
-        if (entry === undefined || durableSettlements.get(slot) !== entry.attemptCid) {
-          throw new Error('InferSettlementNotDurable');
-        }
+        // Each original slot already reached scoped private Store custody at
+        // Settling. Multiple components must not compete for the legacy single
+        // whole-bundle cell. The complete Run issuer is retained by the parent.
+        capturePersisted = true;
+        captureStored = true;
+        return;
       }
-      // Replay already adopted verified slot records and their original
-      // attempt proofs. It must not issue a new physical attempt or accounting.
-      if (!replay && !captureOnly) {
-        const proof = operation.attemptEvidence(slot);
-        for (const [kind, name] of [
-          ['attempt', 'model_call_attempt'],
-          ['accounting', 'model_attempt_accounting'],
-          ['outcome', 'model_attempt_outcome'],
-          ['authority', 'model_dispatch_authority'],
-        ]) {
-          await holdEvidence(name, slot,
-            moon.clientProgramInferAttemptLeaf(proof, kind));
-        }
-        await holdAttachments(slot);
-        const adopted = operation.issuedSlotCapture(slot);
-        checked(moon.clientProgramBindInferSlotCapture(capture, slot, adopted));
-        await holdEvidence('model_slot_capture', slot, adopted);
-      }
-      const evidence = operation.invocationEvidenceView(control, slot);
-      if (evidence !== undefined) {
-        modelEvidence.push(evidence);
-      }
+      await hold('model_capture_bundle', -1, wire,
+        moon.clientProgramInferCaptureExportIdentity(exporter));
+      capturePersisted = true;
     }
-    // captureOnly's whole bundle is not stored in this per-slot cell. Keep
-    // its existing bound; do not mistake a different Store's extent for it.
-    exporter ??= checked(moon.clientProgramStartInferCaptureExport(capture,
-      captureOnly ? 1048576 : maximumStoredCaptureWire(), 1000000));
-    while (!exportComplete) {
-      const progress = checked(moon.clientProgramAdvanceInferCaptureExport(
-        exporter, 256));
-      wire += runtimeField(progress, 1);
-      if (runtimeField(progress, 0)) { exportComplete = true; break; }
-      await yieldEventLoop();
-    }
-    if (captureOnly) {
-      // Each original slot already reached scoped private Store custody at
-      // Settling. Multiple components must not compete for the legacy single
-      // whole-bundle cell. The complete Run issuer is retained by the parent.
-      captureStored = true;
-      return;
-    }
-    await hold('model_capture_bundle', -1, wire,
-      moon.clientProgramInferCaptureExportIdentity(exporter));
+    // A failed semantic projection cannot make first close reconstruct it.
+    // Preserve the SAME accepted capture in Store, then release the existing
+    // issuer/exporter/output owners. Any pending physical write remains owned
+    // by pendingHolding below; no publication or Run success is fabricated.
+    if (!preparePublication) return;
     if (publication === undefined) {
       // A persistence retry must keep the original issuer, its reservations
       // and progress, including completion before the publication binding.
@@ -419,7 +431,7 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
         });
         if (!issuanceComplete) await yieldEventLoop();
       }
-      publication = publicationFor({operation, issuance, modelEvidence});
+      publication = await publicationFor({operation, issuance, modelEvidence});
     }
     await hold('observation_set', -1, publication.observation.wire,
       publication.observation.identity);
@@ -444,7 +456,10 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
         calls.push(Object.freeze({slotCid: moon.strategyRunEvidenceIdentity(call),
           callWire: moon.strategyRunEvidenceJson(call), outcome}));
       }
+      const usage = typeof moon.clientProgramInferCaptureExportWireUsage === 'function'
+        ? checked(moon.clientProgramInferCaptureExportWireUsage(exporter)) : undefined;
       return Object.freeze({wire, cid: moon.clientProgramInferCaptureExportIdentity(exporter), count,
+        ...(usage === undefined ? {} : {usage}),
         calls: Object.freeze(calls)});
     },
     configureModelJournal({observe, entry}) {

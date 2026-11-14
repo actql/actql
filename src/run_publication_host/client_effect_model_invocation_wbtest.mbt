@@ -14,6 +14,22 @@ fn model_local_invocation_fixture() -> (
   let (plan, occurrence) = client_effect_compilation_infer_original(
     allowed.compilation,
   ).unwrap()
+  model_local_invocation_for(compiled, plan, occurrence)
+}
+
+///|
+fn model_local_invocation_for(
+  compiled : ClientCompiledRun,
+  plan : ClientInferPlanGraph,
+  occurrence : ClientInferOccurrence,
+) -> (
+  ClientCompiledRun,
+  ClientInferCallScope,
+  @publication.CapturedEffectDependencyBody,
+) raise {
+  guard compiled.compilation is Effects(allowed) else {
+    fail("Effect compiler")
+  }
   let input = local_distinct_execute(
     local_explicit_cast_original(text="SELECT ABS(-1) AS id"),
   )
@@ -76,6 +92,9 @@ fn model_local_invocation_fixture() -> (
     effective: artifact,
     source: None,
     sources: [],
+    result_inputs: [],
+    original_result_inputs: [],
+    saved_result_scope: None,
     named_sources: [],
     generation: None,
     unit_definition_cid: unit,
@@ -158,4 +177,65 @@ test "single Model local Invocation refuses a substituted input or codec refusal
     )
     is Err(Encoding),
   )
+}
+
+///|
+// The real two-component compiler chooses each original scope. The explicit
+// whitebox observation/input setup above remains semantic component evidence,
+// not two physical Model executions or their Store/Host completion.
+test "each original Model scope issues its own Invocation in a plural Effect compilation" {
+  let (owner, allowed, _, _) = plural_effect_infer_fixture(inline_models=true)
+  let compiled = client_effect_allowed_component_run(allowed, None)
+  let originals = client_effect_compilation_infer_originals(allowed.compilation).unwrap()
+  assert_eq(originals.length(), 2)
+  for (plan, occurrence) in originals {
+    let program = @checked.effect_program_static_checked_computation(
+      owner.candidate,
+    )
+    assert_eq(
+      @checked.unit_result_import_count(program, occurrence.stage),
+      Some(0),
+    )
+    let (_, scope, body) = model_local_invocation_for(
+      compiled, plan, occurrence,
+    )
+    let issued = issue_single_model_client_effect_local_invocation(
+      compiled, scope, body, 10000, 1000, 20,
+    )
+    assert_eq(issued.map(_ => true), Ok(true))
+    let invocation = issued.unwrap()
+    assert_true(
+      client_effect_local_invocation_matches(
+        invocation,
+        owner,
+        occurrence.stage,
+      ),
+    )
+    let (foreign, _, _) = model_local_invocation_fixture()
+    assert_true(
+      issue_single_model_client_effect_local_invocation(
+        foreign, scope, body, 10000, 1000, 20,
+      )
+      is Err(ForeignCapturedInput),
+    )
+  }
+}
+
+///|
+test "plural Model scope selection never substitutes for required original imports" {
+  let (_, allowed, _, _) = plural_effect_infer_fixture()
+  let compiled = client_effect_allowed_component_run(allowed, None)
+  let originals = client_effect_compilation_infer_originals(allowed.compilation).unwrap()
+  assert_eq(originals.length(), 2)
+  for (plan, occurrence) in originals {
+    let (_, scope, body) = model_local_invocation_for(
+      compiled, plan, occurrence,
+    )
+    assert_true(
+      issue_single_model_client_effect_local_invocation(
+        compiled, scope, body, 10000, 1000, 20,
+      )
+      is Err(IncompleteResultImports),
+    )
+  }
 }

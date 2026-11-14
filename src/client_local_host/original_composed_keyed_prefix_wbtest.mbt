@@ -60,6 +60,12 @@ fn original_composed_keyed_consumer(
   native_keyed? : Bool = false,
   keyed_start_observer? : ((ClientInstalledKeyedSourceRead) -> Unit)? = None,
   retained_input_root? : Bool = false,
+  shared_source_producers? : Bool = false,
+  joined_input_direct? : Bool = false,
+  joined_input_consume? : Bool = false,
+  supplied_source_inputs? : Bool = false,
+  mixed_plan_only? : Bool = false,
+  initial_identity_policy? : Bool = false,
   large_lookup_policy? : Bool = false,
   publication_identity? : Bool = false,
   publication_early? : Bool = false,
@@ -69,7 +75,19 @@ fn original_composed_keyed_consumer(
   keyed_body_stop? : Bool = false,
   direct_effect_evidence? : Bool = false,
   pre_dispatch_plan? : Bool = false,
+  request_metadata_policy? : Int = 16384,
   native_transport? : Bool = false,
+  captured_source_metadata? : Bool = false,
+  identity_wire_nodes? : (Int, Int)? = None,
+  declared_activation_record? : Bool = false,
+  installed_capture_plan_finish? : Bool = false,
+  declared_raw_page? : Bool = false,
+  canonical_source_request? : Bool = false,
+  source_metadata_wire_bytes? : Int = 16777216,
+  installed_page_identity? : Bool = false,
+  declared_dependency_closure? : Bool = false,
+  borrowed_source_cleanup? : Bool = false,
+  borrowed_source_failure? : Bool = false,
   native_activation? : Bool = false,
   activation_reentry? : Bool = false,
   left_identity_reentry? : Bool = false,
@@ -83,46 +101,126 @@ fn original_composed_keyed_consumer(
 ) -> Unit raise {
   let activation_source_live : Ref[(() -> Unit)?] = Ref(None)
   let publication_early = publication_early || pre_dispatch_plan
-  let (declaration, keyed_environment) = original_keyed_declaration_environment(
+  let (unbound_declaration, keyed_environment) = original_keyed_declaration_environment(
     relation_versions=true,
+    file_request_fields=canonical_source_request,
   )
+  let declaration = if declared_dependency_closure {
+    let physical = @row_source_host.generate_row_declaration(
+      "declared-physical-fixture",
+      "fixture",
+      "fixture/0.1",
+      [
+        {
+          resource: "records",
+          resource_kind: "file",
+          fields: ["id", "name", "version", "mime", "text"].map(name => @row_source_host.RowField::{
+            name,
+            value_type: "string",
+            nullable: false,
+          }),
+        },
+      ],
+      {
+        max_bytes: 65536,
+        max_nodes: 4096,
+        max_depth: 32,
+        max_views: 1,
+        max_fields: 10,
+      },
+    ).unwrap()
+    let contents = unbound_declaration.views.filter(view => {
+        view.resource == "contents"
+      })[0]
+    @row_source_host.bind_declared_file_read_profile(
+      unbound_declaration,
+      contents.source_ref,
+      physical,
+      "records",
+      {
+        identity: "id",
+        name: "name",
+        version: "version",
+        media_type: "mime",
+        content_utf8: "text",
+        path: None,
+        items_path: ["items"],
+        key_path: ["id"],
+      },
+    ).unwrap()
+  } else {
+    unbound_declaration
+  }
   guard @json.parse(keyed_environment) is Object(fields) &&
     fields["host_policy_profile"] is Object(policy) else {
     fail("the original finite keyed policy is required")
   }
-  let native_profile = if native_transport {
+  let native_profile = if native_transport || captured_source_metadata {
     let view = declaration.views.filter(view => view.resource == "contents")[0]
     let (request, response) = @row_source_host.row_declaration_keyed_read_schema_identities(
       declaration,
       view.source_ref,
     ).unwrap()
-    let body = "{\"physical_source_view_contract_cid\":\"sha256:" +
-      "b".repeat(64) +
-      "\",\"projection\":{\"content_utf8_field\":\"text\",\"identity_field\":\"id\",\"items_path\":[\"items\"],\"key_path\":[\"id\"],\"media_type_field\":\"mime\",\"name_field\":\"name\",\"path_field\":null,\"version_field\":\"version\"},\"request_schema_cid\":\"" +
-      request +
-      "\",\"response_schema_cid\":\"" +
-      response +
-      "\",\"source_view_contract_cid\":\"" +
-      view.view_cid +
-      "\",\"version\":\"actql-native-file-content-read/0.1\"}"
-    Some(
-      (
-        view.source_ref,
-        @publication.seal_publication_contract(
-          "native_file_content_read", body, 16384, 1024, 20,
-        ).unwrap(),
-      ),
-    )
+    if declared_dependency_closure {
+      Some(
+        (
+          view.source_ref,
+          @row_source_host.row_declaration_file_read_profile(
+            declaration,
+            view.source_ref,
+          ).unwrap(),
+        ),
+      )
+    } else {
+      let body = "{\"physical_source_view_contract_cid\":\"sha256:" +
+        "b".repeat(64) +
+        "\",\"projection\":{\"content_utf8_field\":\"text\",\"identity_field\":\"id\",\"items_path\":[\"items\"],\"key_path\":[\"id\"],\"media_type_field\":\"mime\",\"name_field\":\"name\",\"path_field\":null,\"version_field\":\"version\"},\"request_schema_cid\":\"" +
+        request +
+        "\",\"response_schema_cid\":\"" +
+        response +
+        "\",\"source_view_contract_cid\":\"" +
+        view.view_cid +
+        "\",\"version\":\"actql-native-file-content-read/0.1\"}"
+      let body = if captured_source_metadata {
+        body.replace(
+          old="actql-native-file-content-read/0.1",
+          new="actql-declared-file-content-read/0.1",
+        )
+      } else {
+        body
+      }
+      Some(
+        (
+          view.source_ref,
+          @publication.seal_publication_contract(
+            if captured_source_metadata {
+              "declared_file_content_read"
+            } else {
+              "native_file_content_read"
+            },
+            body,
+            16384,
+            1024,
+            20,
+          ).unwrap(),
+        ),
+      )
+    }
   } else {
     None
   }
   let (environment, _) = effect_model_plan_source(
     declaration=Some(declaration),
     lookup_policy=Some(policy["lookup_execution"]),
-    source_implementation=match native_profile {
-      Some((source, profile)) =>
-        Some((source, @publication.publication_contract_identity(profile)))
-      None => None
+    source_implementation=if declared_dependency_closure {
+      // The actual bound declaration already publishes this capability.
+      None
+    } else {
+      match native_profile {
+        Some((source, profile)) =>
+          Some((source, @publication.publication_contract_identity(profile)))
+        None => None
+      }
     },
   )
   let mut document =
@@ -174,7 +272,76 @@ fn original_composed_keyed_consumer(
     }
     document = parsed.stringify()
   }
-  if whole {
+  if shared_source_producers {
+    guard @json.parse(document) is Object(fields) &&
+      fields["stages"] is Array(stages) else {
+      fail("distinct original Source stages")
+    }
+    for stage in stages[:2] {
+      guard stage is Object(unit) &&
+        unit["steps"] is Array(steps) &&
+        steps[0] is Object(first) else {
+        fail("original Source filter/projection")
+      }
+      // Keep the actual root calculation outside Query pushdown. The final
+      // projection drops this field, so equal rows still are not completion.
+      first["from"] = Json::string("normalized")
+      steps.insert(
+        0,
+        @json.parse(
+          "{\"derive\":{\"same_name\":{\"field\":\"name\"}},\"as\":\"normalized\"}",
+        ),
+      )
+    }
+    document = Json::object(fields).stringify()
+  }
+  if joined_input_direct {
+    guard @json.parse(document) is Object(program) &&
+      program["stages"] is Array(stages) &&
+      stages[2] is Object(model) &&
+      model["steps"] is Array(steps) else {
+      fail("original joined keyed fixture")
+    }
+    let producer = @json.parse(
+      "{\"id\":\"joined\",\"inputs\":{\"a\":{\"connector\":\"content-fixture\",\"resource\":\"files\"},\"b\":{\"connector\":\"content-fixture\",\"resource\":\"files\"}},\"from\":\"a\",\"steps\":[{\"join\":{\"with\":\"b\",\"kind\":\"inner\",\"on\":[{\"left\":\"name\",\"right\":\"name\"}],\"select\":{\"name\":\"left.name\",\"resource\":\"left.resource\",\"version\":\"right.version\"}},\"as\":\"joined\"}],\"results\":{\"rows\":{\"from\":\"joined\",\"fields\":[\"name\",\"resource\",\"version\"]}}}",
+    )
+    model["inputs"] = @json.parse(
+      "{\"a\":{\"result\":{\"stage\":\"joined\",\"result\":\"rows\"}},\"contents\":{\"connector\":\"content-fixture\",\"resource\":\"contents\"}}",
+    )
+    model["from"] = Json::string("a")
+    model["steps"] = Json::array(steps[1:].to_owned())
+    guard model["steps"] is Array(selected) && selected[0] is Object(first) else {
+      fail("first Content JOIN")
+    }
+    first["from"] = Json::string("a")
+    program["stages"] = Json::array(
+      [producer, stages[2]] + stages[3:].to_owned(),
+    )
+    document = Json::object(program).stringify()
+  }
+  if mixed_plan_only {
+    assert_true(following && !whole && !shared_source_producers)
+    guard @json.parse(document) is Object(fields) &&
+      fields["stages"] is Array(stages) &&
+      stages[2] is Object(model) &&
+      model["inputs"] is Object(inputs) else {
+      fail("mixed original Source and Model stages")
+    }
+    // Keep the first completed Unit import, but supply the second Direct
+    // Source inside this Model Unit, just like the authored Whole scenario.
+    inputs["b"] = @json.parse(
+      "{\"connector\":\"content-fixture\",\"resource\":\"files\"}",
+    )
+    guard stages[0] is Object(first_source) else {
+      fail("the distinct Whole Source Unit")
+    }
+    first_source["steps"] = @json.parse(
+      "[{\"from\":\"files\",\"select\":[\"name\",\"resource\",\"version\"],\"as\":\"captured\"}]",
+    )
+    fields["stages"] = Json::array([stages[0], stages[2], stages[3]])
+    document = Json::object(fields).stringify()
+  }
+  if whole && !shared_source_producers && !joined_input_direct {
     guard @json.parse(document) is Object(fields) &&
       fields["stages"] is Array(stages) &&
       stages[2] is Object(unit) &&
@@ -191,6 +358,26 @@ fn original_composed_keyed_consumer(
     }
     fields["stages"] = Json::array(retained)
     document = Json::object(fields).stringify()
+  }
+  if canonical_source_request {
+    guard @json.parse(document) is Object(program) &&
+      program["stages"] is Array(stages) &&
+      stages[0] is Object(stage) &&
+      stage["inputs"] is Object(inputs) else {
+      fail("original noncanonical Source Request")
+    }
+    for name in ["a", "b"] {
+      guard inputs[name] is Object(input) else {
+        fail("original independent Source")
+      }
+      input["request"] = @json.parse("{\"paths\":null,\"glob\":null}")
+    }
+    document = Json::object(program)
+      .stringify()
+      .replace(
+        old="\"request\":{\"glob\":null,\"paths\":null}",
+        new="\"request\":{\"paths\":null,\"glob\":null}",
+      )
   }
   let shared = prepare_parent is Some(_)
   let request_parent = match prepare_parent {
@@ -220,6 +407,80 @@ fn original_composed_keyed_consumer(
         Err(_) => fail("two-Direct keyed Model fixture preparation")
       }
   }
+  if mixed_plan_only {
+    let occurrences = @publication_host.prepared_client_effect_infer_occurrences(
+      prepared,
+    ).unwrap()
+    assert_eq(occurrences.length(), 2)
+    let graphs = occurrences.map(occurrence => {
+      @publication_host.issue_installed_client_composed_infer_plan_graph(
+        occurrence,
+        effect_model_plan_execution(occurrence),
+        @publication_host.client_standard_values_sequence_limits(),
+        1000000,
+        100000,
+        100,
+      ).unwrap()
+    })
+    let original_graph = @strategy.checked_effect_computation_graph(
+      @publication_host.prepared_client_effect_computation_graph(prepared),
+    )
+    assert_false(@strategy.graph_ordered_inputs_complete(original_graph))
+    let manifests = @publication_host.admit_client_compilation_manifests(
+      @environment.compiler_grammar_manifest_wire(),
+      @environment.compiler_barrier_contract_manifest_wire(),
+      100000,
+      10000,
+      100,
+    ).unwrap()
+    match
+      @publication_host.issue_prepared_client_effect_compilation(
+        prepared,
+        manifests,
+        @publication_host.client_standard_values_sequence_limits(),
+        1000,
+        10000,
+        1000000,
+        100000,
+        100,
+        infers=graphs,
+      ) {
+      Ok(compilation) =>
+        assert_eq(
+          @publication_host.client_effect_compilation_infer_originals(
+            compilation,
+          )
+          .unwrap()
+          .length(),
+          2,
+        )
+      Err(@publication_host.Graph(@publication_host.UnsupportedGraph)) =>
+        fail(
+          "same mixed Whole/inline Direct Model compiler: Graph UnsupportedGraph",
+        )
+      Err(_) => fail("same mixed Whole Model compiler: another original issue")
+    }
+    // The quote does not install a physical supplied read or mark an input
+    // completed. Runtime still needs every original Source and keyed port.
+    assert_false(@strategy.graph_ordered_inputs_complete(original_graph))
+    for invalid in [[graphs[0]], [graphs[0], graphs[0]], [graphs[1], graphs[0]]] {
+      assert_true(
+        @publication_host.issue_prepared_client_effect_compilation(
+          prepared,
+          manifests,
+          @publication_host.client_standard_values_sequence_limits(),
+          1000,
+          10000,
+          1000000,
+          100000,
+          100,
+          infers=invalid,
+        )
+        is Err(@publication_host.ForeignInferOwner),
+      )
+    }
+    return
+  }
   if first_plan is Some(consume) {
     guard request_parent is Some((parent, input, _)) &&
       native_profile is Some((_, profile)) else {
@@ -228,7 +489,7 @@ fn original_composed_keyed_consumer(
     consume(parent, input, prepared, profile)
     return
   }
-  if whole && !following {
+  if whole && !following && !shared_source_producers {
     let limits = @publication_host.client_standard_effect_computation_limits()
     assert_true(
       @publication_host.prepare_client_effect_computation(
@@ -277,6 +538,24 @@ fn original_composed_keyed_consumer(
       ),
     )
   }
+  if joined_input_direct && !joined_input_consume {
+    let occurrence = @publication_host.prepared_client_effect_infer_occurrence(
+      prepared,
+    ).unwrap()
+    let keyed = @publication_host.select_client_effect_model_keyed_acquisition(
+        prepared, occurrence,
+      )
+      .unwrap()
+      .unwrap()
+    let (stage, task, join) = @publication_host.client_keyed_acquisition_coordinates(
+      keyed,
+    ).unwrap()
+    let owner = @publication_host.client_keyed_acquisition_owner(keyed)
+    let node = @lower.node_at(@lower.bound_preparation(owner), join).unwrap()
+    assert_eq((stage, task, join), (1, 1, 0))
+    assert_true(@lower.node_input_target(node, 0) is Some(@pipeline.Input(0)))
+    return
+  }
   // These are three distinct checked response originals even though the two
   // Direct occurrences select the same SourceView. The keyed response is not
   // one of those Direct roots and cannot be dropped from the whole Run policy.
@@ -287,7 +566,9 @@ fn original_composed_keyed_consumer(
   )
   let final_publication = @checked.unit_publication_at(
     checked_program,
-    if whole {
+    if joined_input_direct {
+      1
+    } else if whole && !shared_source_producers {
       0
     } else {
       2
@@ -316,7 +597,7 @@ fn original_composed_keyed_consumer(
       }),
     )
   }
-  let graphs = if native_activation {
+  let graphs = if native_activation || captured_source_metadata {
     let occurrence = @publication_host.prepared_client_effect_infer_occurrence(
       prepared,
     ).unwrap()
@@ -327,15 +608,27 @@ fn original_composed_keyed_consumer(
       .unwrap()
     let profile = native_profile.unwrap().1
     [
-      @publication_host.issue_installed_client_composed_infer_plan_graph(
-        occurrence,
-        effect_model_plan_execution(occurrence),
-        @publication_host.client_standard_values_sequence_limits(),
-        1000000,
-        100000,
-        100,
-        keyed_native_read=Some((keyed, profile)),
-      ).unwrap(),
+      match
+        @publication_host.issue_installed_client_composed_infer_plan_graph(
+          occurrence,
+          effect_model_plan_execution(occurrence),
+          @publication_host.client_standard_values_sequence_limits(),
+          1000000,
+          100000,
+          100,
+          keyed_native_read=Some((keyed, profile)),
+        ) {
+        Ok(value) => value
+        Err(@publication_host.ForeignExecution) =>
+          fail("original physical-profile Graph ForeignExecution")
+        Err(@publication_host.UnsupportedProgram) =>
+          fail("original physical-profile Graph UnsupportedProgram")
+        Err(@publication_host.Encoding) =>
+          fail("original physical-profile Graph Encoding")
+        Err(@publication_host.Input(_)) =>
+          fail("original physical-profile Graph Input")
+        Err(_) => fail("original physical-profile Graph other typed issue")
+      },
     ]
   } else if following {
     @publication_host.prepared_client_effect_infer_occurrences(prepared)
@@ -353,7 +646,8 @@ fn original_composed_keyed_consumer(
   } else {
     []
   }
-  let (_, request, contracts, model) = if native_activation {
+  let (_, request, contracts, model) = if native_activation ||
+    captured_source_metadata {
     effect_model_plan_for_graph(prepared, graphs[0], acquired=true)
   } else {
     effect_model_plan_for_prepared(prepared, acquired=true, infers=graphs)
@@ -365,10 +659,54 @@ fn original_composed_keyed_consumer(
     )
     .unwrap()
     .unwrap()
-  let prefix = if retained_input_root {
-    let installed = original_composed_keyed_installed_plan(
-      prepared, request, contracts, model, declaration,
+  let installed_model = if shared_source_producers && graphs.length() > 1 {
+    prepare_installed_effect_models_demand(
+      graphs.map(graph => {
+        if physical_equal(graph, model.graph) {
+          model
+        } else {
+          prepare_installed_effect_model_demand(
+            prepared,
+            model.compiled,
+            model._compilation,
+            model.definition,
+            graph.occurrence,
+            graph,
+            model.model_limits,
+            model.read_retained_bytes,
+            model.read_execution_bytes,
+            model.max_reservations,
+            model.max_holdings,
+            model.max_delegations,
+          ).unwrap()
+        }
+      }),
+    ).unwrap()
+  } else {
+    model
+  }
+  let shared_plan = if shared_source_producers {
+    Some(
+      original_composed_keyed_installed_plan(
+        prepared,
+        request,
+        contracts,
+        installed_model,
+        declaration,
+        whole_roots=true,
+        effect_stage=(if joined_input_direct { 1 } else { 2 }) +
+          (if following { 1 } else { 0 }),
+      ),
     )
+  } else {
+    None
+  }
+  let prefix = if retained_input_root || shared_source_producers {
+    let installed = shared_plan.unwrap_or_else(() => {
+      original_composed_keyed_installed_plan(
+        prepared, request, contracts, model, declaration,
+      )
+    })
     let sequence = prepared_installed_effect_model_sequence(
       installed,
       model.graph,
@@ -415,9 +753,11 @@ fn original_composed_keyed_consumer(
     None => None
     Some((parent, input, _)) => {
       let construction = borrow_request_effect_plan_input(parent, input).unwrap()
-      let installed = original_composed_keyed_installed_plan(
-        prepared, request, contracts, model, declaration,
-      )
+      let installed = shared_plan.unwrap_or_else(() => {
+        original_composed_keyed_installed_plan(
+          prepared, request, contracts, model, declaration,
+        )
+      })
       let scope = prepare_request_effect_model_read_scope(
         parent, input, installed,
       ).unwrap()
@@ -507,23 +847,24 @@ fn original_composed_keyed_consumer(
   ] = Ref([])
   for task in 0..<2 {
     let run = if whole {
-      let selected = @publication_host.prepare_client_effect_source_acquisition(
-        prepared, 0, task,
-      ).unwrap()
-      let policy = installed_row_input_policy(2, 4096, 10000, 32, 2)
-      let acquisition = @row_source_host.prepare_row_input_acquisition(
-        selected,
-        @checked.source_identity(checked_program),
-        @execution.generated_prepared_sequence(prefix),
-        contracts.original.value.contracts,
-        declaration,
-        policy,
-      ).unwrap()
-      let capacity = installed_whole_source_capture_capacity(
-        selected,
-        acquisition,
-        None,
-      ).unwrap()
+      let capacity = if shared_source_producers {
+        shared_plan.unwrap().whole_sources[task].unwrap().1
+      } else {
+        let selected = @publication_host.prepare_client_effect_source_acquisition(
+          prepared, 0, task,
+        ).unwrap()
+        let policy = installed_row_input_policy(2, 4096, 10000, 32, 2)
+        let acquisition = @row_source_host.prepare_row_input_acquisition(
+          selected,
+          @checked.source_identity(checked_program),
+          @execution.generated_prepared_sequence(prefix),
+          contracts.original.value.contracts,
+          declaration,
+          policy,
+        ).unwrap()
+        installed_whole_source_capture_capacity(selected, acquisition, None).unwrap()
+      }
+      let acquisition = capacity.acquisition
       whole_capacities.push(capacity)
       @row_source_host.start_accounted_row_input_acquisition(
         acquisition,
@@ -657,7 +998,11 @@ fn original_composed_keyed_consumer(
         source,
         identity,
         capacity.original,
-        task=0,
+        task=if shared_source_producers && !joined_input_direct {
+          task
+        } else {
+          0
+        },
       ).unwrap()
       let facts = @planning.source_acquisition_evidence_facts(capacity.original).unwrap()
       let observation = @row_source_host.issue_row_input_source_evidence(
@@ -665,7 +1010,11 @@ fn original_composed_keyed_consumer(
         captured,
         identity,
         logical,
-        "sha256:" + "2".repeat(64),
+        if captured_source_metadata {
+          @publication_host.client_request_authority_scope_cid(original_request)
+        } else {
+          "sha256:" + "2".repeat(64)
+        },
         facts.source_data_policy_cid,
         "2026-11-05T00:00:01.000Z",
       ).unwrap()
@@ -705,6 +1054,666 @@ fn original_composed_keyed_consumer(
   }
   assert_eq(@resources.ledger_usage(ledger).attempts, prior_attempts + 2)
   let (execution, measurement, mapping) = original_composed_keyed_test_limits()
+  if joined_input_consume {
+    let original_plan = shared_plan.unwrap()
+    let source_sequence = original_plan.sequences[0]
+    let source_owner = @execution.generated_sequence_owner(source_sequence)
+    let sources = captures.map(capture => {
+      @row_source_host.row_capture_source(capture).unwrap()
+    })
+    let reads = sources.mapi((index, source) => {
+      let bound = @query.bind_captured_source_operation(
+        source, source_owner, 0, index,
+      ).unwrap()
+      @execution.prepare_producer_read(source_owner, bound, 10000, 10000).unwrap()
+    })
+    let provider = @local.local_bounded_relation_provider(
+      execution, measurement, source_sequence,
+    ).unwrap()
+    let child = @local.start_managed_provider_with_inputs_and_execution(
+      provider,
+      source_sequence,
+      reads.map(@local.managed_provider_relation_input),
+      2,
+      measurement.max_bytes,
+      execution,
+    ).unwrap()
+    let mut output = None
+    for _ in 0..<10000 {
+      match @local.advance_managed_provider(child, 7).unwrap() {
+        @local.Complete(value, ..) => {
+          output = Some(value)
+          break
+        }
+        @local.Continue(..) | @local.Settling(_, ..) => ()
+        _ => fail("original joined producer")
+      }
+    }
+    let bindings = [(0, 0, reads[0]), (0, 1, reads[1])]
+    let proof = @execution.retain_completed_segment_inputs(
+      output.unwrap(),
+      source_sequence,
+      bindings,
+      100000,
+    ).unwrap()
+    let allowed = @publication_host.issue_client_effect_allowed_run(
+      model._compilation,
+      "sha256:" + "a".repeat(64),
+      "sha256:" + "b".repeat(64),
+      "2027-01-01T00:00:00.000Z",
+    ).unwrap()
+    let bound = @publication_host.bind_client_effect_compiled_run(
+      prepared,
+      allowed,
+      model.definition,
+    ).unwrap()
+    let graph = @strategy.checked_effect_computation_graph(
+      @publication_host.prepared_client_effect_computation_graph(prepared),
+    )
+    let selected = @strategy.prepare_source_inputs_dag(
+      graph,
+      whole_capacities.map(value => value.original),
+    ).unwrap()
+    let (task, _, step) = @publication_host.client_infer_occurrence_coordinates(
+      model._occurrence,
+    )
+    let host = @strategy.open_source_inputs_effect_run_dag(
+      @publication_host.prepared_client_effect_run_graph(bound),
+      selected,
+      sources,
+      ledger,
+      source_results=[(0, source_sequence, bindings, proof)],
+      deferred_keyed=Some((task, step)),
+    ).unwrap()
+    let captured_run = @strategy.captured_effect_run_dag(host)
+    assert_false(
+      @strategy.captured_next_task_has_prepared_input(captured_run, 0),
+    )
+    let before = @resources.ledger_usage(ledger)
+    let left = @publication_host.prepare_client_original_composed_keyed_host_input_left(
+        scope,
+        model.compiled,
+        model.definition,
+        model.graph,
+        keyed,
+        closed_inputs,
+        host,
+        prefix,
+        10000,
+        10000,
+      )
+      .unwrap()
+      .unwrap()
+    assert_true(
+      @strategy.captured_next_task_has_prepared_input(captured_run, 0),
+    )
+    assert_false(
+      @strategy.captured_next_task_has_prepared_input(captured_run, -1),
+    )
+    assert_false(
+      @strategy.captured_next_task_has_prepared_input(captured_run, 1),
+    )
+    assert_eq(@publication_host.client_keyed_left_read_rows(left), Some(1))
+    assert_eq(@resources.ledger_usage(ledger), before)
+    // Seal the actual joined producer through its existing preconsumer Unit,
+    // export receipt, semantic Artifact and manifest, before the Model runs.
+    let authority = "sha256:" + "2".repeat(64)
+    let policy = @publication_host.prepared_client_effect_publication_data_policy_cid(
+      prepared,
+    ).unwrap()
+    let admission = @publication_host.client_effect_allowed_run_admission(
+      allowed,
+    )
+    let source_originals = @publication_host.prepare_client_effect_source_unit_inputs(
+      prepared,
+      model._compilation,
+      admission,
+      model.definition,
+      original_plan.direct_occurrences.unwrap(),
+      sources,
+      whole_identities,
+      whole_capacities.map(value => {
+        @publication_host.WholeSourceOriginal(value.original)
+      }),
+      whole_observations.map(value => value.1),
+      whole_observations.map(value => value.0),
+      authority,
+      policy,
+      100000,
+      10000,
+      100,
+    ).unwrap()
+    let retention = @publication.issue_result_retention_for_data_policy(
+      original_composed_keyed_metadata_retention(),
+      policy,
+      100000,
+      10000,
+      100,
+    ).unwrap()
+    let combined = @publication_host.prepare_client_effect_source_unit(
+      source_originals, 0, retention, 100000, 10000, 100,
+    ).unwrap()
+    let producer_unit = @strategy.pin_captured_effect_acquired_unit_results(
+      host, 0, 10,
+    ).unwrap()
+    let wire : @execution.RowWireLimits = {
+      max_columns: 3,
+      max_order_work: 10000,
+      max_bytes: 20000,
+      max_nodes: 10000,
+      max_depth: 32,
+    }
+    let exported = @strategy.start_captured_effect_local_unit_result_export(
+      producer_unit,
+      0,
+      {
+        max_fields: 3,
+        max_mapping_work: 10000,
+        max_order_work: 10000,
+        max_workspace_entries: 100,
+      },
+      10,
+      execution.rows.input_values,
+      wire,
+      wire,
+      { max_fields: 3, max_bytes: 10000, max_nodes: 1000, max_depth: 32, },
+      10000,
+    ).unwrap()
+    let export_preparation = @strategy.captured_effect_local_result_export_preparation(
+      exported,
+    )
+    let mut export_ready = false
+    for _ in 0..<10000 {
+      if @execution.advance_completed_result_relation_export(
+          export_preparation, 31,
+        ).unwrap().0 {
+        export_ready = true
+        break
+      }
+    }
+    assert_true(export_ready)
+    let export_stream = @execution.finish_completed_result_relation_export_preparation(
+      export_preparation,
+    ).unwrap()
+    while @execution.next_completed_output_export_canonical_row(
+            export_stream, 20000, 32, 10000,
+          ).unwrap()
+          is Some(_) {
+      ()
+    }
+    let export_receipt = @execution.finish_completed_relation_export(
+        export_stream,
+      ).unwrap().0
+    let result_definition = @publication_host.issue_client_effect_local_result_definition(
+      prepared, 0, "rows", 100000, 10000, 100,
+    ).unwrap()
+    let result_artifact = @publication_host.issue_preconsumer_client_effect_unit_result_artifact(
+      prepared,
+      producer_unit,
+      exported,
+      combined,
+      result_definition,
+      export_receipt,
+      admission,
+      model.definition,
+      100000,
+      10000,
+      100,
+    ).unwrap()
+    let result_manifest = @publication_host.issue_client_effect_local_manifest(
+      prepared,
+      @publication_host.client_effect_combined_source_unit_invocation(combined),
+      [result_artifact],
+      100000,
+      10000,
+      100,
+    ).unwrap()
+    let lookup = @publication_host.start_client_original_composed_keyed_lookup_input(
+      left, 4096, 10000,
+    ).unwrap()
+    assert_eq(
+      @publication_host.client_composed_keyed_lookup_prefix_work(
+        lookup,
+        model._occurrence,
+      ),
+      Some(0L),
+    )
+    assert_true(
+      @publication_host.client_composed_keyed_lookup_matches_model_parent(
+        lookup,
+        model.compiled,
+        model.definition,
+        model.graph,
+        ledger,
+      ),
+    )
+    assert_true(
+      @publication_host.client_composed_keyed_lookup_matches_host(lookup, host),
+    )
+    // The actual task driver supplies one joined Result and one keyed read.
+    // Its two Source ancestors remain a separate complete custody inventory.
+    let request_preparation = @publication_host.start_client_keyed_lookup_request(
+      lookup, 0,
+    ).unwrap()
+    let mut request = None
+    for _ in 0..<10000 {
+      match
+        @publication_host.advance_client_keyed_lookup_request(
+          lookup, request_preparation,
+        ) {
+        @publication_host.ClientKeyedRequestContinue(..) => ()
+        @publication_host.ClientKeyedRequestComplete(value, ..) => {
+          request = Some(value)
+          break
+        }
+        _ => fail("original joined Result request")
+      }
+    }
+    let request = request.unwrap()
+    let request_value = @publication_host.client_keyed_request_value(
+      request, keyed,
+    ).unwrap()
+    let acquisition = @row_source_host.prepare_keyed_row_acquisition(
+      @publication_host.client_keyed_acquisition_owner(keyed),
+      @publication_host.client_keyed_acquisition_facts(keyed),
+      request_value,
+      declaration,
+      original_keyed_child_limits(),
+      input_available=Some(() => {
+        @publication_host.client_composed_keyed_request_retained_model_parent(
+          request,
+          model.compiled,
+          model.definition,
+          model.graph,
+          ledger,
+        )
+      }),
+    ).unwrap()
+    let keyed_child = @row_source_host.start_accounted_keyed_row_acquisition(
+      acquisition,
+      "joined-result-keyed-child",
+      _ => true,
+      ledger,
+      8192L,
+      4096L,
+      _ => true,
+    ).unwrap()
+    let response = @utf8.encode(
+      "[" + original_keyed_child_expected_row(0) + "]",
+    )
+    @publication_host.observe_client_keyed_request_attempt(
+      request,
+      @publication_host.client_keyed_request_wire(request, 4096, 2000, 32)
+      .unwrap()
+      .length()
+      .to_int64(),
+      0L,
+    ).unwrap()
+    @row_source_host.begin_keyed_row_run(
+      keyed_child,
+      reference_issuer=Some(issuer),
+    ).unwrap()
+    @publication_host.observe_client_keyed_response(
+      request,
+      response.length().to_int64(),
+      response.length().to_int64(),
+      0L,
+    ).unwrap()
+    @row_source_host.begin_row_run_keyed_page(keyed_child, response).unwrap()
+    let mut page_complete = false
+    for _ in 0..<10000 {
+      match
+        @row_source_host.advance_row_run_keyed_page(keyed_child, 7).unwrap() {
+        @row_source_host.KeyedPageContinue(..) => ()
+        @row_source_host.KeyedPageComplete(..) => {
+          page_complete = true
+          break
+        }
+      }
+    }
+    assert_true(page_complete)
+    @row_source_host.finish_row_run(keyed_child).unwrap()
+    let captured = @row_source_host.retain_keyed_row_run(keyed_child).unwrap()
+    @publication_host.finish_client_keyed_request_io(request, 0L).unwrap()
+    begin_client_original_keyed_lookup_response(
+      keyed, lookup, request, captured,
+    ).unwrap()
+    let mut assembled = false
+    for _ in 0..<10000 {
+      if @publication_host.advance_client_keyed_lookup_input(lookup, 7).unwrap() {
+        assembled = true
+        break
+      }
+    }
+    assert_true(assembled)
+    let right = @publication_host.finish_client_keyed_lookup_input(lookup).unwrap()
+    assert_eq(
+      @publication_host.client_composed_keyed_lookup_sources(
+        lookup,
+        model._occurrence,
+      )
+      .unwrap()
+      .length(),
+      2,
+    )
+    let read = @strategy.captured_task_input(
+      captured_run,
+      task,
+      10000,
+      10000,
+      input_index=0,
+    ).unwrap()
+    let inputs = [
+      @local.managed_provider_relation_input(read),
+      @local.managed_provider_supplied_relation_input(right),
+    ]
+    assert_eq(inputs.length(), 2)
+    let foreign_binding = @execution.bind_completed_input(
+      @publication_host.client_keyed_acquisition_owner(keyed),
+      0,
+      source_owner,
+      output.unwrap(),
+    ).unwrap()
+    let equal_read = @execution.prepare_producer_read(
+      @publication_host.client_keyed_acquisition_owner(keyed),
+      foreign_binding,
+      10000,
+      10000,
+    ).unwrap()
+    assert_false(@execution.producer_read_same_binding(read, equal_read))
+    assert_true(
+      @execution.producer_read_matches_completed_output(
+        equal_read,
+        output.unwrap(),
+      ),
+    )
+    let invalid_vectors = [
+      [@local.managed_provider_relation_input(equal_read), inputs[1]],
+      [inputs[1], inputs[0]],
+      [inputs[0], inputs[1], inputs[1]],
+      [
+        inputs[0],
+        @local.managed_provider_supplied_relation_input(
+          @execution.restrict_supplied_relation_read(right, () => false),
+        ),
+      ],
+    ]
+    for invalid in invalid_vectors {
+      assert_true(
+        start_client_composed_infer_input(
+          model._occurrence,
+          prefix,
+          invalid,
+          execution,
+          measurement,
+          mapping,
+          keyed=Some(lookup),
+        )
+        is Err(UnsupportedProgram),
+      )
+    }
+    let replacement_live = Ref(true)
+    let rebound = @execution.rebind_producer_representation(
+      read,
+      @execution.restrict_completed_output(output.unwrap(), () => {
+        replacement_live.val
+      }),
+    ).unwrap()
+    assert_true(@execution.producer_read_same_binding(read, rebound))
+    assert_true(@execution.producer_read_available(rebound))
+    replacement_live.val = false
+    assert_true(@execution.producer_read_available(read))
+    assert_false(@execution.producer_read_available(rebound))
+    let before_rebound = @resources.ledger_usage(ledger)
+    let revoked = start_client_composed_infer_input(
+      model._occurrence,
+      prefix,
+      [@local.managed_provider_relation_input(rebound), inputs[1]],
+      execution,
+      measurement,
+      mapping,
+      keyed=Some(lookup),
+    )
+    match revoked {
+      Err(UnsupportedProgram) => ()
+      Err(_) => fail("revoked replacement reached a later constructor")
+      Ok(_) =>
+        fail("revoked replacement was admitted with its live original binding")
+    }
+    assert_eq(@resources.ledger_usage(ledger), before_rebound)
+    let input = match
+      start_client_composed_infer_input(
+        model._occurrence,
+        prefix,
+        inputs,
+        execution,
+        measurement,
+        mapping,
+        keyed=Some(lookup),
+      ) {
+      Ok(value) => value
+      Err(UnsupportedProgram) =>
+        fail("one original joined Result is not two raw Source ports")
+      Err(_) => fail("original joined Result Model input")
+    }
+    let mut mapped = None
+    for _ in 0..<10000 {
+      match advance_client_infer_input(input, 7).unwrap() {
+        Complete(rows, ..) => {
+          mapped = Some(rows)
+          break
+        }
+        Continue(..) => ()
+        _ => fail("original joined Result Model mapping")
+      }
+    }
+    assert_eq(@execution.prepared_infer_rows_count(mapped.unwrap()), 1)
+    let (model_input, model_sequence, model_bindings, mixed_proof) = client_infer_completed_input_provenance(
+      input,
+    ).unwrap()
+    assert_eq(model_bindings.length(), 2)
+    assert_true(
+      @execution.completed_fixed_segment_inputs_output(
+        mixed_proof, model_sequence, model_bindings,
+      )
+      is Some(_),
+    )
+    let shortened = model_bindings[:1].to_owned()
+    let swapped = [model_bindings[1], model_bindings[0]]
+    for invalid in [shortened, swapped, [model_bindings[0], model_bindings[0]]] {
+      assert_true(
+        @execution.completed_fixed_segment_inputs_output(
+          mixed_proof, model_sequence, invalid,
+        )
+        is None,
+      )
+    }
+    let same_right = @execution.restrict_supplied_relation_read(right, () => {
+      true
+    })
+    let replaced = model_bindings.copy()
+    replaced[1] = (
+      model_bindings[1].0,
+      model_bindings[1].1,
+      @execution.fixed_supplied_relation_read(same_right),
+    )
+    assert_true(
+      @execution.completed_fixed_segment_inputs_output(
+        mixed_proof, model_sequence, replaced,
+      )
+      is None,
+    )
+    let imported = client_infer_completed_result_artifact_input(
+      input,
+      model._occurrence,
+      model.graph,
+      0,
+      result_artifact,
+      result_manifest,
+    ).unwrap()
+    let keyed_observation = @publication_host.issue_client_keyed_lookup_observation(
+      lookup, authority, "2026-11-05T00:00:01.000Z",
+    ).unwrap()
+    let source_closure = match
+      @publication_host.admit_client_infer_composed_whole_sources(
+        model._occurrence,
+        sources,
+        whole_identities,
+        whole_capacities.map(value => value.original),
+        whole_observations.map(value => value.0),
+        whole_observations.map(value => value.1),
+        authority,
+        "2026-11-05T00:00:00.000Z",
+        "2026-11-05T00:00:01.000Z",
+        keyed=Some(keyed_observation),
+      ) {
+      Ok(value) => value
+      Err(@publication_host.ForeignInput) =>
+        fail("mixed fixture Source closure: ForeignInput")
+      Err(@publication_host.Evidence(issue)) =>
+        fail("mixed fixture Source observation: " + @debug.to_string(issue))
+      Err(_) => fail("mixed fixture Source closure: other")
+    }
+    if following {
+      assert_eq(graphs.length(), 2)
+      let second = graphs[1].occurrence
+      assert_true(
+        @publication_host.client_infer_composed_sources_matches(
+          source_closure, second,
+        ),
+      )
+      // This selection carries provenance, never the spent keyed read.
+      assert_true(
+        @publication_host.client_infer_composed_keyed_lookup(
+          source_closure, second,
+        )
+        is None,
+      )
+    }
+    let model_wire = {
+      ..wire,
+      max_columns: @schema.field_count(
+        @lower.preparation_schema_at(
+          @lower.bound_preparation(
+            @publication_host.client_infer_occurrence_preparation(
+              model._occurrence,
+            ),
+          ),
+          @pipeline.Step(step - 1),
+        ).unwrap(),
+      ),
+    }
+    let identity_workspace = @execution.completed_relation_identity_scan_workspace_slots(
+      model_input,
+      execution.rows.input_values,
+      model_wire,
+      model_wire,
+    ).unwrap()
+    let identity = match
+      @execution.start_completed_relation_identity_scan(
+        model_input,
+        10,
+        execution.rows.input_values,
+        model_wire,
+        model_wire,
+        { max_fields: 10, max_bytes: 20000, max_nodes: 10000, max_depth: 32, },
+        100000,
+        identity_workspace,
+      ) {
+      Ok(value) => value
+      Err(@execution.Unavailable) =>
+        fail("mixed fixture identity scan: Unavailable")
+      Err(@execution.NotCellRepresentation) =>
+        fail("mixed fixture identity scan: NotCellRepresentation")
+      Err(@execution.Admission(_)) =>
+        fail("mixed fixture identity scan: Admission")
+      Err(@execution.Wire(_)) => fail("mixed fixture identity scan: Wire")
+      Err(@execution.Schema(_)) => fail("mixed fixture identity scan: Schema")
+      Err(_) => fail("mixed fixture identity scan: other")
+    }
+    let mut identified = false
+    for _ in 0..<10000 {
+      if @execution.advance_completed_relation_identity_scan(identity, 31).unwrap().0 {
+        identified = true
+        break
+      }
+    }
+    assert_true(identified)
+    let receipt = @execution.finish_completed_relation_identity_scan(identity).unwrap()
+    let call_scope = @publication_host.issue_client_infer_occurrence_call_scope(
+      model._occurrence,
+      model.graph,
+      model_input,
+      receipt,
+      100000,
+      10000,
+      100,
+      sources=Some(source_closure),
+      result_inputs=[imported],
+    ).unwrap()
+    assert_true(
+      @publication.run_evidence_value_json(
+        @publication_host.client_infer_call_scope_artifact(call_scope),
+      ).contains("actql-model-input-artifact/0.1"),
+    )
+    assert_true(
+      @strategy.release_captured_effect_local_unit_inputs(producer_unit),
+    )
+    assert_false(cancel_client_infer_input(input))
+    assert_true(cleanup_client_infer_input(input).unwrap())
+    let stop_observed = Ref(false)
+    let stopping_right = @execution.restrict_supplied_relation_read(right, () => {
+      stop_observed.val = true
+      @strategy.stop_captured_dag(captured_run)
+      true
+    })
+    assert_true(
+      start_client_composed_infer_input(
+        model._occurrence,
+        prefix,
+        [
+          inputs[0],
+          @local.managed_provider_supplied_relation_input(stopping_right),
+        ],
+        execution,
+        measurement,
+        mapping,
+        keyed=Some(lookup),
+      )
+      is Err(UnsupportedProgram),
+    )
+    assert_true(stop_observed.val)
+    @row_source_host.close_accounted_row_run(keyed_child).unwrap()
+    @strategy.stop_captured_dag(@strategy.captured_effect_run_dag(host))
+    assert_true(
+      start_client_composed_infer_input(
+        model._occurrence,
+        prefix,
+        inputs,
+        execution,
+        measurement,
+        mapping,
+        keyed=Some(lookup),
+      )
+      is Err(UnsupportedProgram),
+    )
+    assert_true(@publication_host.client_keyed_left_read_rows(left) is None)
+    assert_true(
+      @publication_host.cleanup_client_keyed_lookup_input(lookup, 10000)
+      is Ok(true),
+    )
+    if following {
+      assert_false(
+        @publication_host.client_infer_composed_sources_matches(
+          source_closure,
+          graphs[1].occurrence,
+        ),
+      )
+    }
+    @local.cancel_managed_provider(child) |> ignore
+    assert_true(@local.cleanup_managed_provider(child) is Ok(true))
+    return
+  }
   let start_prefix = (rows : Array[@row_source_host.RowSourceCapture]) => {
     if whole {
       let selected = rows.map(row => {
@@ -716,17 +1725,31 @@ fn original_composed_keyed_consumer(
         }
         selected.unwrap()
       })
-      start_client_original_composed_keyed_input_prefix(
-        scope,
-        model.compiled,
-        model.definition,
-        model.graph,
-        keyed,
-        selected,
-        prefix,
-        execution,
-        measurement,
-      )
+      if shared_source_producers {
+        start_installed_original_composed_keyed_input_prefix(
+          managed.unwrap().0,
+          scope,
+          model.compiled,
+          model.definition,
+          model.graph,
+          keyed,
+          selected,
+          execution,
+          measurement,
+        )
+      } else {
+        start_client_original_composed_keyed_input_prefix(
+          scope,
+          model.compiled,
+          model.definition,
+          model.graph,
+          keyed,
+          selected,
+          prefix,
+          execution,
+          measurement,
+        )
+      }
     } else {
       match managed {
         Some((owner, _)) =>
@@ -841,25 +1864,30 @@ fn original_composed_keyed_consumer(
     )
   }
   let (_, row_inputs, sources) = selected_inputs.unwrap()
-  let _ = match
-    @publication_host.prepare_client_original_composed_keyed_inputs(
-      scope,
-      model.compiled,
-      model.definition,
-      model.graph,
-      keyed,
-      sources,
-      row_inputs,
-      left_sequence,
-      10000,
-      10000,
-    ) {
-    Ok(value) => value
-    Err(@publication_host.ForeignLeft) =>
-      fail("original two-input binding ownership")
-    Err(@publication_host.Capture(_)) =>
-      fail("original two-input Source binding")
-    Err(_) => fail("original two-input read construction")
+  let initial_bindings = @publication_host.prepare_client_original_composed_keyed_inputs(
+    scope,
+    model.compiled,
+    model.definition,
+    model.graph,
+    keyed,
+    sources,
+    row_inputs,
+    left_sequence,
+    10000,
+    10000,
+  )
+  if shared_source_producers {
+    // Raw captures do not stand in for their unexecuted Stage roots.
+    assert_true(initial_bindings is Err(@publication_host.Capture(_)))
+  } else {
+    let _ = match initial_bindings {
+      Ok(value) => value
+      Err(@publication_host.ForeignLeft) =>
+        fail("original two-input binding ownership")
+      Err(@publication_host.Capture(_)) =>
+        fail("original two-input Source binding")
+      Err(_) => fail("original two-input read construction")
+    }
   }
   let original = match start_prefix(captures) {
     Ok(value) => value
@@ -935,6 +1963,326 @@ fn original_composed_keyed_consumer(
     }
   }
 
+  if captured_source_metadata {
+    let original_limits = original_keyed_content_workspace().export_limits
+    let limits = match identity_wire_nodes {
+      None => original_limits
+      Some(nodes) =>
+        {
+          ..original_limits,
+          payload_wire: { ..original_limits.payload_wire, max_nodes: nodes.0, },
+          logical_wire: { ..original_limits.logical_wire, max_nodes: nodes.1, },
+        }
+    }
+    let left_identity = if declared_activation_record {
+      @publication_host.prepare_client_keyed_captured_left_identity(
+        lookup, limits, 1000000,
+      )
+    } else {
+      @publication_host.prepare_client_keyed_native_left_identity(
+        lookup,
+        1,
+        limits.values,
+        limits.payload_wire,
+        limits.logical_wire,
+        limits.schema,
+        1000000,
+        100000,
+      )
+    }
+    match left_identity {
+      Ok(_) => ()
+      Err(@publication_host.Assembly(reason)) =>
+        fail("left metadata: " + reason)
+      Err(@publication_host.CompletedIdentity(issue)) => {
+        let reason = match issue {
+          @execution.Unavailable => "Unavailable"
+          @execution.NotCellRepresentation => "NotCellRepresentation"
+          @execution.InvalidTarget => "InvalidTarget"
+          @execution.NotFinished => "NotFinished"
+          @execution.Closed => "Closed"
+          @execution.ForeignMaterial => "ForeignMaterial"
+          @execution.CanonicalRow => "CanonicalRow"
+          @execution.Admission(_) => "Admission"
+          @execution.Wire(_) => "Wire"
+          @execution.Schema(_) => "Schema"
+          @execution.ResultView(_) => "ResultView"
+        }
+        fail("left metadata: " + reason)
+      }
+      Err(@publication_host.Physical(_)) => fail("left metadata: Physical")
+      Err(_) => fail("left metadata: other typed refusal")
+    }
+    let retention = if declared_activation_record {
+      @publication_host.prepare_client_keyed_declared_file_retention(
+        lookup,
+        original_request,
+        "sha256:" + "1".repeat(64),
+        "2026-11-06T01:00:00.000Z",
+        "2026-11-06T02:00:00.000Z",
+        "2026-11-06T04:00:00.000Z",
+        "sha256:" + "3".repeat(64),
+        "sha256:" + "4".repeat(64),
+        16777216,
+      ).unwrap()
+    } else {
+      original_composed_keyed_metadata_retention()
+    }
+    if declared_dependency_closure {
+      @publication_host.bind_client_keyed_declared_file_physical_source(
+        lookup,
+        [declaration],
+      ).unwrap()
+    }
+    let before = @resources.ledger_usage(ledger)
+    // Both identities have the same schema and row contents, but only the
+    // original captured Source identity may occupy its selected slot.
+    assert_true(
+      @publication_host.bind_client_keyed_whole_source_metadata(
+        lookup,
+        0,
+        whole_identities[1],
+        whole_observations[0].0,
+        whole_observations[0].1,
+        original_request,
+        retention,
+        16777216,
+        1024,
+        20,
+      )
+      is Err(_),
+    )
+    assert_eq(@resources.ledger_usage(ledger), before)
+    if borrowed_source_failure {
+      let capacity = whole_capacities[0]
+      let facts = @planning.source_acquisition_evidence_facts(capacity.original).unwrap()
+      let other_scope = @row_source_host.issue_row_input_source_evidence(
+        capacity.acquisition,
+        captures[0],
+        whole_identities[0],
+        whole_observations[0].0,
+        "sha256:" + "f".repeat(64),
+        facts.source_data_policy_cid,
+        "2026-11-05T00:00:01.000Z",
+      ).unwrap()
+      assert_true(
+        @publication_host.bind_client_keyed_whole_source_metadata(
+          lookup,
+          0,
+          whole_identities[0],
+          whole_observations[0].0,
+          other_scope,
+          original_request,
+          retention,
+          16777216,
+          1024,
+          20,
+        )
+        is Err(
+          @publication_host.Assembly("foreign_captured_source_observation")
+        ),
+      )
+      assert_true(
+        @publication_host.cleanup_client_keyed_lookup_input(lookup, 10000).unwrap(),
+      )
+      for index, source in sources {
+        assert_true(
+          @query.captured_source_relation_dependency_bodies(
+            whole_identities[index],
+            source,
+          )
+          is Some(_),
+          msg="failed metadata cleanup must return only its borrowed alias",
+        )
+      }
+      assert_true(cleanup_client_serialization_prefix(original.prefix).unwrap())
+      for run in runs {
+        @row_source_host.close_accounted_row_run(run).unwrap()
+      }
+      assert_true(
+        @publication_host.finish_client_model_read_scope(
+          scope,
+          model.compiled,
+          model.definition,
+          model.graph,
+          true,
+        ).unwrap(),
+      )
+      assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+      assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+      assert_eq(@resources.ledger_usage(ledger).attempts, prior_attempts + 2)
+      return
+    }
+    for index in 0..<2 {
+      let (logical, observation) = whole_observations[index]
+      let result = @publication_host.bind_client_keyed_whole_source_metadata(
+        lookup,
+        index,
+        whole_identities[index],
+        logical,
+        observation,
+        original_request,
+        retention,
+        source_metadata_wire_bytes,
+        1024,
+        20,
+      )
+      let bound = match result {
+        Ok(value) => value
+        Err(@publication_host.Assembly(reason)) =>
+          fail("captured metadata: " + reason)
+        Err(@publication_host.Physical(issue)) =>
+          fail("captured metadata: " + @debug.to_string(issue))
+        Err(@publication_host.SourceLogical(@publication_host.Admission(issue))) =>
+          fail("captured metadata logical: " + @debug.to_string(issue))
+        Err(@publication_host.Identity(@publication.Contract(issue))) =>
+          fail("captured metadata contract: " + @debug.to_string(issue))
+        Err(@publication_host.Wire(issue)) =>
+          fail("captured metadata request: " + @debug.to_string(issue))
+        Err(_) => fail("captured metadata: other typed refusal")
+      }
+      assert_true(physical_equal(bound.identity, whole_identities[index]))
+      assert_true(physical_equal(bound.logical, logical))
+      assert_true(physical_equal(bound.observation, observation))
+      assert_eq(
+        @encode.document_text(bound.request),
+        if canonical_source_request {
+          "{\"glob\":null,\"paths\":null}"
+        } else {
+          "{}"
+        },
+      )
+      let previous = @resources.ledger_usage(ledger)
+      assert_true(
+        @publication_host.bind_client_keyed_whole_source_metadata(
+          lookup,
+          index,
+          whole_identities[index],
+          logical,
+          observation,
+          original_request,
+          retention,
+          16777216,
+          1024,
+          20,
+        )
+        is Err(_),
+      )
+      assert_eq(@resources.ledger_usage(ledger), previous)
+    }
+    let before_relation = @resources.ledger_usage(ledger)
+    let relation = match
+      @publication_host.prepare_client_keyed_native_left_relation(
+        lookup, original_request, retention, "declared-file-component-issuer", 16777216,
+        1024, 20,
+      ) {
+      Ok(value) => value
+      Err(@publication_host.Assembly(reason)) =>
+        fail("left Relation: " + reason)
+      Err(@publication_host.Physical(issue)) =>
+        fail("left Relation: " + @debug.to_string(issue))
+      Err(@publication_host.Identity(issue)) =>
+        fail("left Relation: " + @debug.to_string(issue))
+      Err(@publication_host.Derivation(issue)) =>
+        fail("left Relation: " + @debug.to_string(issue))
+      Err(_) => fail("left Relation: other typed refusal")
+    }
+    assert_true(
+      physical_equal(
+        @publication_host.client_keyed_native_left_relation(lookup).unwrap(),
+        relation,
+      ),
+    )
+    assert_true(
+      @resources.ledger_usage(ledger).reserved_retention_bytes -
+      before_relation.reserved_retention_bytes <
+      1048576L,
+    )
+    let derivation = @publication.publication_contract_json(
+      @publication.result_ordering_derivation_contract(relation.ordering),
+    )
+    guard @json.parse(derivation) is Object(fields) &&
+      fields["input_relation_cids"] is Array(inputs) else {
+      fail("left derivation input set")
+    }
+    // The two original captures remain distinct occurrences. Their identical
+    // admitted upstream Relation appears once in the derivation CID set.
+    assert_eq(inputs.length(), 1)
+    let upstream = @publication_host.client_keyed_native_source_evidence(
+      lookup, 0,
+    ).unwrap()
+    assert_eq(
+      inputs[0].stringify(),
+      "\"" +
+      @publication.publication_contract_identity(upstream.relation) +
+      "\"",
+    )
+    let after = @resources.ledger_usage(ledger)
+    assert_eq(after.attempts, before.attempts)
+    assert_eq(after.transferred_bytes, before.transferred_bytes)
+    assert_true(
+      after.reserved_retention_bytes - before.reserved_retention_bytes <
+      1048576L,
+    )
+    assert_true(
+      after.reserved_execution_bytes - before.reserved_execution_bytes <
+      1048576L,
+    )
+  }
+
+  if shared_source_producers {
+    let producers = original.roots.map(root => root.completed.unwrap())
+    assert_eq(producers.length(), 2)
+    // Actual completed producers may arrive in a different vector order.
+    // Slot metadata must preserve their exact output occurrence, not infer
+    // a capture or rerun a Root. Duplicate slots refuse before any provider.
+    let reordered = [producers[1], producers[0]]
+    let before = @resources.ledger_usage(ledger)
+    let rebound = @publication_host.prepare_client_original_composed_keyed_inputs(
+      scope,
+      model.compiled,
+      model.definition,
+      model.graph,
+      keyed,
+      sources,
+      row_inputs,
+      original.sequence,
+      10000,
+      10000,
+      producers=reordered,
+    ).unwrap()
+    assert_eq(rebound.length(), original.inputs.length())
+    let proofs = @publication_host.client_composed_keyed_lookup_source_results(
+      lookup,
+      model._occurrence,
+    ).unwrap()
+    for slot, (_, _, read) in rebound {
+      let (_, sequence, bindings, proof) = proofs[slot]
+      let output = @execution.completed_segment_inputs_output(
+        proof, sequence, bindings,
+      ).unwrap()
+      assert_true(
+        @execution.producer_read_matches_completed_output(read, output),
+      )
+    }
+    assert_true(
+      @publication_host.prepare_client_original_composed_keyed_inputs(
+        scope,
+        model.compiled,
+        model.definition,
+        model.graph,
+        keyed,
+        sources,
+        row_inputs,
+        original.sequence,
+        10000,
+        10000,
+        producers=[producers[0], producers[0]],
+      )
+      is Err(@publication_host.ForeignLeft),
+    )
+    assert_eq(@resources.ledger_usage(ledger), before)
+  }
   if left_plan_reentry {
     let limits = original_keyed_content_workspace().export_limits
     let planned = Ref(false)
@@ -1090,6 +2438,11 @@ fn original_composed_keyed_consumer(
     )
     assert_eq(@resources.ledger_usage(ledger), before)
   }
+  let activation_at = if declared_activation_record {
+    "2026-11-05T00:00:01.000Z"
+  } else {
+    "2026-10-26T00:00:00.000Z"
+  }
   if pre_dispatch_plan && !left_plan_reentry {
     assert_true(
       @publication_host.client_keyed_lookup_native_transport(lookup) is None,
@@ -1105,7 +2458,11 @@ fn original_composed_keyed_consumer(
       guard parsed is Object(fields) else { fail("original profile body") }
       fields.remove("transport_cid")
       let undeclared = @publication.seal_publication_contract(
-        "native_file_content_read",
+        if captured_source_metadata {
+          "declared_file_content_read"
+        } else {
+          "native_file_content_read"
+        },
         parsed.stringify(),
         16384,
         1024,
@@ -1127,13 +2484,19 @@ fn original_composed_keyed_consumer(
         )
       }
     }
-    @publication_host.start_client_keyed_lookup_request_plan(
-      lookup,
-      native_read_profile=match native_profile {
-        Some((_, profile)) => Some(profile)
-        None => None
-      },
-    ).unwrap()
+    if declared_activation_record {
+      @publication_host.start_client_keyed_declared_file_request_plan(
+        lookup, activation_at, 0L, "declared-file-component-issuer",
+      ).unwrap()
+    } else {
+      @publication_host.start_client_keyed_lookup_request_plan(
+        lookup,
+        native_read_profile=match native_profile {
+          Some((_, profile)) => Some(profile)
+          None => None
+        },
+      ).unwrap()
+    }
   }
   let preparation = @publication_host.start_client_keyed_lookup_request(
     lookup, 0,
@@ -1155,11 +2518,39 @@ fn original_composed_keyed_consumer(
     @publication_host.retain_client_keyed_lookup_planned_request(
       lookup, request,
     ).unwrap()
-    @publication_host.finish_client_keyed_lookup_request_plan(
-      lookup, 16384, 1024, 20,
-    ).unwrap()
-    |> ignore
-    if native_activation {
+    let before_metadata = @resources.ledger_usage(ledger)
+    if installed_capture_plan_finish {
+      @publication_host.finish_client_keyed_capture_request_plan(
+        lookup, request_metadata_policy, 1024, 20,
+      ).unwrap()
+    } else {
+      @publication_host.finish_client_keyed_lookup_request_plan(
+        lookup, request_metadata_policy, 1024, 20,
+      ).unwrap()
+      |> ignore
+    }
+    if request_metadata_policy > 16384 {
+      // This fixture has one actual retained Request. A larger accepted wire
+      // policy must not reserve that ceiling for its tiny key-set/static body.
+      // Both domains still include the real writer/parser/control overlap.
+      let after_metadata = @resources.ledger_usage(ledger)
+      assert_true(
+        after_metadata.reserved_retention_bytes -
+        before_metadata.reserved_retention_bytes <
+        1000000L,
+      )
+      assert_true(
+        after_metadata.reserved_execution_bytes -
+        before_metadata.reserved_execution_bytes <
+        1000000L,
+      )
+      assert_eq(after_metadata.attempts, before_metadata.attempts)
+      assert_eq(
+        after_metadata.transferred_bytes,
+        before_metadata.transferred_bytes,
+      )
+    }
+    if native_activation && !installed_capture_plan_finish {
       @publication_host.prepare_client_keyed_native_batch_plan(
         lookup, 16384, 1024, 20,
       ).unwrap()
@@ -1218,6 +2609,11 @@ fn original_composed_keyed_consumer(
     request, keyed,
   ).unwrap()
   if native_activation {
+    let activation_issuer = if declared_activation_record {
+      "declared-file-component-issuer"
+    } else {
+      "native-component-issuer"
+    }
     let winner : Ref[@publication_host.ClientKeyedNativeActivation?] = Ref(None)
     let reentering = Ref(false)
     if activation_reentry {
@@ -1225,7 +2621,7 @@ fn original_composed_keyed_consumer(
         if !reentering.val && winner.val is None {
           reentering.val = true
           let prepared = @publication_host.prepare_client_keyed_native_activation(
-            lookup, request, original_request, "native-component-issuer", "2026-10-26T00:00:00.000Z",
+            lookup, request, original_request, activation_issuer, activation_at,
             0L, 16384, 1024, 20,
           )
           reentering.val = false
@@ -1236,8 +2632,8 @@ fn original_composed_keyed_consumer(
       })
     }
     let outer = @publication_host.prepare_client_keyed_native_activation(
-      lookup, request, original_request, "native-component-issuer", "2026-10-26T00:00:00.000Z",
-      0L, 16384, 1024, 20,
+      lookup, request, original_request, activation_issuer, activation_at, 0L, 16384,
+      1024, 20,
     )
     activation_source_live.val = None
     let activation = if activation_reentry {
@@ -1252,6 +2648,55 @@ fn original_composed_keyed_consumer(
     } else {
       outer.unwrap()
     }
+    if declared_activation_record {
+      let before = @resources.ledger_usage(ledger)
+      let wire = @publication_host.prepare_client_keyed_declared_file_activation_record(
+        activation,
+        original_request,
+        model.compiled,
+        model.definition,
+        model.graph,
+        16777216,
+      ).unwrap()
+      let after = @resources.ledger_usage(ledger)
+      assert_true(
+        after.reserved_retention_bytes - before.reserved_retention_bytes <
+        1048576L,
+      )
+      assert_true(
+        after.reserved_execution_bytes - before.reserved_execution_bytes <
+        1048576L,
+      )
+      assert_eq(after.attempts, before.attempts)
+      assert_eq(after.transferred_bytes, before.transferred_bytes)
+      guard @json.parse(wire) is Object(fields) else {
+        fail("original activation record")
+      }
+      assert_eq(fields.length(), 14)
+      assert_eq(
+        fields["version"],
+        Json::string("actql-declared-file-lookup-activation-original/0.1"),
+      )
+      assert_eq(
+        fields["activation"],
+        Json::string(
+          @publication.publication_contract_json(activation.activation),
+        ),
+      )
+      assert_eq(
+        fields["run_definition_cid"],
+        Json::string(
+          @publication.publication_contract_identity(model.definition),
+        ),
+      )
+      assert_eq(
+        fields["request_scope_cid"],
+        Json::string(
+          @publication_host.client_request_scope_cid(original_request),
+        ),
+      )
+      assert_false(wire.contains("actql-native-lookup-activation-original"))
+    }
     assert_eq((activation.batch_index, activation.batch_count), (0, 1))
     assert_true(
       @publication_host.client_keyed_native_activation_matches(
@@ -1265,8 +2710,8 @@ fn original_composed_keyed_consumer(
     let before = @publication_host.client_keyed_lookup_usage(left)
     assert_true(
       @publication_host.prepare_client_keyed_native_activation(
-        lookup, request, original_request, "native-component-issuer", "2026-10-26T00:00:00.000Z",
-        0L, 16384, 1024, 20,
+        lookup, request, original_request, activation_issuer, activation_at, 0L,
+        16384, 1024, 20,
       )
       is Err(_),
     )
@@ -1356,6 +2801,70 @@ fn original_composed_keyed_consumer(
     .to_int64(),
     0L,
   ).unwrap()
+  let raw = if declared_raw_page {
+    let scope = @publication_host.client_request_authority_scope_cid(
+      original_request,
+    )
+    let facts = @publication_host.client_keyed_acquisition_source_evidence_facts(
+      keyed,
+    ).unwrap()
+    let until = @publication.run_definition_lifetime(model.definition).unwrap().1
+    let binding = "{\"content_store_id\":\"local\",\"content_store_cid\":\"sha256:" +
+      "a".repeat(64) +
+      "\",\"workspace_scope_cid\":\"" +
+      scope +
+      "\",\"storage_scope\":\"workspace\",\"retention_class\":\"local-content\",\"expires_at\":\"" +
+      until +
+      "\",\"availability_evidence_cid\":\"sha256:" +
+      "b".repeat(64) +
+      "\",\"effective_data_policy_cid\":\"" +
+      facts.source_data_policy_cid +
+      "\",\"data_classification\":\"" +
+      facts.data_classification +
+      "\",\"issuer_contract_cid\":\"sha256:" +
+      "c".repeat(64) +
+      "\",\"capture_authority_cid\":\"" +
+      scope +
+      "\"}"
+    let raw = @publication_host.prepare_client_keyed_native_raw_response(
+      model.compiled,
+      model.definition,
+      request,
+      original_composed_keyed_metadata_retention(),
+      binding,
+      "sha256:" + @sha.hex(response),
+      response.length(),
+      activation_at,
+      0L,
+      {
+        max_bytes: 16777216,
+        max_nodes: 1024,
+        max_depth: 20,
+        max_text_units: 16777216,
+      },
+    ).unwrap()
+    let before = @resources.ledger_usage(ledger)
+    @publication_host.prepare_client_keyed_declared_file_raw_store(request, raw).unwrap()
+    let after = @resources.ledger_usage(ledger)
+    assert_true(
+      after.reserved_retention_bytes > before.reserved_retention_bytes,
+    )
+    assert_true(
+      after.reserved_retention_bytes - before.reserved_retention_bytes <
+      1048576L,
+    )
+    assert_eq(after.attempts, before.attempts)
+    assert_eq(after.transferred_bytes, before.transferred_bytes)
+    assert_true(
+      @publication_host.prepare_client_keyed_declared_file_raw_store(
+        request, raw,
+      )
+      is Err(_),
+    )
+    Some(raw)
+  } else {
+    None
+  }
   @row_source_host.begin_keyed_row_run(child, reference_issuer=Some(issuer)).unwrap()
   if native_keyed {
     let before = @resources.ledger_usage(ledger)
@@ -1391,6 +2900,80 @@ fn original_composed_keyed_consumer(
   @row_source_host.finish_row_run(child).unwrap()
   let captured = @row_source_host.retain_keyed_row_run(child).unwrap()
   @publication_host.finish_client_keyed_request_io(request, 0L).unwrap()
+  if raw is Some(raw) {
+    let original_limits = original_keyed_content_workspace().export_limits
+    let limits = if installed_page_identity {
+      {
+        ..original_limits,
+        payload_wire: { ..original_limits.payload_wire, max_nodes: 1000000, },
+        logical_wire: { ..original_limits.logical_wire, max_nodes: 1000003, },
+      }
+    } else {
+      original_limits
+    }
+    let page = if installed_page_identity {
+      @publication_host.prepare_client_keyed_captured_page(
+        request, captured, raw, activation_at, limits, 1000000, 16777216, 1024, 20,
+      )
+    } else {
+      @publication_host.prepare_client_keyed_native_captured_page(
+        request,
+        captured,
+        raw,
+        activation_at,
+        1,
+        limits.values,
+        limits.payload_wire,
+        limits.logical_wire,
+        limits.schema,
+        1000000,
+        100000,
+        16777216,
+        1024,
+        20,
+      )
+    }
+    let page = match page {
+      Ok(value) => value
+      Err(
+        @publication_host.CompletedIdentity(
+          @execution.Admission(@execution.CaptureLimit)
+        )
+      ) =>
+        fail(
+          "original installed page scan rejects its selected writer geometry as CaptureLimit",
+        )
+      Err(_) => fail("original installed page must prepare before assembly")
+    }
+    let record = @publication_host.prepare_client_keyed_declared_file_page_record(
+      page,
+      request,
+      original_request,
+      model.compiled,
+      model.definition,
+      model.graph,
+      16777216,
+    ).unwrap()
+    guard @json.parse(record) is Object(fields) else {
+      fail("original page record")
+    }
+    assert_eq(fields.length(), 8)
+    assert_eq(
+      fields["version"],
+      Json::string("actql-declared-file-lookup-page-original/0.1"),
+    )
+    assert_eq(fields["page_value_wire"], Json::string(page.body))
+    assert_true(
+      @publication_host.client_keyed_native_captured_page_matches(
+        page,
+        request,
+        original_request,
+        model.compiled,
+        model.definition,
+        model.graph,
+      ),
+    )
+  }
   begin_client_original_keyed_lookup_response(keyed, lookup, request, captured).unwrap()
   for _ in 0..<10000 {
     if @publication_host.advance_client_keyed_lookup_input(lookup, 7).unwrap() {
@@ -1399,7 +2982,16 @@ fn original_composed_keyed_consumer(
   }
   body_lookup.val = Some(lookup)
   body_armed.val = keyed_body_reentry || keyed_body_stop
-  let right_result = if publication_early {
+  let right_result = if declared_dependency_closure {
+    @publication_host.finish_client_keyed_lookup_publication_input(
+      lookup,
+      16777216,
+      1024,
+      20,
+      retain_body=true,
+      native_completion=Some((activation_at, 0L)),
+    )
+  } else if publication_early {
     @publication_host.finish_client_keyed_lookup_publication_input(
       lookup,
       16384,
@@ -1442,7 +3034,34 @@ fn original_composed_keyed_consumer(
     assert_eq(@resources.ledger_usage(ledger).attempts, prior_attempts + 3)
     return
   }
-  let right = right_result.unwrap()
+  let right = match right_result {
+    Ok(value) => value
+    Err(@publication_host.Assembly(reason)) =>
+      fail("right completion Assembly: " + reason)
+    Err(@publication_host.Identity(_)) => fail("right completion Identity")
+    Err(@publication_host.Physical(_)) => fail("right completion Physical")
+    Err(@publication_host.Derivation(_)) => fail("right completion Derivation")
+    Err(@publication_host.CompletedIdentity(_)) =>
+      fail("right completion CompletedIdentity")
+    Err(@publication_host.InputCapture(_)) =>
+      fail("right completion InputCapture")
+    Err(@publication_host.Dependency(@publication_host.Static(issue))) =>
+      fail("right completion dependency Static: " + @debug.to_string(issue))
+    Err(@publication_host.Dependency(@publication_host.Dependency(issue))) =>
+      fail("right completion dependency body: " + @debug.to_string(issue))
+    Err(@publication_host.Dependency(@publication_host.ConstructionRefused)) =>
+      fail("right completion dependency ConstructionRefused")
+    Err(@publication_host.Dependency(_)) =>
+      fail("right completion dependency ForeignInput")
+    Err(@publication_host.LookupLimit(reason)) =>
+      fail("right completion LookupLimit: " + reason)
+    Err(_) => fail("right completion other typed issue")
+  }
+  if declared_dependency_closure {
+    assert_true(
+      @publication_host.client_keyed_lookup_native_completion(lookup) is Some(_),
+    )
+  }
 
   if publication_identity {
     let keys = match
@@ -1560,17 +3179,174 @@ fn original_composed_keyed_consumer(
       sources,
       ledger,
       keyed=Some((task, step, right)),
+      source_results=if shared_source_producers {
+        @publication_host.client_composed_keyed_lookup_source_results(
+          lookup,
+          model._occurrence,
+        ).unwrap()
+      } else {
+        []
+      },
     ).unwrap()
     let dag = @strategy.captured_effect_run_dag(captured)
     assert_true(
       @strategy.captured_effect_run_matches_preparation(captured, dag, supplied),
     )
     assert_false(@strategy.captured_task_completed(dag, task))
+    if initial_identity_policy {
+      // These completions were checked/imported at construction, not computed
+      // by this new DAG. Its original Sources and output occurrence remain live.
+      assert_eq(@strategy.captured_dag_generation(dag), 0)
+      assert_true(
+        @strategy.configure_captured_managed_identity_policy(
+          dag, false, false, false, false,
+        ),
+      )
+      assert_false(
+        @strategy.configure_captured_managed_identity_policy(
+          dag, false, false, false, false,
+        ),
+      )
+    }
+    if shared_source_producers {
+      assert_eq(@strategy.next_captured_task(dag), Some(task))
+      let proofs = @publication_host.client_composed_keyed_lookup_source_results(
+        lookup,
+        model._occurrence,
+      ).unwrap()
+      assert_eq(proofs.length(), 2)
+      for slot, (producer, sequence, bindings, proof) in proofs {
+        assert_true(@strategy.captured_task_completed(dag, producer))
+        // Importing the same completed root closes its execution read, not
+        // the original Source's separately retained cleanup responsibility.
+        assert_false(
+          @strategy.source_input_dag_matches_read_at(
+            dag,
+            @query.captured_source_original_input_read(sources[slot]).unwrap(),
+            producer,
+          ),
+        )
+        if restored {
+          assert_true(
+            retain_accounted_client_source_capture_input(
+              restorations[1 - slot],
+              dag,
+              producer,
+            )
+            is Err(BindingMismatch),
+          )
+          assert_true(
+            retain_accounted_client_source_capture_input(
+              restorations[slot],
+              dag,
+              task,
+            )
+            is Err(BindingMismatch),
+          )
+          retain_accounted_client_source_capture_input(
+            restorations[slot],
+            dag,
+            producer,
+          ).unwrap()
+          assert_true(
+            retain_accounted_client_source_capture_input(
+              restorations[slot],
+              dag,
+              producer,
+            )
+            is Err(BindingMismatch),
+          )
+        } else {
+          assert_true(
+            @row_source_host.check_row_input_compute_binding(
+              captures[slot],
+              dag,
+              producer,
+            )
+            is Ok(_),
+            msg="the same completed producer must retain its original Source custody",
+          )
+          assert_true(
+            @row_source_host.check_row_input_compute_binding(
+              captures[1 - slot],
+              dag,
+              producer,
+            )
+            is Err(_),
+          )
+          assert_true(
+            @row_source_host.check_row_input_compute_binding(
+              captures[slot],
+              dag,
+              task,
+            )
+            is Err(_),
+          )
+        }
+        let imported = @strategy.captured_task_output(
+          dag,
+          producer,
+          @lower.preparation_output_target(
+            @lower.bound_preparation(
+              @execution.generated_sequence_owner(sequence),
+            ),
+          ).unwrap(),
+        ).unwrap()
+        let original = @execution.completed_segment_inputs_output(
+          proof, sequence, bindings,
+        ).unwrap()
+        assert_true(
+          @execution.completed_output_same_occurrence(original, imported),
+        )
+        let read = @strategy.captured_task_input(
+          dag,
+          task,
+          100000,
+          1000000,
+          input_index=slot,
+        ).unwrap()
+        assert_true(
+          @publication_host.client_composed_keyed_lookup_source_read_matches(
+            lookup,
+            model._occurrence,
+            slot,
+            read,
+          ),
+        )
+        assert_false(
+          @publication_host.client_composed_keyed_lookup_source_read_matches(
+            lookup,
+            model._occurrence,
+            1 - slot,
+            read,
+          ),
+        )
+      }
+    }
     @strategy.stop_captured_dag(dag)
+    if shared_source_producers {
+      for task, capture in captures {
+        assert_false(
+          @strategy.source_input_dag_retains_completed_read_at(
+            dag,
+            @query.captured_source_original_input_read(sources[task]).unwrap(),
+            task,
+          ),
+        )
+        assert_true(
+          @row_source_host.check_row_input_compute_binding(capture, dag, task)
+          is Err(_),
+        )
+      }
+    }
     assert_true(@strategy.retire_captured_task_outputs(dag))
   }
 
-  let authority = "sha256:" + "2".repeat(64)
+  let authority = if captured_source_metadata {
+    @publication_host.client_request_authority_scope_cid(original_request)
+  } else {
+    "sha256:" + "2".repeat(64)
+  }
   let started = "2026-11-05T00:00:00.000Z"
   let completed = "2026-11-05T00:00:01.000Z"
   let limits = original_keyed_content_workspace().export_limits
@@ -1777,9 +3553,48 @@ fn original_composed_keyed_consumer(
       ),
     )
   }
-  let inputs = original.inputs.map(value => {
-    @local.managed_provider_relation_input(value.2)
-  })
+  let model_input_sequence = prefix
+  let supplied_sources_current = Ref(true)
+  let inputs = if supplied_source_inputs {
+    assert_true(whole && !shared_source_producers)
+    sources.map(source => {
+      @local.managed_provider_supplied_relation_input(
+        @execution.restrict_supplied_relation_read(
+          @query.captured_source_original_input_read(source).unwrap(),
+          () => supplied_sources_current.val,
+        ),
+      )
+    })
+  } else {
+    original.inputs.map(value => @local.managed_provider_relation_input(value.2))
+  }
+  if shared_source_producers {
+    for slot, (_, _, read) in original.inputs {
+      assert_true(
+        @publication_host.client_composed_keyed_lookup_source_read_matches(
+          lookup,
+          model._occurrence,
+          slot,
+          read,
+        ),
+      )
+      assert_false(
+        @query.captured_source_matches_segment_input(sources[slot], read),
+      )
+      // A completed filtered producer is not its raw original Source, even
+      // when the caller supplies a live native read with that Source binding.
+      if @query.captured_source_original_input_read(sources[slot]) is Some(raw) {
+        assert_false(
+          @publication_host.client_composed_keyed_lookup_source_supplied_read_matches(
+            lookup,
+            model._occurrence,
+            slot,
+            raw,
+          ),
+        )
+      }
+    }
+  }
   let keyed_current = Ref(true)
   let restricted_right = @execution.restrict_supplied_relation_read(right, () => {
     keyed_current.val
@@ -1802,7 +3617,7 @@ fn original_composed_keyed_consumer(
   assert_true(
     start_client_composed_infer_input(
       model._occurrence,
-      prefix,
+      model_input_sequence,
       foreign_inputs,
       execution,
       measurement,
@@ -1812,11 +3627,62 @@ fn original_composed_keyed_consumer(
     is Err(UnsupportedProgram),
   )
   assert_eq(@resources.ledger_usage(ledger), before)
+  if supplied_source_inputs {
+    supplied_sources_current.val = false
+    assert_true(
+      start_client_composed_infer_input(
+        model._occurrence,
+        model_input_sequence,
+        inputs,
+        execution,
+        measurement,
+        mapping,
+        keyed=Some(lookup),
+      )
+      is Err(UnsupportedProgram),
+    )
+    assert_eq(@resources.ledger_usage(ledger), before)
+    supplied_sources_current.val = true
+    let swapped_sources = inputs.copy()
+    swapped_sources[0] = inputs[1]
+    assert_true(
+      start_client_composed_infer_input(
+        model._occurrence,
+        model_input_sequence,
+        swapped_sources,
+        execution,
+        measurement,
+        mapping,
+        keyed=Some(lookup),
+      )
+      is Err(UnsupportedProgram),
+    )
+    assert_eq(@resources.ledger_usage(ledger), before)
+    // An equally supplied read from the keyed result is not either original
+    // Source. Preserve its nominal slot binding instead of accepting the kind.
+    let foreign_source_inputs = inputs.copy()
+    foreign_source_inputs[0] = @local.managed_provider_supplied_relation_input(
+      restricted_right,
+    )
+    assert_true(
+      start_client_composed_infer_input(
+        model._occurrence,
+        model_input_sequence,
+        foreign_source_inputs,
+        execution,
+        measurement,
+        mapping,
+        keyed=Some(lookup),
+      )
+      is Err(UnsupportedProgram),
+    )
+    assert_eq(@resources.ledger_usage(ledger), before)
+  }
   keyed_current.val = false
   assert_true(
     start_client_composed_infer_input(
       model._occurrence,
-      prefix,
+      model_input_sequence,
       inputs,
       execution,
       measurement,
@@ -1827,19 +3693,68 @@ fn original_composed_keyed_consumer(
   )
   assert_eq(@resources.ledger_usage(ledger), before)
   keyed_current.val = true
-  let input = start_client_composed_infer_input(
-    model._occurrence,
-    prefix,
-    if retained_input_root {
-      []
-    } else {
-      inputs
-    },
-    execution,
-    measurement,
-    mapping,
-    keyed=Some(lookup),
-  ).unwrap()
+  if shared_source_producers {
+    let (task, stage, step) = @publication_host.client_infer_occurrence_coordinates(
+      model._occurrence,
+    )
+    assert_true(
+      physical_equal(
+        @publication_host.client_infer_occurrence_preparation(model._occurrence),
+        @execution.generated_sequence_owner(model_input_sequence),
+      ),
+      msg="same nominal Model prefix owner",
+    )
+    assert_true(
+      @publication_host.client_composed_keyed_lookup_sources(
+        lookup,
+        model._occurrence,
+      )
+      is Some(_),
+      msg="same complete composed Source closure",
+    )
+    assert_true(
+      @execution.generated_sequence_step_count(model_input_sequence) > step,
+    )
+    for index in 0..<step {
+      assert_eq(
+        @execution.generated_sequence_step_index_at(model_input_sequence, index),
+        Some(index),
+      )
+    }
+    assert_eq(
+      @publication_host.client_keyed_acquisition_coordinates(keyed).map(value => {
+        (value.1, value.0)
+      }),
+      Some((task, stage)),
+    )
+    assert_true(
+      @publication_host.prepare_client_keyed_lookup_join_inputs(
+        lookup, model_input_sequence,
+      )
+      is Ok(_),
+    )
+  }
+  let input = match
+    start_client_composed_infer_input(
+      model._occurrence,
+      model_input_sequence,
+      if retained_input_root {
+        []
+      } else {
+        inputs
+      },
+      execution,
+      measurement,
+      mapping,
+      keyed=Some(lookup),
+    ) {
+    Ok(value) => value
+    Err(UnsupportedProgram) =>
+      fail("actual Model input handoff: UnsupportedProgram")
+    Err(InvalidLimits) => fail("actual Model input handoff: InvalidLimits")
+    Err(Local(_)) => fail("actual Model input handoff: Local provider issue")
+    Err(_) => fail("actual Model input handoff: another typed input issue")
+  }
   assert_eq(@resources.ledger_usage(ledger), before)
   let mut rows = None
   for _ in 0..<10000 {
@@ -1962,7 +3877,7 @@ fn original_composed_keyed_consumer(
         issued_direct
         is Err(
           @publication_host.Invocation(
-            @publication_host.ForeignSourceObservation
+            @publication_host.IncompleteResultImports
           )
         ),
       )
@@ -2083,12 +3998,47 @@ fn original_composed_keyed_consumer(
 
   assert_true(input.work >= work)
   // Only the two Direct reads and the keyed response are actual attempts.
-  // The completed assembly settled its unused attempt; the live prefix still
-  // retains its one unsent constructor reservation until cleanup.
+  // The completed assembly settled its unused attempt. The live prefix and
+  // each retained Root keep their unsent Compute reservations until cleanup;
+  // those reservations are not additional Source/provider attempts.
   assert_eq(@resources.ledger_usage(ledger).attempts, prior_attempts + 3)
-  assert_eq(@resources.ledger_usage(ledger).reserved_attempts, 1)
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_attempts,
+    1 + (if shared_source_producers { 2 } else { 0 }),
+  )
   assert_eq(@resources.quantity_usage(ledger), original_quantities)
-  if managed is Some((owner, _)) {
+  if shared_source_producers && managed is Some((owner, _)) {
+    let allowed = @publication_host.issue_client_effect_allowed_run(
+      model._compilation,
+      "sha256:" + "a".repeat(64),
+      "sha256:" + "b".repeat(64),
+      "2027-01-01T00:00:00.000Z",
+    ).unwrap()
+    let bound = @publication_host.bind_client_effect_compiled_run(
+      prepared,
+      allowed,
+      model.definition,
+    ).unwrap()
+    let opened = open_installed_effect_managed_keyed_host(
+      owner, bound, sources, lookup,
+    ).unwrap()
+    // This fixture deliberately offers no physical Model/UPDATE provider.
+    // Configuration refuses while the actual parent retains the opened DAG;
+    // that refusal must not discard or replay its imported Root completions.
+    assert_true(opened is None)
+    let dag = owner.source_free_captured.unwrap()
+    let (task, _, _) = @publication_host.client_infer_occurrence_coordinates(
+      model._occurrence,
+    )
+    assert_false(@strategy.captured_task_completed(dag, task))
+    assert_true(@strategy.captured_task_completed(dag, 0))
+    assert_true(@strategy.captured_task_completed(dag, 1))
+    // Opening the actual installed host imports the completed roots, not
+    // another execution of their providers or an empty-input substitute.
+    assert_eq(@resources.ledger_usage(ledger).attempts, prior_attempts + 3)
+    @strategy.stop_captured_dag(dag)
+    assert_true(@strategy.retire_captured_task_outputs(dag))
+  } else if managed is Some((owner, _)) {
     let allowed = @publication_host.issue_client_effect_allowed_run(
       model._compilation,
       "sha256:" + "a".repeat(64),
@@ -2214,7 +4164,7 @@ fn original_composed_keyed_consumer(
     )
   }
   assert_true(cleanup_client_infer_input(input).unwrap())
-  if source_identity_bodies {
+  if source_identity_bodies && !borrowed_source_cleanup {
     for identity in whole_identities {
       @query.clear_captured_source_relation_dependency_bodies(identity)
     }
@@ -2250,6 +4200,37 @@ fn original_composed_keyed_consumer(
   assert_true(
     @publication_host.cleanup_client_keyed_lookup_input(lookup, 10000).unwrap(),
   )
+  if borrowed_source_cleanup {
+    for index, source in sources {
+      assert_true(
+        @query.captured_source_relation_dependency_bodies(
+          whole_identities[index],
+          source,
+        )
+        is Some(_),
+        msg="lookup cleanup must not clear a live captured Source original",
+      )
+    }
+  }
+  if shared_source_producers {
+    assert_true(
+      @publication_host.client_composed_keyed_lookup_source_results(
+        lookup,
+        model._occurrence,
+      )
+      is None,
+    )
+    for slot, (_, _, read) in original.inputs {
+      assert_false(
+        @publication_host.client_composed_keyed_lookup_source_read_matches(
+          lookup,
+          model._occurrence,
+          slot,
+          read,
+        ),
+      )
+    }
+  }
   if native_transport {
     assert_true(
       @publication_host.client_keyed_lookup_native_transport(lookup) is None,
@@ -2312,6 +4293,8 @@ fn original_composed_keyed_installed_plan(
   contracts : ClientInstalledSequenceContracts,
   model : ClientInstalledEffectModelDemand,
   declaration : @row_source_host.RowDeclaration,
+  whole_roots? : Bool = false,
+  effect_stage? : Int = 2,
 ) -> ClientInstalledEffectManagedPlan {
   // This component never starts its future UPDATE or physical Model provider.
   // Its actual selected construction member fails closed if invoked.
@@ -2323,12 +4306,12 @@ fn original_composed_keyed_installed_plan(
   ).unwrap()
   let operation = prepare_installed_effect_operation_demand(
     prepared,
-    2,
+    effect_stage,
     "save",
     [extent],
     [extent],
   ).unwrap()
-  prepare_installed_effect_managed_plan(
+  prepare_installed_effect_managed_plan_owned(
     prepared,
     request,
     [declaration, declaration],
@@ -2342,6 +4325,22 @@ fn original_composed_keyed_installed_plan(
     None,
     [operation],
     model=Some(model),
+    source_inputs=if whole_roots {
+      Some([
+        prepare_installed_effect_row_source_input(
+          declaration,
+          None,
+          input_limits=Some(installed_row_input_policy(2, 4096, 10000, 32, 2)),
+        ).unwrap(),
+        prepare_installed_effect_row_source_input(
+          declaration,
+          None,
+          input_limits=Some(installed_row_input_policy(2, 4096, 10000, 32, 2)),
+        ).unwrap(),
+      ])
+    } else {
+      None
+    },
     provider_factory=capacity => {
       [
         @local.managed_provider(_ => true, _ => Some(capacity), (_, _, _, _, _) => {
@@ -2463,6 +4462,16 @@ test "actual two Whole Sources prepare one canonical keyed publication input bef
 }
 
 ///|
+test "canonical predispatch metadata funds retained Request bytes instead of the wire policy ceiling" {
+  original_composed_keyed_consumer(
+    whole=true,
+    publication_identity=true,
+    pre_dispatch_plan=true,
+    request_metadata_policy=16777216,
+  )
+}
+
+///|
 test "actual Whole Sources retain one scanned body through same keyed Model input and retire it" {
   original_composed_keyed_consumer(
     whole=true,
@@ -2516,4 +4525,207 @@ test "actual Whole Source originals supply Model Direct acquisition evidence wit
 ///|
 test "Query Result-import Model retains its existing direct-only Invocation refusal" {
   original_composed_keyed_consumer(direct_effect_evidence=true)
+}
+
+///|
+test "original supplied Whole Source reads feed the same keyed Model without conversion" {
+  original_composed_keyed_consumer(whole=true, supplied_source_inputs=true)
+}
+
+///|
+test "mixed completed Unit and inline Direct Source keep both Model compiler inputs" {
+  original_composed_keyed_consumer(following=true, mixed_plan_only=true)
+}
+
+///|
+fn original_composed_keyed_metadata_retention() -> @publication.PublicationContract {
+  @publication.seal_publication_contract(
+    "result_retention_policy",
+    "{\"version\":\"actql-result-retention-policy/0.1\",\"retention_contract_cid\":\"sha256:" +
+    "1".repeat(64) +
+    "\",\"effective_data_policy_cid\":\"sha256:" +
+    "2".repeat(64) +
+    "\",\"available_until\":\"2026-11-06T01:00:00.000Z\",\"delete_by\":\"2026-11-06T02:00:00.000Z\",\"extension_ceiling_at\":\"2026-11-06T03:00:00.000Z\",\"metadata_retention_policy_cid\":\"sha256:" +
+    "3".repeat(64) +
+    "\",\"metadata_delete_by\":\"2026-11-06T04:00:00.000Z\",\"clock_contract_cid\":\"sha256:" +
+    "4".repeat(64) +
+    "\"}",
+    10000,
+    1000,
+    32,
+  ).unwrap()
+}
+
+///|
+test "captured Source protocol borrows the original Whole metadata once before keyed Model input" {
+  original_composed_keyed_consumer(whole=true, captured_source_metadata=true)
+}
+
+///|
+test "declared-file original activation record binds the same Request and Model Plan before dispatch" {
+  original_composed_keyed_consumer(
+    whole=true,
+    captured_source_metadata=true,
+    pre_dispatch_plan=true,
+    native_transport=true,
+    native_activation=true,
+    declared_activation_record=true,
+  )
+}
+
+///|
+test "borrowed captured Source bodies survive completed lookup cleanup with their original consumer live" {
+  original_composed_keyed_consumer(
+    whole=true,
+    captured_source_metadata=true,
+    source_identity_bodies=true,
+    borrowed_source_cleanup=true,
+  )
+}
+
+///|
+test "borrowed captured Source bodies survive failed metadata cleanup with their original consumer live" {
+  original_composed_keyed_consumer(
+    whole=true,
+    captured_source_metadata=true,
+    source_identity_bodies=true,
+    borrowed_source_cleanup=true,
+    borrowed_source_failure=true,
+  )
+}
+
+///|
+test "declared-file raw Store backing and original page record precede assembly without a new attempt" {
+  original_composed_keyed_consumer(
+    whole=true,
+    captured_source_metadata=true,
+    pre_dispatch_plan=true,
+    native_transport=true,
+    native_activation=true,
+    declared_activation_record=true,
+    declared_raw_page=true,
+  )
+}
+
+///|
+test "declared-file completed lookup retains its full original dependency closure before Model" {
+  original_composed_keyed_consumer(
+    whole=true,
+    captured_source_metadata=true,
+    pre_dispatch_plan=true,
+    native_transport=true,
+    native_activation=true,
+    declared_activation_record=true,
+    source_identity_bodies=true,
+    declared_raw_page=true,
+    declared_dependency_closure=true,
+  )
+}
+
+///|
+test "original captured keyed left identity selects the existing scan workspace from its exact wire limits" {
+  original_composed_keyed_consumer(
+    whole=true,
+    captured_source_metadata=true,
+    declared_activation_record=true,
+    identity_wire_nodes=Some((1000000, 1000003)),
+  )
+}
+
+///|
+test "installed declared-file capture closes its original batch plan before activation" {
+  original_composed_keyed_consumer(
+    whole=true,
+    captured_source_metadata=true,
+    pre_dispatch_plan=true,
+    native_transport=true,
+    native_activation=true,
+    declared_activation_record=true,
+    installed_capture_plan_finish=true,
+  )
+}
+
+///|
+test "installed ordinary Source-only plan finish retains its original non-native path" {
+  original_composed_keyed_consumer(
+    pre_dispatch_plan=true,
+    installed_capture_plan_finish=true,
+  )
+}
+
+///|
+test "installed captured batch metadata backs actual keys rather than a larger wire ceiling" {
+  original_composed_keyed_consumer(
+    whole=true,
+    captured_source_metadata=true,
+    pre_dispatch_plan=true,
+    native_transport=true,
+    native_activation=true,
+    declared_activation_record=true,
+    installed_capture_plan_finish=true,
+    request_metadata_policy=16777216,
+  )
+}
+
+///|
+test "installed declared page identity retains its original selected wire geometry before assembly" {
+  original_composed_keyed_consumer(
+    whole=true,
+    captured_source_metadata=true,
+    pre_dispatch_plan=true,
+    native_transport=true,
+    native_activation=true,
+    declared_activation_record=true,
+    installed_capture_plan_finish=true,
+    declared_raw_page=true,
+    source_identity_bodies=true,
+    installed_page_identity=true,
+    declared_dependency_closure=true,
+  )
+}
+
+///|
+test "installed noncanonical Source Request completes the owned keyed dependency closure before Model" {
+  original_composed_keyed_consumer(
+    whole=true,
+    captured_source_metadata=true,
+    pre_dispatch_plan=true,
+    native_transport=true,
+    native_activation=true,
+    declared_activation_record=true,
+    installed_capture_plan_finish=true,
+    declared_raw_page=true,
+    source_identity_bodies=true,
+    installed_page_identity=true,
+    identity_wire_nodes=Some((1000000, 1000003)),
+    declared_dependency_closure=true,
+    canonical_source_request=true,
+    source_metadata_wire_bytes=1000000,
+  )
+}
+
+///|
+test "joined producer Result is the direct Input left of the first keyed Content JOIN" {
+  original_composed_keyed_consumer(joined_input_direct=true)
+}
+
+///|
+test "first keyed JOIN borrows the same completed two-Source Result without a prefix attempt" {
+  original_composed_keyed_consumer(
+    joined_input_direct=true,
+    joined_input_consume=true,
+    whole=true,
+    shared_source_producers=true,
+  )
+}
+
+///|
+test "inherited Whole keyed Source observation retains original custody without granting its read" {
+  original_composed_keyed_consumer(
+    following=true,
+    joined_input_direct=true,
+    joined_input_consume=true,
+    whole=true,
+    shared_source_producers=true,
+  )
 }

@@ -1,11 +1,11 @@
 // Consume fresh public tarballs without a checkout or MoonBit lookup path.
-import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {copyFile, mkdir, readFile, writeFile} from 'node:fs/promises';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
-import {nodeTestArguments, assertTestExecution} from './test-execution.mjs';
+import {nodeTestArguments, assertTestExecution, testExecutionResult} from './test-execution.mjs';
+import {createCommandEvidence} from './packed-query-evidence.mjs';
 import {CLIENT_PACKAGES, checkoutState, packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
 import {certificates} from '../adapters/site-node/https-test-certificates.mjs';
 
@@ -32,18 +32,38 @@ const scratch = await createOwnedScratch({
 });
 const root = scratch.path;
 const environment = {...process.env,npm_config_cache:packedNpmCache(root)};
+const commandEvidence = createCommandEvidence({
+  scratch:join(repository,'_build','packed-graph-evidence'), revision:source.revision,
+  cwd:repository, env:environment, githubOutput:process.env.GITHUB_OUTPUT,
+  prefix:'packed-graph-',
+});
 let sequence = 0;
 async function run(command, args, cwd = root, env = environment, verifyTests = false) {
-  const result = spawnSync(command,args,{cwd,env,encoding:'utf8',timeout:600_000});
-  await writeFile(join(root,`${++sequence}.log`),`${result.stdout ?? ''}\n${result.stderr ?? ''}`);
-  if (result.error || result.status !== 0) throw new Error(
-    `${command} ${args.join(' ')} failed (status ${result.status}); evidence: ${root}`,
-    {cause:result.error});
-  if (verifyTests) assertTestExecution('node',command,args,result);
-  return result.stdout;
+  try {
+    const {result,writeFailure} = commandEvidence.capture(command,args,
+      {cwd,env,timeout:600_000,maxBuffer:1024 ** 2},
+      verifyTests ? result => testExecutionResult('node',command,args,result) : undefined);
+    await writeFile(join(root,`${++sequence}.log`),`${result.stdout ?? ''}\n${result.stderr ?? ''}`);
+    if (result.error || result.status !== 0) throw new Error(
+      `${command} ${args.join(' ')} failed (status ${result.status}); evidence: ${commandEvidence.directory}`,
+      {cause:result.error});
+    if (verifyTests) assertTestExecution('node',command,args,result);
+    if (writeFailure) throw writeFailure;
+    return result.stdout;
+  } catch (error) {
+    try { commandEvidence.finish('failed'); }
+    catch (evidenceError) { commandEvidence.noteError(evidenceError); }
+    throw error;
+  }
 }
-for (const name of CLIENT_PACKAGES) await packedClientPackage({repository,name,destination:root,
-  pack:()=>run('npm',['pack','--pack-destination',root,'--json'],join(repository,'packages',name))});
+for (const name of CLIENT_PACKAGES) {
+  await packedClientPackage({repository,name,destination:root,
+    pack:()=>run('npm',['pack','--pack-destination',root,'--json'],join(repository,'packages',name))});
+  const file = `actql-${name}-0.0.0-development.tgz`;
+  commandEvidence.summary.tarballs.push({name:file,
+    sha256:createHash('sha256').update(await readFile(join(root,file))).digest('hex')});
+  commandEvidence.persist();
+}
 await writeFile(join(root,'package.json'),'{"private":true,"type":"module"}\n');
 await run('npm',['install','--ignore-scripts','--no-save',...CLIENT_PACKAGES.map(name=>
   join(root,`actql-${name}-0.0.0-development.tgz`))]);
@@ -199,3 +219,4 @@ console.log(`Packed Graph acceptance: ${JSON.stringify(acceptance)}`);
 console.log(`Packed Graph evidence: ${root}`);
 // spawnSync has confirmed every child exited, including both Host processes.
 scratch.passed();
+commandEvidence.finish('passed');

@@ -7,6 +7,18 @@ pub fn local_managed_relation_output(
 }
 
 ///|
+#export_name("strategyModule_local_HasPreparedRelationInput")
+pub fn local_managed_has_prepared_relation_input(
+  setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  input : Int,
+) -> Bool {
+  @strategy.captured_next_task_has_prepared_input(
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),
+    input,
+  )
+}
+
+///|
 #export_name("strategyModule_local_CapturedRelationInput")
 pub fn local_managed_captured_relation_input() -> @local_driver.LocalManagedAvailableOutput[
   Int,

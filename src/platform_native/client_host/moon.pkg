@@ -13,6 +13,7 @@ import {
   "actql/actql/client_source_publication" @source_publication,
   "actql/actql/client_row_source_host" @rows,
   "actql/actql/execution_query",
+  "actql/actql/sourceview_resolution" @sourceviews,
   "actql/actql/platform_native/row_source" @row_file,
   "actql/actql/connectors_builtin" @builtin,
   "actql/actql/physical_host_dispatch" @driver,
@@ -23,6 +24,7 @@ import {
   "actql/actql/stage_syntax" @syntax,
   "actql/actql/query_program" @query,
   "actql/actql/decode_core" @decode,
+  "actql/actql/decode_scalar" @scalar,
   "actql/actql/decode_shape" @shape,
   "actql/actql/pipeline_check_context" @context,
   "actql/actql/logical_request_scope" @scope,
@@ -60,6 +62,10 @@ import {
   "moonbitlang/core/debug",
   "moonbitlang/core/env",
 }
+
+import {
+  "moonbitlang/core/json",
+} for "wbtest"
 
 options(
   "native-stub": [ "local_journal_shim.c" ],

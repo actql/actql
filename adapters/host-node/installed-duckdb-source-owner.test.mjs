@@ -315,3 +315,42 @@ test('native capture-only entry forwards the same original Ledger and acquisitio
   assert.throws(() => adapter.openCapture(options), /InstalledSourceReaderNotCurrent/);
   assert.equal(calls.length, 1, 'neither missing Ledger nor retired Source can reopen the original');
 });
+
+
+test('retained native Query metadata preserves its exact Plan and Request through capture capacity', async () => {
+  // Actual constructor/private preparation map with explicit semantic ports;
+  // no native library, database, provider read or runtime custody is created.
+  const checkedOwner = {}, requestIdentity = {}, requirement = {}, capacity = {};
+  const occurrence = Object.freeze({stage: 0, input: 1, task: 1, computeTask: 0});
+  const sourceRef = 'connector://fixture/r#v', view = 'sha256:' + 'a'.repeat(64);
+  const profile = {environmentWire: JSON.stringify({connector_catalogs: [{connector_id: 'fixture',
+    source_views: [{contract_cid: view}]}]}), sourceRef, database: '/UNOPENED/original.duckdb',
+    schema: 'main', table: 'records', sourceAccess: {authorization: {close() {return true;}}}};
+  const physical = duckDBPhysicalTarget(profile);
+  let prepared;
+  const ports = {contentCid, duckDBPhysicalTarget, readFile, checked: value => value,
+    loadDuckDBNativeRuntime() {},
+    prepareRetainedCapturedDuckDBSource(facts) {
+      assert.equal(facts.preparedProgram, checkedOwner); assert.equal(facts.requestIdentity, requestIdentity);
+      prepared = Object.freeze({checkedSource: Object.freeze({sourceRef, sourceViewContractCid: view}),
+        physicalBinding: physical, occurrence}); return prepared;
+    },
+    capturedDuckDBRequirement(actual) {assert.equal(actual, prepared); return requirement;},
+    computePhysicalCapacity() {return {transferBytes: 1024, executionBytes: 1024};},
+  };
+  const moon = {clientProgramQueryRequirementSourceRef(actual) {assert.equal(actual, requirement); return sourceRef;},
+    clientProgramPrepareDuckDBCaptureCapacity(actual) {assert.equal(actual, requirement); return capacity;},
+    clientProgramInstalledPendingDuckDBCaptureCapacity(actual) {assert.equal(actual, capacity); return capacity;}};
+  const construct = await nativeConstructor(ports);
+  const adapter = await construct(profile, moon, {root: '/UNOPENED/owner', principalId: 'fixture',
+    installation: {registration: 'fixture', revision: 'fixture/0.1'}});
+  const retained = adapter.prepareRetainedCapture({preparedProgram: checkedOwner, requestIdentity, occurrence});
+  const expected = {checkedOwner, requestIdentity, occurrence};
+  assert.equal(adapter.ordinaryRecoveryBinding(retained, expected).connectorId, 'fixture');
+  for (const changed of [{...expected, checkedOwner: {}}, {...expected, requestIdentity: {}},
+    {...expected, occurrence: {...occurrence, input: 0}}]) {
+    assert.throws(() => adapter.ordinaryRecoveryBinding(retained, changed), /InstalledSourcePreparationMismatch/u);
+  }
+  assert.equal(adapter.retainedCapture(retained).capacity, capacity);
+  adapter.close();
+});

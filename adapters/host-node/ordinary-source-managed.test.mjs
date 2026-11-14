@@ -7,6 +7,7 @@ import {join} from 'node:path';
 import {prepareOrdinarySourceManagedInstallation,
   prepareOrdinaryProjectSourceManagedInstallation} from './ordinary-source-managed.mjs';
 import runtime from './ordinary-node-resource-runtime.cjs';
+import {mockProjectFiles} from '../../scripts/fixtures/hubspot-approval/three-source-mock-project.mjs';
 
 async function fixture(source = true, project = false) {
   const root = await mkdtemp(join(tmpdir(), 'actql-ordinary-source-'));
@@ -66,6 +67,60 @@ test('ordinary two-Source acquisition uses distinct actual readers and one manag
   for (const child of children) assert.equal((await child.close()).pending, false);
   assert.equal(ports.status(2), 0);
   assert.equal((await f.view.close()).pending, false);
+});
+
+test('ordinary Mock published Source occurrences keep three children of the same declaration distinct', async () => {
+  const files = mockProjectFiles({recordId: 'original', previousName: 'before', nextName: 'after'});
+  const aliases = JSON.parse(files['mock/catalog.json']).connections.hubspot.query_aliases;
+  assert.deepEqual(aliases.map(alias => alias.name),
+    ['hubspot.companies', 'hubspot.companies_middle', 'hubspot.companies_right']);
+  assert.equal(new Set(aliases.map(alias => alias.resource)).size, 1);
+  const f = await fixture(), original = f.view.prepareRun(f.prepared);
+  const ports = runtime.prepareOriginalManagedRunPorts(original, f.prepared);
+  assert.equal(ports.status(0), 0);
+  const children = [];
+  try {
+    for (const [task] of aliases.entries()) {
+      children.push(f.view.prepareRead(f.prepared, f.declarations[0], original,
+        Object.freeze({stage: task, input: 0, task})));
+    }
+    assert.equal(new Set(children.map(child => child.originalSource)).size, 3);
+    assert.throws(() => f.view.prepareRead(f.prepared, f.declarations[0], original,
+      {stage: 1, input: 0, task: 1}), {code: 'InstalledSourcePreparationMismatch'});
+    const bytes = await Promise.all(children.map(child => child.readOriginalBytes()));
+    assert.equal(bytes.length, 3);
+    assert(bytes.every(value => value.toString() === '{"original":1}'));
+    assert.equal(new Set(bytes).size, 3);
+  } finally {
+    f.view.finishSourceProducer(f.receipt, 'returned');
+    assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0, 0, 0), 0);
+    for (const child of children) assert.equal((await child.close()).pending, false);
+    assert.equal(ports.status(2), 0);
+    assert.equal((await f.view.close()).pending, false);
+  }
+});
+
+test('ordinary Mock occurrence selection keeps foreign Run, declaration and malformed coordinates refused', async () => {
+  const f = await fixture(), original = f.view.prepareRun(f.prepared);
+  const ports = runtime.prepareOriginalManagedRunPorts(original, f.prepared);
+  assert.equal(ports.status(0), 0);
+  const occurrence = {stage: 0, input: 0, task: 0};
+  try {
+    assert.throws(() => f.view.prepareRead(f.prepared, {}, original, occurrence),
+      {code: 'InstalledSourcePreparationMismatch'});
+    assert.throws(() => f.view.prepareRead(f.prepared, f.declarations[0], {}, occurrence),
+      {code: 'InstalledSourcePreparationMismatch'});
+    for (const malformed of [{stage: -1, input: 0, task: 0},
+      {stage: 0, input: -1, task: 0}, {stage: 0, input: 0, task: 0.5}, {}, null]) {
+      assert.throws(() => f.view.prepareRead(f.prepared, f.declarations[0], original, malformed),
+        {code: 'InstalledSourcePreparationMismatch'});
+    }
+  } finally {
+    f.view.finishSourceProducer(f.receipt, 'returned');
+    assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0, 0, 0), 0);
+    assert.equal(ports.status(2), 0);
+    assert.equal((await f.view.close()).pending, false);
+  }
 });
 
 test('ordinary Source refuses a changed same-Run file and preserves cleanup after current refusal', async () => {
@@ -135,14 +190,17 @@ test('producer Request lookup stays linear for N and twice N without scanning ot
     const index = {get(request) {gets++; return weak.get(request);}};
     for (let i = 0; i < count; i++) {
       const request = {}, receipt = {}, producer = {request, receipt, finished:false};
-      weak.set(request, producer); receipts.set(receipt, producer); producers.add(producer); values.push(producer);
+      weak.set(request, new WeakRef(producer)); receipts.set(receipt, producer); producers.add(producer); values.push(producer);
     }
-    const lookup = new Function('requestProducers', 'producers', 'receipts', body + ';return producerForRequest;')(index, producers, receipts);
+    const makeLookup = new Function('requestProducers', 'producers', 'receipts', 'closing', 'closed', body + ';return producerForRequest;');
+    const lookup = makeLookup(index, producers, receipts, false, false);
     for (const producer of values) assert.equal(lookup(producer.request), producer);
     assert.equal(visits, 0, 'unrelated live producer visits');
     assert.equal(gets, count, 'one original weak lookup per Request');
     assert.equal(memberships, count, 'one actual live membership check per Request');
     const original = values[0], request = original.request;
+    assert.equal(makeLookup(index, producers, receipts, true, false)(request), undefined);
+    assert.equal(makeLookup(index, producers, receipts, false, true)(request), undefined);
     producers.delete(original); assert.equal(lookup(request), undefined);
     producers.add(original); original.finished = true; assert.equal(lookup(request), undefined);
     original.finished = false; receipts.delete(original.receipt); assert.equal(lookup(request), undefined);

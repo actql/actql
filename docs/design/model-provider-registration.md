@@ -104,7 +104,21 @@ ordinary installed inverse, and custom dependency graphs refuse before emitting
 an unrestorable bundle. Other compositions retain their distinct original-material
 paths; this is not a language restriction or permission to discard them.
 
-A single keyed Native Effect Model also retains its original selected
+A keyed entry additionally retains its original `native_read_profile` contract
+JSON paired with its closed `native_read_profile_kind`. Only the original
+`native_file_content_read` or `declared_file_content_read` kind is admitted;
+missing halves, unknown kinds and kind/wire mismatches refuse. Node declared-file
+profiles are never read through the distinct Native contract entrance. Projection
+reissues the graph with the same retained acquisition/profile
+and still compares the complete original wire. Restoration admits the bounded
+contract and reconstructs the exact checked stage/input/join before the existing
+issuer checks Source/schema/catalog correspondence. A profile cannot move to a
+different Model occurrence. Entries without this optional field keep the prior
+representation; absence supplies no default native profile. Removing a profile
+changes the compiled graph and remains subject to the complete saved Plan/Run
+identity fences. This material transfer grants no currentness, read or send.
+
+A single keyed file-reading Effect Model also retains its original selected
 `native_file_content_read` contract in `infer_native_read_profile_json`.
 Restoration admits that exact contract and binds it to the same checked
 Source/acquisition before rebuilding the existing keyed Model Graph. It does
@@ -112,6 +126,13 @@ not select a current installation or fabricate a default read profile. The
 saved Template, compiled Plan, Request, Run and canonical material checks
 remain mandatory; missing, malformed or foreign profile input cannot become
 read or execution authority. Non-keyed material bytes remain unchanged.
+
+The single-Model field keeps its existing wire representation for both original
+file implementations. Its shared bounded reader selects only the original
+Native or declared-file version and passes that same parsed value through the
+ordinary complete contract/identity/nested-reference admission. Plural entries
+also require their retained kind to match this admitted original kind. Neither
+path tries multiple schemas, reparses for kind discovery or supplies a default.
 
 When restoring pending Native approval, static Source Request values must keep
 their original policy meaning in the rebuilt Plan. The trusted installed Host
@@ -397,6 +418,67 @@ This connection supplies static checked materials, not execution dependencies,
 same-Run recovery, a physical Model supplier, permission or whole-phase funding.
 
 ### Original INFER materials in the installed Host
+
+Plural Model publication retains one pending preparation in the existing group
+custody. Persist and retirement await that same phase; retirement prevents any
+later private-publication entry. The original signal and checked inventory are
+rechecked after asynchronous work, including Store commits. A rejected phase
+retains its first failure, including `undefined`, rather than issuing again.
+Each original Model operation binds to the same complete observation issuer.
+Its checked Unit coordinate selects its own input, unfiltered outcome and local
+observation; the first Model or a Source array position cannot replace another
+Unit. A separate Whole Unit retains its original checked Plan and evidence.
+All bindings enter group custody before observation awaits and retire once,
+including partial preparation. The original publication-capacity owner funds
+the retained overlap of successive scan/writer projections; no child issues a
+second publication reservation. Pending preparation or Store work is not a
+physical cleanup acknowledgement.
+
+Returning that same publication reservation checks its original Model, Scope,
+startup rows, Ledger, capacity token and outstanding use/counters. It remains
+possible after the input or Artifact dependencies have retired: their live-use
+availability is required for reserving, growing and consuming publication
+capacity, not for returning its already-admitted original token. The caller
+must first retire its funded aliases and physical publication children. A
+parked Ledger, foreign original or unconfirmed cleanup keeps the existing
+responsibility; returning capacity grants no new use or physical-stop ACK.
+
+For a fresh group, its completed Model output borrows return after publication
+and Unit consumers retire, before their same Model children reclaim. The
+enclosing Host then requires its actual physical cleanup and pending-state
+confirmation. Returning an output borrow alone is no stop or cleanup ACK.
+Restored outputs keep their original parent's separate retirement requirement.
+
+The optional `inferEvidence` owner can explicitly select `kind: 'typed-input'`
+to project only an original logical Model request. The same prepared call,
+executed invocation and Store-confirmed outcome bind its slot and subject;
+the existing parent publication capacity funds the copy before encoding.
+Its binding and manifest carry that kind, and its wires contain only
+`typedInput`. It asserts neither a rendered prompt nor physical context.
+Omitting the kind retains the full physical Evidence projection. A Mock path
+without those physical originals still has incomplete full Evidence.
+Typed-input projection requires the same live prepared originals and parent
+funding; partial or restored calls without them remain incomplete. Saved rows
+or equal request bytes cannot reconstruct those originals or authorize a send.
+
+Retiring a partial private holding uses that same holding's abort operation,
+never a new commit. Abort awaits an already running write and reconciles its
+original Store observation; a never-started holding is not published after
+cancellation or failure. Unknown observations or pending prepared cleanup keep
+the same holding and invocation bindings for their original retirement. They
+do not replace the first publication failure or authorize another write.
+
+Each entered Model input may grow its retained input-body peak on the group's
+same original Read token. The group's existing per-child byte fields retain
+those peaks; only that child's positive delta is added to the shared token.
+Other children, spent work, the original descriptor and first admission
+snapshot remain intact. This does not increase the parent Ledger's limits or
+issue another reservation. The same group fence surrounds the original current
+callback and resize. A reentrant stop prevents the next constructor; a backing
+resize that already succeeded remains charged until the original children and
+their scopes complete cleanup. An unused, retired, handed-off or foreign child
+cannot use this continuation.
+
 
 First admission of the ordinary installed INFER graphs captures the
 Environment and serialized Parameter Values actually used by its preparation.
@@ -937,3 +1019,62 @@ and preserves its original extracted-method receiver. Runtime control cannot
 recreate the removed Effect Model admission through a second wrapper. Existing
 immutable compiled software stays qualified at its original source; this
 source/API retirement requires genuine later matching input selection.
+
+## Local Mock declaration and answer input
+
+The existing original Mock installation separates its immutable Task/profile,
+normalization and execution-contract declaration from typed answer DATA.
+Connection and stored-outcome restoration can project those same Common-owned
+materials without opening an answer file. A declaration is neither a Model
+invocation nor proof that an answer is available. Bound answers retain their
+original Task/currentness checks; equal content cannot replace their owner.
+
+The existing asynchronous LIVE Model preparation under the retained Run loads
+only its selected original Mock's answers and binds them through the Common
+owner before new Model execution. The Node adapter retains only the physical
+file/read/close and pending preparation duty, using its existing bounded reader;
+it does not normalize Tasks, validate answers, issue authority or install a
+fallback Provider. The original Mock owner retains successful immutable answer
+material and retires it through its existing protocol. Pending physical close
+cannot be converted into successful retirement or a usable binding.
+
+The bounded Model owner independently requires ready original answers before
+an actual NEW Slot can claim an IO duty, attempt or entered-call responsibility.
+Its existing replay, restored-slot and captured-response branches keep their
+full original/current checks and can consume completed outcomes without new
+answer input or invocation. Task/Scope metadata admission alone grants neither
+that live dispatch nor an Account decision. Existing policy ceilings, parser
+bounds, physical IO purposes and Model stepping remain unchanged.
+
+
+### Original Result inputs and earlier Model Unit publication
+
+A receiving Model retains each upstream Result through its original completed
+prefix and Kernel input binding. A Source contribution, matching row values or
+a logical CID alone cannot replace that Result Artifact and complete local
+Manifest. Multiple Source ancestors may contribute to one Result import port;
+Source count and import-port count are distinct checked inventories.
+
+The CallScope privately retains the original Result-input pointer inventory.
+Its public Array view is checked against that inventory, and complete Model
+publication matches every checked import interface exactly once. Reentrant
+resource callbacks cannot replace, duplicate or remove an input after the Scope
+has been sealed. Authentication of a restored Scope stays with its existing
+Saved owner.
+
+A completed earlier Model may supply its local Unit before later Models finish.
+Its original OutputUse, unfiltered outcome scan and semantic observation remain
+in the existing group custody. Actual emitter geometry is funded on the same
+Request preparation parent before variable metadata construction. This local
+association is not a completed whole-Run observation or a new cleanup owner.
+After the real joint issuer completes, the same observation is bound to that
+issuer rather than scanned or issued again. The final physical Store export
+must match the same captured Unit, Result, logical/schema identities and payload;
+the original semantic Artifact, Definition, Manifest and receipt remain intact.
+
+Pending preparation, persistence and retirement share their original group
+phase. Cancellation fences publication, preserves the first failure including
+thrown undefined, and returns only the group's original exports, scans and
+pins. Resource release and physical cleanup acknowledgements stay with their
+existing owners; closed metadata controls do not imply a physical stop or refund
+consumed Model work.

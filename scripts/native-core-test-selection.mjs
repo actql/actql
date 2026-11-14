@@ -7,6 +7,7 @@ import {mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync} from 'node:f
 import {tmpdir} from 'node:os';
 import {basename, dirname, join, relative, resolve, sep} from 'node:path';
 import {parseCommands} from './verification-actions.mjs';
+import {nativeCorePhysicalProfiles} from './ci-core-partitions.mjs';
 
 export const nativeRelationWorkTestFile =
   'src/platform_native/relation_file_work_tests/relation_file_original_physical_scoped_test.mbt';
@@ -35,6 +36,9 @@ export const nativeRelationCaptureTestFiles = Object.freeze([
 const nativeRequestEffectHandoffTestFile =
   'src/platform_native/client_host/native_test/request_effect_test.mbt';
 
+const nativeJournalMetadataOriginalReadTestFile =
+  'src/platform_native/client_host/journal_metadata_original_read_physical_scoped_wbtest.mbt';
+
 // These two independent fixtures use the same existing 8192-page backing.
 // All other selected Arena cases retain their original 256-page declarations.
 export function nativeCoreScopedBackingPages(source) {
@@ -43,10 +47,11 @@ export function nativeCoreScopedBackingPages(source) {
     ? 8192 : 256;
 }
 
-// Keep the established profile prefixes. Only this one new public-API case
-// joins them; its package siblings and client_host retain their prior profile.
+// Keep the established profile prefixes. Explicit original-Read cases join
+// them without replacing their package siblings' ordinary allocation profile.
 export function nativeCoreScopedAllocationProfile(source) {
   return source === nativeRequestEffectHandoffTestFile || source === nativeRelationWorkTestFile ||
+    source === nativeJournalMetadataOriginalReadTestFile ||
     source === nativeClientFileResponseTestFile ||
     source === 'src/cmd/native_client/local_command_business_window_scoped_wbtest.mbt' ||
     source === 'src/platform_native/host_bootstrap/request_preparation_physical_scoped_wbtest.mbt' ||
@@ -56,11 +61,21 @@ export function nativeCoreScopedAllocationProfile(source) {
     ? 'scoped-review-values' : 'runtime-values';
 }
 
+// Observe counters only in these existing case-owned processes. Ordinary Core
+// still exercises disabled observation and keeps its original allocation profile.
+export function nativeCoreScopedTestEnvironment({source, index}) {
+  return source === 'src/platform_native/client_host/local_initial_configuration_cid_wbtest.mbt' ||
+    source === 'src/platform_native/client_host/local_initial_host_signing_original_wbtest.mbt' ||
+    source === 'src/cmd/native_client/local_project_mock_physical_scoped_wbtest.mbt' && index === 13
+    ? {ACTQL_NATIVE_TIMINGS: '1'} : {};
+}
+
 // These existing physical cases require the selected read provider. Ordinary
 // Core deliberately also tests the absence of that provider, so its allocator
 // must not be replaced globally. Both profiles remain required.
 export const nativeScopedTestFiles = Object.freeze([
   nativeRequestEffectHandoffTestFile,
+  nativeJournalMetadataOriginalReadTestFile,
   'src/cmd/native_client/local_project_mock_physical_scoped_wbtest.mbt',
   'src/cmd/native_client/local_project_mock_request_physical_scoped_wbtest.mbt',
   // Its first-member control uses that same real Request/Arena facility.
@@ -70,6 +85,8 @@ export const nativeScopedTestFiles = Object.freeze([
   'src/cmd/native_client/local_command_business_window_scoped_wbtest.mbt',
   'src/platform_native/client_host/submitted_request_preparation_native_wbtest.mbt',
   'src/platform_native/client_host/submitted_request_source_native_wbtest.mbt',
+  'src/platform_native/client_host/local_initial_configuration_cid_wbtest.mbt',
+  'src/platform_native/client_host/local_initial_host_signing_original_wbtest.mbt',
   'src/platform_native/host_bootstrap/request_preparation_physical_scoped_wbtest.mbt',
   'src/platform_native/host_bootstrap/root_control_physical_scoped_wbtest.mbt',
   'src/platform_native/installed_arena_control/initial_preparation_physical_scoped_wbtest.mbt',
@@ -118,8 +135,11 @@ const selectedGeometryFiles = new Set([
 
 // Keep each package's original test drivers together: splitting individual
 // cases would compile the same large generated C executable on both runners.
-// Balance compiler units first, then case counts; this is not a time estimate.
-export function nativeCoreOrdinaryPartitions(args, paths, records) {
+// Separate the measured large packages, then balance other compiler units and
+// case counts. This is not a time estimate.
+export function nativeCoreOrdinaryPartitions(args, paths, records, count = 2) {
+  assert(Number.isSafeInteger(count) && count >= 2 && count <= 16,
+    'Invalid Native ordinary partition count');
   assert(Array.isArray(args) && args.every(value => typeof value === 'string'));
   assert(Array.isArray(paths) && new Set(paths).size === paths.length);
   const groups = new Map(), identities = new Set(), owners = new Map();
@@ -140,15 +160,21 @@ export function nativeCoreOrdinaryPartitions(args, paths, records) {
     group.cases += record.benchmark ? 0 : 1;
     group.records.push(record);
   }
-  assert([...groups.values()].filter(group => group.cases > 0).length >= 2,
-    'Two nonempty Native ordinary package partitions required');
-  const partitions = Array.from({length: 2}, () => ({drivers: 0, cases: 0, directories: new Set()}));
+  assert([...groups.values()].filter(group => group.cases > 0).length >= count,
+    'Enough nonempty Native ordinary package partitions required');
+  // Seed the four-way plan with the measured large compiler units. Keeping
+  // their whole packages separate avoids concentrating them by driver count;
+  // all remaining packages retain the existing driver/case balance.
+  const largeCompilerUnit = group => count === 4 &&
+    (group.directory === 'src/canonical_value' || group.directory === 'src/query_integration' ||
+      group.directory === 'src/cmd/native_client');
+  const partitions = Array.from({length: count}, () => ({drivers: 0, cases: 0, directories: new Set()}));
   for (const group of [...groups.values()].sort((a, b) =>
+    Number(largeCompilerUnit(b)) - Number(largeCompilerUnit(a)) ||
     b.drivers.size - a.drivers.size || b.cases - a.cases ||
     (a.directory < b.directory ? -1 : a.directory > b.directory ? 1 : 0))) {
-    const selected = partitions[0].drivers < partitions[1].drivers ||
-      partitions[0].drivers === partitions[1].drivers && partitions[0].cases <= partitions[1].cases
-      ? partitions[0] : partitions[1];
+    const selected = partitions.reduce((a, b) =>
+      a.drivers < b.drivers || a.drivers === b.drivers && a.cases <= b.cases ? a : b);
     selected.drivers += group.drivers.size;
     selected.cases += group.cases;
     selected.directories.add(group.directory);
@@ -166,15 +192,42 @@ export function nativeCoreOrdinaryPartitions(args, paths, records) {
   return result;
 }
 
-export function nativeCorePartitionProfiles(profiles, value) {
+export function nativeCorePartitionProfiles(profiles, value, {hostedDarwin = false} = {}) {
+  assert.equal(typeof hostedDarwin, 'boolean', 'Invalid hosted Darwin profile selection');
   if (value === undefined || value === '') return profiles;
-  assert(value === '1/2' || value === '2/2', 'Invalid Native Core partition');
-  assert.equal(profiles.ordinary.partitions?.length, 2, 'Missing Native Core partitions');
-  const ordinary = profiles.ordinary.partitions[Number(value[0]) - 1];
-  assert(ordinary.cases > 0 && ordinary.args?.length > 0, 'Empty Native Core partition');
-  return value === '1/2' ? {...profiles, ordinary} : {...profiles, ordinary,
+  const match = /^([1-8])\/(2|4|8)$/u.exec(value);
+  const physical = nativeCorePhysicalProfiles.includes(value);
+  assert(physical || match && Number(match[1]) <= Number(match[2]), 'Invalid Native Core partition');
+  const empty = {...profiles, ordinary: {args: null, cases: 0},
     http: {args: null, cases: 0}, source: {args: null, cases: 0},
     scoped: {args: null, cases: 0, tests: []}, physicalCases: 0, repeatedGeometryCases: 0};
+  if (physical) {
+    assert(profiles[value].cases > 0 && profiles[value].args?.length > 0,
+      'Empty Native physical partition');
+    return {...empty, [value]: profiles[value],
+      ...(value === 'scoped' ? {physicalCases: profiles.physicalCases,
+        repeatedGeometryCases: profiles.repeatedGeometryCases} : {})};
+  }
+  assert.equal(profiles.ordinary.partitions?.length, Number(match[2]), 'Missing Native Core partitions');
+  const ordinary = profiles.ordinary.partitions[Number(match[1]) - 1];
+  assert(ordinary.cases > 0 && ordinary.args?.length > 0, 'Empty Native Core partition');
+  if (value === '1/2' && hostedDarwin) {
+    assert(profiles.http.cases > 0 && profiles.http.args?.length > 0,
+      'Hosted Darwin ordinary owner must retain the original HTTP profile');
+    return {...empty, ordinary, http: profiles.http};
+  }
+  // Preserve the old two-runner local interface. Hosted Darwin keeps HTTP
+  // with its first ordinary job and gives Source/scoped their original owners.
+  return value === '1/2' ? {...profiles, ordinary} : {...empty, ordinary};
+}
+
+// These original reference producers compile the large Client Host test
+// driver. Only its assigned ordinary job and its scoped consumers need them;
+// HTTP/Source jobs use their existing independently owned peer environments.
+export function nativeCoreCheckpointRequired(profiles) {
+  return profiles.ordinary.args?.some(value => value === 'src/platform_native/client_host' ||
+    value.startsWith('src/platform_native/client_host/')) === true ||
+    profiles.scoped.tests.some(test => test.source.startsWith('src/platform_native/client_host/'));
 }
 
 function partitionProfiles(args, records, ordinaryPartitions, compilerDirectories) {
@@ -218,7 +271,8 @@ function partitionProfiles(args, records, ordinaryPartitions, compilerDirectorie
   return {
     ordinary: {args: ordinaryPaths.length ? [...args, ...ordinaryPaths] : null,
       cases: runnable(ordinary), ...(ordinaryPartitions ? {
-        partitions: nativeCoreOrdinaryPartitions(args, ordinaryPaths, ordinary),
+        partitions: nativeCoreOrdinaryPartitions(args, ordinaryPaths, ordinary,
+          ordinaryPartitions === true ? 2 : ordinaryPartitions),
       } : {})},
     http: {args: http.length ? [...args, ...new Set(http.map(record =>
       record.directory === 'src/platform_native/http_client' ? record.directory : record.source))] : null,
@@ -249,13 +303,20 @@ export function portableMoonTestCount(repository, args, target, options = {}) {
   return compilerTestSelection(repository, args, options, target, true).runnableCases;
 }
 
+export function nativeCoreFocusedTestCount(repository, args, options = {}) {
+  return compilerTestSelection(repository, args, options, 'native', true).runnableCases;
+}
+
 function compilerTestSelection(repository, args, {
   env = process.env, execute = execFileSync, partitionProfiles: splitProfiles = false,
   ordinaryPartitions = false, timeoutMs = 60_000, now = Date.now, executionPackages,
+  allowNestedFileInputs = false,
 } = {}, target, countOnly) {
   assert(!countOnly || (!splitProfiles && !ordinaryPartitions && executionPackages === undefined));
   assert(!ordinaryPartitions || splitProfiles, 'Native partitions require original profile discovery');
   assert(executionPackages === undefined || splitProfiles, 'Dependency selection requires original Native profiles');
+  assert(typeof allowNestedFileInputs === 'boolean' && (!allowNestedFileInputs ||
+    splitProfiles && executionPackages !== undefined), 'Nested Native file inputs require an explicit package scope');
   assert(Number.isSafeInteger(timeoutMs) && timeoutMs > 0 && timeoutMs <= 2147483647,
     'Native metadata timeout must be a finite positive timer duration');
   assert.equal(typeof now, 'function');
@@ -364,7 +425,7 @@ function compilerTestSelection(repository, args, {
       remaining(); complete = true;
       return {runnableCases};
     }
-    let executionScope;
+    let executionScope, scopedInputs;
     if (executionPackages !== undefined) {
       assert(Array.isArray(executionPackages) && executionPackages.length > 0 &&
         new Set(executionPackages).size === executionPackages.length, 'Invalid Native dependency package inventory');
@@ -377,6 +438,13 @@ function compilerTestSelection(repository, args, {
       const requested = new Set(executionPackages);
       const subset = records.filter(record => requested.has(record.directory));
       const preview = partitionProfiles(args, subset, false, compilerDirectories);
+      if (allowNestedFileInputs) {
+        // Preserve all selected original profiles when a parent directory has
+        // an unselected nested package. The Linux common caller separately
+        // refuses physical profiles before execution; full Darwin keeps them.
+        scopedInputs = [...new Set(['ordinary', 'http', 'source', 'scoped'].flatMap(name =>
+          preview[name].args?.slice(args.length) ?? []))];
+      }
       const ordinaryPaths = preview.ordinary.args?.slice(args.length) ?? [];
       const ordinaryPackages = new Set(subset.filter(record => runnableCompilerCase(record) &&
         (ordinaryPaths.includes(record.directory) || ordinaryPaths.includes(record.source))).map(record => record.directory));
@@ -388,12 +456,14 @@ function compilerTestSelection(repository, args, {
       // Existing partition balancing counts original driver/case inventory.
       // A skipped-only driver can win a partition even when two other packages
       // have runnable cases; test the actual assigned inputs before narrowing.
-      const nonemptyPartitions = !ordinaryPartitions || ordinaryPackages.size >= 2 &&
-        partitionProfiles(args, subset, true, compilerDirectories).ordinary.partitions.every(partition =>
+      const partitionCount = ordinaryPartitions === true ? 2 : ordinaryPartitions;
+      const nonemptyPartitions = !ordinaryPartitions || ordinaryPackages.size >= partitionCount &&
+        partitionProfiles(args, subset, ordinaryPartitions, compilerDirectories).ordinary.partitions.every(partition =>
           subset.some(record => runnableCompilerCase(record) &&
             (partition.args.slice(args.length).includes(record.directory) ||
               partition.args.slice(args.length).includes(record.source))));
-      const admitted = subset.some(runnableCompilerCase) && !nestedOutside && nonemptyPartitions;
+      const admitted = subset.some(runnableCompilerCase) &&
+        (!nestedOutside || allowNestedFileInputs) && nonemptyPartitions;
       executionScope = {packages:[...executionPackages].sort(), originalCases:cases.length,
         mode:admitted ? 'subset' : 'full-fallback',
         reason:admitted ? 'compiler-owned reverse dependency closure' : nestedOutside
@@ -407,7 +477,9 @@ function compilerTestSelection(repository, args, {
       executionScope.selectedCases = cases.length;
     }
     assert(cases.length > 0, 'No compiler-owned Native test cases');
-    const paths = [...packages], selected = discover(paths), selectedCases = [];
+    const paths = executionScope?.mode === 'subset' && allowNestedFileInputs ? scopedInputs : [...packages];
+    assert(Array.isArray(paths) && paths.length > 0, 'Nonempty original Native inputs required');
+    const selected = discover(paths), selectedCases = [];
     for (const [key, driver] of selected) {
       const original = full.get(key);
       assert(original, 'Foreign selected Native driver');

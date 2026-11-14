@@ -471,7 +471,7 @@ fn prepare_checked_logical_dag_owned(
     return Err(InvalidLimits)
   }
   let count = @checked.unit_count(program)
-  if captured_prefix != 1 && captured_prefix != 2 {
+  if captured_prefix < 1 || captured_prefix > count {
     return Err(InvalidLimits)
   }
   if source_free_root && captured_prefix != 1 {
@@ -669,12 +669,12 @@ fn prepare_checked_logical_dag_owned(
       }
     }
   }
-  // This bounded increment admits exactly two independent acquisition Stages
-  // at the beginning. It does not schedule acquisition/Compute interleaving.
+  // Admit the actual bounded independent acquisition Stage prefix. This does
+  // not schedule acquisition/Compute interleaving.
   // Ordinary checked Stage-success ordering is preserved: the Host acquires
-  // in prefix order, so source zero succeeds before source one may start.
-  if captured_prefix == 2 {
-    if count < 3 ||
+  // in prefix order, so each original Source succeeds before the next starts.
+  if captured_prefix > 1 {
+    if count < captured_prefix ||
       data.any(edge => edge.consumer < captured_prefix) ||
       supplied_slots.any(slot => slot.consumer < captured_prefix) {
       return Err(UnsupportedIncoming(0))

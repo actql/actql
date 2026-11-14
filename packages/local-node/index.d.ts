@@ -70,6 +70,19 @@ export type HostInstallation = Readonly<{
   effectProfilePath?: string;
   effectProfilePaths?: EffectProfilePaths;
   hostCapacityPolicy?: HostCapacityPolicy;
+  /** Explicit positive signed-32-bit work limit for each source-free Local
+   * Compute fragment/sequence counter. Core supplies the default when omitted.
+   * The same selection also bounds preparation of those runtime Fragments.
+   * It does not limit original Program parsing/checking and is not a global
+   * Run/Host quota or memory grant. */
+  sourceFreeMaxWork?: number;
+  /** Finite initial Request/Run Ledger memory limits, selected before admission.
+   * Both safe-integer byte quantities are required; Core checks the installed
+   * envelope and derives checking/collection row ceilings from the same pair.
+   * Omission preserves 512 MiB per counter. Not reserved RAM or RSS; the same
+   * owner funds actual demand. Explicit row limits may narrow this selection.
+   * Reopen with the same installation selection for original Saved reads. */
+  requestMemory?: Readonly<{retainedBytes: number; executionBytes: number}>;
   hostLookupExecutionPolicy?: HostLookupExecutionPolicy;
   resolveSourceSecret?: (...args: any[]) => any;
   resolveEffectSecret?: (...args: any[]) => any;
@@ -80,6 +93,10 @@ export type HostInstallation = Readonly<{
   verifyRequestValuePolicy?: HostRequestValuePolicyVerifier;
   resultDataPolicy?: Readonly<Record<string, unknown>>;
   inferEvidence?: Readonly<{
+    /** Select only original logical Model inputs; omitted keeps full physical Evidence.
+     * Requires live prepared originals and parent publication funding; otherwise incomplete.
+     * Partial/restored calls do not reconstruct unavailable input originals. */
+    kind?: 'typed-input';
     target: string | readonly string[]; destination: string; maxBytes: number;
     authorize: (binding: Readonly<Record<string, unknown>>) => boolean | Promise<boolean>;
     sink: Readonly<{

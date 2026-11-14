@@ -39,8 +39,8 @@ pub fn issue_client_effect_local_source_artifact(
     client_effect_local_artifact_run_definition_cid(artifact) != Some(run) {
     return Err(ForeignRun)
   }
-  if @publication.publication_contract_identity(artifact.run_invocation) !=
-    @publication.publication_contract_identity(invocation) {
+  if client_effect_local_artifact_run_invocation_cid(artifact) !=
+    Some(@publication.publication_contract_identity(invocation)) {
     return Err(ForeignInvocation)
   }
   if @publication.publication_contract_identity(artifact.retention) !=

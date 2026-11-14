@@ -180,6 +180,7 @@ pub fn[I, T] prepare_request_native_query_computation(
       reader,
       environment,
       publication,
+      program_limits,
       binding_limits=Some(request_query_binding_limits(program_limits.checking)),
       public_primary~,
       supplied~,
@@ -202,6 +203,7 @@ fn[I, T] prepare_request_native_query_computation_input(
   reader : @source.JsonDataReader[T],
   environment : @checked.CheckEnvironment,
   publication : @source_publication.PreparedPublishedQueryEnvironment,
+  program_limits : @publication_host.ClientProgramPreparationLimits,
   binding_limits? : @admitted.Limits? = None,
   supplied? : T? = None,
   declarations? : T? = None,
@@ -214,6 +216,9 @@ fn[I, T] prepare_request_native_query_computation_input(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  // Borrow the SAME immutable selection already used by the input owner.
+  // This existing parent slot later transfers to checking/compiler use.
+  owner.computation_limits = Some(program_limits)
   match parse_request_query_syntax(owner, input, document, format) {
     Err(issue) => return Err(QuerySyntax(issue))
     Ok(_) => ()
@@ -259,7 +264,7 @@ pub fn[I, T] prepare_request_native_source_computation(
       reader,
       environment,
       publication,
-      program_limits.checking,
+      program_limits,
       public_primary~,
       supplied~,
     ) {
@@ -295,13 +300,16 @@ pub fn[I, T] prepare_request_native_source_computation_check(
       reader,
       environment,
       publication,
-      program_limits.checking,
+      program_limits,
       public_primary~,
       supplied~,
     ) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  let (program_limits, effect_limits) = request_original_query_check_limits(
+    owner, program_limits, effect_limits,
+  )
   prepare_request_original_computation_check(
     owner, input, environment, publication, evidence, program_limits, effect_limits,
   )
@@ -315,7 +323,7 @@ fn[I, T] prepare_request_native_source_computation_input(
   reader : @source.JsonDataReader[T],
   environment : @checked.CheckEnvironment,
   publication : @source_publication.PreparedPublishedQueryEnvironment,
-  limits : @checked.CheckLimits,
+  program_limits : @publication_host.ClientProgramPreparationLimits,
   supplied? : T? = None,
   public_primary? : Bool = true,
   default_json? : Bool = false,
@@ -328,6 +336,7 @@ fn[I, T] prepare_request_native_source_computation_input(
   guard owner.input is Some(original) && physical_equal(original, input) else {
     return Err(Preparation(ForeignOriginal))
   }
+  let limits = program_limits.checking
   owner.phase = Selecting
   if (reader.kind)(captured) != 5 {
     owner.phase = ProgramJsonFailed
@@ -384,6 +393,19 @@ fn[I, T] prepare_request_native_source_computation_input(
     )
   }
   owner.phase = Open
+  let program_limits = if default_json {
+    // Reuse the existing captured intake selection once. Its outer node count
+    // does not measure the Query AST: syntax uses the lowering policy, then
+    // the generated Program retains its original artifact envelope.
+    let captured = match
+      request_default_program_preparation_limits(owner, input) {
+      Ok(selected) => selected
+      Err(issue) => return Err(issue)
+    }
+    { ..captured, values_max_rows: program_limits.values_max_rows, }
+  } else {
+    program_limits
+  }
   prepare_request_native_query_computation_input(
     owner,
     input,
@@ -392,6 +414,7 @@ fn[I, T] prepare_request_native_source_computation_input(
     reader,
     environment,
     publication,
+    program_limits,
     binding_limits=Some(request_query_binding_limits(limits)),
     public_primary~,
     supplied~,

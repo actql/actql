@@ -79,6 +79,7 @@ pub(all) enum LocalDispatchIssue {
   // unsupported identity.
   IdentityExport(@execution.CompletedExportIssue)
   CarrierSnapshot(@carrier_runtime.SnapshotIssue)
+  ControlWorkLimit(Int)
 }
 
 ///|

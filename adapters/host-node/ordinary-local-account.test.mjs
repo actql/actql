@@ -82,6 +82,55 @@ test('ordinary Local durably adopts the actual standard profile and reopens with
   await assert.rejects(stat(join(f.root, 'reviewer.pem')), {code: 'ENOENT'});
 });
 
+test('ordinary Local adopts the complete Source and Model inventory beyond former independent counts', async t => {
+  const f = await fixture(t);
+  const selected = {...subjects,
+    configuredConnections: Array.from({length: 129}, (_, index) => `source-${index}`),
+    modelTasks: Array.from({length: 65}, (_, index) => ['provider', cid(`registered Task ${index}`)])};
+  const authorization = await f.start(undefined, selected);
+  const original = await readFile(f.config, 'utf8');
+  const account = moon.executionAuthorizationAdmit(original);
+  const document = JSON.parse(original);
+  assert.equal(document.entries.length, 198);
+  const outcome = (connection, resource, operation) => JSON.parse(
+    moon.executionAuthorizationEvaluationJson(moon.executionAuthorizationEvaluate(
+      account, 'person', connection, resource, operation))).outcome;
+  for (const connection of selected.configuredConnections) {
+    assert.equal(outcome(connection, 'records', 'read'), 'allow');
+  }
+  for (const [connection, task] of selected.modelTasks) {
+    assert.equal(outcome(connection, task, 'infer'), 'allow');
+  }
+  assert.equal(outcome('unregistered', 'records', 'read'), 'deny');
+  const authorize = createLocalResultAuthorization({moon, authorization,
+    principalId: 'person', namespaceId: 'local', authorityScopeCid: scope});
+  assert.equal(await authorize(facts), true);
+  for (const entry of document.entries) {
+    if (entry.operation.any_of.includes('read')) entry.outcome = 'deny';
+  }
+  const restricted = JSON.stringify(document);
+  await writeFile(f.config, restricted);
+  assert.equal(await authorize(facts), false);
+  await f.close();
+  const reopened = await f.start(undefined, selected);
+  assert.equal(reopened.accountConfig, authorization.accountConfig);
+  assert.equal(await readFile(f.config, 'utf8'), restricted,
+    'Reopening the same inventory preserves actual operator restrictions');
+  assert.equal(await createLocalResultAuthorization({moon, authorization: reopened,
+    principalId: 'person', namespaceId: 'local', authorityScopeCid: scope})(facts), false);
+});
+
+test('ordinary Local aggregate Account refusal preserves intent without publishing a partial configuration', async t => {
+  const f = await fixture(t);
+  const selected = {controlConnection: 'local-host', modelTasks: [],
+    configuredConnections: Array.from({length: 1022}, (_, index) => `source-${index}`)};
+  await assert.rejects(f.start(undefined, selected));
+  assert.ok((await readFile(f.intent)).length > 0);
+  await assert.rejects(stat(f.config), {code: 'ENOENT'});
+  await assert.rejects(stat(join(f.root, 'account', 'bootstrap.json')), {code: 'ENOENT'});
+  await f.close();
+});
+
 test('ordinary Local preserves current Deny on the same Host and after reopening', async t => {
   const f = await fixture(t);
   const authorization = await f.start();
@@ -98,6 +147,35 @@ test('ordinary Local preserves current Deny on the same Host and after reopening
   assert.equal(await createLocalResultAuthorization({moon, authorization: reopened,
     principalId: 'person', namespaceId: 'local', authorityScopeCid: scope})(facts), false);
   assert.equal(await readFile(f.config, 'utf8'), restricted);
+});
+
+test('diagnostic-only authorization preserves standard bootstrap and current Deny', async t => {
+  const f = await fixture(t);
+  let observations = 0;
+  const observe = () => { observations++; };
+  const authorization = await f.start({observe});
+  assert.equal(authorization.observe, observe);
+  assert.equal(authorization.accountConfig, f.config);
+  assert.equal(JSON.parse(await readFile(f.config, 'utf8')).bootstrap.profile_id,
+    'actql-local-standard');
+  const authorize = createLocalResultAuthorization({moon, authorization,
+    principalId: 'person', namespaceId: 'local', authorityScopeCid: scope});
+  assert.equal(await authorize(facts), true);
+  const restricted = JSON.parse(await readFile(f.config, 'utf8'));
+  for (const entry of restricted.entries) {
+    if (entry.operation.any_of.includes('read')) entry.outcome = 'deny';
+  }
+  await writeFile(f.config, JSON.stringify(restricted));
+  assert.equal(await authorize(facts), false,
+    'Diagnostic delivery cannot preserve an earlier Allow after Account changes');
+  assert.equal(observations, 0, 'Account checks do not fabricate diagnostic delivery');
+  await f.close();
+  const reopened = await f.start({observe});
+  assert.equal(reopened.observe, observe);
+  assert.deepEqual(JSON.parse(await readFile(f.config, 'utf8')), restricted,
+    'Reopening with diagnostics must not regrant the standard Account');
+  assert.equal(await createLocalResultAuthorization({moon, authorization: reopened,
+    principalId: 'person', namespaceId: 'local', authorityScopeCid: scope})(facts), false);
 });
 
 test('ordinary Local missing adopted configuration or intent refuses without recreation', async t => {

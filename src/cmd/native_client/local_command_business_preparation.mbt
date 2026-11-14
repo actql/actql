@@ -18,7 +18,10 @@ priv struct LocalCommandBusinessPreparation {
   intent : @run_host.ClientSubmittedIntent
   preparation : @local_host.NativeClientSubmittedPreparation
   requirements : @local_values.ClientLocalRequirements?
+  normalization : @run_host.ClientLocalNormalization?
+  file_source : (LocalProjectMockSourceDeclaration, LocalProjectMockRowBinding)?
   installed_contracts : @local_values.ClientInstalledSequenceContracts
+  assets : @run_host.ClientLocalProductAssets
   submission : LocalRunSubmission?
 }
 
@@ -118,37 +121,46 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
     self.construct_business_intent()
   })
   let preparation = self.prepare_business_request(capture, intent, environment)
-  let requirements = match
+  let mut normalization = None
+  let (requirements, file_source) = match
     @local_host.native_client_submitted_preparation(preparation) {
     Computation(prepared) => {
       // This original Pure route retains its unchanged normalization and
       // requirements. An Effect is never coerced into its body or authority.
-      @run_host.issue_prepared_client_local_normalization(prepared).unwrap_or_else(() => {
-          stop("LocalOriginalNormalizationNotInstalled")
-        },
+      normalization = Some(
+        @run_host.issue_prepared_client_local_normalization(prepared).unwrap_or_else(() => {
+            stop("LocalOriginalNormalizationNotInstalled")
+          },
+        ),
       )
-      |> ignore
       let assets = runtime.assets
-      let requirements = @local_values.prepare_source_free_local_requirements(
-        prepared,
-        runtime.installed_contracts,
-        assets.values,
-        Some(assets.fragment),
-        assets.ordered,
-      ).unwrap_or_else(() => stop("LocalBusinessProgramUnavailable"))
-      command_preparation_result(
-        self.require_business_program(
+      if @run_host.prepared_client_acquisition_count(prepared) != 0 {
+        let selected = self
+          .select_business_file_source(prepared)
+          .unwrap_or_else(() => stop("LocalBusinessProgramUnavailable"))
+        (None, Some(selected))
+      } else {
+        let requirements = @local_values.prepare_source_free_runtime_requirements(
           prepared,
           runtime.installed_contracts,
-          assets,
-          requirements,
-        ),
-        stage=Some("business-program"),
-      )
-      |> ignore
-      Some(requirements)
+          assets.values,
+          Some(assets.fragment),
+          assets.ordered,
+        ).unwrap_or_else(() => stop("LocalBusinessProgramUnavailable"))
+        command_preparation_result(
+          self.require_business_program(
+            prepared,
+            runtime.installed_contracts,
+            assets,
+            requirements,
+          ),
+          stage=Some("business-program"),
+        )
+        |> ignore
+        (Some(requirements), None)
+      }
     }
-    EffectComputation(_) => None
+    EffectComputation(_) => (None, None)
   }
   let selection : LocalCommandBusinessPreparation = {
     original: self,
@@ -166,7 +178,10 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
     intent,
     preparation,
     requirements,
+    normalization,
+    file_source,
     installed_contracts: runtime.installed_contracts,
+    assets: runtime.assets,
     submission: original_input.map(value => value.0),
   }
   if !selection.current(host, settings, environment) {
@@ -178,7 +193,7 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   }
   // The receiver was retained in outer control before Read entry. Only this
   // exact admitted Runtime/Program/current selection may activate its route.
-  if requirements is Some(_) {
+  if requirements is Some(_) || file_source is Some(_) {
     command_preparation_result(
       original_operation
       .activate()
@@ -237,4 +252,52 @@ fn LocalCommandBusinessPreparation::current(
     operation: "submit",
   })
   is Ok(Allow(_))
+}
+
+///|
+// Select only the actual checked Source's existing Project declaration and
+// original prepared File provider. Names select immutable metadata, never an
+// Account grant, a route fallback, a new Environment or a physical read.
+fn LocalCommandPreparationOriginal::select_business_file_source(
+  self : LocalCommandPreparationOriginal,
+  prepared : @run_host.PreparedClientProgram,
+) -> (LocalProjectMockSourceDeclaration, LocalProjectMockRowBinding)? {
+  guard self.project is Some(project) &&
+    project.mock_declarations is Some(original) &&
+    !original.closing &&
+    !original.retired else {
+    return None
+  }
+  let graph = @run_host.prepared_client_graph(prepared)
+  if @run_host.prepared_client_acquisition_count(prepared) != 1 ||
+    @strategy.graph_captured_prefix(graph) != 1 ||
+    @strategy.graph_result_count(graph) != 1 ||
+    @strategy.graph_program_has_effects(graph) ||
+    @run_host.prepared_client_uses_graph_carrier(prepared) {
+    return None
+  }
+  guard @run_host.prepared_client_composed_infer_occurrences(prepared)
+    is Some(infers) &&
+    infers.is_empty() &&
+    @run_host.prepared_client_serialization_occurrences(prepared).is_empty() else {
+    return None
+  }
+  let source = match
+    @run_host.prepare_client_source_acquisition(prepared, 0, 0) {
+    Err(_) => return None
+    Ok(value) => value
+  }
+  let subject = @sourceviews.declaration(
+    @sourceviews.mode_input(@sourceviews.source_acquisition_mode(source)),
+  )
+  for declaration in original.sources {
+    if declaration._retained_connection == subject.connector {
+      for row in declaration._retained_rows {
+        if row.view.resource == subject.resource {
+          return Some((declaration, row))
+        }
+      }
+    }
+  }
+  None
 }

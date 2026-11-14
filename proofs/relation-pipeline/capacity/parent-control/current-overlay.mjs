@@ -14,10 +14,13 @@ export function currentOverlay(read) {
   assert(start >= 0 && end > start);
   let body = source.slice(start,end);
   const open = '  Ok(\n    managed_provider_execution_with_child_work_issue(';
-  const tail = '    ),\n  ).map(active => (active, state))\n}\n';
-  assert.equal(body.split(open).length,2);assert(body.endsWith(tail));
-  body = body.replace(open,'  let observed_parent = managed_provider_execution_with_child_work_issue(')
-    .slice(0,-tail.length) + '    )\n  println(current_chain_start_probe(observed_parent, state, used, cancelled, terminal, reclaimed, cleanup_index, sequence, inputs, execution, measurement, numeric, family, count, max_value_bytes, reclaimed_prefix))\n  Ok((observed_parent, state))\n}\n';
+  assert.equal(body.split(open).length,2);assert(body.endsWith('\n}\n'));
+  // Observe the actual returned pair after the original continuation is
+  // installed, leaving every original lifecycle/observer callback unchanged.
+  // Keep the probe in this parent, not in another Result.map closure, and
+  // return the original Result without reconstructing its success or error.
+  body = body.replace(open,'  let observed_result = Ok(\n    managed_provider_execution_with_child_work_issue(')
+    .slice(0,-3) + '\n  if observed_result is Ok((observed_parent, original_state)) {\n    println(current_chain_start_probe(observed_parent, original_state, used, cancelled, terminal, reclaimed, cleanup_index, sequence, inputs, execution, measurement, numeric, family, count, max_value_bytes, reclaimed_prefix))\n  }\n  observed_result\n}\n';
   let observedSource=source.slice(0,start)+body+source.slice(end);
   const candidates=observedSource.match(/  for\n    provider in (\[[\s\S]*?\n    \]) \{/);
   assert(candidates && observedSource.split(candidates[0]).length===2,'Changed provider candidate construction');

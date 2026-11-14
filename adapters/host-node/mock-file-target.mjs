@@ -19,10 +19,11 @@ const synchronous = value => {
   fail('InvalidMockFileCurrentFence');
 };
 
-export function createMockFileTarget({dataPath, maxBytes, assertCurrent,
+export function createMockFileTarget({dataPath, maxBytes, assertCurrent, observeWrite,
   io = {open, lstat, unlink, rename}}) {
   if (!isAbsolute(dataPath ?? '') || !Number.isSafeInteger(maxBytes) || maxBytes < 1 ||
       typeof assertCurrent !== 'function' ||
+      observeWrite !== undefined && typeof observeWrite !== 'function' ||
       !['open', 'lstat', 'unlink', 'rename'].every(name => typeof io[name] === 'function')) {
     fail('InvalidMockFileTarget');
   }
@@ -227,6 +228,9 @@ export function createMockFileTarget({dataPath, maxBytes, assertCurrent,
       // cleanup never retries this operation or manufactures a successful ACK.
       await physical.rename(temporary.path, dataPath);
       temporary.pathPending = false;
+      // The original replacement returned. This says nothing about the later
+      // directory sync/current/cleanup, and diagnostics cannot alter its fate.
+      if (observeWrite !== undefined) try {void Promise.resolve(observeWrite(runOriginal)).catch(() => {});} catch {}
       current();
       const directory = await acquire(dirname(dataPath), constants.O_RDONLY);
       await call(directory, 'sync');

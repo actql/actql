@@ -78,6 +78,7 @@ fn native_publication_workspace_fixture(
 fn native_publication_workspace_component(
   rows : Int,
   check_legacy : Bool,
+  batch? : Bool = false,
   snapshot? : Bool = false,
   chain? : Bool = false,
   only_foreign? : Bool = false,
@@ -256,9 +257,15 @@ fn native_publication_workspace_component(
     .unwrap()
   let stream = output.output_export()
   let mut streamed_bytes = 0
+  let mut batches = 0
   while true {
-    match stream.next() {
-      Ok(Some(chunk)) => streamed_bytes += @utf8.encode(chunk).length()
+    match stream.next(batch~) {
+      Ok(Some(chunk)) => {
+        let bytes = @utf8.encode(chunk).length()
+        assert_true(bytes <= limits.max_batch_bytes)
+        streamed_bytes += bytes
+        batches += 1
+      }
       Ok(None) => break
       Err(issue) => {
         let cause = match issue {
@@ -295,6 +302,9 @@ fn native_publication_workspace_component(
   }
   streamed_bytes += @utf8.encode(stream.finish().unwrap()).length()
   assert_eq(stream.row_count().unwrap(), rows)
+  if batch {
+    assert_true(batches > 0 && batches < rows)
+  }
   if !check_legacy {
     // Native persistence reopens the exact identified stream. This is a
     // second stream traversal, not re-execution or another submission.
@@ -766,6 +776,11 @@ test "Native publication row indices use original quoted workspace independently
 ///|
 test "same original 100000 completed output streams under its unchanged publication plan" {
   native_publication_workspace_component(100000, false)
+}
+
+///|
+test "same original 100000 physical batches use the funded Run and preserve exact replay and cleanup" {
+  native_publication_workspace_component(100000, false, batch=true)
 }
 
 ///|

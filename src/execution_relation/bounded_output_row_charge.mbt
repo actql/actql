@@ -153,8 +153,8 @@ fn advance_bounded_output_row_charge(
       }
       let name = @schema.reference_name(field.name)
       if name.length() <= 64 {
-        if !charge_text(buffer.budget, name) {
-          return Err(OutputCapture(CaptureLimit))
+        if charge_text_issue(buffer.budget, name) is Some(issue) {
+          return Err(OutputCapture(issue))
         }
         cursor.phase = Value
       } else {

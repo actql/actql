@@ -10,6 +10,7 @@ priv struct NativeClientRunPlanOriginal {
 // Same-owner first-capture binding. The saved DATA reader cannot create this
 // admission ticket or substitute metadata from another checked Run.
 priv struct NativeClientCapturedRunPlan {
+  program_cid : String
   definition_cid : String
   prepared : String
   authorization : String
@@ -17,59 +18,26 @@ priv struct NativeClientCapturedRunPlan {
 }
 
 ///|
-fn native_run_plan_field(wire : String, field : String) -> String? {
-  let source = match
-    @source.parse_json_bytes_preserving(@utf8.encode(wire), {
-      max_input_bytes: 65536,
-      max_nodes: 8192,
-      max_depth: 64,
-    }) {
-    Ok(value) => value
-    Err(_) => return None
-  }
-  let cursor = match
-    @decode.admit(source, {
-      max_nodes: 8192,
-      max_depth: 64,
-      max_string_bytes: 65536,
-      max_total_string_bytes: 65536,
-    }) {
-    Ok(value) => value
-    Err(_) => return None
-  }
-  let fields = match @decode.open_object(cursor) {
-    Ok(value) => value
-    Err(_) => return None
-  }
-  epoch_text(fields, field)
-}
-
-///|
 fn validate_native_run_plan_original(
   original : NativeClientRunPlanOriginal,
   definition : @publication.PublicationContract,
   program_cid : String?,
+  before_construction? : ((Int64, Int64, Int64) -> Result[
+    Unit,
+    NativeClientRunJournalIssue,
+  ])? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
-  if @publication.publication_contract_name(original.plan) != "compiled_plan" ||
-    @publication.publication_contract_name(definition) != "run_definition" {
+  if !@publication.saved_compiled_plan_matches_definition(
+      original.plan,
+      definition,
+      program_cid,
+    ) {
     return Err(ForeignRun)
+  }
+  if before_construction is Some(reserve) {
+    return native_cold_plan_view(original, reserve)
   }
   let plan_cid = @publication.publication_contract_identity(original.plan)
-  guard native_run_plan_field(
-      @publication.publication_contract_json(definition),
-      "compiled_plan_cid",
-    ) ==
-    Some(plan_cid) &&
-    native_run_plan_field(
-      @publication.publication_contract_json(original.plan),
-      "program_definition_cid",
-    )
-    is Some(actual_program) else {
-    return Err(ForeignRun)
-  }
-  if program_cid is Some(expected) && actual_program != expected {
-    return Err(ForeignRun)
-  }
   let view = match
     @publication.parse_interactive_run_control_shape(
       "plan_view",
@@ -113,24 +81,38 @@ fn capture_native_run_plan_original(
   prepared : @host.PreparedClientProgram,
   compiled : @host.ClientCompiledRun,
   definition : @publication.PublicationContract,
+  before_construction? : ((Int64, Int64, Int64) -> Result[
+    Unit,
+    NativeClientRunJournalIssue,
+  ])? = None,
 ) -> Result[NativeClientCapturedRunPlan, NativeClientRunJournalIssue] {
   if !@host.client_compiled_run_matches(compiled, prepared) ||
     @host.check_client_compiled_run_definition(compiled, definition) is Err(_) {
     return Err(ForeignRun)
   }
-  let view = match
-    @host.client_compiled_run_static_plan_view(
-      compiled, prepared, 65536, 8192, 64,
-    ) {
-    Ok(value) => value
-    Err(_) => return Err(UnsupportedPreparation)
+  let view = match before_construction {
+    Some(reserve) =>
+      match native_funded_static_plan_view(prepared, compiled, reserve) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+    // The unowned legacy API retains its finite codec profile. A larger view
+    // is admitted only through the original Read constructor callback above.
+    None =>
+      match
+        @host.client_compiled_run_static_plan_view(
+          compiled, prepared, 65536, 8192, 64,
+        ) {
+        Ok(value) => value
+        Err(_) => return Err(UnsupportedPreparation)
+      }
   }
   let original = { plan: @host.client_compiled_run_plan(compiled), view, }
-  validate_native_run_plan_original(
-    original,
-    definition,
-    Some(@host.prepared_client_identity(prepared).program_definition_cid),
-  ).map(_ => {
+  // The immutable typed issuer already sealed keys/map and checked the final
+  // shape from this SAME checked owner and compiled Plan. Keep its provenance
+  // ticket; do not reparse the fresh view as if it were cold stored bytes.
+  Ok({
+    program_cid: @host.prepared_client_identity(prepared).program_definition_cid,
     definition_cid: @publication.publication_contract_identity(definition),
     prepared: @publication.run_evidence_value_json(
       @host.client_compiled_run_prepared(compiled),
@@ -145,9 +127,30 @@ fn capture_native_run_plan_original(
 ///|
 fn native_run_plan_original_wire(
   original : NativeClientRunPlanOriginal,
+  before_construction? : ((Int64, Int64, Int64) -> Result[
+    Unit,
+    NativeClientRunJournalIssue,
+  ])? = None,
 ) -> Result[String, NativeClientRunJournalIssue] {
+  let plan = @publication.publication_contract_json(original.plan)
+  guard @encode.quoted_string_construction_extent(plan)
+    is Some((plan_bytes, plan_units)) &&
+    @encode.quoted_string_construction_extent(original.view)
+    is Some((view_bytes, view_units)) else {
+    return Err(Encoding)
+  }
+  let structure = "{\"compiled_plan\":,\"plan_view\":}".length().to_int64()
+  let maximum = match
+    native_metadata_writer_limit(
+      structure + plan_bytes + view_bytes,
+      structure + plan_units + view_units,
+      before_construction,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   try {
-    let writer = @encode.writer(131072, 8, 1)
+    let writer = @encode.writer(maximum, 8, 1)
     @encode.begin_object(writer)
     @encode.key(writer, "compiled_plan")
     @encode.string_value(
@@ -169,9 +172,17 @@ fn read_native_run_plan_original(
   wire : String,
   definition : @publication.PublicationContract,
   program_cid : String?,
+  before_construction? : ((Int64, Int64, Int64) -> Result[
+    Unit,
+    NativeClientRunJournalIssue,
+  ])? = None,
 ) -> Result[NativeClientRunPlanOriginal, NativeClientRunJournalIssue] {
   let fields = match
-    native_run_observation_fields(wire, ["compiled_plan", "plan_view"]) {
+    native_run_observation_fields(
+      wire,
+      ["compiled_plan", "plan_view"],
+      before_construction~,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -179,22 +190,33 @@ fn read_native_run_plan_original(
     epoch_text(fields, "plan_view") is Some(view) else {
     return Err(CustodyLost)
   }
-  let plan = match
-    @publication.admit_publication_contract(
-      "compiled_plan", plan_wire, 65536, 8192, 64,
-    ) {
+  let admitted = match before_construction {
+    Some(reserve) => native_cold_compiled_plan(plan_wire, reserve)
+    None =>
+      @publication.admit_publication_contract(
+        "compiled_plan", plan_wire, 65536, 8192, 64,
+      ).map_err(_ => CustodyLost)
+  }
+  let plan = match admitted {
     Ok(value) => value
-    Err(_) => return Err(CustodyLost)
+    Err(issue) => return Err(issue)
   }
   if @publication.publication_contract_json(plan) != plan_wire {
     return Err(CustodyLost)
   }
   let original = { plan, view, }
-  match validate_native_run_plan_original(original, definition, program_cid) {
+  match
+    validate_native_run_plan_original(
+      original,
+      definition,
+      program_cid,
+      before_construction~,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  guard native_run_plan_original_wire(original) is Ok(canonical) &&
+  guard native_run_plan_original_wire(original, before_construction~)
+    is Ok(canonical) &&
     canonical == wire else {
     return Err(CustodyLost)
   }

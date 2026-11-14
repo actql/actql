@@ -190,6 +190,13 @@ pub fn[I] lower_request_published_query(
     }
     Ok(_) => ()
   }
+  guard owner.computation_limits is Some(program_limits) else {
+    return Err(Request(WrongPhase))
+  }
+  let limits = @publication_host.client_program_query_lowering_limits(
+    program_limits,
+  )
+  let calls = Ref(0L)
   let outcome = if source is Some(source) {
     @publication_host.lower_client_source_input_query(
       source,
@@ -197,6 +204,8 @@ pub fn[I] lower_request_published_query(
       selected.environment,
       parsed,
       public_primary=selected.public_primary,
+      calls_out=Some(calls),
+      limits=Some(limits),
     ).map_err(issue => {
       ClientRequestQueryLoweringIssue::Request(SourceInput(Source(issue)))
     })
@@ -207,6 +216,8 @@ pub fn[I] lower_request_published_query(
       parsed,
       owner.native_query_declarations.map(pair => pair.1),
       public_primary=selected.public_primary,
+      calls_out=Some(calls),
+      limits=Some(limits),
     ).map_err(issue => Publication(issue))
   } else {
     @source_publication.lower_prepared_published_parsed_query(
@@ -215,8 +226,11 @@ pub fn[I] lower_request_published_query(
       parsed,
       selected.declarations,
       public_primary=selected.public_primary,
+      calls_out=Some(calls),
+      limits=Some(limits),
     ).map_err(issue => Publication(issue))
   }
+  owner._observed_query_lower_calls += calls.val
   owner.phase = QueryLoweringFailed
   selected.output = Some(outcome)
   match outcome {
@@ -247,6 +261,13 @@ pub fn[I] lower_request_published_query(
         return Err(Request(WrongPhase))
       }
       owner.held_program = Some(program)
+      // The parser consumed the original SQL/Pipe wire envelope. The checker
+      // reuses this generated Program, admitted by the SAME lowerer envelope;
+      // it must not reapply a raw-document node/byte limit to that artifact.
+      owner.computation_limits = Some({
+        ..program_limits,
+        checking: { ..program_limits.checking, input: limits.program, },
+      })
       owner.phase = QueryLowered
       Ok(output)
     }

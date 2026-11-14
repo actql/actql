@@ -2584,6 +2584,11 @@ pub fn client_program_captured_source_dependency_bodies(
 }
 
 ///|
+// Existing installed Source identity workspace-slot policy, shared by the
+// original capture and its completed prefix. This is no capacity grant.
+let client_installed_source_identity_workspace_slots : Int = 65536
+
+///|
 fn identify_installed_captured_source(
   source : @query.CapturedInputSource,
   retain_body_bytes : Int,
@@ -2613,7 +2618,7 @@ fn identify_installed_captured_source(
       max_depth: 66,
     },
     { max_fields: columns, max_bytes: 100000, max_nodes: 10000, max_depth: 64, },
-    65536,
+    client_installed_source_identity_workspace_slots,
     retain_body_bytes~,
   )
 }
@@ -6329,6 +6334,7 @@ fn client_program_own_effect_export_limits(
 
 ///|
 pub(all) enum ClientEffectManagedInputIssue {
+  UnitPreparation(@client_local_host.ClientEffectUnitPreparationIssue)
   ForeignOutput
   Closed
   Bridge(@execution.ManagedProducerBridgeIssue)

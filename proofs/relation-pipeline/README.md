@@ -134,15 +134,19 @@ specific historical Git objects are still required by the full proof audit;
 shallow-checkout support for the current-source guard does not imply that the
 entire proof suite runs without those objects.
 
-### Four-part hosted evidence
+### Eight-part hosted evidence
 
-The full workflow uses the source-bound `proof-parts.mjs` plan with exactly four
-fresh producers: `L-C0` owns normal/boundary capacity, backing/model evidence,
-custody followed by native-parent evidence, and the full final 114-case corpus on
-three targets. `L-C1` owns all five capacity mutations with unchanged fresh
-search, shrinking, mutated minima and independent instrumented healthy replays.
-`L-M0` and `L-M1` own the reviewed static four-variant groups; fixed and required
-fresh modes remain together in each independent mutable/pristine pair.
+The full workflow uses the source-bound `proof-parts.mjs` plan with exactly eight
+fresh producers. `L-C2` keeps the entire 28-case normal/boundary tuple on all
+three targets and the final 114-case corpus in the same checkout after boundary
+restoration. `L-C3` owns backing/model evidence and custody followed by
+native-parent evidence. Its actual independent support receipts do not become
+generic pipeline executions. `L-C4` and `L-C5` own the first three and final two
+capacity mutations, respectively, with unchanged fresh search, shrinking,
+mutated minima and independent instrumented healthy replays. `L-M2` through
+`L-M5` each own two registry mutations; fixed and required fresh modes remain
+together in each independent mutable/pristine pair. Local logical `L-M0` and
+`L-M1` aliases retain their original complete four-variant groups.
 
 Each mutated root is restored byte-for-byte. Its old executor closes before a
 new owner executes its assigned recovered minima on the same restored root, on
@@ -153,7 +157,7 @@ local consistency and custody checks remain mandatory before sealing.
 
 `ci-parts.mjs` seals a PART envelope, never a full scientific success. Receipts
 and observation IDs receive their part namespace at production. The aggregate
-requires all four successful exact artifact IDs from one workflow/run/attempt,
+requires all eight successful exact artifact IDs from one workflow/run/attempt,
 identical tested source, toolchain and plan, and successful same-source
 synthetic validation (executed once in parallel). Missing or duplicate parts,
 observations, changed receipts, foreign owners and incomplete local obligations

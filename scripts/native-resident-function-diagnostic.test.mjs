@@ -69,6 +69,16 @@ test('diagnostic changes only the hash-fenced original control parent, leaving i
   assert.throws(() => rewriteResidentControlSpawn(source + '\n', {}), /Source hash differs/u);
 });
 
+test('diagnostic refuses missing or duplicate original spawn anchors without a fallback', () => {
+  const anchor = "const child = spawn(executable, ['run', ...configured,";
+  for (const changed of [source.replace(anchor, 'const child = foreignControl('), source + '\n' + anchor]) {
+    // The full Source fence runs first. These changed originals cannot borrow
+    // the reviewed pin merely because other diagnostic fields are present.
+    assert.throws(() => rewriteResidentControlSpawn(changed,
+      {python: '/usr/bin/python3', wrapper: '/test/wrapper.py', report: '/test/report.json'}), /Source hash differs/u);
+  }
+});
+
 test('outer diagnostic suppresses private original output and preserves its nonzero exit', () => {
   let invocation;
   const result = runFunctionDiagnosticCase('/private/report.json', {
@@ -271,8 +281,9 @@ test('missing debugger reports availability without a target attempt or fallback
 
 test('Original Native Effect summaries are retained before diagnostic and independent groups', () => {
   const jobs = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8')).jobs;
-  for (const [name, platform] of [['native', 'linux'], ['native-macos', 'macos']]) {
-    const steps = jobs[name].steps;
+  assert(!jobs['native-macos-workloads'].steps.some(step => step.id === 'native-effect'));
+  for (const [name, platform] of [['native', 'linux']]) {
+    const steps = jobs[name + '-workloads'].steps;
     const effect = steps.findIndex(step => step.id === 'native-effect');
     const artifact = steps[effect + 1];
     assert.equal(artifact.name, 'Retain original Native Effect failure observer summary');
@@ -291,18 +302,18 @@ test('Original Native Effect summaries are retained before diagnostic and indepe
 
 test('Native CI diagnostic is failure-only, bounded, and uploads only sanitized JSON', () => {
   const jobs = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8')).jobs;
-  const original = jobs.native.steps.find(step => step.id === 'native-runtime-test');
+  const original = jobs['native-workloads'].steps.find(step => step.id === 'native-runtime-test');
   assert.equal(original.if, "${{ !cancelled() && steps.native-preparation.outcome == 'success' }}");
   assert.equal(original['continue-on-error'], undefined);
   assert(original.run.includes('node scripts/test-native-resident-site.mjs'));
-  const dependencies = jobs.native.steps.find(step => step.name === 'Select the original pinned Noble static Crypto inputs');
+  const dependencies = jobs['native-workloads'].steps.find(step => step.name === 'Select the original pinned Noble static Crypto inputs');
   assert(dependencies.run.includes('sudo apt-get install --yes "$openssl_development" "$openssl_runtime" gnupg gpgv'));
   assert(!/\bgdb\b/u.test(dependencies.run));
-  const diagnostic = jobs.native.steps.find(step => step.name === 'Diagnose only failed Linux Effect consumer functions');
+  const diagnostic = jobs['native-workloads'].steps.find(step => step.name === 'Diagnose only failed Linux Effect consumer functions');
   assert.equal(diagnostic.if, "${{ !cancelled() && steps.native-effect.outcome == 'failure' }}");
   assert.equal(diagnostic['continue-on-error'], true);
   assert.equal(diagnostic['timeout-minutes'], 6);
-  const debuggerSetup = jobs.native.steps.find(step => step.id === 'failure-debugger');
+  const debuggerSetup = jobs['native-workloads'].steps.find(step => step.id === 'failure-debugger');
   assert.equal(debuggerSetup.if, diagnostic.if);
   assert.equal(debuggerSetup['continue-on-error'], true);
   assert.equal(debuggerSetup['timeout-minutes'], 5);
@@ -311,7 +322,7 @@ test('Native CI diagnostic is failure-only, bounded, and uploads only sanitized 
   const helper = readFileSync(new URL('./diagnose-native-resident-functions.mjs', import.meta.url), 'utf8');
   assert(helper.includes('timeoutSeconds: 295, graceSeconds: 5'));
   assert(helper.includes("fileURLToPath(sourceUrl), '--effect-computation-only'"));
-  const artifact = jobs.native.steps.find(step => step.name === 'Retain only sanitized Linux Effect function availability');
+  const artifact = jobs['native-workloads'].steps.find(step => step.name === 'Retain only sanitized Linux Effect function availability');
   assert.equal(artifact.if, diagnostic.if);
   assert.equal(artifact.with.path, '${{ runner.temp }}/native-effect-functions/sanitized.json');
   assert(!artifact.with.path.includes('*'));
@@ -324,7 +335,7 @@ test('Native CI diagnostic is failure-only, bounded, and uploads only sanitized 
 });
 
 test('Native CI observes an early Effect failure once and preserves Site-only fallback', () => {
-  const steps = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8')).jobs.native.steps;
+  const steps = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8')).jobs['native-workloads'].steps;
   const effect = steps.findIndex(step => step.id === 'native-effect');
   const site = steps.findIndex(step => step.id === 'native-runtime-test');
   const setup = steps.findIndex(step => step.id === 'failure-debugger');
@@ -332,7 +343,7 @@ test('Native CI observes an early Effect failure once and preserves Site-only fa
   const early = steps.slice(setup, setup + 3);
   assert.equal(steps.indexOf(early[2]) + 1, site);
   const fallbackStart = steps.findIndex(step => step.id === 'site-failure-debugger');
-  assert(fallbackStart > steps.findIndex(step => step.id === 'native-cancel'));
+  assert(fallbackStart > steps.findIndex(step => step.id === 'native-background'));
   const fallback = steps.slice(fallbackStart, fallbackStart + 3);
   assert(fallback.every(step => step.name.endsWith(' (Site fallback)')));
   const body = ({name, id, if: condition, ...value}) => value;
@@ -360,11 +371,14 @@ test('Native CI observes an early Effect failure once and preserves Site-only fa
       }
     }
   }
+  const plan = JSON.parse(readFileSync(new URL('./ci-native-background-groups.json', import.meta.url))).native;
   for (const id of ['native-effect', 'native-runtime-test', 'native-source',
     'native-observation', 'native-release', 'native-cancel', 'packed-materials']) {
-    const step = steps.find(step => step.id === id);
+    const inline = steps.find(step => step.id === id);
+    const step = inline ?? plan.flatMap(group => group.steps).find(step => step.id === id);
     assert(step, id);
-    assert.equal(step.if, "${{ !cancelled() && steps.native-preparation.outcome == 'success' }}");
+    assert.equal(inline ? step.if : steps.find(step => step.id === 'native-background-start').if,
+      "${{ !cancelled() && steps.native-preparation.outcome == 'success' }}");
     assert.equal(step['continue-on-error'], undefined);
   }
   const ids = steps.filter(step => step.id).map(step => step.id);

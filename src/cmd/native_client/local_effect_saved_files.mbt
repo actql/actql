@@ -343,6 +343,8 @@ fn LocalCommandPreparationOriginal::apply_saved_effect_files(
   capacity : @execution.ExecutionCapacity,
   initial_raw : Int64,
 ) -> Unit raise ClientStop {
+  native_timing_begin(36)
+  defer native_timing_end(36)
   guard self.business is Some(business) &&
     business.profile.kind == SavedEffectApply &&
     business.execution is Some(execution) &&

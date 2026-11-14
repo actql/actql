@@ -13,6 +13,19 @@ pub fn client_program_reserve_original_infer_publication_capacity(
 }
 
 ///|
+#export_name("clientProgramGrowOriginalInferPublicationCapacity")
+pub fn client_program_grow_original_infer_publication_capacity(
+  active : @infer_host.Execution,
+  capacity : @model.OriginalModelPublicationCapacity,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[Unit, @infer_host.Issue] {
+  @infer_host.grow_original_infer_publication_capacity(
+    active, capacity, retained_bytes, execution_bytes,
+  )
+}
+
+///|
 /// Physical publication retirement remains the caller's responsibility. No
 /// caller Bool or journal observation is used to fabricate this nominal loan.
 #export_name("clientProgramReleaseOriginalInferPublicationCapacity")

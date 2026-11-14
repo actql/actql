@@ -348,6 +348,8 @@ test('shared target reader retains both actual selected Core package target clau
       ['imported_child_ledger_unsupported_wbtest.mbt', ['not', 'wasm']],
     ]],
     ['client_local_host', [
+      ['native_file_task_boundary_js_wbtest.mbt', ['js']],
+      ['collection_request_finalization_js_wbtest.mbt', ['js']],
       ['managed_import_reentry_js_wbtest.mbt', ['js']],
       ['original_values_text_working_js_wbtest.mbt', ['js']],
       ['preparation_request_native_document_js_wbtest.mbt', ['js']],
@@ -416,10 +418,15 @@ test('shared target reader retains both actual selected Core package target clau
       ['installed_keyed_capture_parent_js_wbtest.mbt', ['js']],
       ['installed_capture_provider_source_js_wbtest.mbt', ['js']],
       ['preparation_request_query_syntax_js_wbtest.mbt', ['js']],
+      ['preparation_request_large_literal_js_wbtest.mbt', ['js']],
+      ['preparation_request_query_selection_js_wbtest.mbt', ['js']],
       ['preparation_request_query_lowering_js_wbtest.mbt', ['js']],
       ['preparation_request_snapshot_js_wbtest.mbt', ['js']],
       ['preparation_request_native_input_js_wbtest.mbt', ['js']],
       ['preparation_request_parent_js_wbtest.mbt', ['js']],
+      ['preparation_request_result_metadata_js_wbtest.mbt', ['js']],
+      ['preparation_request_result_read_js_wbtest.mbt', ['js']],
+      ['preparation_request_work_calls_js_wbtest.mbt', ['js']],
       ['preparation_host_initial_js_wbtest.mbt', ['js']],
       ['preparation_request_terminal_js_wbtest.mbt', ['js']],
       ['preparation_request_parameters_js_wbtest.mbt', ['js']],
@@ -462,6 +469,7 @@ test('shared target reader retains both actual selected Core package target clau
       ['installed_effect_provider_plan_js_wbtest.mbt', ['js']],
       ['installed_capture_parent_js_wbtest.mbt', ['js']],
       ['managed_source_free_preparation_js_wbtest.mbt', ['js']],
+      ['completed_task_provenance_js_wbtest.mbt', ['js']],
     ]],
   ]) {
     const source = readFileSync(new URL(`../src/${name}/moon.pkg`, import.meta.url), 'utf8');

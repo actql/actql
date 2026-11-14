@@ -49,6 +49,8 @@ typedef sqlite3_int64 (*actql_sqlite_column_int64_fn)(sqlite3_stmt *, int);
 typedef const void *(*actql_sqlite_column_blob_fn)(sqlite3_stmt *, int);
 typedef int (*actql_sqlite_column_bytes_fn)(sqlite3_stmt *, int);
 typedef int (*actql_sqlite_finalize_fn)(sqlite3_stmt *);
+typedef int (*actql_sqlite_reset_fn)(sqlite3_stmt *);
+typedef int (*actql_sqlite_clear_bindings_fn)(sqlite3_stmt *);
 typedef sqlite3_int64 (*actql_sqlite_changes64_fn)(sqlite3 *);
 typedef int (*actql_sqlite_busy_timeout_fn)(sqlite3 *, int);
 typedef int (*actql_sqlite_get_autocommit_fn)(sqlite3 *);
@@ -89,6 +91,8 @@ typedef struct {
   actql_sqlite_changes64_fn changes64;
   actql_sqlite_busy_timeout_fn busy_timeout;
   actql_sqlite_get_autocommit_fn get_autocommit;
+  actql_sqlite_reset_fn reset;
+  actql_sqlite_clear_bindings_fn clear_bindings;
   /* Immutable successful selection, not available capacity or permission. */
   int64_t selected_heap_bytes;
 } actql_native_sqlite_library;
@@ -117,6 +121,11 @@ typedef struct {
   /* Same Database physical close and descriptor ACK, obtained while current.
    * A later managed-shell return must not call that physical port again. */
   bool checked_close_ack;
+  /* One fixed ordinary-record SELECT, owned by this same connection. Never
+   * keyed by caller SQL or authority. SQLite's existing finite heap backs it;
+   * reset/clear ends every use and physical close finalizes it first. */
+  sqlite3_stmt *record_read_statement;
+  bool record_read_in_use;
   bool library_child;
   int test_close_failures;
   int test_commit_failures;
@@ -345,6 +354,18 @@ static void actql_native_sqlite_library_finalize(void *value) {
   library->error = NULL;
 }
 
+static int actql_retire_record_read_statement(
+  actql_native_sqlite_database *database
+) {
+  if (database->record_read_in_use) return SQLITE_BUSY;
+  sqlite3_stmt *statement = database->record_read_statement;
+  if (statement == NULL) return SQLITE_OK;
+  /* finalize destroys the original statement even when its result is an
+   * error. Spend this alias once; a pending Database close keeps its owner. */
+  database->record_read_statement = NULL;
+  return database->library->finalize(statement);
+}
+
 static void actql_native_sqlite_database_close(
   actql_native_sqlite_database *database
 ) {
@@ -353,6 +374,7 @@ static void actql_native_sqlite_database_close(
     return;
   }
   if (!actql_library_current(database->library) ||
+      actql_retire_record_read_statement(database) != SQLITE_OK ||
       database->library->close_v2(database->database) != SQLITE_OK) return;
   database->database = NULL;
   database->opened = false;
@@ -475,6 +497,7 @@ int32_t actql_native_sqlite_close_checked(
   if (!actql_library_current(database->library)) return 0;
   if (database->journal_pin_close_unknown) return 0;
   if (database->lookup_generation != 0) return 0;
+  if (database->record_read_in_use) return 0;
   if (database->checked_close_ack) return 1;
   if (database->database == NULL) {
     actql_retire_result_storage(database);
@@ -493,6 +516,10 @@ int32_t actql_native_sqlite_close_checked(
   if (database->test_close_failures > 0) {
     database->test_close_failures--;
     actql_replace_error_for(database->library, &database->error, database->diagnostic_ceiling, "injected inspection close failure");
+    return 0;
+  }
+  if (actql_retire_record_read_statement(database) != SQLITE_OK) {
+    actql_database_error(database, "retire journal read statement failed");
     return 0;
   }
   int code = database->library->close_v2(database->database);
@@ -563,17 +590,20 @@ static void actql_native_sqlite_database_finalize(void *value) {
      * component again from the outer context merely to retire this shell. */
     if (!original->database_closed || original->flight || original->sql ||
         database->database != NULL || database->journal_pin_close_unknown ||
+        database->record_read_statement != NULL || database->record_read_in_use ||
         database->lookup_generation != 0 || database->error != NULL ||
         database->result_body != NULL || database->result_key != NULL) return;
   } else if (database->checked_close_ack) {
     /* Only the already-acknowledged shell remains. Re-entering a component
      * here would lose the Library pin when the original scope has ended. */
     if (database->process != getpid() || database->database != NULL ||
+        database->record_read_statement != NULL || database->record_read_in_use ||
         database->journal_pin_close_unknown ||
         database->lookup_generation != 0 || database->error != NULL ||
         database->result_body != NULL || database->result_key != NULL) return;
   } else {
     actql_native_sqlite_database_close(database);
+    if (database->record_read_statement != NULL || database->record_read_in_use) return;
     if (database->library != NULL && database->library->selected_component &&
         (database->database != NULL || database->journal_pin_close_unknown ||
          (database->journal_descriptor_ack != NULL &&
@@ -927,6 +957,8 @@ void *actql_native_sqlite_load_library(
       !ACTQL_LOAD(library, column_blob, "sqlite3_column_blob") ||
       !ACTQL_LOAD(library, column_bytes, "sqlite3_column_bytes") ||
       !ACTQL_LOAD(library, finalize, "sqlite3_finalize") ||
+      !ACTQL_LOAD(library, reset, "sqlite3_reset") ||
+      !ACTQL_LOAD(library, clear_bindings, "sqlite3_clear_bindings") ||
       !ACTQL_LOAD(library, changes64, "sqlite3_changes64") ||
       !ACTQL_LOAD(library, busy_timeout, "sqlite3_busy_timeout") ||
       !ACTQL_LOAD(library, get_autocommit, "sqlite3_get_autocommit")) {
@@ -1321,6 +1353,16 @@ int32_t actql_native_sqlite_test_drop_capacity(
     actql_exec(database, "DROP TABLE actql_capacity") == SQLITE_OK;
 }
 
+// Whitebox-only type corruption preserves key, revision and byte extent.
+int32_t actql_native_sqlite_test_body_text(
+  actql_native_sqlite_database *database
+) {
+  return database != NULL && database->opened &&
+    actql_exec(database, "ALTER TABLE actql_records RENAME TO actql_records_original") == SQLITE_OK &&
+    actql_exec(database, "CREATE TABLE actql_records(" ACTQL_RECORDS_FIELDS ")") == SQLITE_OK &&
+    actql_exec(database, "INSERT INTO actql_records SELECT namespace, record_key, revision, CAST(body AS TEXT) FROM actql_records_original") == SQLITE_OK;
+}
+
 int32_t actql_native_sqlite_database_ready(
   actql_native_sqlite_database *database
 ) {
@@ -1366,20 +1408,35 @@ static int32_t actql_database_read(
   int exact_extent, int64_t expected_revision, int64_t expected_bytes
 ) {
   if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
+  bool reusable = !exact_extent && database->library->reset != NULL &&
+    database->library->clear_bindings != NULL;
+  if (reusable && database->record_read_in_use) {
+    actql_replace_error_for(database->library, &database->error,
+      database->diagnostic_ceiling, "journal read statement is already in use");
+    return -1;
+  }
   actql_clear_result(database);
-  sqlite3_stmt *statement = NULL;
-  int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(
-    database->database,
-    exact_extent ?
-      "SELECT revision, body, typeof(body) = 'blob' FROM actql_records WHERE namespace = ?1 AND record_key = ?2" :
-      "SELECT revision, body FROM actql_records WHERE namespace = ?1 AND record_key = ?2",
-    -1,
-    &statement,
-    NULL
-  );
+  sqlite3_stmt *statement = reusable ? database->record_read_statement : NULL;
+  int code = SQLITE_OK;
+  if (statement == NULL) {
+    code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(
+      database->database,
+      exact_extent ?
+        "SELECT revision, body, typeof(body) = 'blob' FROM actql_records WHERE namespace = ?1 AND record_key = ?2" :
+        "SELECT revision, body FROM actql_records WHERE namespace = ?1 AND record_key = ?2",
+      -1,
+      &statement,
+      NULL
+    );
+  }
   if (code != SQLITE_OK) {
     actql_database_error(database, "prepare journal read failed");
+    if (statement != NULL) database->library->finalize(statement);
     return actql_operation_code(code);
+  }
+  if (reusable) {
+    database->record_read_statement = statement;
+    database->record_read_in_use = true;
   }
   int32_t result = actql_bind_key(
     database,
@@ -1426,9 +1483,23 @@ static int32_t actql_database_read(
       }
     }
   }
-  int finalize_code = database->library->finalize(statement);
-  if (result == 0 && finalize_code != SQLITE_OK) {
-    actql_database_error(database, "finalize journal read failed");
+  int finalize_code;
+  if (reusable) {
+    /* reset does not clear bindings; both are checked, even after a missing,
+     * refused or failed row. No prior key/body/snapshot survives this use. */
+    int reset_code = database->library->reset(statement);
+    int clear_code = database->library->clear_bindings(statement);
+    database->record_read_in_use = false;
+    finalize_code = reset_code != SQLITE_OK ? reset_code : clear_code;
+    if (finalize_code != SQLITE_OK) {
+      database->record_read_statement = NULL;
+      database->library->finalize(statement);
+    }
+  } else {
+    finalize_code = database->library->finalize(statement);
+  }
+  if ((result == 0 || (reusable && result == 1)) && finalize_code != SQLITE_OK) {
+    actql_database_error(database, reusable ? "reset journal read failed" : "finalize journal read failed");
     return actql_operation_code(finalize_code);
   }
   return result;
@@ -1552,7 +1623,9 @@ static int32_t actql_database_scan_after(
   int32_t namespace_length,
   moonbit_bytes_t after_key,
   int32_t after_key_length,
-  int64_t caller_body_limit
+  int64_t caller_body_limit, int extent_mode,
+  const unsigned char *expected_key, int32_t expected_key_length,
+  int64_t expected_revision, int64_t expected_bytes
 ) {
   if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
   if (database->test_name_scan_refusal && namespace_length == 23 &&
@@ -1561,9 +1634,11 @@ static int32_t actql_database_scan_after(
   sqlite3_stmt *statement = NULL;
   int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(
     database->database,
-    "SELECT record_key, revision, body FROM actql_records "
-    "WHERE namespace = ?1 AND record_key > ?2 "
-    "ORDER BY record_key COLLATE BINARY LIMIT 1",
+    extent_mode == 1 ?
+      "SELECT record_key, revision, length(body), typeof(body) = 'blob' FROM actql_records "
+      "WHERE namespace = ?1 AND record_key > ?2 ORDER BY record_key COLLATE BINARY LIMIT 1" :
+      "SELECT record_key, revision, body, typeof(body) = 'blob' FROM actql_records "
+      "WHERE namespace = ?1 AND record_key > ?2 ORDER BY record_key COLLATE BINARY LIMIT 1",
     -1,
     &statement,
     NULL
@@ -1604,34 +1679,43 @@ static int32_t actql_database_scan_after(
       int key_length = database->library->column_bytes(statement, 0);
       const void *key = database->library->column_blob(statement, 0);
       sqlite3_int64 revision = database->library->column_int64(statement, 1);
-      int body_length = database->library->column_bytes(statement, 2);
-      const void *body = database->library->column_blob(statement, 2);
+      int64_t body_length = extent_mode == 1
+        ? database->library->column_int64(statement, 2)
+        : database->library->column_bytes(statement, 2);
+      const void *body = extent_mode == 1 ? NULL : database->library->column_blob(statement, 2);
       if (key_length <= 0 || key_length > 512 || revision < 0 ||
-          body_length < 0 || body_length > database->max_body_bytes ||
-          body_length > INT32_MAX) {
+          body_length < 0 || (extent_mode == 0 && body_length > database->max_body_bytes) ||
+          body_length > INT32_MAX || (extent_mode != 0 && database->library->column_int64(statement, 3) != 1)) {
         actql_replace_error_for(database->library, &database->error, database->diagnostic_ceiling, "invalid stored journal record");
         result = -1;
+      } else if (extent_mode == 2 && (key_length != expected_key_length ||
+          memcmp(key, expected_key, (size_t)key_length) != 0 ||
+          revision != expected_revision || body_length != expected_bytes)) {
+        // Re-run the ordered first-row query, not a point read by old key.
+        // A newly inserted predecessor must refuse rather than be skipped.
+        result = 2;
       } else if (caller_body_limit >= 0 && body_length > caller_body_limit) {
         result = 4;
       } else {
         unsigned char *key_copy = actql_adapter_allocate(database->library, (size_t)key_length);
-        unsigned char *body_copy = body_length == 0
+        unsigned char *body_copy = body_length == 0 || extent_mode == 1
           ? NULL
           : actql_adapter_allocate(database->library, (size_t)body_length);
-        if (key_copy == NULL || (body_length > 0 && body_copy == NULL)) {
+        if (key_copy == NULL || (body_length > 0 && extent_mode != 1 && body_copy == NULL)) {
           actql_adapter_free(database->library, key_copy);
           actql_adapter_free(database->library, body_copy);
           actql_replace_error_for(database->library, &database->error, database->diagnostic_ceiling, "journal scan allocation failed");
           result = -1;
         } else {
           memcpy(key_copy, key, (size_t)key_length);
-          if (body_length > 0) {
+          if (body_length > 0 && extent_mode != 1) {
             memcpy(body_copy, body, (size_t)body_length);
           }
           database->result_key = key_copy;
           database->result_key_length = key_length;
           database->result_body = body_copy;
-          database->result_body_length = body_length;
+          database->result_body_length = extent_mode == 1 ? 0 : (int32_t)body_length;
+          database->result_header_body_bytes = body_length;
           database->result_revision = (int64_t)revision;
         }
       }
@@ -1653,7 +1737,7 @@ int32_t actql_native_sqlite_database_scan_after(
   int32_t after_key_length
 ) {
   return actql_database_scan_after(database, namespace_bytes, namespace_length,
-    after_key, after_key_length, -1);
+    after_key, after_key_length, -1, 0, NULL, 0, 0, 0);
 }
 
 // A caller ceiling is only a physical copy bound, never a reservation or permit.
@@ -1667,7 +1751,34 @@ int32_t actql_native_sqlite_database_scan_after_with_body_limit(
 ) {
   if (max_body_bytes < 0) return 4;
   return actql_database_scan_after(database, namespace_bytes, namespace_length,
-    after_key, after_key_length, max_body_bytes);
+    after_key, after_key_length, max_body_bytes, 0, NULL, 0, 0, 0);
+}
+
+// A metadata-only first-row observation. The bounded key/control constructor
+// belongs to the original Read; no body copy or capacity is obtained here.
+int32_t actql_native_sqlite_database_observe_scan_body_extent(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes, int32_t namespace_length,
+  moonbit_bytes_t after_key, int32_t after_key_length
+) {
+  return actql_database_scan_after(database, namespace_bytes, namespace_length,
+    after_key, after_key_length, -1, 1, NULL, 0, 0, 0);
+}
+
+// The caller has backed the observed extent before either body copy. Preserve
+// key ordering, revision, Blob type and exact extent in this same SQL read.
+int32_t actql_native_sqlite_database_scan_exact_body_extent(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes, int32_t namespace_length,
+  moonbit_bytes_t after_key, int32_t after_key_length,
+  moonbit_bytes_t expected_key, int32_t expected_key_length,
+  int64_t expected_revision, int64_t expected_bytes
+) {
+  if (expected_key_length <= 0 || expected_key_length > 512 ||
+      expected_revision < 0 || expected_bytes < 0 || expected_bytes > INT32_MAX) return 4;
+  return actql_database_scan_after(database, namespace_bytes, namespace_length,
+    after_key, after_key_length, -1, 2, expected_key, expected_key_length,
+    expected_revision, expected_bytes);
 }
 
 static int32_t actql_database_insert(

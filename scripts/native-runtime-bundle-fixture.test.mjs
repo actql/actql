@@ -10,14 +10,171 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {prepareNativeRuntimeBundle, prepareNativeRuntimeBundleLibraries} from './native-runtime-bundle-fixture.mjs';
 import * as selectedEntries from './native-runtime-bundle-fixture.mjs';
+import {prepareNativeResidentPortableRuntime, verifyNativeResidentPortablePreparation} from './native-resident-portable-preparation.mjs';
+import * as portablePreparation from './native-resident-portable-preparation.mjs';
+import {installationFiles} from './moonbit-installation.mjs';
+import {runtimePackageInputs} from './runtime-package-inputs.mjs';
+import {parse} from 'acorn';
+
+function portablePreparationFixture(t) {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-portable-preparation-')));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const put = (path, bytes) => {mkdirSync(join(root, path, '..'), {recursive: true}); writeFileSync(join(root, path), bytes);};
+  put('.gitignore', '_build/\nnode_modules/\n.tools/\npackages/*/dist/\n');
+  put('src/original.mbt', 'original checked source');
+  put('packages/fixture/package.json', '{"name":"@actql/fixture"}');
+  mkdirSync(join(root, 'node_modules/@actql'), {recursive: true});
+  symlinkSync(join(root, 'packages/fixture'), join(root, 'node_modules/@actql/fixture'), 'dir');
+  put('node_modules/dependency/index.js', 'original build dependency');
+  put('node_modules/dependency/empty', '');
+  for (const path of [...installationFiles, 'installed.json']) put('.tools/' + path, 'original tool ' + path);
+  put('.tools/lib/core/original.mbt', 'original standard library');
+  for (const args of [['init', '-q'], ['add', '.'], ['-c', 'user.name=Fixture', '-c',
+    'user.email=fixture@example.invalid', 'commit', '-qm', 'test: retain original fixture']]) {
+    executeChild('git', args, {cwd: root, stdio: 'pipe'});
+  }
+  const env = {...process.env, MOON_HOME: join(root, '.tools')};
+  const names = ['coordinator-core', 'run-host-core', 'transfer-core'];
+  const inputs = runtimePackageInputs(root);
+  const sources = ['connectors_builtin_node', ...new Set(names.flatMap(name => inputs[name].sources))];
+  const artifacts = [...names.flatMap(name => inputs[name].files),
+    ...sources.map(path => '_build/js/release/build/' + path + '/' + path.split('/').at(-1) + '.js')];
+  const calls = [];
+  const execute = (command, args, options) => {
+    calls.push({command, args, options});
+    for (const path of artifacts) put(path, 'original generated software ' + path);
+  };
+  mkdirSync(join(root, '_build'), {recursive: true});
+  const receipt = join(root, '_build/portable.json');
+  const prepare = () => prepareNativeResidentPortableRuntime(root, receipt, {env, execute});
+  const verify = () => verifyNativeResidentPortablePreparation(root, receipt, {env});
+  return {root, env, receipt, artifacts, calls, put, prepare, verify, names};
+}
+
+test('Native portable preparation builds once and verifies original software before each consumer', t => {
+  const f = portablePreparationFixture(t);
+  f.prepare(); f.verify(); f.prepare(); f.verify();
+  assert.deepEqual(f.calls.map(({command, args}) => ({command, args})), [
+    {command: join(f.env.MOON_HOME, 'bin/moon'), args: ['build', '--target', 'js', '--release', 'src/connectors_builtin_node']},
+    {command: process.execPath, args: ['scripts/build-runtime-packages.mjs', ...f.names]},
+  ]);
+  for (const call of f.calls) {
+    assert.equal(call.options.cwd, f.root);
+    assert.equal(call.options.env, f.env);
+    assert.equal(call.options.stdio, 'inherit');
+  }
+  const original = readFileSync(f.receipt);
+  f.verify();
+  assert(readFileSync(f.receipt).equals(original));
+});
+
+test('Native portable preparation refuses changed source, dependencies, tools, flags and artifacts', t => {
+  const f = portablePreparationFixture(t); f.prepare();
+  for (const [path, bytes] of [['src/original.mbt', 'changed source'],
+    ['node_modules/dependency/index.js', 'changed dependency'],
+    ['node_modules/dependency/empty', 'no longer empty'],
+    ['.tools/bin/moonc', 'changed compiler'], [f.artifacts[0], 'corrupt output']]) {
+    const original = readFileSync(join(f.root, path));
+    f.put(path, bytes);
+    assert.throws(f.verify, undefined, path);
+    assert.throws(f.prepare, undefined, path);
+    f.put(path, original);
+  }
+  assert.throws(() => verifyNativeResidentPortablePreparation(f.root, f.receipt,
+    {env: {...f.env, MOON_CC: '/different/compiler'}}), /Foreign portable preparation/u);
+  f.put('node_modules/dependency/new.js', 'new dependency');
+  assert.throws(f.verify, /inventory changed/u);
+  rmSync(join(f.root, 'node_modules/dependency/new.js'));
+  f.verify();
+  assert.equal(f.calls.length, 2, 'A refusal must not rebuild or repair the selected outputs');
+});
+
+test('Native portable preparation rejects foreign receipts and never seals a failed producer', t => {
+  const first = portablePreparationFixture(t), other = portablePreparationFixture(t);
+  first.prepare();
+  assert.throws(() => verifyNativeResidentPortablePreparation(other.root, first.receipt, {env: other.env}),
+    /Foreign portable preparation/u);
+  const original = new Error('Original portable producer failure');
+  assert.throws(() => prepareNativeResidentPortableRuntime(other.root, other.receipt,
+    {env: other.env, execute: () => {throw original;}}), error => error === original);
+  assert.equal(existsSync(other.receipt), false);
+  assert.throws(other.verify, /ENOENT/u);
+});
+
+test('Native portable preparation consumer verifies originals before imports without another build', t => {
+  const f = portablePreparationFixture(t); f.prepare();
+  const source = readFileSync(new URL('./test-native-resident-site.mjs', import.meta.url), 'utf8');
+  const begin = source.indexOf('  const httpLibrary = '), end = source.indexOf('  const moonModule = ', begin);
+  assert(begin >= 0 && end > begin);
+  const calls = [];
+  const invoke = () => runInNewContext(source.slice(begin, end), {
+    process: {env: {ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION: f.receipt}, execPath: process.execPath},
+    repository: f.root, root: '/owned/case', join, moon: join(f.env.MOON_HOME, 'bin/moon'), retainedConsumerMode: false,
+    timedResidentPreparation: (_phase, operation) => operation(),
+    prepareNativeResidentHttpLibrary: () => calls.push('http'),
+    prepareNativeResidentSite: () => calls.push('resident'),
+    prepareNativeRuntimeBundle: () => calls.push('bundle'),
+    prepareNativeRuntimeBundleLibraries: () => calls.push('components'),
+    verifyNativeResidentPortablePreparation: (root, path) => {
+      calls.push('verify'); verifyNativeResidentPortablePreparation(root, path, {env: f.env});
+    },
+    execFileSync: () => {throw new Error('Unexpected duplicate portable build');},
+  });
+  invoke();
+  assert.deepEqual(calls, ['http', 'resident', 'verify', 'bundle', 'components']);
+  assert.equal(f.calls.length, 2);
+  calls.length = 0;
+  f.put(f.artifacts[0], 'corrupt software');
+  assert.throws(invoke);
+  assert.deepEqual(calls, ['http', 'resident', 'verify']);
+});
+
+test('Native Effect portable preparation verifies transfer before any runtime import', t => {
+  const f = portablePreparationFixture(t); f.prepare();
+  const source = readFileSync(new URL('./test-native-resident-site.mjs', import.meta.url), 'utf8');
+  const modeStart = source.indexOf('const effectComputationMode = ');
+  const modeEnd = source.indexOf('const retainedCoordinatorReconstruction =', modeStart);
+  assert(modeStart >= 0 && modeEnd > modeStart);
+  const retainedConsumerMode = runInNewContext(source.slice(modeStart, modeEnd) + 'retainedConsumerMode;', {
+    retainedChainMode: false, process: {argv: ['node', 'resident', '--effect-computation-only'], env: {}},
+  });
+  assert.equal(retainedConsumerMode, true, 'The actual Effect mode requires the retained transfer owner on both OS profiles');
+  const begin = source.indexOf('  const httpLibrary = '), end = source.indexOf('  const moonModule = ', begin);
+  const calls = [];
+  const invoke = () => runInNewContext(source.slice(begin, end), {
+    process: {env: {ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION: f.receipt}, execPath: process.execPath},
+    repository: f.root, root: '/owned/effect', join, moon: join(f.env.MOON_HOME, 'bin/moon'), retainedConsumerMode,
+    timedResidentPreparation: (_phase, operation) => operation(),
+    prepareNativeResidentHttpLibrary: () => calls.push('http'),
+    prepareNativeResidentSite: () => calls.push('resident'),
+    prepareNativeRuntimeBundle: () => calls.push('bundle'),
+    prepareNativeRuntimeBundleLibraries: () => calls.push('components'),
+    verifyNativeResidentPortablePreparation: (root, path) => {
+      calls.push('verify'); verifyNativeResidentPortablePreparation(root, path, {env: f.env});
+    },
+    execFileSync: () => {throw new Error('Unexpected duplicate Effect portable build');},
+  });
+  invoke();
+  assert.deepEqual(calls, ['http', 'resident', 'verify', 'bundle', 'components']);
+  calls.length = 0;
+  rmSync(join(f.root, 'packages/transfer-core/dist/remote_transfer_abi.js'));
+  assert.throws(invoke, /ENOENT/u, 'Missing transfer must refuse before reaching the runtime imports');
+  assert.deepEqual(calls, ['http', 'resident', 'verify']);
+});
 
 function remoteAgentLaunchSource() {
   const source=readFileSync(new URL('./test-native-remote-runtime.mjs',import.meta.url),'utf8');
-  const marker="  if (!valuesHttpsOnly) execFileSync(moon, [\n    'test', 'src/platform_native/remote_agent/native_test',";
-  const start=source.indexOf(marker),end=source.indexOf('\n  verificationSucceeded = true;',start);
-  assert(start>=0 && end>start);
-  assert.equal(source.indexOf(marker,start+1),-1);
-  return source.slice(start,end);
+  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});
+  const launches=tree.body.filter(node=>node.type==='TryStatement').flatMap(node=>node.block.body)
+    .filter(node=>node.type==='IfStatement'&&node.consequent.type==='ExpressionStatement'&&
+      node.consequent.expression.callee?.name==='timedRemotePhase'&&
+      node.consequent.expression.arguments[0]?.value==='agent');
+  assert.equal(launches.length,1);
+  const launch=launches[0],call=launch.consequent.expression.arguments[1].body;
+  assert.equal(launch.test.operator,'!');assert.equal(launch.test.argument.name,'valuesHttpsOnly');
+  assert.equal(call.callee.name,'execFileSync');assert.equal(call.arguments[0].name,'moon');
+  assert.equal(call.arguments[1].elements[1].value,'src/platform_native/remote_agent/native_test');
+  return source.slice(launch.start,launch.end);
 }
 
 function assertRemoteAgentOriginalRoot(t,foreignParent) {
@@ -31,12 +188,16 @@ function assertRemoteAgentOriginalRoot(t,foreignParent) {
   let observation;
   runInNewContext(remoteAgentLaunchSource(),{
     valuesHttpsOnly:false,moon:'original-selected-moon',repositoryRoot:root,
+    timedRemotePhase:(phase,operation)=>{assert.equal(phase,'agent');return operation();},
+    nativeTargetArguments:['--target-dir',join(root,'native-strip-build')],
+    nativeEnvironment:environment=>({...environment,MOON_HOME:join(root,'compiler-tool')}),
     process:{env:parent},agentRoot,sqliteLibrary:'original-sqlite',cryptoLibrary:'original-crypto',
     targetTriple:'original-target',keys:{publicKey:{export:()=> 'original-public-key'}},
     envelope:{body:'original-body',runtimeBundleCid:'original-cid',signature:'original-signature'},
     execFileSync:(command,args,options)=>{
       assert.equal(command,'original-selected-moon');
-      assert.deepEqual(Array.from(args),['test','src/platform_native/remote_agent/native_test','--target','native','--strip']);
+      assert.deepEqual(Array.from(args),['test','src/platform_native/remote_agent/native_test','--target','native','--strip','--target-dir',join(root,'native-strip-build')]);
+      assert.equal(options.env.MOON_HOME,join(root,'compiler-tool'));
       assert.equal(options.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,'original-sqlite');
       assert.equal(options.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY,'original-crypto');
       // Execute the exact caller environment in a real child. This is a
@@ -247,7 +408,7 @@ test('the explicit Resident cold-build budget leaves the other preparation windo
   const optionsStart=source.indexOf('const args=process.argv.slice(2)'),
     optionsEnd=source.indexOf('const target=',optionsStart);
   const prepareStart=source.indexOf('const entries={};'),
-    prepareEnd=source.indexOf("assert.equal(run('git'",prepareStart);
+    prepareEnd=source.indexOf('  return {entries,components,httpReceipt,portableReceipt};',prepareStart);
   const timingStart=source.indexOf('function timedPreparation('),
     timingEnd=source.indexOf('mkdirSync(destination',timingStart);
   assert(optionsStart>=0 && optionsEnd>optionsStart && prepareStart>=0 && prepareEnd>prepareStart);
@@ -285,16 +446,21 @@ test('the explicit Resident cold-build budget leaves the other preparation windo
       prepareNativeRuntimeBundle:prepare('bundle'),prepareNativeResidentSite:prepare('resident'),
       prepareNativeRuntimeBundleLibraries:prepare('components'),
       prepareNativeResidentHttpComponent:prepare('http'),
+      prepareNativeResidentPortableRuntime:(root,path)=>{
+        assert.equal(root,repository);
+        calls.push({name:'portable',path});
+      },
     });
     assert.deepEqual(calls,[
       {name:'bundle',path:join(destination,'native_runtime_bundle'),seconds:900},
       {name:'resident',path:join(destination,'native_remote_resident_site'),seconds:selectedOptions.residentSeconds},
       {name:'components',path:join(destination,'components'),seconds:900},
       {name:'http',path:join(destination,'http'),seconds:900},
+      {name:'portable',path:join(destination,'portable-runtime.json')},
     ]);
-    assert.equal(phases.length,4);
+    assert.equal(phases.length,5);
     assert(phases.every(phase=>phase.succeeded && phase.milliseconds===1));
-    assert.deepEqual(timings.map(item=>item.path),[1,2,3,4]
+    assert.deepEqual(timings.map(item=>item.path),[1,2,3,4,5]
       .map(index=>join(destination,`phase-${index}.timing.json`)));
     for(const [index,item] of timings.entries()){
       assert.deepEqual(item.body,{source:'a'.repeat(40),target:'darwin-arm64',...phases[index]});
@@ -561,4 +727,18 @@ test('bundle libraries use the original component producers and verify their ori
     else assert.deepEqual(prepare(),{sqliteLibrary:join(destination,'sqlite/original.dylib'),
       cryptoLibrary:join(destination,'crypto/original.dylib')});
   }
+});
+
+
+test('shared Native portable module verifies the original prepared software and never rebuilds a refusal',t=>{
+  const f=portablePreparationFixture(t);f.prepare();const calls=[];
+  assert.equal(typeof portablePreparation.prepareNativeResidentPortableCore,'function');
+  const module=()=>portablePreparation.prepareNativeResidentPortableCore(f.root,{env:f.env,preparation:f.receipt,
+    prepare:()=>calls.push('duplicate producer')});
+  assert.equal(module(),join(f.root,'_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js'));
+  assert.deepEqual(calls,[]);
+  f.put(f.artifacts[0],'changed original software');assert.throws(module);assert.deepEqual(calls,[]);
+  const original=new Error('original standalone producer failure');
+  assert.throws(()=>portablePreparation.prepareNativeResidentPortableCore(f.root,{env:f.env,preparation:null,
+    prepare:()=>{throw original;}}),error=>error===original);
 });

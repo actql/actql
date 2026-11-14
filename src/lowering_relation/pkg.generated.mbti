@@ -883,7 +883,7 @@ pub fn prepare_roots(PreparedSequence, RootLimits) -> Result[RootIndex, RootIssu
 
 pub fn prepare_sequence(BoundPrepared, SequenceLimits) -> Result[PreparedSequence, SequenceIssue]
 
-pub fn prepare_sequence_prefix(BoundPrepared, Int, SequenceLimits) -> Result[PreparedSequence, SequenceIssue]
+pub fn prepare_sequence_prefix(BoundPrepared, Int, SequenceLimits, original_input? : Int?) -> Result[PreparedSequence, SequenceIssue]
 
 pub fn prepare_sequence_requirements(PreparedSequence, Array[FragmentEnforcement], Array[(Int, Int64)], Int) -> Result[SequenceRequirements, SequenceRequirementsIssue]
 
@@ -1992,6 +1992,7 @@ pub(all) struct SequencePreparationDemand {
   authored_literal_rows : Int
   authored_literal_cells : Int
   projection_name_bytes_bound : Int
+  authored_expression_nodes : Int
   work_used : Int
 } derive(Eq, @debug.Debug)
 

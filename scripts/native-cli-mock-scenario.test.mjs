@@ -3,11 +3,16 @@ import {runInNewContext} from 'node:vm';
 // here does not establish that the Native mock workflow is implemented.
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
+import {mkdtemp, readFile, rm, stat, writeFile} from 'node:fs/promises';
+import {createServer} from 'node:http';
+import {spawnSync} from 'node:child_process';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {scaffoldProject} from '../packages/native-cli/lib/project-scaffold.mjs';
-import {mockTemplates, runNativeCliMockScenario} from './native-cli-mock-scenario.mjs';
+import {nativeMockAcceptanceObservations, scaffoldProject} from '../packages/native-cli/lib/project-scaffold.mjs';
+import {captureNativeMockCommand, mockTemplates, nativeLauncherEnvelope, runNativeCliMockScenario}
+  from './native-cli-mock-scenario.mjs';
+import {observeNativeJournalExhaustion, requireNativeJournalCapacityRefusal}
+  from './test-native-cli-source-free-install.mjs';
 
 test('installed Mock acceptance requires both complete same-cohort public templates without skips', async () => {
   assert.deepEqual(mockTemplates, ['deal-review-mock', 'churn-risk-mock']);
@@ -26,14 +31,177 @@ test('installed Mock acceptance requires both complete same-cohort public templa
 
 function observation(pid, events = []) {
   return 'ACTQL_NATIVE_TIMINGS ' + JSON.stringify({pid, origin:'first_hook',elapsed_ns:1,clock_current:true,nested_inclusive:true,
-    child_process_counters:false,phase_slots:32,counter_slots:64,initializing_drops:0,invalid_tags:0,invalid_amounts:0,clock_failures:0,overflow:false,stack_overflows:0,parallel_observed:false}) + '\n' +
-    Array.from({length:32},(_,tag)=>'ACTQL_NATIVE_PHASE '+JSON.stringify({tag,name:['startup','config_auth','preparation','execution','save','close','saved_result','journal'][tag] ?? 'private_phase',begins:0,ends:0,inclusive_ns:0,exclusive_ns:0,active:0,overlap:0,unmatched_end:0})+'\n').join('') +
-    Array.from({length:64},(_,tag)=>'ACTQL_NATIVE_COUNTER '+JSON.stringify({tag,name:({0:'sqlite_open_calls',1:'sqlite_prepare_calls',2:'sqlite_step_calls',3:'sqlite_exec_calls',16:'member_hash_calls',17:'parse_check_calls',18:'current_calls',19:'account_auth_calls',20:'run_record_save_calls',22:'host_authorize_calls',23:'captured_read_authorize_calls',24:'publisher_authorize_calls',25:'run_record_read_calls',26:'adoption_digest_calls',46:'backing_allocated_bytes',47:'backing_explicit_zeroed_bytes'})[tag] ?? 'private_counter',count:0})+'\n').join('') +
+    child_process_counters:false,phase_slots:39,counter_slots:70,initializing_drops:0,invalid_tags:0,invalid_amounts:0,clock_failures:0,overflow:false,stack_overflows:0,parallel_observed:false}) + '\n' +
+    Array.from({length:39},(_,tag)=>'ACTQL_NATIVE_PHASE '+JSON.stringify({tag,name:['startup','config_auth','preparation','execution','save','close','saved_result','journal'][tag] ?? {32:'approval_material_complete',33:'approval_reviewer_sign',34:'approval_host_sign',35:'approval_resolution_commit',36:'approval_apply',37:'approval_publish',38:'approval_checkpoint_restore'}[tag] ?? 'private_phase',begins:0,ends:0,inclusive_ns:0,exclusive_ns:0,active:0,overlap:0,unmatched_end:0,sql_prepares:0,current_calls:0})+'\n').join('') +
+    Array.from({length:70},(_,tag)=>'ACTQL_NATIVE_COUNTER '+JSON.stringify({tag,name:({0:'sqlite_open_calls',1:'sqlite_prepare_calls',2:'sqlite_step_calls',3:'sqlite_exec_calls',16:'member_hash_calls',17:'parse_check_calls',18:'current_calls',19:'account_auth_calls',20:'run_record_save_calls',22:'host_authorize_calls',23:'captured_read_authorize_calls',24:'publisher_authorize_calls',25:'run_record_read_calls',26:'adoption_digest_calls',46:'backing_allocated_bytes',47:'backing_explicit_zeroed_bytes',64:'signing_full_boundary_calls',65:'signing_helper_revalidation_calls',66:'request_query_parse_calls',67:'request_query_lower_calls',68:'request_semantic_check_calls',69:'request_program_compile_calls'})[tag] ?? 'private_counter',count:0})+'\n').join('') +
     'ACTQL_NATIVE_ACCEPTANCE_BEGIN ' + JSON.stringify({pid, count: events.length, limit: 32, complete: true}) + '\n' +
     events.map((event, seq) => 'ACTQL_NATIVE_ACCEPTANCE_EVENT ' + JSON.stringify({pid, seq, ...event}) + '\n').join('') +
     'ACTQL_NATIVE_ACCEPTANCE_END ' + JSON.stringify({pid, count: events.length}) + '\n';
 }
 const observedCid = digit => 'sha256:' + digit.repeat(64);
+
+function journalCapacityRefusal({unknown = false, cause = 5001, closed = true} = {}) {
+  const diagnostic = observation(1701).trimEnd().split('\n').map(line => {
+    const index = line.indexOf(' '), prefix = line.slice(0, index);
+    const value = JSON.parse(line.slice(index + 1));
+    if (prefix === 'ACTQL_NATIVE_COUNTER') value.count =
+      ({8: 1, 10: 7, 11: cause, 14: unknown ? 1 : 0})[value.tag] ?? 0;
+    if (prefix === 'ACTQL_NATIVE_PHASE' && value.tag === 5) {
+      value.begins = 1; value.ends = closed ? 1 : 0; value.active = closed ? 0 : 1;
+    }
+    return prefix + ' ' + JSON.stringify(value);
+  }).join('\n') + '\n';
+  return {code: 1, signal: null, stdout: '', stderr:
+    `actql-native-client: LocalSubmissionAcceptance${unknown ? 'Unknown' : 'Unavailable'}` +
+    ` originalSubmissionRequestId=${observedCid('a')} originalOperationAttemptId=cli-${'b'.repeat(64)}` +
+    ' (reconcile with lookup-request; do not resend this operation)\n' +
+    diagnostic + 'ACTQL_NATIVE_LAUNCHER_TIMINGS ' +
+    JSON.stringify({units: 'nanoseconds', preparation: 1, child: 1, total: 2}) + '\n'};
+}
+
+test('Native Journal fresh refusal retains the original reconciliation context', () => {
+  const original = journalCapacityRefusal();
+  const observed = requireNativeJournalCapacityRefusal(original);
+  assert.equal(observed.originalCause, 'Journal.CapacityExceeded');
+  assert.equal(observed.firstCommandCleanupObserved, true);
+  assert.equal(observed.independentPhysicalAck, false);
+  assert(original.stderr.includes(`originalSubmissionRequestId=${observedCid('a')}`));
+  assert(original.stderr.includes(`originalOperationAttemptId=cli-${'b'.repeat(64)}`));
+});
+
+test('Native Journal fresh refusal rejects missing malformed or extra reconciliation context', () => {
+  const original = journalCapacityRefusal();
+  for (const stderr of [
+    original.stderr.replace(/ originalSubmissionRequestId=[^\n]+/u, ''),
+    original.stderr.replace(observedCid('a'), 'sha256:wrong'),
+    original.stderr.replace(`cli-${'b'.repeat(64)}`, 'cli-short'),
+    original.stderr.replace('do not resend this operation', 'resend this operation'),
+    original.stderr.replace(')\n', ') extra\n'),
+    'unexpected error\n' + original.stderr,
+  ]) assert.throws(() => requireNativeJournalCapacityRefusal({...original, stderr}),
+    {code: 'ERR_ASSERTION'});
+});
+
+test('Native Journal shared Read counter cannot become a failed acceptance count', () => {
+  const original = journalCapacityRefusal();
+  const stderr = original.stderr.split('\n').map(line => {
+    const prefix = 'ACTQL_NATIVE_COUNTER ';
+    if (!line.startsWith(prefix)) return line;
+    const value = JSON.parse(line.slice(prefix.length));
+    if (value.tag === 8) value.count = 2424833;
+    return prefix + JSON.stringify(value);
+  }).join('\n');
+  const record = {...original, stderr};
+  const observed = requireNativeJournalCapacityRefusal(record);
+  assert.deepEqual(observed.nativeFailedAcceptanceCount,
+    {status: 'unavailable', counterTag: 8, reason: 'shared-with-original-read-inventory'});
+  assert.equal(observed.originalCause, 'Journal.CapacityExceeded');
+  assert.equal(record.stderr, stderr, 'Keep the original Read observation without subtraction');
+});
+
+test('Native Journal refuses transaction tags after overlapping Compute observations', () => {
+  const original = journalCapacityRefusal();
+  for (const overlap of ['phase', 'inventory']) {
+    const stderr = original.stderr.split('\n').map(line => {
+      const index = line.indexOf(' '), prefix = line.slice(0, index);
+      if (prefix !== 'ACTQL_NATIVE_PHASE' && prefix !== 'ACTQL_NATIVE_COUNTER') return line;
+      const value = JSON.parse(line.slice(index + 1));
+      if (overlap === 'phase' && prefix === 'ACTQL_NATIVE_PHASE' && value.tag === 3) {
+        value.begins = 1; value.ends = 1;
+      }
+      if (overlap === 'inventory' && prefix === 'ACTQL_NATIVE_COUNTER' && value.tag === 60)
+        value.count = 1;
+      return prefix + ' ' + JSON.stringify(value);
+    }).join('\n');
+    assert.throws(() => requireNativeJournalCapacityRefusal({...original, stderr}),
+      {code: 'ERR_ASSERTION'});
+  }
+});
+
+async function journalFixture(t, fault) {
+  const project = await mkdtemp(join(tmpdir(), 'native-journal-exhaustion-oracle-'));
+  t.after(() => rm(project, {recursive: true, force: true}));
+  const hosts = new Map(), calls = [], environment = {ACTQL_NATIVE_TIMINGS: 'prior'};
+  const cli = async (args, cwd, expectedCode = 0) => {
+    const operation = args.slice(6);
+    assert.deepEqual(args.slice(0, 6), ['--mode', 'local', '--config-root', cwd,
+      '--config-file', 'operator.json']);
+    calls.push({cwd, args: operation});
+    if (operation[0] === 'adopt') {
+      assert(!hosts.has(cwd), 'Never replace a project or re-adopt after refusal');
+      const configuration = JSON.parse(await readFile(join(cwd, 'operator.json'), 'utf8'));
+      const local = configuration.native.local;
+      assert([1, 2].includes(local.journal_record_limit));
+      assert.equal(local.journal_snapshot_bytes, 8388608);
+      assert.equal(local.state_parent, cwd);
+      hosts.set(cwd, {limit: local.journal_record_limit, originals: new Map(), attempts: 0});
+      return {code: 0, signal: null, stdout: '{"kind":"local_host_adopted"}'};
+    }
+    const host = hosts.get(cwd); assert(host);
+    if (operation[0] === 'run') {
+      host.attempts++;
+      const document = JSON.parse(await readFile(join(cwd, operation[1]), 'utf8'));
+      if (host.originals.size === host.limit) {
+        assert.equal(expectedCode, 1);
+        assert.equal(host.attempts, host.limit + 1, 'Exactly one failed fresh submission');
+        assert.equal(environment.ACTQL_NATIVE_TIMINGS, '1');
+        assert.equal(environment.ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS, '1');
+        return fault === 'missing' ? {code: 1, signal: null, stdout: '', stderr: ''}
+          : journalCapacityRefusal();
+      }
+      assert.equal(expectedCode, 0);
+      const runId = `${host.limit}-${host.originals.size}`;
+      host.originals.set(runId, {rows: document.stages[0].steps[0].values.rows, file: operation[1]});
+      return {code: 0, signal: null, stdout: JSON.stringify({status: 'succeeded', run_id: runId})};
+    }
+    assert.equal(operation[0], 'result');
+    assert.equal(expectedCode, 0); assert.equal(host.attempts, host.limit + 1);
+    const original = host.originals.get(operation[1]); assert(original);
+    await assert.rejects(readFile(join(cwd, original.file)), {code: 'ENOENT'});
+    return {code: 0, signal: null, stdout: (fault === 'saved' ? [{id: 999}] : original.rows)
+      .map(row => JSON.stringify(row)).join('\n') + '\n'};
+  };
+  return {project: join(project, 'cases'), cli, environment, hosts, calls,
+    assets: {environment: JSON.stringify({host_policy_profile: {capacity: {}}}),
+      'result-policy': '{"version":"explicit-test-policy"}',
+      registry: '{}', values: '{}', fragment: '{}', ordered: '{}'},
+    libraries: {sqlite: '/explicit-port-not-loaded-sqlite.dylib',
+      crypto: '/explicit-port-not-loaded-crypto.dylib'}, runtimeWire: '{}'};
+}
+
+test('Native Journal explicit limits precede adopt and all old Saved survive one failed fresh intent', async t => {
+  const fixture = await journalFixture(t), before = {...fixture.environment};
+  const observed = await observeNativeJournalExhaustion(fixture);
+  assert.deepEqual(observed.observations.map(row => row.limit), [1, 2]);
+  assert.deepEqual(observed.observations.map(row => row.acceptedSubmissions), [1, 2]);
+  assert(observed.observations.every(row => row.allOriginalSavedAfterRefusal));
+  assert.equal(fixture.hosts.size, 2);
+  assert.deepEqual([...fixture.hosts.values()].map(row => row.attempts), [2, 3]);
+  assert.deepEqual(fixture.environment, before);
+});
+
+test('Native Journal refusal oracle rejects Unknown foreign cause and unfinished first cleanup', () => {
+  assert.equal(requireNativeJournalCapacityRefusal(journalCapacityRefusal()).originalCause,
+    'Journal.CapacityExceeded');
+  for (const input of [{unknown: true}, {cause: 5002}, {closed: false}])
+    assert.throws(() => requireNativeJournalCapacityRefusal(journalCapacityRefusal(input)), {code: 'ERR_ASSERTION'});
+});
+
+test('Native Journal refuses changed old Saved without a new Host or repeated failed submission', async t => {
+  const fixture = await journalFixture(t, 'saved');
+  await assert.rejects(observeNativeJournalExhaustion(fixture), {code: 'ERR_ASSERTION'});
+  assert.equal(fixture.hosts.size, 1);
+  assert.equal([...fixture.hosts.values()][0].attempts, 2);
+});
+
+test('Native Journal missing observations fail without retry and restore original flags', async t => {
+  const fixture = await journalFixture(t, 'missing'), before = {...fixture.environment};
+  await assert.rejects(observeNativeJournalExhaustion(fixture), /timing trailer missing/u);
+  assert.equal(fixture.hosts.size, 1);
+  assert.equal([...fixture.hosts.values()][0].attempts, 2);
+  assert.deepEqual(fixture.environment, before);
+});
+
 function commandObservations(command, pid) {
   const events = [];
   for (let ordinal = 0; ordinal < 2; ordinal++) {
@@ -364,4 +532,123 @@ for (const [name, envelope] of [
   const options=await fixture(t,'deal-review-mock',({record})=>{record.stderr=envelope(record.stderr);});
   options.launcherTimings='required';
   await assert.rejects(runNativeCliMockScenario(options));
+});
+
+test('Native mock command capture preserves complete diagnostics on an owned regular stderr file', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'native-mock-stderr-'));
+  t.after(() => rm(root, {recursive:true, force:true}));
+  const server = createServer((_request, response) => response.end('original registry is responsive'));
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => new Promise(resolve => server.close(resolve)));
+  const events = [0,1].flatMap(ordinal => [0,1,2].map(tag =>
+    ({tag,ordinal,identity:observedCid(String(ordinal + 1))})));
+  const native = observation(901, events) + observation(902), original = native + launcherTimingTrailer();
+  assert(Buffer.byteLength(original) > 16 * 1024, 'Exercise more than a small pipe window');
+  const payload = join(root, 'original.txt'), stderrPath = join(root, 'command.stderr');
+  await writeFile(payload, original);
+  const source = `import assert from 'node:assert/strict';
+    import {fstatSync,readFileSync,writeSync} from 'node:fs';
+    assert(fstatSync(2).isFile());
+    const reply=await fetch(process.argv[2]);
+    assert.equal(await reply.text(),'original registry is responsive');
+    const body=readFileSync(process.argv[1]);
+    for(let offset=0;offset<body.length;offset+=512)
+      assert.equal(writeSync(2,body.subarray(offset,offset+512)),Math.min(512,body.length-offset));
+    writeSync(1,'complete original child\\n');`;
+  const result = await captureNativeMockCommand(process.execPath,
+    ['--input-type=module','-e',source,payload,`http://127.0.0.1:${server.address().port}`],
+    {cwd:root, env:process.env, stderrPath, timeout:5000});
+  assert.equal(result.stdout, 'complete original child\n');
+  assert.equal(result.stderr, original);
+  assert.equal(await readFile(stderrPath, 'utf8'), original);
+  assert.equal((await stat(stderrPath)).mode & 0o777, 0o600);
+  const envelope = nativeLauncherEnvelope(result.stderr, 'required');
+  assert.equal(envelope.native, native);
+  assert.equal(nativeMockAcceptanceObservations(envelope.native)[0].events.length, 6);
+  await assert.rejects(captureNativeMockCommand(process.execPath, ['-e','process.exit(99)'],
+    {cwd:root,env:process.env,stderrPath,timeout:5000}), {code:'EEXIST'});
+  assert.equal(await readFile(stderrPath, 'utf8'), original, 'Never overwrite the original diagnostic file');
+});
+
+test('Native mock command capture retains original failures and bounded reads', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'native-mock-capture-failures-'));
+  t.after(() => rm(root, {recursive:true, force:true}));
+  for (const [name, source, options, expected] of [
+    ['nonzero', "process.stderr.write('original error\\n');process.exitCode=7", {}, {code:7,exitCode:7,signal:null,stderr:'original error\n'}],
+    ['signal', "process.kill(process.pid,'SIGTERM')", {}, {code:null,exitCode:null,signal:'SIGTERM'}],
+    ['timeout', 'setInterval(()=>{},1000)', {timeout:100}, {code:'ETIMEDOUT',signal:'SIGKILL',killed:true}],
+    ['stdout', "require('node:fs').writeSync(1,Buffer.alloc(4096,120))", {maxBuffer:32}, {code:'ERR_CHILD_PROCESS_STDIO_MAXBUFFER'}],
+    ['stderr', "require('node:fs').writeSync(2,Buffer.alloc(4096,120));setInterval(()=>{},1000)", {maxBuffer:32}, {code:'ERR_CHILD_PROCESS_STDIO_MAXBUFFER',exitCode:null,signal:'SIGKILL',killed:true}],
+  ]) {
+    await assert.rejects(captureNativeMockCommand(process.execPath, ['-e',source],
+      {cwd:root,env:process.env,stderrPath:join(root,name+'.stderr'),timeout:5000,...options}), error => {
+      for (const [key,value] of Object.entries(expected)) assert.equal(error[key],value,name+': '+key);
+      assert(Buffer.byteLength(error.stdout) <= (options.maxBuffer ?? 8 * 1024 * 1024));
+      assert(Buffer.byteLength(error.stderr) <= (options.maxBuffer ?? 8 * 1024 * 1024));
+      return true;
+    });
+  }
+});
+
+test('Native mock command capture cannot launder incomplete or foreign diagnostic rows', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'native-mock-capture-refusals-'));
+  t.after(() => rm(root, {recursive:true, force:true}));
+  const native = observation(902);
+  for (const [index, original] of [
+    native+'ACTQL_NATIVE_ACCEPTANCE_EVEN'+launcherTimingTrailer(),
+    native+launcherTimingTrailer()+launcherTimingTrailer(),
+    native+launcherTimingTrailer()+'unknown trailing garbage\n',
+    'original Native error\n'+native+launcherTimingTrailer(),
+    native,
+  ].entries()) {
+    const payload = join(root,index+'.txt'); await writeFile(payload,original);
+    const result = await captureNativeMockCommand(process.execPath,
+      ['-e',"require('node:fs').writeSync(2,require('node:fs').readFileSync(process.argv[1]))",payload],
+      {cwd:root,env:process.env,stderrPath:join(root,index+'.stderr'),timeout:5000});
+    assert.equal(result.stderr,original);
+    assert.throws(() => nativeMockAcceptanceObservations(nativeLauncherEnvelope(result.stderr,'required').native));
+  }
+});
+
+test('Native mock command capture stops continuous stderr growth before timeout', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'native-mock-live-limit-'));
+  t.after(() => rm(root, {recursive:true, force:true}));
+  await assert.rejects(captureNativeMockCommand(process.execPath,
+    ['-e',"setInterval(()=>require('node:fs').writeSync(2,Buffer.alloc(1024,120)),2)"],
+    {cwd:root,env:process.env,stderrPath:join(root,'live.stderr'),timeout:3000,maxBuffer:4096}), error => {
+    assert.equal(error.code,'ERR_CHILD_PROCESS_STDIO_MAXBUFFER');
+    assert.equal(error.signal,'SIGKILL');
+    assert.equal(error.killed,true);
+    assert(Buffer.byteLength(error.stderr)<=4096);
+    return true;
+  });
+});
+
+test('Native mock command capture stops its actual descendant writer with the original command group', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'native-mock-descendant-limit-'));
+  t.after(() => rm(root, {recursive:true, force:true}));
+  const writer = "setInterval(()=>require('node:fs').writeSync(2,Buffer.alloc(1024,120)),2)";
+  const parent = `const child=require('node:child_process').spawn(process.execPath,
+    ['-e',process.argv[1]],{stdio:'inherit'});
+    console.log(JSON.stringify({parent:process.pid,child:child.pid}));
+    child.once('exit',()=>process.exitCode=0);`;
+  let originals;
+  await assert.rejects(captureNativeMockCommand(process.execPath, ['-e',parent,writer],
+    {cwd:root,env:process.env,stderrPath:join(root,'group.stderr'),timeout:5000,maxBuffer:4096}), error => {
+    assert.equal(error.code,'ERR_CHILD_PROCESS_STDIO_MAXBUFFER');
+    assert.equal(error.signal,'SIGKILL');
+    assert.equal(error.killed,true);
+    originals=JSON.parse(error.stdout.trim());
+    assert(Number.isSafeInteger(originals.parent) && Number.isSafeInteger(originals.child));
+    assert.notEqual(originals.parent,originals.child);
+    return true;
+  });
+  for (const pid of Object.values(originals)) {
+    // As in the existing local supervisor, a zombie has exited and cannot
+    // retain the inherited descriptors. This is no external resource ACK.
+    const observed=spawnSync('/bin/ps',['-p',String(pid),'-o','stat='],{encoding:'utf8',timeout:5000});
+    assert(!observed.error && (observed.status===1 && observed.stdout.trim()==='' ||
+      observed.status===0 && observed.stdout.trim().startsWith('Z')),
+    'Exact original command/descendant must no longer be live: '+pid);
+  }
 });

@@ -26,6 +26,7 @@ struct InstalledArenaRetainedExecution {
     @bootstrap.NativeBackedInitializationIssue,
   ])?
   mut owns_read : Bool
+  mut nonmodel_prepared_work_selected : Bool
   mut child_started : Bool
   mut active : Bool
   mut scope_failed : Bool
@@ -95,6 +96,7 @@ fn InstalledArenaHost::prepare_domain_retained_execution_record(
     ledger: None,
     initialization_cleanup: None,
     owns_read: false,
+    nonmodel_prepared_work_selected: false,
     child_started: false,
     active: false,
     scope_failed: false,

@@ -88,14 +88,14 @@ fn select_client_direct_acquisition_occurrences_owned(
       is @acquisition.Direct(_, _) else {
       continue
     }
-    let coordinate = match
+    let (stage, input, task, source_input) = match
       client_direct_acquisition_occurrence_coordinate(
         prepared, check, remaining,
       ) {
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
-    let (stage, input, task) = coordinate
+    let coordinate = (stage, input, task)
     // Three inventory probes and both ordered array shifts spend this same
     // finite selector allowance before examining or extending the arrays.
     if coordinates.length() > remaining.val / 5 {
@@ -105,7 +105,7 @@ fn select_client_direct_acquisition_occurrences_owned(
     if coordinates.any(previous => previous.0 == stage && previous.1 == input) {
       return Err(DuplicateCapture)
     }
-    if coordinates.any(previous => previous.2 == task) {
+    if source_input || coordinates.any(previous => previous.2 == task) {
       whole = true
     }
     // Preserve captured-task order for Query callers. Complete inputs in the
@@ -132,7 +132,7 @@ fn client_direct_acquisition_occurrence_coordinate(
   prepared : PreparedClientProgram,
   check : @checked.SourceExecution,
   remaining : Ref[Int],
-) -> Result[(Int, Int, Int), ClientDirectAcquisitionOccurrenceIssue] {
+) -> Result[(Int, Int, Int, Bool), ClientDirectAcquisitionOccurrenceIssue] {
   let graph = prepared.graph
   let identity = @checked.source_identity(@strategy.graph_program(graph))
   let captures = @strategy.graph_captured_prefix(graph)
@@ -171,19 +171,21 @@ fn client_direct_acquisition_occurrence_coordinate(
       return Err(WorkLimit)
     Err(_) => return Err(UnsupportedShape)
   }
-  let (target, pipeline) = match route {
+  let (target, pipeline, source_input) = match route {
     @acquisition.QueryRoute(acquisition) => {
       remaining.val -= @acquisition.query_acquisition_work(acquisition)
       (
         @acquisition.query_acquisition_capture(acquisition),
         @acquisition.query_acquisition_pipeline(acquisition),
+        false,
       )
     }
     @acquisition.WholeInputRoute(acquisition) => {
       remaining.val -= @acquisition.source_acquisition_work(acquisition)
       (
-        @pipeline.Input(0),
+        @acquisition.source_acquisition_input(acquisition),
         @acquisition.source_acquisition_pipeline(acquisition),
+        true,
       )
     }
   }
@@ -195,12 +197,13 @@ fn client_direct_acquisition_occurrence_coordinate(
   }
   guard task is Some(task) &&
     task >= 0 &&
-    task < captures &&
+    task < tasks &&
+    (source_input || task < captures) &&
     @strategy.graph_task_owner(graph, task) is Some(owner) &&
     physical_equal(@lower.pipeline(@lower.bound_preparation(owner)), pipeline) else {
     return Err(UnsupportedShape)
   }
-  Ok((subject.stage, subject.input, task))
+  Ok((subject.stage, subject.input, task, source_input))
 }
 
 ///|

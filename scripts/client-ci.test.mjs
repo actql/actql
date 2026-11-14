@@ -37,10 +37,15 @@ import {machineCid} from './actql-spec-family.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const {jobs} = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const normal = "${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}";
-const groups = ['client-packages', 'client-supported-versions', 'client-distribution', 'client-distribution-callers', 'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-packed-composition', 'client-salesforce'];
+const groups = ['client-packages', 'client-supported-versions', 'client-distribution', 'client-distribution-callers', 'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-composition', 'client-salesforce'];
+const acceptanceGroups = [...groups.slice(0, 6), 'native-cli-installed', ...groups.slice(6)];
 const consumers = ['client-distribution', 'client-distribution-callers',
   'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-composition'];
-const runs = name => jobs[name].steps.filter(step => step.run).map(step => step.run.trim());
+const runs = name => jobs[name].steps.filter(step => step.run).flatMap(step => {
+  const command = step.run.trim();
+  if (name !== 'client-distribution-mutations' || !command.includes('${{ matrix.script }}')) return [command];
+  return jobs[name].strategy.matrix.include.map(({script}) => command.replace('${{ matrix.script }}', script));
+});
 const run = (script, env) => spawnSync('bash', ['-eo', 'pipefail', '-c', script], {
   cwd: root, env: {...process.env, ...env}, encoding: 'utf8',
 });
@@ -381,8 +386,11 @@ test('packed composition Source publications retain the authored Host policy bef
       `../adapters/host-node/fixtures/two-source/${name}.environment.json`, import.meta.url), 'utf8'));
     const before = structuredClone(original);
     const unbound = await publicFixtureEnvironment(original);
-    assert.deepEqual(JSON.parse(composeInstalledCheckEnvironment(moon, baseWire,
-      canonicalText(unbound))).host_policy_profile, base.host_policy_profile);
+    assert.deepEqual(unbound.host_policy_profile, original.host_policy_profile,
+      'omitting a Host policy retains the authored older fixture, not current policy');
+    assert.notDeepEqual(unbound.host_policy_profile, base.host_policy_profile);
+    assert.throws(() => composeInstalledCheckEnvironment(moon, baseWire, canonicalText(unbound)),
+      error => error.code === 'InstalledCheckEnvironmentConflict' && error.cause === 'EnvironmentBase');
     const {evidence_bundle_cid: ignored, ...differentHost} = structuredClone(base);
     void ignored;
     differentHost.host_policy_profile.capacity.max_relation_output_rows++;
@@ -707,7 +715,7 @@ test('source-only Client wire and scratch tests do not wait for a producer or ru
     'packages/client-wire/submission-check-semantics.test.mjs', 'scripts/owned-scratch.test.mjs'];
   const step = jobs.lint.steps.find(step => step.name === 'Test source-only Client wire contracts');
   assert(step);
-  assert.deepEqual(jobs.lint.needs, ['select-targets', 'preflight']);
+  assert.deepEqual(jobs.lint.needs, ['select-targets']);
   assert.equal(step.if, "${{ needs.select-targets.outputs.profile == 'full' }}");
   assert.equal(step.run, 'node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- ' + files.slice(0, 2).join(' '));
   assert(!jobs.lint.needs.includes('client-packages'));
@@ -735,7 +743,7 @@ test('source-only evaluation tests have one early bounded CI owner', () => {
     'examples/infer-evaluation/compare-source-instructions.test.mjs'];
   const step = jobs.lint.steps.find(step => step.name === 'Test source-only INFER evaluation contracts');
   assert(step);
-  assert.deepEqual(jobs.lint.needs, ['select-targets', 'preflight']);
+  assert.deepEqual(jobs.lint.needs, ['select-targets']);
   assert.equal(step.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
   assert.equal(step.run, 'node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- ' + files.join(' '));
   assert(jobs.lint.steps.indexOf(step) < jobs.lint.steps.findIndex(step => step.name === 'Type-check public SDK and Client wire declarations'));
@@ -747,6 +755,34 @@ test('source-only evaluation tests have one early bounded CI owner', () => {
     assert.deepEqual(selected.map(owner => owner.name), ['lint']);
     assert(local.split(/\s+/u).includes(file));
   }
+});
+
+test('three-Source packed approval publishes three distinct bound input names', async () => {
+  const {mockProjectFiles: original} = await import('./fixtures/hubspot-approval/mock-project.mjs');
+  const {mockProjectFiles: threeSource} = await import('./fixtures/hubspot-approval/three-source-mock-project.mjs');
+  const selection = {recordId: '9007199254740993', previousName: 'Before', nextName: 'After'};
+  const originalFiles = original(selection), selectedFiles = threeSource(selection);
+  const originalCatalog = JSON.parse(originalFiles['mock/catalog.json']);
+  const selectedCatalog = JSON.parse(selectedFiles['mock/catalog.json']);
+  const aliases = selectedCatalog.connections.hubspot.query_aliases;
+  assert.deepEqual(aliases, [
+    {name: 'hubspot.companies', resource: 'companies'},
+    {name: 'hubspot.companies_middle', resource: 'companies'},
+    {name: 'hubspot.companies_right', resource: 'companies'},
+  ]);
+  const program = readFileSync(new URL('./fixtures/hubspot-approval/three-source-update.aql', import.meta.url), 'utf8');
+  const relations = [...program.matchAll(/\b(?:FROM|JOIN)\s+(\S+)\s+AS\b/gu)].map(match => match[1]);
+  assert.deepEqual(relations, aliases.map(alias => alias.name));
+  assert.equal(new Set(relations).size, 3, 'SQL range aliases alone do not create separate published inputs');
+  // Only published-name DATA differs; all schema, backing data, write and
+  // approval policy, original identifiers and default fixture files remain.
+  selectedCatalog.connections.hubspot.query_aliases = originalCatalog.connections.hubspot.query_aliases;
+  assert.deepEqual(selectedCatalog, originalCatalog);
+  selectedFiles['mock/catalog.json'] = originalFiles['mock/catalog.json'];
+  assert.deepEqual(selectedFiles, originalFiles);
+  const runner = readFileSync(new URL('./test-packed-hubspot-source.mjs', import.meta.url), 'utf8');
+  assert(runner.includes("threeSourceMock && path === 'scripts/fixtures/hubspot-approval/mock-project.mjs'"));
+  assert(runner.includes("? 'scripts/fixtures/hubspot-approval/three-source-mock-project.mjs'"));
 });
 
 test('each Client group retains its acceptance commands exactly once', () => {
@@ -766,23 +802,30 @@ test('each Client group retains its acceptance commands exactly once', () => {
     'client-distribution-callers': Array.from({length: 36}, (_, index) => index + 17),
     'client-distribution-mutations': [6, 7, 8, 9],
     'client-distribution-packed': [5, 10, 11, 12, 13, 14],
-    'client-distribution-native': [15, 16],
   };
   for (const [name, indexes] of Object.entries(partitions)) {
     assert.deepEqual(runs(name), [
       ...(['client-distribution', 'client-distribution-callers', 'client-distribution-mutations'].includes(name) ? prepared : []),
       ...indexes.map(index => index === 4 ? distributionContracts : original[index]),
+      ...(name === 'client-distribution' ? ['npm run check:provider-ai-sdk', 'npm run check:otel-node'] : []),
     ], name);
   }
+  const hooks = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).scripts;
+  assert.equal(hooks['postcheck:distribution-client'], 'npm run check:provider-ai-sdk && npm run check:otel-node');
+  assert.deepEqual(hooks['postcheck:distribution-client'].split(' && '),
+    runs('client-distribution').slice(-2), 'local lifecycle and independent CI owners execute the same two commands once');
+  assert.equal(hooks['check:otel-node'], 'npm ci --prefix packages/otel-node --ignore-scripts && node scripts/test-otel-node.mjs');
   assert.deepEqual(Object.values(partitions).flat().sort((a, b) => a - b),
-    Array.from({length: 49}, (_, index) => index + 4),
-    'every original command keeps its owner; source-only arguments move to lint and only four preparation commands repeat');
+    Array.from({length: 49}, (_, index) => index + 4).filter(index => ![15, 16].includes(index)),
+    'only the duplicate Native compiler is retired and its transport suite moves to the installed Remote owner');
+  assert(jobs.client.needs.includes('native-cli-installed'));
+  const installed = readFileSync(new URL('./ci-native-cli-installed.mjs', import.meta.url), 'utf8');
+  assert(installed.includes("join(repository, 'scripts/test-native-client.mjs')"));
+  assert.equal(original[16], 'node scripts/test-native-client.mjs');
   assert(!jobs['client-distribution-packed'].steps.some(step => step.id === 'distribution-preparation'),
     'normal tar acceptance does not rebuild the checkout runtime');
-  assert.deepEqual(jobs['client-distribution-native'].needs, ['select-targets', 'preflight']);
   assert.deepEqual(runs('client-packed'), [
-    `sudo apt-get update
-sudo apt-get install --yes clang-19
+    `bash scripts/ci-install-linux-clang.sh
 compiler_bin="$RUNNER_TEMP/packed-query-compiler"
 mkdir -m 700 "$compiler_bin"
 ln -s "$(realpath /usr/bin/clang-19)" "$compiler_bin/cc"
@@ -794,25 +837,29 @@ echo "$compiler_bin" >> "$GITHUB_PATH"`,
     'node scripts/test-packed-hubspot-source.mjs --ci --kintone-approval',
     'node scripts/test-packed-hubspot-source.mjs --ci --mock-salesforce-approval',
     'node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-approval',
+    'node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-whole-approval',
+    'node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-three-source-approval',
+    'node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-binary-source-approval',
     'node scripts/test-packed-hubspot-source.mjs --ci --mock-kintone-approval',
     'npm run check:packed-embedded-checkpoint',
     'node scripts/test-packed-single-infer.mjs',
     'node scripts/test-packed-infer-evaluation.mjs',
     'node scripts/test-packed-acquired-infer.mjs',
+    `node --test scripts/packed-query-evidence.test.mjs
+node scripts/test-packed-public-query.mjs --ci-part=\${{ matrix.query-part }}`,
+    'node scripts/test-packed-result-description.mjs',
     `test "$(realpath "$(command -v cc)")" = "$(realpath /usr/bin/clang-19)"
 cc --version
-node --test scripts/packed-query-evidence.test.mjs
-node scripts/test-packed-public-query.mjs`,
-    'node scripts/test-packed-result-description.mjs',
+node scripts/test-packed-public-query.mjs --ci-part=native`,
   ]);
   const approvalSteps = jobs['client-packed'].steps.filter(step =>
     step.run?.startsWith('node scripts/test-packed-hubspot-source.mjs --ci '));
-  assert.equal(approvalSteps.length, 5, 'Each connector consumer is independently scheduled');
-  assert.equal(new Set(approvalSteps.map(step => step.name)).size, 5);
+  assert.equal(approvalSteps.length, 8, 'Each connector/acquisition consumer is independently scheduled');
+  assert.equal(new Set(approvalSteps.map(step => step.name)).size, 8);
   for (const step of approvalSteps) {
     assert(step.name.startsWith('Test packed '));
     assert.deepEqual(step.env, {ACTQL_TEST_PRESERVE_SCRATCH: '1'});
-    assert.equal(step.if, "${{ !cancelled() && steps.client-inputs.outcome == 'success' }}");
+    assert.equal(step.if, "${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}");
     assert.equal(step['continue-on-error'], undefined);
   }
   assert.deepEqual(runs('client-packed-composition'), ['node scripts/test-packed-salesforce-source.mjs']);
@@ -833,22 +880,36 @@ done`,
   for (const name of groups.filter(name => name !== 'client-supported-versions')) {
     assert.equal(jobs[name].if, normal);
     assert.equal(jobs[name]['runs-on'], 'ubuntu-24.04');
-    assert.equal(jobs[name]['timeout-minutes'], name === 'client-packed' ? 75 : 30, name);
-    assert.equal(jobs[name].strategy, undefined, 'no fail-fast sibling cancellation');
+    assert.equal(jobs[name]['timeout-minutes'], name === 'client-packed' ? 45 : 30, name);
+    if (name === 'client-packed') {
+      assert.equal(jobs[name].strategy['fail-fast'], false, 'no fail-fast sibling cancellation');
+      assert.deepEqual(jobs[name].strategy.matrix.group, ['connectors', 'infer', 'query-portable-1', 'query-portable-2', 'query-portable-3', 'query-native']);
+    } else if (name === 'client-distribution-mutations') {
+      assert.equal(jobs[name].strategy['fail-fast'], false);
+    } else assert.equal(jobs[name].strategy, undefined, 'no fail-fast sibling cancellation');
     for (const step of jobs[name].steps.filter(step => step.run)) {
       let preparation;
       if (step.name?.startsWith('Test ')) {
         if (['client-packed', 'client-packed-composition', 'client-distribution-packed'].includes(name)) preparation = 'client-inputs';
-        else if (name === 'client-distribution-native') preparation = 'native-client-preparation';
         else if (Object.hasOwn(partitions, name)) preparation = 'distribution-preparation';
       }
-      assert.equal(step.if, preparation
+      if (name === 'client-packed') {
+        const group = /matrix\.group == '([^']+)'/u.exec(step.if)?.[1];
+        assert(jobs[name].strategy.matrix.group.includes(group));
+        const terms = step.if.slice(3, -2).split('&&').map(term => term.trim()).sort();
+        const ownership = step.id === 'packed-query'
+          ? "(matrix.group == 'query-portable-1' || matrix.group == 'query-portable-2' || matrix.group == 'query-portable-3')"
+          : `matrix.group == '${group}'`;
+        assert.deepEqual(terms, [ownership, ...(preparation
+          ? ['!cancelled()', `steps.${preparation}.outcome == 'success'`] : [])].sort(),
+        'matrix ownership retains the original preparation/current-cancellation barrier');
+      } else assert.equal(step.if, preparation
         ? '${{ !cancelled() && steps.' + preparation + ".outcome == 'success' }}" : undefined,
       'independent cases require their original successful preparation, not a previous case');
       assert.equal(step['continue-on-error'], undefined);
     }
   }
-  assert.deepEqual(jobs['client-salesforce'].needs, ['select-targets', 'preflight']);
+  assert.deepEqual(jobs['client-salesforce'].needs, ['select-targets']);
   const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
   assert(!manifest.scripts['check:local-node-assets'].includes('test-packed-salesforce-source'),
     'the packed composition acceptance moves from Host into the artifact consumer exactly once');
@@ -857,17 +918,17 @@ done`,
 test('packed Native Graph compiler setup retains exact cc and ar selection', () => {
   const job = jobs['client-packed'];
   const setup = job.steps.find(step => step.name === 'Select the packed Native Graph compiler');
-  const query = job.steps.find(step => step.id === 'packed-query');
+  const query = job.steps.find(step => step.id === 'packed-query-native');
   assert(setup && query);
   assert(job.steps.indexOf(setup) < job.steps.indexOf(query));
-  assert.deepEqual(job.needs, ['select-targets', 'preflight', 'client-packages']);
+  assert.deepEqual(job.needs, ['select-targets', 'client-packages']);
   assert.equal(job['runs-on'], 'ubuntu-24.04');
-  assert.equal(job['timeout-minutes'], 75);
+  assert.equal(job['timeout-minutes'], 45);
   assert.equal(setup['continue-on-error'], undefined);
   assert.equal(query['continue-on-error'], undefined);
   assert.equal(query.env.ACTQL_TEST_NATIVE_QUERY_COMPILER, 'clang-19');
   assert.equal(query.env.ACTQL_TEST_QUERY_TIMEOUT_MS, '1800000');
-  assert(setup.run.startsWith('sudo apt-get update\nsudo apt-get install --yes clang-19\n'));
+  assert(setup.run.startsWith('bash scripts/ci-install-linux-clang.sh\n'));
   const directory = mkdtempSync(join(tmpdir(), 'actql-packed-compiler-control-'));
   try {
     const cc = join(directory, 'selected-clang-19');
@@ -887,7 +948,7 @@ test('packed Native Graph compiler setup retains exact cc and ar selection', () 
     assert.equal(readFileSync(pathFile, 'utf8'), compilerBin + '\n');
     assert.equal(realpathSync(join(compilerBin, 'cc')), realpathSync(cc));
     assert.equal(realpathSync(join(compilerBin, 'ar')), realpathSync(ar));
-    const prefix = query.run.slice(0, query.run.indexOf('node --test '));
+    const prefix = query.run.slice(0, query.run.indexOf('node scripts/test-packed-public-query'));
     assert(prefix.startsWith('test "$(realpath "$(command -v cc)")" = '));
     const selected = run(paths(prefix), {PATH: compilerBin + ':' + process.env.PATH});
     assert.equal(selected.status, 0, selected.stderr);
@@ -917,6 +978,14 @@ test('ordinary Local assets reuse tarballs while cold and external builds stay s
     assert(body.includes('packedClientPackage'));
     assert(!body.includes('delete environment.ACTQL_PACKED_CLIENT_PACKAGES'));
   }
+  const assets = readFileSync(new URL('test-packed-local-node-assets.mjs', import.meta.url), 'utf8');
+  assert(assets.includes(".resolve('@actql/local-node/runtime')"));
+  assert(assets.includes("'adapters/host-node/installed-project-mock.actual.test.mjs'"));
+  assert(assets.includes('ACTQL_TEST_PROJECT_COMMON_RUNTIME: installedCommon'));
+  assert(assets.includes('expectedTests: 9'));
+  assert(assets.indexOf("run(process.execPath, ['smoke.mjs'], root)") <
+    assets.indexOf('const installedCommon'));
+  assert(assets.indexOf('const installedCommon') < assets.indexOf('scratch.passed()'));
 });
 
 test('one producer uploads only manifest and tarballs; consumers select its immutable artifact ID', () => {
@@ -933,7 +1002,7 @@ test('one producer uploads only manifest and tarballs; consumers select its immu
   ].map(name => '${{ runner.temp }}/actql-client-packages/' + name));
   assert.deepEqual(producer.outputs, {'artifact-id': '${{ steps.packages.outputs.artifact-id }}'});
   for (const name of consumers) {
-    assert.deepEqual(jobs[name].needs, ['select-targets', 'preflight', 'client-packages']);
+    assert.deepEqual(jobs[name].needs, ['select-targets', 'client-packages']);
     const download = jobs[name].steps.find(step => step.name === 'Download the exact Client package artifact');
     assert.equal(download.uses, './.github/actions/download-client-packages');
     assert.deepEqual(download.with, {
@@ -950,28 +1019,33 @@ test('packed evidence uploads remain always-on after their original command', ()
   for (const [id, name] of [['packed-infer', 'packed-single-infer'],
     ['packed-infer-evaluation', 'packed-infer-evaluation'],
     ['packed-acquired-infer', 'packed-acquired-infer'],
-    ['packed-query', 'packed-public-query'], ['packed-result-description', 'packed-result-description']]) {
+    ['packed-query', 'packed-public-query'], ['packed-result-description', 'packed-result-description'],
+    ['packed-query-native', 'packed-public-query-native']]) {
     const command = steps.findIndex(step => step.id === id);
     const upload = steps[command + 1];
     assert(command >= 0);
     assert.equal(upload.uses, './.github/actions/upload-packed-query-evidence');
-    assert.equal(upload.if, `always() && steps.${id}.outputs.evidence-directory != ''`);
+    const group = id.includes('infer') ? 'infer' : id === 'packed-query' ? 'portable' : id === 'packed-query-native' ? 'query-native' : 'connectors';
+    const selectedGroup = id === 'packed-query' ? "(matrix.group == 'query-portable-1' || matrix.group == 'query-portable-2' || matrix.group == 'query-portable-3')" : `matrix.group == '${group}'`;
+    assert.equal(upload.if, id === 'packed-query-native'
+      ? `always() && matrix.group == '${group}' && steps.${id}.outputs.evidence-directory != ''`
+      : `${selectedGroup} && always() && steps.${id}.outputs.evidence-directory != ''`);
     assert.deepEqual(upload.with, {
       directory: '${{ steps.' + id + '.outputs.evidence-directory }}',
-      name: name + '-${{ github.sha }}',
+      name: id === 'packed-query' ? 'packed-public-${{ matrix.group }}-${{ github.sha }}' : name + '-${{ github.sha }}',
     });
   }
 });
 
 test('the original client check succeeds only when every producer and acceptance group succeeds', () => {
-  assert.deepEqual(jobs.client.needs, groups);
+  assert.deepEqual(jobs.client.needs, acceptanceGroups);
   assert.match(jobs.client.if, /always\(\)/u);
   assert.match(jobs.client.if, /!\(needs\.client-packages\.result == 'skipped'/u);
   assert(jobs.check.needs.includes('client'));
   const script = jobs.client.steps[0].run;
-  const results = Object.fromEntries(groups.map(name => [name, {result: 'success'}]));
+  const results = Object.fromEntries(acceptanceGroups.map(name => [name, {result: 'success'}]));
   assert.equal(run(script, {RESULTS: JSON.stringify(results)}).status, 0);
-  for (const name of groups) {
+  for (const name of acceptanceGroups) {
     for (const result of ['failure', 'cancelled', 'skipped', 'in_progress', undefined]) {
       const candidate = {...results, [name]: {result}};
       const child = run(script, {RESULTS: JSON.stringify(candidate)});
@@ -982,13 +1056,14 @@ test('the original client check succeeds only when every producer and acceptance
 });
 
 test('local commands remain available for each independently retryable group', () => {
-  for (const name of [...consumers, 'client-distribution-native', 'client-salesforce']) {
+  for (const name of [...consumers, 'client-salesforce']) {
     const child = spawnSync(process.execPath, ['scripts/local-checks.mjs', 'run', name, '--dry-run'], {cwd: root, encoding: 'utf8'});
     assert.equal(child.status, 0, child.stderr);
     for (const command of runs(name)) {
       if (command === 'npm ci --prefix packages/provider-ai-sdk --ignore-scripts') {
         assert(!child.stdout.includes(command), 'Local checks retain installed dependencies');
-      } else assert(child.stdout.includes(command));
+      } else assert(child.stdout.includes(name === 'client-packed'
+        ? command.replace('${{ matrix.query-part }}', 'portable') : command));
     }
   }
 });
@@ -1716,3 +1791,26 @@ import './historical-typed-values-binding.test.mjs';
 import './packed-remote-observation-policy.test.mjs';
 
 import './packed-browser-source-closure.test.mjs';
+
+
+test('distribution mutation matrix executes each unchanged script once after its original preparation', () => {
+  const job = jobs['client-distribution-mutations'];
+  const expected = [
+    {mutation: 'read-row', script: 'check-read-row-mutations.mjs'},
+    {mutation: 'submission-input', script: 'check-submission-input-mutations.mjs'},
+    {mutation: 'submission-check-observation', script: 'check-submission-check-observation-mutations.mjs'},
+    {mutation: 'effect-uncertainty', script: 'check-effect-uncertainty-mutations.mjs'},
+  ];
+  assert.deepEqual(job.strategy, {'fail-fast': false, matrix: {include: expected}});
+  assert.equal(new Set(expected.map(row => row.script)).size, 4);
+  assert.equal(job['continue-on-error'], undefined);
+  const tests = job.steps.filter(step => step.name?.startsWith('Test '));
+  assert.equal(tests.length, 1);
+  assert.equal(tests[0].run, 'node scripts/${{ matrix.script }}');
+  assert.equal(tests[0].if, "${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}");
+  assert.equal(tests[0]['continue-on-error'], undefined);
+  const local = JSON.parse(readFileSync(new URL('../package.json', import.meta.url))).scripts['check:distribution-client'].split(' && ');
+  assert.deepEqual(expected.map(({script}) => tests[0].run.replace('${{ matrix.script }}', script)), local.slice(6, 10));
+  assert.deepEqual(job.needs, ['select-targets', 'client-packages']);
+  assert(jobs.client.needs.includes('client-distribution-mutations'));
+});

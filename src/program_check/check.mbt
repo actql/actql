@@ -1,6 +1,9 @@
 ///|
 struct CheckedProgram {
   source : @syntax.Program
+  artifact_bytes : Int
+  artifact_nodes : Int
+  artifact_depth : Int
   completion_free_audit : CompletionFreeAudit
   mut local_completion_free_audit : LocalCompletionFreeAudit
   mut local_legacy_audit_prepared : Bool
@@ -379,6 +382,9 @@ fn check_after_prelude(
   }
   {
     source: program,
+    artifact_bytes: limits.identity.identity.max_hash_bytes,
+    artifact_nodes: limits.identity.identity.max_hash_nodes,
+    artifact_depth: limits.identity.identity.max_depth,
     completion_free_audit: audit_completion_free_units(units),
     local_completion_free_audit: ProfileNotInstalled,
     local_legacy_audit_prepared: false,
@@ -742,4 +748,13 @@ pub fn requirements(
   program : CheckedProgram,
 ) -> @context.StageRequirementClosure {
   program.requirements
+}
+
+///|
+/// Original checker-selected artifact policy. These are immutable limits,
+/// not remaining work, construction backing, or an execution permission.
+pub fn checked_program_artifact_limits(
+  program : CheckedProgram,
+) -> (Int, Int, Int) {
+  (program.artifact_bytes, program.artifact_nodes, program.artifact_depth)
 }

@@ -423,7 +423,7 @@ pub fn finish_client_model_read_inventory(
 }
 
 ///|
-/// Grow the same entered singular consumer from its original preparation.
+/// Grow the same entered consumer from its original preparation.
 /// The preparation supplies its retained immutable origin; Resource performs
 /// the one current/snapshot/grow boundary. No second origin/current getter,
 /// reservation, permission or Model handoff is issued by this projection.

@@ -3,6 +3,8 @@
 - Responsibility: the existing Local adapter advances the checked DAG and its
   installed managed operations. The source-free entrance retains its zero-Source
   guard; the captured entrance accepts exactly one original Row Query capture.
+  The Whole task entrance instead requires the same retained managed
+  Plan, Prepared, Request and configured DAG with its original complete input.
 - Inputs and outputs: the captured entrance consumes the configured retained
   Host, its exact checked requirements, the original RowSourceCapture and finite
   finalization limits. It returns the existing LocalValuesExecution or the same
@@ -11,7 +13,7 @@
   compares the DAG's original opaque capture and its own live Ledger/holding
   after Source verifier callbacks. Equal bytes, another Ledger or a copied
   source wrapper cannot substitute for these originals.
-- Ownership: Source custody stays with its RowRun. Compute begins at task one,
+- Ownership: Source custody stays with its RowRun. Query-tail Compute begins at task one,
   retains real managed outputs for later checked edges and leaves task zero
   without a fabricated managed completion. Close dependent execution/results
   before closing the captured Source owner.
@@ -30,7 +32,7 @@
   Source is constructed. The Row custody observer allocates no inventory and
   issues no capacity, token, ownership or cleanup acknowledgement.
 - Extension: extra Sources, Model and Effect work are outside this entrance.
-  Captured inputs without existing cell access, supplied roots and Carrier
+  Captured inputs without existing cell access and Carrier
   snapshots are not reconstructed here. Native Account/Journal orchestration,
   actual file capture, publication and CLI admission stay with their owners;
   this Common bridge does not wire or enable a product command.
@@ -38,6 +40,22 @@
   downstream managed edge, exact-identity refusals, verifier reentry, sticky
   failure and Source-preserving cleanup. Source-free task/requirements and
   whole-input Result tests remain consuming regression checks.
+
+The Whole entrance executes its original root and dependent tasks through the
+existing retained task loop. It does not assert that a supplied Source is
+source-free or relax the ordinary task-loop predicate. A copied managed Run, a missing bound DAG or an
+equal Graph cannot supply this entry. The same original execution retains its
+Source borrow, typed failure and cleanup; no compilation, admission, resource
+reservation, currentness closure or Run is created by this projection. Its
+private Whole argument borrows that same already-bound Plan; the Source-free
+public entry supplies no such argument. The existing supplied-input union tag
+borrows the DAG's original Source input at its actual slot. The same loop then
+retains and transfers the root's real completed output to dependent tasks.
+The existing `source_input_local_tasks_control_capacity` covers that loop's
+task table and edge inventory; the projection adds no control record or copy.
+The caller keeps the Source owner alive until execution and dependent Result
+cleanup finish. The existing retained Effect continuation separately requires
+its original captured Effect Run; it cannot enter the ordinary Whole projection.
 
 ## Captured suffix capacity
 

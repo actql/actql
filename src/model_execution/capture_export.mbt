@@ -36,6 +36,7 @@ struct CaptureExportState {
   mut chunk : String
   mut work : Int
   mut current_observations : Bool
+  mut wire_usage : (Int, Int, Int)?
 }
 
 ///|
@@ -146,6 +147,7 @@ fn start_capture_export(
     chunk: "",
     work: 0,
     current_observations: false,
+    wire_usage: None,
   }
   let control = @bounded.control()
   let (session, token) = @bounded.start(
@@ -287,9 +289,10 @@ fn advance_capture_export(
   if state.phase is Done {
     // The transported document includes its self field; its hash is not the
     // semantic bundle CID, which was established by the first pass.
-    let _ = @encode.finish_hash(state.writer) catch {
+    let (_, bytes, nodes, depth) = @encode.finish_hash_metrics(state.writer) catch {
       _ => return @bounded.Failed(OutputValue, 1, 1)
     }
+    state.wire_usage = Some((bytes, nodes, depth))
     @bounded.Complete(state.identity.unwrap(), 1, 1)
   } else {
     @bounded.Continue(1, 1)
@@ -326,6 +329,19 @@ pub fn advance_model_capture_export(
 pub fn model_capture_export_identity(active : ModelCaptureExport) -> String? {
   if active.accepted && !active.reclaimed {
     active.state.identity
+  } else {
+    None
+  }
+}
+
+///|
+/// Cached usage of the SAME completed second-pass transport. No response is
+/// traversed, re-encoded or admitted to quote the following bounded copy.
+pub fn model_capture_export_wire_usage(
+  active : ModelCaptureExport,
+) -> (Int, Int, Int)? {
+  if active.accepted && !active.reclaimed {
+    active.state.wire_usage
   } else {
     None
   }

@@ -15,9 +15,12 @@ priv struct ExpressionRootLease {
 }
 
 ///|
+// Simultaneous value-root entries are distinct from continuation depth.
+// Production callers supply their SAME funded RowWorkspace entry bound;
+// roots grow on demand and original per-element slot/live checks still apply.
 fn expression_roots(
   budget : LogicalBudget,
-  frames : Int,
+  entries : Int,
   query_time? : @publication.QueryEvaluationTime? = None,
 ) -> ExpressionRoots {
   {
@@ -25,7 +28,7 @@ fn expression_roots(
     budget,
     slots: [],
     free: [],
-    limit: Int::min(frames, 2147483645) + 2,
+    limit: Int::min(entries, 2147483645) + 2,
   }
 }
 
@@ -150,6 +153,10 @@ fn grow_object_root(
   guard physical_equal(root.root.owner, budget) &&
     root.scope.slots.get(root.slot) is Some(Some(live)) &&
     physical_equal(live, root.root) &&
+    (
+      root.root.text_capacity is Some(_) ||
+      root.root.workspace_bytes == root.root.bytes
+    ) &&
     !root.root.released else {
     budget.failed = true
     return Err(InvalidRootLifetime)
@@ -176,6 +183,9 @@ fn grow_object_root(
     return Err(LiveValueLimit)
   }
   root.root.bytes += bytes
+  if root.root.text_capacity is None {
+    root.root.workspace_bytes += bytes
+  }
   budget.live += bytes
   budget.peak = Int64::max(budget.peak, budget.live)
   Ok(())

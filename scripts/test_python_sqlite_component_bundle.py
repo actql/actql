@@ -50,7 +50,7 @@ class SQLiteBundleTests(unittest.TestCase):
         self.provider = binary(('@rpath/' + P.PROVIDER).encode())
         self.body = {'version': 'actql-python-sqlite-component-candidate/0.1',
             'source_sha': SOURCE, 'provider_source_sha': PROVIDER_SOURCE,
-            'platform': 'darwin-arm64', 'deployment_target': '11.0', 'component_api_abi': 2,
+            'platform': 'darwin-arm64', 'deployment_target': '11.0', 'component_api_abi': 3,
             'upstream_source_id': UPSTREAM,
             'recipe_sha256': hashlib.sha256((P.SOURCE / 'source.json').read_bytes()).hexdigest(),
             'library': member(P.LIBRARY, self.library), 'provider': member(P.PROVIDER, self.provider),
@@ -111,7 +111,7 @@ class SQLiteBundleTests(unittest.TestCase):
     def test_source_abi_and_no_authority_flags_cannot_be_relabelled(self):
         original = copy.deepcopy(self.body)
         for key, value in [('source_sha', PROVIDER_SOURCE), ('component_api_abi', True),
-                           ('component_api_abi', 1), ('upstream_source_id', 'stock'),
+                           ('component_api_abi', 1), ('component_api_abi', 2), ('upstream_source_id', 'stock'),
                            ('recipe_sha256', '0' * 64), ('loaded', 0), ('initialized', True),
                            ('normal_profile', 64), ('cohort_compatible', True), ('extra', 'ignored')]:
             with self.subTest(key=key, value=value):

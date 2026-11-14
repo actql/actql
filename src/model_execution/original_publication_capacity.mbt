@@ -41,6 +41,35 @@ fn original_model_publication_owner_current(
 }
 
 ///|
+// Returning the existing borrow follows retirement of its input/artifact
+// dependencies. Their live-use availability cannot be a release precondition.
+// The sealed startup still binds the same owner, Scope, rows, Ledger and
+// original capacity. This helper is release-only; it grants no continued use.
+fn original_model_publication_release_owner_matches(
+  execution : ModelExecution,
+  scope : @publication_host.ClientInferCallScope,
+) -> Bool {
+  let state = execution.state
+  !execution.advancing &&
+  !state.reclaimed &&
+  state.accepted &&
+  state.call_scope is Some(current) &&
+  physical_equal(current, scope) &&
+  state.original_startup is Some(startup) &&
+  startup.used &&
+  physical_equal(startup.rows, state.rows) &&
+  physical_equal(startup.ledger, state.ledger) &&
+  startup.scope is Some(original) &&
+  physical_equal(original, scope) &&
+  @resources.capacity_reservation_matches(
+    state.ledger,
+    startup.capacity,
+    startup.retained_bytes,
+    startup.execution_bytes,
+  )
+}
+
+///|
 /// Reserve a separately justified publication retention/workspace envelope on
 /// the same original Ledger before allocating additional publication state.
 /// No byte policy is supplied here. The installed caller still owes a complete
@@ -197,7 +226,7 @@ pub fn release_original_model_publication_capacity(
   }
   guard value.capacity is Some(capacity) &&
     execution.state.call_scope is Some(scope) &&
-    original_model_publication_owner_current(execution, scope) &&
+    original_model_publication_release_owner_matches(execution, scope) &&
     execution.state.output_uses > 0 &&
     @resources.capacity_reservation_covers(
       execution.state.ledger,

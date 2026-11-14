@@ -8,9 +8,11 @@
 // Number CAST of a two-argument SUBSTRING over one original Text field and
 // an admitted numeric literal. Logical live-byte guards execute unchanged.
 //
-// Only replace the generic live-value DATA premium. The caller MUST retain
-// the complete physical node/byte/depth traversal quote, input/output DATA,
-// operation workspace, and the original enforcement limits.
+// Replace the generic live-value DATA premium. The caller retains the full
+// physical node/byte/depth quote except for required immediate Number/Boolean
+// input/output cells: their measuring writer and charged row cursor construct
+// no physical body or decoded forest. Even that constructor keeps the full
+// depth, input/output roots, operation workspace and enforcement limits.
 fn bounded_leaf_fragment_capacity(
   generated : GeneratedSequence,
   context : FragmentRuntimeContext,
@@ -110,8 +112,9 @@ fn bounded_leaf_fragment_capacity(
     // include all root/measurement/lease fields and free-list backing.
     // Fixed tail: budget, two scopes, ordered execution, active ExpressionFrame,
     // leaf FieldName/Return/EvaluatedValue carriers and their empty arrays.
-    // Traversal cursor/emit/writer backing is STILL funded by the full physical
-    // envelope; no depth-only assumption is made for references or tagged JSON.
+    // Traversal cursor/emit/writer backing remains in the physical envelope.
+    // Only the independently checked immediate-scalar constructor omits an
+    // unused body/forest; references and tagged JSON retain their full quote.
     record_headers: 64L + 8L * roots + 2L * aliases,
     reference_slots: 128L + 16L * roots + 4L * aliases,
     scalar_words: 128L + 16L * roots + 2L * aliases,

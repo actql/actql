@@ -1,9 +1,10 @@
 // Producer-time identities: lossless compact timestamp/PID encoding keeps the
 // actual scientific label intact while fitting the unchanged USTAR name field.
 import assert from 'node:assert/strict';
+import {partIds, logicalMutationNamesByPart} from './proof-parts.mjs';
 export const receiptSuffixes = Object.freeze(['.json', '.inputs.json', '.fixture.mbt', '.log']);
 export function invocationIdentity(part = '', now = Date.now(), pid = process.pid) {
-  assert(part === '' || /^L-[CM][01]$/u.test(part), 'Unknown pipeline part');
+  assert(part === '' || partIds.includes(part) || Object.hasOwn(logicalMutationNamesByPart, part), 'Unknown pipeline part');
   assert(Number.isSafeInteger(now) && now >= 0 && Number.isSafeInteger(pid) && pid > 0, 'Invalid invocation identity');
   return part ? `${part}-${now.toString(36)}-${pid.toString(36)}` : `${now}-${pid}`;
 }

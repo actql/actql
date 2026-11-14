@@ -372,9 +372,10 @@ fn product_assemble_common(
 }
 
 ///|
-// Select only the object-count field of the fresh finite Store profile. Its
+// Select the retained-object/intent count of the fresh finite Local profile. Its
 // ordinary Local default retains each Model proof/response cell separately.
-// Byte, item and Result limits remain independent, and the original absolute
+// Journal snapshot bytes, Store bytes and Result limits remain independent;
+// the original absolute
 // profile retains eight objects. This is configuration DATA, not occupancy,
 // prepaid memory, a reservation or permission to discard retained evidence.
 fn product_default_store_objects(finite_run_profile : Bool) -> Int {
@@ -536,7 +537,12 @@ fn product_assemble_originals(
                 ("sqlite_library", Json::string(sqlite_library)),
                 ("signature_library", Json::string(signature_library)),
                 ("submission_ttl_ms", Json::number(86400000)),
-                ("journal_record_limit", Json::number(8)),
+                (
+                  "journal_record_limit",
+                  Json::number(
+                    product_default_store_objects(finite_run_profile).to_double(),
+                  ),
+                ),
                 ("journal_snapshot_bytes", Json::number(8388608)),
                 (
                   "installation_files",

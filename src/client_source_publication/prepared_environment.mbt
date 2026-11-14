@@ -337,6 +337,8 @@ pub fn lower_prepared_published_parsed_query(
   query : @query_syntax.Query,
   declarations : String?,
   public_primary? : Bool = false,
+  calls_out? : Ref[Int64]? = None,
+  limits? : @query_program.Limits? = None,
 ) -> Result[
   (
     @source_frontend.Lowered,
@@ -350,7 +352,14 @@ pub fn lower_prepared_published_parsed_query(
     Err(issue) => return Err(issue)
     Ok(context) => context
   }
-  lower_prepared_query_in_context(prepared, query, context, public_primary)
+  lower_prepared_query_in_context(
+    prepared,
+    query,
+    context,
+    public_primary,
+    calls_out~,
+    limits~,
+  )
 }
 
 ///|
@@ -406,6 +415,8 @@ pub fn lower_prepared_query_with_declarations(
   query : @query_syntax.Query,
   declarations : @parameter_binding.Declarations?,
   public_primary? : Bool = false,
+  calls_out? : Ref[Int64]? = None,
+  limits? : @query_program.Limits? = None,
 ) -> Result[
   (
     @source_frontend.Lowered,
@@ -418,7 +429,14 @@ pub fn lower_prepared_query_with_declarations(
     return Err(ForeignEnvironment)
   }
   let context = { ..prepared.context, parameter_declarations: declarations, }
-  lower_prepared_query_in_context(prepared, query, context, public_primary)
+  lower_prepared_query_in_context(
+    prepared,
+    query,
+    context,
+    public_primary,
+    calls_out~,
+    limits~,
+  )
 }
 
 ///|
@@ -427,6 +445,8 @@ fn lower_prepared_query_in_context(
   query : @query_syntax.Query,
   context : @query_program.Context,
   public_primary : Bool,
+  calls_out? : Ref[Int64]? = None,
+  limits? : @query_program.Limits? = None,
 ) -> Result[
   (
     @source_frontend.Lowered,
@@ -435,6 +455,9 @@ fn lower_prepared_query_in_context(
   ),
   PreparedPublicationIssue,
 ] {
+  if calls_out is Some(observed) {
+    observed.val += 1L
+  }
   @source_frontend.lower_parsed_with_source(
     query,
     Some(context),
@@ -443,6 +466,7 @@ fn lower_prepared_query_in_context(
     store_targets=prepared.store_targets,
     command_targets=prepared.command_targets,
     public_primary~,
+    limits~,
   )
   .map(pair => (pair.0, prepared.catalog, pair.1))
   .map_err(issue => Frontend(issue))

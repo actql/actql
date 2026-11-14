@@ -47,8 +47,38 @@ test('pre-body initial cleanup needs no registry callback or fabricated Prepared
  cleanupRequestInput(state);assert.equal(aborts,1);assert.equal(state.parent,undefined);
 });
 
-import {checkedRequestProgramPreparation, requestProgramCapacityRefusal}
+import {checkedRequestProgramPreparation, checkedRequestSnapshotPreparation, requestProgramCapacityRefusal}
   from './client-program-preparation.mjs';
+
+test('snapshot projection keeps opaque failures separate from actual typed amounts and successful values', () => {
+  const issue = {}, result = {$tag: 0, _0: issue};
+  const fact = {_0: 'request_snapshot', _1: 'retention', _2: 128n, _3: 64n, _4: 64n, _5: 64n};
+  let projections = 0;
+  const moon = {clientProgramRequestSnapshotCapacityRefusal(original) {
+    assert.strictEqual(this, moon); assert.strictEqual(original, result); projections++; return fact;
+  }};
+  assert.throws(() => checkedRequestSnapshotPreparation(moon, result), error => {
+    assert.equal(error.code, 'MoonBitHostFailure'); assert.strictEqual(error.cause, issue);
+    const capacity = requestProgramCapacityRefusal(error);
+    assert(Object.isFrozen(capacity)); assert.equal(capacity.phase, 'request_snapshot');
+    assert.equal(capacity.requiredRetentionBytes, '128');
+    assert.equal(requestProgramCapacityRefusal({...error, capacity}), undefined);
+    return true;
+  });
+  assert.equal(projections, 1);
+  const value = {};
+  assert.strictEqual(checkedRequestSnapshotPreparation(moon, {$tag: 1, _0: value}), value);
+  assert.equal(projections, 1);
+  for (const projected of [undefined, {...fact, _0: 'source_free_plan'}, {...fact, _2: 64n}, {...fact, _2: 128}]) {
+    moon.clientProgramRequestSnapshotCapacityRefusal = original => {
+      assert.strictEqual(original, result); return projected;
+    };
+    assert.throws(() => checkedRequestSnapshotPreparation(moon, result), error => {
+      assert.equal(error.code, projected === undefined ? 'MoonBitHostFailure' : 'InvalidHostRuntimeResult');
+      assert.equal(requestProgramCapacityRefusal(error), undefined); return true;
+    });
+  }
+});
 
 test('only an original typed module capacity refusal becomes an operation refusal', () => {
   const issue = {}, result = {$tag:0,_0:issue};

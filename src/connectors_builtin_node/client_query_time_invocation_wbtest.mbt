@@ -84,7 +84,12 @@ test "pre-module QueryTime bridge forwards its original Option into the same Req
   assert_true(invocation is Some(_))
   // Pass the bridge result itself, with no constructed Option or tuple.
   client_program_prepare_request_program_module_body(
-    parent, input, contracts, true, invocation,
+    parent,
+    input,
+    contracts,
+    true,
+    invocation,
+    None,
   ).unwrap()
   let run = client_program_adopt_request_program_preparation(parent, request).unwrap()
   let adopted = client_program_installed_managed_run_invocation_original(

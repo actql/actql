@@ -423,7 +423,8 @@ fn closure_diagnostic_category(
   match issue {
     Operations(problem) =>
       match problem {
-        InvalidLimits => InvalidConfiguration
+        InvalidLimits | Index(MissingAnalyticCeiling(_, _)) =>
+          InvalidConfiguration
         Expressions(BudgetExceeded)
         | Inventory(BudgetExceeded)
         | Orders(BudgetExceeded)

@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "adapters/local-node/fixture-file-source.mjs",
-      "sha256": "b80a85e13e60597773e866429658954ccc541fdc919a7cfff4809480126db68b",
+      "sha256": "ebf97c73358ff889cb3ae39f11900169fcc7c552d41384ffcc33dff24c6f2fc2",
       "exports": [
         "createFixtureFileSupplier"
       ],
@@ -128,7 +128,8 @@
           "name": "createFixtureFileSupplier/read/read",
           "parameters": [
             "options",
-            "selected"
+            "selected",
+            "retainRawResponse"
           ],
           "async": true
         },
@@ -166,6 +167,13 @@
           "name": "integer/integer",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "rawResponseRetainer/rawResponseRetainer",
+          "parameters": [
+            "options"
           ],
           "async": false
         },
@@ -212,6 +220,7 @@
             "createFixtureFileSupplier/versionFor/versionFor",
             "fail/fail",
             "integer/integer",
+            "rawResponseRetainer/rawResponseRetainer",
             "text/text"
           ],
           "exports": [
@@ -266,6 +275,10 @@
               {
                 "path": "adapters/local-node/fixture-file-source.mjs",
                 "anchor": "const document = projectOriginalDocument(bytes, options);"
+              },
+              {
+                "path": "adapters/local-node/fixture-file-source.mjs",
+                "anchor": "await retainRawResponse(bytes);"
               }
             ],
             "failure": [
@@ -352,6 +365,30 @@
               {
                 "path": "adapters/local-node/fixture-file-source.test.mjs",
                 "anchor": "test('fixture oversized original is charged but rejected before the parent projection'"
+              },
+              {
+                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "anchor": "test('fixture raw retention awaits the same charged bytes before listing or content decode'"
+              },
+              {
+                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "anchor": "test('fixture raw retention snapshots the own callback before the first await'"
+              },
+              {
+                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "anchor": "test('fixture raw retention rechecks cancellation and original current after the pending await'"
+              },
+              {
+                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "anchor": "test('fixture raw retention preserves synchronous and rejected reasons including undefined without decode or retry'"
+              },
+              {
+                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "anchor": "test('fixture raw retention never runs before synchronous charge, current or byte-limit refusal'"
+              },
+              {
+                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "anchor": "test('fixture raw retention accepts only an optional own DATA method and leaves absent legacy events exact'"
               }
             ]
           }

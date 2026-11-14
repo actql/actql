@@ -180,3 +180,54 @@ test "stepped measurement admits stack workspace before expansion" {
     assert_eq(workspace.live, 0)
   }
 }
+
+///|
+test "stepped measurement reuses only an empty funded cursor" {
+  let workspace = row_workspace(1)
+  let budget = value_budget({
+    max_nodes: 2,
+    max_text_bytes: 70,
+    max_depth: 2,
+    max_work: 72,
+  }).unwrap()
+  let cursor = start_stepped_measure_result(Number(1.0), workspace).unwrap()
+  let frames = cursor.frames
+  assert_false(restart_completed_stepped_measure(cursor, Text("unread")))
+  assert_eq(workspace.live, 1)
+  assert_true(
+    advance_stepped_measure_result(cursor, budget) is SteppedMeasureComplete,
+  )
+  assert_true(frames.is_empty())
+  assert_eq(workspace.live, 0)
+  assert_true(
+    restart_completed_stepped_measure(cursor, Text(String::make(70, 'a'))),
+  )
+  assert_true(physical_equal(cursor.frames, frames))
+  assert_eq(workspace.live, 1)
+  assert_true(
+    advance_stepped_measure_result(cursor, budget) is SteppedMeasureContinue,
+  )
+  assert_eq(workspace.live, 1)
+  assert_true(
+    advance_stepped_measure_result(cursor, budget) is SteppedMeasureContinue,
+  )
+  assert_eq(workspace.live, 1)
+  assert_true(
+    advance_stepped_measure_result(cursor, budget) is SteppedMeasureComplete,
+  )
+  assert_true(frames.is_empty())
+  assert_eq(workspace.live, 0)
+  assert_eq(workspace.peak, 1)
+  assert_eq(budget.nodes, 2)
+  assert_eq(budget.text, 70)
+  assert_eq(budget.work, 72)
+  // Reusing the physical array never waives the next live-frame reservation.
+  assert_true(reserve_slots(workspace, 1))
+  assert_false(restart_completed_stepped_measure(cursor, Null))
+  assert_true(frames.is_empty())
+  assert_eq(workspace.live, 1)
+  release_slots(workspace, 1)
+  assert_false(restart_completed_stepped_measure(cursor, Null))
+  clear_stepped_measure(cursor)
+  assert_eq(workspace.live, 0)
+}

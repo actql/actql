@@ -1,9 +1,10 @@
 // Local connector's Node driver. The kernel and reservation authority stay in
 // MoonBit; this wrapper never evaluates an expression or synthesizes a result.
+import {checkedLocalManagedAdvance} from './managed-advance-diagnostic.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {readLocalRetainedInput} from './retained-input.mjs';
 import {localComputeFaultInjection, localRetainedStore,
-  localSnapshotStore, localExecutionPauseHandler} from './retained-store.mjs';
+  localSnapshotStore, localExecutionPauseHandler, localExecutionBeforePrepare} from './retained-store.mjs';
 import {prepareLocalRetainedOutput} from './retained-output.mjs';
 import {closeCompletedLocalManagedOutput, closeCompletedLocalManagedOutputAsync, continueLocalManagedFailureCleanup, refreshCompletedLocalManagedScratch} from './managed-output-custody.mjs';
 import {prepareLocalCarrierSnapshot, prepareLocalRelationSnapshot} from './carrier-snapshot.mjs';
@@ -57,7 +58,7 @@ const stopBoundedExecution = (operations, checked) => {
 // Local computation is bounded on every path: there is no synchronous
 // whole-task execute fallback.
 const runManagedExecution = async (
-  operations, checked, signal, faultInjection, task, handlePause, checkpointPause,
+  operations, checked, signal, faultInjection, task, handlePause, checkpointPause, moon,
 ) => {
   if (typeof operations.advance !== 'function') {
     throw new Error('MissingBoundedLocalExecution');
@@ -68,7 +69,7 @@ const runManagedExecution = async (
       signal.throwIfAborted();
     }
     const observation = validateManagedAdvance(
-      checked(operations.advance(managedWorkQuantum)),
+      checkedLocalManagedAdvance(moon, operations.advance(managedWorkQuantum), checked, task),
       managedWorkQuantum,
       'InvalidLocalManagedAdvance',
       true,
@@ -146,11 +147,23 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
   const createSnapshotLease = localSnapshotStore(configuration);
   const faultInjection = localComputeFaultInjection(configuration);
   const handlePause = localExecutionPauseHandler(configuration);
+  const beforePrepare = localExecutionBeforePrepare(configuration);
   const registration = moon.strategyModule_local_Registration(setup);
   let nextMaterial = 1;
   return Object.freeze({
     registration,
     managedSelectionKey: moon.strategyHostRegistrationSelectionKey(registration),
+    async beforeNext(physicalSource) {
+      if (beforePrepare === undefined) return;
+      const task = moon.strategyHostNextTask(setup);
+      if (task >= 0 && beforePrepare !== undefined) {
+        // The existing Host beforeNext boundary precedes candidate planning
+        // and input selection/dispatch. It may attach its actual completed keyed read;
+        // it cannot replace the selected task or replay a producer.
+        await beforePrepare(task, physicalSource);
+        if (moon.strategyHostNextTask(setup) !== task) throw new Error('LocalTaskChangedDuringPreparation');
+      }
+    },
     async prepareNext(outputs) {
       // Row-only output uses the configured Store. A typed Carrier path keeps
       // its exact managed generations, including formal Relation views.
@@ -164,11 +177,17 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           producers.length !== inputCount) {
         return undefined;
       }
-      const inputs = producers.map(producer => {
+      const inputs = producers.map((producer, index) => {
         if (producer === -1) return Object.freeze({
           task: producer,
           suppliedRelation: true,
         });
+        // A preconsumer Unit may already retain its exact physical bridge
+        // as this Run's receiving read. Reuse the existing captured-relation
+        // route; importing the managed producer again creates another body.
+        if (producer >= 0 && moon.strategyModule_local_HasPreparedRelationInput?.(setup, index) === true) {
+          return Object.freeze({task: producer, capturedRelation: true});
+        }
         const managed = outputs.get(producer);
         if (managed != null) return managed;
         // Common captured_task_input checks the exact completed predecessor,
@@ -363,7 +382,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
             for (const transfer of transfers) checked(transfer.finish());
             await runManagedExecution(operations, checked, signal,
               faultInjection, prepared.task, handlePause,
-              decision => { checkpointPause = decision; });
+              decision => { checkpointPause = decision; }, moon);
           },
           signal,
           undefined,
@@ -538,7 +557,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         await runManagedExecution(operations, checked, signal,
           faultInjection,
           typeof moon.strategyHostTask === 'function' ? moon.strategyHostTask(task) : undefined, handlePause,
-          decision => { checkpointPause = decision; });
+          decision => { checkpointPause = decision; }, moon);
         const exported = output ? await output.write() : {};
         checked(operations.settle());
         recordManagedFailureExecutionSettled(failureProgress);

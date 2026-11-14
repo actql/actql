@@ -76,7 +76,7 @@ test('a manual-main original retains its actual certificate and originals withou
   assert.equal(result.authority, 'authenticated-successful-pipeline-job');
   assert.equal(result.acquisition, 'original-not-reused');
   assert.equal(result.reuseAuthorized, false);
-  assert.equal(result.original.admission.actions.length, 36);
+  assert.equal(result.original.admission.actions.length, 72);
   assert(result.unresolved.length > 0);
   assert.deepEqual([...base.members].map(([path, bytes]) => [path, hash(bytes)]), before);
 });
@@ -128,9 +128,9 @@ test('a rerun during full member verification invalidates the final required ver
 
 test('the required consumer uses the exact current artifact and reconstructs every fresh obligation', async t => {
   const result = await consume(t, {requiredConsumer: true});
-  assert.equal(result.freshActions, 36);
-  assert.equal(result.required.length, 36);
-  assert.equal(result.applications.length, 36);
+  assert.equal(result.freshActions, 72);
+  assert.equal(result.required.length, 72);
+  assert.equal(result.applications.length, 72);
   assert(result.applications.every(entry => !entry.reused && entry.origin === revision));
   assert.equal(result.reuseAuthorized, false);
   assert.deepEqual(result.certificate, base.original.admission.certificate);
@@ -204,7 +204,12 @@ test('publication has no API dependency and retains the full audit before an exc
   const steps = workflow.jobs['pipeline-evidence'].steps;
   const seal = steps.find(step => step.run === 'node proofs/relation-pipeline/mutation-action-archive.mjs seal');
   assert(seal && !seal['continue-on-error']);
-  assert(steps.some(step => step.run === 'node proofs/relation-pipeline/capacity/audit.mjs'));
+  assert(steps.some(step => step.run === 'node proofs/relation-pipeline/capacity/audit-target-regression.mjs'));
+  assert(!steps.some(step => step.run === 'node proofs/relation-pipeline/capacity/audit.mjs'));
+  const capacity = readFileSync(new URL('./capacity/audit-target-regression.mjs', import.meta.url), 'utf8');
+  assert.match(capacity, /retained\.withUncompressed\(path => spawnSync\(process\.execPath,\s*\['proofs\/relation-pipeline\/capacity\/audit\.mjs', path\]/u);
+  assert(capacity.includes('inspectResult(slot, result);'));
+  assert(capacity.includes("assert.equal(result.status === 0, slot === 'healthy'"));
   assert(steps.find(step => step.uses?.startsWith('actions/upload-artifact@')).with.path.includes('.artifacts/pipeline-ci/action-original.json'));
 });
 
@@ -220,7 +225,9 @@ test('the workflow binds the small original to the required consumer without cha
   assert(!upload.with.path.includes('capacity') && !upload.with.path.includes('_build'));
   assert.equal(upload.with['include-hidden-files'], true);
   assert.equal(upload.with['if-no-files-found'], 'error');
-  assert(producer.steps.some(step => step.with?.name?.startsWith('relation-pipeline-evidence-') && step.if === 'always()'));
+  const failure = producer.steps.find(step => step.with?.name?.startsWith('relation-pipeline-evidence-incomplete-'));
+  assert.equal(failure.if, '${{ always() && !success() }}');
+  assert(failure.with.path.includes('.artifacts/relation-pipeline/'));
   const consumer = gate.steps.find(step => step.id === 'pipeline-action-check');
   assert.equal(consumer.run, 'node proofs/relation-pipeline/mutation-action-final.mjs');
   assert.equal(consumer.if, "${{ needs.pipeline-evidence.result == 'success' }}");

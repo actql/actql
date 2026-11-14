@@ -49,15 +49,25 @@ fn client_local_joint_byte_ceiling() -> Int64 {
 /// This fact does not apply to streaming or independently installed backends.
 pub fn client_local_materialized_row_ceiling(
   policy : ClientLocalResourcePolicy,
+  retained_bytes? : Int64? = None,
+  execution_bytes? : Int64? = None,
 ) -> Int? {
-  if !physical_equal(policy, local_materialization_policy) {
+  guard client_local_preparation_initial_limits(
+      policy,
+      retained_bytes~,
+      execution_bytes~,
+    )
+    is Some(limits) else {
     return None
   }
   let unit = @execution.execution_capacity_node_bytes()
-  if unit <= 0L || policy.retained_bytes < 0L {
+  if unit <= 0L {
     return None
   }
-  let rows = policy.retained_bytes / unit
+  // Preserve the retained-row dimension. Execution workspace is independently
+  // quoted by the selected constructor; it is not another retained-row cap.
+  // This bound selects no capacity and allocates no row storage.
+  let rows = limits.retained_bytes / unit
   if rows > 2147483647L {
     None
   } else {
@@ -73,11 +83,27 @@ pub fn client_local_materialized_row_ceiling(
 /// This does not cover Native acquisition, Model, Effect or Content recipes.
 pub fn client_local_preparation_initial_limits(
   policy : ClientLocalResourcePolicy,
+  retained_bytes? : Int64? = None,
+  execution_bytes? : Int64? = None,
 ) -> @resources.LedgerLimits? {
   if !physical_equal(policy, local_materialization_policy) ||
     policy.graph_work < 0 ||
     policy.relation_wire_bytes < 0 {
     return None
+  }
+  // This DATA selects the SAME initial supplier before Request construction.
+  // It is never a late resize or an allowance beside the original Ledger.
+  // An explicit smaller ceiling is valid DATA too. The same initial owner
+  // must admit its actual controls and each later constructor before use.
+  let (retained, execution) = match (retained_bytes, execution_bytes) {
+    (None, None) => (policy.retained_bytes, policy.execution_bytes)
+    (Some(retained), Some(execution)) => {
+      if retained <= 0L || execution <= 0L {
+        return None
+      }
+      (retained, execution)
+    }
+    _ => return None
   }
   Some({
     planning_work: policy.dispatch_planning_work,
@@ -85,7 +111,19 @@ pub fn client_local_preparation_initial_limits(
     holdings: policy.graph_work,
     transfer_bytes: policy.graph_work.to_int64() *
     policy.relation_wire_bytes.to_int64(),
-    retained_bytes: policy.retained_bytes,
-    execution_bytes: policy.execution_bytes,
+    retained_bytes: retained,
+    execution_bytes: execution,
   })
+}
+
+///|
+// Installed source-free Compute work policy. This is a finite counter limit,
+// not physical backing, currentness, permission or a replacement Ledger.
+fn client_local_source_free_max_work(selected : Int?) -> Int? {
+  let work = selected.unwrap_or(20000000)
+  if work > 0 {
+    Some(work)
+  } else {
+    None
+  }
 }

@@ -68,10 +68,8 @@ pub fn client_effect_imported_result_evidence_refs(
     }
     // A valid Invocation of the same Template can still refresh the captured
     // observation. Public evidence must use the producer's original Invocation.
-    if @publication.publication_contract_identity(
-        observed.artifact.run_invocation,
-      ) !=
-      @publication.publication_contract_identity(invocation) {
+    if client_effect_local_artifact_run_invocation_cid(observed.artifact) !=
+      Some(@publication.publication_contract_identity(invocation)) {
       return Err(ForeignInvocation)
     }
   }

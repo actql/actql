@@ -116,8 +116,7 @@ fn restore_client_effect_original_infer(
         None => None
         Some(wire) => {
           let profile = match
-            @publication.admit_publication_contract(
-              "native_file_content_read",
+            @publication.admit_file_read_profile_contract(
               wire,
               limits.max_evidence_bytes,
               limits.max_evidence_nodes,

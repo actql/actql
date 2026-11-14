@@ -103,6 +103,39 @@ pub fn client_program_install_original_mock(
 }
 
 ///|
+// Declaration DATA can be projected during connection without opening answer
+// files. The existing NEW-call gate still requires bound original answers.
+#export_name("clientProgramPrepareOriginalMock")
+pub fn client_program_prepare_original_mock(
+  profile : @check_environment.ModelMockProfile,
+  task : @check_environment.PublicModelTaskDeclaration,
+  normalized : @check_environment.NormalizedPublicModelTask,
+  now : () -> String,
+) -> Result[@model.ModelMockInstallation, @model.ModelMockInstallationIssue] {
+  @model.prepare_original_model_mock(profile, task, normalized, now)
+}
+
+///|
+#export_name("clientProgramBindOriginalMockAnswers")
+pub fn client_program_bind_original_mock_answers(
+  original : @model.ModelMockInstallation,
+  answers : @model.ModelMockAnswers,
+) -> Result[Unit, @model.ModelMockInstallationIssue] {
+  @model.bind_original_model_mock_answers(original, answers)
+}
+
+///|
+#export_name("clientProgramOriginalMockDeclaration")
+pub fn client_program_original_mock_declaration(
+  original : @model.ModelMockInstallation,
+) -> Result[
+  @check_environment.NormalizedPublicModelTask,
+  @model.ModelMockInstallationIssue,
+] {
+  @model.original_model_mock_declaration(original)
+}
+
+///|
 #export_name("clientProgramOriginalMockProvider")
 pub fn client_program_original_mock_provider(
   original : @model.ModelMockInstallation,

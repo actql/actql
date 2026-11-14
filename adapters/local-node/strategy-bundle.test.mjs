@@ -301,6 +301,12 @@ test('an inapplicable managed connector does not hide a capable alternative', as
       strategyHostNextTask: () => 2,
       strategyHostManagedProducers: () => [1],
       strategyHostManagedInputCount: () => 1,
+      // This fake Host has no Core-retained receiving read.
+      strategyModule_local_HasPreparedRelationInput(actual, index) {
+        assert.strictEqual(actual, setup);
+        assert.equal(index, 0);
+        return false;
+      },
       strategyHostManagedRequiresLogicalIdentity: () => ok(false),
       strategyHostReleasableManagedProducers: () => [],
       strategyModule_local_ManagedDuration: () => 1n,
@@ -827,6 +833,12 @@ test('standard Host runs Local with mixed memory and provider inputs',
         strategyHostNextTask: () => complete.has(3) ? -1 : 3,
         strategyHostManagedProducers: () => complete.has(2) ? [1, 2] : [],
         strategyHostManagedInputCount: () => 2,
+        // This fake Host has no Core-retained receiving read.
+        strategyModule_local_HasPreparedRelationInput(actual, index) {
+          assert.strictEqual(actual, setup);
+          assert.ok(index === 0 || index === 1);
+          return false;
+        },
         strategyHostManagedRequiresLogicalIdentity: () => ok(false),
         strategyHostReleasableManagedProducers: () => [1, 2],
         strategyModule_local_ManagedCarrierDispatch: () => ok({}),
@@ -910,6 +922,12 @@ test('standard Local dispatches a Carrier input to a Carrier output',
       strategyHostNextTask: () => 2,
       strategyHostManagedProducers: () => [1],
       strategyHostManagedInputCount: () => 1,
+      // This fake Host has no Core-retained receiving read.
+      strategyModule_local_HasPreparedRelationInput(actual, index) {
+        assert.strictEqual(actual, setup);
+        assert.equal(index, 0);
+        return false;
+      },
       strategyHostReleasableManagedProducers: () => [1],
       strategyModule_local_RelationOutput: () =>
         assert.fail('Carrier input was wrapped as a Relation'),
@@ -1060,6 +1078,12 @@ test('standard Host retains an exact Carrier across task dispatch', async () => 
     strategyHostNextTask: current,
     strategyHostManagedProducers: () => current() === 2 ? [1] : [],
     strategyHostManagedInputCount: () => current() === 2 ? 1 : 0,
+    // This fake Host has no Core-retained receiving read.
+    strategyModule_local_HasPreparedRelationInput(actual, index) {
+      assert.strictEqual(actual, setup);
+      assert.equal(index, 0);
+      return false;
+    },
     strategyHostReleasableManagedProducers: () => [1],
     strategyModule_local_RelationOutput: () =>
       assert.fail('Carrier input was wrapped as a Relation'),

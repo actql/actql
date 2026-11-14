@@ -5,15 +5,20 @@ import {chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSyn
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+import {partJobs} from '../proofs/relation-pipeline/proof-parts.mjs';
+
+const pipelineJobs = [...Object.values(partJobs), 'pipeline-validation', 'pipeline-evidence'];
 
 function fixture(t) {
   const root = mkdtempSync(join(tmpdir(), 'actql-local-checks-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));
-  for (const directory of ['scripts', '.github/workflows', 'bin', 'home']) mkdirSync(join(root, directory), {recursive: true});
+  for (const directory of ['scripts', 'proofs/relation-pipeline', '.github/workflows', 'bin', 'home']) mkdirSync(join(root, directory), {recursive: true});
   for (const name of ['local-checks.mjs', 'local-checks-guard.mjs', 'local-checks-supervisor.mjs',
     'local-checks-policy.mjs', 'test-execution.mjs', 'test-execution-reporter.mjs', 'packed-query-evidence.mjs']) {
     copyFileSync(new URL(name, import.meta.url), join(root, 'scripts', name));
   }
+  copyFileSync(new URL('../proofs/relation-pipeline/proof-parts.mjs', import.meta.url),
+    join(root, 'proofs/relation-pipeline/proof-parts.mjs'));
   symlinkSync(new URL('../node_modules', import.meta.url), join(root, 'node_modules'));
   const job = {steps: [{name: 'actual job step', env: {EXPECTED: 'from workflow'},
     run: 'printf "%s\\n" "$EXPECTED" >> calls; printf "done\\n"'}], 'timeout-minutes': 20};
@@ -22,7 +27,7 @@ function fixture(t) {
     'timeout-minutes': 60};
   writeFileSync(join(root, '.github/workflows/ci.yml'), JSON.stringify({jobs: {
     lint: job, core: job, future: job, 'native-macos': job,
-    'pipeline-mutations': pipelineJob, 'pipeline-capacity': pipelineJob, 'pipeline-mutations-rest': pipelineJob, 'pipeline-capacity-mutants': pipelineJob, 'pipeline-validation': pipelineJob, 'pipeline-evidence': pipelineJob,
+    ...Object.fromEntries(pipelineJobs.map(name => [name, pipelineJob])),
   }}));
   const moon = join(root, 'bin/moon');
   writeFileSync(moon, `#!${process.execPath}\nconst fs=require('fs');
@@ -59,6 +64,22 @@ test('heavy jobs require deliberate override; light lint remains usable', t => {
   assert.equal(readFileSync(join(f.root, 'calls'), 'utf8'), 'from workflow\nfrom workflow\n');
 });
 
+test('required packed README job is classified and its exact command remains inspectable without execution', t => {
+  const f = fixture(t), path = join(f.root, '.github/workflows/ci.yml');
+  const workflow = JSON.parse(readFileSync(path, 'utf8'));
+  const command = 'node scripts/test-packed-readme-workflows.mjs "$RUNNER_TEMP/client-readme-packed"';
+  workflow.jobs['client-readme-packed'] = {steps: [{name: 'original packed README consumer', run: command}],
+    'timeout-minutes': 15};
+  writeFileSync(path, JSON.stringify(workflow));
+  const denied = f.run(['run', 'client-readme-packed']);
+  assert.equal(denied.status, 2); assert.match(denied.stderr, /--allow-heavy/u);
+  assert.doesNotMatch(denied.stderr, /unclassified|No local cost classification/u);
+  const dry = f.run(['run', 'client-readme-packed', '--allow-heavy', '--dry-run']);
+  assert.equal(dry.status, 0, dry.stderr); assert(dry.stdout.includes(command));
+  assert.equal(existsSync(join(f.root, 'calls')), false);
+  assert.equal(existsSync(join(f.root, '_build')), false);
+});
+
 function coreBudget(fixture, value) {
   const path = join(fixture.root, '.github/workflows/ci.yml');
   const workflow = JSON.parse(readFileSync(path, 'utf8'));
@@ -68,12 +89,36 @@ function coreBudget(fixture, value) {
 
 const nativeMatrixBudget = "${{ matrix.target == 'native' && 75 || 30 }}";
 
+test('local Core uses original unpartitioned commands and budget after hosted matrix separation', t => {
+  const f = fixture(t), path = join(f.root, '.github/workflows/ci.yml');
+  const workflow = JSON.parse(readFileSync(path, 'utf8'));
+  workflow.jobs['core-common'] = workflow.jobs.core;
+  workflow.jobs.core = {steps: [{run: 'exit 91'}], 'timeout-minutes': 5};
+  writeFileSync(path, JSON.stringify(workflow));
+  const result = f.run(['run', 'core', '--allow-heavy']);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stderr, /budget: 1200s/u);
+  assert.equal(readFileSync(join(f.root, 'calls'), 'utf8'), 'from workflow\n');
+});
+
+test('the extracted hosted JS row remains CI-only instead of selecting a partial local Core', t => {
+  const f = fixture(t), path = join(f.root, '.github/workflows/ci.yml');
+  const workflow = JSON.parse(readFileSync(path, 'utf8'));
+  workflow.jobs['core-js'] = workflow.jobs.core;
+  writeFileSync(path, JSON.stringify(workflow));
+  const result = f.run(['run', 'core-js', '--allow-heavy']);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /hosted JS matrix/u);
+  assert.equal(existsSync(join(f.root, 'calls')), false);
+  assert.equal(existsSync(join(f.root, '_build')), false);
+});
+
 test('local Core adapter runs complete unpartitioned coverage for the hosted Native partition expression', t => {
   const f = fixture(t), path = join(f.root, '.github/workflows/ci.yml');
   const workflow = JSON.parse(readFileSync(path, 'utf8'));
   workflow.jobs.core.steps = [{name: 'original full selection',
     env: {TARGET: '${{ matrix.target }}', ACTQL_TEST_NATIVE_CORE_PARTITION:
-      "${{ matrix.target == 'native' && format('{0}/2', matrix.partition) || '' }}"},
+      "${{ matrix.target == 'native' && matrix.partition || '' }}"},
     run: 'printf "%s:%s\\n" "$TARGET" "$ACTQL_TEST_NATIVE_CORE_PARTITION" >> calls'}];
   writeFileSync(path, JSON.stringify(workflow));
   for (const target of ['native', 'js', 'wasm']) {
@@ -105,6 +150,27 @@ test('local Core adapter keeps full coverage without inventing or inheriting a h
     assert.match(refused.stderr, /local CI must retain complete coverage/u);
   }
   assert.equal(readFileSync(join(f.root, 'calls'), 'utf8'), 'native:\njs:\nwasm:\n');
+});
+
+test('local Core adapter excludes inherited inline and file plans on every backend', t => {
+  const f = fixture(t), path = join(f.root, '.github/workflows/ci.yml');
+  const workflow = JSON.parse(readFileSync(path, 'utf8'));
+  workflow.jobs.core.steps = [{name: 'original full local file selection',
+    env: {CI_PLAN_PATH: '${{ runner.temp }}/actql-ci-plan.json'},
+    run: 'if [ -n "$CI_PLAN_PATH" ]; then exit 99; fi\n' +
+      'printf "%s:%s:%s\\n" "${{ matrix.target }}" "$CI_PLAN" "$CI_PLAN_PATH" >> calls'}];
+  writeFileSync(path, JSON.stringify(workflow));
+  for (const target of ['native', 'js', 'wasm']) {
+    const result = f.run(['run', 'core', '--target', target, '--allow-heavy'],
+      {CI_PLAN: '{"selection":{"moonTests":{"foreign":true}}}', CI_PLAN_PATH: '/foreign/plan.json'});
+    assert.equal(result.status, 0, result.stderr);
+  }
+  assert.equal(readFileSync(join(f.root, 'calls'), 'utf8'), 'native::\njs::\nwasm::\n');
+  workflow.jobs.core.steps[0].env.CI_PLAN_PATH = '${{ needs.other.outputs.path }}';
+  writeFileSync(path, JSON.stringify(workflow));
+  const refused = f.run(['run', 'core', '--target', 'js', '--allow-heavy']);
+  assert.equal(refused.status, 2);
+  assert.match(refused.stderr, /local CI must retain complete coverage/u);
 });
 
 test('local Core adapter refuses a literal half or unfamiliar partition instead of narrowing coverage', t => {
@@ -182,7 +248,7 @@ test('ambiguous and unsupported Moon matrix targets keep explicit-budget admissi
 
 test('CI-only pipeline wrappers refuse even heavy overrides and supplied GitHub metadata without side effects', t => {
   const f = fixture(t);
-  for (const name of ['pipeline-mutations', 'pipeline-capacity', 'pipeline-mutations-rest', 'pipeline-capacity-mutants', 'pipeline-validation', 'pipeline-evidence']) {
+  for (const name of pipelineJobs) {
     for (const options of [[], ['--allow-heavy'], ['--allow-heavy', '--timeout-seconds', '7']]) {
       const refused = f.run(['run', name, ...options], {
         GITHUB_SHA: 'a'.repeat(40), GITHUB_RUN_ID: '123', GITHUB_RUN_ATTEMPT: '1',
@@ -203,7 +269,7 @@ test('CI-only pipeline list and dry-run report literal commands without fake con
   const f = fixture(t);
   const listed = f.run(['list']);
   assert.equal(listed.status, 0, listed.stderr);
-  for (const name of ['pipeline-mutations', 'pipeline-capacity', 'pipeline-mutations-rest', 'pipeline-capacity-mutants', 'pipeline-validation', 'pipeline-evidence']) {
+  for (const name of pipelineJobs) {
     assert.match(listed.stdout, new RegExp(`${name} \\(CI only:`, 'u'));
     for (const options of [['--dry-run'], ['--allow-heavy', '--dry-run']]) {
       const dry = f.run(['run', name, ...options]);
@@ -232,7 +298,7 @@ test('changed pipeline paths report all CI-only wrappers without suggesting a he
   chmodSync(git, 0o755);
   const result = f.run(['changed']);
   assert.equal(result.status, 0, result.stderr);
-  for (const name of ['pipeline-mutations', 'pipeline-capacity', 'pipeline-mutations-rest', 'pipeline-capacity-mutants', 'pipeline-validation', 'pipeline-evidence']) {
+  for (const name of pipelineJobs) {
     assert.match(result.stdout, new RegExp(`run ${name} --dry-run  # CI only:`, 'u'));
   }
   assert.doesNotMatch(result.stdout, /--allow-heavy/u);
@@ -374,4 +440,58 @@ test('unrelated and similarly named changes do not claim an INFER dependency', t
   assert.equal(result.status, 0, result.stderr);
   assert.doesNotMatch(result.stdout, /INFER admission dependency|infer-host-fixtures|client_infer_host/u);
   unchangedFixture(f);
+});
+
+test('local Core keeps the original serial scoped profile despite hosted parallel scheduling and inherited jobs', t => {
+  const f = fixture(t), path = join(f.root, '.github/workflows/ci.yml');
+  const workflow = JSON.parse(readFileSync(path, 'utf8'));
+  workflow.jobs.core.steps = [{name: 'original local scoped configuration',
+    env: {ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS:
+      "${{ matrix.target == 'native' && matrix.partition == 'scoped' && '2' || '1' }}"},
+    run: 'node -e "require(\'node:assert/strict\').equal(process.env.ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS,\'1\')"; printf "%s\\n" "$ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS" >> calls'}];
+  writeFileSync(path, JSON.stringify(workflow));
+  for (const target of ['native', 'js', 'wasm']) {
+    const result = f.run(['run', 'core', '--target', target, '--allow-heavy'],
+      {ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS: '2'});
+    assert.equal(result.status, 0, result.stderr);
+  }
+  assert.equal(readFileSync(join(f.root, 'calls'), 'utf8'), '1\n1\n1\n');
+  for (const value of ['2', '${{ matrix.scoped_jobs }}', '']) {
+    workflow.jobs.core.steps[0].env.ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS = value;
+    writeFileSync(path, JSON.stringify(workflow));
+    const result = f.run(['run', 'core', '--target', 'native', '--allow-heavy']);
+    assert.equal(result.status, 2); assert.match(result.stderr, /serial scoped profile/u);
+  }
+});
+
+
+test('local packed query command preserves full portable acceptance after hosted partitioning', t => {
+  const f = fixture(t);
+  const job = {'timeout-minutes': 45, steps: [{name: 'Test original portable acceptance',
+    run: 'node scripts/test-packed-public-query.mjs --ci-part=${{ matrix.query-part }}'}]};
+  writeFileSync(join(f.root, '.github/workflows/ci.yml'), JSON.stringify({jobs: {'client-packed': job}}));
+  const result = f.run(['run', 'client-packed', '--dry-run']);
+  assert.equal(result.status, 0, result.stderr);
+  assert(result.stdout.includes('node scripts/test-packed-public-query.mjs --ci-part=portable'));
+  assert(!result.stdout.includes('--ci-part=portable-'));
+  assert(!result.stdout.includes('${{ matrix.'));
+});
+
+test('local distribution matrix retains one preparation and all four serial original scripts', t => {
+  const f = fixture(t);
+  const scripts = ['check-read-row-mutations.mjs', 'check-submission-input-mutations.mjs',
+    'check-submission-check-observation-mutations.mjs', 'check-effect-uncertainty-mutations.mjs'];
+  const job = {'timeout-minutes': 30, strategy: {matrix: {include: scripts.map((script, index) =>
+    ({mutation: ['read-row', 'submission-input', 'submission-check-observation', 'effect-uncertainty'][index], script}))}},
+    steps: [{name: 'Build original runtime', run: 'node scripts/original-preparation.mjs'},
+      {name: 'Test check ${{ matrix.mutation }} mutations', run: 'node scripts/${{ matrix.script }}'}]};
+  writeFileSync(join(f.root, '.github/workflows/ci.yml'), JSON.stringify({jobs: {'client-distribution-mutations': job}}));
+  const result = f.run(['run', 'client-distribution-mutations', '--dry-run']);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout.split('node scripts/original-preparation.mjs').length - 1, 1);
+  for (const script of scripts) assert.equal(result.stdout.split('node scripts/' + script).length - 1, 1);
+  assert(!result.stdout.includes('${{ matrix.'));
+  job.strategy.matrix.include[3].script = scripts[0];
+  writeFileSync(join(f.root, '.github/workflows/ci.yml'), JSON.stringify({jobs: {'client-distribution-mutations': job}}));
+  assert.equal(f.run(['run', 'client-distribution-mutations', '--dry-run']).status, 2);
 });

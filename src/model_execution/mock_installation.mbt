@@ -42,13 +42,51 @@ pub fn install_original_model_mock(
     Err(issue) => return Err(Answers(issue))
     Ok(_) => ()
   }
+  Ok(
+    make_original_model_mock(
+      profile,
+      declaration,
+      normalized,
+      Some(answers),
+      now,
+    ),
+  )
+}
+
+///|
+/// Prepare the SAME immutable Task/provider declaration without reading answer
+/// DATA. This grants no call, Scope, dispatch, resource or answer availability.
+pub fn prepare_original_model_mock(
+  profile : @environment.ModelMockProfile,
+  declaration : @environment.PublicModelTaskDeclaration,
+  normalized : @environment.NormalizedPublicModelTask,
+  now : () -> String,
+) -> Result[ModelMockInstallation, ModelMockInstallationIssue] {
+  if !@environment.normalized_public_mock_model_task_original_for(
+      normalized, declaration, profile,
+    ) {
+    return Err(ForeignOriginal)
+  }
+  Ok(make_original_model_mock(profile, declaration, normalized, None, now))
+}
+
+///|
+// One original owner and provider shape for both eager callers and a declared
+// local input whose physical answer DATA is not needed until Model dispatch.
+fn make_original_model_mock(
+  profile : @environment.ModelMockProfile,
+  declaration : @environment.PublicModelTaskDeclaration,
+  normalized : @environment.NormalizedPublicModelTask,
+  answers : ModelMockAnswers?,
+  now : () -> String,
+) -> ModelMockInstallation {
   let original : ModelMockInstallation = {
     original: None,
     profile: Some(profile),
     declaration: Some(declaration),
     normalized: Some(normalized),
     task: None,
-    answers: Some(answers),
+    answers,
     provider: None,
     closing: false,
     users: 0,
@@ -59,18 +97,17 @@ pub fn install_original_model_mock(
     invocation: OriginalMock(original),
     provider_id: "mock",
   })
-  Ok(original)
+  original
 }
 
 ///|
-fn ModelMockInstallation::require_original(
+fn ModelMockInstallation::require_declaration(
   self : Self,
 ) -> Result[Unit, ModelMockInstallationIssue] {
   guard self.original is Some(original) &&
     self.profile is Some(profile) &&
     self.declaration is Some(declaration) &&
     self.normalized is Some(normalized) &&
-    self.answers is Some(answers) &&
     self.now is Some(_) else {
     return Err(Retired)
   }
@@ -80,14 +117,85 @@ fn ModelMockInstallation::require_original(
     ) {
     return Err(ForeignOriginal)
   }
-  answers.require_original(declaration).map_err(issue => Answers(issue))
+  Ok(())
+}
+
+///|
+fn ModelMockInstallation::require_original(
+  self : Self,
+) -> Result[Unit, ModelMockInstallationIssue] {
+  match self.require_declaration() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard self.answers is Some(answers) else { return Err(MissingAnswer) }
+  answers
+  .require_original(self.declaration.unwrap())
+  .map_err(issue => Answers(issue))
+}
+
+///|
+// A prepared provider declaration can precede physical answer intake. Once
+// answers are bound, retain their complete original/current checks unchanged.
+fn ModelMockInstallation::require_provider_original(
+  self : Self,
+) -> Result[Unit, ModelMockInstallationIssue] {
+  match self.answers {
+    Some(_) => self.require_original()
+    None => self.require_declaration()
+  }
+}
+
+///|
+/// Metadata-only getter from the same live original declaration. It supplies
+/// neither an answer, call admission nor a replacement currentness verdict.
+pub fn original_model_mock_declaration(
+  original : ModelMockInstallation,
+) -> Result[@environment.NormalizedPublicModelTask, ModelMockInstallationIssue] {
+  match original.require_provider_original() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if original.closing {
+    Err(Retired)
+  } else {
+    Ok(original.normalized.unwrap())
+  }
+}
+
+///|
+/// Complete only this declared original during its live Model preparation.
+/// The caller retains its physical read/close and resource duties separately.
+pub fn bind_original_model_mock_answers(
+  original : ModelMockInstallation,
+  answers : ModelMockAnswers,
+) -> Result[Unit, ModelMockInstallationIssue] {
+  match original.require_declaration() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if original.closing {
+    return Err(Retired)
+  }
+  if original.answers is Some(retained) {
+    if !physical_equal(retained, answers) {
+      return Err(ForeignOriginal)
+    }
+    return original.require_original()
+  }
+  match answers.require_original(original.declaration.unwrap()) {
+    Err(issue) => return Err(Answers(issue))
+    Ok(_) => ()
+  }
+  original.answers = Some(answers)
+  Ok(())
 }
 
 ///|
 pub fn original_model_mock_provider(
   original : ModelMockInstallation,
 ) -> Result[ModelProvider, ModelMockInstallationIssue] {
-  match original.require_original() {
+  match original.require_provider_original() {
     Err(issue) => Err(issue)
     Ok(_) =>
       if original.closing {
@@ -115,7 +223,7 @@ pub fn read_original_model_mock_dependencies(
   @environment.ModelDependencyIssue,
 ] {
   if original.closing ||
-    original.require_original() is Err(_) ||
+    original.require_provider_original() is Err(_) ||
     !original_mock_provider_matches(
       original,
       original.provider.unwrap(),
@@ -147,7 +255,7 @@ fn original_mock_provider_matches(
   task : @environment.ModelTaskContract,
 ) -> Bool {
   !original.closing &&
-  original.require_original() is Ok(_) &&
+  original.require_provider_original() is Ok(_) &&
   original.provider is Some(retained) &&
   physical_equal(provider, retained) &&
   (match original.task {
@@ -182,7 +290,7 @@ fn original_mock_scope_matches(
   original : ModelMockInstallation,
   scope : @publication.BoundModelInvocationScope,
 ) -> Bool {
-  if original.require_original() is Err(_) {
+  if original.require_provider_original() is Err(_) {
     return false
   }
   guard @environment.model_mock_profile_originals(original.profile.unwrap())
@@ -286,7 +394,8 @@ fn invoke_original_mock(
   request : ModelRequest,
   reader : @bounded.Reader,
 ) -> Result[ModelResponse, ModelProviderFailure] {
-  if !original_mock_provider_matches(original, provider, state.task) ||
+  if original.require_original() is Err(_) ||
+    !original_mock_provider_matches(original, provider, state.task) ||
     original.users <= 0 ||
     state.dispatch_admission is None ||
     !(state.prepared_call_set is Some(calls) &&

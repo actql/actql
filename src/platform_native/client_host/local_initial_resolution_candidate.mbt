@@ -76,7 +76,11 @@ fn NativeLocalEffectReviewerBinding::read_initial_resolution_candidate_locked(
   if !host.journal.transaction_active || host.journal.fenced {
     return Err(Fenced)
   }
-  match host.local_grant_custody(self.crypto) {
+  match
+    host.local_grant_custody(
+      self.crypto,
+      capture=key.original.original_read.map(value => value.0),
+    ) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }

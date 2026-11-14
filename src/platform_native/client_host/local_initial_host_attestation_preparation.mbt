@@ -88,15 +88,12 @@ pub fn NativeLocalAuthenticatedEffectReviewer::prepare_initial_host_attestation(
     Some(self.registration) {
     return Err(HostAttestationUnavailable)
   }
-  let reviewer_scope = match materials.prepare_signing_scope(operation_id) {
-    Ok(value) => value
-    Err(issue) => return Err(HostAttestationProof(OriginalSigningProof(issue)))
-  }
   let reviewer_current = match
-    materials.initial_signing_current(reviewer_scope) {
+    materials.prepare_initial_signing_current(operation_id) {
     Ok(value) => value
     Err(issue) => return Err(HostAttestationProof(issue))
   }
+  let reviewer_scope = reviewer_current.scope
   let key_configuration_cid = match
     local_adoption_digest(
       host.epoch.crypto,
@@ -117,7 +114,11 @@ pub fn NativeLocalAuthenticatedEffectReviewer::prepare_initial_host_attestation(
       Err(issue) => return Err(issue)
       Ok(_) => ()
     }
-    match host.local_grant_custody(host.epoch.crypto) {
+    match
+      host.local_grant_custody(
+        host.epoch.crypto,
+        capture=account.original.reviewer.original_read.map(value => value.0),
+      ) {
       Err(issue) => return Err(issue)
       Ok(_) => ()
     }
@@ -275,6 +276,7 @@ pub fn NativeLocalAuthenticatedEffectReviewer::prepare_initial_host_attestation(
               )
             },
             host_prepared=Some(wire),
+            capture=account.original.reviewer.original_read.map(value => value.0),
           ) {
           Err(issue) => return Err(issue)
           Ok(_) => value

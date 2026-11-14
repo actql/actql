@@ -2,12 +2,87 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHostObservationConnection, installHostObservation,
   observationTraceParent, snapshotObservationContext,
-  projectEffectApplication, captureManagedRunObservation} from './observation.mjs';
+  projectEffectApplication, projectEffectPreflightFailure, captureManagedRunObservation} from './observation.mjs';
 
 const trace = {traceId: '1'.repeat(32), spanId: '2'.repeat(16), traceFlags: 1};
 const ref = {namespaceId: 'local', authorityScopeCid: `sha256:${'a'.repeat(64)}`,
   runDefinitionCid: `sha256:${'b'.repeat(64)}`};
 const turn = () => new Promise(resolve => setImmediate(resolve));
+
+test('dispatch failure observation forwards typed primary DATA and original occurrence without private bodies', async () => {
+  const records = [], failure = Object.freeze({code: 'MoonBitHostFailure',
+    phase: 'original_model_acquired_effect_evidence', kind: 'invocation.foreign_captured_input',
+    task: 4, unit: 2, step: 5});
+  const observer = installHostObservation(createHostObservationConnection({
+    include: ['run'], correlation: {include: ['task']}, events: {level: 'diagnostic'},
+    deliver: record => records.push(record),
+  }));
+  observer.diagnostic('dispatch_failed', {primaryDiagnostic: failure,
+    code: 'private outer message', issueTag: 2, body: 'private body'});
+  await observer.close();
+  assert.equal(records.length, 1);
+  assert.equal(records[0].event, 'dispatch_failed');
+  assert.deepEqual(records[0].attributes, {
+    'actql.operation': 'run', 'actql.event': 'dispatch_failed',
+    'actql.observation.version': 'actql-observation/0.1',
+    'error.type': failure.code, 'actql.failure.phase': failure.phase,
+    'actql.failure.kind': failure.kind, 'actql.task.ordinal': 4,
+    'actql.unit.ordinal': 2, 'actql.step.ordinal': 5,
+  });
+  assert.equal(JSON.stringify(records).includes('private'), false);
+  assert.deepEqual(observer.status().loss, {});
+});
+
+test('dispatch primary DATA respects lifecycle operation correlation and attribute exclusions', async () => {
+  const failure = {code: 'MoonBitHostFailure', phase: 'original_model_acquired_effect_evidence',
+    kind: 'invocation.foreign_captured_input', task: 4, unit: 2, step: 5};
+  for (const selection of ['lifecycle', 'excluded-operation', 'no-correlation', 'excluded-attributes']) {
+    const records = [], observer = installHostObservation(createHostObservationConnection({
+      include: selection === 'excluded-operation' ? ['source'] : ['run'],
+      events: {level: selection === 'lifecycle' ? 'lifecycle' : 'diagnostic'},
+      correlation: selection === 'no-correlation' ? false : {include: ['task']},
+      attributes: {exclude: selection === 'excluded-attributes' ? ['actql.failure.kind', 'actql.step.ordinal'] : []},
+      deliver: record => records.push(record),
+    }));
+    observer.diagnostic('dispatch_failed', {primaryDiagnostic: failure});
+    await observer.close();
+    if (selection === 'excluded-operation') {assert.equal(records.length, 0); continue;}
+    for (const record of records) {
+      const a = record.attributes;
+      if (selection === 'lifecycle') assert.equal(a['actql.failure.kind'], undefined);
+      if (selection === 'no-correlation') {
+        for (const key of ['actql.task.ordinal', 'actql.unit.ordinal', 'actql.step.ordinal']) assert.equal(a[key], undefined);
+        assert.equal(a['actql.failure.kind'], failure.kind);
+      }
+      if (selection === 'excluded-attributes') {
+        assert.equal(a['actql.failure.kind'], undefined); assert.equal(a['actql.step.ordinal'], undefined);
+        assert.equal(a['actql.failure.phase'], failure.phase);
+      }
+    }
+  }
+});
+
+test('physical write diagnostics remain distinct from whole Effect application and Source Model starts', async () => {
+  const records = [];
+  const observer = installHostObservation(createHostObservationConnection({
+    deliver: record => records.push(record), include: ['source', 'infer', 'effect'],
+    correlation: false, events: {level: 'diagnostic'},
+  }), {runId: () => assert.fail('No identity lookup for uncorrelated counters'),
+    journal: {observationStorage: () => ({consume: () => ({accepted: true})})}});
+  observer.diagnostic('acquisition_started', {});
+  observer.diagnostic('model_call_entered', {});
+  observer.diagnostic('effect_write_observed', {});
+  observer.diagnostic('effect_write_observed', {});
+  observer.diagnostic('effect_application_observed', {outcome: 'succeeded'});
+  await observer.close();
+  assert.deepEqual(records.map(value => [value.operation, value.event]), [
+    ['source', 'attempt_started'], ['infer', 'attempt_started'],
+    ['effect', 'write_observed'], ['effect', 'write_observed'], ['effect', 'application_observed'],
+  ]);
+  assert.deepEqual(observer.status().loss, {});
+  assert.equal(observer.status().dropped, 0);
+  assert.equal(observer.status().queued, 0);
+});
 
 const selectedRows = (extra = {}) => ({ref, rowOwner: 'request-journal', selection: 'run-definition',
   rowKind: 'run', returnedRows: 1, unrelatedRows: 0, coverage: 'selected-returned', ...extra});
@@ -861,4 +936,34 @@ test('managed accounting refuses holes accessors and extra own metadata without 
     assert.equal(records.length,0);assert.equal(loss.resourceUnavailable,1);
   }
   assert.equal(reads,0);
+});
+
+test('effect preflight diagnostics carry only the retained typed failure without invented task coordinates', async () => {
+  const records = [], observer = installHostObservation(createHostObservationConnection({
+    include: ['effect'], correlation: {include: ['task']}, events: {level: 'diagnostic'}, deliver: record => records.push(record)}), {journal: {observationStorage: () => ({consume: () => ({accepted: true})})}});
+  const failure = Object.freeze({code: 'EffectTargetVersionMismatch', kind: 'target_version_mismatch', phase: 'effect_apply_preflight'});
+  projectEffectPreflightFailure(observer, ref, failure);
+  await observer.close();
+  assert.equal(records.length, 1); assert.equal(records[0].operation, 'effect');
+  assert.equal(records[0].event, 'dispatch_failed');
+  const attributes = records[0].attributes;
+  assert.equal(attributes['error.type'], failure.code); assert.equal(attributes['actql.failure.kind'], failure.kind);
+  assert.equal(attributes['actql.failure.phase'], failure.phase);
+  for (const name of ['actql.task.ordinal', 'actql.unit.ordinal', 'actql.step.ordinal', 'actql.outcome']) {
+    assert.equal(Object.hasOwn(attributes, name), false);
+  }
+  assert.deepEqual(observer.status().loss, {});
+});
+
+test('effect preflight diagnostic absence, disabled selection and failed delivery cannot manufacture an outcome', async () => {
+  const failure = {code: 'EffectTargetVersionMismatch', kind: 'target_version_mismatch', phase: 'effect_apply_preflight'};
+  projectEffectPreflightFailure({diagnostic() {assert.fail('Foreign projection is not callable');}}, ref, failure);
+  for (const selected of ['absent', 'disabled', 'delivery-failed']) {
+    const records = [], observer = installHostObservation(createHostObservationConnection({
+      include: selected === 'disabled' ? ['source'] : ['effect'], events: {level: 'diagnostic'},
+      deliver(record) {if (selected === 'delivery-failed') throw new Error('Optional delivery failed'); records.push(record);}}), {journal: {observationStorage: () => ({consume: () => ({accepted: true})})}});
+    assert.doesNotThrow(() => projectEffectPreflightFailure(observer, ref, selected === 'absent' ? undefined : failure));
+    await observer.close(); assert.deepEqual(records, []);
+    if (selected === 'delivery-failed') assert.equal(observer.status().deliveryFailed, 1);
+  }
 });

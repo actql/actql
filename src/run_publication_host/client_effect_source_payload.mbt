@@ -30,8 +30,8 @@ pub fn client_effect_source_payload_binding(
     is Some((logical, schema, rows, invocation)) else {
     return Err(ForeignRun)
   }
-  if invocation !=
-    @publication.publication_contract_identity(artifact.run_invocation) {
+  if client_effect_local_artifact_run_invocation_cid(artifact) !=
+    Some(invocation) {
     return Err(ForeignInvocation)
   }
   guard artifact.source is ResultSource(_, definition) &&

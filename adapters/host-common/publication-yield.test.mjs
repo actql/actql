@@ -5,11 +5,13 @@ import {parse} from 'acorn';
 import {runtimeField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';
 import {publishEffectFreeRun} from './run-publication.mjs';
 import {retainFirstAndLatestCleanupError} from './managed-failure.mjs';
+import {checkedLocalManagedAdvance} from '../local-node/managed-advance-diagnostic.mjs';
 
-// Execute the two actual private loops with explicit Common ports. These
+// Execute the actual private loops with explicit Common ports. These
 // counters establish scheduling and cleanup, not installed Host acceptance.
 const source=readFileSync(new URL('./runtime-core.mjs',import.meta.url),'utf8');
-const wanted=new Set(['capturedPreparationLimits','finishCapturedPreparation','finishPublicationValidation']);
+const wanted=new Set(['capturedPreparationLimits','finishCapturedPreparation','finishPublicationValidation',
+  'tuplePair','finishProgramSnapshot']);
 const declarations=new Map();
 function visit(node){
   if(node===null||typeof node!=='object')return;
@@ -24,7 +26,7 @@ function visit(node){
   }
 }
 visit(parse(source,{ecmaVersion:'latest',sourceType:'module'}));
-assert.equal(declarations.size,3);
+assert.equal(declarations.size,5);
 const compile=new Function('moon','checked','inspect','setTimeout','setImmediate','runtimeField','runtimeIsBoxedSome',
   [...declarations.values()].join('\n')+';return {finishCapturedPreparation,finishPublicationValidation};');
 function fixture({pending=3,advance,finish,inspect=x=>x,onYield,immediate=true}={}){
@@ -108,6 +110,88 @@ test('embeddings without setImmediate retain the existing asynchronous timer fal
   assert.equal(f.counts.yields,0);assert.equal(f.counts.timers,2);assert.equal(cancelled,1);
 });
 
+function snapshotFixture({pending=3,advance,finish,inspect=value=>value,onYield,immediate=true}={}) {
+  const publication=Object.freeze({original:'publication'}),output=Object.freeze({original:'output'});
+  const snapshot=Object.freeze({original:'snapshot'}),result=Object.freeze({original:'snapshot result'});
+  const counts={begin:0,advance:0,finish:0,cancel:0,yields:0,timers:0};
+  const moon={
+    clientProgramBeginSnapshot(actualPublication,actualOutput) {
+      assert.strictEqual(this,moon);assert.strictEqual(actualPublication,publication);
+      assert.strictEqual(actualOutput,output);counts.begin++;return snapshot;
+    },
+    clientProgramAdvanceSnapshot(value,quantum) {
+      assert.strictEqual(this,moon);assert.strictEqual(value,snapshot);assert.equal(quantum,256);
+      counts.advance++;return advance?advance(counts.advance):[counts.advance>pending,256];
+    },
+    clientProgramFinishSnapshot(value) {
+      assert.strictEqual(this,moon);assert.strictEqual(value,snapshot);counts.finish++;
+      return finish?finish():result;
+    },
+    clientProgramCancelSnapshot(value) {
+      assert.strictEqual(this,moon);assert.strictEqual(value,snapshot);counts.cancel++;
+    },
+  };
+  const timer=(callback,delay)=>{counts.timers++;assert.equal(delay,0);
+    assert(!immediate,'A runnable snapshot quantum must not start a delay timer');
+    return setTimeout(callback,delay);
+  };
+  const loop=new Function('moon','checked','runtimeField','inspectSnapshot','setTimeout','setImmediate',
+    declarations.get('tuplePair')+'\n'+declarations.get('finishProgramSnapshot')+'\nreturn finishProgramSnapshot;')(
+    moon,value=>value,runtimeField,inspect,timer,immediate?callback=>{
+      counts.yields++;return setImmediate(()=>{onYield?.();callback();});
+    }:undefined);
+  return {counts,result,run:signal=>loop(publication,output,signal)};
+}
+
+test('Program snapshot yields bounded quanta by event-loop turns without delay timers',async()=>{
+  let anotherTurn=false;setImmediate(()=>{anotherTurn=true;});
+  const f=snapshotFixture({advance:n=>{
+    if(n>1)assert(anotherTurn,'A queued Host turn must run before the next snapshot quantum');
+    return [n===4,256];
+  }});
+  assert.strictEqual(await f.run(),f.result);
+  assert.deepEqual(f.counts,{begin:1,advance:4,finish:1,cancel:0,yields:3,timers:0});
+});
+
+test('Program snapshot preserves long finite polling without accumulating delay timers',async()=>{
+  const f=snapshotFixture({pending:2036});assert.strictEqual(await f.run(),f.result);
+  assert.deepEqual(f.counts,{begin:1,advance:2037,finish:1,cancel:0,yields:2036,timers:0});
+});
+
+test('Program snapshot abort after a yielded turn cancels the same original once',async()=>{
+  const abort=new AbortController(),reason=new Error('original snapshot stop');
+  const f=snapshotFixture({onYield:()=>abort.abort(reason)});
+  await assert.rejects(f.run(abort.signal),error=>error===reason);
+  assert.deepEqual(f.counts,{begin:1,advance:1,finish:0,cancel:1,yields:1,timers:0});
+});
+
+test('Program snapshot keeps original advance finish and inspection failures',async()=>{
+  const reason=new Error('original snapshot failure');
+  for(const options of [{advance:()=>{throw reason;}},
+    {pending:0,finish:()=>{throw reason;}},{pending:0,inspect:()=>{throw reason;}}]) {
+    const f=snapshotFixture(options);await assert.rejects(f.run(),error=>error===reason);
+    assert.equal(f.counts.cancel,1);assert.equal(f.counts.yields,0);assert.equal(f.counts.timers,0);
+  }
+});
+
+test('Program snapshot refuses malformed progress before another quantum or finish',async()=>{
+  for(const progress of [[],[1,256],[false,-1],[false,0.5],[true,NaN]]) {
+    const f=snapshotFixture({advance:()=>progress});
+    await assert.rejects(f.run(),/Invalid original snapshot progress/);
+    assert.deepEqual(f.counts,{begin:1,advance:1,finish:0,cancel:1,yields:0,timers:0});
+  }
+});
+
+test('Program snapshot already complete does not yield or cancel',async()=>{
+  const f=snapshotFixture({pending:0});assert.strictEqual(await f.run(),f.result);
+  assert.deepEqual(f.counts,{begin:1,advance:1,finish:1,cancel:0,yields:0,timers:0});
+});
+
+test('Program snapshot keeps the asynchronous timer fallback without setImmediate',async()=>{
+  const f=snapshotFixture({pending:2,immediate:false});assert.strictEqual(await f.run(),f.result);
+  assert.deepEqual(f.counts,{begin:1,advance:3,finish:1,cancel:0,yields:0,timers:2});
+});
+
 // Keep the Local transport's actual private loops in this existing CI selection.
 // Explicit operation/Store ports below do not establish physical custody or a
 // normal installed Host result.
@@ -143,8 +227,8 @@ function localLoops({immediate=true,onYield}={}) {
     counts.yields++;
     return setImmediate(() => {onYield?.();callback();});
   } : undefined;
-  const managed = new Function('setTimeout','setImmediate',managedLocalSource +
-    ';return {runManagedExecution,runManagedFinalization};')(timer,turn);
+  const managed = new Function('setTimeout','setImmediate','checkedLocalManagedAdvance',managedLocalSource +
+    ';return {runManagedExecution,runManagedFinalization};')(timer,turn,checkedLocalManagedAdvance);
   const snapshot = new Function('setTimeout','setImmediate',snapshotLocalSource +
     ';return prepareLocalSnapshot;')(timer,turn);
   return {...managed,prepareSnapshot:snapshot,counts};

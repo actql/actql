@@ -4,6 +4,7 @@ import {compileFunction} from 'node:vm';
 import test from 'node:test';
 import {parse} from 'acorn';
 import {createResultFactory} from '../../packages/sdk/internal/result-read.mjs';
+import {localResourceResultReadLimits} from './installed-host-policy.mjs';
 import recipe from './host-result-service-recipe.cjs';
 
 // Execute the installed Host's actual policy and authority callbacks without
@@ -31,8 +32,19 @@ function original(name, bindings) {
     ...Object.values(bindings));
 }
 
-async function fixture(lengths, {deny = false, revokeAt, cleanupFails = false} = {}) {
-  const resultReadLimits = original('resultReadLimits', {});
+async function fixture(lengths, {deny = false, revokeAt, cleanupFails = false, requestMemory} = {}) {
+  const policy = Object.freeze({});
+  const moon = {
+    clientLocalResourcePolicyOriginal: () => policy,
+    clientLocalPreparationResourceLimits(value, selectedRetained, selectedExecution) {
+      assert.equal(value, policy);
+      assert.equal(selectedRetained, requestMemory === undefined ? undefined : BigInt(requestMemory.retainedBytes));
+      assert.equal(selectedExecution, requestMemory === undefined ? undefined : BigInt(requestMemory.executionBytes));
+      return [100000n, 100000n, 100000n, 100000000000n, selectedRetained ?? 536870912n, selectedExecution ?? 536870912n];
+    },
+    clientLocalResourcePolicyRowCeiling(value) {assert.equal(value, policy); return 2097152;},
+  };
+  const resultReadLimits = original('resultReadLimits', {moon, localResourceResultReadLimits, requestMemory});
   const limits = (await original('negotiate', {mode: 'local', workspaceId: undefined,
     authorityScopeCid: 'scope', hostConnection: () => false, resultReadLimits})({connection: {}})).limits;
   let allowed = !deny, opened = 0, stopped = 0, closed = 0, produced = 0, bytes = 0;
@@ -93,6 +105,17 @@ function retired(f) {
   assert.equal(f.counts().closed, 1);
 }
 
+test('installed read initializer binds omitted small and large memory pairs before negotiation', async () => {
+  for (const requestMemory of [undefined,
+    {retainedBytes: 8192, executionBytes: 16384},
+    {retainedBytes: 1073741824, executionBytes: 2147483648}]) {
+    const f = await fixture([32], {requestMemory});
+    assert.equal(f.limits.maxRetainedValueBytes, requestMemory?.retainedBytes ?? 536870912);
+    assert.deepEqual(await f.result.all(), [{value: 'x'.repeat(20)}]);
+    retired(f);
+  }
+});
+
 test('installed read grant covers the negotiated stream beyond the publication default', async () => {
   const f = await fixture(Array(200).fill(52000));
   assert.equal(await drain(f.result.rows()), 200);
@@ -137,8 +160,8 @@ test('read authorization remains required before opening and during delivery', a
 test('streaming does not relax explicit collection or per-row bounds', async () => {
   const collection = await fixture(Array(200).fill(52000));
   await assert.rejects(collection.result.all({maxRows: 2}), {code: 'ResultRetainedLimit'});
-  assert.equal(collection.limits.maxRows, 10000);
-  assert.equal(collection.limits.maxRetainedValueBytes, 10 * 1024 * 1024);
+  assert.equal(collection.limits.maxRows, 2097152);
+  assert.equal(collection.limits.maxRetainedValueBytes, 536870912);
   retired(collection);
   const row = await fixture([1024 * 1024 + 1]);
   await assert.rejects(drain(row.result.rows()), {code: 'ResultRowWireLimit'});

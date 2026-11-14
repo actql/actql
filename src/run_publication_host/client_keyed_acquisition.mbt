@@ -352,6 +352,7 @@ pub(all) enum ClientKeyedRequestIssue {
   SourceLogical(ClientCapturedSourceLogicalIssue)
   SourceObservation(@row_host.RowHostIssue)
   Derivation(@publication.ResultEvidenceIssuanceIssue)
+  Dependency(ClientEffectDependencyCaptureIssue)
 }
 
 ///|

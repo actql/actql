@@ -14,6 +14,7 @@ const childFile = fileURLToPath(new URL('./remote-checkpoint-host.test.mjs', imp
 await mkdir(scratch, {recursive: true});
 const cases = [
   ['applied', 'none'], ['applied', 'answer_deadline'],
+  ['applied', 'answer_deadline', 'recovered_stage'],
   ...['prepared', 'applied', 'accepted', 'unknown'].flatMap(state =>
     ['read', 'commit', 'guard'].map(refusal => [state, refusal])),
 ];
@@ -39,8 +40,10 @@ test('failed reference Effect constructor keeps its real token through same clea
   assertTestExecution('node', process.execPath, args, result);
 });
 
-for (const [rowState, refusal] of cases) {
-  test(`restarted ${rowState} Effect preserves its row partition on ${refusal} refusal`, async t => {
+for (const [rowState, refusal, fence] of cases) {
+  test(fence === undefined
+    ? `restarted ${rowState} Effect preserves its row partition on ${refusal} refusal`
+    : 'restarted applied Effect releases its original recovered stage after resume fencing', async t => {
     const root = await mkdtemp(join(scratch.pathname, 'run-'));
     t.after(() => rm(root, {recursive: true, force: true}));
     const hostRoot = join(root, 'host');
@@ -57,6 +60,7 @@ for (const [rowState, refusal] of cases) {
       cwd: new URL('../../', import.meta.url), encoding: 'utf8', timeout: 45_000,
       env: {...childEnvironment, ACTQL_TEST_HOST_CRASH_ROOT: hostRoot,
         ACTQL_TEST_HOST_CRASH_KEYS: keyPath, ACTQL_TEST_PARTIAL_EFFECT_PHASE: phase,
+        ...(fence === undefined ? {} : {ACTQL_TEST_PARTIAL_EFFECT_FENCE: fence}),
         ACTQL_TEST_PARTIAL_EFFECT_ROW: rowState, ACTQL_TEST_PARTIAL_EFFECT_REFUSAL: refusal},
     });
     const seed = run('seed');

@@ -14,8 +14,13 @@ fn source_acquisition_fixture(
   result : String,
   supplied : String,
   branch? : Bool = false,
+  reverse_request_fields? : Bool = false,
 ) -> PipelineRequests {
-  let input = "{\"connector\":\"crm/main\",\"resource\":\"r\",\"request\":{\"id\":{\"$param\":\"p\"},\"tenant\":null}}"
+  let input = if reverse_request_fields {
+    "{\"connector\":\"crm/main\",\"resource\":\"r\",\"request\":{\"tenant\":null,\"id\":{\"$param\":\"p\"}}}"
+  } else {
+    "{\"connector\":\"crm/main\",\"resource\":\"r\",\"request\":{\"id\":{\"$param\":\"p\"},\"tenant\":null}}"
+  }
   let body = "{\"id\":\"a\",\"inputs\":{\"remote\":" +
     input +
     "},\"steps\":" +
@@ -212,5 +217,46 @@ test "Source original Request document retains its exact writer bytes without re
   assert_eq(
     parameterized_request_wire(request, 1000, 100, 20).unwrap(),
     expected,
+  )
+}
+
+///|
+test "Source publication Request preimage uses canonical fields without changing original binding indices" {
+  let requests = source_acquisition_fixture(
+    "[]",
+    "remote",
+    "{\"p\":7}",
+    reverse_request_fields=true,
+  )
+  let source = derive_source_acquisition(requests, 0, 1000000).unwrap()
+  let request = source_acquisition_request(source)
+  let first = parameterized_request_field_at(request, 0).unwrap()
+  let second = parameterized_request_field_at(request, 1).unwrap()
+  let expected = "{\"id\":7,\"tenant\":null}"
+  let document = parameterized_request_canonical_document(
+    request, 1000, 100, 20,
+  ).unwrap()
+  assert_eq(@encode.document_text(document), expected)
+  assert_eq(
+    parameterized_request_wire(request, 1000, 100, 20).unwrap(),
+    "{\"tenant\":null,\"id\":7}",
+  )
+  assert_true(
+    @publication.admit_hashed_effect_dependency_body(
+      "request_values",
+      "sha256:ecbbecd3d50bdf5a5cfe70acaa9668975f6f44900a081d94633e4e11968f4b1e",
+      @encode.document_text(document),
+      1000,
+      100,
+      20,
+    )
+    is Ok(_),
+  )
+
+  assert_true(
+    physical_equal(first, parameterized_request_field_at(request, 0).unwrap()),
+  )
+  assert_true(
+    physical_equal(second, parameterized_request_field_at(request, 1).unwrap()),
   )
 }

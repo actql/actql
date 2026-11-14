@@ -208,7 +208,30 @@ fn local_installation_packet_in_transaction(
 fn read_local_installation_authenticated_payload(
   host : NativeLocalHostConnection,
   packet : Bytes,
+  signing_original? : NativeLocalInitialSigningOriginal? = None,
 ) -> Result[Bytes, NativeLocalAdoptionIssue] {
+  let (payload, tag) = match local_installation_packet_data(packet) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  match
+    authenticate_local_installation_payload(
+      host,
+      payload,
+      tag,
+      signing_original~,
+    ) {
+    Err(issue) => Err(issue)
+    Ok(_) => Ok(payload)
+  }
+}
+
+///|
+// Canonical packet DATA only. Retaining these private bytes never retains an
+// authentication result; every consumer below must run the actual current MAC.
+fn local_installation_packet_data(
+  packet : Bytes,
+) -> Result[(Bytes, Bytes), NativeLocalAdoptionIssue] {
   try {
     let envelope = local_adoption_fields(packet, ["payload", "tag"])
       .map_err(issue => LocalInstallationAdoptionStop(issue))
@@ -221,18 +244,58 @@ fn read_local_installation_authenticated_payload(
       epoch_hex_bytes(envelope[1]) is Some(tag) else {
       return Err(CustodyLost)
     }
-    let (key, _, _) = read_epoch_custody(host.database)
-      .map_err(issue => NativeLocalAdoptionIssue::Epoch(issue))
-      .map_err(issue => LocalInstallationAdoptionStop(issue))
-      .unwrap_or_error()
-    guard host.epoch.crypto
-      .verify_hmac_sha256(key, payload, tag)
-      .map_err(issue => NativeLocalAdoptionIssue::Crypto(issue))
+    Ok((payload, tag))
+  } catch {
+    LocalInstallationAdoptionStop(issue) => Err(issue)
+  }
+}
+
+///|
+// Shared actual authentication, not a permit or cached successful comparison.
+// The independent reader supplies freshly decoded packet DATA; the entered
+// original may supply only its own private, byte-identical admitted control.
+fn authenticate_local_installation_payload(
+  host : NativeLocalHostConnection,
+  payload : Bytes,
+  tag : Bytes,
+  signing_original? : NativeLocalInitialSigningOriginal? = None,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  if payload.length() > 2048 || tag.length() != 32 {
+    return Err(CustodyLost)
+  }
+  try {
+    let valid = match signing_original {
+      None => {
+        let (key, _, _) = read_epoch_custody(host.database)
+          .map_err(issue => NativeLocalAdoptionIssue::Epoch(issue))
+          .map_err(issue => LocalInstallationAdoptionStop(issue))
+          .unwrap_or_error()
+        host.epoch.crypto
+        .verify_hmac_sha256(key, payload, tag)
+        .map_err(issue => NativeLocalAdoptionIssue::Crypto(issue))
+      }
+      Some(original) => {
+        original
+        .check_initial_control_read_scope(host)
+        .map_err(issue => LocalInstallationAdoptionStop(issue))
+        .unwrap_or_error()
+        host.epoch
+        .verify_control_payload_in_operation(payload, tag)
+        .map_err(issue => {
+          match issue {
+            NativeClientEpochIssue::Crypto(original) =>
+              NativeLocalAdoptionIssue::Crypto(original)
+            _ => NativeLocalAdoptionIssue::Epoch(issue)
+          }
+        })
+      }
+    }
+    guard valid
       .map_err(issue => LocalInstallationAdoptionStop(issue))
       .unwrap_or_error() else {
       return Err(CustodyLost)
     }
-    Ok(payload)
+    Ok(())
   } catch {
     LocalInstallationAdoptionStop(issue) => Err(issue)
   }

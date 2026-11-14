@@ -3,8 +3,16 @@
 // the same Database and its actual scope; these functions issue no authority,
 // capacity, new transaction or original row. Legacy callers keep direct reads.
 priv struct NativeClientJournalReadAccess {
+  before_metadata_construction : ((Int64, Int64, Int64) -> Result[
+    Unit,
+    NativeClientRunJournalIssue,
+  ])?
   database : @sqlite.Database
   before_submitted_decode : ((@host.ClientSubmittedJournalConstruction) -> Result[
+    Unit,
+    @host.ClientJournalDecodingIssue,
+  ])?
+  before_run_decode : ((@host.ClientRunJournalConstruction) -> Result[
     Unit,
     @host.ClientJournalDecodingIssue,
   ])?
@@ -195,5 +203,34 @@ fn submitted_decode_construction(
     Some(original) if physical_equal(database, original.database) =>
       original.before_submitted_decode
     _ => None
+  }
+}
+
+///|
+fn run_decode_construction(
+  database : @sqlite.Database,
+  reads : NativeClientJournalReadAccess?,
+) -> ((@host.ClientRunJournalConstruction) -> Result[
+  Unit,
+  @host.ClientJournalDecodingIssue,
+])? {
+  match reads {
+    Some(original) if physical_equal(database, original.database) =>
+      original.before_run_decode
+    Some(_) => Some(_ => Err(@host.ClientJournalDecodingIssue::CustodyLost))
+    None => None
+  }
+}
+
+///|
+fn run_metadata_construction(
+  database : @sqlite.Database,
+  reads : NativeClientJournalReadAccess?,
+) -> ((Int64, Int64, Int64) -> Result[Unit, NativeClientRunJournalIssue])? {
+  match reads {
+    Some(original) if physical_equal(database, original.database) =>
+      original.before_metadata_construction
+    Some(_) => Some((_, _, _) => Err(CustodyLost))
+    None => None
   }
 }

@@ -140,7 +140,7 @@ test "Direct occurrence mapping rejects foreign checked owner and wrong checked 
       selected.checks[1],
       Ref(1000000),
     ).unwrap(),
-    (1, 0, 1),
+    (1, 0, 1, false),
   )
   assert_eq(
     client_direct_acquisition_occurrence_coordinate(
@@ -148,7 +148,7 @@ test "Direct occurrence mapping rejects foreign checked owner and wrong checked 
       selected.checks[0],
       Ref(1000000),
     ).unwrap(),
-    (0, 0, 0),
+    (0, 0, 0, false),
   )
 }
 
@@ -191,4 +191,39 @@ test "Direct subject borrowing retains the filtered original across multiple obl
       ),
     )
   }
+}
+
+///|
+// Actual checked two-Source producer plus correlated read and two Models.
+// This is early coverage DATA only, not capture/lookup/Model completion.
+test "preconsumer Direct coverage keeps original joined inputs while later keyed obligations remain open" {
+  let (first, _, _) = client_keyed_plan_test_inputs(
+    plural=true,
+    declared=true,
+    joined_producer=true,
+  )
+  let prepared = first.owner
+  let selected = select_client_direct_acquisition_occurrences(prepared, 1000000).unwrap()
+  assert_eq(client_direct_acquisition_occurrence_count(selected), 2)
+  assert_true(client_direct_source_input_coverage(prepared, selected, 2, true))
+  assert_false(
+    client_direct_source_input_coverage(prepared, selected, 2, false),
+  )
+  for count in [0, 1, 3] {
+    assert_false(
+      client_direct_source_input_coverage(prepared, selected, count, true),
+    )
+  }
+  let (other, _, _) = client_keyed_plan_test_inputs(
+    plural=true,
+    declared=true,
+    joined_producer=true,
+  )
+  assert_false(
+    client_direct_source_input_coverage(other.owner, selected, 2, true),
+  )
+  assert_eq(
+    prepared_client_composed_infer_occurrences(prepared).unwrap().length(),
+    2,
+  )
 }

@@ -5,6 +5,7 @@
 // read from a synced evidence file, never from transport logs.
 import assert from 'node:assert/strict';
 import {prepareNativeResidentHttpLibrary, prepareNativeResidentSite, prepareNativeRuntimeBundle, prepareNativeRuntimeBundleLibraries} from './native-runtime-bundle-fixture.mjs';
+import {verifyNativeResidentPortablePreparation} from './native-resident-portable-preparation.mjs';
 import test from 'node:test';
 import {execFileSync, fork, spawn} from 'node:child_process';
 import {createHash, generateKeyPairSync, X509Certificate} from 'node:crypto';
@@ -375,11 +376,16 @@ try {
   const httpLibrary = timedResidentPreparation('http-component', () => prepareNativeResidentHttpLibrary());
   const executable = timedResidentPreparation('resident-command', () => prepareNativeResidentSite(repository,
     join(root, 'resident-producer')));
+  if (process.env.ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION !== undefined) {
+    timedResidentPreparation('portable-runtime-verification', () =>
+      verifyNativeResidentPortablePreparation(repository, process.env.ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION));
+  } else {
   timedResidentPreparation('portable-core-build', () => execFileSync(moon, ['build', '--target', 'js', '--release',
     'src/connectors_builtin_node'], {cwd: repository, stdio: 'inherit'}));
   timedResidentPreparation('portable-owner-build', () => execFileSync(process.execPath, ['scripts/build-runtime-packages.mjs',
     'coordinator-core', 'run-host-core', ...(retainedConsumerMode ? ['transfer-core'] : [])],
   {cwd: repository, stdio: 'inherit'}));
+  }
   const bundleTool = timedResidentPreparation('bundle-command', () => prepareNativeRuntimeBundle(repository,
     join(root, 'runtime-bundle-producer')));
   const bundleLibraries = timedResidentPreparation('bundle-components', () => prepareNativeRuntimeBundleLibraries(repository,

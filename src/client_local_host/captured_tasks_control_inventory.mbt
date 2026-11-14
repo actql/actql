@@ -39,9 +39,32 @@ pub fn captured_local_tasks_control_capacity() -> @execution.ExecutionCapacity? 
 pub fn retained_effect_local_tasks_control_capacity(
   graph : @strategy.CheckedDAG,
 ) -> @execution.ExecutionCapacity? {
+  if !@strategy.graph_program_has_effects(graph) {
+    return None
+  }
+  local_tasks_control_capacity(graph)
+}
+
+///|
+/// The SAME physical Local task loop after whole inputs have been bound to
+/// its original DAG. The quote grants no SourceFree purpose or execution.
+pub fn source_input_local_tasks_control_capacity(
+  graph : @strategy.CheckedDAG,
+) -> @execution.ExecutionCapacity? {
+  if @strategy.graph_program_has_effects(graph) ||
+    @strategy.graph_captured_prefix(graph) != 0 {
+    return None
+  }
+  local_tasks_control_capacity(graph)
+}
+
+///|
+fn local_tasks_control_capacity(
+  graph : @strategy.CheckedDAG,
+) -> @execution.ExecutionCapacity? {
   let tasks = @strategy.graph_task_count(graph).to_int64()
   let ports = @strategy.graph_data_count(graph).to_int64()
-  if tasks <= 0L || !@strategy.graph_program_has_effects(graph) {
+  if tasks <= 0L {
     return None
   }
   let bytes = @execution.preparation_representation_cost({
@@ -54,4 +77,26 @@ pub fn retained_effect_local_tasks_control_capacity(
     owned_wire_bytes: 0L,
   })
   bytes.bind(value => @execution.execution_capacity(value, value))
+}
+
+///|
+// SAME Effect control owner, retained beyond individual output/body retirement.
+// Per checked task: completion field; completion Some + record; producer Some;
+// occurrence Some + record. Original identity/target are borrowed DATA only.
+// No rows, callbacks, input binding, holding or owned text/wire are retained.
+fn captured_task_completion_control_capacity(
+  graph : @strategy.CheckedDAG,
+) -> @execution.ExecutionCapacity? {
+  let tasks = if @strategy.graph_program_has_effects(graph) {
+    @strategy.graph_task_count(graph).to_int64()
+  } else {
+    0L
+  }
+  @execution.preparation_representation_cost({
+    record_headers: 5L * tasks,
+    reference_slots: 7L * tasks,
+    scalar_words: 4L * tasks,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).bind(bytes => @execution.execution_capacity(bytes, bytes))
 }

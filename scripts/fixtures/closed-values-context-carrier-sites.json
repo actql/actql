@@ -228,11 +228,11 @@
     },
     {
       "path": "src/pipeline_check_context/operation_ranges.mbt",
-      "sites": 103,
-      "payload_slots_upper": 153,
+      "sites": 104,
+      "payload_slots_upper": 155,
       "live_multiplier": 1,
       "max_slots": 7,
-      "source_sha256": "40c9a4ec9efc0c31bb16fda41528cee6c0f1dacd7e61b692e6ad83f5347cc750"
+      "source_sha256": "52833edb62804c8400b6ca23fff06d6661182d8a3eddfa6afdd9c3e2f7f646b9"
     },
     {
       "path": "src/pipeline_check_context/operation_requirements.mbt",
@@ -244,11 +244,11 @@
     },
     {
       "path": "src/pipeline_check_context/operation_resolution_index.mbt",
-      "sites": 234,
-      "payload_slots_upper": 359,
+      "sites": 243,
+      "payload_slots_upper": 374,
       "live_multiplier": 1,
       "max_slots": 11,
-      "source_sha256": "342c3a198cade296c94212cd9496108319e6fc787eda084249529b7b150b5e6f"
+      "source_sha256": "f3fc0c607a5c2388d90fb7ba7481f0ca45931a9a1a2cea0a31a3b207516b71a5"
     },
     {
       "path": "src/pipeline_check_context/operation_scalars.mbt",
@@ -611,6 +611,6 @@
       "source_sha256": "1ef1df4f1ad1f98f35d621ad3524e307de67159826eb74b3d722f6697b4f05d8"
     }
   ],
-  "sites": 6976,
-  "payload_slots_upper": 11456
+  "sites": 6986,
+  "payload_slots_upper": 11473
 }
