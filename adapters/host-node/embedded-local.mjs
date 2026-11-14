@@ -8445,7 +8445,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
         record.mockModelProfile = mockModelProfile;
         assertCurrent();
         mockAnswers = await loadInstalledProjectMockAnswers(moon, project, projectProfile,
-          {limits,assertCurrent,deferAnswers:true});
+          {limits,assertCurrent,deferAnswers:true,
+            installationInventory:originalInstallation.declaredFileInstallationInventory});
         record.mockAnswers = mockAnswers;
         const models = mockAnswers.bindModelsForRuntime(moon, mockModelProfile, now);
         record.mockModels = models;
