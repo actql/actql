@@ -25,7 +25,7 @@ test('Session split retains every original command once and the same collector a
   const baselineFiles = JSON.parse(readFileSync(new URL('./fixtures/ci-session-test-files.json', import.meta.url)));
   const files = sessionControlFiles(root);
   for (const file of baselineFiles) assert(files.includes(file), 'Dropped original file: ' + file);
-  assert.deepEqual(jobs['session-controls'].needs, ['select-targets', 'preflight']);
+  assert.deepEqual(jobs['session-controls'].needs, ['select-targets']);
   assert.equal(jobs['session-controls'].if, jobs['session-evidence'].if);
   assert.equal(jobs['session-controls']['continue-on-error'], undefined);
   assert(jobs['session-controls'].steps.some(step => step.name === 'Install audited Lean pin'));

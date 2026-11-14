@@ -596,7 +596,7 @@ test('workflow partitions complete campaigns into exactly eight owners with mand
   assert.deepEqual(listed.stdout.trim().split('\n').sort(),expected);
   for(const name of producerJobs) {
     const job=jobs[name], part=partNames[name], lines=runLines(name);
-    assert.equal(job.if,normalSchedule.replace(" }}", " && needs.select-targets.outputs.deep_proofs == 'true' }}")); assert.deepEqual(job.needs,['select-targets','preflight']);
+    assert.equal(job.if,normalSchedule.replace(" }}", " && needs.select-targets.outputs.deep_proofs == 'true' }}")); assert.deepEqual(job.needs,['select-targets']);
     assert.equal(job.strategy,undefined);assert.equal(job['runs-on'],'ubuntu-24.04');
     assert.deepEqual(job.env,{ACTQL_PIPELINE_PART:part,ACTQL_PIPELINE_PHASE_TIMING:'1'});
     assert(!lines.some(line=>line.includes('node --test')),'Synthetic tests run once elsewhere');
@@ -621,7 +621,7 @@ test('workflow partitions complete campaigns into exactly eight owners with mand
   assert(capacity.includes("assert.equal(result.status === 0, slot === 'healthy'"));
   assert(capacity.includes("assert(Number.isInteger(result.status), 'Audit did not finish normally')"));
   assert.equal(jobs['pipeline-validation'].if,normalSchedule);
-  assert.deepEqual(jobs['pipeline-validation'].needs,['select-targets','preflight']);
+  assert.deepEqual(jobs['pipeline-validation'].needs,['select-targets']);
   assert(runLines('pipeline-validation').includes('node proofs/relation-pipeline/ci-parts.mjs validation'));
   // Phase timing is stdout diagnostics for the eight selected producers only.
   // Validation and the final authoritative evidence join keep their own gates.

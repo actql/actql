@@ -275,7 +275,7 @@ test('Whole three-Source and binary JOIN CI always collects only the invocation 
   assert(workflow.jobs.client.needs.includes('client-packed'), 'Original consumers remain required');
 });
 test('required README job reuses the exact single producer on Node 22 and 24 with failure retention', () => {
-  assert(job); assert.deepEqual(job.needs, ['select-targets', 'preflight', 'client-packages']);
+  assert(job); assert.deepEqual(job.needs, ['select-targets', 'client-packages']);
   assert.equal(job.strategy['fail-fast'], false);
   assert.deepEqual(job.strategy.matrix.node, ['22.22.0', '24']);
   const input = job.steps.find(step => step.uses === './.github/actions/download-client-packages');

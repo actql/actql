@@ -40,7 +40,7 @@ test('Core runner split caps only Darwin and retains the complete original matri
     ...nativeCoreCiPartitions.map(partition => ({target: 'native', partition}))]);
   assert.equal(common.steps, darwin.steps, 'One YAML-anchored step owner preserves all original commands and environments');
   for (const job of [common, darwin]) {
-    assert.deepEqual(job.needs, ['select-targets', 'preflight']);
+    assert.deepEqual(job.needs, ['select-targets']);
     assert.equal(job.strategy['fail-fast'], false);
     assert.equal(job['timeout-minutes'], "${{ matrix.target == 'native' && 90 || 30 }}");
   }
@@ -49,7 +49,7 @@ test('Core runner split caps only Darwin and retains the complete original matri
 
 test('Core runner aggregate requires every selected matrix and refuses missing failed or skipped work', () => {
   const core = workflow.jobs.core;
-  assert.deepEqual(core.needs, ['select-targets', 'preflight', 'core-common', 'core-darwin']);
+  assert.deepEqual(core.needs, ['select-targets', 'core-common', 'core-darwin']);
   assert.equal(core['runs-on'], 'ubuntu-24.04');
   assert(core.if.includes('always()'));
   assert.equal(core['timeout-minutes'], 5);
@@ -210,9 +210,8 @@ test('Linux HTTP remains independent while macOS HTTP shares the original same-V
   for (const family of ['native', 'native-macos']) {
     const workload = workflow.jobs[family + '-workloads'];
     const http = family === 'native' ? 'native-http' : 'native-http-macos';
-    assert.deepEqual(workflow.jobs[http].needs, ['select-targets', 'preflight',
-      ...(family === 'native-macos' ? ['native-macos-workloads', 'native-http', 'core'] : [])]);
-    assert.deepEqual(workload.needs, ['select-targets', 'preflight']);
+    assert.deepEqual(workflow.jobs[http].needs, ['select-targets', ...(family === 'native-macos' ? ['native-macos-workloads', 'native-http', 'core'] : [])]);
+    assert.deepEqual(workload.needs, ['select-targets']);
     assert.equal(workload.strategy, undefined);
     assert.equal(workload.steps.filter(step => step.run?.includes('prepare-native-runtime-bundle-fixture.mjs')).length, 1);
     assert(!workload.steps.some(step => step.uses === './.github/actions/download-client-packages'));

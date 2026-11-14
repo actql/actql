@@ -710,7 +710,7 @@ test('source-only Client wire and scratch tests do not wait for a producer or ru
     'packages/client-wire/submission-check-semantics.test.mjs', 'scripts/owned-scratch.test.mjs'];
   const step = jobs.lint.steps.find(step => step.name === 'Test source-only Client wire contracts');
   assert(step);
-  assert.deepEqual(jobs.lint.needs, ['select-targets', 'preflight']);
+  assert.deepEqual(jobs.lint.needs, ['select-targets']);
   assert.equal(step.if, "${{ needs.select-targets.outputs.profile == 'full' }}");
   assert.equal(step.run, 'node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- ' + files.slice(0, 2).join(' '));
   assert(!jobs.lint.needs.includes('client-packages'));
@@ -738,7 +738,7 @@ test('source-only evaluation tests have one early bounded CI owner', () => {
     'examples/infer-evaluation/compare-source-instructions.test.mjs'];
   const step = jobs.lint.steps.find(step => step.name === 'Test source-only INFER evaluation contracts');
   assert(step);
-  assert.deepEqual(jobs.lint.needs, ['select-targets', 'preflight']);
+  assert.deepEqual(jobs.lint.needs, ['select-targets']);
   assert.equal(step.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
   assert.equal(step.run, 'node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- ' + files.join(' '));
   assert(jobs.lint.steps.indexOf(step) < jobs.lint.steps.findIndex(step => step.name === 'Type-check public SDK and Client wire declarations'));
@@ -810,7 +810,7 @@ test('each Client group retains its acceptance commands exactly once', () => {
     'every original command keeps its owner; source-only arguments move to lint and only four preparation commands repeat');
   assert(!jobs['client-distribution-packed'].steps.some(step => step.id === 'distribution-preparation'),
     'normal tar acceptance does not rebuild the checkout runtime');
-  assert.deepEqual(jobs['client-distribution-native'].needs, ['select-targets', 'preflight']);
+  assert.deepEqual(jobs['client-distribution-native'].needs, ['select-targets']);
   assert.deepEqual(runs('client-packed'), [
     `bash scripts/ci-install-linux-clang.sh
 compiler_bin="$RUNNER_TEMP/packed-query-compiler"
@@ -892,7 +892,7 @@ done`,
       assert.equal(step['continue-on-error'], undefined);
     }
   }
-  assert.deepEqual(jobs['client-salesforce'].needs, ['select-targets', 'preflight']);
+  assert.deepEqual(jobs['client-salesforce'].needs, ['select-targets']);
   const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
   assert(!manifest.scripts['check:local-node-assets'].includes('test-packed-salesforce-source'),
     'the packed composition acceptance moves from Host into the artifact consumer exactly once');
@@ -904,7 +904,7 @@ test('packed Native Graph compiler setup retains exact cc and ar selection', () 
   const query = job.steps.find(step => step.id === 'packed-query-native');
   assert(setup && query);
   assert(job.steps.indexOf(setup) < job.steps.indexOf(query));
-  assert.deepEqual(job.needs, ['select-targets', 'preflight', 'client-packages']);
+  assert.deepEqual(job.needs, ['select-targets', 'client-packages']);
   assert.equal(job['runs-on'], 'ubuntu-24.04');
   assert.equal(job['timeout-minutes'], 45);
   assert.equal(setup['continue-on-error'], undefined);
@@ -977,7 +977,7 @@ test('one producer uploads only manifest and tarballs; consumers select its immu
   ].map(name => '${{ runner.temp }}/actql-client-packages/' + name));
   assert.deepEqual(producer.outputs, {'artifact-id': '${{ steps.packages.outputs.artifact-id }}'});
   for (const name of consumers) {
-    assert.deepEqual(jobs[name].needs, ['select-targets', 'preflight', 'client-packages']);
+    assert.deepEqual(jobs[name].needs, ['select-targets', 'client-packages']);
     const download = jobs[name].steps.find(step => step.name === 'Download the exact Client package artifact');
     assert.equal(download.uses, './.github/actions/download-client-packages');
     assert.deepEqual(download.with, {
