@@ -1429,6 +1429,20 @@ function draftStepEnabled(step, profile) {
   return Function('needs', 'startsWith', `return (${expression});`)(
     {'select-targets': {outputs: {profile}}}, (value, prefix) => value.startsWith(prefix));
 }
+test('Explorer components require original built assets and keep Draft preparation source-only', () => {
+  const steps = jobs.lint.steps;
+  const prepare = steps.filter(step => step.name === 'Build Explorer component assets');
+  const consume = steps.filter(step => step.name === 'Test Explorer gateway and UI components');
+  assert.equal(prepare.length, 1); assert.equal(consume.length, 1);
+  assert.equal(prepare[0].run, 'npm run build --prefix packages/explorer');
+  assert.equal(consume[0].run, 'node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- packages/explorer/*.test.mjs packages/explorer-ui/*.test.mjs');
+  assert(steps.indexOf(prepare[0]) < steps.indexOf(consume[0]));
+  for (const step of [prepare[0], consume[0]]) {
+    assert.equal(step['continue-on-error'], undefined);
+    for (const profile of ['draft', 'draft-focused']) assert.equal(draftStepEnabled(step, profile), false);
+    for (const profile of ['full', 'maintenance', 'focused-tests']) assert.equal(draftStepEnabled(step, profile), true);
+  }
+});
 test('Draft cheap command inventory excludes compiler API generation and compound suites', () => {
   const commands = name => jobs[name].steps.filter(step => step.run && draftStepEnabled(step, 'draft')).map(step => step.run);
   const preflight = commands('preflight');
