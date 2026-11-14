@@ -6,6 +6,7 @@ import {runInNewContext} from 'node:vm';
 import {parse} from 'yaml';
 import {parse as parseJavaScript} from 'acorn';
 import {validatePackedPublicQueryArguments} from './packed-public-query-options.mjs';
+import {tablePublicTestGroups} from './table-public-acceptance-cases.mjs';
 
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const job = workflow.jobs['client-packed'];
@@ -27,6 +28,7 @@ test('every packed campaign has exactly one matrix owner and one same-run packag
   assert.equal(download[0].with['artifact-id'], '${{ needs.client-packages.outputs.artifact-id }}');
   const campaigns = job.steps.filter(step => step.name?.startsWith('Test '));
   assert.deepEqual(campaigns.map(step => step.name), [
+    'Test packed Table Source inventory and cold Saved',
     'Test packed Local runtime assets', 'Test packed Sheets',
     'Test packed HubSpot record approval and original Saved',
     'Test packed kintone record approval and original Saved',
@@ -53,6 +55,63 @@ test('every packed campaign has exactly one matrix owner and one same-run packag
   const aggregate = workflow.jobs.client;
   assert(aggregate.needs.includes('client-packed'));
   assert(aggregate.steps[0].run.includes('const ok = result === "success";'));
+});
+
+test('packed Table Source inventory requires private locked Python and the same-run packages', () => {
+  const prepare = job.steps.find(step => step.id === 'table-python');
+  const accept = job.steps.find(step => step.id === 'packed-table-source');
+  const report = job.steps.find(step => step.id === 'packed-table-source-summary');
+  assert.ok(prepare); assert.ok(accept); assert.ok(report);
+  assert.equal(job['timeout-minutes'], 45);
+  assert.equal(job.steps.find(step => step.uses === './.github/actions/setup-toolchain').with.python, 'true');
+  assert.equal(prepare.run, 'python -m venv "$RUNNER_TEMP/table-python"\n' +
+    '"$RUNNER_TEMP/table-python/bin/python" -m pip install --require-hashes ' +
+    '-r adapters/connectors/local/iceberg/requirements.lock\n');
+  assert.deepEqual(accept.env, {ACTQL_TABLE_PYTHON: '${{ runner.temp }}/table-python/bin/python',
+    ACTQL_TABLE_CASE_GROUP: 'source-inventory'});
+  assert.equal(accept.run, 'test -n "${ACTQL_PACKED_CLIENT_PACKAGES:-}"\n' +
+    'test -z "${ACTQL_TABLE_NORMAL_RELEASE:-}"\n' +
+    'node --test scripts/packed-table-private-input.test.mjs\n');
+  for (const step of [prepare, accept, report]) {
+    assert.equal(step['continue-on-error'], undefined);
+    assert.equal(step['timeout-minutes'], undefined);
+  }
+  const evaluate = (step, {group = 'connectors', inputs = 'success', python = 'success',
+    accepted = 'success', cancelled = false} = {}) => runInNewContext(
+    step.if.replace(/^\$\{\{\s*|\s*\}\}$/gu, '').replace(/\.([a-z]+(?:-[a-z]+)+)/gu, "['$1']"), {
+      matrix: {group}, cancelled: () => cancelled, always: () => true, success: () => false,
+      steps: {'client-inputs': {outcome: inputs}, 'table-python': {outcome: python},
+        'packed-table-source': {outcome: accepted}, unrelated: {outcome: 'failure'}},
+    }, {timeout: 100});
+  assert.equal(evaluate(prepare), true); assert.equal(evaluate(accept), true);
+  for (const group of job.strategy.matrix.group.filter(group => group !== 'connectors')) {
+    assert.equal(evaluate(prepare, {group}), false);
+    assert.equal(evaluate(accept, {group}), false);
+    assert.equal(evaluate(report, {group, accepted: 'failure'}), false);
+  }
+  for (const inputs of ['failure', 'cancelled', 'skipped', undefined]) {
+    assert.equal(evaluate(prepare, {inputs: inputs ?? 'missing'}), false);
+    assert.equal(evaluate(accept, {inputs: inputs ?? 'missing'}), false);
+  }
+  for (const python of ['failure', 'cancelled', 'skipped', 'missing'])
+    assert.equal(evaluate(accept, {python}), false);
+  assert.equal(evaluate(prepare, {cancelled: true}), false);
+  assert.equal(evaluate(accept, {cancelled: true}), false);
+  assert.equal(evaluate(report), false);
+  assert.equal(evaluate(report, {python: 'failure', accepted: 'skipped'}), true);
+  assert.equal(evaluate(report, {accepted: 'failure'}), true);
+  assert.deepEqual(Object.keys(report.env), ['CLIENT_ARTIFACT_ID', 'TABLE_PYTHON_OUTCOME', 'TABLE_TEST_OUTCOME']);
+  assert.match(report.run, /GITHUB_STEP_SUMMARY/u);
+  assert.doesNotMatch(report.run, /(?:upload|\.codex-scratch|catalog\.db|source129\.json|\.key|cat )/u);
+  const groups = tablePublicTestGroups(accept.env.ACTQL_TABLE_CASE_GROUP);
+  assert.equal(groups.length, 1); assert.equal(groups[0].expected, 1);
+  const syntax = parseJavaScript(readFileSync(new URL('../adapters/host-node/table-public-commit.test.mjs',
+    import.meta.url), 'utf8'), {ecmaVersion: 'latest', sourceType: 'module'});
+  const names = syntax.body.filter(node => node.type === 'ExpressionStatement' &&
+    node.expression.type === 'CallExpression' && node.expression.callee.name === 'test')
+    .map(node => node.expression.arguments[0].value).filter(name => typeof name === 'string');
+  assert.deepEqual(names.filter(name => new RegExp(groups[0].pattern, 'u').test(name)),
+    ['Table public129 Source views read real rows and retain SAME Saved after cold first-close']);
 });
 
 test('packed CI parts refuse narrowing, duplicate parts and ambient selective campaigns', () => {
