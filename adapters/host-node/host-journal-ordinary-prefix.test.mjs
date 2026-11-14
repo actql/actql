@@ -24,7 +24,7 @@ const closure = localModuleGraphInputs(repository, entries);
 const nativeRoot = process.env.ACTQL_DIRECTORY_NATIVE_DIAGNOSTIC_ROOT;
 
 async function fixture(label, {replaceBeforeJournalCapture, managedCompute = false,
-  resultPublication = false, localMockModel = false} = {}) {
+  resultPublication = false, localMockModel = false, ordinaryPublic = false} = {}) {
   const scratch = await createOwnedScratch({parent: tmpdir(),
     prefix: 'actql-journal-ordinary-service-', label});
   const root = join(scratch.path, 'node_modules/@actql/local-node');
@@ -63,6 +63,14 @@ async function fixture(label, {replaceBeforeJournalCapture, managedCompute = fal
     files: ['index.mjs', 'initial-control-public-dispatch.cjs', 'adapters', 'packages']})));
   sources.set('index.mjs', Buffer.from('import delivery from "./initial-control-public-dispatch.cjs";'+
     'export function connect(raw){return delivery.selectedInitialControlHostPreparation("connect",raw);}'));
+  if (ordinaryPublic) {
+    // The current public wrapper uses ordinary embedded entry, not the old
+    // captured-prefix dispatch. Keep the actual wrapper and its export graph.
+    sources.set('index.mjs', readFileSync(join(repository, 'packages/local-node/index.mjs')));
+    for (const path of localModuleGraphInputs(repository, ['adapters/host-node/installed-connectors.mjs'])) {
+      sources.set(path, readFileSync(join(repository, path)));
+    }
+  }
   sources.set('initial-control-public-dispatch.cjs',
     readFileSync(join(repository, 'packages/local-node/initial-control-public-dispatch.cjs')));
   // Controlled Host candidate/subject only. All prefix, private adapter,
@@ -152,7 +160,7 @@ async function fixture(label, {replaceBeforeJournalCapture, managedCompute = fal
         assertCurrent(){assertInitialControlHostPreparation(value);}});
     }
     export async function connectInitialControlHostPreparation(kind,raw) {
-      originals=Object.freeze({host:{},installation:{${!resultPublication ? '' : 'projectRuntime:resultRuntime'}},generation:{},
+      originals=Object.freeze({host:{},installation:{${ordinaryPublic ? 'root,' : ''}${!resultPublication ? '' : 'projectRuntime:resultRuntime'}},generation:{},
         supplier:connectInitialControlHostPreparation,moduleLifetime:import.meta});
       const scope=await beginInitialControlInstallation(originals,raw);
       return Object.freeze({scope,root,originals,prepareJournal(){return prepareHostJournalInstallation(originals);}
@@ -165,6 +173,13 @@ async function fixture(label, {replaceBeforeJournalCapture, managedCompute = fal
         ${!localMockModel ? '' : ',bindModelCandidate(candidate){modelCandidate=candidate;}'}
       });
     }
+    ${!ordinaryPublic ? '' : `
+    export function connectEmbeddedLocal(raw) {
+      return connectInitialControlHostPreparation('connect',raw);
+    }
+    export function publishInstalledSource() { throw new Error('UnusedControlledSourcePublication'); }
+    export function publishInstalledEffect() { throw new Error('UnusedControlledEffectPublication'); }
+    `}
   `));
   if (replaceBeforeJournalCapture !== undefined) {
     assert.ok(['prepare', 'iterate'].includes(replaceBeforeJournalCapture));
@@ -287,7 +302,7 @@ test('ordinary Journal service cleanup retains original native close after curre
 });
 
 test('ordinary Journal cold reopening uses fresh startup custody for the same saved test state', async () => {
-  const f = await fixture('ordinary Journal actual service fresh-process cold reopen');
+  const f = await fixture('ordinary Journal actual service fresh-process cold reopen', {ordinaryPublic: true});
   const openAndClose = expected => `
     import assert from 'node:assert/strict'; import {join} from 'node:path';
     import {connect} from '@actql/local-node';
