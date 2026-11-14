@@ -56,3 +56,38 @@ test "Account canonical geometry preserves the independently authored 4635253 by
     evaluate_account(admitted, account_inventory_at("resource-9000")) is Deny(NoMatch),
   )
 }
+
+///|
+test "Account wire geometry preserves exact nonempty identifiers beyond the historical 512 units" {
+  let name = "n".repeat(513)
+  let row = {
+    ..account_inventory_entry(0),
+    entry_id: name,
+    scope: {
+      principal: AnyOf([name]),
+      connection: AnyOf([name]),
+      resource: AnyOf([name]),
+      operation: AnyOf(["read"]),
+    },
+  }
+  let raw = { ..account_inventory_raw([row]), account_id: name, }
+  let admitted = admit_account_configuration(raw).unwrap()
+  let wire = account_inventory_wire([row]).replace_all(
+    old="\"account_id\":\"inventory-account\"",
+    new="\"account_id\":\"" + name + "\"",
+  )
+  let decoded = admit_account_configuration_json(wire).unwrap()
+  assert_eq(admitted.configuration_cid(), decoded.configuration_cid())
+  assert_true(evaluate_account(decoded, {
+    principal: name,
+    connection: name,
+    resource: name,
+    operation: "read",
+  }) is Allow(original) && original == name)
+  assert_true(evaluate_account(decoded, {
+    principal: name,
+    connection: name,
+    resource: name + "x",
+    operation: "read",
+  }) is Deny(NoMatch))
+}
