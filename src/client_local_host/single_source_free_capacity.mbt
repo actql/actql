@@ -13,6 +13,21 @@ struct ClientLocalRequirements {
 }
 
 ///|
+/// The actual failed requirements phase, not a resource grant or a new
+/// semantic verdict. Sequence preparation keeps its original typed refusal.
+pub(all) enum ClientLocalRequirementsIssue {
+  GraphShape
+  ModelOccurrencesUnavailable
+  ModelOccurrencesPresent
+  SequencePreparation(ClientInstalledManagedRunIssue)
+  SequenceCount
+  MissingDataEdge
+  InvalidDataEdge
+  InputPortCountLimit
+  CapacityQuoteUnavailable
+}
+
+///|
 /// Quote the checked graph's simultaneous reservations separately from the
 /// existing maximum admission limits. A conservative requirement above those
 /// maxima is not a claim that a smaller finite facility will satisfy it.
@@ -39,7 +54,23 @@ pub fn prepare_source_free_runtime_requirements(
   fragment_body : String?,
   ordered_body : String?,
 ) -> ClientLocalRequirements? {
-  prepare_local_requirements(
+  prepare_source_free_runtime_requirements_result(
+    prepared, installed_contracts, values_body, fragment_body, ordered_body,
+  ).to_option()
+}
+
+///|
+/// Same original checked graph/installed contracts and finite runtime demand.
+/// This result retains why selection failed; it does not retry preparation,
+/// enlarge a policy, infer a budget dimension, or issue execution authority.
+pub fn prepare_source_free_runtime_requirements_result(
+  prepared : @publication_host.PreparedClientProgram,
+  installed_contracts : ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> Result[ClientLocalRequirements, ClientLocalRequirementsIssue] {
+  prepare_local_requirements_result(
     prepared,
     installed_contracts,
     values_body,
@@ -77,6 +108,27 @@ fn prepare_local_requirements(
   first : Int,
   runtime_admission? : Bool = false,
 ) -> ClientLocalRequirements? {
+  prepare_local_requirements_result(
+    prepared,
+    installed_contracts,
+    values_body,
+    fragment_body,
+    ordered_body,
+    first,
+    runtime_admission~,
+  ).to_option()
+}
+
+///|
+fn prepare_local_requirements_result(
+  prepared : @publication_host.PreparedClientProgram,
+  installed_contracts : ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  first : Int,
+  runtime_admission? : Bool = false,
+) -> Result[ClientLocalRequirements, ClientLocalRequirementsIssue] {
   let graph = @publication_host.prepared_client_graph(prepared)
   let count = @strategy.graph_task_count(graph)
   if @publication_host.prepared_client_acquisition_count(prepared) != first ||
@@ -85,22 +137,32 @@ fn prepare_local_requirements(
     @strategy.graph_captured_prefix(graph) != first ||
     (first == 0 && !@strategy.graph_source_free_inputs_complete(graph)) ||
     count <= first {
-    return None
+    return Err(GraphShape)
   }
   // The legacy infer-execution selector takes a step of task zero, not a
   // task index. Inspect the original composed graph so later-stage Model
   // occurrences cannot be quoted as an ordinary Common suffix.
-  guard @publication_host.prepared_client_composed_infer_occurrences(prepared)
-    is Some(occurrences) &&
-    occurrences.is_empty() else {
-    return None
+  let occurrences = match
+    @publication_host.prepared_client_composed_infer_occurrences(prepared) {
+    Some(original) => original
+    None => return Err(ModelOccurrencesUnavailable)
   }
-  guard prepare_client_local_sequences(
-      prepared, installed_contracts, values_body, fragment_body, ordered_body,
-    )
-    is Some(sequences) &&
-    sequences.length() == count else {
-    return None
+  if !occurrences.is_empty() {
+    return Err(ModelOccurrencesPresent)
+  }
+  let sequences = match
+    prepare_client_local_sequences_owned(
+      Pure(prepared),
+      installed_contracts,
+      values_body,
+      fragment_body,
+      ordered_body,
+    ) {
+    Ok(original) => original
+    Err(issue) => return Err(SequencePreparation(issue))
+  }
+  if sequences.length() != count {
+    return Err(SequenceCount)
   }
   // Count ports, not distinct predecessor tasks: repeated edges retain their
   // own import and bridge workspace. Only Compute consumers are quoted here;
@@ -108,16 +170,15 @@ fn prepare_local_requirements(
   let inputs = Array::make(count - first, 0)
   for index in 0..<@strategy.graph_data_count(graph) {
     guard @strategy.graph_data_at(graph, index) is Some(edge) else {
-      return None
+      return Err(MissingDataEdge)
     }
     let producer = @strategy.data_edge_producer(edge)
     let consumer = @strategy.data_edge_consumer(edge)
-    if producer < 0 ||
-      producer >= count ||
-      consumer < 0 ||
-      consumer >= count ||
-      (consumer >= first && inputs[consumer - first] == 2147483647) {
-      return None
+    if producer < 0 || producer >= count || consumer < 0 || consumer >= count {
+      return Err(InvalidDataEdge)
+    }
+    if consumer >= first && inputs[consumer - first] == 2147483647 {
+      return Err(InputPortCountLimit)
     }
     if consumer >= first {
       inputs[consumer - first] += 1
@@ -135,16 +196,21 @@ fn prepare_local_requirements(
     graph=Some(graph),
     graph_offset=first,
   )
-  client_local_sequence_capacity_original(
-    compute_sequences,
-    count,
-    capacity_plan=Some(capacity_plan),
-    retained_inputs=Some(inputs),
-    max_rows=@publication_host.prepared_client_values_max_rows(prepared),
-    include_simultaneous=!runtime_admission,
-    runtime_admission~,
-    simultaneous_graph=Some(graph),
-  ).map(capacity => {
+  let capacity = match
+    client_local_sequence_capacity_original(
+      compute_sequences,
+      count,
+      capacity_plan=Some(capacity_plan),
+      retained_inputs=Some(inputs),
+      max_rows=@publication_host.prepared_client_values_max_rows(prepared),
+      include_simultaneous=!runtime_admission,
+      runtime_admission~,
+      simultaneous_graph=Some(graph),
+    ) {
+    Some(original) => original
+    None => return Err(CapacityQuoteUnavailable)
+  }
+  Ok({
     prepared,
     registry: installed_contracts,
     values: values_body,

@@ -1020,6 +1020,8 @@ pub fn prepare_source_free_local_requirements(@run_publication_host.PreparedClie
 
 pub fn prepare_source_free_runtime_requirements(@run_publication_host.PreparedClientProgram, ClientInstalledSequenceContracts, String, String?, String?) -> ClientLocalRequirements?
 
+pub fn prepare_source_free_runtime_requirements_result(@run_publication_host.PreparedClientProgram, ClientInstalledSequenceContracts, String, String?, String?) -> Result[ClientLocalRequirements, ClientLocalRequirementsIssue]
+
 pub fn prepared_installed_effect_managed_capture_children(ClientInstalledEffectManagedPlan) -> Int
 
 pub fn prepared_installed_effect_managed_operation(ClientInstalledEffectManagedPlan, Int, Bool, Int, String) -> Result[ClientInstalledEffectOperationExtent, ClientInstalledManagedRunIssue]
@@ -1647,6 +1649,18 @@ pub fn ClientLocalRequirements::publication_entry_limits(Self, @run_publication_
 pub fn ClientLocalRequirements::publication_limits(Self, @run_publication_host.PreparedClientProgram, Int) -> (@execution_relation.RetainedRowDecodeLimits, @run_publication_host.PublicationOutputExportLimits)?
 pub fn ClientLocalRequirements::simultaneous_limits(Self) -> @physical_resources.LedgerLimits?
 pub fn ClientLocalRequirements::wasm_publication_limits(Self, @run_publication_host.PreparedClientProgram) -> @run_publication_host.PublicationOutputExportLimits?
+
+pub(all) enum ClientLocalRequirementsIssue {
+  GraphShape
+  ModelOccurrencesUnavailable
+  ModelOccurrencesPresent
+  SequencePreparation(ClientInstalledManagedRunIssue)
+  SequenceCount
+  MissingDataEdge
+  InvalidDataEdge
+  InputPortCountLimit
+  CapacityQuoteUnavailable
+}
 
 type ClientLocalResourcePolicy
 
