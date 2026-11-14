@@ -88538,13 +88538,17 @@
               {
                 "path": "src/client_local_host/preparation_request_query_selection_js_wbtest.mbt",
                 "anchor": "test \"default Source large flat literal reaches the same compiler under selected finite memory\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_work_calls_js_wbtest.mbt",
+                "anchor": "test \"Native static direct11 uses shared ordinary input selection without compiling\""
               }
             ]
           }
         }
       ],
       "referenceQualification": "Original same-Request raw/generated preparation selection and typed checking only; not installed Result-read, reopen or normal runtime acceptance.",
-      "sha256": "d1d4c8ea969a549c95e19c50bee3d8a808875999d3473dd21ecf93629c7289df"
+      "sha256": "c96972fb404c9ee475f99632fc4abf9f400c9843ccef5867267f9bb178d1440c"
     },
     {
       "module": "src/stage_syntax/preparation_data.mbt",
