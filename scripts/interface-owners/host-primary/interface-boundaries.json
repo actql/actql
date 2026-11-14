@@ -19863,6 +19863,7 @@
             "host",
             "authenticate",
             "loopbackHttp",
+            "maxRequestBytes",
             "shutdown",
             "prepareRequest"
           ],
@@ -24218,7 +24219,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "3841d7093630ffdb8a6bd350ed7deb66f2787f0dea8ebcb4241a2f886e9c7ed2"
+      "sha256": "8acdf959b1a16ab4001dcfa372b1934f0d94a70ff3ed0bda50b9af5ac6013d22"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

@@ -1586,7 +1586,7 @@
     {
       "module": "packages/local-node/http-host.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "37d85cdfa48950caca839e4083f16c5510c429e0cce35aaeaa61325521a30a94",
+      "sha256": "24c25e16db063f5f0aecb1ec0f09ee43001a7631b804f33b5992f74f9f11a52f",
       "exports": [
         "HostCapacityPolicy",
         "HostLookupExecutionPolicy",
