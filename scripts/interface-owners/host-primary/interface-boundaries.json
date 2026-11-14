@@ -2868,6 +2868,13 @@
           "async": false
         },
         {
+          "name": "dispatchFailureSnapshot/dispatchFailureSnapshot",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
           "name": "dispatchFailureSnapshot/read/read",
           "parameters": [
             "key"
@@ -3020,6 +3027,13 @@
           "async": false
         },
         {
+          "name": "installNodeClientDispatchOwner/failureMessage/failureMessage",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
           "name": "installNodeClientDispatchOwner/finishRun",
           "parameters": [
             "entry"
@@ -3069,7 +3083,21 @@
           "async": false
         },
         {
+          "name": "installNodeClientDispatchOwner/retainBudgetFailureObservation",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
           "name": "installNodeClientDispatchOwner/retire",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/retirementReady",
           "parameters": [
             "entry"
           ],
@@ -3457,6 +3485,13 @@
             "failureObserved"
           ],
           "async": true
+        },
+        {
+          "name": "publicBudgetFailureMessage",
+          "parameters": [
+            "error"
+          ],
+          "async": false
         },
         {
           "name": "recordNodeRunPhysicalStop",
@@ -4824,12 +4859,89 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "dispatchFailureSnapshot/dispatchFailureSnapshot",
+            "installNodeClientDispatchOwner/failureMessage/failureMessage",
+            "installNodeClientDispatchOwner/retainBudgetFailureObservation",
+            "installNodeClientDispatchOwner/retirementReady",
+            "publicBudgetFailureMessage"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/local-node/README.md",
+                "anchor": "When an accepted Compute exceeds a managed memory or runtime-work quota,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function publicBudgetFailureMessage"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function publicBudgetFailureMessage"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function publicBudgetFailureMessage"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function publicBudgetFailureMessage"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function publicBudgetFailureMessage"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function publicBudgetFailureMessage"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function publicBudgetFailureMessage"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function publicBudgetFailureMessage"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "anchor": "test('original managed budget quantities reach the existing public message with the correct setting and units'"
+              },
+              {
+                "path": "src/connectors_builtin_node/local_managed_failure_bridge_wbtest.mbt",
+                "anchor": "original budget bridge"
+              }
+            ]
+          }
         }
       ],
       "imports": [
         "../host-common/acquisition-outcome.mjs",
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/diagnostic-observer.mjs",
+        "../host-common/run-state-observation.mjs",
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
         "../host-common/task-observation.mjs",
@@ -4842,7 +4954,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "3a0aa574d133d557b91fb160ed76e879500cd0fb3411b8aa6d45afecd6160fcc",
+      "sha256": "32ae359dd1b1619fd24890c792283c870864766ba744a61487876090f6d36ca5",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -24106,7 +24218,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "61369b6f7798ab87396ff45c3d20f87a8f7247b7dd68d0cd39cc0e026ad00a8e"
+      "sha256": "3841d7093630ffdb8a6bd350ed7deb66f2787f0dea8ebcb4241a2f886e9c7ed2"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

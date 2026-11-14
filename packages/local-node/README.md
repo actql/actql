@@ -178,6 +178,24 @@ A successful computation can still refuse a later copy under the selected
 retained/workspace policy. Reopen with the same installation selection;
 reading an original Saved Result does not resubmit or re-execute its Program.
 
+When an accepted Compute exceeds a managed memory or runtime-work quota,
+`ExecutionUnsuccessful` keeps its original `execution` and `observation`.
+Inspect `error.observation.terminal_error.message` for the failed phase,
+dimension, requested additional amount, remaining allowance, selected policy,
+units, and installation setting. `retained_bytes` maps to
+`installation.requestMemory.retainedBytes`; `execution_bytes` maps to
+`installation.requestMemory.executionBytes`. These are logical byte quotas,
+not process RSS. `value_capture_work` and `control_work` map to
+`installation.sourceFreeMaxWork`, which does not change Program parsing or
+checking limits. The original bounded UTF8 probe can prove only a lower bound
+on additional work; the message labels that bound instead of rescanning the
+input. If the original failure did not retain quantities, they are explicitly
+unavailable. Diagnostics do not grant a retry, success, cancellation or cleanup
+acknowledgement. Re-reading the same failed Run retains the diagnosis after
+confirmed stop and retirement; successful Saved reads do not resubmit it.
+A request-snapshot refusal before submission remains a separate preparation
+failure, rather than an accepted Compute failure.
+
 The source-free Values profile derives its row demand from the checked authored
 input and closed outputs. For a single-task Values Program a Host may explicitly
 select `installation: {valuesMaxRows: 121}` (or `valuesMaxRows` in the HTTP Host

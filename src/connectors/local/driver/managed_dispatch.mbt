@@ -1319,15 +1319,31 @@ pub fn[T] start_local_managed_dispatch(
     let ledger = @strategy.captured_dag_ledger(setup.run)
     let limits = @resources.ledger_admission_limits(ledger)
     let usage = @resources.ledger_usage(ledger)
-    let r_refused = retained_data - retained_extra.val >
-      limits.retained_bytes - usage.held_bytes - usage.reserved_retention_bytes
-    if r_refused ||
-      extra - working_extra.val >
-      limits.execution_bytes - usage.reserved_execution_bytes {
+    let requested_retention = retained_data - retained_extra.val
+    let available_retention = limits.retained_bytes -
+      usage.held_bytes -
+      usage.reserved_retention_bytes
+    let requested_execution = extra - working_extra.val
+    let available_execution = limits.execution_bytes -
+      usage.reserved_execution_bytes
+    let r_refused = requested_retention > available_retention
+    if r_refused || requested_execution > available_execution {
       working_failure.val = Some(
-        Execution(
-          Physical(if r_refused { RetentionLimit } else { ExecutionLimit }),
-        ),
+        if r_refused {
+          ExecutionCapacityRefusal(
+            RetentionLimit,
+            requested_retention,
+            available_retention,
+            limits.retained_bytes,
+          )
+        } else {
+          ExecutionCapacityRefusal(
+            ExecutionLimit,
+            requested_execution,
+            available_execution,
+            limits.execution_bytes,
+          )
+        },
       )
       return Err(WorkspaceBudgetUnavailable)
     }

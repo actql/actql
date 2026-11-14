@@ -29517,7 +29517,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e9c017b1bcb103613defdcfd20f968359a2b2834c5bb4e896cd45dd69207817a",
+      "sha256": "a393c1beb8fcc0652642171c4633e129adadcac51ad93c46d44384fedd289815",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -31707,6 +31707,23 @@
           "parameters": [
             "directory",
             "entries"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainedBudgetFailureMessage",
+          "parameters": [
+            "key",
+            "state",
+            "runId",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainedBudgetFailureMessage/retainedBudgetFailureMessage",
+          "parameters": [
+            "name"
           ],
           "async": false
         },
@@ -34859,6 +34876,79 @@
               {
                 "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
                 "anchor": "test('Store lease rejects replacement of its exact opened anchor"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "retainedBudgetFailureMessage",
+            "retainedBudgetFailureMessage/retainedBudgetFailureMessage"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/local-node/README.md",
+                "anchor": "When an accepted Compute exceeds a managed memory or runtime-work quota,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function retainedBudgetFailureMessage"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function retainedBudgetFailureMessage"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function retainedBudgetFailureMessage"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function retainedBudgetFailureMessage"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function retainedBudgetFailureMessage"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function retainedBudgetFailureMessage"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function retainedBudgetFailureMessage"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function retainedBudgetFailureMessage"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "anchor": "test('original managed budget quantities reach the existing public message with the correct setting and units'"
+              },
+              {
+                "path": "src/connectors_builtin_node/local_managed_failure_bridge_wbtest.mbt",
+                "anchor": "original budget bridge"
               }
             ]
           }
