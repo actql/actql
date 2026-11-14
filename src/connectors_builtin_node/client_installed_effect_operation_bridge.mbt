@@ -546,3 +546,47 @@ pub fn client_program_installed_effect_operation_ledger_family_begin(
     max_depth,
   )
 }
+
+///|
+#export_name("clientProgramInstalledEffectDependencySourcesPin")
+pub fn client_program_installed_effect_dependency_sources_pin(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  source : ClientLocalEffectHost,
+  max_pins : Int,
+) -> Result[
+  @strategy.CapturedEffectInputs,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.pin_installed_effect_sources(
+    owner,
+    prepared,
+    request,
+    plan,
+    source.run,
+    max_pins,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectStaticDependencyBodies")
+pub fn client_program_installed_effect_static_dependency_bodies(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  inputs : @strategy.CapturedEffectInputs,
+  unit : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  Array[(String, @program_check.CheckedLocalDependencyBody)],
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_effect_dependency_bodies(
+    owner, prepared, request, plan, inputs, unit, max_bytes, max_nodes, max_depth,
+  )
+}

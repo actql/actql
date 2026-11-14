@@ -1,3 +1,4 @@
+import {installedEffectDependencyOriginal} from '../host-common/installed-effect-dependency-original.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {createHash} from 'node:crypto';
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
@@ -22,12 +23,23 @@ export function preparePinnedEffectDependencyInventory({
   const owner = preparedEffectSourceSets.get(sources);
   if (owner?.store !== store || owner?.control !== control ||
       !Array.isArray(sources?.dependencies) ||
-      !Array.isArray(dependencies) || dependencies.length > 4096) {
+      !Array.isArray(dependencies) || owner?.dependencyConstruction === undefined && dependencies.length > 4096) {
     throw new TypeError('InvalidEffectDependencySetOwner');
+  }
+  const construction = owner.dependencyConstruction;
+  if (construction !== undefined) {
+    const original=installedEffectDependencyOriginal(construction,owner.runtime);
+    // Count every actual retained candidate before Set/parse/selection/DTO
+    // arrays. The optional Manifest can later be omitted by exact imports.
+    let candidates = dependencies.length;
+    for (const {payload} of sources.dependencies) candidates += payload.dependencyBodies.length + 6;
+    checked(owner.runtime.clientProgramInstalledEffectDependencyGroupReserve(original.parent,
+      original.prepared,original.request,original.plan,candidates,sources.members.length));
+    original.current();
   }
   const bodies = [];
   const append = body => {
-    if (bodies.length >= 4096) throw new RangeError('EffectDependencyEntryLimit');
+    if (construction === undefined && bodies.length >= 4096) throw new RangeError('EffectDependencyEntryLimit');
     bodies.push(body);
   };
   // A Manifest is a dependency only when an actual consumer import names
@@ -58,7 +70,7 @@ export function preparePinnedEffectDependencyInventory({
   for (const body of dependencies) append(body);
   return control.prepareLocalEffectDependencyInventory(
     sources.members.map(({payload}) => payload.localResultArtifact),
-    bodies, contractLimits);
+    bodies, contractLimits, construction);
 }
 
 // Only this export set can transfer its payload owners. Public Result names
@@ -96,6 +108,14 @@ export async function preparePinnedEffectSourceSet({
   maxMembers, maxGroupingWork, memberSourceBindings, commandWorkspaces, publishedTargets, ...options
 }) {
   const {moon, inputs, control, signal} = options;
+  if(options.dependencyConstruction!==undefined){
+    const original=installedEffectDependencyOriginal(options.dependencyConstruction,moon);
+    // Reuse the actual existing original-input entrance; a foreign registered
+    // Run cannot lend its earlier index reservation to this source vector.
+    checked(moon.clientProgramInstalledEffectCapturedInputInventoryRetain(
+      original.parent,original.prepared,original.request,original.plan,inputs));
+    original.current();
+  }
   if (!Number.isSafeInteger(maxMembers) || maxMembers < 1 ||
       !Number.isSafeInteger(maxGroupingWork) || maxGroupingWork < 0 ||
       typeof moon?.clientProgramEffectInputCount !== 'function' ||
@@ -330,8 +350,9 @@ export async function preparePinnedEffectSourceSet({
     const result = Object.freeze({payloads: Object.freeze(payloads.filter(value => memberPayloads.has(value)).map(value =>
       finalized.get(value))), members: Object.freeze(members.map(member =>
       Object.freeze({...member, payload: finalized.get(member.payload)})))});
-    preparedEffectSourceSets.set(result, Object.freeze({store: owned.store,
+    preparedEffectSourceSets.set(result, Object.freeze({runtime:moon,store: owned.store,
       control: owned.control, contractLimits: owned.contractLimits,
+      dependencyConstruction: owned.dependencyConstruction,
       runDefinition: Object.freeze({...owned.localEvidenceContext.runDefinition})}));
     return result;
   } catch (error) {
@@ -481,19 +502,25 @@ async function prepareDependentEffectSourceSet(options, memberCount, maxWork,
   try {
     for (const [unitIndex, entries] of orderedUnits) {
       signal?.throwIfAborted();
-      const staticBodies = Object.freeze(checked(
+      const staticSelection = options.dependencyConstruction === undefined ? checked(
         moon.clientProgramEffectLocalStaticBodies(checkedOwner, unitIndex,
-          staticEntriesRemaining,
-          Math.min(contractLimits.maxWireBytes, dependencyText.remaining),
-          contractLimits.maxNodes, contractLimits.maxDepth),
-      ).map(pair => {
-        staticEntriesRemaining--;
+          staticEntriesRemaining, Math.min(contractLimits.maxWireBytes, dependencyText.remaining),
+          contractLimits.maxNodes, contractLimits.maxDepth))
+        : (()=>{
+          const original=installedEffectDependencyOriginal(options.dependencyConstruction,moon);
+          const value=checked(moon.clientProgramInstalledEffectStaticDependencyBodies(original.parent,
+            original.prepared,original.request,original.plan,inputs,unitIndex,
+            contractLimits.maxWireBytes,contractLimits.maxNodes,contractLimits.maxDepth));
+          original.current();return value;
+        })();
+      const staticBodies = Object.freeze(staticSelection.map(pair => {
+        if (options.dependencyConstruction === undefined) staticEntriesRemaining--;
         const wire = moon.clientProgramEffectLocalDependencyBodyJson(runtimeField(pair, 1));
         const bytes = Buffer.byteLength(wire, 'utf8');
-        if (bytes > dependencyText.remaining) {
-          throw new RangeError('EffectDependencyBodyByteLimit');
+        if (options.dependencyConstruction === undefined) {
+          if (bytes > dependencyText.remaining) throw new RangeError('EffectDependencyBodyByteLimit');
+          dependencyText.remaining -= bytes;
         }
-        dependencyText.remaining -= bytes;
         return Object.freeze({kind: runtimeField(pair, 0),
           cid: moon.clientProgramEffectLocalDependencyBodyCid(runtimeField(pair, 1)), wire});
       }));
@@ -573,7 +600,7 @@ async function prepareDependentEffectSourceSet(options, memberCount, maxWork,
             onProposalRow: proposes ? owned.onProposalRow : undefined,
             ...(proposes ? {proposalMemberIndexes: indexes} : {}),
           }, manifestSet, {resultIndex: entry.resultIndex, tableInput: entry.tableInput, dependency,
-            dependencyText, staticBodies,
+            dependencyText, dependencyConstruction: options.dependencyConstruction, staticBodies,
             ...(originalUnit === undefined || entry.tableInput ? {} : {
               originalArtifact,
             })}, entry.payloads.length > 0);
@@ -647,8 +674,9 @@ async function prepareDependentEffectSourceSet(options, memberCount, maxWork,
         payload: entry.payload,
       }))),
     });
-    preparedEffectSourceSets.set(result, Object.freeze({store: owned.store,
+    preparedEffectSourceSets.set(result, Object.freeze({runtime:moon,store: owned.store,
       control: owned.control, contractLimits: owned.contractLimits,
+      dependencyConstruction: owned.dependencyConstruction,
       runDefinition: Object.freeze({...owned.localEvidenceContext.runDefinition})}));
     return result;
   } catch (error) {
@@ -1050,11 +1078,16 @@ async function preparePinnedEffectSourcePayloadOwned({
   let schemaBody;
   let sourceSchema;
   const retainText = text => {
-    const bytes = Buffer.byteLength(text, 'utf8');
-    if (bytes > local.dependencyText.remaining) {
-      throw new RangeError('EffectDependencyBodyByteLimit');
+    if (local.dependencyConstruction !== undefined) {
+      const original=installedEffectDependencyOriginal(local.dependencyConstruction,moon);
+      checked(moon.clientProgramInstalledEffectDependencyTextRetain(original.parent,
+        original.prepared,original.request,original.plan,text));
+      original.current();
+    } else {
+      const bytes = Buffer.byteLength(text, 'utf8');
+      if (bytes > local.dependencyText.remaining) throw new RangeError('EffectDependencyBodyByteLimit');
+      local.dependencyText.remaining -= bytes;
     }
-    local.dependencyText.remaining -= bytes;
     return text;
   };
   try {

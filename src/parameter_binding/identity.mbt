@@ -30,13 +30,18 @@ fn end_marker(output : @encode.Writer) -> Unit raise @encode.EncodeFailure {
 }
 
 ///|
-fn needs_escape(values : @value.FrozenArray[(String, @value.Value)]) -> Bool {
+fn needs_escape(
+  values : @value.FrozenArray[(String, @value.Value)],
+  output : @encode.Writer,
+) -> Bool raise @encode.EncodeFailure {
   // Checked object fields are already sorted by UTF-16 code units.
   let mut low = 0
   let mut high = @value.element_count(values)
   while low < high {
+    @encode.construction_work_step(output, 1)
     let mid = low + (high - low) / 2
     let (name, _) = @value.element_at(values, mid).unwrap()
+    @encode.construction_work_step(output, name.length())
     let order = @canonical.compare_utf16(name, "$actql_value")
     if order == 0 {
       return true
@@ -58,6 +63,7 @@ fn emit_bound_value(
   let pending : Array[IdentityFrame] = []
   let mut current = Some((root, parameter))
   while current is Some(_) || !pending.is_empty() {
+    @encode.construction_work_step(output, 1)
     if current is Some((value, parameter)) {
       current = None
       match value {
@@ -65,6 +71,7 @@ fn emit_bound_value(
         @value.Boolean(b) => @encode.bool_value(output, b)
         @value.Number(n) => @encode.number_value(output, n)
         @value.Signed64(n) => {
+          @encode.construction_work_step(output, 20)
           marker(output, "int64")
           @encode.string_value(output, n.to_string())
           end_marker(output)
@@ -72,6 +79,7 @@ fn emit_bound_value(
         @value.Text(text) =>
           if parameter.rule is @contract.Duration {
             // Ready can only be constructed after this exact duration check.
+            @encode.construction_work_step(output, text.length())
             let milliseconds = @scalar.read_duration_ms(text).unwrap()
             marker(output, "duration")
             @encode.number_value(output, milliseconds.to_double())
@@ -102,7 +110,7 @@ fn emit_bound_value(
         }
         @value.Object(entries) => {
           guard! parameter.rule is @contract.Properties(fields)
-          let escaped = needs_escape(entries)
+          let escaped = needs_escape(entries, output)
           if escaped {
             marker(output, "object")
             @encode.begin_array(output)

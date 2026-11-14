@@ -112,76 +112,33 @@ fn effect_dependency_ports(
   max_work : Int,
   max_depth : Int,
 ) -> Result[Array[EffectDependencyPort], RunIssue] {
+  if max_results < 0 {
+    return Err(PreviewWorkLimit)
+  }
+  let (depth, remaining) = match
+    effect_dependency_depth_inventory(value, max_work, max_depth, None) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let work = remaining
+  materialize_effect_dependency_ports(value, depth, max_results, work)
+}
+
+///|
+fn materialize_effect_dependency_ports(
+  value : CheckedEffectComputationDAG,
+  depth : Array[Int],
+  max_results : Int,
+  remaining : Int,
+) -> Result[Array[EffectDependencyPort], RunIssue] {
   let graph = value.graph_value()
   let program = graph.program_value()
   let count = @checked.unit_count(program)
-  if max_results < 0 || max_work < count || max_depth < 0 {
-    return Err(PreviewWorkLimit)
-  }
-  let mut work = max_work - count
-  let depth = Array::make(count, -1)
-  for source in value.sources_iter() {
-    if work == 0 {
-      return Err(PreviewWorkLimit)
-    }
-    work -= 1
-    if source is Some(source) {
-      depth[source.stage] = 0
-    }
-  }
-  for source in value.table_sources_iter() {
-    if work == 0 {
-      return Err(PreviewWorkLimit)
-    }
-    work -= 1
-    if source is Some(source) {
-      depth[source.stage] = 0
-    }
-  }
-  let identity = @checked.source_identity(program)
   let incoming = @context.incoming_links_requirements(
     @context.program_incoming_gates_owner(@checked.incoming_gates(program)),
   )
   let wiring = @context.program_incoming_wiring(incoming)
-  // Checked imports point strictly backwards. Descending traversal also
-  // propagates the longest path through shared dependencies, not merely the
-  // first path that happens to visit a Unit.
-  for stage = count - 1; stage >= 0; stage = stage - 1 {
-    if depth[stage] < 0 {
-      continue
-    }
-    let imports = @checked.unit_result_import_count(program, stage).unwrap()
-    for index in 0..<imports {
-      if work == 0 {
-        return Err(PreviewWorkLimit)
-      }
-      work -= 1
-      let imported = @checked.unit_result_import_at(program, stage, index).unwrap()
-      let site = @context.result_import_type_site(imported.row)
-      guard site.stage == stage &&
-        site.requirement is @context.Result(_, predecessor, _) else {
-        return Err(ForeignCandidate)
-      }
-      let mut producer = None
-      for candidate in 0..<stage {
-        if work == 0 {
-          return Err(PreviewWorkLimit)
-        }
-        work -= 1
-        if @context.program_identity_stage_at(identity, candidate)
-          is Some(owner) &&
-          physical_equal(owner, predecessor) {
-          producer = Some(candidate)
-          break
-        }
-      }
-      guard producer is Some(producer) else { return Err(ForeignCandidate) }
-      if depth[stage] >= max_depth {
-        return Err(PreviewWorkLimit)
-      }
-      depth[producer] = Int::max(depth[producer], depth[stage] + 1)
-    }
-  }
+  let mut work = remaining
   let output : Array[EffectDependencyPort] = []
   for stage in 0..<count {
     if depth[stage] < 0 {
@@ -673,4 +630,103 @@ fn captured_completed_task_has_original_input(
     }
     _ => false
   }
+}
+
+///|
+fn effect_dependency_work(work : ((Int) -> Bool)?, units : Int) -> Bool {
+  match work {
+    Some(spend) => spend(units)
+    None => true
+  }
+}
+
+///|
+fn effect_dependency_depth_inventory(
+  value : CheckedEffectComputationDAG,
+  max_work : Int,
+  max_depth : Int,
+  work_view : ((Int) -> Bool)?,
+) -> Result[(Array[Int], Int), RunIssue] {
+  let graph = value.graph_value()
+  let program = graph.program_value()
+  let count = @checked.unit_count(program)
+  if max_work < count || max_depth < 0 {
+    return Err(PreviewWorkLimit)
+  }
+  let mut work = max_work - count
+  if !effect_dependency_work(work_view, count) {
+    return Err(PreviewWorkLimit)
+  }
+  let depth = Array::make(count, -1)
+  for source in value.sources_iter() {
+    if work == 0 {
+      return Err(PreviewWorkLimit)
+    }
+    if !effect_dependency_work(work_view, 1) {
+      return Err(PreviewWorkLimit)
+    }
+    work -= 1
+    if source is Some(source) {
+      depth[source.stage] = 0
+    }
+  }
+  for source in value.table_sources_iter() {
+    if work == 0 {
+      return Err(PreviewWorkLimit)
+    }
+    if !effect_dependency_work(work_view, 1) {
+      return Err(PreviewWorkLimit)
+    }
+    work -= 1
+    if source is Some(source) {
+      depth[source.stage] = 0
+    }
+  }
+  let identity = @checked.source_identity(program)
+  // Checked imports point strictly backwards. Descending traversal also
+  // propagates the longest path through shared dependencies, not merely the
+  // first path that happens to visit a Unit.
+  for stage = count - 1; stage >= 0; stage = stage - 1 {
+    if depth[stage] < 0 {
+      continue
+    }
+    let imports = @checked.unit_result_import_count(program, stage).unwrap()
+    for index in 0..<imports {
+      if work == 0 {
+        return Err(PreviewWorkLimit)
+      }
+      if !effect_dependency_work(work_view, 1) {
+        return Err(PreviewWorkLimit)
+      }
+      work -= 1
+      let imported = @checked.unit_result_import_at(program, stage, index).unwrap()
+      let site = @context.result_import_type_site(imported.row)
+      guard site.stage == stage &&
+        site.requirement is @context.Result(_, predecessor, _) else {
+        return Err(ForeignCandidate)
+      }
+      let mut producer = None
+      for candidate in 0..<stage {
+        if work == 0 {
+          return Err(PreviewWorkLimit)
+        }
+        if !effect_dependency_work(work_view, 1) {
+          return Err(PreviewWorkLimit)
+        }
+        work -= 1
+        if @context.program_identity_stage_at(identity, candidate)
+          is Some(owner) &&
+          physical_equal(owner, predecessor) {
+          producer = Some(candidate)
+          break
+        }
+      }
+      guard producer is Some(producer) else { return Err(ForeignCandidate) }
+      if depth[stage] >= max_depth {
+        return Err(PreviewWorkLimit)
+      }
+      depth[producer] = Int::max(depth[producer], depth[stage] + 1)
+    }
+  }
+  Ok((depth, work))
 }

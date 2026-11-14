@@ -63,4 +63,15 @@ priv struct ClientEffectOperationControls {
   mut captured_rows : Int?
   // One same-Run Preview input; its existing producer retains wire storage.
   mut host_input : (String, @execution.ExecutionCapacity)?
+  // Dependency DATA remains with this SAME control reservation. The input
+  // pin is an original generation identity, not a second reader or owner.
+  dependency_static : Map[
+    String,
+    (@checked.CheckedLocalDependencyBody, @encode.EncodingConstructionGeometry),
+  ]
+  mut dependency_group : (Int, Int)?
+  mut dependency_inventory : @publication.CapturedEffectDependencyInventory?
+  mut dependency_started : Bool
+  mut dependency_inputs : @strategy.CapturedEffectInputs?
+  mut dependency_capacity : @execution.ExecutionCapacity?
 }

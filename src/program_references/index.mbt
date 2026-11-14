@@ -357,6 +357,7 @@ pub fn emit_binding_references(
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_array(writer)
   for r in value.bindings {
+    @encode.construction_work_step(writer, 1)
     @encode.begin_object(writer)
     @encode.key(writer, "name")
     @encode.string_value(writer, r.name)
@@ -376,6 +377,7 @@ pub fn emit_used_bindings(
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(writer)
   for d in value.used_bindings {
+    @encode.construction_work_step(writer, 1)
     @encode.key(writer, d.name)
     @bindings.emit_declaration(d, writer)
   }

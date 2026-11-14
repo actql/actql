@@ -27,11 +27,13 @@ priv enum OutputSink {
   // Only the closed managed dependency measurer uses this sink. Its keys
   // must already be in canonical order; the existing ordered lane verifies
   // uniqueness without an input-sized key Map. It retains no output text.
-  WorkGeometryOutput(ConstructionGeometryState, (Int) -> Bool)
+  WorkGeometryOutput(ConstructionGeometryState, (Int) -> Bool, Bool)
+  WorkTextOutput(StringBuilder, (Int) -> Bool)
   HashOutput(@sha256.Hasher)
   BufferedHashOutput(BufferedHash)
   BufferedTextOutput(BufferedText)
   CompareOutput(ComparedText)
+  WorkCompareOutput(ComparedText, (Int) -> Bool)
 }
 
 ///|
@@ -278,7 +280,7 @@ pub fn cancel_writer(w : Writer) -> Unit {
   }
   w.frames.clear()
   match w.output {
-    TextOutput(text) => text.reset()
+    TextOutput(text) | WorkTextOutput(text, _) => text.reset()
     BufferedHashOutput(buffer) => {
       buffer.text.reset()
       buffer.bytes = 0
@@ -287,10 +289,10 @@ pub fn cancel_writer(w : Writer) -> Unit {
       buffer.text = StringBuilder()
       buffer.bytes = 0
     }
-    CompareOutput(output) => output.expected = ""
+    CompareOutput(output) | WorkCompareOutput(output, _) => output.expected = ""
     MeasureOutput
     | GeometryOutput(_)
-    | WorkGeometryOutput(_, _)
+    | WorkGeometryOutput(_, _, _)
     | HashOutput(_) => ()
   }
 }
@@ -390,9 +392,10 @@ fn ascii(w : Writer, text : String) -> Unit raise EncodeFailure {
   reserve_buffer(w, text.length())
   w.remaining_bytes -= text.length()
   match w.output {
-    TextOutput(output) => output.write_string(text)
-    MeasureOutput | GeometryOutput(_) | WorkGeometryOutput(_, _) => ()
-    CompareOutput(output) => compare_range(output, text, 0, text.length())
+    TextOutput(output) | WorkTextOutput(output, _) => output.write_string(text)
+    MeasureOutput | GeometryOutput(_) | WorkGeometryOutput(_, _, _) => ()
+    CompareOutput(output) | WorkCompareOutput(output, _) =>
+      compare_range(output, text, 0, text.length())
     BufferedTextOutput(buffer) => buffer.text.write_string(text)
     HashOutput(h) => hash_ascii_range(w, h, text, 0, text.length())
     BufferedHashOutput(buffer) => {
@@ -488,9 +491,10 @@ fn quoted_contents(
         reserve_buffer(w, bytes)
         w.remaining_bytes -= bytes
         match w.output {
-          TextOutput(output) => output.write_char(scalar.unsafe_to_char())
-          MeasureOutput | GeometryOutput(_) | WorkGeometryOutput(_, _) => ()
-          CompareOutput(output) =>
+          TextOutput(output) | WorkTextOutput(output, _) =>
+            output.write_char(scalar.unsafe_to_char())
+          MeasureOutput | GeometryOutput(_) | WorkGeometryOutput(_, _, _) => ()
+          CompareOutput(output) | WorkCompareOutput(output, _) =>
             if scalar < 65536 {
               compare_unit(output, scalar)
             } else {
@@ -542,9 +546,10 @@ fn ascii_span(
   reserve_buffer(w, size)
   w.remaining_bytes -= size
   match w.output {
-    MeasureOutput | GeometryOutput(_) | WorkGeometryOutput(_, _) => ()
-    CompareOutput(output) => compare_range(output, text, start, end)
-    TextOutput(output) =>
+    MeasureOutput | GeometryOutput(_) | WorkGeometryOutput(_, _, _) => ()
+    CompareOutput(output) | WorkCompareOutput(output, _) =>
+      compare_range(output, text, start, end)
+    TextOutput(output) | WorkTextOutput(output, _) =>
       output.write_view(text.view(start_offset=start, end_offset=end))
     BufferedTextOutput(buffer) =>
       buffer.text.write_view(text.view(start_offset=start, end_offset=end))
@@ -773,7 +778,9 @@ pub fn begin_object(w : Writer) -> Unit raise EncodeFailure {
   }
   ascii(w, "{")
   match w.output {
-    WorkGeometryOutput(_, _) => w.frames.push(OrderedObjectKey(None, 0))
+    WorkGeometryOutput(_, _, _)
+    | WorkTextOutput(_, _)
+    | WorkCompareOutput(_, _) => w.frames.push(OrderedObjectKey(None, 0))
     _ => w.frames.push(ObjectKey(true, Map([])))
   }
   observe_construction_container(w, object=true)
@@ -822,11 +829,24 @@ pub fn start_ordered_key(
   // One bounded ordering pass and one quoting pass over the borrowed name.
   // Charge before either scan, including a later duplicate/order refusal.
   construction_work_step(w, name.length())
-  construction_work_step(w, name.length())
+  if !construction_census_mode(w) {
+    construction_work_step(w, name.length())
+  }
   construction_work_step(w, 1)
   w.string_active = true
   observe_construction_field(w)
-  { writer: w, text: name, previous, position: 0, phase: 0, done: false, }
+  {
+    writer: w,
+    text: name,
+    previous,
+    position: 0,
+    phase: if construction_census_mode(w) {
+      1
+    } else {
+      0
+    },
+    done: false,
+  }
 }
 
 ///|
@@ -924,7 +944,7 @@ pub fn ordered_key(w : Writer, name : String) -> Unit raise EncodeFailure {
 ///|
 pub fn key(w : Writer, name : String) -> Unit raise EncodeFailure {
   idle(w)
-  if w.output is WorkGeometryOutput(_, _) {
+  if construction_work_active(w) {
     ordered_key(w, name)
     return
   }
@@ -1019,7 +1039,12 @@ pub fn finish_text_usage(
   w : Writer,
 ) -> (String, Int, Int, Int) raise EncodeFailure {
   active(w)
-  guard w.output is TextOutput(output) else { fail(w, InvalidStructure) }
+  construction_work_step(w, 1)
+  construction_work_step(w, w.max_bytes - w.remaining_bytes)
+  let output = match w.output {
+    TextOutput(output) | WorkTextOutput(output, _) => output
+    _ => fail(w, InvalidStructure)
+  }
   finish_state(w)
   (
     output.to_string(),
@@ -1045,7 +1070,7 @@ pub fn finish_measurement_usage(
   active(w)
   guard w.output is MeasureOutput ||
     w.output is GeometryOutput(_) ||
-    w.output is WorkGeometryOutput(_, _) else {
+    w.output is WorkGeometryOutput(_, _, _) else {
     fail(w, InvalidStructure)
   }
   finish_state(w)
@@ -1063,7 +1088,11 @@ pub fn finish_comparison_usage(
   w : Writer,
 ) -> (Bool, Int, Int, Int) raise EncodeFailure {
   active(w)
-  guard w.output is CompareOutput(output) else { fail(w, InvalidStructure) }
+  construction_work_step(w, 1)
+  let output = match w.output {
+    CompareOutput(output) | WorkCompareOutput(output, _) => output
+    _ => fail(w, InvalidStructure)
+  }
   finish_state(w)
   let equal = output.equal && output.offset == output.expected.length()
   output.expected = ""
@@ -1130,9 +1159,11 @@ pub fn finish_hash_metrics(
     TextOutput(_)
     | MeasureOutput
     | GeometryOutput(_)
-    | WorkGeometryOutput(_, _)
+    | WorkGeometryOutput(_, _, _)
+    | WorkTextOutput(_, _)
     | BufferedTextOutput(_)
-    | CompareOutput(_) => fail(w, InvalidStructure)
+    | CompareOutput(_)
+    | WorkCompareOutput(_, _) => fail(w, InvalidStructure)
   }
   finish_state(w)
   let hex = @sha256.finish_hex(h) catch {

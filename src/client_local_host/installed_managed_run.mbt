@@ -1590,6 +1590,20 @@ pub fn quiesce_installed_managed_run(
     value.effect_operation_controls is Some(_) {
     if value.effect_operation_controls is Some(control) &&
       value.ledger is Some(ledger) {
+      // A failed pre-Host pin may never have returned to Node's input owner.
+      // Drain that SAME original pin prefix before releasing its controls.
+      if control.dependency_inputs is Some(inputs) {
+        @strategy.release_captured_effect_inputs(inputs) |> ignore
+        if !@strategy.captured_effect_inputs_closed(inputs) {
+          return Err(CleanupPending)
+        }
+        control.dependency_inputs = None
+      }
+      // Returned Source/Result children have cut their aliases above. Cut
+      // this control's own immutable DATA aliases before returning capacity.
+      control.dependency_static.clear()
+      control.dependency_inventory = None
+      control.dependency_group = None
       match @resources.settle_capacity(ledger, control.reservation) {
         Ok(_) => {
           control.coordinates.clear()

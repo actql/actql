@@ -1,3 +1,4 @@
+import {registerInstalledEffectDependencyOriginal,retireInstalledEffectDependencyOriginal} from '../host-common/installed-effect-dependency-original.mjs';
 // Pure composition inside the existing installed Effect owner. Original
 // Core extents/Plan are DATA until the SAME Request completes and adopts them.
 import {types as nodeTypes} from 'node:util';
@@ -1113,6 +1114,11 @@ export function prepareInstalledEffectControlConstruction(run) {
   const codecComplete = runtime?.clientProgramInstalledEffectOperationLedgerCodecComplete;
   const hasHostInput = runtime?.clientProgramInstalledEffectManagedPlanHasHostInput;
   const retainInventory = runtime?.clientProgramInstalledEffectCapturedInputInventoryRetain;
+  const pinDependencySources = runtime?.clientProgramInstalledEffectDependencySourcesPin;
+  const staticDependencyBodies = runtime?.clientProgramInstalledEffectStaticDependencyBodies;
+  const dependencyGroupReserve = runtime?.clientProgramInstalledEffectDependencyGroupReserve;
+  const dependencyInventoryPrepare = runtime?.clientProgramInstalledEffectDependencyInventoryPrepare;
+  const dependencyTextRetain = runtime?.clientProgramInstalledEffectDependencyTextRetain;
   const shape = runtime?.clientProgramInstalledEffectManagedPlanShape;
   const parseJson = JSON.parse;
   const jsonReceiver = JSON;
@@ -1366,6 +1372,38 @@ export function prepareInstalledEffectControlConstruction(run) {
       if (pending === undefined) run.selecting = false;
     }
   };
+  // Each closed Core entrance grows this SAME numeric original control
+  // before pin/selection/body construction. Presence alone supplies no credit.
+  const dependencySelection = (method, args) => {
+    if (retired) fail('InstalledEffectControlConstructionRetired');
+    if (failed) throw primary;
+    if (working || run.selecting) fail('InstalledEffectControlConstructionPending');
+    if (typeof method !== 'function') fail('InstalledEffectControlRuntimeUnavailable');
+    working = true;
+    run.selecting = true;
+    try {
+      originalRecord();
+      const result = Reflect.apply(method, runtime, [parent, prepared, request, plan, ...args]);
+      retainInvalid(result);
+      const value = checked(result);
+      originalRecord();
+      return value;
+    } catch (cause) {
+      failed = true; primary = cause;
+      throw cause;
+    } finally {
+      working = false;
+      if (pending === undefined) run.selecting = false;
+    }
+  };
+  const pinSources = (host, maxPins) => dependencySelection(pinDependencySources, [host, maxPins]);
+  const dependencyBodies = (inputs, unit, limits) => dependencySelection(staticDependencyBodies,
+    [inputs, unit, limits.maxWireBytes, limits.maxNodes, limits.maxDepth]);
+  const reserveDependencyGroup = (entries, roots) => dependencySelection(dependencyGroupReserve, [entries, roots]);
+  const dependencyInventory = (kinds, identities, wires, artifacts, limits) =>
+    dependencySelection(dependencyInventoryPrepare, [kinds, identities, wires, artifacts,
+      limits.maxWireBytes, limits.maxNodes, limits.maxDepth]);
+  const retainDependencyText = text => dependencySelection(dependencyTextRetain, [text]);
   const retainRecoveredInputs = (control, allowed, definition, invocation, preview) => {
     if (retired) fail('InstalledEffectControlConstructionRetired');
     if (failed) throw primary;
@@ -1408,11 +1446,13 @@ export function prepareInstalledEffectControlConstruction(run) {
     // Core control backing. A retained Error may itself keep a heavy prefix.
     primary = undefined;
     previewInputWire = previewInput = undefined;
+    retireInstalledEffectDependencyOriginal(work);
     retired = true;
     return true;
   };
+  registerInstalledEffectDependencyOriginal(work,{runtime,parent,prepared,request,plan,current:originalRecord});
   return Object.freeze(Object.assign(work, {retire, parsePreview, ledgerCodec, grant, requestProjection, footprint, ledgerOpen, ledgerFamily,
-    retainInputs, retainRecoveredInputs}));
+    retainInputs, retainRecoveredInputs, pinSources, dependencyBodies, reserveDependencyGroup, dependencyInventory, retainDependencyText}));
 }
 
 // A composed generic owner keeps its original codec and full control quote.

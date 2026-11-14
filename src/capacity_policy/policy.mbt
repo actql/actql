@@ -169,8 +169,13 @@ pub fn emit(p : Policy, w : @encode.Writer) -> Unit raise @encode.EncodeFailure 
   @encode.begin_object(w)
   let mut optional = 0
   for name in fields {
-    while optional < optional_fields.length() &&
-          @canonical.compare_utf16(optional_fields[optional], name) < 0 {
+    @encode.construction_work_step(w, 1)
+    while optional < optional_fields.length() {
+      @encode.construction_work_step(w, optional_fields[optional].length())
+      @encode.construction_work_step(w, name.length())
+      if @canonical.compare_utf16(optional_fields[optional], name) >= 0 {
+        break
+      }
       let field = optional_fields[optional]
       if p.values.get(field) is Some(value) {
         @encode.key(w, field)
@@ -182,6 +187,7 @@ pub fn emit(p : Policy, w : @encode.Writer) -> Unit raise @encode.EncodeFailure 
     @encode.number_value(w, p.values.get(name).unwrap().to_double())
   }
   while optional < optional_fields.length() {
+    @encode.construction_work_step(w, 1)
     let field = optional_fields[optional]
     if p.values.get(field) is Some(value) {
       @encode.key(w, field)

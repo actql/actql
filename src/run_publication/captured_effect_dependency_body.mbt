@@ -657,15 +657,17 @@ pub fn admit_local_effect_dependency_body(
 ///|
 /// The selected checked roots and payload/static admissions are independent
 /// obligations. A validated graph alone does not authorize Run recovery.
-pub fn validate_captured_effect_dependency_bodies(
+fn validate_selected_captured_effect_dependency_bodies(
   bodies : Array[CapturedEffectDependencyBody],
   roots : Array[CapturedEffectDependencyBody],
   envelope_bytes : Int,
   limits : CapturedEffectDependencyLimits,
+  prepared? : Bool = false,
+  work? : ((Int) -> Bool)? = None,
 ) -> Result[Unit, CapturedEffectDependencyIssue] {
   // Bound the index before allocating it. Full byte/edge/depth validation
   // follows, but a caller limit never permits an unbounded temporary map.
-  if limits.max_entries < 0 || limits.max_entries > 4096 {
+  if limits.max_entries < 0 || (!prepared && limits.max_entries > 4096) {
     return Err(InvalidLimits)
   }
   if bodies.length() > limits.max_entries || roots.length() > limits.max_entries {
@@ -673,6 +675,10 @@ pub fn validate_captured_effect_dependency_bodies(
   }
   let kinds : Map[String, Array[String]] = Map([])
   for body in bodies {
+    if !dependency_validation_work(work, 1) ||
+      !dependency_validation_work(work, body.node.identity.length()) {
+      return Err(ReferenceLimit)
+    }
     match kinds.get(body.node.identity) {
       Some(found) =>
         if !found.contains(body.node.kind) {
@@ -683,8 +689,16 @@ pub fn validate_captured_effect_dependency_bodies(
   }
   let nodes : Array[CapturedEffectDependencyNode] = []
   for body in bodies {
+    if !dependency_validation_work(work, 1) ||
+      !dependency_validation_work(work, body.node.identity.length()) {
+      return Err(ReferenceLimit)
+    }
     let references : Array[CapturedEffectDependencyReference] = []
     for reference in body.node.references {
+      if !dependency_validation_work(work, 1) ||
+        !dependency_validation_work(work, reference.identity.length()) {
+        return Err(ReferenceLimit)
+      }
       let allowed = match reference.kind {
         "read_execution_profile" =>
           ["native_file_content_read", "declared_file_content_read"]
@@ -726,8 +740,32 @@ pub fn validate_captured_effect_dependency_bodies(
       }),
       envelope_bytes,
       limits,
+      prepared~,
+      work~,
     ) {
     Err(issue) => Err(issue)
-    Ok(_) => validate_effect_dependency_import_bindings(bodies)
+    Ok(_) =>
+      validate_effect_dependency_import_bindings(bodies, prepared~, work~)
   }
+}
+
+///|
+// The normal public envelope remains fixed. Only the closed funded issuer/
+// reader inside this package selects the prepared semantic extent above.
+pub fn validate_captured_effect_dependency_bodies(
+  bodies : Array[CapturedEffectDependencyBody],
+  roots : Array[CapturedEffectDependencyBody],
+  envelope_bytes : Int,
+  limits : CapturedEffectDependencyLimits,
+) -> Result[Unit, CapturedEffectDependencyIssue] {
+  validate_selected_captured_effect_dependency_bodies(
+    bodies, roots, envelope_bytes, limits,
+  )
+}
+
+///|
+pub fn captured_effect_dependency_body_reference_count(
+  value : CapturedEffectDependencyBody,
+) -> Int {
+  value.node.references.length()
 }

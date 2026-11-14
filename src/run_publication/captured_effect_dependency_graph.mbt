@@ -51,11 +51,13 @@ fn validate_captured_effect_dependency_graph(
   roots : Array[CapturedEffectDependencyReference],
   envelope_bytes : Int,
   limits : CapturedEffectDependencyLimits,
+  prepared? : Bool = false,
+  work? : ((Int) -> Bool)? = None,
 ) -> Result[Unit, CapturedEffectDependencyIssue] {
   if limits.max_entries < 0 ||
-    limits.max_entries > 4096 ||
+    (!prepared && limits.max_entries > 4096) ||
     limits.max_total_bytes < 1 ||
-    limits.max_total_bytes > 16777216 ||
+    (!prepared && limits.max_total_bytes > 16777216) ||
     limits.max_depth < 1 ||
     limits.max_depth > 64 ||
     limits.max_references < 0 ||
@@ -69,6 +71,9 @@ fn validate_captured_effect_dependency_graph(
   if envelope_bytes > limits.max_total_bytes {
     return Err(ByteLimit)
   }
+  if !dependency_validation_work(work, nodes.length()) {
+    return Err(ReferenceLimit)
+  }
   let indices : Map[String, Int] = Map([])
   let identities : Map[String, Bool] = Map([])
   let mut bytes = envelope_bytes
@@ -80,6 +85,10 @@ fn validate_captured_effect_dependency_graph(
   let mut references = roots.length()
   for index in 0..<nodes.length() {
     let node = nodes[index]
+    if !dependency_validation_work(work, 1) ||
+      !dependency_validation_key_work(work, node.kind, node.identity, 4) {
+      return Err(ReferenceLimit)
+    }
     if node.kind.is_empty() ||
       !valid_contract_cid(node.identity) ||
       node.canonical_bytes < 1 {
@@ -100,12 +109,25 @@ fn validate_captured_effect_dependency_graph(
     indices[key] = index
     identities[node.identity] = true
   }
+  if !dependency_validation_work(work, nodes.length()) ||
+    !dependency_validation_work(work, nodes.length()) {
+    return Err(ReferenceLimit)
+  }
   let colors : Array[Int] = Array::make(nodes.length(), 0)
   let heights : Array[Int] = Array::make(nodes.length(), 0)
   fn visit(
     reference : CapturedEffectDependencyReference,
     depth : Int,
   ) -> Result[Int, CapturedEffectDependencyIssue] {
+    if !dependency_validation_work(work, 1) ||
+      !dependency_validation_key_work(
+        work,
+        reference.kind,
+        reference.identity,
+        3,
+      ) {
+      return Err(ReferenceLimit)
+    }
     guard indices.get(dependency_key(reference.kind, reference.identity))
       is Some(index) else {
       return Err(
@@ -149,6 +171,10 @@ fn validate_captured_effect_dependency_graph(
   }
   let root_ids : Map[String, Bool] = Map([])
   for root in roots {
+    if !dependency_validation_work(work, 1) ||
+      !dependency_validation_key_work(work, root.kind, root.identity, 3) {
+      return Err(ReferenceLimit)
+    }
     let key = dependency_key(root.kind, root.identity)
     if root_ids.contains(key) {
       return Err(DuplicateIdentity)
@@ -160,9 +186,38 @@ fn validate_captured_effect_dependency_graph(
     }
   }
   for color in colors {
+    if !dependency_validation_work(work, 1) {
+      return Err(ReferenceLimit)
+    }
     if color != 2 {
       return Err(UnusedDependency)
     }
   }
   Ok(())
+}
+
+///|
+fn dependency_validation_work(work : ((Int) -> Bool)?, units : Int) -> Bool {
+  match work {
+    Some(spend) => spend(units)
+    None => true
+  }
+}
+
+///|
+// Fixed concat/hash/lookup phases over observed typed key spans, before work.
+fn dependency_validation_key_work(
+  work : ((Int) -> Bool)?,
+  kind : String,
+  identity : String,
+  copies : Int,
+) -> Bool {
+  for _ in 0..<copies {
+    if !dependency_validation_work(work, kind.length()) ||
+      !dependency_validation_work(work, identity.length()) ||
+      !dependency_validation_work(work, 1) {
+      return false
+    }
+  }
+  true
 }

@@ -42,11 +42,13 @@ pub fn emit_document(
   w : Writer,
   value : EncodedDocument,
 ) -> Unit raise EncodeFailure {
+  construction_work_step(w, value.text.length())
   reserve_document_extent(w, value.bytes, value.nodes, value.depth)
   match w.output {
-    TextOutput(output) => output.write_string(value.text)
-    MeasureOutput | GeometryOutput(_) | WorkGeometryOutput(_, _) => ()
-    CompareOutput(output) =>
+    TextOutput(output) | WorkTextOutput(output, _) =>
+      output.write_string(value.text)
+    MeasureOutput | GeometryOutput(_) | WorkGeometryOutput(_, _, _) => ()
+    CompareOutput(output) | WorkCompareOutput(output, _) =>
       compare_range(output, value.text, 0, value.text.length())
     BufferedTextOutput(buffer) => buffer.text.write_string(value.text)
     HashOutput(h) =>
@@ -101,7 +103,7 @@ pub fn emit_measurement(
   active(w)
   guard w.output is MeasureOutput ||
     w.output is GeometryOutput(_) ||
-    w.output is WorkGeometryOutput(_, _) else {
+    w.output is WorkGeometryOutput(_, _, _) else {
     fail(w, InvalidStructure)
   }
   let (bytes, nodes, depth) = measurement

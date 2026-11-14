@@ -157,6 +157,7 @@ pub fn emit_value(
   let mut current = value
   let mut visit = true
   while true {
+    @encode.construction_work_step(output, 1)
     if visit {
       match current {
         Null => @encode.null_value(output)

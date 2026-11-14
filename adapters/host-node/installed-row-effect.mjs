@@ -1,3 +1,4 @@
+import {installedEffectDependencyOriginal} from '../host-common/installed-effect-dependency-original.mjs';
 import {prepareInstalledEffectOwnedPhysicalChild} from './installed-effect-owned-operation.mjs';
 // The standard Host's provider-neutral installed Effect for connectors whose
 // writes change one provider object per row through a checked execution
@@ -2482,8 +2483,19 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     targetReads, contentOwner, managedEffect, updateTargetSelections, own, ownInputs, ownChildren, assertCurrent}) {
     assertCurrent?.();
     const limits = runLimits(managedEffect);
-    const inputs = checked(moon.clientProgramPinEffectSources(checkedHost,
-      limits.maxPinnedResults));
+    const controlConstruction = managedEffect?.controlConstruction;
+    if (managedEffect !== undefined && (typeof controlConstruction !== 'function' ||
+        typeof controlConstruction.pinSources !== 'function')) fail('InstalledEffectControlRuntimeUnavailable');
+    const dependencyOriginal = managedEffect === undefined ? undefined
+      : installedEffectDependencyOriginal(controlConstruction,moon);
+    if(dependencyOriginal!==undefined&&(dependencyOriginal.parent!==managedEffect.value||
+        dependencyOriginal.prepared!==prepared||dependencyOriginal.request!==identity||
+        dependencyOriginal.plan!==managedEffect.operationPlan))fail('ForeignInstalledEffectManagedRun');
+    const inputs = dependencyOriginal === undefined
+      ? checked(moon.clientProgramPinEffectSources(checkedHost, limits.maxPinnedResults))
+      : checked(moon.clientProgramInstalledEffectDependencySourcesPin(dependencyOriginal.parent,
+        prepared,identity,dependencyOriginal.plan,checkedHost,limits.maxPinnedResults));
+    dependencyOriginal?.current();
     const commandWorkspaces = [];
     const commandKeys = [];
     const contentBorrowers = [];
@@ -2492,8 +2504,6 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const memberCaptures = [];
     const proposals = [], currents = [], rowsOf = [], observations = [];
     let sourceSet;
-    const controlConstruction = managedEffect?.controlConstruction;
-    if (managedEffect !== undefined && typeof controlConstruction !== 'function') fail('InstalledEffectControlRuntimeUnavailable');
     let entries, route, captureOpen = true;
     const retireRequestAliases = () => {
       if (captureOpen || (route !== undefined && !route.retire())) return false;
@@ -2625,6 +2635,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       fail('InstalledEffectPublishedTargetUnavailable');
     }
     sourceSet = await preparePinnedEffectSourceSet({moon,
+      dependencyConstruction: controlConstruction,
       ...(commandWorkspaces.length ? {commandWorkspaces: Object.freeze([...commandWorkspaces])} : {}),
       ...(publishedTargets === undefined ? {} : {publishedTargets}),
       onCommandKey(memberIndex, key) { commandKeys[memberIndex] = key; },

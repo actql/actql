@@ -1,3 +1,4 @@
+import {installedEffectDependencyOriginal} from './installed-effect-dependency-original.mjs';
 import {runtimeField, runtimeOptionalField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';
 import {checked} from './runtime-result.mjs';
 import {createLocalSigningMetadata} from './local-signing-metadata.mjs';
@@ -6074,11 +6075,35 @@ function publicationControl(moon) {
       ));
       return finishCapturedPreparation(preparation, signal);
     },
-    prepareLocalEffectDependencyInventory(artifacts, bodies, limits) {
+    prepareLocalEffectDependencyInventory(artifacts, bodies, limits, construction) {
       issuanceLimits(limits, 'Effect dependency inventory');
-      if (!Array.isArray(artifacts) || artifacts.length > 4096 ||
-          !Array.isArray(bodies) || bodies.length > 4096) {
+      if (!Array.isArray(artifacts) || construction === undefined && artifacts.length > 4096 ||
+          !Array.isArray(bodies) || construction === undefined && bodies.length > 4096) {
         throw new TypeError('Invalid Effect dependency inventory');
+      }
+      if (construction !== undefined) {
+        const original=installedEffectDependencyOriginal(construction,moon);
+        const kinds=[], identities=[], wires=[], roots=[];
+        for (const artifact of artifacts) {
+          const owned=localEffectArtifactTokens.get(artifact);
+          if(owned===undefined)throw new TypeError('Foreign Effect dependency root');
+          roots.push(owned);
+        }
+        for(const body of bodies){
+          if(body===null||typeof body!=='object')throw new TypeError('Invalid Effect dependency body');
+          const kind=Object.getOwnPropertyDescriptor(body,'kind'),
+            wire=Object.getOwnPropertyDescriptor(body,'wire'),cid=Object.getOwnPropertyDescriptor(body,'cid');
+          if(!kind||!wire||!Object.hasOwn(kind,'value')||!Object.hasOwn(wire,'value')||
+              cid!==undefined&&!Object.hasOwn(cid,'value')||typeof kind.value!=='string'||
+              typeof wire.value!=='string'||cid!==undefined&&typeof cid.value!=='string')
+            throw new TypeError('Invalid Effect dependency body');
+          kinds.push(kind.value);identities.push(cid?.value);wires.push(wire.value);
+        }
+        const value=checked(moon.clientProgramInstalledEffectDependencyInventoryPrepare(
+          original.parent,original.prepared,original.request,original.plan,kinds,identities,wires,roots,
+          limits.maxWireBytes,limits.maxNodes,limits.maxDepth));
+        original.current();
+        return value;
       }
       const roots = new Map();
       for (const artifact of artifacts) {

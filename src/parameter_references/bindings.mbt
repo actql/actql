@@ -156,6 +156,7 @@ pub fn emit_used_values(
   @encode.key(output, "values")
   @encode.begin_object(output)
   for entry in v.selected {
+    @encode.construction_work_step(output, 1)
     @encode.key(output, entry.name)
     @parameter.emit_value_identity(entry, output)
   }

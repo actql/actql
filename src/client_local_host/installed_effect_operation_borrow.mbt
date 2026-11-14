@@ -115,6 +115,17 @@ fn installed_effect_operation_control_capacity(
   // These are fixed existing implementation holders, not another owner or
   // per-method fee. Source tests pin this inventory to the real declaration.
   // One Grant-only closure/context (2H9R), held Option/Int64 (1H1R1W).
+  let dependency_cache = @shape.collection_construction_extent({
+    records: 0L,
+    record_references: 0L,
+    record_words: 0L,
+    reference_arrays: 0L,
+    reference_items: 0L,
+    scalar_arrays: 0L,
+    scalar_items: 0L,
+    maps: 1L,
+    map_entries: 0L,
+  }).unwrap()
   let retained : @execution.PreparationRepresentationUnits = {
     // Optional Host input tuple/Some and its retained opaque capacity. Wire
     // text remains with the already-funded original Preview producer.
@@ -125,14 +136,25 @@ fn installed_effect_operation_control_capacity(
     // variant/Some and the existing child reference, never another body owner.
     // The shared four-word Ledger policy adds1H4W; at most32 existing
     // wrapper contexts retain its borrowed reference (32R).
-    record_headers: 13L +
+    // Two closed dependency selectors and their shared original flight
+    // frame add8H32R8W before the Host constructs those methods.
+    record_headers: dependency_cache.record_headers +
+    4L +
+    8L +
+    13L +
+    3L +
     17L +
     shared.record_headers +
     11L * count +
     69L +
     4L +
     recovery.record_headers,
-    reference_slots: 22L +
+    reference_slots: dependency_cache.reference_slots +
+    1L +
+    4L +
+    32L +
+    22L +
+    4L +
     88L +
     slots +
     shared.reference_slots +
@@ -141,7 +163,11 @@ fn installed_effect_operation_control_capacity(
     4L +
     recovery.reference_slots,
     // The active codec retains its separately charged original output bound.
-    scalar_words: 27L +
+    scalar_words: dependency_cache.scalar_words +
+    2L +
+    8L +
+    27L +
+    3L +
     16L +
     shared.scalar_words +
     29L * count +
@@ -695,6 +721,12 @@ fn retain_installed_effect_operation_controls(
         ledger_codec_retained: 0L,
         captured_rows: None,
         host_input: None,
+        dependency_static: Map([]),
+        dependency_group: None,
+        dependency_inventory: None,
+        dependency_started: false,
+        dependency_inputs: None,
+        dependency_capacity: None,
       }
       owner.effect_operation_controls = Some(control)
       control
@@ -2148,6 +2180,13 @@ pub fn retain_installed_effect_captured_input_inventory(
     ) {
     return Err(ForeignOriginal)
   }
+  match
+    retain_installed_effect_dependency_index(
+      owner, preparation, admission, plan, ledger, control, inputs,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   // A closed inventory already funded its original constructors. Do not turn
   // a scalar/no-input member into a relation, recount known rows or add another
   // current callback merely because the normal Host shares this entrance.
@@ -2355,6 +2394,7 @@ fn installed_effect_control_capacity(
   captured_rows? : Int? = None,
   codec_retained? : Int64? = None,
   constructor_frame? : ClientEffectControlConstructorFrame?? = None,
+  dependency_capacity? : @execution.ExecutionCapacity? = None,
 ) -> (@execution.ExecutionCapacity, Int64)? {
   let selected = match input {
     Some(value) => Some(value)
@@ -2390,6 +2430,25 @@ fn installed_effect_control_capacity(
     value
   } else {
     (plan.operation_control_capacity, plan.operation_control_idle_execution)
+  }
+  let dependency = match dependency_capacity {
+    Some(_) => dependency_capacity
+    None => control.bind(value => value.dependency_capacity)
+  }
+  let (base, base_idle) = match dependency {
+    None => (base, base_idle)
+    Some(dependency) => {
+      guard @execution.add_execution_capacity(base, dependency) is Some(next) &&
+        @execution.checked_preparation_add_product(
+          base_idle,
+          @execution.execution_capacity_retained_bytes(dependency),
+          1L,
+        )
+        is Some(idle) else {
+        return None
+      }
+      (next, idle)
+    }
   }
   let base_retained = @execution.execution_capacity_retained_bytes(base)
   // A failed/active constructor keeps its exact scratch on same-owner current

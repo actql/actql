@@ -3,6 +3,7 @@ priv enum SourceFrame {
   Value(@decode.Cursor)
   ArrayRest(@decode.Cursor, Int, Int)
   ObjectRest(Array[(String, @decode.Cursor)], Int)
+  CensusObjectRest(@decode.Cursor, Int, Int)
 }
 
 ///|
@@ -16,6 +17,7 @@ pub fn emit_source(
 ) -> Unit raise @encode.EncodeFailure {
   let pending : Array[SourceFrame] = [Value(tree(expression))]
   while pending.pop() is Some(frame) {
+    @encode.construction_work_step(writer, 1)
     match frame {
       Value(cursor) =>
         if @decode.array_length(cursor) is Some(count) {
@@ -23,12 +25,20 @@ pub fn emit_source(
           pending.push(ArrayRest(cursor, 0, count))
         } else if @decode.object_length(cursor) is Some(count) {
           @encode.begin_object(writer)
-          let fields = []
-          for i in 0..<count {
-            fields.push(@decode.field_at(cursor, i).unwrap())
+          if @encode.construction_census_mode(writer) {
+            pending.push(CensusObjectRest(cursor, 0, count))
+          } else {
+            let fields = []
+            for i in 0..<count {
+              fields.push(@decode.field_at(cursor, i).unwrap())
+            }
+            if @encode.construction_work_active(writer) {
+              @encode.sort_construction_fields(fields, writer)
+            } else {
+              fields.sort_by((a, b) => @canonical.compare_utf16(a.0, b.0))
+            }
+            pending.push(ObjectRest(fields, 0))
           }
-          fields.sort_by((a, b) => @canonical.compare_utf16(a.0, b.0))
-          pending.push(ObjectRest(fields, 0))
         } else {
           match @decode.view(cursor) {
             @decode.NullValue => @encode.null_value(writer)
@@ -45,6 +55,25 @@ pub fn emit_source(
           pending.push(ArrayRest(cursor, i + 1, count))
           pending.push(Value(@decode.element_at(cursor, i).unwrap()))
         }
+      CensusObjectRest(cursor, start, count) => {
+        let mut i = start
+        let mut found = false
+        while i < count {
+          @encode.construction_work_step(writer, 1)
+          let field = @decode.field_at(cursor, i).unwrap()
+          if true {
+            @encode.key(writer, field.0)
+            pending.push(CensusObjectRest(cursor, i + 1, count))
+            pending.push(Value(field.1))
+            found = true
+            break
+          }
+          i += 1
+        }
+        if !found {
+          @encode.end_object(writer)
+        }
+      }
       ObjectRest(fields, i) =>
         if i == fields.length() {
           @encode.end_object(writer)

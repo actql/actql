@@ -73,7 +73,60 @@ pub fn work_construction_measuring_writer(
         text_units: 0,
       },
       work,
+      false,
     ),
+  )
+}
+
+///|
+// Private managed dependency census. Object order is irrelevant to geometry;
+// admitted owners already establish keys. This sink cannot return text/hash
+// or admit DATA; final owned emission retains canonical/identity checks.
+pub fn work_construction_census_writer(
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  work : (Int) -> Bool,
+) -> Writer raise EncodeFailure {
+  create_writer(
+    max_bytes,
+    max_nodes,
+    max_depth,
+    WorkGeometryOutput(
+      {
+        arrays: 0,
+        objects: 0,
+        fields: 0,
+        largest_object: 0,
+        strings: 0,
+        text_units: 0,
+      },
+      work,
+      true,
+    ),
+  )
+}
+
+///|
+pub fn construction_census_mode(writer : Writer) -> Bool {
+  writer.output is WorkGeometryOutput(_, _, true)
+}
+
+///|
+// Owned second pass of that SAME private dependency emission. No work
+// callback is installed on legacy/public writers. Its caller funds the full
+// measured construction before this builder and fresh synchronous view exist.
+pub fn work_writer(
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  work : (Int) -> Bool,
+) -> Writer raise EncodeFailure {
+  create_writer(
+    max_bytes,
+    max_nodes,
+    max_depth,
+    WorkTextOutput(StringBuilder(), work),
   )
 }
 
@@ -86,7 +139,9 @@ pub fn construction_work_step(
   units : Int,
 ) -> Unit raise EncodeFailure {
   match writer.output {
-    WorkGeometryOutput(_, work) => {
+    WorkGeometryOutput(_, work, _)
+    | WorkTextOutput(_, work)
+    | WorkCompareOutput(_, work) => {
       active(writer)
       if units < 0 || !work(units) {
         fail(writer, OutputLimit)
@@ -110,7 +165,7 @@ pub fn finish_construction_measurement(
   active(writer)
   construction_work_step(writer, 1)
   let state = match writer.output {
-    GeometryOutput(state) | WorkGeometryOutput(state, _) => state
+    GeometryOutput(state) | WorkGeometryOutput(state, _, _) => state
     _ => fail(writer, InvalidStructure)
   }
   finish_state(writer)
@@ -138,7 +193,7 @@ pub fn emit_construction_measurement(
 ) -> Unit raise EncodeFailure {
   active(writer)
   guard writer.output is GeometryOutput(_) ||
-    writer.output is WorkGeometryOutput(_, _) else {
+    writer.output is WorkGeometryOutput(_, _, _) else {
     fail(writer, InvalidStructure)
   }
   if value.bytes < 1 ||
@@ -171,7 +226,7 @@ pub fn emit_construction_measurement(
 ///|
 fn observe_construction_container(writer : Writer, object~ : Bool) -> Unit {
   match writer.output {
-    GeometryOutput(state) | WorkGeometryOutput(state, _) =>
+    GeometryOutput(state) | WorkGeometryOutput(state, _, _) =>
       if object {
         state.objects += 1
       } else {
@@ -184,7 +239,7 @@ fn observe_construction_container(writer : Writer, object~ : Bool) -> Unit {
 ///|
 fn observe_construction_field(writer : Writer) -> Unit {
   match writer.output {
-    GeometryOutput(state) | WorkGeometryOutput(state, _) => state.fields += 1
+    GeometryOutput(state) | WorkGeometryOutput(state, _, _) => state.fields += 1
     _ => ()
   }
 }
@@ -197,7 +252,7 @@ fn observe_embedded_construction(
   shape : EncodingConstructionGeometry?,
 ) -> Unit {
   match writer.output {
-    GeometryOutput(state) | WorkGeometryOutput(state, _) =>
+    GeometryOutput(state) | WorkGeometryOutput(state, _, _) =>
       match shape {
         Some(value) => {
           state.arrays += value.arrays
@@ -227,7 +282,7 @@ fn observe_embedded_construction(
 ///|
 fn observe_construction_object_end(writer : Writer, fields : Int) -> Unit {
   match writer.output {
-    GeometryOutput(state) | WorkGeometryOutput(state, _) =>
+    GeometryOutput(state) | WorkGeometryOutput(state, _, _) =>
       state.largest_object = Int::max(state.largest_object, fields)
     _ => ()
   }
@@ -243,7 +298,7 @@ fn observe_construction_text(
   value~ : Bool,
 ) -> Unit {
   match writer.output {
-    GeometryOutput(state) | WorkGeometryOutput(state, _) => {
+    GeometryOutput(state) | WorkGeometryOutput(state, _, _) => {
       state.text_units += units
       if value {
         state.strings += 1
@@ -251,4 +306,23 @@ fn observe_construction_text(
     }
     _ => ()
   }
+}
+
+///|
+// Compare a duplicate DATA body's exact canonical emission without allocating
+// a second text. The previous text belongs to this SAME funded export group;
+// equality/CID is not a physical input/Source-owner sharing proof.
+pub fn work_comparing_writer(
+  expected : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  work : (Int) -> Bool,
+) -> Writer raise EncodeFailure {
+  create_writer(
+    max_bytes,
+    max_nodes,
+    max_depth,
+    WorkCompareOutput({ expected, offset: 0, equal: true, }, work),
+  )
 }

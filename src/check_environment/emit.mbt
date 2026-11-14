@@ -45,6 +45,7 @@ fn emit_except(
     [Visit(root)]
   }
   while pending.pop() is Some(frame) {
+    @encode.construction_work_step(writer, 1)
     match frame {
       Visit(cursor) =>
         if @decode.object_length(cursor) is Some(count) {
@@ -74,8 +75,15 @@ fn emit_except(
           @encode.end_object(writer)
         } else {
           let (key, value) = @decode.field_at(cursor, i).unwrap()
-          if previous is Some(p) && @unicode.compare_utf16(p, key) >= 0 {
-            raise @encode.InvalidStructure
+          // The closed census emits no text/hash. Its owned/compare second
+          // pass uses the Writer's ordered-key checker once; legacy sinks
+          // retain this exact admitted-environment ordering check.
+          if !@encode.construction_work_active(writer) && previous is Some(p) {
+            @encode.construction_work_step(writer, p.length())
+            @encode.construction_work_step(writer, key.length())
+            if @unicode.compare_utf16(p, key) >= 0 {
+              raise @encode.InvalidStructure
+            }
           }
           pending.push(ObjectNext(cursor, i + 1, count, Some(key), omit))
           if !(omit && omitted == Some(key)) {

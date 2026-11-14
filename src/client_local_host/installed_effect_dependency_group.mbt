@@ -1,0 +1,186 @@
+///|
+priv enum ClientEffectDependencyWireShape {
+  Emitted(@encode.EncodingConstructionGeometry)
+  Observed(@source.JsonSourceGeometry)
+}
+
+///|
+priv struct ClientEffectDependencyWireInput {
+  kind : String
+  identity : String?
+  wire : String
+  shape : ClientEffectDependencyWireShape
+}
+
+///|
+// Closed phase results are immutable DATA only; no Work view/writer/cursor
+// can escape a synchronous original segment through these alternatives.
+priv enum ClientEffectDependencyGroupStep {
+  Units(Int64)
+  Index(Int, Int64)
+  Shape(Array[ClientEffectDependencyWireInput])
+  Bodies(Array[@publication.CapturedEffectDependencyBody])
+  Prepared(@publication.PreparedCapturedEffectDependencyInventory)
+  Issued(@publication.CapturedEffectDependencyInventory)
+}
+
+///|
+// Shared by the exact existing Run control and captured-Read callers. Only
+// numeric original growth and scoped original Work are injected; semantic
+// bodies/roots are strict typed DATA, never supplied as callback authority.
+fn prepare_funded_effect_dependency_inventory(
+  kinds : Array[String],
+  identities : Array[String?],
+  wires : Array[String],
+  roots : Array[@publication.CapturedEffectDependencyBody],
+  cached : Map[String, (@checked.CheckedLocalDependencyBody, @encode.EncodingConstructionGeometry)]?,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  grow : (@execution.ExecutionCapacity) -> Result[Unit, ClientInstalledManagedRunIssue],
+  segment : (((Int) -> Bool) -> Result[ClientEffectDependencyGroupStep, ClientInstalledManagedRunIssue]) -> Result[
+    ClientEffectDependencyGroupStep, ClientInstalledManagedRunIssue,
+  ],
+) -> Result[@publication.CapturedEffectDependencyInventory, ClientInstalledManagedRunIssue] {
+  let count = wires.length()
+  if kinds.length() != count || identities.length() != count || max_bytes < 1 || max_nodes < 1 || max_depth < 1 || max_depth > 64 {
+    return Err(ForeignOriginal)
+  }
+  // Actual count and borrowed length metadata only, before composite keys.
+  let key_units = match segment(work => {
+    let mut units = 0L
+    for index in 0..<count {
+      if !work(1) { return Err(InsufficientCapacity) }
+      units += kinds[index].length().to_int64() + identities[index].map(value => value.length().to_int64()).unwrap_or(70L) + 1L
+    }
+    Ok(Units(units))
+  }) { Ok(Units(units)) => units; Err(issue) => return Err(issue); _ => return Err(ForeignOriginal) }
+  guard installed_effect_dependency_key_capacity(count, key_units) is Some(keys) else { return Err(InsufficientCapacity) }
+  match grow(keys) { Err(issue) => return Err(issue); Ok(_) => () }
+  let inputs = match segment(work => {
+    let values : Array[ClientEffectDependencyWireInput] = []
+    for index in 0..<count {
+      if !work(1) { return Err(InsufficientCapacity) }
+      let kind = kinds[index]
+      let identity = identities[index]
+      let wire = wires[index]
+      let existing = match (cached, identity) {
+        (Some(cache), Some(cid)) => {
+          if !work(kind.length() + 1) || !work(cid.length()) { return Err(InsufficientCapacity) }
+          let key = kind + "\u0000" + cid
+          cache.get(key)
+        }
+        _ => None
+      }
+      let shape = match existing {
+        Some((body, geometry)) => {
+          if !work(wire.length()) { return Err(InsufficientCapacity) }
+          if @checked.checked_local_dependency_body_json(body) == wire {
+            if geometry.bytes > max_bytes || geometry.nodes > max_nodes || geometry.depth > max_depth {
+              return Err(Unsupported)
+            }
+            Emitted(geometry)
+          } else {
+            guard installed_effect_dependency_wire_geometry(wire, max_bytes, max_nodes, max_depth, work) is Some(geometry) else { return Err(Unsupported) }
+            Observed(geometry)
+          }
+        }
+        None => {
+          guard installed_effect_dependency_wire_geometry(wire, max_bytes, max_nodes, max_depth, work) is Some(geometry) else { return Err(Unsupported) }
+          Observed(geometry)
+        }
+      }
+      values.push({ kind, identity, wire, shape, })
+    }
+    Ok(Shape(values))
+  }) {
+    Ok(Shape(values)) => values
+    Err(issue) => return Err(issue)
+    _ => return Err(ForeignOriginal)
+  }
+  let mut required = @execution.execution_capacity(0L, 0L).unwrap()
+  for input in inputs {
+    let added = match input.shape {
+      // The SAME controller already retained its raw/canonical/parser quota
+      // before producing this exact emitted wire. Do not buy it twice.
+      Emitted(_) => None
+      Observed(geometry) => installed_effect_dependency_wire_capacity(geometry, max_bytes, max_nodes, max_depth)
+    }
+    if input.shape is Observed(_) && added is None { return Err(InsufficientCapacity) }
+    if added is Some(added) {
+      guard standard_create_sum_capacities([required, added], sequential_workspace=true) is Some(next) else { return Err(InsufficientCapacity) }
+      required = next
+    }
+  }
+  match grow(required) { Err(issue) => return Err(issue); Ok(_) => () }
+  let bodies = match segment(work => {
+    let bodies : Array[@publication.CapturedEffectDependencyBody] = []
+    let seen : Map[String, (@publication.CapturedEffectDependencyBody, String)] = Map([])
+    for input in inputs {
+      if !work(1) { return Err(InsufficientCapacity) }
+      // Strict parser/admission/hash/canonical comparison all run. Debit the
+      // actual borrowed wire span before each bounded codec traversal, with
+      // scalar construction work bounded by its observed value inventory.
+      for _ in 0..<6 { if !work(input.wire.length()) { return Err(InsufficientCapacity) } }
+      let nodes = match input.shape { Emitted(g) => g.nodes; Observed(g) => Int::min(g.node_upper, max_nodes) }
+      if !work(nodes) { return Err(InsufficientCapacity) }
+      let body = match @publication.admit_captured_effect_dependency_body(input.kind, input.identity,
+        input.wire, max_bytes, max_nodes, max_depth) {
+        Ok(body) => body
+        Err(_) => return Err(Unsupported)
+      }
+      let cid = @publication.captured_effect_dependency_body_cid(body)
+      if !work(input.kind.length() + 1) || !work(cid.length()) { return Err(InsufficientCapacity) }
+      let key = input.kind + "\u0000" + cid
+      match seen.get(key) {
+        Some((_, previous)) => {
+          if !work(input.wire.length()) { return Err(InsufficientCapacity) }
+          if previous != input.wire { return Err(ForeignOriginal) }
+        }
+        None => { seen[key] = (body, input.wire); bodies.push(body) }
+      }
+    }
+    Ok(Bodies(bodies))
+  }) {
+    Ok(Bodies(values)) => values
+    Err(issue) => return Err(issue)
+    _ => return Err(ForeignOriginal)
+  }
+  let (references, index_units) = match segment(work => {
+    let mut references = roots.length().to_int64()
+    let mut units = 0L
+    for body in bodies {
+      if !work(1) { return Err(InsufficientCapacity) }
+      let (count, names) = @publication.captured_effect_dependency_body_index_geometry(body)
+      if !work(count) { return Err(InsufficientCapacity) }
+      references += count.to_int64()
+      units += names
+    }
+    if references > 65536L { return Err(Unsupported) }
+    Ok(Index(references.to_int(), units))
+  }) { Ok(Index(references, units)) => (references, units); Err(issue) => return Err(issue); _ => return Err(ForeignOriginal) }
+  guard installed_effect_dependency_graph_capacity(bodies.length(), roots.length(), references, index_units) is Some(index) else { return Err(InsufficientCapacity) }
+  match grow(index) { Err(issue) => return Err(issue); Ok(_) => () }
+  let prepared = match segment(work => {
+    match @publication.prepare_captured_effect_dependency_inventory(bodies, roots, 2147483647, max_depth, work) {
+      Ok(value) => Ok(Prepared(value))
+      Err(_) => Err(Unsupported)
+    }
+  }) {
+    Ok(Prepared(value)) => value
+    Err(issue) => return Err(issue)
+    _ => return Err(ForeignOriginal)
+  }
+  guard installed_effect_dependency_body_capacity(@publication.prepared_captured_effect_dependency_inventory_geometry(prepared)) is Some(envelope) else { return Err(InsufficientCapacity) }
+  match grow(envelope) { Err(issue) => return Err(issue); Ok(_) => () }
+  match segment(work => {
+    match @publication.issue_prepared_captured_effect_dependency_inventory(prepared, work) {
+      Ok(value) => Ok(Issued(value))
+      Err(_) => Err(Unsupported)
+    }
+  }) {
+    Ok(Issued(value)) => Ok(value)
+    Err(issue) => Err(issue)
+    _ => Err(ForeignOriginal)
+  }
+}

@@ -174,173 +174,16 @@ pub fn checked_local_dependency_body(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[CheckedLocalDependencyBody, LocalDependencyBodyIssue] {
-  guard program.units.get(unit_index) is Some(unit) else {
+  guard program.units.get(unit_index) is Some(_) else {
     return Err(MissingUnit)
   }
   let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
     issue => return Err(Encoding(issue))
   }
-  let cid = try {
-    match kind {
-      UnitDefinition => {
-        let incoming = @context.incoming_links_requirements(
-          @context.program_incoming_gates_owner(program.gates),
-        )
-        guard @context.program_incoming_namespace(incoming, unit_index)
-          is Some((program_id, node_id)) else {
-          return Err(MissingDependency)
-        }
-        emit_unit_preimage(
-          {
-            program_id,
-            node_id,
-            local_body: @context.stage_identity_local_body_cid(unit.source),
-            declarations: @context.stage_identity_parameter_declarations_cid(
-              unit.source,
-            ),
-            contracts: unit.contracts_cid,
-            imports: unit.imports,
-            gates: unit.gates,
-          },
-          writer,
-          self_cid=Some(unit.definition_cid),
-        )
-        unit.definition_cid
-      }
-      LocalBody => {
-        @references.emit_stage_semantics(
-          @references.stage_definition_semantics(
-            @context.stage_identity_definition(unit.source),
-          ),
-          writer,
-        )
-        @context.stage_identity_local_body_cid(unit.source)
-      }
-      ParameterDeclarations => {
-        @references.emit_stage_parameter_declarations(
-          @references.stage_definition_semantics(
-            @context.stage_identity_definition(unit.source),
-          ),
-          writer,
-        )
-        @context.stage_identity_parameter_declarations_cid(unit.source)
-      }
-      UsedValues => {
-        @parameter_refs.emit_used_values(
-          @context.stage_identity_parameter_values(unit.source),
-          writer,
-        )
-        @context.stage_identity_parameter_values_cid(unit.source)
-      }
-      LocalContracts => {
-        // Stream the already sorted selection without allocating a second
-        // array proportional to the complete contract inventory.
-        @encode.begin_object(writer)
-        @encode.key(writer, "contracts")
-        @encode.begin_array(writer)
-        for (cid, _) in unit.contracts {
-          @encode.string_value(writer, cid)
-        }
-        @encode.end_array(writer)
-        @encode.key(writer, "version")
-        @encode.string_value(writer, "actql-local-contracts/0.1")
-        @encode.end_object(writer)
-        unit.contracts_cid
-      }
-      LocalPolicy => {
-        let selected = checked_selected_policy(program)
-        let wiring = @context.reconciled_wiring(
-          @context.policy_context(selected),
-        )
-        let policy = @context.stage_policy(
-          @context.wired_stage_contexts(wiring),
-        )
-        @policy.emit(policy, writer)
-        @policy.cid(policy)
-      }
-      ResultInterface(index) => {
-        guard unit.interfaces.get(index) is Some(value) else {
-          return Err(MissingDependency)
-        }
-        emit_result_interface(
-          value.input_name,
-          value.producer_program_id,
-          value.producer_node_id,
-          value.producer_unit_definition_cid,
-          value.result_name,
-          @context.result_import_type_cid(value.row),
-          writer,
-          self_cid=Some(value.cid),
-        )
-        value.cid
-      }
-      ResultType(index) => {
-        guard unit.interfaces.get(index) is Some(value) else {
-          return Err(MissingDependency)
-        }
-        @contract.emit_checked(
-          @context.result_import_type_contract(value.row),
-          writer,
-        )
-        @context.result_import_type_cid(value.row)
-      }
-      IncomingGate(index) => {
-        guard @context.program_incoming_gates_at(
-            program.gates,
-            unit_index,
-            index,
-          )
-          is Some(value) else {
-          return Err(MissingDependency)
-        }
-        @context.emit_incoming_gate(value, writer)
-        @context.incoming_gate_cid(value)
-      }
-      SourceSchema(index) | SourceCapability(index) => {
-        let section = match kind {
-          SourceSchema(_) => @environment.SchemaSnapshots
-          _ => @environment.ConnectorCapabilities
-        }
-        guard @environment.member_at(
-            checked_environment(program),
-            section,
-            index,
-          )
-          is Some(selected) else {
-          return Err(MissingDependency)
-        }
-        // Source Evidence binds the complete admitted member, not the
-        // Source View's contract identity. Preserve that exact preimage.
-        @environment.emit_member(selected, writer)
-        @environment.member_cid(selected)
-      }
-      SourceViewContract(index) | RegistryContract(index) => {
-        let (section, identity_field) = match kind {
-          SourceViewContract(_) => (@environment.SourceViews, "contract_cid")
-          _ => (@environment.ContractRegistry, "cid")
-        }
-        guard @environment.member_at(
-            checked_environment(program),
-            section,
-            index,
-          )
-          is Some(selected) else {
-          return Err(MissingDependency)
-        }
-        guard @decode.open_object(@environment.member_body(selected))
-          is Ok(object) &&
-          @decode.lookup(object, identity_field) is Some(identity) &&
-          @decode.text(identity) is Ok(identity) else {
-          return Err(MissingDependency)
-        }
-        // These self identities were checked with the Catalog. In contrast
-        // to schema/capability observations, the self field is excluded.
-        @environment.emit_member(selected, writer)
-        identity
-      }
-    }
-  } catch {
-    issue => return Err(Encoding(issue))
+  let cid = match
+    emit_checked_local_dependency_body(program, unit_index, kind, writer) {
+    Ok(cid) => cid
+    Err(issue) => return Err(issue)
   }
   let wire = @encode.finish(writer) catch {
     issue => return Err(Encoding(issue))
@@ -390,4 +233,185 @@ pub fn admit_checked_local_dependency_body(
     return Err(ForeignBody)
   }
   Ok(expected)
+}
+
+///|
+// One exact emitter for legacy text, private geometry census and funded owned
+// text. The sink changes construction/work only; selected semantic fields,
+// owner, CIDs, contracts, incoming gates and environment remain identical.
+fn emit_checked_local_dependency_body(
+  program : CheckedProgram,
+  unit_index : Int,
+  kind : LocalDependencyBodyKind,
+  writer : @encode.Writer,
+) -> Result[String, LocalDependencyBodyIssue] {
+  guard program.units.get(unit_index) is Some(unit) else {
+    return Err(MissingUnit)
+  }
+  try {
+    @encode.construction_work_step(writer, 1)
+    Ok(
+      match kind {
+        UnitDefinition => {
+          let incoming = @context.incoming_links_requirements(
+            @context.program_incoming_gates_owner(program.gates),
+          )
+          guard @context.program_incoming_namespace(incoming, unit_index)
+            is Some((program_id, node_id)) else {
+            return Err(MissingDependency)
+          }
+          emit_unit_preimage(
+            {
+              program_id,
+              node_id,
+              local_body: @context.stage_identity_local_body_cid(unit.source),
+              declarations: @context.stage_identity_parameter_declarations_cid(
+                unit.source,
+              ),
+              contracts: unit.contracts_cid,
+              imports: unit.imports,
+              gates: unit.gates,
+            },
+            writer,
+            self_cid=Some(unit.definition_cid),
+          )
+          unit.definition_cid
+        }
+        LocalBody => {
+          @references.emit_stage_semantics(
+            @references.stage_definition_semantics(
+              @context.stage_identity_definition(unit.source),
+            ),
+            writer,
+          )
+          @context.stage_identity_local_body_cid(unit.source)
+        }
+        ParameterDeclarations => {
+          @references.emit_stage_parameter_declarations(
+            @references.stage_definition_semantics(
+              @context.stage_identity_definition(unit.source),
+            ),
+            writer,
+          )
+          @context.stage_identity_parameter_declarations_cid(unit.source)
+        }
+        UsedValues => {
+          @parameter_refs.emit_used_values(
+            @context.stage_identity_parameter_values(unit.source),
+            writer,
+          )
+          @context.stage_identity_parameter_values_cid(unit.source)
+        }
+        LocalContracts => {
+          // Stream the already sorted selection without allocating a second
+          // array proportional to the complete contract inventory.
+          @encode.begin_object(writer)
+          @encode.key(writer, "contracts")
+          @encode.begin_array(writer)
+          for (cid, _) in unit.contracts {
+            @encode.construction_work_step(writer, 1)
+            @encode.string_value(writer, cid)
+          }
+          @encode.end_array(writer)
+          @encode.key(writer, "version")
+          @encode.string_value(writer, "actql-local-contracts/0.1")
+          @encode.end_object(writer)
+          unit.contracts_cid
+        }
+        LocalPolicy => {
+          let selected = checked_selected_policy(program)
+          let wiring = @context.reconciled_wiring(
+            @context.policy_context(selected),
+          )
+          let policy = @context.stage_policy(
+            @context.wired_stage_contexts(wiring),
+          )
+          @policy.emit(policy, writer)
+          @policy.cid(policy)
+        }
+        ResultInterface(index) => {
+          guard unit.interfaces.get(index) is Some(value) else {
+            return Err(MissingDependency)
+          }
+          emit_result_interface(
+            value.input_name,
+            value.producer_program_id,
+            value.producer_node_id,
+            value.producer_unit_definition_cid,
+            value.result_name,
+            @context.result_import_type_cid(value.row),
+            writer,
+            self_cid=Some(value.cid),
+          )
+          value.cid
+        }
+        ResultType(index) => {
+          guard unit.interfaces.get(index) is Some(value) else {
+            return Err(MissingDependency)
+          }
+          @contract.emit_checked(
+            @context.result_import_type_contract(value.row),
+            writer,
+          )
+          @context.result_import_type_cid(value.row)
+        }
+        IncomingGate(index) => {
+          guard @context.program_incoming_gates_at(
+              program.gates,
+              unit_index,
+              index,
+            )
+            is Some(value) else {
+            return Err(MissingDependency)
+          }
+          @context.emit_incoming_gate(value, writer)
+          @context.incoming_gate_cid(value)
+        }
+        SourceSchema(index) | SourceCapability(index) => {
+          let section = match kind {
+            SourceSchema(_) => @environment.SchemaSnapshots
+            _ => @environment.ConnectorCapabilities
+          }
+          guard @environment.member_at(
+              checked_environment(program),
+              section,
+              index,
+            )
+            is Some(selected) else {
+            return Err(MissingDependency)
+          }
+          // Source Evidence binds the complete admitted member, not the
+          // Source View's contract identity. Preserve that exact preimage.
+          @environment.emit_member(selected, writer)
+          @environment.member_cid(selected)
+        }
+        SourceViewContract(index) | RegistryContract(index) => {
+          let (section, identity_field) = match kind {
+            SourceViewContract(_) => (@environment.SourceViews, "contract_cid")
+            _ => (@environment.ContractRegistry, "cid")
+          }
+          guard @environment.member_at(
+              checked_environment(program),
+              section,
+              index,
+            )
+            is Some(selected) else {
+            return Err(MissingDependency)
+          }
+          guard @decode.open_object(@environment.member_body(selected))
+            is Ok(object) &&
+            @decode.lookup(object, identity_field) is Some(identity) &&
+            @decode.text(identity) is Ok(identity) else {
+            return Err(MissingDependency)
+          }
+          // These self identities were checked with the Catalog. In contrast
+          // to schema/capability observations, the self field is excluded.
+          @environment.emit_member(selected, writer)
+          identity
+        }
+      },
+    )
+  } catch {
+    issue => return Err(Encoding(issue))
+  }
 }
