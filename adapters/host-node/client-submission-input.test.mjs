@@ -75,7 +75,7 @@ function assertOriginalInputReport(error, program, expected) {
     assert.equal(sdk.getCheckFixes(checked), undefined);
     return;
   }
-  assert.equal(checked?.outcome, 'completed');
+  assert.equal(checked?.outcome, 'completed', '[check-mutation:program-preparation-observation]');
   const {report} = checked;
   assert.deepEqual(report.scope, {kind: 'bound_input'});
   const original = sdk.getCheckInput(checked, 'program');
@@ -576,13 +576,16 @@ for (const entrance of ['local', 'https']) {
     }
   });
 
-  test(`${entrance}: structured Program preparation limits retain input without a semantic observation`, async t => {
+  test(`${entrance}: structured Program preparation refusals retain input without a semantic observation`, async t => {
     const f = await fixture(t, entrance);
     const unsupported = JSON.parse(document);
     unsupported.bindings = {opaque: {type: 'string'}};
-    const budget = JSON.parse(document);
-    budget.stages = Array.from({length: 33}, (_, index) => ({...budget.stages[0], id: `stage-${index}`}));
-    for (const [program, expected] of [[unsupported, undefined], [budget, {limit: true}]]) {
+    const missingStage = JSON.parse(document);
+    missingStage.stages = Array.from({length: 33}, (_, index) => ({...missingStage.stages[0], id: `stage-${index}`}));
+    // Default input-derived bounds reach the original structural refusal:
+    // the unchanged global Result still names the now-absent "source" Stage.
+    // This is invalid_structure, not the removed implicit Stage32 budget.
+    for (const [program, expected] of [[unsupported, undefined], [missingStage, {issue: 'invalid_structure'}]]) {
       let rejected;
       try {await f.client.start(program);} catch (error) {rejected = error;}
       assertOriginalPreparationRefusal(f, rejected, program, expected);
