@@ -2501,7 +2501,7 @@
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3bc07bc15eacc3f4dca48272c2786de9439d861eecc6ed90df14ab043da4cbb7",
+      "sha256": "6495ba1b4e031982c643d9afcf3e6cd457872a2e2ebdea04ddde0a663034eab0",
       "role": "physical-io",
       "owner": "Existing Model execution authority and Node Store/publication custody; F functional contract with A generated representation projection",
       "exports": [
@@ -2618,6 +2618,11 @@
         },
         {
           "name": "openNodeInferCaptureCustody/init:completedCallCount/init:completedCallCount",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openNodeInferCaptureCustody/init:completedInventoryReceipt/init:completedInventoryReceipt",
           "parameters": [],
           "async": false
         },
@@ -2745,6 +2750,7 @@
             "openNodeInferCaptureCustody/hold",
             "openNodeInferCaptureCustody/holdAttachments",
             "openNodeInferCaptureCustody/holdEvidence",
+            "openNodeInferCaptureCustody/init:completedInventoryReceipt/init:completedInventoryReceipt",
             "openNodeInferCaptureCustody/init:configureModelJournal/init:configureModelJournal",
             "openNodeInferCaptureCustody/init:configureModelJournal/init:configureModelJournal/init:configureModelJournal",
             "openNodeInferCaptureCustody/init:evaluationBundle/init:evaluationBundle",
@@ -2807,6 +2813,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "ownership": [
@@ -2821,6 +2831,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "synchronization": [
@@ -2849,6 +2863,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "cancellation": [
@@ -2863,6 +2881,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "resources": [
@@ -2877,6 +2899,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "extension": [
@@ -3095,12 +3121,20 @@
               {
                 "path": "adapters/host-node/infer-capture-custody.mjs",
                 "anchor": "capture = operation.acquireCapture();"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/infer-capture-custody.mjs",
                 "anchor": "captureOutput ??= operation.acquireOutput();"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "synchronization": [
@@ -3113,12 +3147,20 @@
               {
                 "path": "adapters/host-node/infer-capture-custody.mjs",
                 "anchor": "throw new Error('InstalledInferCaptureInventoryUnavailable');"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/infer-capture-custody.mjs",
                 "anchor": "const cleanupPublicationOwned = async () => {"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "resources": [
@@ -3129,6 +3171,10 @@
               {
                 "path": "adapters/host-node/infer-capture-custody.mjs",
                 "anchor": "publicationOriginal.reserveOriginalPublicationCapacity?.();"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "extension": [
@@ -3306,6 +3352,7 @@
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/private-publication-holding.mjs",
         "../host-common/runtime-result.mjs",
+        "./infer-operation.mjs",
         "node:timers/promises"
       ],
       "compilerFields": [],

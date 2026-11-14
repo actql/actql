@@ -16266,7 +16266,7 @@
     },
     {
       "module": "adapters/host-node/infer-evaluation-evidence.mjs",
-      "sha256": "2ba13b945d11cd266665916376f35539d7e2c9ffb137fda686ef846f6a7a79b9",
+      "sha256": "d7d3f30d0cf1af1ab8404e3128723c0990fbcbf40bdb2b81494e34f6f22e1bb0",
       "role": "physical-io",
       "exports": [
         "configureInferEvidence",
@@ -16526,6 +16526,10 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "ownership": [
@@ -16536,6 +16540,10 @@
               {
                 "path": "docs/design/infer-model-observations.md",
                 "anchor": "# Model response observation compatibility"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "synchronization": [
@@ -16556,6 +16564,10 @@
               {
                 "path": "docs/design/infer-model-observations.md",
                 "anchor": "# Model response observation compatibility"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "cancellation": [
@@ -16566,6 +16578,10 @@
               {
                 "path": "docs/design/infer-model-observations.md",
                 "anchor": "# Model response observation compatibility"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "resources": [
@@ -16576,6 +16592,10 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "extension": [
@@ -16638,6 +16658,10 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "ownership": [
@@ -16648,6 +16672,10 @@
               {
                 "path": "docs/design/infer-model-observations.md",
                 "anchor": "# Model response observation compatibility"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "synchronization": [
@@ -16668,6 +16696,10 @@
               {
                 "path": "docs/design/infer-model-observations.md",
                 "anchor": "# Model response observation compatibility"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "cancellation": [
@@ -16678,6 +16710,10 @@
               {
                 "path": "docs/design/infer-model-observations.md",
                 "anchor": "# Model response observation compatibility"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "resources": [
@@ -16688,6 +16724,10 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "extension": [
@@ -16716,6 +16756,7 @@
       "imports": [
         "../../packages/sdk/host-port.mjs",
         "../host-common/compiler-binding.generated.mjs",
+        "./infer-operation.mjs",
         "node:crypto"
       ],
       "compilerFields": [],
@@ -16765,6 +16806,7 @@
             "openNodeInferOperation/openNodeInferOperation#5",
             "openNodeInferOperation/openNodeInferOperation#6",
             "openNodeInferOperation/openNodeInferOperation#7",
+            "openNodeInferOperation/openNodeInferOperation#8",
             "openNodeInferOperation/openNodeInferOperation/openNodeInferOperation",
             "openNodeInferOperation/operation/init:advanceOriginalCurrentStateComparison/init:advanceOriginalCurrentStateComparison",
             "openNodeInferOperation/operation/init:advanceOriginalCurrentStateComparisonWithMatch/init:advanceOriginalCurrentStateComparisonWithMatch",
@@ -16996,6 +17038,18 @@
               {
                 "path": "src/client_infer_host/original_composed_preparation.mbt",
                 "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original retained Model input and cold masks"
+              },
+              {
+                "path": "src/client_local_host/infer_retained_input_original.mbt",
+                "anchor": "pub fn prepare_original_client_infer_input_materialization("
               }
             ],
             "ownership": [
@@ -17038,6 +17092,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "an earlier query-selection suffix. Direct callers that supply both issuers still"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "synchronization": [
@@ -17068,6 +17126,10 @@
               {
                 "path": "src/client_infer_host/original_composed_preparation.mbt",
                 "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "src/client_infer_host/original_restored_send_mask.mbt",
+                "anchor": "pub fn prepare_original_restored_send_mask("
               }
             ],
             "failure": [
@@ -17110,6 +17172,14 @@
               {
                 "path": "src/client_infer_host/original_input_body_wbtest.mbt",
                 "anchor": "test \"original restored input body rejects a foreign checked Read before scan construction\""
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "src/client_infer_host/original_retained_input_129_wbtest.mbt",
+                "anchor": "materialization witness refuses Ref0 tinyRead foreign completion and unquoted binding"
               }
             ],
             "cancellation": [
@@ -17144,6 +17214,10 @@
               {
                 "path": "src/client_infer_host/original_input_body_wbtest.mbt",
                 "anchor": "test \"original restored input body refuses capacity and cancellation before scanning or Model\""
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "resources": [
@@ -17182,6 +17256,18 @@
               {
                 "path": "src/client_infer_host/original_input_body.mbt",
                 "anchor": "fn grow_original_infer_identity_body_capacity("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original retained Model input and cold masks"
+              },
+              {
+                "path": "src/run_publication_host/client_model_read_preparation.mbt",
+                "anchor": "pub fn grow_client_model_read_preparation_consumer_span("
               }
             ],
             "extension": [
@@ -17302,6 +17388,18 @@
               {
                 "path": "docs/design/model-original-state-storage.md",
                 "anchor": "restoring caller forwards the same checked `inputBodyRead` through its existing"
+              },
+              {
+                "path": "src/client_infer_host/original_retained_input_129_wbtest.mbt",
+                "anchor": "original129 retained input roundtrip keeps legacy100 and foreign current small budget guards"
+              },
+              {
+                "path": "src/client_infer_host/original_retained_input_129_wbtest.mbt",
+                "anchor": "materialization witness refuses Ref0 tinyRead foreign completion and unquoted binding"
+              },
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "restored original129 funds lazy map before journal view and restricts the same complete Saved mask"
               }
             ]
           }
@@ -17636,6 +17734,10 @@
               {
                 "path": "src/connectors/local/module.mbt",
                 "anchor": "fn local_module_relation_obligation_segment("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "ownership": [
@@ -17650,6 +17752,10 @@
               {
                 "path": "src/connectors/local/managed_provider.mbt",
                 "anchor": "infer_relation_prefix : ("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "synchronization": [
@@ -17670,6 +17776,10 @@
               {
                 "path": "docs/design/infer-async-response-custody.md",
                 "anchor": "# Retained asynchronous Model response custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "cancellation": [
@@ -17680,6 +17790,10 @@
               {
                 "path": "docs/design/infer-async-response-custody.md",
                 "anchor": "# Retained asynchronous Model response custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "resources": [
@@ -17694,6 +17808,10 @@
               {
                 "path": "src/client_infer_host/local_provider.mbt",
                 "anchor": "@local.managed_provider_with_infer_relation_prefix("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "extension": [
@@ -17797,13 +17915,235 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "fundInferCaptureInventory",
+            "fundInferEvidenceCopy",
+            "fundedInferCaptureInventoryCount",
+            "fundedInferStoppedAttemptCount",
+            "inferCopyFundingOriginal",
+            "inferEvidenceCopyConstruction",
+            "inferEvidenceCopyConstruction/failure/failure",
+            "inferEvidenceCopyFunded",
+            "openNodeInferOperation/operation/init:fundedStoppedAttemptCount/init:fundedStoppedAttemptCount",
+            "openNodeInferOperation/operation/init:originalMaterializationCurrent/init:originalMaterializationCurrent",
+            "openNodeInferOperation/operation/init:prepareOriginalCaptureInventory/init:prepareOriginalCaptureInventory",
+            "openNodeInferOperation/operation/init:prepareOriginalEvidenceCopy/init:prepareOriginalEvidenceCopy",
+            "originalInferCopyFunding",
+            "originalInferCopyFunding/bound/bound",
+            "originalInferEvidenceCopyFunding",
+            "originalInferEvidenceCopyFunding/originalInferEvidenceCopyFunding",
+            "originalInferEvidenceCopyFunding/originalInferEvidenceCopyFunding#2",
+            "originalInferEvidenceCopyFunding/originalInferEvidenceCopyFunding#3"
+          ],
+          "exports": [
+            "fundInferCaptureInventory",
+            "fundInferEvidenceCopy",
+            "fundedInferCaptureInventoryCount",
+            "fundedInferStoppedAttemptCount",
+            "inferCopyFundingOriginal",
+            "inferEvidenceCopyFunded",
+            "originalInferCopyFunding",
+            "originalInferEvidenceCopyFunding"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "export function fundInferCaptureInventory("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "src/client_infer_host/original_publication_capacity.mbt",
+                "anchor": "pub fn original_infer_capture_inventory_capacity("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "export function fundInferCaptureInventory("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "src/client_infer_host/original_publication_capacity.mbt",
+                "anchor": "pub fn original_infer_capture_inventory_capacity("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "export function fundInferCaptureInventory("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "src/client_infer_host/original_publication_capacity.mbt",
+                "anchor": "pub fn original_infer_capture_inventory_capacity("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original retained Model input and cold masks"
+              },
+              {
+                "path": "src/client_local_host/infer_retained_input_original.mbt",
+                "anchor": "pub fn prepare_original_client_infer_input_materialization("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "export function fundInferCaptureInventory("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "src/client_infer_host/original_publication_capacity.mbt",
+                "anchor": "pub fn original_infer_capture_inventory_capacity("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "export function fundInferCaptureInventory("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "src/client_infer_host/original_publication_capacity.mbt",
+                "anchor": "pub fn original_infer_capture_inventory_capacity("
+              },
+              {
+                "path": "src/client_infer_host/original_restored_send_mask.mbt",
+                "anchor": "pub fn prepare_original_restored_send_mask("
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "export function fundInferCaptureInventory("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "src/client_infer_host/original_publication_capacity.mbt",
+                "anchor": "pub fn original_infer_capture_inventory_capacity("
+              },
+              {
+                "path": "src/client_infer_host/original_retained_input_129_wbtest.mbt",
+                "anchor": "materialization witness refuses Ref0 tinyRead foreign completion and unquoted binding"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "export function fundInferCaptureInventory("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "src/client_infer_host/original_publication_capacity.mbt",
+                "anchor": "pub fn original_infer_capture_inventory_capacity("
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "export function fundInferCaptureInventory("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "src/client_infer_host/original_publication_capacity.mbt",
+                "anchor": "pub fn original_infer_capture_inventory_capacity("
+              },
+              {
+                "path": "src/client_local_host/preparation_model_selection_layout.mbt",
+                "anchor": "fn installed_model_selection_layout("
+              },
+              {
+                "path": "src/model_execution/original_attempt_proof_capacity.mbt",
+                "anchor": "fn prepare_original_model_attempt_proof("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original retained Model input and cold masks"
+              },
+              {
+                "path": "src/run_publication_host/client_model_read_preparation.mbt",
+                "anchor": "pub fn grow_client_model_read_preparation_consumer_span("
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "export function fundInferCaptureInventory("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "src/client_infer_host/original_publication_capacity.mbt",
+                "anchor": "pub fn original_infer_capture_inventory_capacity("
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-original-publication-caller.test.mjs",
+                "anchor": "actual original129 inventory grows before a receipt and retains each coheld prefix"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "src/client_infer_host/original_retained_input_129_wbtest.mbt",
+                "anchor": "original129 retained input roundtrip keeps legacy100 and foreign current small budget guards"
+              },
+              {
+                "path": "src/client_infer_host/original_retained_input_129_wbtest.mbt",
+                "anchor": "materialization witness refuses Ref0 tinyRead foreign completion and unquoted binding"
+              },
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "restored original129 funds lazy map before journal view and restricts the same complete Saved mask"
+              }
+            ]
+          }
         }
       ],
       "exports": [
         "finishNodeInferOriginalReadScopes",
+        "fundInferCaptureInventory",
+        "fundInferEvidenceCopy",
+        "fundedInferCaptureInventoryCount",
+        "fundedInferStoppedAttemptCount",
+        "inferCopyFundingOriginal",
+        "inferEvidenceCopyFunded",
         "inferOriginalReadCleanupComplete",
         "openNodeComposedInferProvider",
         "openNodeInferOperation",
+        "originalInferCopyFunding",
+        "originalInferEvidenceCopyFunding",
         "retireNodeInferOriginalRead",
         "selectOriginalInferMetadataAcquisition",
         "selectOriginalInferResourceCodecAcquisition",
@@ -17852,6 +18192,74 @@
           "parameters": [
             "member",
             "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "fundedInferCaptureInventoryCount",
+          "parameters": [
+            "receipt",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "fundedInferStoppedAttemptCount",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "fundInferCaptureInventory",
+          "parameters": [
+            "operation",
+            "funding"
+          ],
+          "async": false
+        },
+        {
+          "name": "fundInferEvidenceCopy",
+          "parameters": [
+            "funding",
+            "operation",
+            "bundle",
+            "kind",
+            "retained",
+            "execution"
+          ],
+          "async": false
+        },
+        {
+          "name": "inferCopyFundingOriginal",
+          "parameters": [
+            "callback"
+          ],
+          "async": false
+        },
+        {
+          "name": "inferEvidenceCopyConstruction",
+          "parameters": [
+            "moon",
+            "operation",
+            "bundle",
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "inferEvidenceCopyConstruction/failure/failure",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "inferEvidenceCopyFunded",
+          "parameters": [
+            "receipt",
+            "bundle",
+            "kind"
           ],
           "async": false
         },
@@ -18115,6 +18523,13 @@
           "async": false
         },
         {
+          "name": "openNodeInferOperation/openNodeInferOperation#8",
+          "parameters": [
+            "slot"
+          ],
+          "async": false
+        },
+        {
           "name": "openNodeInferOperation/operation/init:advanceOriginalCurrentStateComparison/init:advanceOriginalCurrentStateComparison",
           "parameters": [
             "park",
@@ -18217,6 +18632,11 @@
           "async": false
         },
         {
+          "name": "openNodeInferOperation/operation/init:fundedStoppedAttemptCount/init:fundedStoppedAttemptCount",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openNodeInferOperation/operation/init:growOriginalPublicationCapacity/init:growOriginalPublicationCapacity",
           "parameters": [
             "retained",
@@ -18236,6 +18656,14 @@
           "parameters": [
             "park",
             "matched"
+          ],
+          "async": false
+        },
+        {
+          "name": "openNodeInferOperation/operation/init:originalMaterializationCurrent/init:originalMaterializationCurrent",
+          "parameters": [
+            "source",
+            "count"
           ],
           "async": false
         },
@@ -18311,6 +18739,13 @@
           "async": false
         },
         {
+          "name": "openNodeInferOperation/operation/init:prepareOriginalCaptureInventory/init:prepareOriginalCaptureInventory",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
           "name": "openNodeInferOperation/operation/init:prepareOriginalCurrentStateWriter/init:prepareOriginalCurrentStateWriter",
           "parameters": [
             "park",
@@ -18322,6 +18757,17 @@
           "name": "openNodeInferOperation/operation/init:prepareOriginalCurrentStateWriter/init:prepareOriginalCurrentStateWriter/init:prepareOriginalCurrentStateWriter",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openNodeInferOperation/operation/init:prepareOriginalEvidenceCopy/init:prepareOriginalEvidenceCopy",
+          "parameters": [
+            "source",
+            "bundle",
+            "kind",
+            "retained",
+            "execution"
           ],
           "async": false
         },
@@ -18826,6 +19272,54 @@
           "async": false
         },
         {
+          "name": "originalInferCopyFunding",
+          "parameters": [
+            "funding",
+            "operation",
+            "callback"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalInferCopyFunding/bound/bound",
+          "parameters": [
+            "bundle",
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalInferEvidenceCopyFunding",
+          "parameters": [
+            "moon",
+            "funding",
+            "operation",
+            "current",
+            "retainedPrefix",
+            "executionPrefix",
+            "legacy"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalInferEvidenceCopyFunding/originalInferEvidenceCopyFunding",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "originalInferEvidenceCopyFunding/originalInferEvidenceCopyFunding#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "originalInferEvidenceCopyFunding/originalInferEvidenceCopyFunding#3",
+          "parameters": [
+            "bundle",
+            "kind"
+          ],
+          "async": false
+        },
+        {
           "name": "pending/pending",
           "parameters": [],
           "async": false
@@ -18971,11 +19465,11 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "760b289df88a50a212316102b77a8b07c8be29e9605d00a2464c76be3c3024f7"
+      "sha256": "f9ef0ea8817a7db3ea849d27c086f8eb122f05d992dd6c3a74fbba7971132a7c"
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
-      "sha256": "008434a969f2a00bce95ae597a0568ac0648dc2b475b266526101854942e4312",
+      "sha256": "4ba3d644206ddf5337fe1029b9b2376c89360ab3b0c338c4ec9f06135207dd2b",
       "role": "physical-io",
       "exports": [
         "runInstalledComposedInfers"
@@ -19211,6 +19705,11 @@
           "async": false
         },
         {
+          "name": "runInstalledComposedInfers/runInstalledComposedInfers#13",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "runInstalledComposedInfers/runInstalledComposedInfers#2",
           "parameters": [
             "record"
@@ -19231,9 +19730,7 @@
         },
         {
           "name": "runInstalledComposedInfers/runInstalledComposedInfers#5",
-          "parameters": [
-            "slot"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -19326,6 +19823,7 @@
             "runInstalledComposedInfers/runInstalledComposedInfers#10",
             "runInstalledComposedInfers/runInstalledComposedInfers#11",
             "runInstalledComposedInfers/runInstalledComposedInfers#12",
+            "runInstalledComposedInfers/runInstalledComposedInfers#13",
             "runInstalledComposedInfers/runInstalledComposedInfers#2",
             "runInstalledComposedInfers/runInstalledComposedInfers#3",
             "runInstalledComposedInfers/runInstalledComposedInfers#4",
@@ -19402,6 +19900,18 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original retained Model input and cold masks"
+              },
+              {
+                "path": "src/client_local_host/infer_retained_input_original.mbt",
+                "anchor": "pub fn prepare_original_client_infer_input_materialization("
               }
             ],
             "ownership": [
@@ -19420,6 +19930,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "synchronization": [
@@ -19456,6 +19970,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "src/client_infer_host/original_retained_input_129_wbtest.mbt",
+                "anchor": "materialization witness refuses Ref0 tinyRead foreign completion and unquoted binding"
               }
             ],
             "cancellation": [
@@ -19474,6 +19996,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "resources": [
@@ -19492,6 +20018,18 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original retained Model input and cold masks"
+              },
+              {
+                "path": "src/run_publication_host/client_model_read_preparation.mbt",
+                "anchor": "pub fn grow_client_model_read_preparation_consumer_span("
               }
             ],
             "extension": [
@@ -19536,6 +20074,14 @@
               {
                 "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
                 "anchor": "composed private Compute transfers the same complete original evidence to the existing final publisher"
+              },
+              {
+                "path": "src/client_infer_host/original_retained_input_129_wbtest.mbt",
+                "anchor": "original129 retained input roundtrip keeps legacy100 and foreign current small budget guards"
+              },
+              {
+                "path": "src/client_infer_host/original_retained_input_129_wbtest.mbt",
+                "anchor": "materialization witness refuses Ref0 tinyRead foreign completion and unquoted binding"
               }
             ]
           }
@@ -19593,6 +20139,18 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original retained Model input and cold masks"
+              },
+              {
+                "path": "src/client_local_host/infer_retained_input_original.mbt",
+                "anchor": "pub fn prepare_original_client_infer_input_materialization("
               }
             ],
             "ownership": [
@@ -19611,6 +20169,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "synchronization": [
@@ -19643,6 +20205,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "src/client_infer_host/original_retained_input_129_wbtest.mbt",
+                "anchor": "materialization witness refuses Ref0 tinyRead foreign completion and unquoted binding"
               }
             ],
             "cancellation": [
@@ -19657,6 +20227,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "resources": [
@@ -19675,6 +20249,18 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original retained Model input and cold masks"
+              },
+              {
+                "path": "src/run_publication_host/client_model_read_preparation.mbt",
+                "anchor": "pub fn grow_client_model_read_preparation_consumer_span("
               }
             ],
             "extension": [
@@ -19715,6 +20301,14 @@
               {
                 "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
                 "anchor": "composed private Compute transfers the same complete original evidence to the existing final publisher"
+              },
+              {
+                "path": "src/client_infer_host/original_retained_input_129_wbtest.mbt",
+                "anchor": "original129 retained input roundtrip keeps legacy100 and foreign current small budget guards"
+              },
+              {
+                "path": "src/client_infer_host/original_retained_input_129_wbtest.mbt",
+                "anchor": "materialization witness refuses Ref0 tinyRead foreign completion and unquoted binding"
               }
             ]
           }
@@ -19771,6 +20365,18 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original retained Model input and cold masks"
+              },
+              {
+                "path": "src/client_local_host/infer_retained_input_original.mbt",
+                "anchor": "pub fn prepare_original_client_infer_input_materialization("
               }
             ],
             "ownership": [
@@ -19789,6 +20395,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "synchronization": [
@@ -19817,6 +20427,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "src/client_infer_host/original_retained_input_129_wbtest.mbt",
+                "anchor": "materialization witness refuses Ref0 tinyRead foreign completion and unquoted binding"
               }
             ],
             "cancellation": [
@@ -19831,6 +20449,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "resources": [
@@ -19849,6 +20471,18 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original retained Model input and cold masks"
+              },
+              {
+                "path": "src/run_publication_host/client_model_read_preparation.mbt",
+                "anchor": "pub fn grow_client_model_read_preparation_consumer_span("
               }
             ],
             "extension": [
@@ -19885,6 +20519,14 @@
               {
                 "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
                 "anchor": "composed private Compute transfers the same complete original evidence to the existing final publisher"
+              },
+              {
+                "path": "src/client_infer_host/original_retained_input_129_wbtest.mbt",
+                "anchor": "original129 retained input roundtrip keeps legacy100 and foreign current small budget guards"
+              },
+              {
+                "path": "src/client_infer_host/original_retained_input_129_wbtest.mbt",
+                "anchor": "materialization witness refuses Ref0 tinyRead foreign completion and unquoted binding"
               }
             ]
           }
@@ -19935,6 +20577,18 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original retained Model input and cold masks"
+              },
+              {
+                "path": "src/client_local_host/infer_retained_input_original.mbt",
+                "anchor": "pub fn prepare_original_client_infer_input_materialization("
               }
             ],
             "ownership": [
@@ -19949,6 +20603,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "synchronization": [
@@ -19973,6 +20631,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "src/client_infer_host/original_retained_input_129_wbtest.mbt",
+                "anchor": "materialization witness refuses Ref0 tinyRead foreign completion and unquoted binding"
               }
             ],
             "cancellation": [
@@ -19983,6 +20649,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "resources": [
@@ -20001,6 +20671,18 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original retained Model input and cold masks"
+              },
+              {
+                "path": "src/run_publication_host/client_model_read_preparation.mbt",
+                "anchor": "pub fn grow_client_model_read_preparation_consumer_span("
               }
             ],
             "extension": [
@@ -20041,6 +20723,14 @@
               {
                 "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
                 "anchor": "composed private Compute transfers the same complete original evidence to the existing final publisher"
+              },
+              {
+                "path": "src/client_infer_host/original_retained_input_129_wbtest.mbt",
+                "anchor": "original129 retained input roundtrip keeps legacy100 and foreign current small budget guards"
+              },
+              {
+                "path": "src/client_infer_host/original_retained_input_129_wbtest.mbt",
+                "anchor": "materialization witness refuses Ref0 tinyRead foreign completion and unquoted binding"
               }
             ]
           }
@@ -20087,6 +20777,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "ownership": [
@@ -20097,6 +20791,10 @@
               {
                 "path": "docs/design/infer-async-response-custody.md",
                 "anchor": "# Retained asynchronous Model response custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "synchronization": [
@@ -20117,6 +20815,10 @@
               {
                 "path": "docs/design/infer-async-response-custody.md",
                 "anchor": "# Retained asynchronous Model response custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "cancellation": [
@@ -20127,6 +20829,10 @@
               {
                 "path": "docs/design/infer-async-response-custody.md",
                 "anchor": "# Retained asynchronous Model response custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "resources": [
@@ -20137,6 +20843,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "extension": [
@@ -20190,7 +20900,7 @@
     },
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
-      "sha256": "91af350a9c450be23a9ecea80ad5eb81ec39273decd8afcb08220b06aee015e9",
+      "sha256": "48e9ef3d49416f7c09423d5cbb85ce2bd8f3ca228fa09661d76837aecf584836",
       "role": "physical-io",
       "exports": [
         "installNodeInferRun"
@@ -20622,9 +21332,7 @@
         },
         {
           "name": "installNodeInferRun/run/run/run#9",
-          "parameters": [
-            "slot"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -20915,6 +21623,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original retained Model input and cold masks"
+              },
+              {
+                "path": "src/client_local_host/infer_retained_input_original.mbt",
+                "anchor": "pub fn prepare_original_client_infer_input_materialization("
               }
             ],
             "ownership": [
@@ -20981,6 +21697,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "src/client_infer_host/original_retained_input_129_wbtest.mbt",
+                "anchor": "materialization witness refuses Ref0 tinyRead foreign completion and unquoted binding"
               }
             ],
             "cancellation": [
@@ -21025,6 +21745,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original retained Model input and cold masks"
+              },
+              {
+                "path": "src/run_publication_host/client_model_read_preparation.mbt",
+                "anchor": "pub fn grow_client_model_read_preparation_consumer_span("
               }
             ],
             "extension": [
@@ -21077,6 +21805,14 @@
               {
                 "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
                 "anchor": "ordinary published Model captured caller forwards its same required input body read"
+              },
+              {
+                "path": "src/client_infer_host/original_retained_input_129_wbtest.mbt",
+                "anchor": "original129 retained input roundtrip keeps legacy100 and foreign current small budget guards"
+              },
+              {
+                "path": "src/client_infer_host/original_retained_input_129_wbtest.mbt",
+                "anchor": "materialization witness refuses Ref0 tinyRead foreign completion and unquoted binding"
               }
             ]
           }
@@ -36316,7 +37052,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
-      "sha256": "b86d8e79396e4c4f546d5d7b0a702598c6aff72be054123107b0c6a205c130c7",
+      "sha256": "2a7ab6bdf6cbf631345b25419ee944eefa98ef9fc05a38f41d931595288c3a45",
       "exports": [],
       "operations": [
         {
@@ -36428,6 +37164,10 @@
           "declaration": "prepared_installed_effect_model_sequence ( plan : ClientInstalledEffectManagedPlan , graph : @ publication_host . ClientInferPlanGraph , ) - > Result [ @ execution . GeneratedSequence , ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "prepared_installed_effect_source_sequence",
+          "declaration": "prepared_installed_effect_source_sequence ( plan : ClientInstalledEffectManagedPlan , index : Int , ) - > Result [ ( Int , @ execution . GeneratedSequence ) , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "resolve_installed_effect_capture_extent",
           "declaration": "resolve_installed_effect_capture_extent ( original : ClientInstalledEffectOperationExtent , rows : Int , ) - > ClientInstalledEffectOperationExtent ?"
         },
@@ -36470,6 +37210,7 @@
             "prepared_installed_effect_managed_shape",
             "prepared_installed_effect_managed_source",
             "prepared_installed_effect_model_sequence",
+            "prepared_installed_effect_source_sequence",
             "resolve_installed_effect_capture_extent",
             "same_effect_projection_remainder"
           ],
@@ -36487,6 +37228,14 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Explicit empty response-header observation"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "inputsOutputs": [
@@ -36501,6 +37250,14 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Explicit empty response-header observation"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "identity": [
@@ -36515,6 +37272,14 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Explicit empty response-header observation"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "ownership": [
@@ -36529,6 +37294,14 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Explicit empty response-header observation"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "synchronization": [
@@ -36543,6 +37316,14 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Explicit empty response-header observation"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "failure": [
@@ -36557,6 +37338,14 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Explicit empty response-header observation"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "cancellation": [
@@ -36571,6 +37360,14 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Explicit empty response-header observation"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "resources": [
@@ -36585,6 +37382,14 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Explicit empty response-header observation"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "extension": [
@@ -36599,6 +37404,14 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Explicit empty response-header observation"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "verification": [
@@ -36621,6 +37434,14 @@
               {
                 "path": "src/client_local_host/installed_effect_empty_headers_js_wbtest.mbt",
                 "anchor": "test \"explicit empty headers keep full failed peak then SAME token retains body native output and pending cleanup\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ]
           }
@@ -37981,7 +38802,7 @@
     },
     {
       "module": "src/client_local_host/installed_mock_model_plan.mbt",
-      "sha256": "91862175dbae4af12f399a981e9286c677360f1500b17ebe795753fd5bfbbb0c",
+      "sha256": "f7fd95ced725f07f78947c5c14795108ca8a3a6991e24873e8c355436788de61",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing configured Local module and same original Request Model owners",
@@ -38073,6 +38894,10 @@
               {
                 "path": "src/client_local_host/installed_mock_model_plan.mbt",
                 "anchor": "fn prepare_installed_mock_model_plan_owned("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "synchronization": [
@@ -38113,6 +38938,10 @@
               {
                 "path": "src/client_local_host/installed_mock_model_plan.mbt",
                 "anchor": "fn prepare_installed_mock_model_plan_owned("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "extension": [
@@ -43494,7 +44323,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "07a2176ea65062ed0b6dcfd82d61fe592011266ad90ea526a8bcab2c590c32e2",
+      "sha256": "d9c2f26d36e614fe076acc6a6f47db18c2b756046a68753d695c86f27e7eb997",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Effect Plan owners",
       "exports": [],
@@ -43617,6 +44446,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "synchronization": [
@@ -43673,6 +44506,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "extension": [
@@ -46733,6 +47570,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "synchronization": [
@@ -46789,6 +47630,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "extension": [
@@ -47447,7 +48292,7 @@
           }
         }
       ],
-      "sha256": "e72b7c254adacd9d7b7014f465eef2ebe49dfe9ceb7abe5c3d24bab2d6ce2312",
+      "sha256": "685568c5d0e5d521821dfb29e60670abbed6f9262b180cb7d6ba6dbbad8e4cd2",
       "exports": [],
       "operations": [
         {
@@ -55140,33 +55985,34 @@
         {
           "operations": [
             "<module>",
+            "client_program_installed_effect_content_model_managed_plan_prepare",
+            "client_program_installed_effect_funded_model_selection_count",
             "client_program_installed_effect_model_demand_prepare",
             "client_program_installed_effect_model_managed_plan_prepare",
             "client_program_installed_effect_model_managed_provider_plan_prepare",
             "client_program_installed_effect_model_read_window",
             "client_program_installed_effect_plan_matches_model_demand",
             "client_program_installed_mock_model_capture_plan_bind",
+            "client_program_installed_node_effect_model_demand_prepare",
+            "client_program_prepare_request_model_capture_plan",
+            "client_program_prepare_request_model_component_capture_module",
+            "client_program_prepare_request_model_duckdb_component_capture_module",
             "client_program_prepare_request_model_provider_capture_module",
             "client_program_prepare_request_model_provider_component_capture_module",
+            "client_program_prepare_request_model_source_free_component_module",
             "client_program_prepare_request_model_source_free_plan",
+            "client_program_prepare_request_models_capture_plan",
+            "client_program_prepare_request_models_duckdb_component_capture_module",
+            "client_program_prepare_request_models_provider_component_capture_module",
+            "client_program_prepare_request_models_source_free_component_module",
+            "client_program_prepare_request_models_source_free_plan",
             "client_program_prepare_request_node_model_capture_plan",
             "client_program_prepare_request_node_model_source_free_plan",
             "client_program_prepared_request_model_input_prefix",
             "client_program_prepared_request_model_input_suffix",
-            "installed_effect_model_plan_from_original_sources",
-            "client_program_prepare_request_model_source_free_component_module",
-            "client_program_installed_effect_content_model_managed_plan_prepare",
-            "client_program_installed_node_effect_model_demand_prepare",
-            "client_program_prepare_request_models_capture_plan",
-            "client_program_prepare_request_models_provider_component_capture_module",
-            "client_program_prepare_request_models_source_free_component_module",
-            "client_program_prepare_request_models_source_free_plan",
             "client_program_request_model_direct_source_coordinates",
             "client_request_models_plan_projection",
-            "client_program_prepare_request_model_component_capture_module",
-            "client_program_prepare_request_model_capture_plan",
-            "client_program_prepare_request_model_duckdb_component_capture_module",
-            "client_program_prepare_request_models_duckdb_component_capture_module"
+            "installed_effect_model_plan_from_original_sources"
           ],
           "exports": [],
           "attributes": {
@@ -55210,6 +56056,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_funded_model_selection_count("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "inputsOutputs": [
@@ -55256,6 +56110,14 @@
               {
                 "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
                 "anchor": "pub fn client_program_prepare_request_model_component_capture_module("
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_funded_model_selection_count("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "identity": [
@@ -55302,6 +56164,14 @@
               {
                 "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
                 "anchor": "pub fn client_program_prepare_request_model_component_capture_module("
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_funded_model_selection_count("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "ownership": [
@@ -55348,6 +56218,14 @@
               {
                 "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
                 "anchor": "pub fn client_program_prepare_request_model_component_capture_module("
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_funded_model_selection_count("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "synchronization": [
@@ -55390,6 +56268,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_funded_model_selection_count("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "failure": [
@@ -55432,6 +56318,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_funded_model_selection_count("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "cancellation": [
@@ -55474,6 +56368,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_funded_model_selection_count("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "resources": [
@@ -55524,6 +56426,14 @@
               {
                 "path": "src/client_local_host/preparation_request_model_module.mbt",
                 "anchor": "pub fn[I] prepare_request_model_capture_module("
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_funded_model_selection_count("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "extension": [
@@ -55566,6 +56476,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_funded_model_selection_count("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "verification": [
@@ -55644,6 +56562,14 @@
               {
                 "path": "adapters/host-node/request-model-plan.test.mjs",
                 "anchor": "test('Request two-Source component facade forwards originals and rejects copied compiler or Definition'"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_installed_effect_funded_model_selection_count("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ]
           }
@@ -55654,6 +56580,10 @@
         {
           "name": "client_program_installed_effect_content_model_managed_plan_prepare",
           "declaration": "client_program_installed_effect_content_model_managed_plan_prepare ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ client_row_source_host . RowDeclaration ] , source_providers : Array [ @ execution . ExecutionCapacity ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ @ client_local_host . ClientInstalledEffectOperationDemand , ] , model : @ client_local_host . ClientInstalledEffectModelDemand , components : Array [ @ local . ManagedProvider ] , query_time : @ publication_host . ClientQueryTimePreparation ? , content : @ client_local_host . ClientInstalledEffectContentPreparation , ) - > Result [ @ client_local_host . ClientInstalledEffectManagedPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_funded_model_selection_count",
+          "declaration": "client_program_installed_effect_funded_model_selection_count ( value : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , ) - > Result [ Int , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "client_program_installed_effect_model_demand_prepare",
@@ -55760,7 +56690,7 @@
           "declaration": "installed_effect_model_plan_from_original_sources ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ client_row_source_host . RowDeclaration ] , source_providers : Array [ @ execution . ExecutionCapacity ] ? , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ @ client_local_host . ClientInstalledEffectOperationDemand , ] , model : @ client_local_host . ClientInstalledEffectModelDemand , components : Array [ @ local . ManagedProvider ] , query_time : @ publication_host . ClientQueryTimePreparation ? , content ? : @ client_local_host . ClientInstalledEffectContentPreparation ?"
         }
       ],
-      "sha256": "cdf704de2c26b8e0e64571cc67a60872441cbaab696c1cd383543a9da58d9dc1"
+      "sha256": "a1430d564ea81fd02c47e6ce4eea1d66ff4244a1c743f69ee0ef52f01c861327"
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_operation_bridge.mbt",
@@ -72723,6 +73653,18 @@
           "declaration": "finish_client_model_read_scope ( scope : ClientModelReadScope , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , original_run_cleanup_complete : Bool , ) - > Result [ Bool , ClientModelReadPreparationIssue ]"
         },
         {
+          "name": "grow_client_model_read_preparation_consumer_capacity",
+          "declaration": "grow_client_model_read_preparation_consumer_capacity ( read : ClientModelReadPreparation , consumer : ClientModelReadConsumer , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ Unit , ClientModelReadPreparationIssue ]"
+        },
+        {
+          "name": "grow_client_model_read_preparation_consumer_span",
+          "declaration": "grow_client_model_read_preparation_consumer_span ( read : ClientModelReadPreparation , consumer : ClientModelReadConsumer , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , retained_span : Int64 , execution_span : Int64 , ) - > Result [ ( Int64 , Int64 ) , ClientModelReadPreparationIssue ]"
+        },
+        {
+          "name": "grow_client_model_read_preparing_capacity",
+          "declaration": "grow_client_model_read_preparing_capacity ( read : ClientModelReadPreparation , consumer : ClientModelReadConsumer , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ Unit , ClientModelReadPreparationIssue ]"
+        },
+        {
           "name": "handoff_client_model_read",
           "declaration": "handoff_client_model_read ( value : ClientModelReadPreparation , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , ) - > Result [ @ resources . Ledger , ClientModelReadPreparationIssue ]"
         },
@@ -72746,6 +73688,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "begin_client_model_read_scope",
             "bind_client_model_read_scope",
             "client_model_origin_matches",
@@ -72757,6 +73700,9 @@
             "client_model_read_scope_original_inventory",
             "finish_client_model_read_inventory",
             "finish_client_model_read_scope",
+            "grow_client_model_read_preparation_consumer_capacity",
+            "grow_client_model_read_preparation_consumer_span",
+            "grow_client_model_read_preparing_capacity",
             "handoff_client_model_read",
             "handoff_client_model_read_capacity",
             "prepare_client_model_read",
@@ -72773,6 +73719,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original retained Model input and cold masks"
+              },
+              {
+                "path": "src/run_publication_host/client_model_read_preparation.mbt",
+                "anchor": "pub fn grow_client_model_read_preparation_consumer_span("
               }
             ],
             "inputsOutputs": [
@@ -72783,6 +73737,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original retained Model input and cold masks"
+              },
+              {
+                "path": "src/run_publication_host/client_model_read_preparation.mbt",
+                "anchor": "pub fn grow_client_model_read_preparation_consumer_span("
               }
             ],
             "identity": [
@@ -72793,6 +73755,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original retained Model input and cold masks"
+              },
+              {
+                "path": "src/run_publication_host/client_model_read_preparation.mbt",
+                "anchor": "pub fn grow_client_model_read_preparation_consumer_span("
               }
             ],
             "ownership": [
@@ -72803,6 +73773,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original retained Model input and cold masks"
+              },
+              {
+                "path": "src/run_publication_host/client_model_read_preparation.mbt",
+                "anchor": "pub fn grow_client_model_read_preparation_consumer_span("
               }
             ],
             "synchronization": [
@@ -72813,6 +73791,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original retained Model input and cold masks"
+              },
+              {
+                "path": "src/run_publication_host/client_model_read_preparation.mbt",
+                "anchor": "pub fn grow_client_model_read_preparation_consumer_span("
               }
             ],
             "failure": [
@@ -72823,6 +73809,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original retained Model input and cold masks"
+              },
+              {
+                "path": "src/run_publication_host/client_model_read_preparation.mbt",
+                "anchor": "pub fn grow_client_model_read_preparation_consumer_span("
               }
             ],
             "cancellation": [
@@ -72833,6 +73827,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original retained Model input and cold masks"
+              },
+              {
+                "path": "src/run_publication_host/client_model_read_preparation.mbt",
+                "anchor": "pub fn grow_client_model_read_preparation_consumer_span("
               }
             ],
             "resources": [
@@ -72843,6 +73845,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original retained Model input and cold masks"
+              },
+              {
+                "path": "src/run_publication_host/client_model_read_preparation.mbt",
+                "anchor": "pub fn grow_client_model_read_preparation_consumer_span("
               }
             ],
             "extension": [
@@ -72853,6 +73863,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original retained Model input and cold masks"
+              },
+              {
+                "path": "src/run_publication_host/client_model_read_preparation.mbt",
+                "anchor": "pub fn grow_client_model_read_preparation_consumer_span("
               }
             ],
             "verification": [
@@ -72863,13 +73881,29 @@
               {
                 "path": "src/client_local_host/preparation_request_effect_model_js_wbtest.mbt",
                 "anchor": "test \"Effect Scope one-short growth retains one absolute quote"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original retained Model input and cold masks"
+              },
+              {
+                "path": "src/run_publication_host/client_model_read_preparation.mbt",
+                "anchor": "pub fn grow_client_model_read_preparation_consumer_span("
+              },
+              {
+                "path": "src/client_infer_host/original_retained_input_129_wbtest.mbt",
+                "anchor": "materialization witness refuses Ref0 tinyRead foreign completion and unquoted binding"
+              },
+              {
+                "path": "src/client_infer_host/original_retained_input_129_wbtest.mbt",
+                "anchor": "original129 retained input roundtrip keeps legacy100 and foreign current small budget guards"
               }
             ]
           }
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "d9a6d02c79ea772fa4e65f8e16d4d50b307f51ac997004e8a7f75990afc16c72"
+      "sha256": "4777838ce2351d61f5c0c370236e66827a505fb30e29a7fafff69a1b6ee494a7"
     },
     {
       "module": "src/run_publication_host/client_ordered_sequence.mbt",
@@ -86037,6 +87071,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "synchronization": [
@@ -86173,6 +87211,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "extension": [
@@ -86263,7 +87305,7 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "6052d75322b2471403f3f9acc259ec035f97d7eed02ed0f452c641e2f5326ac2"
+      "sha256": "c04ecc086e371eb28380590f09db908fd91d722c09587ac13cf5dea2150ea717"
     },
     {
       "module": "src/run_publication_host/client_model_read_consumer.mbt",

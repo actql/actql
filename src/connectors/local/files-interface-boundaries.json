@@ -2924,9 +2924,9 @@
             "installPreparedProjectLocalFileEffects",
             "installPreparedProjectLocalFileEffects/current/current",
             "installPreparedProjectLocalFileEffects/effects/effects",
+            "installPreparedProjectLocalFileEffects/effects/effects#2",
             "installPreparedProjectLocalFileEffects/effects/effects/binding/binding",
             "installPreparedProjectLocalFileEffects/effects/effects/entries/entries",
-            "installPreparedProjectLocalFileEffects/effects/effects#2",
             "installPreparedProjectLocalFileEffects/installPreparedProjectLocalFileEffects",
             "installPreparedProjectLocalFileEffects/resources/resources",
             "installPreparedProjectLocalFileEffects/resources/resources/resources",
@@ -2981,6 +2981,10 @@
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "ownership": [
@@ -2995,6 +2999,10 @@
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "synchronization": [
@@ -3023,6 +3031,10 @@
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "cancellation": [
@@ -3037,6 +3049,10 @@
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "resources": [
@@ -3051,6 +3067,10 @@
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "extension": [
@@ -3105,7 +3125,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "22a3cd7cc7c4a37d9f59db218c87fd39aa47540d332e277e12ddf166546857e0"
+      "sha256": "fe88d965693e0d7619287e6d7dab9a3b494d0f56345d1bb829aa174733d9896c"
     },
     {
       "module": "adapters/connectors/local/host/local-file-store-declaration.mjs",

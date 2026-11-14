@@ -273,3 +273,78 @@ test('empty and populated CheckEnvironment constructors retain distinct Source p
     assert(populated.operations.includes('client_program_check_environment_model_from_wire_with_graph_profile'));
   }
 });
+
+// Explicit final construction/cold/physical tail; Source references only.
+const finalTailModules = [
+  "adapters/host-node/installed-row-effect.mjs",
+  "adapters/host-node/infer-evaluation-evidence.mjs",
+  "adapters/host-node/infer-operation.mjs",
+  "adapters/host-node/installed-composed-infer-run.mjs",
+  "adapters/host-node/installed-infer-run.mjs",
+  "src/client_local_host/installed_effect_operation_demand.mbt",
+  "src/client_local_host/installed_mock_model_plan.mbt",
+  "src/client_local_host/preparation_request_effect_body.mbt",
+  "src/client_local_host/preparation_request_program_body.mbt",
+  "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+  "src/run_publication_host/client_model_read_preparation.mbt",
+  "src/client_local_host/preparation_request_models_plan.mbt",
+  "adapters/host-node/infer-capture-custody.mjs",
+  "adapters/local-node/installed-project-mock-answers.mjs",
+  "adapters/host-node/local-account-config.mjs",
+  "adapters/host-node/installed-effect-managed-run.mjs",
+  "adapters/host-node/account-construction.mjs",
+  "adapters/host-node/acquired-effect-computation.mjs",
+  "adapters/host-node/embedded-local.mjs",
+  "src/model_execution/execution.mbt",
+  "adapters/local-node/carrier-snapshot.mjs",
+  "adapters/connectors/local/host/installed-project-file-effects.mjs"
+];
+const finalTailSidecars = [
+  "scripts/interface-owners/connector-functional/interface-boundaries.json",
+  "scripts/interface-owners/core-functional/interface-boundaries.json",
+  "scripts/interface-owners/durable-observation/interface-boundaries.json",
+  "scripts/interface-owners/host-functional/interface-boundaries.json",
+  "scripts/interface-owners/host-primary/interface-boundaries.json",
+  "scripts/interface-owners/js-bindings/interface-boundaries.json",
+  "scripts/interface-owners/model-provider/interface-boundaries.json",
+  "scripts/interface-owners/store-physical/interface-boundaries.json",
+  "src/client_local_host/ordered-direct-inputs-interface-boundaries.json",
+  "src/connectors/local/files-interface-boundaries.json"
+];
+const finalTailActual = finalTailModules.map(module => {
+  const bytes=readFileSync(new URL('../'+module,import.meta.url)), source=bytes.toString('utf8');
+  return {module,sha256:createHash('sha256').update(bytes).digest('hex'),
+    ...(module.endsWith('.mbt')?{exports:[],operations:moonOperations(source)}:javascriptInterface(source))};
+});
+const finalTailOwners=finalTailSidecars.map(id=>{
+  const value=JSON.parse(readFileSync(new URL('../'+id,import.meta.url),'utf8'));
+  return {id,declarations:(Array.isArray(value)?value:value.declarations).filter(d=>finalTailModules.includes(d.module))};
+});
+const finalTailResolved=finalTailActual.filter(row=>!row.unresolvedSyntax?.length);
+const checkFinalTail=(selectedOwners=finalTailOwners,selectedModules=finalTailResolved)=>
+  interfaceOwnerCoverage({root,modules:selectedModules,owners:selectedOwners,requireComplete:true});
+
+test('stable Model File cold Mock Account and row publication tail retains22 exact syntax and21 resolved Source contracts',()=>{
+  const unresolved=finalTailActual.filter(row=>row.unresolvedSyntax?.length);
+  assert.deepEqual(unresolved.map(row=>row.module),['adapters/host-node/embedded-local.mjs']);
+  for(const owner of finalTailOwners) for(const declaration of owner.declarations.filter(d=>d.module===unresolved[0].module)) {
+    for(const key of ['sha256','operations','exports'])assert.deepEqual(declaration[key],unresolved[0][key]);
+  }
+  assert.throws(()=>checkFinalTail(finalTailOwners,finalTailActual),/Unresolved interface syntax/u);
+  const checked=checkFinalTail();assert.equal(checked.complete,true);assert.equal(checked.primaryComplete,true);
+  assert.equal(checked.modules,21);assert.deepEqual(checked.missing,[]);
+});
+
+test('final tail Source references cannot bless changed bytes missing numeric-span ownership or foreign anchors',()=>{
+  const original=finalTailResolved.find(d=>d.module==='src/run_publication_host/client_model_read_preparation.mbt');
+  assert.throws(()=>checkFinalTail(finalTailOwners,finalTailResolved.map(d=>d===original?{...d,sha256:'0'.repeat(64)}:d)),/Unreviewed interface implementation/u);
+  const altered=structuredClone(finalTailOwners);
+  const preparation=altered.flatMap(o=>o.declarations).find(d=>d.module===original.module);
+  preparation.contracts[0].operations=preparation.contracts[0].operations.filter(name=>name!=='grow_client_model_read_preparation_consumer_span');
+  assert.throws(()=>checkFinalTail(altered),/Missing operation contract/u);
+  const foreign=structuredClone(finalTailOwners);
+  const mock=foreign.flatMap(o=>o.declarations).find(d=>d.module==='adapters/local-node/installed-project-mock-answers.mjs');
+  const projection=mock.contracts.find(c=>c.exports.includes('prepareInstalledMockRegistrySelection'));
+  projection.attributes.identity.push({path:'docs/design/model-provider-registration.md',anchor:'A copied inventory funds registry selection'});
+  assert.throws(()=>checkFinalTail(foreign),/Missing interface reference/u);
+});

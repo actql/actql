@@ -475,7 +475,7 @@
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "b86d8e79396e4c4f546d5d7b0a702598c6aff72be054123107b0c6a205c130c7",
+      "sha256": "2a7ab6bdf6cbf631345b25419ee944eefa98ef9fc05a38f41d931595288c3a45",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -589,6 +589,10 @@
           "declaration": "prepared_installed_effect_model_sequence ( plan : ClientInstalledEffectManagedPlan , graph : @ publication_host . ClientInferPlanGraph , ) - > Result [ @ execution . GeneratedSequence , ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "prepared_installed_effect_source_sequence",
+          "declaration": "prepared_installed_effect_source_sequence ( plan : ClientInstalledEffectManagedPlan , index : Int , ) - > Result [ ( Int , @ execution . GeneratedSequence ) , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "resolve_installed_effect_capture_extent",
           "declaration": "resolve_installed_effect_capture_extent ( original : ClientInstalledEffectOperationExtent , rows : Int , ) - > ClientInstalledEffectOperationExtent ?"
         },
@@ -616,6 +620,7 @@
             "prepare_installed_effect_capture_extent",
             "prepare_installed_effect_capture_recipe_extent",
             "prepare_installed_effect_managed_plan",
+            "prepare_installed_effect_managed_plan_owned",
             "prepare_installed_effect_operation_demand",
             "prepare_installed_effect_operation_demand_with_controls",
             "prepare_installed_effect_operation_extent",
@@ -624,10 +629,10 @@
             "prepared_installed_effect_managed_requirements",
             "prepared_installed_effect_managed_shape",
             "prepared_installed_effect_managed_source",
+            "prepared_installed_effect_model_sequence",
+            "prepared_installed_effect_source_sequence",
             "resolve_installed_effect_capture_extent",
-            "resolve_installed_effect_id_extent",
-            "prepare_installed_effect_managed_plan_owned",
-            "prepared_installed_effect_model_sequence"
+            "resolve_installed_effect_id_extent"
           ],
           "exports": [],
           "attributes": {
@@ -635,60 +640,140 @@
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Responsibility:"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "identity": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Identity:"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "ownership": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Ownership:"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "synchronization": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Synchronization:"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "failure": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Failure:"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "cancellation": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Cancellation:"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "resources": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Resources:"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "extension": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Extension:"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "verification": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ]
           }
@@ -931,7 +1016,7 @@
     {
       "module": "src/client_local_host/installed_mock_model_plan.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "91862175dbae4af12f399a981e9286c677360f1500b17ebe795753fd5bfbbb0c",
+      "sha256": "f7fd95ced725f07f78947c5c14795108ca8a3a6991e24873e8c355436788de61",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -1006,6 +1091,10 @@
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Ownership:"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "synchronization": [
@@ -1030,6 +1119,10 @@
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Resources:"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "extension": [
@@ -1561,7 +1654,7 @@
     {
       "module": "src/client_local_host/preparation_request_program_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "e72b7c254adacd9d7b7014f465eef2ebe49dfe9ceb7abe5c3d24bab2d6ce2312",
+      "sha256": "685568c5d0e5d521821dfb29e60670abbed6f9262b180cb7d6ba6dbbad8e4cd2",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -1725,6 +1818,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "synchronization": [
@@ -1777,6 +1874,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "extension": [
@@ -1831,7 +1932,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "07a2176ea65062ed0b6dcfd82d61fe592011266ad90ea526a8bcab2c590c32e2",
+      "sha256": "d9c2f26d36e614fe076acc6a6f47db18c2b756046a68753d695c86f27e7eb997",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -1926,6 +2027,10 @@
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Ownership:"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "synchronization": [
@@ -1950,6 +2055,10 @@
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Resources:"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "extension": [

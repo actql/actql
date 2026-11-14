@@ -4301,7 +4301,7 @@
     },
     {
       "module": "src/model_execution/execution.mbt",
-      "sha256": "91e099188b3cac05323e5e6461073999a958e090b381c8a5eb12c181a77644c4",
+      "sha256": "adaff421d61a097837b5105d4720900da92e97e79a806b563adf7a07db88c2e9",
       "exports": [],
       "operations": [
         {
@@ -4478,6 +4478,10 @@
               {
                 "path": "src/model_execution/execution.mbt",
                 "anchor": "original.users -= 1"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "failed or pending cleanup retains the same original debt."
               }
             ],
             "synchronization": [
@@ -4522,6 +4526,10 @@
               {
                 "path": "src/model_execution/execution.mbt",
                 "anchor": "// Entered responsibility consumes an attempt even for a local original Mock."
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "Stopped-attempt proofs are funded"
               }
             ],
             "extension": [

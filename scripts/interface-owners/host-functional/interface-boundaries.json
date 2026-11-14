@@ -72808,9 +72808,10 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock-answers.mjs",
-      "sha256": "2d3c3d4a1e714a8a373b645158a848db99556e4e30df45e1e499ebbb9076325f",
+      "sha256": "1078c2a07b2b0e3741829703d8dc732aa354cabed575229e2d657ab14f3a7432",
       "exports": [
-        "loadInstalledProjectMockAnswers"
+        "loadInstalledProjectMockAnswers",
+        "prepareInstalledMockRegistrySelection"
       ],
       "operations": [
         {
@@ -72836,7 +72837,8 @@
             "limits",
             "assertCurrent",
             "openFile",
-            "deferAnswers"
+            "deferAnswers",
+            "installationInventory"
           ],
           "async": true
         },
@@ -73052,6 +73054,30 @@
             "name",
             "args"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledMockRegistrySelection",
+          "parameters": [
+            "moon",
+            "project",
+            "inventory"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledMockRegistrySelection/check/check",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledMockRegistrySelection/selected/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledMockRegistrySelection/selected/selected",
+          "parameters": [],
           "async": false
         },
         {
@@ -73589,6 +73615,127 @@
               {
                 "path": "src/model_execution/mock_answer_originals_wbtest.mbt",
                 "anchor": "test \"mock answers bind the same Task original not an equal identifier or copied inventory\" {"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareInstalledMockRegistrySelection",
+            "prepareInstalledMockRegistrySelection/check/check",
+            "prepareInstalledMockRegistrySelection/selected/init:project/init:project",
+            "prepareInstalledMockRegistrySelection/selected/selected"
+          ],
+          "exports": [
+            "prepareInstalledMockRegistrySelection"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Managed Mock registry selection borrows"
+              },
+              {
+                "path": "adapters/local-node/installed-project-mock-answers.mjs",
+                "anchor": "export function prepareInstalledMockRegistrySelection("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Managed Mock registry selection borrows"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Managed Mock registry selection borrows"
+              },
+              {
+                "path": "adapters/local-node/installed-project-mock-answers.mjs",
+                "anchor": "assertDeclaredFileInstallationInventory"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Managed Mock registry selection borrows"
+              },
+              {
+                "path": "adapters/host-node/mock-registry-original-selection.test.mjs",
+                "anchor": "retired same Source inventory cannot project a later registry count"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Managed Mock registry selection borrows"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Managed Mock registry selection borrows"
+              },
+              {
+                "path": "adapters/host-node/mock-registry-original-selection.test.mjs",
+                "anchor": "current or numerical Source refusal precedes count and survives unchanged as primary"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Managed Mock registry selection borrows"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Managed Mock registry selection borrows"
+              },
+              {
+                "path": "adapters/local-node/installed-project-mock-answers.mjs",
+                "anchor": "prepareMetadataInput"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Managed Mock registry selection borrows"
+              },
+              {
+                "path": "adapters/host-node/mock-registry-original-selection.test.mjs",
+                "anchor": "standalone explicit128 registry guard remains and no managed projection supplies it funds"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Managed Mock registry selection borrows"
+              },
+              {
+                "path": "adapters/host-node/mock-registry-original-selection.test.mjs",
+                "anchor": "same original Source reservation precedes registry129 projection without unused Task allocation"
+              },
+              {
+                "path": "adapters/host-node/mock-registry-original-selection.test.mjs",
+                "anchor": "standalone explicit128 registry guard remains and no managed projection supplies it funds"
+              },
+              {
+                "path": "adapters/host-node/mock-registry-original-selection.test.mjs",
+                "anchor": "foreign copied inventory or equal-wire Project cannot borrow the original metadata holding"
+              },
+              {
+                "path": "adapters/host-node/mock-registry-original-selection.test.mjs",
+                "anchor": "current or numerical Source refusal precedes count and survives unchanged as primary"
+              },
+              {
+                "path": "adapters/host-node/mock-registry-original-selection.test.mjs",
+                "anchor": "managed total metadata does not lift selected answer128 policy or decode a next Task"
+              },
+              {
+                "path": "adapters/host-node/mock-registry-original-selection.test.mjs",
+                "anchor": "retired same Source inventory cannot project a later registry count"
               }
             ]
           }
@@ -79790,7 +79937,7 @@
     {
       "module": "adapters/host-node/local-account-config.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7e49b407e95036f10dce005adc949339c867f61871c2a05ebf086277477b1d0a",
+      "sha256": "d5e346b2fe207263118e3056b78c54bcf33639d83270b3a0e13677c2cde1e937",
       "role": "physical-io",
       "owner": "Existing execution_authorization/Checkpoint Owners and trusted Host gate",
       "exports": [
@@ -79873,11 +80020,6 @@
             "options"
           ],
           "async": true
-        },
-        {
-          "name": "createLocalAuthorizationGate/createLocalAuthorizationGate",
-          "parameters": [],
-          "async": false
         },
         {
           "name": "createLocalAuthorizationGateOriginal",
@@ -80614,7 +80756,6 @@
         },
         {
           "operations": [
-            "createLocalAuthorizationGate/createLocalAuthorizationGate",
             "createLocalAuthorizationGateOriginal",
             "createLocalAuthorizationGateOriginal/gate/gate#2",
             "createLocalAuthorizationGateOriginal/withAccountObservation/withAccountObservation",
@@ -80706,6 +80847,7 @@
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
+        "./account-construction.mjs",
         "./authorization.mjs",
         "node:crypto",
         "node:fs",
@@ -129612,12 +129754,13 @@
     },
     {
       "module": "adapters/host-node/installed-effect-managed-run.mjs",
-      "sha256": "92bc4f4758a19e9f165252a5030b063ba46f403a532f138f8868bda11182c2a5",
+      "sha256": "83a00a1bc68d19e218ed16c9abfe18046d53ff94a87c8fdb69247868d0b3b03b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
+        "fundedEffectModelGroupCount",
         "installedEffectModelPreparation",
         "prepareInstalledEffectManagedPlanRun",
         "readInstalledEffectManagedPlanRun"
@@ -129689,6 +129832,13 @@
         {
           "name": "finishInstalledEffectModelScope/original/original",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "fundedEffectModelGroupCount",
+          "parameters": [
+            "preparation"
+          ],
           "async": false
         },
         {
@@ -129964,19 +130114,8 @@
           "operations": [
             "fail/fail",
             "finishInstalledEffectModelScope",
-            "installedEffectModelPreparation",
-            "installedEffectModelPreparation/current/current",
-            "prepareInstalledEffectManagedPlanRun",
-            "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun",
-            "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#2",
-            "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#3",
-            "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#4",
-            "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#5",
-            "prepareInstalledEffectManagedPlanRun/same/same",
-            "prepareInstalledEffectManagedPlanRun/same/same/same",
-            "readInstalledEffectManagedPlanRun",
-            "finishInstalledEffectModelScope/original/original",
             "finishInstalledEffectModelScope/finishMember/finishMember",
+            "finishInstalledEffectModelScope/original/original",
             "installedEffectModelMemberPreparation",
             "installedEffectModelMemberPreparation/current/current",
             "installedEffectModelMemberPreparation/fields/init:assertRuntimeCurrent/init:assertRuntimeCurrent",
@@ -129985,16 +130124,27 @@
             "installedEffectModelMemberPreparation/view/init:restoreRead/init:restoreRead",
             "installedEffectModelMemberPreparation/view/init:retain/init:retain",
             "installedEffectModelMemberPreparation/view/init:retire/init:retire",
+            "installedEffectModelPreparation",
             "installedEffectModelPreparation/components/components",
+            "installedEffectModelPreparation/current/current",
             "installedEffectModelPreparation/current/current/current",
             "installedEffectModelPreparation/init:retain/init:retain",
             "installedEffectModelPreparation/init:retire/init:retire",
             "prepareEffectModelMember",
             "prepareEffectModelMember/prepareEffectModelMember",
+            "prepareInstalledEffectManagedPlanRun",
             "prepareInstalledEffectManagedPlanRun/members/members",
+            "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun",
             "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#10",
             "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#11",
-            "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#9"
+            "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#2",
+            "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#3",
+            "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#4",
+            "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#5",
+            "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#9",
+            "prepareInstalledEffectManagedPlanRun/same/same",
+            "prepareInstalledEffectManagedPlanRun/same/same/same",
+            "readInstalledEffectManagedPlanRun"
           ],
           "exports": [
             "finishInstalledEffectModelScope",
@@ -130071,6 +130221,10 @@
               {
                 "path": "src/client_infer_host/original_composed_preparation.mbt",
                 "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "ownership": [
@@ -130097,6 +130251,10 @@
               {
                 "path": "src/client_infer_host/original_composed_preparation.mbt",
                 "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "synchronization": [
@@ -130153,6 +130311,10 @@
               {
                 "path": "src/client_infer_host/original_composed_preparation.mbt",
                 "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "cancellation": [
@@ -130175,6 +130337,10 @@
               {
                 "path": "src/client_infer_host/original_composed_preparation.mbt",
                 "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "resources": [
@@ -130201,6 +130367,10 @@
               {
                 "path": "src/client_infer_host/original_composed_preparation.mbt",
                 "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "extension": [
@@ -130284,8 +130454,8 @@
         {
           "operations": [
             "assertCurrentPlanRecord",
-            "readCurrentPlanParent",
-            "assertCurrentPlanRecord/assertCurrentPlanRecord"
+            "assertCurrentPlanRecord/assertCurrentPlanRecord",
+            "readCurrentPlanParent"
           ],
           "exports": [],
           "attributes": {
@@ -130390,12 +130560,20 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Immediate original Effect control Plan handoff"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Immediate original Effect control Plan handoff"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "synchronization": [
@@ -130408,18 +130586,30 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Immediate original Effect control Plan handoff"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Immediate original Effect control Plan handoff"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Immediate original Effect control Plan handoff"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "extension": [
@@ -130618,6 +130808,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "ownership": [
@@ -130628,6 +130822,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "synchronization": [
@@ -130648,6 +130846,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "cancellation": [
@@ -130658,6 +130860,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "resources": [
@@ -130668,6 +130874,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "extension": [
@@ -130684,6 +130894,160 @@
               {
                 "path": "src/client_local_host/installed_effect_content_wbtest.mbt",
                 "anchor": "test \"Effect Content plan retains and quotes the same original family without physical entry\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "fundedEffectModelGroupCount"
+          ],
+          "exports": [
+            "fundedEffectModelGroupCount"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "export function fundedEffectModelGroupCount("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_model_selection_layout.mbt",
+                "anchor": "pub fn installed_effect_funded_model_selection_count("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "export function fundedEffectModelGroupCount("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_model_selection_layout.mbt",
+                "anchor": "pub fn installed_effect_funded_model_selection_count("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "export function fundedEffectModelGroupCount("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_model_selection_layout.mbt",
+                "anchor": "pub fn installed_effect_funded_model_selection_count("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "export function fundedEffectModelGroupCount("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_model_selection_layout.mbt",
+                "anchor": "pub fn installed_effect_funded_model_selection_count("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "export function fundedEffectModelGroupCount("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_model_selection_layout.mbt",
+                "anchor": "pub fn installed_effect_funded_model_selection_count("
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "export function fundedEffectModelGroupCount("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_model_selection_layout.mbt",
+                "anchor": "pub fn installed_effect_funded_model_selection_count("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "export function fundedEffectModelGroupCount("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_model_selection_layout.mbt",
+                "anchor": "pub fn installed_effect_funded_model_selection_count("
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "export function fundedEffectModelGroupCount("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_model_selection_layout.mbt",
+                "anchor": "pub fn installed_effect_funded_model_selection_count("
+              },
+              {
+                "path": "src/client_local_host/preparation_model_selection_layout.mbt",
+                "anchor": "fn installed_model_selection_layout("
+              },
+              {
+                "path": "src/model_execution/original_attempt_proof_capacity.mbt",
+                "anchor": "fn prepare_original_model_attempt_proof("
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "export function fundedEffectModelGroupCount("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_model_selection_layout.mbt",
+                "anchor": "pub fn installed_effect_funded_model_selection_count("
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
+                "anchor": "129 selected Model definitions require same current admitted Run rather than count or a getter"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ]
           }
@@ -139615,7 +139979,7 @@
     },
     {
       "module": "adapters/host-node/account-construction.mjs",
-      "sha256": "cfe54c60dee4b73aa208da361969cd7a82dbfa4a91163e0c402766c6c10bc800",
+      "sha256": "11a4e3fa341e4cffdbad530c4a8a03379cd968f2dc87e8f8289c4135dda2628e",
       "exports": [
         "createAccountConstruction",
         "isAccountConstruction",
@@ -139665,6 +140029,11 @@
           "async": false
         },
         {
+          "name": "createAccountConstruction/begin/frame/init:closeGate/init:closeGate",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createAccountConstruction/begin/frame/init:closeUnknown/init:closeUnknown",
           "parameters": [
             "cause"
@@ -139684,6 +140053,11 @@
           "parameters": [
             "size"
           ],
+          "async": false
+        },
+        {
+          "name": "createAccountConstruction/begin/frame/init:gateCleanupPending/init:gateCleanupPending",
+          "parameters": [],
           "async": false
         },
         {
@@ -139715,6 +140089,13 @@
           "async": false
         },
         {
+          "name": "createAccountConstruction/begin/frame/init:retainGate/init:retainGate",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "createAccountConstruction/begin/prepare",
           "parameters": [
             "retained",
@@ -139723,9 +140104,26 @@
           "async": false
         },
         {
-          "name": "createAccountConstruction/facet/init:close/init:close",
+          "name": "createAccountConstruction/closeAll",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "createAccountConstruction/closeOriginalGate",
+          "parameters": [
+            "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAccountConstruction/facet/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createAccountConstruction/facet/init:close/init:close/settled/settled",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "createAccountConstruction/facet/init:onRetire/init:onRetire",
@@ -139743,6 +140141,13 @@
           "name": "createAccountConstruction/observe",
           "parameters": [
             "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAccountConstruction/settleFrame",
+          "parameters": [
+            "state"
           ],
           "async": false
         },
@@ -139829,7 +140234,14 @@
             "readAccountOriginal",
             "readAccountOriginal/readAccountOriginal",
             "readAccountOriginal/readAccountOriginal#2",
-            "valid/valid"
+            "valid/valid",
+            "createAccountConstruction/begin/frame/init:closeGate/init:closeGate",
+            "createAccountConstruction/begin/frame/init:gateCleanupPending/init:gateCleanupPending",
+            "createAccountConstruction/begin/frame/init:retainGate/init:retainGate",
+            "createAccountConstruction/closeAll",
+            "createAccountConstruction/closeOriginalGate",
+            "createAccountConstruction/facet/init:close/init:close/settled/settled",
+            "createAccountConstruction/settleFrame"
           ],
           "exports": [
             "createAccountConstruction",
@@ -139912,11 +140324,44 @@
               {
                 "path": "src/physical_resources/preparation_account_read_wbtest.mbt",
                 "anchor": "test \"Account child sums siblings and refuses foreign and insufficient original before construction\""
+              },
+              {
+                "path": "adapters/host-node/account-construction.test.mjs",
+                "anchor": "account gate repeated create and actual Scope close returns each SAME Read on one finite Host"
+              },
+              {
+                "path": "adapters/host-node/account-construction.test.mjs",
+                "anchor": "account gate constructor-await close retains the already-created original before rejecting publication"
+              },
+              {
+                "path": "adapters/host-node/account-construction.test.mjs",
+                "anchor": "account lifetime pending actual decision and failed sibling survive a healthy gate close"
+              },
+              {
+                "path": "adapters/host-node/account-construction.test.mjs",
+                "anchor": "account lifetime close reentry and concurrent Host close keep captured original methods once"
+              },
+              {
+                "path": "adapters/host-node/account-construction.test.mjs",
+                "anchor": "account lifetime original gate close failure is preserved until the same method actually completes"
+              },
+              {
+                "path": "adapters/host-node/account-construction.test.mjs",
+                "anchor": "account lifetime unknown original FD sibling never becomes an ACK through another gate cleanup"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/runtime-result.mjs",
+        "./installed-source-construction-geometry.mjs",
+        "./source-profile-json.mjs",
+        "node:fs",
+        "node:fs/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     }
   ],
   "generated": [],

@@ -4841,7 +4841,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "c03336376d883c6f41961578fb7be1468dccb4fc4a770ea87227e06650b0a9b1",
+      "sha256": "4e09940780d7d2066383111e9b04dbe2df1aeafa7398b64e1b9dc2e1d14754be",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -6101,7 +6101,8 @@
           "name": "createRowEffectStage/membersOf/membersOf",
           "parameters": [
             "prepared",
-            "unit"
+            "unit",
+            "maxMembers"
           ],
           "async": false
         },
@@ -6463,6 +6464,14 @@
           "parameters": [
             "facts",
             "inputs"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareManagedPlan/prepareManagedPlan/maxMembers/maxMembers",
+          "parameters": [
+            "bound",
+            "owner"
           ],
           "async": false
         },
@@ -6869,7 +6878,8 @@
           "parameters": [
             "body",
             "provider",
-            "selected"
+            "selected",
+            "maxMembers"
           ],
           "async": false
         },
@@ -6988,6 +6998,14 @@
           "name": "createRowEffectStage/runLimits/runLimits",
           "parameters": [
             "managed"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/runLimits/runLimits/maxMembers/maxMembers",
+          "parameters": [
+            "bound",
+            "owner"
           ],
           "async": false
         },
@@ -7915,6 +7933,9 @@
             "createRowEffectStage/resolveMember/resolveMember/mapping/mapping",
             "createRowEffectStage/retainMember/retainMember",
             "createRowEffectStage/routeOf/routeOf",
+            "createRowEffectStage/runLimits/runLimits",
+            "createRowEffectStage/runLimits/runLimits/maxMembers/maxMembers",
+            "createRowEffectStage/runLimits/runLimits/maxRows/maxRows",
             "createRowEffectStage/scopeKey/scopeKey",
             "createRowEffectStage/scopes/scopes",
             "createRowEffectStage/scopes/scopes/scopes",
@@ -7939,9 +7960,7 @@
             "retainInstalledRowEffectAdapter",
             "sameValue/sameValue",
             "targeted/targeted",
-            "text/text",
-            "createRowEffectStage/runLimits/runLimits",
-            "createRowEffectStage/runLimits/runLimits/maxRows/maxRows"
+            "text/text"
           ],
           "exports": [
             "composeInstalledRowEffectOwners",
@@ -8083,6 +8102,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "ownership": [
@@ -8129,6 +8152,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "synchronization": [
@@ -8221,6 +8248,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "cancellation": [
@@ -8263,6 +8294,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "resources": [
@@ -8317,6 +8352,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "extension": [
@@ -8503,6 +8542,7 @@
             "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation#3",
             "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation",
             "createRowEffectStage/prepareManagedPlan/prepareManagedPlan",
+            "createRowEffectStage/prepareManagedPlan/prepareManagedPlan/maxMembers/maxMembers",
             "deriveInstalledRowWrite/init:checkRequest/init:checkRequest"
           ],
           "exports": [],
@@ -8547,6 +8587,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "ownership": [
@@ -8561,6 +8605,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "synchronization": [
@@ -8589,6 +8637,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "cancellation": [
@@ -8603,6 +8655,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "resources": [
@@ -8617,6 +8673,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed check-only metadata projections"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "extension": [
@@ -12461,6 +12521,7 @@
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/original/original",
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/original/original#2",
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/original/original#3",
+            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/original/original/original",
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries#2",
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries#3",
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries#4",
@@ -12468,12 +12529,11 @@
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries",
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries#2",
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/release/release",
+            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/reserveRecoveryInput/reserveRecoveryInput",
             "createRowEffectStage/validateRecoveredEntries/validateRecoveredEntries",
             "createRowEffectStage/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries",
             "createRowEffectStage/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries/claimBySource/claimBySource",
-            "createRowEffectStage/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries",
-            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/original/original/original",
-            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/reserveRecoveryInput/reserveRecoveryInput"
+            "createRowEffectStage/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries"
           ],
           "exports": [],
           "attributes": {

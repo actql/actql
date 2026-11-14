@@ -610,6 +610,17 @@ reference retirement are neither zero cost, GC evidence nor physical ACK.
 
 #### Original mock answer materials
 
+Managed Mock registry selection borrows the installation's issued file inventory
+and the same Project original. Its original Source preparation reserves fixed
+control capacity before projecting the total registry count. This count is DATA,
+not answer allocation, provider permission or a larger selected Task budget.
+A foreign or retired inventory cannot fund the projection. Standalone intake
+keeps its legacy total-registry bound, and selected answers keep their independent
+128 policy; unused Tasks are not opened or decoded to obtain a count. Currentness,
+numerical refusal and failed cleanup remain duties of that same Source owner.
+The named registry controls are Source references, not installed acceptance.
+
+
 The portable Mock implementation is an exclusive invocation kind in the
 existing Model Owner. Its source-pinned fixture configuration, handling
 Envelope and implementation revision supply the explicit generation fields

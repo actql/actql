@@ -9,7 +9,7 @@
     {
       "module": "adapters/local-node/carrier-snapshot.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "24d4661663ab3aaca47165c6386cf9385f6a663bf3d332e5ba5df9c21883de8b",
+      "sha256": "1f257671cf1764b57c2b73f69bf11b6f2b6926203f7ecb0ea5c3bbdf38d9ed24",
       "exports": [
         "prepareLocalCarrierSnapshot",
         "prepareLocalRelationSnapshot"
@@ -208,24 +208,40 @@
               {
                 "path": "docs/design/local-relation-storage.md",
                 "anchor": "publication remains atomic"
+              },
+              {
+                "path": "docs/design/local-relation-storage.md",
+                "anchor": "## Funded row publication and exact sealed reload"
               }
             ],
             "failure": [
               {
                 "path": "adapters/store-local/managed-representations.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "docs/design/local-relation-storage.md",
+                "anchor": "## Funded row publication and exact sealed reload"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/store-local/managed-memory-transfer.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "docs/design/local-relation-storage.md",
+                "anchor": "## Funded row publication and exact sealed reload"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-relation-storage.md",
                 "anchor": "backing storage until its final owner is gone"
+              },
+              {
+                "path": "docs/design/local-relation-storage.md",
+                "anchor": "## Funded row publication and exact sealed reload"
               }
             ],
             "extension": [
@@ -236,16 +252,28 @@
             ],
             "verification": [
               {
-                "path": "adapters/local-node/carrier-snapshot.test.mjs",
-                "anchor": "test("
-              },
-              {
                 "path": "adapters/store-local/managed-representations.test.mjs",
                 "anchor": "test("
               },
               {
                 "path": "adapters/store-local/managed-memory-transfer.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/local-node/carrier-snapshot.test.mjs",
+                "anchor": "Relation reload framer uses exact sealed byte geometry only after the original reload grant"
+              },
+              {
+                "path": "adapters/local-node/carrier-snapshot.test.mjs",
+                "anchor": "Relation sealed geometry preserves explicit smaller row policy"
+              },
+              {
+                "path": "adapters/local-node/carrier-snapshot.test.mjs",
+                "anchor": "Relation refused original reload grant constructs no row framer and retains the primary cause"
+              },
+              {
+                "path": "adapters/local-node/carrier-snapshot.test.mjs",
+                "anchor": "Relation cancellation after original output revocation retains cleanup and publishes nothing"
               }
             ]
           }
