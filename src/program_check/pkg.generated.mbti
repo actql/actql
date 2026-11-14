@@ -39,7 +39,7 @@ import {
 // Values
 pub fn admit_checked_local_dependency_body(CheckedProgram, Int, LocalDependencyBodyKind, CheckedLocalDependencyBody, String) -> Result[CheckedLocalDependencyBody, LocalDependencyBodyIssue]
 
-pub fn advance_checked_local_catalog_selection(CheckedLocalCatalogSelection, Int) -> Result[Unit, LocalDependencyBodyIssue]
+pub fn advance_checked_local_catalog_selection(CheckedLocalCatalogSelection, Int, work? : ((Int) -> Bool)?) -> Result[Unit, LocalDependencyBodyIssue]
 
 pub fn analytic_aggregate_subject(AnalyticAggregateSource, Int) -> String raise UnitBuildFailure
 
