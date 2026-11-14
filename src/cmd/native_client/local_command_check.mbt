@@ -827,16 +827,86 @@ fn command_project_original_text(
       Ok(_) => original.read_failure = None
     }
   }
-  let result = @files.read_bounded_text_file_in_current_read_context_with_custody(
+  let result = @files.read_observed_text_file_in_current_read_context_with_custody(
     root,
     name,
-    65536L,
     original.profile.diagnostic_ceiling,
+    bytes => {
+      match original.prepare_project_text_payload(bytes) {
+        Ok(_) => true
+        Err(issue) => {
+          original.retain_primary(issue)
+          false
+        }
+      }
+    },
   )
   if result is Err(failure) {
     original.read_failure = Some(failure)
   }
   result
+}
+
+///|
+// The bounded Reader's original transport/UTF8 envelope, also used by the
+// existing Request intake: fixed controls, one Reader quantum and overlapping
+// accumulation/copy buffers. These are representation quantities, not input
+// ceilings, parser/Account admission or a physical allocation theorem.
+fn local_project_text_payload_extent(bytes : Int64) -> (Int64, Int64)? {
+  if bytes < 0L || bytes > 2147483518L {
+    return None
+  }
+  guard @execution.checked_preparation_add_product(0L, bytes, 2L)
+    is Some(text_peak) &&
+    @execution.checked_preparation_add_product(65536L, bytes, 4L)
+    is Some(wire_peak) &&
+    @execution.preparation_representation_cost({
+      record_headers: 8L,
+      reference_slots: 16L,
+      scalar_words: 16L,
+      owned_utf16_units: bytes,
+      owned_wire_bytes: 0L,
+    })
+    is Some(retained) &&
+    @execution.preparation_representation_cost({
+      record_headers: 8L,
+      reference_slots: 16L,
+      scalar_words: 16L,
+      owned_utf16_units: text_peak,
+      owned_wire_bytes: wire_peak,
+    })
+    is Some(execution) else {
+    return None
+  }
+  Some((retained, execution))
+}
+
+///|
+// Project discovery precedes the business Request. Use only the SAME entered
+// initial Read, retaining each new text frame before its Reader/buffers exist.
+// The existing owner checks selected policy/currentness and obtains actual
+// domain backing before growing the original reservation. No MAX is prepaid.
+fn LocalCommandPreparationOriginal::prepare_project_text_payload(
+  self : Self,
+  bytes : Int64,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  guard self.host is Some(host) &&
+    self.read is Some(read) &&
+    local_project_text_payload_extent(bytes) is Some((r, e)) else {
+    return Err(CommandUnavailable)
+  }
+  // Keep each escaping text, but not a sum of completed Reader scratch peaks.
+  // The same bounded routine acknowledges Reader/Root close before returning
+  // its sole String. The existing temporary-peak port takes a maximum over
+  // the original base; it never refunds or acknowledges this Read's lifetime.
+  match
+    host.prepare_domain_original_read_retained_construction(read, r, 0L, r) {
+    Err(issue) => return Err(CommandRead(issue))
+    Ok(_) => ()
+  }
+  host
+  .prepare_domain_original_read_construction(read, 0L, e, e)
+  .map_err(issue => CommandRead(issue))
 }
 
 ///|
