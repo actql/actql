@@ -1,5 +1,5 @@
 import {snapshotClientRequest} from '@actql/client-wire';
-import {requestPreparationAvailable,assertRequestPreparationControl,beginRequestInput,openRequestPreparation,cleanupRequestInput,checkedPreparation} from '../local-node/request-preparation-adapter.mjs';
+import {requestPreparationAvailable,assertRequestPreparationControl,beginRequestInput,beginHttpRequestInput,openRequestPreparation,cleanupRequestInput,checkedPreparation} from '../local-node/request-preparation-adapter.mjs';
 import {matchesPublishedSubmissionSnapshot, freezeInput} from '../../packages/sdk/internal/private-source-preparation.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {open} from 'node:fs/promises';
@@ -409,13 +409,14 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       return run;
     } finally {pendingRunRegistrations.delete(run.prepared);}
   }
-  function beginProducer(kind, openParent) {
+  function beginProducer(kind, openParent, requiresParent = false) {
     current();
     // A selected funded context cannot fall back to an unfunded snapshot
     // when its typed capability or installed output mode is unavailable.
     // Resolve it before allocating a producer, including a throwing lookup.
     const context = callbacks.preparationContext === undefined
       ? undefined : callbacks.preparationContext(originals);
+    if (requiresParent && context === undefined) fail('NodeLocalPreparationAdmissionUnavailable');
     if (context !== undefined && !requestPreparationAvailable(context)) {
       fail('NodeLocalPreparationAdmissionUnavailable');
     }
@@ -508,6 +509,42 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     beforeSourceSnapshot(kind, input, options, originalConnection) {
       return beginProducer(kind, (state, receipt, assertCurrent, childrenPending) =>
         beginRequestInput(state, receipt, originalConnection, assertCurrent, childrenPending));
+    },
+    beforeHttpRequestBody() {
+      return beginProducer(undefined, (state, receipt, assertCurrent, childrenPending) =>
+        beginHttpRequestInput(state, receipt, assertCurrent, childrenPending), true);
+    },
+    reserveHttpRequestBody(receipt, bytes, chunks, quantum, wireLimit) {
+      current();
+      const producer = producerFor(receipt), state = producer.preparation;
+      if (producer.finished || producer.body !== undefined || state?.parent === undefined ||
+          state.snapshotting || state.snapshot !== undefined) fail('ForeignInstalledSourceProducer');
+      const moon = state.context.runtime;
+      checked(Reflect.apply(moon.clientProgramReserveRequestHttpInput, moon,
+        [state.parent, receipt, bytes, chunks, quantum, wireLimit]));
+    },
+    prepareHttpRequestJson(receipt, wire) {
+      current();
+      const producer = producerFor(receipt), state = producer.preparation;
+      if (producer.finished || producer.body !== undefined || state?.parent === undefined ||
+          state.snapshotting || state.snapshot !== undefined || typeof wire !== 'string') {
+        fail('ForeignInstalledSourceProducer');
+      }
+      const moon = state.context.runtime;
+      checked(Reflect.apply(moon.clientProgramPrepareRequestHttpJson, moon,
+        [state.parent, receipt, wire]));
+    },
+    bindHttpRequestKind(receipt, kind, connection) {
+      current();
+      const producer = producerFor(receipt), state = producer.preparation;
+      if (producer.finished || producer.kind !== undefined || producer.body !== undefined ||
+          state?.parent === undefined || state.snapshotting || state.snapshot !== undefined ||
+          !['program', 'aql'].includes(kind) || !Object.isFrozen(connection) ||
+          !['local', 'remote'].includes(connection.mode) || connection.owner !== connection.mode ||
+          !Array.isArray(connection.consentRefs) || !Array.isArray(connection.runners)) {
+        fail('ForeignInstalledSourceProducer');
+      }
+      producer.kind = kind;
     },
     // Only the installed Host supplies this Journal-retained opaque original.
     // It is a new physical-process input lifetime for the SAME logical Request,

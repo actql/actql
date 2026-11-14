@@ -13,6 +13,44 @@ joining this ownership protocol. An inapplicable shape proof is not a language
 restriction or permission to invent a resource grant. The presence of this
 recipe does not establish complete funding coverage for every Local route.
 
+## Authenticated HTTP input on the same Request
+
+The installed Remote HTTP Host opens its existing Request producer after
+transport authentication and before the HTTP consumer's first `read(n)`.
+This admission is resource backing, not Workspace, connection, Account or Run
+permission. Those original checks still run after decoding and before snapshot
+or dispatch. The configured `maxRequestBytes` is an encoded-body attack policy
+(default 65,536), not a node count or preallocated body. A Host may explicitly
+select a larger finite wire policy; each constructor must still fit the same
+original Request resource limits.
+
+Before each bounded read, retained Buffer copy, chunk-reference growth,
+concatenation and UTF-8 decoding, the existing preparation manager grows that
+Request's original reservation. The bounded read probe may observe one byte
+beyond the selected wire limit and refuses it before making an owned copy.
+The HTTP consumer copies accepted chunks rather than retaining borrowed stream
+aliases. Socket and IncomingMessage producer allocations remain the external
+transport owner's responsibility: `highWaterMark` is not a physical allocation
+bound or a supplier for those allocations.
+
+After fatal UTF-8 decoding, the existing Source preflight measures the same
+String's actual node and quoted-text geometry without constructing a grammar
+tree or admitting a Program. Its original work/current/depth/overflow checks
+remain. The same Request then reserves the existing native snapshot tree
+representation before native `JSON.parse`. Wire length bounds the scanner; it
+is never priced as the number of constructed value nodes. No snapshot statistics
+are fabricated, and the preflight cursor and work are retired before the next
+phase. Malformed native decoding/JSON keeps the transport refusal; resource or
+current failures retain their own primary and original cleanup duty.
+
+Once connection authorization succeeds, the raw producer is bound to that same
+request kind and enters the existing snapshot, intent, checker and dispatch
+sequence. HTTP does not open another producer or Ledger. Method/receiver pairs
+are retained across awaits; an abort, refused resize or failed construction
+finishes only this original input. Pending children and failed retirement stay
+with the existing manager and Host shutdown, rather than being acknowledged by
+an HTTP response or by settling a pending-call registry entry.
+
 ## Inputs and outputs
 
 An original input reference and the installed Local resource policy enter the

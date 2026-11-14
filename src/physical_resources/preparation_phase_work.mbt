@@ -61,6 +61,7 @@ pub(all) enum PreparationWorkPhase {
   // Appended to preserve existing constructor tags; execution ordering is below.
   RequestValuePolicyCheck
   RequestPolicySubjectPreparation
+  HttpInputPreflight
 } derive(Eq, Debug)
 
 ///|
@@ -138,8 +139,13 @@ priv struct PreparationPhaseWorkState[I, P] {
 }
 
 ///|
+// Shared fresh-state sentinel; optional raw HTTP work precedes Header0.
+let preparation_work_unclaimed : Int = -2
+
+///|
 fn preparation_work_ordinal(phase : PreparationWorkPhase) -> Int {
   match phase {
+    HttpInputPreflight => -1
     HeaderInspection => 0
     OwnDataScan => 1
     TextEligibility => 2

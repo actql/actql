@@ -6541,9 +6541,9 @@ export function openInstalledRemoteHttpHost(options) {
   return openPreparedInstalledHost(options, 'remote');
 }
 
-function installedRemoteHttpTransport(host, {authenticate, loopbackHttp}, shutdown, prepareRequest) {
+function installedRemoteHttpTransport(host, {authenticate, loopbackHttp, maxRequestBytes}, shutdown, prepareRequest) {
   const handle = createClientHttpHandler({
-    ...host.hostOperations, authenticate, maxRequestBytes: 65536, loopbackHttp, prepareRequest,
+    ...host.hostOperations, authenticate, maxRequestBytes, loopbackHttp, prepareRequest,
   });
   // A request's handling can outlive its response: a Result read records
   // its delivery attempt after the last bytes are sent. Close waits for
@@ -8418,7 +8418,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
   if (initialEntry === 'remote') {
     let {directory, authenticate, beforeDispatch, authorization, workspaceId, connectorTable,
       sourceProfilePath, sourceProfilePaths, sourceNamespace, sourceSelectorNamespace,
-      loopbackHttp = false, resolveSourceSecret, effectProfilePath, effectProfilePaths,
+      loopbackHttp = false, maxRequestBytes = 65536, resolveSourceSecret, effectProfilePath, effectProfilePaths,
       resolveEffectSecret, effectInstallation, modelInstallation, registerModelProviders,
       calendarArtifact, resultDataPolicy, inferEvidence, retainedRelationOutput,
       hostCapacityPolicy, hostLookupExecutionPolicy, verifyRequestValuePolicy,
@@ -8428,6 +8428,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
     hostLookupExecutionPolicy = snapshotHostLookupExecutionPolicy(hostLookupExecutionPolicy);
     if (typeof directory !== 'string' || !directory ||
         typeof authenticate !== 'function' || typeof loopbackHttp !== 'boolean' ||
+        !Number.isSafeInteger(maxRequestBytes) || maxRequestBytes <= 0 || maxRequestBytes >= 2147483519 ||
         beforeDispatch !== undefined && typeof beforeDispatch !== 'function') {
       throw new TypeError('InvalidInstalledRemoteHost');
     }
@@ -8449,8 +8450,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
     const opened = await openInstalledHost(originalInstallation, preparation);
     const shutdown = installedHostShutdown(opened);
     try {
-      return installedRemoteHttpTransport(opened, {authenticate, loopbackHttp}, shutdown,
-        installHttpRequestPreparation(preparation, profiles, originals));
+      return installedRemoteHttpTransport(opened, {authenticate, loopbackHttp, maxRequestBytes}, shutdown,
+        installHttpRequestPreparation(preparation, profiles, originals, {rawInput: true}));
     } catch (cause) {
       // No transport was returned. The SAME Host shutdown owns all acquired
       // children, including a failed close; initial control is its last duty.

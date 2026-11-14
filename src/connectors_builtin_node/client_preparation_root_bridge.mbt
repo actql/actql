@@ -524,6 +524,35 @@ pub fn client_program_reserve_request_snapshot(
 }
 
 ///|
+#export_name("clientProgramReserveRequestHttpInput")
+pub fn client_program_reserve_request_http_input(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  wire : Int,
+  chunks : Int,
+  quantum : Int,
+  wire_limit : Int,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.reserve_request_http_input(
+    parent, input, wire, chunks, quantum, wire_limit,
+  )
+}
+
+///|
+#export_name("clientProgramPrepareRequestHttpJson")
+pub fn client_program_prepare_request_http_json(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  wire : String,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.prepare_request_http_json(parent, input, wire)
+}
+
+///|
 #export_name("clientProgramRequestSnapshotCapacityRefusal")
 pub fn client_program_request_snapshot_capacity_refusal(
   result : Result[Unit, @client_local_host.ClientRequestPreparationIssue],

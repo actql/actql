@@ -96,7 +96,8 @@ fn[I, P] make_preparation_capacity(
     retirement_claimed: false,
     inventory_growth_active: false,
     active_phase_work: None,
-    last_work_phase: -1,
+    // Optional HTTP raw preflight uses -1; all existing ordinals stay exact.
+    last_work_phase: preparation_work_unclaimed,
   }
 }
 

@@ -19869,6 +19869,7 @@
             "host",
             "authenticate",
             "loopbackHttp",
+            "maxRequestBytes",
             "shutdown",
             "prepareRequest"
           ],
@@ -24241,7 +24242,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "823f7e204bbcbd9499c99d2c2bee8c0ffffa14806eedebc62d223e01ccf17303"
+      "sha256": "d08392bc3eff05bab96a1b7a4efca76971ad502b9d9d231b5fdd95da1c9d7391"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

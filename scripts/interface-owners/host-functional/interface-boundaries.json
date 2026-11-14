@@ -25569,7 +25569,7 @@
     {
       "module": "adapters/host-node/client-http.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bdb53ce6b77b1c6717196fb08c9dfd45c3bdef89aec62bf329dc5d79b809dc44",
+      "sha256": "7ee00c34af594109588dd38411c50aa213e110048f0994ae26b32bada53b5e3d",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -25656,7 +25656,7 @@
         {
           "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler",
           "parameters": [
-            "key"
+            "method"
           ],
           "async": false
         },
@@ -25670,6 +25670,13 @@
         },
         {
           "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#2",
           "parameters": [
             "error"
           ],
@@ -25690,17 +25697,32 @@
         {
           "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#2",
           "parameters": [
-            "bytes"
+            "name",
+            "index"
           ],
           "async": false
         },
         {
           "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#3",
-          "parameters": [],
+          "parameters": [
+            "key"
+          ],
           "async": false
         },
         {
           "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#4",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#6",
           "parameters": [
             "resolve",
             "reject"
@@ -25715,6 +25737,13 @@
             "preparedProgram"
           ],
           "async": true
+        },
+        {
+          "name": "createClientHttpHandler/createClientHttpHandler/methods/methods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
         },
         {
           "name": "createClientHttpHandler/createClientHttpHandler/originalRequest/originalRequest",
@@ -25775,6 +25804,61 @@
         {
           "name": "observationAttempt/observationAttempt",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "preparedJson",
+          "parameters": [
+            "request",
+            "maxBytes",
+            "prepared"
+          ],
+          "async": true
+        },
+        {
+          "name": "preparedJson/disconnected/disconnected",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "preparedJson/preparedJson",
+          "parameters": [
+            "resolve",
+            "reject"
+          ],
+          "async": false
+        },
+        {
+          "name": "preparedJson/preparedJson/closed/closed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "preparedJson/preparedJson/failed/failed",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "preparedJson/preparedJson/finish/finish",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "preparedJson/preparedJson/ready/ready",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "preparedJson/reserve/reserve",
+          "parameters": [
+            "bytes",
+            "count",
+            "read"
+          ],
           "async": false
         },
         {
@@ -26245,6 +26329,125 @@
               {
                 "path": "adapters/host-node/client-run-wait-since.test.mjs",
                 "anchor": "test('actual Local wait since observes the same saved Run, times out without revision or work fabrication'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#2",
+            "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#5",
+            "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#6",
+            "createClientHttpHandler/createClientHttpHandler/methods/methods",
+            "preparedJson",
+            "preparedJson/disconnected/disconnected",
+            "preparedJson/preparedJson",
+            "preparedJson/preparedJson/closed/closed",
+            "preparedJson/preparedJson/failed/failed",
+            "preparedJson/preparedJson/finish/finish",
+            "preparedJson/preparedJson/ready/ready",
+            "preparedJson/reserve/reserve"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "async function preparedJson("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "async function preparedJson("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "async function preparedJson("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "async function preparedJson("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "async function preparedJson("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "async function preparedJson("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "async function preparedJson("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "async function preparedJson("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "async function preparedJson("
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/http-required-preparation.test.mjs",
+                "anchor": "test('HTTP raw adapter retains its single receipt through snapshot and pending cleanup'"
               }
             ]
           }
@@ -117744,6 +117947,118 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryManagedInstallation/view/init:beforeHttpRequestBody/init:beforeHttpRequestBody",
+            "prepareOrdinaryManagedInstallation/view/init:beforeHttpRequestBody/init:beforeHttpRequestBody/init:beforeHttpRequestBody",
+            "prepareOrdinaryManagedInstallation/view/init:bindHttpRequestKind/init:bindHttpRequestKind",
+            "prepareOrdinaryManagedInstallation/view/init:prepareHttpRequestJson/init:prepareHttpRequestJson",
+            "prepareOrdinaryManagedInstallation/view/init:reserveHttpRequestBody/init:reserveHttpRequestBody"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "beforeHttpRequestBody()"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "beforeHttpRequestBody()"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "beforeHttpRequestBody()"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "beforeHttpRequestBody()"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "beforeHttpRequestBody()"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "beforeHttpRequestBody()"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "beforeHttpRequestBody()"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "beforeHttpRequestBody()"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "beforeHttpRequestBody()"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/http-required-preparation.test.mjs",
+                "anchor": "test('HTTP raw adapter retains its single receipt through snapshot and pending cleanup'"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -117804,7 +118119,8 @@
           "name": "prepareOrdinaryManagedInstallation/beginProducer",
           "parameters": [
             "kind",
-            "openParent"
+            "openParent",
+            "requiresParent"
           ],
           "async": false
         },
@@ -118200,6 +118516,21 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:beforeHttpRequestBody/init:beforeHttpRequestBody",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:beforeHttpRequestBody/init:beforeHttpRequestBody/init:beforeHttpRequestBody",
+          "parameters": [
+            "state",
+            "receipt",
+            "assertCurrent",
+            "childrenPending"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:beforeResultRead/init:beforeResultRead",
           "parameters": [],
           "async": false
@@ -118232,6 +118563,15 @@
             "receipt",
             "assertCurrent",
             "childrenPending"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:bindHttpRequestKind/init:bindHttpRequestKind",
+          "parameters": [
+            "receipt",
+            "kind",
+            "connection"
           ],
           "async": false
         },
@@ -118471,6 +118811,14 @@
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph/init:prepareContentGraph",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareHttpRequestJson/init:prepareHttpRequestJson",
+          "parameters": [
+            "receipt",
+            "wire"
+          ],
           "async": false
         },
         {
@@ -118993,6 +119341,17 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:reserveHttpRequestBody/init:reserveHttpRequestBody",
+          "parameters": [
+            "receipt",
+            "bytes",
+            "chunks",
+            "quantum",
+            "wireLimit"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:reservePublication/init:reservePublication",
           "parameters": [
             "prepared"
@@ -119181,7 +119540,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "786f01995a42a25542e1971220985ca045e47a271770a2ac9d98d6e4a400378a"
+      "sha256": "8081bb54afed558b563fbc4d082aac0520668f1068aa913e1766183e601cc1ee"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
@@ -123712,9 +124071,10 @@
     },
     {
       "module": "adapters/local-node/request-preparation-adapter.mjs",
-      "sha256": "8128e0cdbe190b23dbb23be954a2539746c3ce117cae3d11c4ccdeaa32d59a48",
+      "sha256": "7e1c20a77c636dda18983bae2a1a37d12265aabf8d1985c63d04fef6ddfdbbc0",
       "exports": [
         "assertRequestPreparationControl",
+        "beginHttpRequestInput",
         "beginRequestInput",
         "checkedPreparation",
         "cleanupRequestInput",
@@ -123728,6 +124088,16 @@
           "name": "assertRequestPreparationControl",
           "parameters": [
             "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "beginHttpRequestInput",
+          "parameters": [
+            "state",
+            "receipt",
+            "assertCurrent",
+            "childrenPending"
           ],
           "async": false
         },
@@ -124848,6 +125218,116 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "beginHttpRequestInput"
+          ],
+          "exports": [
+            "beginHttpRequestInput"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "anchor": "export function beginHttpRequestInput("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "anchor": "export function beginHttpRequestInput("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "anchor": "export function beginHttpRequestInput("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "anchor": "export function beginHttpRequestInput("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "anchor": "export function beginHttpRequestInput("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "anchor": "export function beginHttpRequestInput("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "anchor": "export function beginHttpRequestInput("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "anchor": "export function beginHttpRequestInput("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/local-node/request-preparation-adapter.mjs",
+                "anchor": "export function beginHttpRequestInput("
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/http-required-preparation.test.mjs",
+                "anchor": "test('HTTP raw adapter retains its single receipt through snapshot and pending cleanup'"
               }
             ]
           }
@@ -135794,7 +136274,7 @@
     },
     {
       "module": "adapters/host-node/http-request-preparation.mjs",
-      "sha256": "3e4eb3094ebf502781dfbe91f541850e58f174bd6a1eeb32a954f58e6813f62d",
+      "sha256": "08072b45c64c3e0115f3672338a98d208078c981bd0b97ddfc4866387e07db6b",
       "exports": [
         "installHttpRequestPreparation"
       ],
@@ -135804,39 +136284,91 @@
           "parameters": [
             "preparation",
             "registry",
-            "originals"
+            "originals",
+            "rawInput"
           ],
           "async": false
         },
         {
-          "name": "installHttpRequestPreparation/installHttpRequestPreparation",
+          "name": "installHttpRequestPreparation/init:value/init:value",
           "parameters": [
             "operation",
-            "request"
+            "wireLimit"
           ],
           "async": false
         },
         {
-          "name": "installHttpRequestPreparation/installHttpRequestPreparation/finish/finish",
+          "name": "installHttpRequestPreparation/init:value/init:value/active/active",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHttpRequestPreparation/init:value/init:value/init:beforeJson/init:beforeJson",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHttpRequestPreparation/init:value/init:value/init:beforeRead/init:beforeRead",
+          "parameters": [
+            "bytes",
+            "chunks",
+            "quantum"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHttpRequestPreparation/init:value/init:value/init:finish/init:finish",
           "parameters": [
             "terminal"
           ],
           "async": false
         },
         {
-          "name": "installHttpRequestPreparation/installHttpRequestPreparation/init:beforeReply/init:beforeReply",
+          "name": "installHttpRequestPreparation/init:value/init:value/init:prepareRequest/init:prepareRequest",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHttpRequestPreparation/installHttpRequestPreparation",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHttpRequestPreparation/prepare/prepare",
+          "parameters": [
+            "operation",
+            "request",
+            "raw"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHttpRequestPreparation/prepare/prepare/finish/finish",
+          "parameters": [
+            "terminal"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHttpRequestPreparation/prepare/prepare/init:beforeReply/init:beforeReply",
           "parameters": [],
           "async": false
         },
         {
-          "name": "installHttpRequestPreparation/installHttpRequestPreparation/init:bindRequest/init:bindRequest",
+          "name": "installHttpRequestPreparation/prepare/prepare/init:bindRequest/init:bindRequest",
           "parameters": [
             "derived"
           ],
           "async": false
         },
         {
-          "name": "installHttpRequestPreparation/installHttpRequestPreparation/pending/pending",
+          "name": "installHttpRequestPreparation/prepare/prepare/pending/pending",
           "parameters": [
             "resolve"
           ],
@@ -135858,11 +136390,7 @@
           "operations": [
             "<module>",
             "installHttpRequestPreparation",
-            "installHttpRequestPreparation/installHttpRequestPreparation",
-            "installHttpRequestPreparation/installHttpRequestPreparation/finish/finish",
-            "installHttpRequestPreparation/installHttpRequestPreparation/init:bindRequest/init:bindRequest",
-            "installHttpRequestPreparation/installHttpRequestPreparation/pending/pending",
-            "installHttpRequestPreparation/installHttpRequestPreparation/init:beforeReply/init:beforeReply"
+            "installHttpRequestPreparation/installHttpRequestPreparation"
           ],
           "exports": [
             "installHttpRequestPreparation"
@@ -135881,7 +136409,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/http-request-preparation.mjs",
-                "anchor": "export function installHttpRequestPreparation(preparation, registry, originals)"
+                "anchor": "export function installHttpRequestPreparation(preparation, registry, originals,"
               },
               {
                 "path": "packages/client-wire/index.mjs",
@@ -135970,6 +136498,124 @@
               {
                 "path": "adapters/host-node/client-http.test.mjs",
                 "anchor": "test('HTTP publication current refusal keeps its primary and still finishes the original producer'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installHttpRequestPreparation/init:value/init:value",
+            "installHttpRequestPreparation/init:value/init:value/active/active",
+            "installHttpRequestPreparation/init:value/init:value/init:beforeJson/init:beforeJson",
+            "installHttpRequestPreparation/init:value/init:value/init:beforeRead/init:beforeRead",
+            "installHttpRequestPreparation/init:value/init:value/init:finish/init:finish",
+            "installHttpRequestPreparation/init:value/init:value/init:prepareRequest/init:prepareRequest",
+            "installHttpRequestPreparation/prepare/prepare",
+            "installHttpRequestPreparation/prepare/prepare/finish/finish",
+            "installHttpRequestPreparation/prepare/prepare/init:beforeReply/init:beforeReply",
+            "installHttpRequestPreparation/prepare/prepare/init:bindRequest/init:bindRequest",
+            "installHttpRequestPreparation/prepare/prepare/pending/pending"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/http-request-preparation.mjs",
+                "anchor": "Object.defineProperty(prepare, 'beforeBody'"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/http-request-preparation.mjs",
+                "anchor": "Object.defineProperty(prepare, 'beforeBody'"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/http-request-preparation.mjs",
+                "anchor": "Object.defineProperty(prepare, 'beforeBody'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/http-request-preparation.mjs",
+                "anchor": "Object.defineProperty(prepare, 'beforeBody'"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/http-request-preparation.mjs",
+                "anchor": "Object.defineProperty(prepare, 'beforeBody'"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/http-request-preparation.mjs",
+                "anchor": "Object.defineProperty(prepare, 'beforeBody'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/http-request-preparation.mjs",
+                "anchor": "Object.defineProperty(prepare, 'beforeBody'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/http-request-preparation.mjs",
+                "anchor": "Object.defineProperty(prepare, 'beforeBody'"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/http-request-preparation.mjs",
+                "anchor": "Object.defineProperty(prepare, 'beforeBody'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "adapters/host-node/http-required-preparation.test.mjs",
+                "anchor": "test('HTTP raw adapter retains its single receipt through snapshot and pending cleanup'"
               }
             ]
           }

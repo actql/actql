@@ -2223,3 +2223,57 @@ test('cold Model Source metadata failures keep the same primary and cannot rerun
     } finally {f.view.finishSourceProducer(f.recovery.receipt, 'failed'); await f.view.close();}
   }
 });
+
+test('HTTP manager retains one original Request from raw copies through the existing Source snapshot', async () => {
+  const f = await fixture();
+  let originalReceipt;
+  f.context.runtime.clientProgramReserveRequestHttpInput = function(parent, receipt, bytes, chunks, quantum, limit) {
+    assert.strictEqual(this, f.context.runtime); assert.strictEqual(parent, f.parent);
+    originalReceipt ??= receipt; assert.strictEqual(receipt, originalReceipt);
+    assert.equal(limit, 65536); assert(bytes >= 0 && chunks > 0 && quantum > 0);
+    f.calls.push('raw-copy'); return ok(undefined);
+  };
+  f.context.runtime.clientProgramPrepareRequestHttpJson = function(parent, receipt, wire) {
+    assert.strictEqual(this, f.context.runtime); assert.strictEqual(parent, f.parent);
+    assert.strictEqual(receipt, originalReceipt); assert.equal(typeof wire, 'string');
+    f.calls.push('raw-geometry'); return ok(undefined);
+  };
+  const receipt = f.view.beforeHttpRequestBody();
+  const producer = {kind: 'program', input: input(), parameters: null};
+  f.view.reserveHttpRequestBody(receipt, 4096, 1, 4096, 65536);
+  f.view.prepareHttpRequestJson(receipt, JSON.stringify(producer));
+  f.view.bindHttpRequestKind(receipt, 'program', connection);
+  const body = f.view.captureSourceSnapshot(receipt, producer, snapshotClientRequest);
+  f.view.bindSourceSnapshot(receipt, body);
+  f.view.bindSourceRequest(receipt, body, producer);
+  assert.equal(f.calls.filter(value => value === 'parent').length, 1);
+  assert.equal(f.calls.filter(value => value === 'admission').length, 1);
+  assert.deepEqual(f.calls.filter(value => value.startsWith('raw-')), ['raw-copy', 'raw-geometry']);
+  assert(f.calls.includes('snapshot-grow'));
+  f.view.finishSourceProducer(receipt, 'returned');
+  assert.deepEqual(await f.view.close(), {pending: false});
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+});
+
+test('HTTP manager refuses missing Core ports copied receipts and changed current before own copies', async () => {
+  const missing = await fixture();
+  assert.throws(() => missing.view.beforeHttpRequestBody(), {code: 'NodeLocalPreparationAdmissionUnavailable'});
+  assert.equal(missing.calls.includes('admission'), false);
+  assert.deepEqual(await missing.view.close(), {pending: false});
+  let allowed = true;
+  const primary = new Error('original Host current refusal');
+  const f = await fixture({validate: () => {if (!allowed) throw primary;}});
+  let copies = 0;
+  f.context.runtime.clientProgramReserveRequestHttpInput = () => {copies++; return ok(undefined);};
+  f.context.runtime.clientProgramPrepareRequestHttpJson = () => ok(undefined);
+  const receipt = f.view.beforeHttpRequestBody();
+  assert.throws(() => f.view.reserveHttpRequestBody({...receipt}, 64, 1, 64, 65536),
+    {code: 'ForeignInstalledSourceProducer'});
+  assert.equal(copies, 0);
+  allowed = false;
+  assert.throws(() => f.view.reserveHttpRequestBody(receipt, 64, 1, 64, 65536), error => error === primary);
+  assert.equal(copies, 0);
+  allowed = true;
+  f.view.finishSourceProducer(receipt, 'failed');
+  assert.deepEqual(await f.view.close(), {pending: false});
+});

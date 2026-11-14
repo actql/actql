@@ -45565,7 +45565,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "ef46f21f03cd9681ab2f61b795fc38158b61933348e56550b0011468351584e9",
+      "sha256": "53e22c16f9c61e142298ebbd147a290fbd898f899eb8b58019454bce76db2e3b",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -59524,6 +59524,115 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "client_program_prepare_request_http_json",
+            "client_program_reserve_request_http_input"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
+                "anchor": "///|"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
+                "anchor": "///|"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
+                "anchor": "///|"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
+                "anchor": "///|"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
+                "anchor": "///|"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
+                "anchor": "///|"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
+                "anchor": "///|"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
+                "anchor": "///|"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
+                "anchor": "///|"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_http_input_js_wbtest.mbt",
+                "anchor": "test \"HTTP native tree refuses a smaller original parent before construction and retains cleanup\""
+              }
+            ]
+          }
         }
       ],
       "exports": [],
@@ -59773,6 +59882,10 @@
           "declaration": "client_program_prepare_request_effect_models_read_scopes_with_quantities ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledEffectManagedPlan , tokens : Int64 , cost_units : Int64 , duration_ms : Int64 , ) - > Result [ Array [ @ publication_host . ClientModelReadScope ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "client_program_prepare_request_http_json",
+          "declaration": "client_program_prepare_request_http_json ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , wire : String , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
           "name": "client_program_prepare_request_keyed_serialization_compilation",
           "declaration": "client_program_prepare_request_keyed_serialization_compilation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , selected : @ client_local_host . ClientInstalledManagedKeyedPreparation , component : @ publication_host . ClientSerializationPlanGraph , ) - > Result [ @ publication_host . ClientTaskCompilation , ClientRequestProgramModuleBridgeIssue , ]"
         },
@@ -59989,6 +60102,10 @@
           "declaration": "client_program_reserve_request_effect_original_material ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , prepared : @ publication_host . PreparedClientEffectComputation , count : Int , wire_at : ( Int ) - > String , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
         },
         {
+          "name": "client_program_reserve_request_http_input",
+          "declaration": "client_program_reserve_request_http_input ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , wire : Int , chunks : Int , quantum : Int , wire_limit : Int , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
           "name": "client_program_reserve_request_model_recovery_materials",
           "declaration": "client_program_reserve_request_model_recovery_materials ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , count : Int , wire_at : ( Int ) - > String , containers : Int , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
         },
@@ -60029,7 +60146,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "4f8e3112759992d8831f7cfdd60e220468ded0f14a2bce07d1e6d910f45f0099"
+      "sha256": "af0487c4661b45a98c7d7ce4edf8be0017bbd35a874139d1a8281c0b6bd21a5e"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -68508,7 +68625,7 @@
           }
         }
       ],
-      "sha256": "27b5cdf686c2c3c7ecdba1ee05861a7decabb7f7dd00b076daa4c949c3372174",
+      "sha256": "c18758f7851ed647526c47c69f6c90276470828b65f41d12faa93b62401b47bb",
       "exports": [],
       "operations": [
         {
@@ -68836,8 +68953,52 @@
       "exports": [],
       "operations": [
         {
+          "name": "[I,P]begin_preparation_capacity_inventory",
+          "declaration": "[ I , P ] begin_preparation_capacity_inventory ( owner : PreparationCapacity [ I , P ] , input : I , max_reservations : Int , max_holdings : Int , max_delegations : Int , ) - > Result [ OriginalLedgerIdentity , OriginalReadIssue ]"
+        },
+        {
           "name": "[I,P]grow_preparation_capacity_inventory",
           "declaration": "[ I , P ] grow_preparation_capacity_inventory ( owner : PreparationCapacity [ I , P ] , input : I , retained_peak : Int64 , execution_peak : Int64 , max_reservations : Int , max_holdings : Int , max_delegations : Int , ) - > Result [ Unit , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[I,P]preparation_capacity_inventory_open",
+          "declaration": "[ I , P ] preparation_capacity_inventory_open ( owner : PreparationCapacity [ I , P ] , ) - > Bool"
+        },
+        {
+          "name": "original_inventory_preparation_owned",
+          "declaration": "original_inventory_preparation_owned ( value : LedgerOriginalInventory , ) - > Bool"
+        },
+        {
+          "name": "original_inventory_preparation_unbound",
+          "declaration": "original_inventory_preparation_unbound ( value : LedgerOriginalInventory , ) - > Bool"
+        },
+        {
+          "name": "original_prefix_attempt_count_is",
+          "declaration": "original_prefix_attempt_count_is ( value : LedgerOriginalInventory , count : Int , ) - > Bool"
+        },
+        {
+          "name": "original_preparation_input_closed",
+          "declaration": "original_preparation_input_closed ( value : LedgerOriginalInventory ) - > Bool"
+        },
+        {
+          "name": "preparation_inventory_can_retire",
+          "declaration": "preparation_inventory_can_retire ( value : LedgerOriginalInventory ) - > Bool"
+        },
+        {
+          "name": "preparation_inventory_children_closed",
+          "declaration": "preparation_inventory_children_closed ( value : LedgerOriginalInventory , ) - > Bool"
+        },
+        {
+          "name": "record_original_non_preparation_token",
+          "declaration": "record_original_non_preparation_token ( value : LedgerOriginalInventory , ) - > Unit"
+        },
+        {
+          "name": "record_original_prefix_work",
+          "declaration": "record_original_prefix_work ( ledger : Ledger , work : Int ) - > Unit"
+        },
+        {
+          "name": "settle_preparation_inventory_current",
+          "declaration": "settle_preparation_inventory_current ( ledger : Ledger , reservation : CapacityReservation , value : LedgerOriginalInventory , ) - > Result [ Unit , LedgerIssue ]"
         }
       ],
       "contracts": [
@@ -68912,10 +69073,129 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "<module>",
+            "[I,P]begin_preparation_capacity_inventory",
+            "[I,P]preparation_capacity_inventory_open",
+            "original_inventory_preparation_owned",
+            "original_inventory_preparation_unbound",
+            "original_prefix_attempt_count_is",
+            "original_preparation_input_closed",
+            "preparation_inventory_can_retire",
+            "preparation_inventory_children_closed",
+            "record_original_non_preparation_token",
+            "record_original_prefix_work",
+            "settle_preparation_inventory_current"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/physical_resources/preparation_inventory.mbt",
+                "anchor": "///|"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/physical_resources/preparation_inventory.mbt",
+                "anchor": "///|"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/physical_resources/preparation_inventory.mbt",
+                "anchor": "///|"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/physical_resources/preparation_inventory.mbt",
+                "anchor": "///|"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/physical_resources/preparation_inventory.mbt",
+                "anchor": "///|"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/physical_resources/preparation_inventory.mbt",
+                "anchor": "///|"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/physical_resources/preparation_inventory.mbt",
+                "anchor": "///|"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/physical_resources/preparation_inventory.mbt",
+                "anchor": "///|"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/physical_resources/preparation_inventory.mbt",
+                "anchor": "///|"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_http_input_js_wbtest.mbt",
+                "anchor": "test \"HTTP native tree refuses a smaller original parent before construction and retains cleanup\""
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "11de5106db5bb6be2d639a6cc82e32d2872e9f32ab0efb4238c9ddabac6dc479"
+      "sha256": "d92e52161657a204e756b9df5774120370fad7c3328ff5bf5cf39946211cf41f"
     },
     {
       "module": "src/physical_resources/preparation_io.mbt",
@@ -90915,6 +91195,141 @@
         }
       ],
       "referenceQualification": "Source ownership and selected component correspondence only; not a normal artifact, global RAM reservation or ordinary execution acceptance."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_http_input.mbt",
+      "sha256": "812aa5979fe724ac414ea0fac6bef2c9f15ecb876240b196fb9f8009976d6c6d",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]prepare_request_http_json",
+          "declaration": "[ I ] prepare_request_http_json ( owner : ClientRequestPreparation [ I ] , input : I , wire : String , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]reserve_request_http_input",
+          "declaration": "[ I ] reserve_request_http_input ( owner : ClientRequestPreparation [ I ] , input : I , wire : Int , chunks : Int , quantum : Int , wire_limit : Int , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "request_http_copy_bytes",
+          "declaration": "request_http_copy_bytes ( wire : Int , chunks : Int , quantum : Int ) - > Int64 ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing client_local_host original Request preparation and representation reservation",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]prepare_request_http_json",
+            "[I]reserve_request_http_input",
+            "request_http_copy_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_http_input.mbt",
+                "anchor": "///|"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_http_input.mbt",
+                "anchor": "///|"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_http_input.mbt",
+                "anchor": "///|"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_http_input.mbt",
+                "anchor": "///|"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_http_input.mbt",
+                "anchor": "///|"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_http_input.mbt",
+                "anchor": "///|"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_http_input.mbt",
+                "anchor": "///|"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_http_input.mbt",
+                "anchor": "///|"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_http_input.mbt",
+                "anchor": "///|"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Authenticated HTTP input on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_http_input_js_wbtest.mbt",
+                "anchor": "test \"HTTP native tree refuses a smaller original parent before construction and retains cleanup\""
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

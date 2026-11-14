@@ -41,6 +41,80 @@ async function boundedJson(request, maxBytes) {
   catch { invalid('InvalidClientRequest'); }
 }
 
+// Own bounded copies only. IncomingMessage/socket producer allocations remain
+// supplied by the transport owner, not by highWaterMark or this Request quote.
+async function preparedJson(request, maxBytes, prepared) {
+  if (typeof request.read !== 'function' || typeof request.once !== 'function' ||
+      typeof request.off !== 'function' || request.readableObjectMode === true ||
+      request.readableEncoding !== null && request.readableEncoding !== undefined) {
+    invalid('InvalidClientRequest');
+  }
+  // Admit the empty copy/control inventory before constructing its chunk list.
+  prepared.beforeRead(0, 1, 1);
+  const chunks = [];
+  let size = 0, reservedBytes = 0, reservedChunks = 1, reservedQuantum = 1;
+  const reserve = (bytes, count, read) => {
+    reservedBytes = Math.max(reservedBytes, bytes);
+    reservedChunks = Math.max(reservedChunks, count);
+    reservedQuantum = Math.max(reservedQuantum, read);
+    prepared.beforeRead(reservedBytes, reservedChunks, reservedQuantum);
+  };
+  const quantum = 65536;
+  const disconnected = () => request.errored ?? new Error('ClientDisconnected');
+  for (;;) {
+    const available = request.readableLength;
+    if (!Number.isSafeInteger(available) || available < 0) invalid('InvalidClientRequest');
+    const count = Math.min(quantum, maxBytes - size + 1, available || quantum);
+    // The one-byte probe can detect a body beyond the installed attack limit
+    // without retaining it. Fresh currentness precedes each read after a wait.
+    reserve(size + count, chunks.length + 1, count);
+    if (request.aborted || request.destroyed && !request.readableEnded) throw disconnected();
+    const chunk = request.read(count);
+    if (chunk === null) {
+      if (request.readableEnded) break;
+      await new Promise((resolve, reject) => {
+        let settled = false;
+        const finish = error => {
+          if (settled) return;
+          settled = true;
+          request.off('readable', ready); request.off('end', ready);
+          request.off('error', failed); request.off('aborted', closed);
+          request.off('close', closed);
+          error === undefined ? resolve() : reject(error);
+        };
+        const ready = () => finish();
+        const failed = error => finish(error);
+        const closed = () => request.readableEnded ? finish() : finish(disconnected());
+        request.once('readable', ready); request.once('end', ready);
+        request.once('error', failed); request.once('aborted', closed);
+        request.once('close', closed);
+        if (request.errored) failed(request.errored);
+        else if (request.aborted || request.destroyed) closed();
+        else if (request.readableEnded) ready();
+      });
+      continue;
+    }
+    if (!Buffer.isBuffer(chunk) || chunk.byteLength < 1 || chunk.byteLength > count) {
+      invalid('InvalidClientRequest');
+    }
+    if (chunk.byteLength > maxBytes - size) invalid('ClientRequestTooLarge');
+    // read(n) may execute the original stream's callbacks. Recheck before our
+    // own retained copy; do not retain a borrowed transport chunk instead.
+    reserve(size + count, chunks.length + 1, count);
+    chunks.push(Buffer.from(chunk));
+    size += chunk.byteLength;
+  }
+  reserve(size + 1, chunks.length + 1, 1);
+  let wire;
+  try { wire = new TextDecoder('utf-8', {fatal: true}).decode(Buffer.concat(chunks, size)); }
+  catch { invalid('InvalidClientRequest'); }
+  // Resource/current/preflight failures keep their original primary. Only the
+  // native decoder's own malformed JSON is an InvalidClientRequest here.
+  prepared.beforeJson(wire);
+  try { return JSON.parse(wire); }
+  catch { invalid('InvalidClientRequest'); }
+}
+
 function responseCode(error) {
   if (error?.code === 'RunStateAccessDenied' ||
       error?.code === 'RunObservationAccessDenied' ||
@@ -175,8 +249,11 @@ export function createClientHttpHandler({
       !Number.isSafeInteger(maxRequestBytes) || maxRequestBytes <= 0) {
     throw new TypeError('InvalidClientHostInstallation');
   }
+  const rawPort = Object.getOwnPropertyDescriptor(prepareRequest, 'beforeBody');
+  if (rawPort !== undefined && (!Object.hasOwn(rawPort, 'value') ||
+      typeof rawPort.value !== 'function')) throw new TypeError('InvalidClientHostInstallation');
   return async (request, response) => {
-    let requestLifetime, terminal = 'failed';
+    let requestLifetime, bodyLifetime, terminal = 'failed';
     try {
       try {
       if (loopbackHttp && !isLoopbackHttpRequest(request)) {
@@ -201,8 +278,18 @@ export function createClientHttpHandler({
       if (typeof principal !== 'string' || principal.length === 0) {
         invalid('ClientAuthenticationDenied');
       }
-      const prepared = prepareClientHostRequest(operation,
-        await boundedJson(request, maxRequestBytes));
+      if (rawPort !== undefined) {
+        const original = Reflect.apply(rawPort.value, prepareRequest, [operation, maxRequestBytes]);
+        const methods = ['beforeRead', 'beforeJson', 'prepareRequest', 'finish']
+          .map(name => original?.[name]);
+        if (methods.some(method => typeof method !== 'function')) invalid('InvalidClientHostPreparation');
+        bodyLifetime = Object.freeze(Object.fromEntries(
+          ['beforeRead', 'beforeJson', 'prepareRequest', 'finish'].map((name, index) =>
+            [name, (...args) => Reflect.apply(methods[index], original, args)])));
+      }
+      const decoded = bodyLifetime === undefined ? await boundedJson(request, maxRequestBytes)
+        : await preparedJson(request, maxRequestBytes, bodyLifetime);
+      const prepared = prepareClientHostRequest(operation, decoded);
       if (prepared === undefined) invalid('InvalidClientRequest');
       const {body, connection} = prepared;
       const ref = body.ref === undefined ? undefined :
@@ -248,7 +335,8 @@ export function createClientHttpHandler({
         ...Object.fromEntries(Object.entries(body)
           .filter(([key]) => key !== 'connection' && key !== 'ref')),
         ...(ref === undefined ? {} : {ref})});
-      requestLifetime = await prepareRequest(operation, originalRequest);
+      requestLifetime = bodyLifetime === undefined ? await prepareRequest(operation, originalRequest)
+        : await bodyLifetime.prepareRequest(originalRequest);
       if (requestLifetime === undefined || requestLifetime === null ||
           typeof requestLifetime !== 'object' || requestLifetime.body === null ||
           typeof requestLifetime.body !== 'object' ||
@@ -527,6 +615,10 @@ export function createClientHttpHandler({
       terminal = 'returned';
       } finally {
         if (typeof requestLifetime?.finish === 'function') await requestLifetime.finish(terminal);
+        else if (bodyLifetime !== undefined) {
+          try { await bodyLifetime.finish(terminal); }
+          catch (cause) { if (terminal !== 'failed') throw cause; }
+        }
       }
     } catch (error) {
       sendError(response, error);
