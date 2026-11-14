@@ -1,7 +1,9 @@
 import {composeInstalledSourceEnvironment, composeInstalledInventoryEnvironment} from './installed-funded-environment.mjs';
 import {sourceAliasIdentityRow} from './source-alias-request.mjs';
 import {captureSourceAliasConstruction,
-  sourceAliasIdentityConstructionGeometry, sourceAliasCollectionConstructionGeometry} from './source-alias-construction.mjs';
+  sourceAliasIdentityConstructionGeometry, sourceAliasCollectionConstructionGeometry,
+  sourceMemberCollectionConstructionGeometry, sourceReferenceCollectionConstructionGeometry,
+  sourceBindingCollectionConstructionGeometry, sourceCheckpointInventoryConstructionGeometry} from './source-alias-construction.mjs';
 // The standard Host's installed source binding, selected by the Host
 // profile's version from the installed connector table. Each installation
 // adapter keeps its own physical I/O, grants and cleanup; the Host's Run,
@@ -42,7 +44,6 @@ import {verifyInstalledConnectorBindings} from
   './installed-check-environment.mjs';
 import {retainInstalledHostInitializationFailure, retainInstalledHostRuntimeFailure}
   from './installed-host-cleanup.mjs';
-import {MAX_INSTALLED_SOURCE_AUTHORITIES} from './installed-source-limits.mjs';
 import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders,
   installedConfigurationByteLimit} from './source-profile-json.mjs';
 import {retainInstalledHostServiceInstallation, installedSourceConfigurationReader, installedSourceEnvironmentConstructionReader,
@@ -491,7 +492,7 @@ export function installedSourcePaths({sourceProfilePath, sourceProfilePaths} = {
   const count = Array.isArray(sourceProfilePaths) ? BigInt(sourceProfilePaths.length)
     : sourceProfilePath !== undefined || fallback !== undefined ? 1n : 0n;
   const text = sourceProfilePath === undefined && sourceProfilePaths === undefined &&
-    typeof fallback === 'string' ? BigInt(fallback.length) : 0n;
+    typeof fallback === 'string' ? 2n * BigInt(fallback.length) : 0n;
   return construct({retained: {nodes: count + 1n, text, wire: 0n},
     workspace: {nodes: 2n * count + 2n, text: 0n, wire: 0n}}, select);
 }
@@ -500,6 +501,59 @@ function validPluralSourcePaths(paths) {
   return Array.isArray(paths) && paths.length >= 2 &&
     Array.from(paths).every(path => typeof path === 'string' && isAbsolute(path)) &&
     new Set(paths).size === paths.length;
+}
+
+// Prepare the plural Checkpoint DATA before completing the SAME initial
+// Source material. Account admission/currentness still occurs in Checkpoints;
+// these slots and the existing body borrow issue no read or resume permission.
+export function prepareInstalledSourceCheckpointInventory(profile, construct) {
+  if (profile === undefined) return undefined;
+  const members = profile.sources;
+  let count = 0n, sourceRefUnits = 0n;
+  const observe = source => {
+    for (const access of installedSourceReadAccesses(source)) {
+      count++;
+      sourceRefUnits += BigInt(access.sourceRef.length);
+    }
+  };
+  if (members === undefined) observe(profile);
+  else for (const member of members) observe(member);
+  // Preserve the singular installation's existing ordering.
+  if (members === undefined && count === 1n) return undefined;
+  return construct(sourceCheckpointInventoryConstructionGeometry(count, sourceRefUnits), () => {
+    const sources = [], installedSources = [], bindings = [], accesses = [], connections = new Set();
+    const retain = source => {
+      const authorization = source.readAuthorization;
+      // Normal Source installers already own this immutable original context.
+      if (authorization?.context !== undefined && !Object.isFrozen(authorization.context)) {
+        throw new TypeError('InvalidInstalledSourceCheckpointContext');
+      }
+      for (const access of installedSourceReadAccesses(source)) {
+        accesses.push(access);
+        connections.add(access.connection);
+        const configuration = Object.freeze({sourceRef: access.sourceRef,
+          accountConfiguration: authorization?.accountConfiguration, context: authorization?.context});
+        sources.push(configuration);
+        installedSources.push({configuration, gate: undefined, resumeGate: undefined});
+        bindings.push({source_ref: access.sourceRef, configuration_cid: undefined, context_cid: undefined});
+      }
+    };
+    if (members === undefined) retain(profile);
+    else for (const member of members) retain(member);
+    // The original Host attaches a real completed-body borrow immediately
+    // after Source completion, before later Checkpoint construction. Before
+    // that caller enters, no Checkpoint consumer exists. It replaces this
+    // cleanup callback before its first await with the actual Account flight.
+    const custody = {holder: undefined, retire() {
+      if (custody.holder !== undefined) {
+        custody.holder.release();
+        custody.holder = undefined;
+      }
+      return true;
+    }};
+    return Object.freeze({sources: Object.freeze(sources), installedSources, bindings, custody,
+      accesses: Object.freeze(accesses), connections: Object.freeze([...connections].sort())});
+  });
 }
 
 export async function loadInstalledSources(paths, options) {
@@ -514,8 +568,8 @@ export async function loadInstalledSources(paths, options) {
   const configurationReader = options.installationServices === undefined ? undefined
     : installedSourceConfigurationReader(options.installationServices);
   const construct = captureSourceAliasConstruction(configurationReader, options.moon);
-  const sources = [];
-  const closed = new Set();
+  const {sources, closed} = construct(sourceMemberCollectionConstructionGeometry(BigInt(paths.length)),
+    () => ({sources: [], closed: new Set()}));
   const close = async () => {
     const failures = [];
     for (const source of sources) {
@@ -526,23 +580,36 @@ export async function loadInstalledSources(paths, options) {
     if (failures.length) throw new AggregateError(failures, 'InstalledSourceCleanupPending');
   };
   try {
-    const refs = new Set();
     for (const path of paths) {
       const source = await loadInstalledSource(path, options);
       sources.push(source);
+    }
+    // All original member constructors are now retained. Observe their exact
+    // inventory before allocating the aggregate membership Set; no provider
+    // read can start before this complete duplicate check and composition.
+    let references = 0n, bindingCount = 0n;
+    for (const source of sources) {
+      references += BigInt(source.sourceReadAccesses?.length ?? 1);
+      bindingCount += BigInt(source.connectorBindings?.length ?? 0);
+    }
+    construct(sourceReferenceCollectionConstructionGeometry(references), () => {
+      const refs = new Set();
+      for (const source of sources) {
       // Each independently installed source must have an exact checked
       // occurrence and an owned capacity before any read may start.
-      for (const ref of installedSourceReadBindings(source)) {
-        if (refs.has(ref)) throw new TypeError('InstalledSourceBindingAmbiguous');
-        refs.add(ref);
+        for (const ref of installedSourceReadBindings(source)) {
+          if (refs.has(ref)) throw new TypeError('InstalledSourceBindingAmbiguous');
+          refs.add(ref);
+        }
       }
-      if (refs.size > MAX_INSTALLED_SOURCE_AUTHORITIES) {
-        throw new TypeError('InvalidInstalledSourceReadAccesses');
-      }
-    }
+      return Object.freeze({});
+    });
     let environmentWire, environmentOriginal;
-    const bindings = new Map();
+    const bindings = construct(sourceBindingCollectionConstructionGeometry(bindingCount), () => new Map());
     for (const source of sources) {
+      if (source.environmentOriginal !== undefined && source.environmentOriginal.wire !== source.environmentWire) {
+        throw new TypeError('ForeignInstalledEnvironmentOriginal');
+      }
       const combinedOriginal = composeInstalledInventoryEnvironment(options.installationServices, options.moon,
           options.baseEnvironmentWire, environmentOriginal, source.environmentOriginal ?? source.environmentWire, () => {
             verifyInstalledConnectorBindings(environmentWire === undefined ? undefined

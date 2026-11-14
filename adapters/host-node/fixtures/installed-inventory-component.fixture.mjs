@@ -13,7 +13,9 @@ import {createInstalledHostServices, installedSourceConfigurationReader,
 import {composeInstalledSourceEnvironment, composeInstalledInventoryEnvironment} from '../installed-funded-environment.mjs';
 import {verifyInstalledConnectorBindings} from '../installed-check-environment.mjs';
 import {retainInstalledHostInitializationFailure} from '../installed-host-cleanup.mjs';
-import {captureSourceAliasConstruction, sourceAliasCollectionConstructionGeometry}
+import {captureSourceAliasConstruction, sourceAliasCollectionConstructionGeometry,
+  sourceMemberCollectionConstructionGeometry, sourceReferenceCollectionConstructionGeometry,
+  sourceBindingCollectionConstructionGeometry}
   from '../source-alias-construction.mjs';
 import {MAX_INSTALLED_SOURCE_AUTHORITIES} from '../installed-source-limits.mjs';
 import {installedSourceReadBindings} from '../installed-source.mjs';
@@ -42,6 +44,8 @@ export async function copyInstalledInventoryLoader(from, to) {
 
 function sourceFold(loadInstalledSource) {
   const ports = {isAbsolute, MAX_INSTALLED_SOURCE_AUTHORITIES, loadInstalledSource,
+    sourceMemberCollectionConstructionGeometry, sourceReferenceCollectionConstructionGeometry,
+    sourceBindingCollectionConstructionGeometry,
     installedSourceReadBindings, installedSourceConfigurationReader, installedSourceEnvironmentConstructionReader,
     captureSourceAliasConstruction, sourceAliasCollectionConstructionGeometry,
     composeInstalledSourceEnvironment, composeInstalledInventoryEnvironment, verifyInstalledConnectorBindings, retainInstalledHostInitializationFailure};

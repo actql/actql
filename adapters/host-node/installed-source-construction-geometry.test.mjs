@@ -3,9 +3,44 @@ import assert from 'node:assert/strict';
 import {sourceJsonWireGeometry, sourceEnvironmentConstructionGeometry, sourceEnvironmentRetainedGeometry,
   sourceAuthoredViewConstructionGeometry, sourceEnvironmentCompositionGeometry} from './installed-source-construction-geometry.mjs';
 import {rowSourceCheckEnvironment} from './installed-row-source.mjs';
+import {installedEnvironmentDataWriterConstructionGeometry,
+  installedEnvironmentMemberSortConstructionGeometry} from './installed-check-environment-construction.mjs';
 
 const count = value => value !== null && typeof value === 'object'
   ? 1n + Object.values(value).reduce((n, child) => n + count(child), 0n) : 1n;
+const freeze = value => {
+  if (value !== null && typeof value === 'object') {
+    for (const child of Object.values(value)) freeze(child);
+    Object.freeze(value);
+  }
+  return value;
+};
+
+test('staged Environment writer keeps legacy CID sorting and complete original bytes', () => {
+  const base = JSON.stringify({version: 'actql-check-environment/0.1',
+    evidence_bundle_cid: 'old', connector_catalogs: [], schema_snapshots: [],
+    connector_capabilities: [], mapping_contracts: [], command_contracts: []});
+  const values = [JSON.stringify({id: 'z', value: 'e\u0301日本語😀'}),
+    JSON.stringify({id: 'a', value: ['\\"\n', 1.25, false]})];
+  const declared = {evidence_schemas: values, evidence_capabilities: values,
+    view_bodies: values, contracts: values, command_bodies: values,
+    catalog: values[0], manifest_entry: values[1]};
+  const legacy = rowSourceCheckEnvironment(base, declared, values), phases = [];
+  const invoke = (name, quote, project) => {
+    assert.ok(quote.retained.nodes >= 0n && quote.workspace.nodes >= 0n);
+    phases.push(name);return project();
+  };
+  const staged = rowSourceCheckEnvironment(base, declared, values, undefined, {
+    freeze,
+    parse: project => invoke('parse', sourceEnvironmentConstructionGeometry(base, declared, values).parsed, project),
+    sort: (members, project) => invoke('sort', installedEnvironmentMemberSortConstructionGeometry(members), project),
+    seal: freeze,
+    hash: (body, project) => invoke('hash', installedEnvironmentDataWriterConstructionGeometry(body, true), project),
+    encode: (document, project) => invoke('encode', installedEnvironmentDataWriterConstructionGeometry(document), project),
+  });
+  assert.deepEqual(staged, legacy);
+  assert.deepEqual(phases, ['parse', ...Array(6).fill('sort'), 'hash', 'encode']);
+});
 
 test('wire geometry bounds actual JSON value occurrences including escaped detached syntax', () => {
   const samples = ['null', '0', '-1.7976931348623157e+308', '5e-324', '9007199254740991', 'true', '""', '[]', '{}', '[0,{},[null,false]]',

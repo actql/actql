@@ -17384,6 +17384,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/hostOperations/hostOperations#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/hostOperations/hostOperations#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/ingress/ingress",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/init:drain/init:drain",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/init:stopModelRuntime/init:stopModelRuntime",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#2",
@@ -17526,10 +17527,12 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/observeStep/observeStep",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/observeStep/observeStep/interrupted/interrupted",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/observeStep/observeStep/interrupted/interrupted/interrupted",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/retainFrame/retainFrame",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/wait",
             "openInstalledHost/negotiate/negotiate",
             "openInstalledHost/negotiate/negotiate/negotiate",
             "openInstalledHost/openInstalledHost",
+            "openInstalledHost/openInstalledHost#12",
             "openInstalledHost/openInstalledHost#2",
             "openInstalledHost/openInstalledHost#3",
             "openInstalledHost/openInstalledHost#4",
@@ -17561,11 +17564,9 @@
             "publishInstalledSource",
             "sameEmbeddedInstallation",
             "sameEmbeddedInstallation/sameEmbeddedInstallation",
-            "validateSourceNamespace",
-            "validateValuesMaxRows",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/retainFrame/retainFrame",
             "validateSourceFreeMaxWork",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/init:drain/init:drain"
+            "validateSourceNamespace",
+            "validateValuesMaxRows"
           ],
           "exports": [
             "connectEmbeddedLocal",
@@ -22183,6 +22184,14 @@
         {
           "name": "openInstalledHost/openInstalledHost#10",
           "parameters": [
+            "event",
+            "detail"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/openInstalledHost#11",
+          "parameters": [
             "key",
             "bytes",
             "frame",
@@ -22191,7 +22200,7 @@
           "async": true
         },
         {
-          "name": "openInstalledHost/openInstalledHost#11",
+          "name": "openInstalledHost/openInstalledHost#12",
           "parameters": [
             "ref"
           ],
@@ -22245,8 +22254,7 @@
         {
           "name": "openInstalledHost/openInstalledHost#9",
           "parameters": [
-            "event",
-            "detail"
+            "wire"
           ],
           "async": false
         },
@@ -24234,7 +24242,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "a7297e09fd564bcd3b73014e8b1f9c472bb470187e5d953a3a70994aabd59785"
+      "sha256": "1fd059ab06939929ca0e40d827187ae85088e2f94f3203a43a403b80ae94a318"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
@@ -28438,8 +28446,8 @@
   ],
   "counts": {
     "modules": 17,
-    "operations": 1099,
-    "exports": 106,
-    "explicitContractGroups": 104
+    "operations": 1169,
+    "exports": 109,
+    "explicitContractGroups": 106
   }
 }

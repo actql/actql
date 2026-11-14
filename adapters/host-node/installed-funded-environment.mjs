@@ -5,7 +5,7 @@ import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {installedSourceEnvironmentConstructionReader, isInstalledSourceInitializationRetired} from './installed-host-services.mjs';
 import {composeAdmittedCheckEnvironmentOriginals} from './installed-check-environment.mjs';
 import {installedEnvironmentParseConstructionGeometry,
-  installedEnvironmentDocumentConstructionGeometry,
+  installedEnvironmentDocumentConstructionStages,
   installedEnvironmentCompositionConstructionGeometry} from './installed-check-environment-construction.mjs';
 
 const owners = new WeakMap(), originals = new WeakMap();
@@ -16,11 +16,12 @@ const fail = code => {throw Object.assign(new TypeError(code), {code});};
 // parse to discover a budget. The census is private immutable constructor DATA.
 function freezeDocument(document, wire) {
   const counts = {bytes: Buffer.byteLength(wire), nodes: 0, depth: 0, fields: 0,
-    objects: 0, arrays: 0, rootFields: 0, maxFields: 0, keyUtf16Units: 0,
+    objects: 0, arrays: 0, rootFields: 0, maxFields: 0, keyUtf16Units: 0, valueUtf16Units: 0,
     maxKeyUtf16Units: 0, members: 0, snapshots: 0, catalogs: 0, manifestEntries: 0};
   function visit(value, depth) {
     counts.nodes++;
     counts.depth = Math.max(counts.depth, depth);
+    if (typeof value === 'string') counts.valueUtf16Units += value.length;
     if (value === null || typeof value !== 'object') return;
     if (Array.isArray(value)) {
       counts.arrays++;
@@ -86,10 +87,48 @@ export function bindInstalledEnvironmentConstruction(services, reader, begin) {
   }
   if (owner.reader !== undefined || typeof begin !== 'function') fail('ForeignInstalledEnvironmentOwner');
   owner.reader = reader; owner.begin = begin;
+  return (moon, value, document, body) => retainInstalledEnvironmentNativeOriginal(services, moon, value, document, body);
+}
+
+// Only the fixed original Source Environment constructor registers this DATA.
+// Its real native body and census were reserved before construction; equality
+// of a wire/CID or a copied DTO cannot register or recover this association.
+function retainInstalledEnvironmentNativeOriginal(services, moon, value, document, body) {
+  const owner = owners.get(services);
+  if (owner?.reader === undefined || originals.has(value) || !Object.isFrozen(value)) {
+    fail('ForeignInstalledEnvironmentOriginal');
+  }
+  const {counts} = freezeDocument(document, value.wire);
+  Object.freeze(body);
+  originals.set(value, {services, moon, reader: owner.reader, counts,
+    native: Object.freeze({wire: value.wire, evidenceCid: value.evidenceCid, body}), admittedOriginal: undefined});
+  (owner.nativeOriginals ??= new Set()).add(value);
 }
 
 export function composeInstalledSourceEnvironment(services, moon, baseInput, sourceInput, effectInput) {
   return composeEnvironment(services, moon, baseInput, sourceInput, effectInput);
+}
+
+// Admit this exact retained member wire on the same existing Source material.
+// Selector namespace construction needs each original Environment, not another
+// equal merge or an unfunded compatibility check. No wire/CID cache is added.
+export function readInstalledSourceEnvironment(services, moon, wire) {
+  return composeEnvironment(services, moon, undefined, wire, undefined, undefined, true);
+}
+
+// Completion adopts the SAME already-held native/Core original. The existing
+// Core publication matcher is a nominal join, not a CID/Boolean authority.
+// A copied DTO, changed wire or independently constructed final Environment
+// cannot avoid its own construction/admission quantity through this entrance.
+export function assertInstalledEnvironmentPublicationOriginal(services, moon, value, prepared, wire) {
+  const reader = installedSourceEnvironmentConstructionReader(services, moon);
+  const record = originals.get(value);
+  if (record === undefined || record.native !== undefined || record.retired === true ||
+      record.services !== services || record.moon !== moon || record.reader !== reader ||
+      value.wire !== wire || typeof moon.clientProgramPublicSourceEnvironmentMatches !== 'function' ||
+      moon.clientProgramPublicSourceEnvironmentMatches(prepared, value.admitted) !== true) {
+    fail('ForeignInstalledEnvironmentOriginal');
+  }
 }
 
 // Only these two Common inventory folds own a replaceable local prefix. Their
@@ -99,7 +138,7 @@ export function composeInstalledInventoryEnvironment(services, moon, baseInput, 
   return composeEnvironment(services, moon, baseInput, sourceInput, effectInput, accept);
 }
 
-function composeEnvironment(services, moon, baseInput, sourceInput, effectInput, accept) {
+function composeEnvironment(services, moon, baseInput, sourceInput, effectInput, accept, readOnly = false) {
   if (services === null || typeof services !== 'object') fail('ForeignInstalledHostServices');
   let owner = owners.get(services);
   if (owner === undefined) {
@@ -122,7 +161,7 @@ function composeEnvironment(services, moon, baseInput, sourceInput, effectInput,
     }, project);
     const borrow = value => {
       const record = originals.get(value);
-      if (record === undefined || record.services !== services || record.moon !== moon || record.reader !== reader || record.retired === true) {
+      if (record === undefined || record.native !== undefined || record.services !== services || record.moon !== moon || record.reader !== reader || record.retired === true) {
         fail('ForeignInstalledEnvironmentOriginal');
       }
       if (accept === undefined && record.release !== undefined) record.escaped = true;
@@ -152,21 +191,46 @@ function composeEnvironment(services, moon, baseInput, sourceInput, effectInput,
     };
     const input = value => {
       if (value === undefined) return undefined;
-      if (typeof value !== 'string') {borrow(value);return value;}
+      if (typeof value !== 'string') {
+        const original = originals.get(value);
+        if (original?.native !== undefined) {
+          if (original.services !== services || original.moon !== moon || original.reader !== reader) {
+            fail('ForeignInstalledEnvironmentOriginal');
+          }
+          current();
+          if (original.admittedOriginal === undefined) {
+            const native = original.native;
+            // Core's SAME real wire reader verifies canonical bytes, body CID
+            // and every ordered/unused member before semantic admission. The
+            // body is this actual writer's frozen output, not JSON.parse of
+            // arbitrary numeric wire or a cached permission/current decision.
+            original.admittedOriginal = admit(native.wire, native.evidenceCid, native.body, original.counts);
+          }
+          borrow(original.admittedOriginal);
+          return original.admittedOriginal;
+        }
+        borrow(value);return value;
+      }
       if (Buffer.byteLength(value) > 16 * 1024 * 1024) fail('InstalledCheckEnvironmentConflict');
       const parsed = js(() => installedEnvironmentParseConstructionGeometry(value),
         () => freezeDocument(JSON.parse(value), value));
-      const verified = js(() => installedEnvironmentDocumentConstructionGeometry(parsed.document), () => {
+      const stages = installedEnvironmentDocumentConstructionStages(parsed.document);
+      const compared = js(() => stages.comparison, () => {
         const document = parsed.document;
         if (document === null || typeof document !== 'object' || Array.isArray(document) || value !== canonicalJson(document)) {
           fail('InstalledCheckEnvironmentConflict');
         }
+        return Object.freeze({document});
+      });
+      const verified = js(() => stages.body, () => {
+        const document = compared.document;
         const {evidence_bundle_cid: evidenceCid, ...body} = document;
         if (evidenceCid !== contentCid(body)) fail('InstalledCheckEnvironmentConflict');
         return Object.freeze({body: Object.freeze(body), evidenceCid});
       });
       return admit(value, verified.evidenceCid, verified.body, parsed.counts);
     };
+    if (readOnly) {const value = input(sourceInput);current();return value;}
     let base;
     if (owner.base === undefined) {base = input(baseInput);if (base === undefined) fail('InstalledCheckEnvironmentConflict');owner.base = base;}
     else {
@@ -218,5 +282,6 @@ function composeEnvironment(services, moon, baseInput, sourceInput, effectInput,
 // construction state. Pending cleanup must keep both originals and failure.
 export function releaseRetiredInstalledEnvironmentComposition(services) {
   if (!isInstalledSourceInitializationRetired(services)) fail('InstalledSourceRetirementPending');
+  for (const value of owners.get(services)?.nativeOriginals ?? []) originals.delete(value);
   owners.delete(services);
 }

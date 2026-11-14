@@ -1,10 +1,18 @@
 // Real initial Resource and Host services for public installed-loader tests.
 // This owner is retained before open(); no scope, constructor or ACK is mocked.
 import assert from 'node:assert/strict';
-import {openHostInitializationPreparation, closeHostInitializationPreparation}
-  from '../../local-node/request-preparation-adapter.mjs';
+import {realpathSync} from 'node:fs';
+import {pathToFileURL} from 'node:url';
 import {createInstalledHostServices, retireInstalledSourceInitialization}
   from '../installed-host-services.mjs';
+
+// A retained normal runtime has its own physical Resource module instance.
+// Equal source-side bytes cannot open that runtime's original parent ports.
+const preparationUrl = process.env.ACTQL_TEST_BOUND_CONSTRUCTION_RUNTIME === undefined
+  ? new URL('../../local-node/request-preparation-adapter.mjs', import.meta.url)
+  : new URL('../../../../../adapters/local-node/request-preparation-adapter.mjs',
+    pathToFileURL(realpathSync(process.env.ACTQL_TEST_BOUND_CONSTRUCTION_RUNTIME)));
+const {openHostInitializationPreparation, closeHostInitializationPreparation} = await import(preparationUrl.href);
 
 export function createInstalledLoaderParent({root, principalId = 'operator', moon}) {
   const state = {}, sources = new Set(), failures = new Set();

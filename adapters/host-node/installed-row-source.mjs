@@ -118,38 +118,66 @@ const byCid = values => values.map(value => JSON.parse(value))
 // Without Mappings or Commands the read-only environment remains unchanged.
 // Checked contracts contain exact data text, including enum values and field
 // names. Preserve those originals rather than applying configuration NFC.
-export function rowSourceCheckEnvironment(baseWire, declared, mappings = []) {
-  const base = JSON.parse(baseWire);
-  const {evidence_bundle_cid: _, ...body} = base;
-  const commands = Object.hasOwn(declared, 'command_bodies')
-    ? declared.command_bodies : [];
-  if (body.version !== 'actql-check-environment/0.1' ||
-      body.connector_catalogs.length !== 0 ||
-      body.schema_snapshots.length !== 0 ||
-      body.connector_capabilities.length !== 0 ||
-      body.connector_manifest !== undefined ||
-      declared.evidence_schemas.length !== declared.view_bodies.length ||
-      declared.evidence_capabilities.length !== declared.view_bodies.length ||
-      !Array.isArray(mappings) || !Array.isArray(commands) ||
-      (mappings.length !== 0 && body.mapping_contracts?.length !== 0) ||
-      (commands.length !== 0 && body.command_contracts?.length !== 0)) {
-    fail('InvalidRowSourceCheckEnvironmentBase');
+export function rowSourceCheckEnvironment(baseWire, declared, mappings = [], retainOriginal, construction) {
+  const parse = wire => construction === undefined ? JSON.parse(wire)
+    : construction.freeze(JSON.parse(wire));
+  const members = values => construction === undefined ? byCid(values) : values.map(parse);
+  const build = () => {
+    const base = parse(baseWire);
+    const {evidence_bundle_cid: _, ...body} = base;
+    const commands = Object.hasOwn(declared, 'command_bodies')
+      ? declared.command_bodies : [];
+    if (body.version !== 'actql-check-environment/0.1' ||
+        body.connector_catalogs.length !== 0 ||
+        body.schema_snapshots.length !== 0 ||
+        body.connector_capabilities.length !== 0 ||
+        body.connector_manifest !== undefined ||
+        declared.evidence_schemas.length !== declared.view_bodies.length ||
+        declared.evidence_capabilities.length !== declared.view_bodies.length ||
+        !Array.isArray(mappings) || !Array.isArray(commands) ||
+        (mappings.length !== 0 && body.mapping_contracts?.length !== 0) ||
+        (commands.length !== 0 && body.command_contracts?.length !== 0)) {
+      fail('InvalidRowSourceCheckEnvironmentBase');
+    }
+    const environment = {...body,
+      schema_snapshots: members(declared.evidence_schemas),
+      connector_capabilities: members(declared.evidence_capabilities),
+      source_views: members(declared.view_bodies),
+      contract_registry: members(declared.contracts),
+      connector_catalogs: [parse(declared.catalog)],
+      connector_manifest: {version: 'actql-connectors/0.1',
+        connectors: [parse(declared.manifest_entry)]},
+      ...(mappings.length === 0 ? {} : {mapping_contracts: members(mappings)}),
+      ...(commands.length === 0 ? {} : {command_contracts: members(commands)})};
+    return environment;
+  };
+  const environment = construction === undefined ? build() : construction.parse(build);
+  if (construction !== undefined) {
+    for (const section of ['schema_snapshots', 'connector_capabilities', 'source_views',
+      'contract_registry', 'mapping_contracts', 'command_contracts']) {
+      const values = environment[section];
+      if (!Object.isFrozen(values)) construction.sort(values, () => {
+        values.sort((a, b) => {
+          const left = valueCid(a), right = valueCid(b);
+          return left < right ? -1 : left > right ? 1 : 0;
+        });
+        Object.freeze(values);return Object.freeze({});
+      });
+    }
+    construction.seal(environment);
   }
-  const environment = {...body,
-    schema_snapshots: byCid(declared.evidence_schemas),
-    connector_capabilities: byCid(declared.evidence_capabilities),
-    source_views: byCid(declared.view_bodies),
-    contract_registry: byCid(declared.contracts),
-    connector_catalogs: [JSON.parse(declared.catalog)],
-    connector_manifest: {version: 'actql-connectors/0.1',
-      connectors: [JSON.parse(declared.manifest_entry)]},
-    ...(mappings.length === 0 ? {} : {mapping_contracts: byCid(mappings)}),
-    ...(commands.length === 0 ? {} : {command_contracts: byCid(commands)})};
-  const evidenceCid = valueCid(environment);
-  return Object.freeze({
-    wire: canonicalValueJson({...environment, evidence_bundle_cid: evidenceCid},
-      {dataKeys: true}),
-    evidenceCid});
+  const evidenceCid = construction === undefined ? valueCid(environment)
+    : construction.hash(environment, () => valueCid(environment));
+  const document = Object.freeze({...environment, evidence_bundle_cid: evidenceCid});
+  const encode = () => {
+    const result = Object.freeze({
+      wire: canonicalValueJson(document,
+        {dataKeys: true}),
+      evidenceCid});
+    retainOriginal?.(result, document, environment);
+    return result;
+  };
+  return construction === undefined ? encode() : construction.encode(document, encode);
 }
 
 // The selected Mapping of `resource`, generated by the common runtime from the
@@ -1432,7 +1460,8 @@ export async function createInstalledRowSource({moon, declaration, commands,
     }
     // Common preparation cleanup is part of the original Source lifecycle.
     // A provider's publication selection cannot hide an unentered read owner.
-    for (const name of ['retirePreparedSource', 'prepareRetained']) {
+    for (const name of ['retirePreparedSource', 'prepareRetained',
+      ...(environment === undefined ? [] : ['environmentOriginal'])]) {
       if (!selectedSurface.includes(name)) selectedSurface.push(name);
     }
   }
@@ -3099,6 +3128,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
     supportsRetainedRelationOutput: true,
     connectorRegistration, connectorRevision,
     environmentWire,
+    ...(environment === undefined ? {} : {environmentOriginal: environment}),
     connectorBindings: Object.freeze([Object.freeze({connectorId,
       bindingCid: publicationBindingCid ?? bindingCid})]),
     ...(tableReadTargets === undefined ? {} : {tableReadTargets, declarationCatalogCid: declared.catalog_cid}),

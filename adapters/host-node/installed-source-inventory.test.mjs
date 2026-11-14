@@ -222,7 +222,7 @@ for (const fault of ['policy', 'encoding', 'catalog', 'physical', 'missing-bindi
   });
 }
 
-test('inventory admits a larger member while retaining its aggregate read-authority bound', async t => {
+test('inventory admits the complete aggregate read-authority range beyond128', async t => {
   const fixture = await installation(t);
   const refs = (name, count) => Array.from({length: count}, (_, index) =>
     `connector://${name}/records-${index}#v`);
@@ -230,17 +230,15 @@ test('inventory admits a larger member while retaining its aggregate read-author
     const declarations = counts.map((count, index) => profile(`member-${index}`,
       {refs: refs(`member-${index}`, count)}));
     const loading = fixture.loadInstalledSources(await fixture.paths(declarations), fixture.options);
-    if (counts.reduce((total, count) => total + count, 0) <= 128) {
-      const loaded = await loading;
-      assert.equal(loaded.sources.flatMap(fixture.installedSourceReadBindings).length,
-        counts.reduce((total, count) => total + count, 0));
-      await loaded.close();
-    } else await assert.rejects(loading, primary('InvalidInstalledSourceReadAccesses'));
+    const loaded = await loading;
+    assert.equal(loaded.sources.flatMap(fixture.installedSourceReadBindings).length,
+      counts.reduce((total, count) => total + count, 0));
+    await loaded.close();
   }
-  const declarations = Array.from({length: 128}, (_, index) => profile(`member-${index}`));
+  const declarations = Array.from({length: 129}, (_, index) => profile(`member-${index}`));
   const loaded = await fixture.loadInstalledSources(await fixture.paths(declarations), fixture.options);
-  assert.equal(loaded.sources.length, 128);
-  assert.equal(JSON.parse(loaded.environmentWire).connector_catalogs.length, 128);
+  assert.equal(loaded.sources.length, 129);
+  assert.equal(JSON.parse(loaded.environmentWire).connector_catalogs.length, 129);
   await loaded.close();
 });
 

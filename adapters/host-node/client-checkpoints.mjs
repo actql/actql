@@ -33,7 +33,6 @@ import {INSTALLED_EFFECT_CHECKPOINT_LIMITS} from
   '../host-common/installed-checkpoint-codec-limits.mjs';
 import {EFFECT_TARGET_CONTINUATION, effectTargetReadScope} from
   './effect-target-read-inventory.mjs';
-import {MAX_INSTALLED_SOURCE_AUTHORITIES} from './installed-source-limits.mjs';
 import {MAX_INSTALLED_EFFECT_PROFILES} from './installed-effect-limits.mjs';
 import {validCheckpointLookup} from '../../packages/client-wire/index.mjs';
 import {selectOriginalInferMetadataAcquisition,
@@ -305,20 +304,26 @@ export async function installHostRunAcceptance(options) {
 export async function installRemoteCheckpoints({root, namespaceId,
   authorityScopeCid, ownerPrincipal, siteKey, realizationKey,
   environmentCid, contractControl, authorization, source, sources, effectTarget,
-  effectTargets,
+  effectTargets, sourceInventory,
   modelResumeVerifier,
   now = () => Date.now()}) {
   if (authorization === undefined) return undefined;
   if (authorization === null || typeof authorization !== 'object') {
     fail('InvalidRemoteHostAuthorization');
   }
-  // Inventory admission and Checkpoints share one aggregate authority bound.
+  // Admit the whole original range. The normal caller prepared its native
+  // inventory on the SAME initial Source material before Source completion.
   if (sources !== undefined && (source !== undefined ||
       !Array.isArray(sources) || sources.length < 1 ||
-      sources.length > MAX_INSTALLED_SOURCE_AUTHORITIES ||
       sources.some(item => typeof item?.sourceRef !== 'string' ||
         item.sourceRef.length === 0) ||
       new Set(sources.map(item => item.sourceRef)).size !== sources.length)) {
+    fail('InvalidRemoteHostSources');
+  }
+  if (sourceInventory !== undefined && (sources !== sourceInventory.sources ||
+      sourceInventory.installedSources.length !== sources.length ||
+      sourceInventory.bindings.length !== sources.length ||
+      sourceInventory.installedSources.some((item, index) => item.configuration !== sources[index]))) {
     fail('InvalidRemoteHostSources');
   }
   if (effectTargets !== undefined && effectTarget !== undefined) {
@@ -361,6 +366,26 @@ export async function installRemoteCheckpoints({root, namespaceId,
   const decisionBudget = createAuthorizationDecisionBudget({
     maxInFlightDecisions, maxRetainedDecisions});
   const decisionOptions = {decisionBudget, decisionTimeoutMs};
+  const installedSources = sourceInventory?.installedSources ?? [];
+  let sourceConsumerClosed = false, originalSetupCleanup;
+  if (sourceInventory !== undefined) {
+    // This is the existing Source body borrow, not authority or a stop ACK.
+    sourceInventory.custody.holder.environment();
+    sourceInventory.custody.retire = () => {
+      decisionBudget.close();
+      for (const installed of installedSources) {
+        installed.gate?.close();
+        installed.resumeGate?.close();
+      }
+      if (decisionBudget.cleanupPending()) return false;
+      if (!sourceConsumerClosed && originalSetupCleanup?.status().pending !== false) return false;
+      if (sourceInventory.custody.holder !== undefined) {
+        sourceInventory.custody.holder.release();
+        sourceInventory.custody.holder = undefined;
+      }
+      return true;
+    };
+  }
   let journal;
   let evidence;
   try {
@@ -383,20 +408,22 @@ export async function installRemoteCheckpoints({root, namespaceId,
   // configuration and context (the same one its adapter rechecks before
   // provider I/O). Without a decision function or deferral a delegated read
   // is unsupported here, so this gate is also the current-authority check.
-  const installedSources = [];
+  let sourceIndex = 0;
   for (const installed of sources ?? (source === undefined ? [] : [source])) {
     // Preserve the singular installation owner's original validation and
     // journal-custody ordering. The new plural inventory is copied once.
     const context = sources === undefined ? undefined : installed.context;
-    const configuration = sources === undefined ? installed : Object.freeze({
+    const configuration = sourceInventory !== undefined || sources === undefined ? installed : Object.freeze({
       sourceRef: installed.sourceRef,
       accountConfiguration: installed.accountConfiguration,
       ...(context === undefined ? {} : {context: Object.freeze({...context})}),
     });
-    installedSources.push({configuration,
-      gate: await createLocalAuthorizationGate({
+    const entry = sourceInventory === undefined ? {configuration}
+      : installedSources[sourceIndex++];
+    if (sourceInventory === undefined) installedSources.push(entry);
+    entry.gate = await createLocalAuthorizationGate({
         accountConfiguration: configuration.accountConfiguration,
-        context: configuration.context, ...decisionOptions})});
+        context: configuration.context, ...decisionOptions});
   }
   const sourceGate = sources === undefined ? installedSources[0]?.gate
     : undefined;
@@ -437,6 +464,22 @@ export async function installRemoteCheckpoints({root, namespaceId,
     }
     return inventory;
   }
+  const sourceBindings = sourceInventory?.bindings ?? [];
+  if (sources !== undefined) {
+    for (let index = 0; index < installedSources.length; index++) {
+      const {configuration, gate: read} = installedSources[index];
+      const row = sourceInventory === undefined ? {source_ref: configuration.sourceRef} : sourceBindings[index];
+      // Actual admitted Account identities fit their existing CID codec.
+      // Refuse an incompatible producer; never truncate or invent a binding.
+      if (sourceInventory !== undefined &&
+          ((read.configurationCid !== undefined && !/^sha256:[0-9a-f]{64}$/u.test(read.configurationCid)) ||
+          !/^sha256:[0-9a-f]{64}$/u.test(read.contextCid))) fail('InvalidRemoteHostSources');
+      row.configuration_cid = read.configurationCid ?? null;
+      row.context_cid = read.contextCid;
+      if (sourceInventory === undefined) sourceBindings.push(row);
+    }
+    sourceBindings.sort((left, right) => left.source_ref < right.source_ref ? -1 : 1);
+  }
   const binding = Object.freeze({
     authorizationContextCid: contentCid({principal: ownerPrincipal,
       account_id: gate.accountId ?? null,
@@ -455,12 +498,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
             context_cid: read.contextCid})))
           .sort((left, right) => left.mapping_ref < right.mapping_ref ? -1
             : left.mapping_ref > right.mapping_ref ? 1 : 0)}),
-      ...(sources === undefined ? {} : {source_authorization_bindings:
-        installedSources.map(({configuration, gate: read}) => ({
-          source_ref: configuration.sourceRef,
-          configuration_cid: read.configurationCid ?? null,
-          context_cid: read.contextCid,
-        })).sort((left, right) => left.source_ref < right.source_ref ? -1 : 1)}),
+      ...(sources === undefined ? {} : {source_authorization_bindings: sourceBindings}),
     }),
     environmentBindingCid: contentCid({version:
       'actql-remote-run-acceptance-environment/0.1', site_key: siteKey,
@@ -2855,16 +2893,29 @@ export async function installRemoteCheckpoints({root, namespaceId,
       finally {
         await evidence.close();
         journal.close();
+        sourceConsumerClosed = true;
       }
+      sourceInventory?.custody.retire();
       return Object.freeze({pendingRetention: retention.pending,
         pendingAuthorization: decisionBudget.cleanupPending()});
     },
   });
   } catch (cause) {
     decisionBudget.close();
+    if (journal === undefined) sourceConsumerClosed = true;
+    let retainedFailure = cause;
+    if (journal !== undefined) {
+      retainedFailure = await retainInstalledHostInitializationFailure(cause,
+        {journal, store: evidence});
+      originalSetupCleanup = retainedFailure.cleanupHandle;
+    }
+    try {sourceInventory?.custody.retire();}
+    catch (cleanupIssue) {
+      // Keep the original admission failure. The actual initial Host retains
+      // this same borrow/callback and retries only its cleanup responsibility.
+      sourceInventory.custody.cleanupIssue = cleanupIssue;
+    }
     // Before journal custody exists, preserve the original admission error.
-    if (journal === undefined) throw cause;
-    throw await retainInstalledHostInitializationFailure(cause,
-      {journal, store: evidence});
+    throw retainedFailure;
   }
 }

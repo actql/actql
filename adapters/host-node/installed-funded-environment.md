@@ -33,6 +33,13 @@ and construction reader. Copies, equal wires and equal CIDs do not confer this
 provenance. Every borrowed original rechecks the current reader. The first base
 is retained on that service; later calls must pass that exact base or its wire.
 An independently supplied string is admitted, not looked up in a global cache.
+The fixed native Source Environment writer may also retain its exact frozen
+body and census alongside its original DTO on this same owner. Its parse,
+member sort, body hash and wire output are separate synchronous constructors.
+The shared Core wire reader still verifies canonical bytes, evidence identity
+and every member before model admission. This native association only avoids
+reparsing that actual writer's output in JavaScript; a copied DTO, foreign
+runtime or independently supplied wire cannot recover it.
 The shared pure merge still validates policies, selector conflicts, canonical
 member equivalence and evidence identity; it cannot authorize installed reuse.
 
@@ -115,6 +122,15 @@ Core. This adds no serialization, parse, tree walk or frozen snapshot.
 Both JSON entrances retain the same original value and dependencies. Failed
 completion keeps the old full peak as debt on that material until retirement;
 it neither revives the failed parent nor invents an unclosed physical child.
+
+Source completion can join an already-funded admitted original to the exact
+prepared public Environment through Core's existing physical-identity matcher.
+That branch adds only its shallow body association: every earlier native/Core
+quantity remains retained. A changed final Environment, copied original or
+other namespace cannot select it. Complete Checkpoint inventories are reserved
+before Source completion and retain a real borrow of that same completed body.
+Checkpoint authorization flights and their gates must quiesce before returning
+the borrow; close, current loss or an equal wire is not a physical child ACK.
 
 Source and Effect profile parsing, checked snapshots and Table inspection
 consume the shared MoonBit profile recipe on the same PreparationCapacity.

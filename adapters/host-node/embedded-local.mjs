@@ -1,4 +1,4 @@
-import {composeInstalledSourceEnvironment} from './installed-funded-environment.mjs';
+import {composeInstalledSourceEnvironment, readInstalledSourceEnvironment} from './installed-funded-environment.mjs';
 import {captureSourceAliasConstruction} from './source-alias-construction.mjs';
 import {localProjectFilesystem} from './local-files-native.mjs';
 import {createInstalledHostServices, installedSourceConfigurationReader,
@@ -142,7 +142,7 @@ import {createPrivateEvidenceKey, loadPrivateEvidenceKey} from
   './local-continuation-evidence.mjs';
 import {installedSourceIdentity, installedSourcePaths, loadInstalledSources,
   installedSourceFor, installedSourceReadAccesses, installedSourceReadBindings,
-  publishInstalledSourceProfile} from
+  prepareInstalledSourceCheckpointInventory, publishInstalledSourceProfile} from
   './installed-source.mjs';
 import {createDiagnosticObserver} from
   '../host-common/diagnostic-observer.mjs';
@@ -1760,6 +1760,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   // combined environment is admitted before either can dispatch work.
   let sourceProfile;
   let sourcePublicationSources;
+  let sourceCheckpointInventory;
   let installedEffect;
   let environmentWire, effectiveHostCapacityPolicyCid;
   let environmentBody, environmentEvidenceCid;
@@ -2238,7 +2239,9 @@ async function openInstalledHost(originalInstallation, preparation) {
       sourcePublication = sourceAliasPublication(moon, environment,
         sourceProfile?.queryAliases ?? [],
         installedEffect?.queryTableBindings ?? effectInstallation?.queryTableBindings ?? [],
-        {updateTargets: installedEffect === undefined ? [] :
+        {construct: captureSourceAliasConstruction(installedSourceConfigurationReader(installationServices), moon),
+          readEnvironment: wire => readInstalledSourceEnvironment(installationServices, moon, wire),
+          updateTargets: installedEffect === undefined ? [] :
           installedUpdateTargets(installedEffect, installedEffect.queryUpdateTargets ?? [], environmentWire),
           storeTargets: installedEffect?.queryStoreTargets ?? [],
           namespace: sourceNamespace === undefined ? undefined : {
@@ -2249,8 +2252,18 @@ async function openInstalledHost(originalInstallation, preparation) {
             (sourceProfile === undefined ? [] : [sourceProfile])});
       const sourceEnvironmentOriginal = sourceAliasPublicationOriginal(moon, environment, sourcePublication);
       if (sourceEnvironmentOriginal !== undefined) {
+        sourceCheckpointInventory = prepareInstalledSourceCheckpointInventory(sourceProfile,
+          captureSourceAliasConstruction(installedSourceConfigurationReader(installationServices), moon));
+        // Retain before completing or borrowing: a later constructor failure
+        // still belongs to this same initial Host's cleanup continuation.
+        if (preparation !== undefined) originalInstallation.sourceCheckpointInventory = sourceCheckpointInventory;
         completeInstalledSourceInitialization(installationServices, originalInstallation,
-          sourceEnvironmentOriginal.preparedEnvironment, environmentWire);
+          sourceEnvironmentOriginal.preparedEnvironment, environmentWire,
+          environment === composedEnvironment.admitted ? composedEnvironment : undefined);
+        if (sourceCheckpointInventory !== undefined) {
+          sourceCheckpointInventory.custody.holder = borrowInstalledSourceInitialization(installationServices,
+            originalInstallation, sourceEnvironmentOriginal.preparedEnvironment);
+        }
         preparedSourceEnvironment = Object.freeze({host, moon, environment, publication:sourcePublication,
           preparedEnvironment:sourceEnvironmentOriginal.preparedEnvironment});
         if (preparation !== undefined) {
@@ -2502,7 +2515,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       : await preparation.openResultPublicationStore(storeOptions, control);
     if (mockAccount !== undefined) await mockAccount.adoptStore(store);
     if (standardAccountPreparation !== undefined) {
-      const configuredConnections = [...new Set((sourceProfile?.sources ??
+      const configuredConnections = sourceCheckpointInventory?.connections ?? [...new Set((sourceProfile?.sources ??
         (sourceProfile === undefined ? [] : [sourceProfile]))
         .flatMap(source => installedSourceReadAccesses(source).map(access => access.connection)))].sort();
       const modelTasks = (projectTasks?.originalsForRuntime(moon) ?? [])
@@ -2600,7 +2613,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     }),
     tableWriteAccesses: installedEffect?.queryTableWriteAccesses ??
       effectInstallation?.queryTableWriteAccesses ?? [],
-    sourceAccesses: (sourceProfile?.sources ??
+    sourceAccesses: sourceCheckpointInventory?.accesses ?? (sourceProfile?.sources ??
       (sourceProfile === undefined ? [] : [sourceProfile]))
       .flatMap(installedSourceReadAccesses)});
   // Checking dispatches nothing and reads no source rows; the audience is
@@ -2701,7 +2714,9 @@ async function openInstalledHost(originalInstallation, preparation) {
           selectors: effect.effectSelectors, authorization: effect.targetReadAuthorization}))}),
       authorization: authorization == null ? authorization :
         {...authorization, observe: diagnostic},
-      ...(sourceProfile?.sources === undefined &&
+      ...(sourceCheckpointInventory !== undefined
+        ? {sources: sourceCheckpointInventory.sources, sourceInventory: sourceCheckpointInventory}
+        : sourceProfile?.sources === undefined &&
           (sourceProfile === undefined ||
             installedSourceReadAccesses(sourceProfile).length === 1)
         ? {source: sourceProfile === undefined ? undefined : {
@@ -6837,6 +6852,10 @@ async function openPreparedInstalledHost(options, initialEntry) {
     // never reports a metadata holder as a successfully installed adapter.
     await originalInstallation.declaredFileInstallationInventory?.fail(
       clientOperationError('DeclaredFileInstallationClosed'));
+    if (originalInstallation.sourceCheckpointInventory !== undefined &&
+        originalInstallation.sourceCheckpointInventory.custody.retire() !== true) {
+      throw clientOperationError('InstalledSourceCheckpointCleanupPending');
+    }
     if (hostInitialization !== undefined) {
       if (sourceInitializationServices !== undefined &&
           retireInstalledSourceInitialization(sourceInitializationServices) !== true) {
