@@ -104,7 +104,7 @@ export async function runCollectionPhase({collection, command, record, capturePi
           assert.equal(actual.acceptedComputeTerminal.result_available, false);
           const data = actual.acceptedMemoryRefusal;
           assert.equal(data?.verified, true);
-          assert.deepEqual(Object.keys(data).sort(), ['code', 'dimension', 'kind', 'phase', 'task', 'verified']);
+          assert.deepEqual(Object.keys(data).sort(), ['budget', 'code', 'dimension', 'kind', 'phase', 'publicBudget', 'task', 'verified']);
           assert.equal(data.code, 'MoonBitHostFailure');
           assert.equal(data.phase, 'local_managed_advance');
           assert.equal(data.kind, 'resource');
@@ -115,7 +115,7 @@ export async function runCollectionPhase({collection, command, record, capturePi
           assert.deepEqual(original.ref, actual.acceptedComputeRef);
           assert.equal(original.code, 'CapturedRunExecutionFailed');
           assert.equal(original.primaryCode, 'MoonBitHostFailure');
-          const {verified, ...diagnostic} = data;
+          const {verified, publicBudget, ...diagnostic} = data;
           assert.deepEqual(original.primaryDiagnostic, diagnostic);
           assert.deepEqual(actual.cases, [{count: 100000, disposition: 'resource_refused', complete: true}]);
         }
@@ -125,15 +125,32 @@ export async function runCollectionPhase({collection, command, record, capturePi
         assert.equal(data.phase, 'local_managed_advance');
         assert(Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647);
         if (data.kind === 'control_work') {
-          assert.deepEqual(Object.keys(data).sort(), ['code', 'controlWorkLimit', 'kind', 'phase', 'task', 'verified']);
+          assert.deepEqual(Object.keys(data).sort(), ['code', 'controlWorkLimit', 'kind', 'phase', 'publicBudget', 'task', 'verified']);
           assert.equal(data.controlWorkLimit, actual.sourceFreeMaxWork);
         } else {
           assert.equal(data.kind, 'value_capture_work');
-          assert.deepEqual(Object.keys(data).sort(), ['code', 'kind', 'phase', 'step', 'task', 'verified', 'workLimit']);
+          assert.deepEqual(Object.keys(data).sort(), ['budget', 'code', 'kind', 'phase', 'publicBudget', 'step', 'task', 'verified', 'workLimit']);
           assert(Number.isSafeInteger(data.step) && data.step >= 0 && data.step <= 2147483647);
           assert.equal(data.workLimit, actual.sourceFreeMaxWork);
         }
         assert.deepEqual(actual.cases, [{expectedRefusal: data.kind, complete: true}]);
+      }
+      if (phase === 'work-recovery' || phase === 'accepted-memory-recovery' && actual.acceptedComputeTerminal.status === 'failed') {
+        const original = phase === 'work-recovery' ? actual.workRefusal : actual.acceptedMemoryRefusal;
+        const publicBudget = original.publicBudget;
+        assert.equal(publicBudget?.phase, 'local_managed_advance');
+        assert.equal(publicBudget.dimension, original.kind === 'resource' ? original.dimension : original.kind);
+        const setting = original.kind === 'resource'
+          ? `installation.requestMemory.${original.dimension === 'retained_bytes' ? 'retainedBytes' : 'executionBytes'}`
+          : 'installation.sourceFreeMaxWork';
+        assert.equal(publicBudget.setting, setting);
+        assert.equal(publicBudget.policy, String(original.kind === 'resource' ? memory : actual.sourceFreeMaxWork));
+        assert.equal(typeof publicBudget.message, 'string');
+        assert(publicBudget.message.includes(`phase=local_managed_advance; dimension=${publicBudget.dimension};`));
+        assert(publicBudget.message.includes(`setting=${setting}.`));
+        assert.deepEqual(publicBudget.quantities, original.budget ?? 'unavailable');
+        assert.deepEqual(actual.publicBudgetReread, {sameHost: true, originalFailedRun: true,
+          sameMessage: true, sameRevision: true, newSubmissions: 0});
       }
     } else if (phase === 'capture') {
       assert.deepEqual(actual.cases.map(value => value.count), [9999, 10000, 10001, 100000]);

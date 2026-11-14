@@ -4578,6 +4578,8 @@ pub fn execution_authorization_request_json(AuthorizationRequest) -> String
 
 pub fn local_dispatch(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], @physical_host_dispatch.PreparedTaskDispatch) -> @actql/actql/connectors/local/driver.LocalDispatchOperations raise NodeHostFailure
 
+pub fn local_managed_advance_budget(Result[@actql/actql/connectors/local/driver.LocalManagedAdvance, @actql/actql/connectors/local/driver.LocalDispatchIssue]) -> (String, Bool, Int64, Int64, Int64)?
+
 pub fn local_managed_advance_capture_work(Result[@actql/actql/connectors/local/driver.LocalManagedAdvance, @actql/actql/connectors/local/driver.LocalDispatchIssue]) -> Array[Int]?
 
 pub fn local_managed_advance_control_work_limit(Result[@actql/actql/connectors/local/driver.LocalManagedAdvance, @actql/actql/connectors/local/driver.LocalDispatchIssue]) -> Int?

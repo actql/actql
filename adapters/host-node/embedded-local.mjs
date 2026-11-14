@@ -2801,6 +2801,16 @@ async function openInstalledHost(originalInstallation, preparation) {
         continue;
       }
       // Only this revision-stable common Owner projection supplies status.
+      // Failure DATA cannot select an outcome or confirm a physical stop.
+      // Join the same live entry before retirement, or the original journal
+      // observation key after it; neither race loses the original diagnosis.
+      if (state.status === 'failed' && retained.physicalCloseConfirmed === true &&
+          retained.observedTerminalOutcome === 'failed' &&
+          state.terminal_error?.code === 'ACTQL_E_UNPUBLISHED_RUN') {
+        const message = dispatchOwner.failureMessage?.(ref);
+        if (message !== undefined) state = {...state,
+          terminal_error: {...state.terminal_error, message}};
+      }
       projectRunObservation(ref, state, retained);
       try {
         const observed = JSON.parse(journal.publishRunState(retained, state,

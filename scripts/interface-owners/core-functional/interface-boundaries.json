@@ -53831,7 +53831,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_dispatch.mbt",
-      "sha256": "4db255509e3dddf0ef4bb5314cfcea3ad5225fb1496f855e9fd2440b97884e2c",
+      "sha256": "0478e867dc7034d6b6fa81a94cfae31d9ff38396d57054c0b9665befde9c4274",
       "role": "common-semantics",
       "owner": "Existing Local managed task/Source/resource owners; native supplied lifetime and imported producer custody remain distinct",
       "responsibilityFacet": "primary",
@@ -89054,7 +89054,7 @@
     },
     {
       "module": "adapters/local-node/managed-advance-diagnostic.mjs",
-      "sha256": "84d0744478142655bf50e9c5bbce3953329032b10fe123ac8affd984665fac61",
+      "sha256": "a366253e499419627beb53f94e195202522d4d86c20982e60e218c4714ba4b7b",
       "exports": [
         "checkedLocalManagedAdvance"
       ],
@@ -89066,6 +89066,30 @@
             "result",
             "checked",
             "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalBudget",
+          "parameters": [
+            "moon",
+            "result",
+            "diagnostic"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalBudget/fields/fields",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalBudget/originalBudget",
+          "parameters": [
+            "amount"
           ],
           "async": false
         }
@@ -89174,12 +89198,86 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "originalBudget",
+            "originalBudget/fields/fields",
+            "originalBudget/originalBudget"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/local-node/README.md",
+                "anchor": "When an accepted Compute exceeds a managed memory or runtime-work quota,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.mjs",
+                "anchor": "function originalBudget"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.mjs",
+                "anchor": "function originalBudget"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.mjs",
+                "anchor": "function originalBudget"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.mjs",
+                "anchor": "function originalBudget"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.mjs",
+                "anchor": "function originalBudget"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.mjs",
+                "anchor": "function originalBudget"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.mjs",
+                "anchor": "function originalBudget"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.mjs",
+                "anchor": "function originalBudget"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "anchor": "test('original managed budget quantities reach the existing public message with the correct setting and units'"
+              },
+              {
+                "path": "src/connectors_builtin_node/local_managed_failure_bridge_wbtest.mbt",
+                "anchor": "original budget bridge"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "src/connectors/local/driver/managed_advance_diagnostic.mbt",
-      "sha256": "2ce10589ae2bf8160c5ca20e04beab38ca8fff20d6c59b70603fcb2c238a7aaa",
+      "sha256": "d13e26edc34681d148e4ea8b0f202705db70743596b65f24ea32e432a651b7f9",
       "exports": [],
       "operations": [
         {
@@ -89189,6 +89287,10 @@
         {
           "name": "local_managed_advance_control_work_limit",
           "declaration": "local_managed_advance_control_work_limit ( issue : LocalDispatchIssue , ) - > Int ?"
+        },
+        {
+          "name": "local_managed_failure_budget",
+          "declaration": "local_managed_failure_budget ( issue : LocalDispatchIssue , ) - > ( String , Bool , Int64 , Int64 , Int64 ) ?"
         },
         {
           "name": "local_managed_failure_resource_dimension",
@@ -89295,14 +89397,90 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "local_managed_failure_budget"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/local-node/README.md",
+                "anchor": "When an accepted Compute exceeds a managed memory or runtime-work quota,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/local/driver/managed_advance_diagnostic.mbt",
+                "anchor": "local_managed_failure_budget"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/local/driver/managed_advance_diagnostic.mbt",
+                "anchor": "local_managed_failure_budget"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/local/driver/managed_advance_diagnostic.mbt",
+                "anchor": "local_managed_failure_budget"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/local/driver/managed_advance_diagnostic.mbt",
+                "anchor": "local_managed_failure_budget"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/local/driver/managed_advance_diagnostic.mbt",
+                "anchor": "local_managed_failure_budget"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/local/driver/managed_advance_diagnostic.mbt",
+                "anchor": "local_managed_failure_budget"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/local/driver/managed_advance_diagnostic.mbt",
+                "anchor": "local_managed_failure_budget"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/local/driver/managed_advance_diagnostic.mbt",
+                "anchor": "local_managed_failure_budget"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "anchor": "test('original managed budget quantities reach the existing public message with the correct setting and units'"
+              },
+              {
+                "path": "src/connectors_builtin_node/local_managed_failure_bridge_wbtest.mbt",
+                "anchor": "original budget bridge"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "src/connectors_builtin_node/local_managed_failure_bridge.mbt",
-      "sha256": "0dab8dbcea9f961327a236142e281edfd57ac1e8947e641b8ee4b939961ba413",
+      "sha256": "cc845e9fa74a8ccb283f03f4da8b849f8f287b2edb5d02ea54fc02baa0dc40fd",
       "exports": [],
       "operations": [
+        {
+          "name": "local_managed_advance_budget",
+          "declaration": "local_managed_advance_budget ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > ( String , Bool , Int64 , Int64 , Int64 ) ?"
+        },
         {
           "name": "local_managed_advance_capture_work",
           "declaration": "local_managed_advance_capture_work ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > Array [ Int ] ?"
@@ -89411,14 +89589,90 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "local_managed_advance_budget"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/local-node/README.md",
+                "anchor": "When an accepted Compute exceeds a managed memory or runtime-work quota,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/local_managed_failure_bridge.mbt",
+                "anchor": "local_managed_advance_budget"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors_builtin_node/local_managed_failure_bridge.mbt",
+                "anchor": "local_managed_advance_budget"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors_builtin_node/local_managed_failure_bridge.mbt",
+                "anchor": "local_managed_advance_budget"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors_builtin_node/local_managed_failure_bridge.mbt",
+                "anchor": "local_managed_advance_budget"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors_builtin_node/local_managed_failure_bridge.mbt",
+                "anchor": "local_managed_advance_budget"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors_builtin_node/local_managed_failure_bridge.mbt",
+                "anchor": "local_managed_advance_budget"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors_builtin_node/local_managed_failure_bridge.mbt",
+                "anchor": "local_managed_advance_budget"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors_builtin_node/local_managed_failure_bridge.mbt",
+                "anchor": "local_managed_advance_budget"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "anchor": "test('original managed budget quantities reach the existing public message with the correct setting and units'"
+              },
+              {
+                "path": "src/connectors_builtin_node/local_managed_failure_bridge_wbtest.mbt",
+                "anchor": "original budget bridge"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "src/connectors_builtin_node_rela/local_managed_failure_bridge.mbt",
-      "sha256": "a9173ee403646286108dea9a7df2bccad69f35bc22f2b0d217ebb7fb7ad324fd",
+      "sha256": "4f60e5c10bf346dd9fa8165fd24fe57400ccef4f3ab5f7f9611ec13d57389791",
       "exports": [],
       "operations": [
+        {
+          "name": "local_managed_advance_budget",
+          "declaration": "local_managed_advance_budget ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > ( String , Bool , Int64 , Int64 , Int64 ) ?"
+        },
         {
           "name": "local_managed_advance_capture_work",
           "declaration": "local_managed_advance_capture_work ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > Array [ Int ] ?"
@@ -89522,12 +89776,84 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "local_managed_advance_budget"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/local-node/README.md",
+                "anchor": "When an accepted Compute exceeds a managed memory or runtime-work quota,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node_rela/local_managed_failure_bridge.mbt",
+                "anchor": "local_managed_advance_budget"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors_builtin_node_rela/local_managed_failure_bridge.mbt",
+                "anchor": "local_managed_advance_budget"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors_builtin_node_rela/local_managed_failure_bridge.mbt",
+                "anchor": "local_managed_advance_budget"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors_builtin_node_rela/local_managed_failure_bridge.mbt",
+                "anchor": "local_managed_advance_budget"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors_builtin_node_rela/local_managed_failure_bridge.mbt",
+                "anchor": "local_managed_advance_budget"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors_builtin_node_rela/local_managed_failure_bridge.mbt",
+                "anchor": "local_managed_advance_budget"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors_builtin_node_rela/local_managed_failure_bridge.mbt",
+                "anchor": "local_managed_advance_budget"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors_builtin_node_rela/local_managed_failure_bridge.mbt",
+                "anchor": "local_managed_advance_budget"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "anchor": "test('original managed budget quantities reach the existing public message with the correct setting and units'"
+              },
+              {
+                "path": "src/connectors_builtin_node/local_managed_failure_bridge_wbtest.mbt",
+                "anchor": "original budget bridge"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "src/execution_relation/value_budget.mbt",
-      "sha256": "c37576e30cb1fce4421850f17a12c4d3552de04f9ceac1d4595254a089aaf161",
+      "sha256": "09f3765af25a79a338841411e9afc6ffd5f7927df7c99977b1e0c2a5b0998898",
       "exports": [],
       "operations": [
         {
@@ -89565,6 +89891,10 @@
         {
           "name": "remaining_value_work",
           "declaration": "remaining_value_work ( b : ValueBudget ) - > Int"
+        },
+        {
+          "name": "restart_completed_stepped_measure",
+          "declaration": "restart_completed_stepped_measure ( cursor : SteppedValueMeasure , value : Value , ) - > Bool"
         },
         {
           "name": "start_stepped_measure_result",
@@ -89674,6 +90004,78 @@
               {
                 "path": "src/execution_relation/value_capture_work_wbtest.mbt",
                 "anchor": "test \"capture text keeps one exact debit and distinguishes only the strictly smaller work refusal\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "restart_completed_stepped_measure"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/local-node/README.md",
+                "anchor": "When an accepted Compute exceeds a managed memory or runtime-work quota,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/execution_relation/value_budget.mbt",
+                "anchor": "fn restart_completed_stepped_measure"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/execution_relation/value_budget.mbt",
+                "anchor": "fn restart_completed_stepped_measure"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/execution_relation/value_budget.mbt",
+                "anchor": "fn restart_completed_stepped_measure"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/execution_relation/value_budget.mbt",
+                "anchor": "fn restart_completed_stepped_measure"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/execution_relation/value_budget.mbt",
+                "anchor": "fn restart_completed_stepped_measure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/execution_relation/value_budget.mbt",
+                "anchor": "fn restart_completed_stepped_measure"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/execution_relation/value_budget.mbt",
+                "anchor": "fn restart_completed_stepped_measure"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/execution_relation/value_budget.mbt",
+                "anchor": "fn restart_completed_stepped_measure"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "anchor": "test('original managed budget quantities reach the existing public message with the correct setting and units'"
+              },
+              {
+                "path": "src/connectors_builtin_node/local_managed_failure_bridge_wbtest.mbt",
+                "anchor": "original budget bridge"
               }
             ]
           }

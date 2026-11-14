@@ -1140,6 +1140,35 @@ function retainedRunFacts(row, publicationControl, maxWireBytes, updateOriginalC
   });
 }
 
+// The existing observation key already retains every non-clock state field.
+// Reuse only its closed budget message for this SAME failed Run/control frame;
+// no second store, error chain, execution owner or status inference is added.
+function retainedBudgetFailureMessage(key, state, runId, control) {
+  if (typeof key !== 'string' || state.status !== 'failed' ||
+      state.terminal_error?.code !== 'ACTQL_E_UNPUBLISHED_RUN' ||
+      control.physical_stop !== 'confirmed') return undefined;
+  let previous;
+  try { previous = JSON.parse(key); } catch { return undefined; }
+  if (previous?.run_id !== runId || previous.status !== 'failed' ||
+      previous.result_available !== false || previous.next_action?.kind !== 'none' ||
+      previous.terminal_error?.code !== 'ACTQL_E_UNPUBLISHED_RUN' ||
+      previous.control === null || typeof previous.control !== 'object' ||
+      Object.keys(previous.control).sort().join('\0') !== Object.keys(control).sort().join('\0') ||
+      Object.keys(control).some(name => previous.control[name] !== control[name])) return undefined;
+  const message = previous.terminal_error.message;
+  if (typeof message !== 'string') return undefined;
+  const amount = '(?:0|[1-9][0-9]{0,18}|unavailable)';
+  const prefix = 'Budget exceeded: phase=local_managed_advance; dimension=';
+  const memory = new RegExp('^' + prefix + '(retained_bytes|execution_bytes); requested_delta=' + amount +
+    '; remaining=' + amount + '; policy=' + amount + '; unit=logical_bytes; setting=installation\\.requestMemory\\.' +
+    '(retainedBytes|executionBytes)\\. Logical quota, not process RSS\\.$', 'u').exec(message);
+  if (memory && memory[2] === (memory[1] === 'retained_bytes' ? 'retainedBytes' : 'executionBytes')) return message;
+  const work = new RegExp('^' + prefix + '(?:value_capture_work|control_work); requested_delta=(?:>=[1-9][0-9]{0,18}|unavailable)' +
+    '; remaining=' + amount + '; policy=' + amount + '; unit=work_units; setting=installation\\.sourceFreeMaxWork\\. ' +
+    'Runtime work, not Program parsing/checking\\. A lower bound does not give the complete UTF8 demand\\.$', 'u');
+  return work.test(message) ? message : undefined;
+}
+
 const columns = `authority_scope_cid, caller_request_id,
   logical_request_scope_cid, intent_fingerprint_cid,
   program_definition_cid, parameter_values_cid, caller_input_intent_cid,
@@ -3595,14 +3624,20 @@ export function openClientRequestJournal(directory, {
       }
       // The frame already admitted this complete original row. Reuse its
       // typed Run/control facts, not a decode/encode/hash of identical bytes.
-      const projection = prepareInstalledRunStateObservation(requestControl, {
-        state: {...state, control: issueInstalledRunControlObservation(requestControl, {
+      const control = issueInstalledRunControlObservation(requestControl, {
           revision: frame.revision,
           cancellationRequested: frame.cancellationRequested,
           physicallyUnstarted: frame.physicalStartReserved === false,
           preDispatchFailureConfirmed: frame.preDispatchFailureConfirmed,
           physicalCloseConfirmed: frame.physicalCloseConfirmed,
-        })}, runId: publicationControl.runDefinitionRunId(frame.runDefinition),
+        });
+      const runId = publicationControl.runDefinitionRunId(frame.runDefinition);
+      const originalMessage = retainedBudgetFailureMessage(expected.state_observation_key,
+        state, runId, control);
+      const projection = prepareInstalledRunStateObservation(requestControl, {
+        state: {...state, ...(originalMessage === undefined ? {} : {
+          terminal_error: {...state.terminal_error, message: originalMessage},
+        }), control}, runId,
         revision: expected.state_revision, priorKey: expected.state_observation_key,
       });
       const currentRow = () => {

@@ -194,3 +194,192 @@ test('managed failure diagnostic wrapper lookup never traverses getters cause ch
     Object.defineProperty({primaryFailure:original},'primaryDiagnostic',{get(){assert.fail('no outer getter or fallback');}})])assert.equal(snapshot(value).primaryDiagnostic,undefined);
   assert.equal(snapshot({primaryFailure:undefined}).primaryDiagnostic,undefined);
 });
+
+const publicBudgetNode = tree.body.find(value => value.type === 'FunctionDeclaration' && value.id.name === 'publicBudgetFailureMessage');
+const publicBudgetMessage = Function('dispatchFailureSnapshot', `return (${source.slice(publicBudgetNode.start, publicBudgetNode.end)});`)(snapshot);
+const journalSource = readFileSync(new URL('../host-node/client-request-journal.mjs', import.meta.url), 'utf8');
+const journalTree = parse(journalSource, {ecmaVersion: 'latest', sourceType: 'module'});
+const retainedBudgetNode = journalTree.body.find(value => value.type === 'FunctionDeclaration' && value.id.name === 'retainedBudgetFailureMessage');
+const retainedBudgetMessage = Function(`return (${journalSource.slice(retainedBudgetNode.start, retainedBudgetNode.end)});`)();
+const some = value => Object.assign(Object.create({$tag: 1}), {_0: value});
+// Explicit test-port DATA; the separate compiled Core test qualifies the ABI.
+const budgetTuple = fields => Object.fromEntries(fields.map((value, index) => [`_${index}`, value]));
+
+test('original managed budget quantities reach the existing public message with the correct setting and units', () => {
+  for (const dimension of ['retained_bytes', 'execution_bytes', 'value_capture_work']) {
+    const result = {}, primary = Object.assign(new Error('original'), {code: 'MoonBitHostFailure'});
+    const work = dimension === 'value_capture_work';
+    const moon = {
+      strategyModule_local_ManagedAdvanceResourceDimension: () => work ? undefined : dimension,
+      strategyModule_local_ManagedAdvanceCaptureWork: () => some([41, 100]),
+      strategyModule_local_ManagedAdvanceBudget(value) {
+        assert.strictEqual(this, moon); assert.strictEqual(value, result);
+        return budgetTuple([dimension, !work, 8n, 7n, 100n]);
+      },
+    };
+    assert.throws(() => checkedLocalManagedAdvance(moon, result, value => {
+      assert.strictEqual(value, result); throw primary;
+    }, 41), error => error === primary);
+    const selected = snapshot(primary).primaryDiagnostic;
+    assert.deepEqual(selected.budget, {requested: '8', remaining: '7', policy: '100', requestedIsLowerBound: work});
+    const message = publicBudgetMessage(primary);
+    assert(message.includes(`dimension=${dimension};`));
+    assert(message.includes(`requested_delta=${work ? '>=' : ''}8; remaining=7; policy=100;`));
+    assert(message.includes(work ? 'setting=installation.sourceFreeMaxWork.'
+      : `setting=installation.requestMemory.${dimension === 'retained_bytes' ? 'retainedBytes' : 'executionBytes'}.`));
+    assert(message.includes(work ? 'not Program parsing/checking' : 'not process RSS'));
+    assert.equal(primary.message, 'original');
+  }
+});
+
+test('missing or malformed budget projection never invents quantities or replaces the original failure', () => {
+  for (const project of [() => undefined, () => {throw new Error('private');},
+    () => budgetTuple(['retained_bytes', true, 7n, 7n, 100n]),
+    () => budgetTuple(['execution_bytes', true, 8n, 7n, 100n]),
+    () => budgetTuple(['retained_bytes', false, 8n, 7n, 100n]),
+    () => budgetTuple(['retained_bytes', true, 8n, 7n, 6n])]) {
+    const primary = Object.assign(new Error('private'), {code: 'MoonBitHostFailure'});
+    assert.throws(() => checkedLocalManagedAdvance({
+      strategyModule_local_ManagedAdvanceResourceDimension: () => 'retained_bytes',
+      strategyModule_local_ManagedAdvanceBudget: project,
+    }, {}, () => {throw primary;}, 4), error => error === primary);
+    assert.equal(snapshot(primary).primaryDiagnostic.budget, undefined);
+    const message = publicBudgetMessage(primary);
+    assert(message.includes('requested_delta=unavailable; remaining=unavailable; policy=unavailable;'));
+    assert(!message.includes('private'));
+  }
+  const invalid = Object.assign(new Error('original'), {primaryDiagnostic: {
+    code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'resource', task: 4,
+    dimension: 'retained_bytes', budget: {get requested() {assert.fail('no getter');},
+      remaining: '0', policy: '100', requestedIsLowerBound: false},
+  }});
+  assert.equal(snapshot(invalid).primaryDiagnostic.budget, undefined);
+});
+
+test('same failed Run and exact control frame retain the first budget message without granting state or cleanup', () => {
+  const primary = {primaryDiagnostic: {code: 'MoonBitHostFailure', phase: 'local_managed_advance',
+    kind: 'resource', task: 4, dimension: 'retained_bytes',
+    budget: {requested: '19', remaining: '7', policy: '512', requestedIsLowerBound: false}}};
+  const message = publicBudgetMessage(primary);
+  const control = {revision: 4, physical_stop: 'confirmed', cancellation_requested: false};
+  const state = {run_id: 'original-run', status: 'failed', result_available: false,
+    next_action: {kind: 'none'}, terminal_error: {code: 'ACTQL_E_UNPUBLISHED_RUN', message}, control};
+  const key = JSON.stringify(state);
+  assert.equal(retainedBudgetMessage(key, state, 'original-run', control), message);
+  assert.equal(retainedBudgetMessage(key, {...state, terminal_error: {...state.terminal_error, message: 'later cause'}}, 'original-run', control), message);
+  for (const status of ['running', 'preparing', 'needs_reconciliation', 'cancelled', 'succeeded']) {
+    assert.equal(retainedBudgetMessage(key, {...state, status}, 'original-run', control), undefined);
+  }
+  for (const changed of [{...control, revision: 5}, {...control, physical_stop: 'unknown'},
+    {...control, cancellation_requested: true}]) {
+    assert.equal(retainedBudgetMessage(key, state, 'original-run', changed), undefined);
+  }
+  assert.equal(retainedBudgetMessage(key, state, 'foreign-run', control), undefined);
+  assert.equal(retainedBudgetMessage(JSON.stringify({...state, terminal_error: {...state.terminal_error, message: message + ' private'}}), state, 'original-run', control), undefined);
+  assert.equal(retainedBudgetMessage('not json', state, 'original-run', control), undefined);
+});
+
+const installerNode = tree.body.find(value => value.type === 'ExportNamedDeclaration' && value.declaration?.id?.name === 'installNodeClientDispatchOwner').declaration;
+const retirementSource = ['retirementReady', 'retainBudgetFailureObservation', 'retire'].map(name => {
+  const value = installerNode.body.body.find(value => value.type === 'FunctionDeclaration' && value.id.name === name);
+  assert(value, name); return source.slice(value.start, value.end);
+}).join('\n');
+
+test('original failed retirement publishes only after cleanup and fences callback reentry before returning the parent', () => {
+  for (const callback of ['reenter', 'new-pending', 'replace-entry']) {
+    let parentReturns = 0, publications = 0, retire;
+    const ref = {runDefinitionCid: 'original'};
+    const entry = {ref, settled: true, physicalStarted: true, stopObserved: true,
+      primaryFailure: {primaryDiagnostic: {code: 'MoonBitHostFailure', phase: 'local_managed_advance',
+        kind: 'resource', task: 4, dimension: 'retained_bytes'}},
+      retirePreparation() {parentReturns++;}};
+    const entries = new Map([['original', entry]]);
+    const frame = {physicalCloseConfirmed: true, observedTerminalOutcome: 'failed',
+      runDefinition: {}, resultNames: ['answer'], dispatchReserved: true, preDispatchFailureConfirmed: false};
+    const journal = {lookupRunDefinition(value) {assert.strictEqual(value, ref); return frame;},
+      publishRunState(original, state) {
+        publications++; assert.strictEqual(original, frame);
+        assert.equal(state.status, 'failed'); assert.equal(state.terminal_error.code, 'ACTQL_E_UNPUBLISHED_RUN');
+        assert(state.terminal_error.message.includes('dimension=retained_bytes'));
+        retire(entry); assert.equal(parentReturns, 0, 'No parent return inside the diagnostic callback');
+        if (callback === 'new-pending') entry.cleanupOwner = {};
+        if (callback === 'replace-entry') entries.set('original', {});
+      }};
+    retire = Function('publicBudgetFailureMessage', 'journal', 'moon', 'control', 'now',
+      'issueInstalledUnpublishedRunState', 'entries', 'keyOf', 'diagnostic', 'resourceUsage',
+      retirementSource + '\nreturn retire;')(publicBudgetMessage, journal, {},
+      {runDefinitionRunId: () => 'original-run'}, () => '2026-11-14T00:00:00.000Z',
+      () => ({status: 'failed', terminal_error: {code: 'ACTQL_E_UNPUBLISHED_RUN', message: 'Run ended before publication'}}),
+      entries, value => value.runDefinitionCid, () => {}, () => {});
+    retire(entry);
+    assert.equal(publications, 1);
+    if (callback === 'reenter') {
+      assert.equal(parentReturns, 1); assert.equal(entries.size, 0);
+    } else {
+      assert.equal(parentReturns, 0); assert.equal(entry.retirePreparation instanceof Function, true);
+      if (callback === 'new-pending') {
+        entry.cleanupOwner = undefined; retire(entry);
+        assert.equal(parentReturns, 1); assert.equal(publications, 1, 'Original diagnostic duty is spent once');
+      }
+    }
+  }
+});
+
+
+// Execute the actual observation closure with explicit original Store/journal
+// ports. This is a caller/currentness regression, not packed Host acceptance.
+const embeddedSource = readFileSync(new URL('../host-node/embedded-local.mjs', import.meta.url), 'utf8');
+const embeddedTree = parse(embeddedSource, {ecmaVersion: 'latest', sourceType: 'module'});
+const hostInstaller = embeddedTree.body.find(value => value.type === 'FunctionDeclaration' && value.id.name === 'openInstalledHost');
+const findObserve = value => {
+  if (!value || typeof value !== 'object') return undefined;
+  if (value.type === 'VariableDeclarator' && value.id?.name === 'observeRun') return value.init;
+  for (const child of Object.values(value)) {
+    const found = Array.isArray(child) ? child.map(findObserve).find(Boolean) : findObserve(child);
+    if (found) return found;
+  }
+};
+const observeNode = findObserve(hostInstaller);
+assert(observeNode, 'Actual installed Host observation closure');
+
+test('original revision-stable observation joins budget DATA only after actual failed stop and retries changed frames', async () => {
+  for (const mode of ['failed', 'pending-stop', 'unknown', 'running', 'cancelled', 'changed-frame', 'retired-entry']) {
+    const ref = {namespaceId: 'namespace', authorityScopeCid: 'authority', runDefinitionCid: 'definition'};
+    let attempts = 0, projections = 0, diagnosticReads = 0;
+    const frame = {runDefinition: {}, revision: 4, resultNames: ['answer'], dispatchReserved: true,
+      physicalStartReserved: true, preDispatchFailureConfirmed: false,
+      physicalCloseConfirmed: mode !== 'pending-stop',
+      observedTerminalOutcome: mode === 'unknown' ? null : 'failed'};
+    const status = ['running', 'cancelled'].includes(mode) ? mode : mode === 'unknown' ? 'needs_reconciliation' : 'failed';
+    const originalState = {status, terminal_error: {code: 'ACTQL_E_UNPUBLISHED_RUN', message: 'original placeholder'}};
+    const message = 'original closed budget message';
+    const journal = {
+      lookupRunDefinition(value) {assert.strictEqual(value, ref); attempts++; return frame;},
+      observeRunCancellation(value, originalMoon, originalControl, retained) {
+        assert.strictEqual(value, ref); assert.strictEqual(retained, frame);
+        return () => ({revision: mode === 'changed-frame' && attempts === 1 ? 5 : 4});
+      },
+      publishRunState(retained, state) {
+        assert.strictEqual(retained, frame); projections++;
+        const expected = mode === 'failed' || mode === 'changed-frame' ? message : originalState.terminal_error.message;
+        assert.equal(state.terminal_error.message, expected);
+        assert.equal(state.status, status);
+        return JSON.stringify(state);
+      },
+    };
+    const observe = Function('principalId', 'namespaceId', 'authorityScopeCid', 'journal', 'moon', 'control',
+      'observeAuthorizedRunState', 'stateService', 'checkpoints', 'dispatchOwner', 'modelResumeFlights',
+      'issueInstalledUnpublishedRunState', 'now', 'projectRunObservation', 'clientOperationError',
+      `return (${embeddedSource.slice(observeNode.start, observeNode.end)});`)(
+      'principal', 'namespace', 'authority', journal, {}, {runDefinitionRunId: () => 'run'},
+      async () => undefined, {}, undefined, {
+        live: () => mode === 'running',
+        failureMessage(value) {assert.strictEqual(value, ref); diagnosticReads++; return mode === 'retired-entry' ? undefined : message;},
+      }, new Map(), () => ({...originalState}), () => 'now', () => {}, code => new Error(code));
+    const observed = await observe({ref, principalId: 'principal'});
+    assert.equal(observed.status, status); assert.equal(projections, 1);
+    assert.equal(attempts, mode === 'changed-frame' ? 2 : 1);
+    assert.equal(diagnosticReads, ['failed', 'changed-frame', 'retired-entry'].includes(mode) ? 1 : 0);
+    await assert.rejects(observe({ref, principalId: 'foreign'}), /RunStateAccessDenied/u);
+  }
+});

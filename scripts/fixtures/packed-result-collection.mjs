@@ -82,13 +82,15 @@ function originalControlWorkRefusal(observations, ref, terminal, selectedWorkLim
     assert.equal(data.controlWorkLimit, selectedWorkLimit);
   } else {
     assert.equal(data.kind, 'value_capture_work');
-    assert.deepEqual(Object.keys(data).sort(), ['code', 'kind', 'phase', 'step', 'task', 'workLimit']);
+    assert.deepEqual(Object.keys(data).sort(), ['budget', 'code', 'kind', 'phase', 'step', 'task', 'workLimit']);
     assert(Number.isSafeInteger(data.step) && data.step >= 0 && data.step <= 2147483647);
     assert.equal(data.workLimit, selectedWorkLimit);
   }
-  return {...data, verified: true};
+  const publicBudget = originalPublicBudget(terminal, data, selectedWorkLimit,
+    'installation.sourceFreeMaxWork');
+  return {...data, publicBudget, verified: true};
 }
-function originalAcceptedMemoryRefusal(observations, ref, terminal) {
+function originalAcceptedMemoryRefusal(observations, ref, terminal, memory) {
   assert.equal(terminal.status, 'failed');
   assert.equal(terminal.result_available, false);
   assert.equal(terminal.control?.physical_stop, 'confirmed');
@@ -99,13 +101,65 @@ function originalAcceptedMemoryRefusal(observations, ref, terminal) {
   assert.equal(original.primaryCode, 'MoonBitHostFailure');
   const data = original.primaryDiagnostic;
   assert(data !== null && typeof data === 'object', 'OriginalComputeResourceDiagnosticUnavailable');
-  assert.deepEqual(Object.keys(data).sort(), ['code', 'dimension', 'kind', 'phase', 'task']);
+  assert.deepEqual(Object.keys(data).sort(), ['budget', 'code', 'dimension', 'kind', 'phase', 'task']);
   assert.equal(data.code, 'MoonBitHostFailure');
   assert.equal(data.phase, 'local_managed_advance');
   assert.equal(data.kind, 'resource');
   assert(Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647);
   assert(['retained_bytes', 'execution_bytes'].includes(data.dimension));
-  return {...data, verified: true};
+  const setting = data.dimension === 'retained_bytes' ? 'retainedBytes' : 'executionBytes';
+  const publicBudget = originalPublicBudget(terminal, data, memory[setting],
+    `installation.requestMemory.${setting}`);
+  return {...data, publicBudget, verified: true};
+}
+
+// Normal installed acceptance reads PUBLIC owner output, not an observer-only
+// log. Compare quantities to that SAME typed refusal and the explicit selected
+// policy. Never infer exact UTF8 demand from an intentionally bounded probe.
+function originalPublicBudget(terminal, data, policy, setting) {
+  const memory = data.kind === 'resource', dimension = memory ? data.dimension : data.kind;
+  const message = terminal.terminal_error?.message;
+  assert.equal(terminal.terminal_error?.code, 'ACTQL_E_UNPUBLISHED_RUN');
+  assert.equal(typeof message, 'string', 'Original public budget diagnosis required');
+  const budget = data.budget;
+  if (data.kind === 'control_work') {
+    assert.equal(budget, undefined);
+    assert(message.includes('requested_delta=unavailable; remaining=unavailable;'));
+  } else {
+    assert(budget && typeof budget === 'object', 'Original failed-time budget quantities required');
+    assert.deepEqual(Object.keys(budget).sort(), ['policy', 'remaining', 'requested', 'requestedIsLowerBound']);
+    for (const key of ['requested', 'remaining', 'policy']) {
+      assert.equal(typeof budget[key], 'string');
+      assert(/^(?:0|[1-9][0-9]{0,18})$/u.test(budget[key]));
+      assert(BigInt(budget[key]) <= 9223372036854775807n);
+    }
+    assert(BigInt(budget.requested) > BigInt(budget.remaining));
+    assert(BigInt(budget.remaining) <= BigInt(budget.policy));
+    assert.equal(budget.policy, String(policy));
+    assert.equal(budget.requestedIsLowerBound, !memory);
+    if (!memory) assert.equal(BigInt(budget.requested), BigInt(budget.remaining) + 1n);
+    assert(message.includes(`requested_delta=${memory ? '' : '>='}${budget.requested}; remaining=${budget.remaining};`));
+  }
+  assert(message.startsWith(`Budget exceeded: phase=local_managed_advance; dimension=${dimension};`));
+  assert(message.includes(`policy=${policy}; unit=${memory ? 'logical_bytes' : 'work_units'}; setting=${setting}.`));
+  assert(message.includes(memory ? 'not process RSS' : 'not Program parsing/checking'));
+  return {message, phase: 'local_managed_advance', dimension, setting,
+    quantities: budget ?? 'unavailable', policy: String(policy)};
+}
+
+async function originalBudgetReread(client, run, terminal, report, span) {
+  const original = terminal.terminal_error;
+  const after = await span('budget-status-after-retirement', () => run.status());
+  const saved = await span('attach-original-failed-budget', () => client.attach(run.ref));
+  const restored = await span('same-original-failed-Saved-budget', () => saved.status());
+  for (const state of [after, restored]) {
+    assert.equal(state.status, 'failed'); assert.equal(state.result_available, false);
+    assert.equal(state.control?.physical_stop, 'confirmed');
+    assert.equal(state.revision, terminal.revision);
+    assert.deepEqual(state.terminal_error, original);
+  }
+  report.publicBudgetReread = {sameHost: true, originalFailedRun: true,
+    sameMessage: true, sameRevision: true, newSubmissions: 0};
 }
 async function sameHostSmallResult(client, report, span, save) {
   report.currentRunResult = {kind: 'source', purpose: 'small-after-refusal'};
@@ -278,6 +332,7 @@ try {
     report.workDiagnosticAvailable = workObservations[0]?.primaryDiagnostic !== undefined;
     report.workRefusal = await span('verify-work-refusal', async () =>
       originalControlWorkRefusal(workObservations, run.ref, terminal, report.sourceFreeMaxWork));
+    await originalBudgetReread(client, run, terminal, report, span);
     assert.equal(capacityObservations.length, 0, 'Do not relabel memory refusal as control work');
     report.resourceRecovery = await sameHostSmallResult(client, report, span, save);
     report.previousSaved = await readPreviousSavedResult(client, previous, report, span);
@@ -305,7 +360,8 @@ try {
       report.cases.push({count: 100000, disposition: 'succeeded', rows: 100000, complete: true});
     } else {
       report.acceptedMemoryRefusal = await span('verify-accepted-memory-refusal', async () =>
-        originalAcceptedMemoryRefusal(workObservations, run.ref, terminal));
+        originalAcceptedMemoryRefusal(workObservations, run.ref, terminal, report.requestMemory));
+      await originalBudgetReread(client, run, terminal, report, span);
       report.cases.push({count: 100000, disposition: 'resource_refused', complete: true});
     }
     report.currentRunResult.complete = true;
