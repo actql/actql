@@ -1516,6 +1516,30 @@ test('automatic main integration remains full without cumulative evidence', () =
   }
 });
 
+test('distribution isolates pinned provider tests with their required GC recipe', () => {
+  const scripts = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).scripts;
+  const provider = 'node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- --expose-gc packages/provider-ai-sdk/*.test.mjs';
+  assert.equal(scripts['check:provider-ai-sdk'], provider);
+  assert.equal(scripts['check:distribution-client'].split(' && ').length, 53);
+  assert(!scripts['check:distribution-client'].includes('npm run check:provider-ai-sdk'));
+  assert.equal(scripts['postcheck:distribution-client'], 'npm run check:provider-ai-sdk && npm run check:otel-node');
+  assert(!scripts['check:distribution-client'].includes('packages/provider-ai-sdk/*.test.mjs'));
+  const steps = jobs['client-distribution'].steps;
+  assert(!steps.some(step => step.run === 'npm run postcheck:distribution-client'));
+  for (const command of scripts['postcheck:distribution-client'].split(' && ')) {
+    const selected = steps.filter(step => step.run === command);
+    assert.equal(selected.length, 1);
+    assert.equal(selected[0].if, steps.find(step => step.name === 'Test source-backed distribution contracts').if);
+    assert.equal(selected[0]['continue-on-error'], undefined);
+    assert(steps.indexOf(steps.find(step => step.run === 'npm ci --prefix packages/provider-ai-sdk --ignore-scripts')) < steps.indexOf(selected[0]));
+  }
+  assert(steps.some(step => step.run === 'npm ci --prefix packages/provider-ai-sdk --ignore-scripts'));
+  for (const step of steps.filter(step => step.run?.startsWith('node --test '))) {
+    assert(!step.run.includes('packages/provider-ai-sdk/*.test.mjs'));
+    assert(!step.run.includes('--expose-gc'));
+  }
+});
+
 test('normal distribution keeps original Request resource and cleanup regressions selected once', () => {
   const command = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
     .scripts['check:distribution-client'];

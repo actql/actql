@@ -807,11 +807,13 @@ test('each Client group retains its acceptance commands exactly once', () => {
     assert.deepEqual(runs(name), [
       ...(['client-distribution', 'client-distribution-callers', 'client-distribution-mutations'].includes(name) ? prepared : []),
       ...indexes.map(index => index === 4 ? distributionContracts : original[index]),
-      ...(name === 'client-distribution' ? ['npm run postcheck:distribution-client'] : []),
+      ...(name === 'client-distribution' ? ['npm run check:provider-ai-sdk', 'npm run check:otel-node'] : []),
     ], name);
   }
   const hooks = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).scripts;
-  assert.equal(hooks['postcheck:distribution-client'], 'npm run check:otel-node');
+  assert.equal(hooks['postcheck:distribution-client'], 'npm run check:provider-ai-sdk && npm run check:otel-node');
+  assert.deepEqual(hooks['postcheck:distribution-client'].split(' && '),
+    runs('client-distribution').slice(-2), 'local lifecycle and independent CI owners execute the same two commands once');
   assert.equal(hooks['check:otel-node'], 'npm ci --prefix packages/otel-node --ignore-scripts && node scripts/test-otel-node.mjs');
   assert.deepEqual(Object.values(partitions).flat().sort((a, b) => a - b),
     Array.from({length: 49}, (_, index) => index + 4).filter(index => ![15, 16].includes(index)),

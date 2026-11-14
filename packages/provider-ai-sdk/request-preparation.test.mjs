@@ -210,10 +210,10 @@ test('real SDK response rejection is sanitized and never causes another model re
     {code: 'SdkDecodedResultUnavailable'});
 });
 
-test('the exact installed lock closure uses v4 and exposes no public capability', () => {
+test('the exact installed lock closure uses v4 and only the Host registration entry', () => {
   const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url)));
   const lock = JSON.parse(readFileSync(new URL('./package-lock.json', import.meta.url)));
-  assert.deepEqual(pkg.exports, {});
+  assert.deepEqual(pkg.exports, {'.': {types: './index.d.ts', default: './index.mjs'}});
   assert.equal(pkg.private, true);
   assert.equal(lock.packages['node_modules/@ai-sdk/openai'].version, '4.0.91');
   assert.equal(lock.packages['node_modules/@ai-sdk/provider'].version, '4.0.26');
