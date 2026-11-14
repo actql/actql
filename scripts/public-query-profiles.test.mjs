@@ -134,7 +134,8 @@ test('packed driver retains analytic order, analytic property, aggregate and Sub
     assert.ok(fixture.includes(`ACTQL_TEST_${stem.replaceAll('-', '_').toUpperCase()}_ONLY`));
   }
   assert.ok(driver.includes("['scripts/fixtures/public-query-profiles.mjs', 'public-query-profiles.mjs']"));
-  assert.ok(fixture.includes('of publicQueryProfiles(scopeInputs)'));
+  assert.ok(fixture.includes('const profileCohorts = publicQueryProfiles(scopeInputs).map(profile => ({...profile,'));
+  assert.ok(fixture.includes('of partitionPublicQueryProfiles(profileCohorts, portablePart, inventoryKeys)'));
   assert.ok(driver.includes("process.argv.includes('--analytic-profiles-only')"));
   assert.ok(fixture.includes('ACTQL_TEST_ANALYTIC_PROFILES_ONLY'));
 });
@@ -218,8 +219,8 @@ test('packed analytic profiles are selected explicitly by both Host entrances', 
   assert.ok(fixture.includes('const hostCapacityPolicy = {...base.host_policy_profile.capacity, ...analyticCapacity};'));
   assert.ok(fixture.includes('environment.host_policy_profile = {...base.host_policy_profile, capacity: hostCapacityPolicy};'));
   assert.ok(fixture.includes('installation: {directory: localDirectory, sourceProfilePath, hostCapacityPolicy}'));
-  assert.ok(fixture.includes('const directory = cohortDirectory(localDirectory, index);'));
-  assert.ok(fixture.includes('const directory = cohortDirectory(remoteDirectory, index);'));
+  assert.ok(fixture.includes('const directory = cohortDirectory(localDirectory, cohortIndexes[index]);'));
+  assert.ok(fixture.includes('const directory = cohortDirectory(remoteDirectory, cohortIndexes[index]);'));
   assert.ok(fixture.includes('installation: {directory,\n      sourceProfilePath, hostCapacityPolicy,'));
   assert.equal(fixture.match(/const authorization = graphRemainingOperationsOnly \|\| inputStageResultOnly \|\| typedSubscriptOnly\s*\? createRetainedGraphAuthorization\(\) : undefined;/g)?.length, 2,
     'observer credentials are limited to explicit Graph, input-only or typed-subscript cohorts on both Hosts');
@@ -344,7 +345,8 @@ test('full corpus pins every authored occurrence independently of worker selecti
     assert.deepEqual(actual[key], pin[key], key);
   }
   const coordinator = await readFile(new URL('./fixtures/packed-query-transports.mjs', import.meta.url), 'utf8');
-  assert.ok(coordinator.includes("registered.inventorySha256, 'full worker inventory must match the independent authored pin'"));
+  assert.ok(coordinator.includes("const selected = ciPart === undefined ? registered : JSON.parse(await readFile('public-query-portable-parts.json', 'utf8')).parts[ciPart];"));
+  assert.ok(coordinator.includes("selected.inventorySha256, 'full worker inventory must match the independent authored pin'"));
 });
 import './public-query-refusal-classifications.test.mjs';
 
