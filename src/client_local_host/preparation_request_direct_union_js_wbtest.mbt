@@ -726,3 +726,35 @@ test "ordinary Source lexical work follows its same retained document through ch
   assert_eq(calls, (1L, 1L, 1L, 0L))
   assert_true(observation.1 && observation.0 >= document.length().to_int64())
 }
+
+///|
+test "raw Native default selection consumes only its original funded wire without snapshot fiction" {
+  let input = [71]
+  let parent = begin_request_preparation(
+    request_parent_fixture(input),
+    input,
+    client_local_resource_policy(),
+  ).unwrap()
+  assert_true(
+    request_default_program_preparation_limits(parent, input)
+    is Err(Preparation(Policy)),
+  )
+  reserve_request_native_intake_wire(parent, input, 4096).unwrap()
+  let limits = request_default_program_preparation_limits(parent, input).unwrap()
+  assert_eq(limits.checking.input.source.max_input_bytes, 4096)
+  assert_eq(limits.checking.input.tree.max_nodes, 4096)
+  assert_eq(limits.checking.compilation.structure.stages, 4096)
+  assert_eq(
+    limits.checking.input.source.max_depth,
+    @publication_host.client_standard_program_preparation_limits().checking.input.source.max_depth,
+  )
+  assert_eq((parent.snapshot_units, parent.snapshot_values), (0L, 0L))
+  assert_true(parent.submitted_intent is None && parent.snapshot_base is None)
+  assert_true(
+    request_default_program_preparation_limits(parent, [72])
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_eq(request_source_lexical_work("SELECT 7 AS n"), Some(26))
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}

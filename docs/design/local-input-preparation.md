@@ -6523,3 +6523,22 @@ observer, current fence, once-only parser, lowering, checker and cleanup remain
 in place. Grammar, expression, nesting and other independent work limits are
 unchanged; a lexical bound does not establish their complete demand. Native
 keeps its original result convention through the same default Source entry.
+
+### Raw Native document default selection
+
+The ordinary raw Native checker keeps its existing Request and producer. Its
+Reader has already observed and reserved `native_intake_wire_bytes` before
+constructing document/parameter Strings. The common default selector consumes
+that same retained byte envelope when no captured snapshot or submitted intent
+exists. Encoded bytes bound structural entries; they are never written into
+snapshot value/Text observations. The original raw entrance depth remains.
+The same already-backed fixed limit records are used, without a second reader,
+input scan, Request, parser or permission issuer.
+
+Captured and raw callers share the existing post-lowering default selection,
+including the unchanged, separately tracked Stage-group work policy. The retained
+Program supplies its constant-time Stage count. The fixed Request control quote
+also backs the coheld selected-limit return wrapper (one header/reference).
+Both callers use one lexical-work projection of the original document. Explicit
+profiles, current/reentry, overflow, semantic/algorithm work and cleanup remain
+independent; these projections do not grant Resource capacity or compile a body.

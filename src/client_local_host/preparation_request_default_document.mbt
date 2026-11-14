@@ -43,62 +43,10 @@ pub fn[I, T] prepare_request_default_source_computation_check(
   // input bounds into reuse validation; resetting to the standard document
   // envelope here would reject already funded input. Query has no such child;
   // YAML retains the explicit bounds that its original parser selected.
-  let program_limits = match owner.program_json {
-    None =>
-      match (owner.query_syntax, owner.computation_limits, owner.held_program) {
-        (Some(_), Some(selected), Some(program)) => {
-          // The SAME lowerer has completed and retained this exact Program.
-          // Read its O(1) inventory, not text length, a second parser or an
-          // inflated shared profile. The initial Request control quote backs
-          // these immutable selection records before the checker is called.
-          let stages = @syntax.stage_count(program)
-          // This remaining legacy work policy is separately tracked for
-          // replacement; do not mistake the common structural bound for its
-          // former Stage32 denominator while that work correspondence is open.
-          let original_stages = @publication_host.client_standard_program_preparation_limits().checking.compilation.structure.stages
-          let original_work = selected.checking.compilation.work
-          // The default generated representation selects bounded checking work
-          // for its actual normalized Stage groups. Keep the installed work /
-          // Stage envelope; do not change the shared profile or any explicit
-          // caller's budget. This ceiling is not a debit or storage allocation.
-          guard original_stages > 0 && original_work >= 0 else {
-            return Err(Preparation(Policy))
-          }
-          let groups = (stages.to_int64() + original_stages.to_int64() - 1L) /
-            original_stages.to_int64()
-          guard @execution.checked_preparation_add_product(
-              0L,
-              Int64::max(1L, groups),
-              original_work.to_int64(),
-            )
-            is Some(work) &&
-            work <= 2147483647L else {
-            return Err(Preparation(ProgramCheck(Overflow)))
-          }
-          let selected = {
-            ..selected,
-            checking: {
-              ..selected.checking,
-              compilation: {
-                ..selected.checking.compilation,
-                work: work.to_int(),
-                structure: {
-                  ..selected.checking.compilation.structure,
-                  stages,
-                },
-              },
-            },
-          }
-          owner.computation_limits = Some(selected)
-          selected
-        }
-        _ => program_limits
-      }
-    Some(source) =>
-      {
-        ..program_limits,
-        checking: { ..program_limits.checking, input: source.limits, },
-      }
+  let program_limits = match
+    request_default_lowered_program_limits(owner, program_limits) {
+    Ok(original) => original
+    Err(issue) => return Err(issue)
   }
   let effect_limits = {
     ..effect_limits,
@@ -112,6 +60,79 @@ pub fn[I, T] prepare_request_default_source_computation_check(
   }
   prepare_request_original_computation_check(
     owner, input, environment, publication, evidence, program_limits, effect_limits,
+  )
+}
+
+///|
+// Same default-selection continuation for captured and raw Native documents.
+// This is immutable selected DATA after the original lowerer, never another
+// parser, semantic checker, work receipt or Resource grant.
+fn[I] request_default_lowered_program_limits(
+  owner : ClientRequestPreparation[I],
+  program_limits : @publication_host.ClientProgramPreparationLimits,
+) -> Result[
+  @publication_host.ClientProgramPreparationLimits,
+  ClientRequestTerminalIssue,
+] {
+  Ok(
+    match owner.program_json {
+      None =>
+        match
+          (owner.query_syntax, owner.computation_limits, owner.held_program) {
+          (Some(_), Some(selected), Some(program)) => {
+            // The SAME lowerer has completed and retained this exact Program.
+            // Read its O(1) inventory, not text length, a second parser or an
+            // inflated shared profile. The initial Request control quote backs
+            // these immutable selection records before the checker is called.
+            let stages = @syntax.stage_count(program)
+            // This remaining legacy work policy is separately tracked for
+            // replacement; do not mistake the common structural bound for its
+            // former Stage32 denominator while that work correspondence is open.
+            let original_stages = @publication_host.client_standard_program_preparation_limits().checking.compilation.structure.stages
+            let original_work = selected.checking.compilation.work
+            // The default generated representation selects bounded checking work
+            // for its actual normalized Stage groups. Keep the installed work /
+            // Stage envelope; do not change the shared profile or any explicit
+            // caller's budget. This ceiling is not a debit or storage allocation.
+            guard original_stages > 0 && original_work >= 0 else {
+              return Err(Preparation(Policy))
+            }
+            let groups = (stages.to_int64() + original_stages.to_int64() - 1L) /
+              original_stages.to_int64()
+            guard @execution.checked_preparation_add_product(
+                0L,
+                Int64::max(1L, groups),
+                original_work.to_int64(),
+              )
+              is Some(work) &&
+              work <= 2147483647L else {
+              return Err(Preparation(ProgramCheck(Overflow)))
+            }
+            let selected = {
+              ..selected,
+              checking: {
+                ..selected.checking,
+                compilation: {
+                  ..selected.checking.compilation,
+                  work: work.to_int(),
+                  structure: {
+                    ..selected.checking.compilation.structure,
+                    stages,
+                  },
+                },
+              },
+            }
+            owner.computation_limits = Some(selected)
+            selected
+          }
+          _ => program_limits
+        }
+      Some(source) =>
+        {
+          ..program_limits,
+          checking: { ..program_limits.checking, input: source.limits, },
+        }
+    },
   )
 }
 

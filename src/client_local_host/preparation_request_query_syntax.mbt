@@ -279,3 +279,15 @@ pub fn[I] parse_request_query_syntax(
   }
   result
 }
+
+///|
+// Same raw lexical unit as Scanner.advance and first-spelling normalization.
+// No traversal or Resource grant; keep the original signed-Int headroom.
+fn request_source_lexical_work(document : String) -> Int? {
+  let units = document.length().to_int64()
+  if units > 1073741823L {
+    None
+  } else {
+    Some((2L * units).to_int())
+  }
+}

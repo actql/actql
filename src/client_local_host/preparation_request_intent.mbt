@@ -64,14 +64,34 @@ pub fn[I] request_default_program_preparation_limits(
   guard owner.phase == Open && request_intent_input_ready(owner) else {
     return Err(Preparation(WrongPhase))
   }
-  guard request_captured_intent_limits(
-      owner.snapshot_units,
-      owner.snapshot_values,
-    )
-    is Some(selected) else {
-    return Err(Preparation(Policy))
-  }
   let standard = @publication_host.client_standard_program_preparation_limits()
+  let selected : @source.ParseLimits = if owner.snapshot_units == 0L &&
+    owner.snapshot_values == 0L &&
+    owner.snapshot_base is None &&
+    owner.submitted_intent is None &&
+    !owner.intent_attempted &&
+    owner.native_intake_base is Some(_) &&
+    owner.native_intake_wire_bytes > 0 {
+    // The raw Native producer already observed and funded this SAME original
+    // wire extent before constructing its Reader/document. Encoded bytes bound
+    // syntax nodes; these are NOT fabricated snapshot value/Text quantities.
+    // Keep this entrance's original depth, rather than substituting SDK depth.
+    let bytes = owner.native_intake_wire_bytes
+    {
+      max_input_bytes: bytes,
+      max_nodes: bytes,
+      max_depth: standard.checking.input.source.max_depth,
+    }
+  } else {
+    match
+      request_captured_intent_limits(
+        owner.snapshot_units,
+        owner.snapshot_values,
+      ) {
+      Some(selected) => selected
+      None => return Err(Preparation(Policy))
+    }
+  }
   // Both native Program DATA and encoded SQL/Pipe/JSON/YAML documents belong
   // to this SAME observed snapshot. Each admitted node/Stage/step/result or
   // parameter requires at least one encoded byte. This finite upper bound
