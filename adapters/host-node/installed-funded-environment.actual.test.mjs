@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import test from 'node:test';
+import {parse} from 'acorn';
 import {createInstalledHostServices, retireInstalledSourceInitialization, withInstalledSourceLoading}
   from './installed-host-services.mjs';
 import {composeInstalledSourceEnvironment, composeInstalledInventoryEnvironment, releaseRetiredInstalledEnvironmentComposition,
@@ -125,6 +126,51 @@ test('Local graph defaults preserve explicit values and leave generic published 
   const generic=selectInstalledHostEnvironment(runtime,baseWire,explicit);
   assert.deepEqual(JSON.parse(generic).host_policy_profile.capacity,explicit);
   assert.equal(Object.hasOwn(JSON.parse(generic).host_policy_profile.capacity,'max_graph_construction_input_rows'),false);
+});
+
+test('Table129 source-profile option uses the actual early-policy Host entrance', () => {
+  const source=readFileSync(new URL('./embedded-local.mjs',import.meta.url),'utf8');
+  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});
+  const host=tree.body.find(node=>node.type==='FunctionDeclaration'&&node.id.name==='openInstalledHost');
+  assert.ok(host);
+  const declarations=[];
+  const visit=node=>{
+    if(node===null||typeof node!=='object')return;
+    if(node.type==='VariableDeclarator'&&['selectBaseEnvironment','baseEnvironmentWire'].includes(node.id.name))declarations.push(node);
+    for(const value of Object.values(node)){
+      if(Array.isArray(value))value.forEach(visit);
+      else if(value!==null&&typeof value==='object')visit(value);
+    }
+  };
+  visit(host.body);assert.equal(declarations.length,2);
+  const runtime=localPolicyRuntime();
+  const select=(overrides={})=>{
+    const calls=[];
+    const values={mode:'local',effectInstallation:undefined,selectedEffectPaths:[],
+      originalInstallation:{sourceProfilePath:'source129.json'},moon:runtime,environmentSource:baseWire,
+      hostCapacityPolicy:undefined,selectedLookupPolicy:undefined,requestMemory:undefined,
+      calendarArtifact:undefined,modelInstallation:undefined,mockModels:undefined,project:undefined,
+      installedProjectOriginalsForRuntime(project,moon){assert.strictEqual(moon,runtime);return project;},
+      selectInstalledHostEnvironment,
+      selectInstalledLocalMaterializationEnvironment(...args){calls.push(args[5]);return selectInstalledLocalMaterializationEnvironment(...args);},
+      ...overrides};
+    const body=declarations.map(node=>'const '+source.slice(node.start,node.end)+';').join('\n');
+    const wire=new Function(...Object.keys(values),body+'\nreturn baseEnvironmentWire;')(...Object.values(values));
+    return {wire,calls};
+  };
+  const selected=select();assert.deepEqual(selected.calls,[true]);
+  const f=fixture(),original=document('table-profile-path',selected.wire);
+  const composed=composeInstalledSourceEnvironment(f.services,f.moon,selected.wire,original);
+  assert.equal(composed.wire,original);
+  assert.ok(['max_graph_construction_edges','max_graph_construction_input_rows','max_graph_construction_nodes']
+    .every(key=>Object.hasOwn(composed.body.host_policy_profile.capacity,key)));
+  assert.equal(f.close(),true);
+  for(const override of [{modelInstallation:{}},{mockModels:{}},{calendarArtifact:{}},{project:{modelRegistry:{}}}]){
+    const independent=select(override);assert.deepEqual(independent.calls,[false]);
+    assert.equal(Object.hasOwn(JSON.parse(independent.wire).host_policy_profile.capacity,'max_graph_construction_nodes'),false);
+  }
+  const declared=select({originalInstallation:{sourceProfilePath:'source129.json',declaredFileBaseEnvironmentWire:baseWire}});
+  assert.equal(declared.wire,baseWire);assert.deepEqual(declared.calls,[]);
 });
 
 test('initial Environment admission reserves its retained raw reference before the first index insertion', () => {
