@@ -151,7 +151,7 @@ pub fn prepare_local_compute_module(
     max_work,
   }
   // No module handle has escaped. Default constructor quotation is pure and
-  // has no provider/current/IO callback; preserve its result once before the
+  // has no external provider/current/IO callback; preserve its result once before the
   // original module reaches dispatch preparation or a Run.
   for slot, sequence in original_sequences {
     if selected_default[slot] is OriginalDefault(_) {

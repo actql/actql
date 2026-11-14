@@ -225,7 +225,7 @@
     {
       "module": "src/connectors/local/module.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "c209f8509be747cf7cadd4cc74d9f04043be0a90a0ceb6a6f099c7373c7f7370",
+      "sha256": "635a1f354bf9670d055cab2d33354bad2277a8cba42f9fd2f59e39c4063698e7",
       "role": "connector-semantics",
       "owner": "Existing installed Local module, exact default bounded constructors and injected provider selection",
       "referenceQualification": "Original selected constructor and same-Task resource correspondence; no normal distribution or physical acceptance",
