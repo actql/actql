@@ -7137,21 +7137,43 @@ async function openOriginalLocalPublicationStore(
       async (metadata, consume) => {
         let scopeOpen = true;
         let rowsConsumed = false;
-        const readRows = async accept => {
+        const readRows = async (accept, beforeBufferGrowth) => {
           if (!scopeOpen || rowsConsumed || typeof accept !== 'function') {
             fail('InvalidPublicationRowConsumer');
           }
           rowsConsumed = true;
-          const frames = frameControl.prepareDurableResultRowFrames({
+          const growing = readDemand !== undefined;
+          if (growing && (typeof beforeBufferGrowth !== 'function' ||
+              ['prepareGrowingDurableResultRowFrames', 'durableResultRowFrameGrowth',
+                'growDurableResultRowFrameBuffer'].some(name => typeof frameControl[name] !== 'function'))) {
+            fail('InvalidPublicationRowConsumer');
+          }
+          const prepareFrames = growing ? frameControl.prepareGrowingDurableResultRowFrames
+            : frameControl.prepareDurableResultRowFrames;
+          const frames = Reflect.apply(prepareFrames, frameControl, [{
             maxBytes: metadata.payloadBytes,
             maxRows: metadata.rowCount,
             maxRowBytes: frameLimits.maxRowBytes,
             maxDepth: frameLimits.maxDepth,
             maxFrameBytes: frameLimits.maxFrameBytes,
-          });
-          let rowIndex = 0;
+          }]);
+          let rowIndex = 0, frameCapacity = 0;
           try {
             const physical = await consume(async chunk => {
+              if (growing) {
+                const needed = frameControl.durableResultRowFrameGrowth(frames, chunk.byteLength);
+                if (needed > frameCapacity) {
+                  // The original delivery owner flushes staged output and
+                  // grows its SAME READ parent before old/new row backing.
+                  const admitted = await beforeBufferGrowth(needed);
+                  if (!Number.isSafeInteger(admitted) || admitted < needed ||
+                      admitted > Math.min(frameLimits.maxRowBytes, metadata.payloadBytes)) {
+                    fail('InvalidPublicationRowConsumer');
+                  }
+                  frameControl.growDurableResultRowFrameBuffer(frames, admitted);
+                  frameCapacity = admitted;
+                }
+              }
               const rows = frameControl.feedDurableResultRowFrames(
                 frames, chunk,
               );

@@ -6986,7 +6986,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "73a43b5c3a97ae067ea893de26ce9a6dccd51e4ffcd1d58354a9acc977708790",
+      "sha256": "5c306568a3206a275ca0783700c89275c3e523b3bc145bcc1a46faa4a46da023",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -11304,7 +11304,8 @@
         {
           "name": "openOriginalLocalPublicationStore/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows/readRows/readRows",
           "parameters": [
-            "accept"
+            "accept",
+            "beforeBufferGrowth"
           ],
           "async": true
         },
@@ -11314,6 +11315,13 @@
             "chunk"
           ],
           "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows/readRows/readRows/readRows",
+          "parameters": [
+            "name"
+          ],
+          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/withSemanticCommit/withSemanticCommit",
@@ -16356,6 +16364,82 @@
               {
                 "path": "adapters/host-node/stored-content-consumption.test.mjs",
                 "anchor": "test('stored Content family refuses copied input"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openOriginalLocalPublicationStore/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows/readRows/readRows/readRows"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/local-node/README.md",
+                "anchor": "Result reads derive their total transfer, retained-value and row allowances"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const readRows = async (accept, beforeBufferGrowth)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_request_result_read.mbt",
+                "anchor": "physical_equal(original, input)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "const entry = original(request);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/result-delivery.mjs",
+                "anchor": "}, async needed => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication/payload_frames.mbt",
+                "anchor": "return Err(DurableRowFrameByteLimit)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/run_publication/payload_frames.mbt",
+                "anchor": "pub fn cancel_durable_result_row_frames("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_result_read.mbt",
+                "anchor": "fn result_read_row_cost("
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const admitted = await beforeBufferGrowth(needed);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/local-node/README.md",
+                "anchor": "caller limits can narrow reads or collection."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_result_read_js_wbtest.mbt",
+                "anchor": "same READ parent pays actual growing row frames beyond legacy one MiB before allocation"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "actual physical Result reader grows its original READ parent before raw row allocation beyond legacy caps"
               }
             ]
           }

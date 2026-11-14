@@ -83,3 +83,13 @@ test('awaited row acceptance provides backpressure and cancellation cannot finis
   assert.equal(calls, 1);
   assert.throws(() => parser.finish(), { code: 'RowFramesClosed' });
 });
+
+
+test('explicit finite row policy above legacy sixteen MiB initializes only actual payload backing', async () => {
+  const rows = [];
+  const parser = createRetainedRowFrames({maxBytes: 4, maxRows: 1,
+    maxRowBytes: 16777217, maxFrameBytes: 16777217, maxDepth: 8}, row => rows.push(row));
+  await parser.feed(new TextEncoder().encode('[{}]'));
+  assert.deepEqual(parser.finish(), {bytes: 4, rows: 1});
+  assert.deepEqual(rows, ['{}']);
+});

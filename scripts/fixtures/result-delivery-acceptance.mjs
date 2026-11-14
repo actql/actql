@@ -129,7 +129,7 @@ function fixture(api, control, options = {}) {
       assert.equal(attempt, state.selected.identity, 'reader must use canonical attempt');
       assert.equal(await authorize({resultDefinitionCid: definition}), true);
       state.readers++;
-      const resultSchemaWire = '{"value":{"nullable":false,"type":"integer"}}';
+      const resultSchemaWire = options.resultSchemaWire ?? '{"value":{"nullable":false,"type":"integer"}}';
       readDemand?.(Buffer.byteLength(resultSchemaWire));
       readDemand?.data(9, 3, resultSchemaWire.length + 5);
       readDemand?.finish();
@@ -156,7 +156,7 @@ function fixture(api, control, options = {}) {
     },
   });
   const service = api.installResultAccessService({store, control, authority,
-    now: () => state.now, limits,
+    now: () => state.now, limits: options.deliveryLimits ?? limits,
     frameLimits: options.frameLimits ?? {maxRowBytes: 4096, maxDepth: 32, maxFrameBytes: 4096},
     ...(options.readWorkspace === undefined ? {} : {readWorkspace: options.readWorkspace}),
     createDigest() {

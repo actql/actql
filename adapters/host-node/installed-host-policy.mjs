@@ -166,11 +166,13 @@ export function localResourceResultReadLimits(moon, requestMemory) {
       !Number.isSafeInteger(maxRows) || maxRows < 1 || maxRows > 2147483647) {
     fail('LocalResultReadPolicyProjection');
   }
-  const maxReadWireBytes = Math.min(10 * 1024 * 1024, Number(limits[3]));
+  // The existing parser uses one-based Core Int end coordinates, so its
+  // selected byte extent must be strictly below Int.max (source_value/input).
+  const maxReadWireBytes = Math.min(2147483646, Number(limits[3]));
   const maxRetainedValueBytes = Number(limits[4]);
   return Object.freeze({maxReadWireBytes,
-    maxRowWireBytes: Math.min(1024 * 1024, maxReadWireBytes),
-    maxRowRetainedValueBytes: Math.min(1024 * 1024, maxRetainedValueBytes),
+    maxRowWireBytes: Math.min(2147483647, maxReadWireBytes),
+    maxRowRetainedValueBytes: maxRetainedValueBytes,
     maxRetainedValueBytes, maxRows, maxBatchRows: 1000,
     maxBatchRetainedValueBytes: Math.min(10 * 1024 * 1024, maxRetainedValueBytes)});
 }

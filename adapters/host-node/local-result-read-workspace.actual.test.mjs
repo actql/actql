@@ -245,3 +245,44 @@ test('normal installed Result caller captures SAME policy and uses its actual RE
   workspace.row(request, 11);workspace.close(request);
   assert.deepEqual(await workspace.closeAll(), {pending: false});assert(initial >= 2 && current > 0);
 });
+
+
+test('actual READ serializer accepts a row beyond legacy one MiB under the same selected parent', async () => {
+  const row = '{"value":"' + 'x'.repeat(1048600) + '"}';
+  const o = owner(Object.freeze({retainedBytes: 536870912, executionBytes: 536870912}));
+  const f = createResultDeliveryFixture(access, control, {rows: [row],
+    resultSchemaWire: '{"value":{"nullable":false,"type":"string"}}',
+    deliveryLimits: {maxWireBytes: 8 * 1024 * 1024, maxNodes: 4096, maxDepth: 64},
+    frameLimits: {maxRowBytes: row.length, maxDepth: 64, maxFrameBytes: 65536},
+    maxBytes: 8 * 1024 * 1024, readWorkspace: o.workspace});
+  const result = await f.deliver();
+  assert.equal(f.state.chunks.join(''), '[' + row + ']');
+  assert.equal(result.sha256, hash('[' + row + ']'));
+  assert.deepEqual(o.reserved(o.parents[0]), [0n, 0n]);
+  assert.deepEqual(await o.workspace.closeAll(), {pending: false});
+});
+
+
+test('actual in-process Result decoder uses the SAME selected row policy beyond legacy one MiB', async () => {
+  const {authorizedLocalResultFrames} = await import('./in-process-result.mjs');
+  const {localResourceResultReadLimits} = await import('./installed-host-policy.mjs');
+  const selected = Object.freeze({retainedBytes: 536870912, executionBytes: 536870912});
+  const policy = localResourceResultReadLimits(raw, selected);
+  const text = 'x'.repeat(1048600), row = JSON.stringify({value: text});
+  const o = owner(selected), f = createResultDeliveryFixture(access, control, {rows: [row],
+    resultSchemaWire: '{"value":{"nullable":false,"type":"string"}}',
+    deliveryLimits: {maxWireBytes: Math.min(2147483647, policy.maxReadWireBytes),
+      maxNodes: policy.maxRowWireBytes, maxDepth: 64},
+    frameLimits: {maxRowBytes: policy.maxRowWireBytes, maxDepth: 64, maxFrameBytes: 65536},
+    maxBytes: policy.maxReadWireBytes, readWorkspace: o.workspace});
+  const received = [];
+  for await (const frame of authorizedLocalResultFrames(f.service, {
+    indexKey: {namespaceId: 'namespace', authorityScopeCid: `sha256:${'a'.repeat(64)}`,
+      runDefinitionCid: `sha256:${'9'.repeat(64)}`}, principalId: 'principal',
+    purpose: 'download', resultName: 'answer', attemptId: 'same-logical-attempt',
+  }, undefined, {maxRowBytes: policy.maxRowWireBytes}).frames) received.push(frame);
+  assert.deepEqual(received.map(frame => frame.value), [{value: text}]);
+  assert.equal(received[0].byteLength, Buffer.byteLength(row));
+  assert.deepEqual(o.reserved(o.parents[0]), [0n, 0n]);
+  assert.deepEqual(await o.workspace.closeAll(), {pending: false});
+});

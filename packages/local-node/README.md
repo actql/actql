@@ -166,6 +166,14 @@ remain independent. Exceeding any applicable limit refuses rather than silently
 expanding the budget. Reopen the installation with the same memory selection;
 Saved reads retain their original Run and do not re-execute the Program.
 
+Result reads derive their total transfer, retained-value and row allowances
+from that same selected finite policy. They have no separate10MiB total or1MiB
+row cutoff. The original READ Request reserves geometric raw-row and decoded
+workspace growth before its buffer constructor, including simultaneous old/new
+backing; a large allowed row does not preallocate the whole Result. Explicit
+caller limits can narrow reads or collection. Depth and integer representation
+checks and bounded frame/batch windows remain independent.
+
 For source-free ordinary Local Compute, select
 `installation: {sourceFreeMaxWork: 30000000}` (or `sourceFreeMaxWork` on the HTTP
 Host). The positive signed 32-bit value is captured as Host installation DATA

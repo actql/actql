@@ -2569,10 +2569,18 @@ async function openInstalledHost(originalInstallation, preparation) {
       };
     },
   });
+  // The SAME captured read policy bounds its serializer, not a separate
+  // one-megabyte publication-contract default. Core still reserves actual
+  // schema/row/output constructors on the original READ Request.
+  const resultDeliveryLimits = Object.freeze({
+    maxWireBytes: Math.min(2147483647, resultReadLimits.maxReadWireBytes),
+    maxNodes: resultReadLimits.maxRowWireBytes,
+    maxDepth: localContractLimits.maxDepth,
+  });
   const resultService = installNodeResultAccessService({store, control,
-    authority: resultAuthority, now, limits: localContractLimits,
+    authority: resultAuthority, now, limits: resultDeliveryLimits,
     ...(preparation === undefined ? {} : {readWorkspace: preparation.resultReadWorkspace(moon)}),
-    frameLimits: {maxRowBytes: 1024 * 1024, maxDepth: 64,
+    frameLimits: {maxRowBytes: resultReadLimits.maxRowWireBytes, maxDepth: 64,
       maxFrameBytes: 1024 * 1024}});
   const stateService = installRunStateService({store, control,
     authority: installRunStateAuthority({
@@ -6314,7 +6322,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     },
     captureResultOperation: observation === undefined ? undefined
       : () => observation.captureCurrentOperation(),
-    ...hostOperations, maxRowBytes: 1024 * 1024,
+    ...hostOperations, maxRowBytes: resultReadLimits.maxRowWireBytes,
   });
   const requestPreparation = preparation?.requestPreparation();
   if (requestPreparation !== selectedRequestPreparation) {
@@ -6387,7 +6395,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       authenticate: () => principalId,
       authorizeConnection: hostConnection,
       workspaceForPrincipal: () => workspaceId,
-      negotiate, maxRowBytes: 1024 * 1024, observe: diagnostic,
+      negotiate, maxRowBytes: resultReadLimits.maxRowWireBytes, observe: diagnostic,
       bindOwnedRequest: originalRequestPreparation === undefined ? undefined :
         (parent,derived) => preparation.bindSourceRequest(parent,derived),
       async performInstalledRequest(operation,request,signal) {

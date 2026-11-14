@@ -9,12 +9,12 @@ export function createRetainedRowFrames(options, accept) {
   for (const key of ['maxBytes', 'maxRows', 'maxRowBytes', 'maxDepth', 'maxFrameBytes']) {
     if (!Number.isSafeInteger(limits[key]) || limits[key] < 0) throw new RetainedRowFrameError('InvalidRowFrameLimits');
   }
-  if (!limits.maxRowBytes || limits.maxRowBytes > 16 * 1024 * 1024 ||
-      !limits.maxFrameBytes || limits.maxFrameBytes > 16 * 1024 * 1024 ||
+  if (!limits.maxRowBytes || limits.maxRowBytes > 2147483647 ||
+      !limits.maxFrameBytes || limits.maxFrameBytes > 2147483647 ||
       !limits.maxDepth || limits.maxDepth > 64 || typeof accept !== 'function') {
     throw new RetainedRowFrameError('InvalidRowFrameLimits');
   }
-  const row = new Uint8Array(limits.maxRowBytes);
+  const row = new Uint8Array(Math.min(limits.maxRowBytes, limits.maxBytes));
   const stack = new Uint8Array(limits.maxDepth);
   const decoder = new TextDecoder('utf-8', { fatal: true });
   let state = 'start', bytes = 0, rows = 0, size = 0, depth = 0;

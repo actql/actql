@@ -58,6 +58,12 @@ function collectionProgram(count) {
 function oversizedRowProgram() {
   return `SELECT [${new Array(20000).fill('0').join(',')}] AS cells`;
 }
+function largeRowProgram() {
+  // The authored input stays below64KiB; seventeen fields retain the SAME
+  // checked64k text and produce an independently expected row above1MiB.
+  return `WITH x AS (SELECT '${'x'.repeat(64000)}' AS t) SELECT ${
+    Array.from({length: 17}, (_, n) => `t AS f${n}`).join(',')} FROM x`;
+}
 // A long comment has no data rows or execution work. Its original request
 // snapshot alone outgrows this phase's fixed 256MiB while the later query fits.
 function memoryRecoveryProgram() {
@@ -444,9 +450,30 @@ try {
     const names = state.next_action?.results;
     assert(Array.isArray(names) && names.length === 1, 'Require the actual sole oversized-row Named Result');
     report.currentRunResult.resultName = names[0];
-    await span('all-oversized-row-refusal', () => assert.rejects(run.result(names[0]).all(), {code: 'ResultRowRetainedLimit'}));
+    await span('all-oversized-row-refusal', () => assert.rejects(run.result(names[0]).all({maxRowRetainedValueBytes: 1048576}), {code: 'ResultRowRetainedLimit'}));
     report.currentRunResult.complete = true;
-    report.oversizedRow = {rows: 1, arrayElements: 20000, expectedRefusal: 'ResultRowRetainedLimit', complete: true};
+    report.oversizedRow = {rows: 1, arrayElements: 20000, maxRowRetainedValueBytes: 1048576, expectedRefusal: 'ResultRowRetainedLimit', complete: true};
+    const largePath = join(process.cwd(), 'collection-large-row.sql');
+    await writeFile(largePath, largeRowProgram(), {flag: 'wx'});
+    programs.push(largePath); report.submits++;
+    const largeDocument = await readFile(largePath, 'utf8');
+    report.currentRunResult = {kind: 'source', purpose: 'large-row'};
+    const large = await span('submit-large-row', () => client.startSource(largeDocument, {format: 'sql'}));
+    await save('ref-before-wait-large-row.json', large.ref);
+    report.currentRunResult = {kind: 'run', ref: large.ref, purpose: 'large-row', complete: false};
+    const largeState = await span('wait-large-row', () => large.wait());
+    assert.equal(largeState.status, 'succeeded');
+    const largeNames = largeState.next_action?.results;
+    assert(Array.isArray(largeNames) && largeNames.length === 1);
+    const expectedLarge = Object.fromEntries(Array.from({length: 17}, (_, n) => [`f${n}`, 'x'.repeat(64000)]));
+    const largeResult = large.result(largeNames[0]);
+    assert.deepEqual(await span('all-large-row', () => largeResult.all()), [expectedLarge]);
+    await span('large-row-explicit-refusal', () => assert.rejects(
+      largeResult.all({maxRowWireBytes: 1048576}), {code: 'ResultRowWireLimit'}));
+    assert.deepEqual(await span('large-row-SAME-Run-recovery', () => largeResult.all()), [expectedLarge]);
+    report.currentRunResult.complete = true;
+    report.largeRow = {rows: 1, fields: 17, textUnitsPerField: 64000,
+      aboveLegacyRowWireBytes: 1048576, explicitRefusal: 'ResultRowWireLimit', sameRunRecovery: true, complete: true};
   } else {
     const original = JSON.parse(await readFile(handoffPath, 'utf8'));
     assert.equal(original.count, 100000);

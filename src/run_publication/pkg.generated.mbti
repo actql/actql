@@ -355,6 +355,8 @@ pub fn describe_committed_result(PublicationContract, PublicationContract, Strin
 
 pub fn durable_payload_failure_action_code(DurablePayloadFailureAction) -> Int
 
+pub fn durable_result_row_frame_growth(DurableResultRowFrames, Int) -> Result[Int, DurableResultRowFrameIssue]
+
 pub fn effect_apply_receipt_row_attempt_sequence(PublicationContract, String) -> Int64?
 
 pub fn effect_apply_receipt_row_field(PublicationContract, String, String) -> String?
@@ -550,6 +552,8 @@ pub fn generated_content_reference_policy(GeneratedContentReference) -> String
 pub fn generated_content_reference_storage(GeneratedContentReference) -> (String, String, String, Int)
 
 pub fn generated_content_reference_wire(GeneratedContentReference) -> String
+
+pub fn grow_durable_result_row_frame_buffer(DurableResultRowFrames, Int) -> Result[Unit, DurableResultRowFrameIssue]
 
 pub fn inspect_canonical_result_rows(String, Array[String], Int, Int, Int) -> Result[(String, Int), CapturedRunIssuanceIssue]
 
@@ -844,6 +848,8 @@ pub fn prepare_existing_delivery_attempt(PublicationContract?) -> ExistingDelive
 pub fn prepare_generated_content_reference(ContentByteEncoder, GeneratedContentBinding, @value_admission.ReferenceLimits) -> Result[GeneratedContentReference, GeneratedContentReferenceIssue]
 
 pub fn prepare_generated_content_reference_from_binding(ContentByteEncoder, String, @value_admission.ReferenceLimits) -> Result[GeneratedContentReference, GeneratedContentReferenceIssue]
+
+pub fn prepare_growing_durable_result_row_frames(Int, Int, Int, Int, Int) -> Result[DurableResultRowFrames, DurableResultRowFrameIssue]
 
 pub fn prepare_installation_publication_storage_binding(String, String, String, Int, Int, Int) -> Result[InstallationPublicationStorageBinding, PublicationContractIssue]
 

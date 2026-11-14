@@ -48,7 +48,7 @@ export async function runCollectionPhase({collection, command, record, capturePi
     assert.deepEqual(actual.requestMemory, {retainedBytes: memory, executionBytes: memory});
     assert(actual.complete); assert.equal(actual.firstClose, 'returned');
     assert.deepEqual(actual.aliveScopedFD, {before: 0, after: 0});
-    assert.equal(actual.submits, phase === 'capture' ? 5 : phase === 'budget' ? 1 : phase.endsWith('-recovery') ? 3 : 0);
+    assert.equal(actual.submits, phase === 'capture' ? 6 : phase === 'budget' ? 1 : phase.endsWith('-recovery') ? 3 : 0);
     if (phase === 'budget') {
       assert.equal(actual.budgetRefusal?.verified, true);
       assert.equal(actual.budgetDisposition, 'pre_send_capture');
@@ -158,9 +158,11 @@ export async function runCollectionPhase({collection, command, record, capturePi
       assert.deepEqual(actual.controls, {tighterRows: true, collectionBytes: true,
         wireBytes: true, rowWireBytes: true, rowBytes: true, originalChargeBeforeValidation: true,
         boundedBatches: true, batchBytes: true, earlyBreak: true, readerCancellation: true});
-      assert.deepEqual(actual.oversizedRow, {rows: 1, arrayElements: 20000,
+      assert.deepEqual(actual.oversizedRow, {rows: 1, arrayElements: 20000, maxRowRetainedValueBytes: 1048576,
         expectedRefusal: 'ResultRowRetainedLimit', complete: true});
-      assert.equal(actual.originalProgramsRemovedAfterFirstClose, 5);
+      assert.deepEqual(actual.largeRow, {rows: 1, fields: 17, textUnitsPerField: 64000,
+        aboveLegacyRowWireBytes: 1048576, explicitRefusal: 'ResultRowWireLimit', sameRunRecovery: true, complete: true});
+      assert.equal(actual.originalProgramsRemovedAfterFirstClose, 6);
     } else assert.deepEqual(actual.cases, [{count: 100000, complete: true}]);
     record.completed = true; record.status = 'passed';
   } catch (error) {
