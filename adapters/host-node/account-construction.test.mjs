@@ -131,10 +131,15 @@ const nodeConstructorSource = originalFunctions('./authorization.mjs', ['createN
 const cid = 'sha256:' + '1'.repeat(64);
 function scopeFixture(limit = 100000n, {onGate} = {}) {
   const f = fixture(limit), originalGates = [], closes = [], receivers = [];
-  let peak = 1;
+  const fixedControl = f.live.keys().next().value;
+  // The installed facet has its own first fixed-control Read. Count only
+  // actual per-observation/gate debt; an old consumed first Read ceases to be
+  // that fixed baseline as soon as it grows for metadata.
+  const retainedReads = () => f.live.size - (f.live.get(fixedControl) === 64n ? 1 : 0);
+  let peak = 0;
   const originalPrepare = f.moon.clientProgramPrepareAccountReadConstruction;
   f.moon.clientProgramPrepareAccountReadConstruction = (...args) => {
-    peak = Math.max(peak, f.live.size);
+    peak = Math.max(peak, retainedReads());
     return originalPrepare(...args);
   };
   Object.assign(f.moon, {
@@ -175,7 +180,7 @@ function scopeFixture(limit = 100000n, {onGate} = {}) {
       accountConstructorSource + '\nreturn createLocalAuthorizationGate;')(
     actualNodeConstructor, isAccountConstruction, readAccountConfiguration, localAuthorizationContext,
     contentCid, readAccountCurrent, fs.openSync, fs.fstatSync, fs.readSync, fs.closeSync);
-  return {...f, originalGates, closes, receivers, peak: () => peak,
+  return {...f, originalGates, closes, receivers, retainedReads, peak: () => peak,
     create(options = {}) {return create({accountConstruction: f.facet, principal: 'fixture',
       accountConfiguration: '{"account_id":"fixture"}', ...options});}};
 }
@@ -184,11 +189,11 @@ test('account gate repeated create and actual Scope close returns each SAME Read
   const f = scopeFixture();
   for (let index = 0; index < 129; index++) {
     const gate = await f.create();
-    assert.equal(f.live.size, 1);
+    assert.equal(f.retainedReads(), 1);
     assert.equal(gate.close(), true);
     assert.equal(gate.cleanupPending(), false);
     assert.equal(gate.close(), true);
-    assert.equal(f.live.size, 0, 'An already closed per-check gate must not retain its Account Read until Host close');
+    assert.equal(f.retainedReads(), 0, 'An already closed per-check gate must not retain its Account Read until Host close');
   }
   assert.equal(f.peak(), 1);
   assert.equal(f.admits(), 129);
@@ -203,7 +208,7 @@ test('account gate constructor-await close retains the already-created original 
   await assert.rejects(f.create(), {code: 'AccountConstructionClosed'});
   assert.equal(await firstClose, false, 'The original active constructor is still owned');
   assert.equal(f.originalGates.length, 1);
-  assert.equal(f.live.size, 1);
+  assert.equal(f.retainedReads(), 1);
   assert.equal(await f.facet.close(), true);
   assert.equal(f.closes[0], 1, 'Retire the original constructed Scope, even when the gate was never returned');
   assert.equal(f.live.size, 0);
