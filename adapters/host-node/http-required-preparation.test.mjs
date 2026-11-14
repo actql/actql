@@ -86,7 +86,8 @@ async function rawHttpFixture(run, {maxRequestBytes = 65536, denyAuth = false,
     await new Promise(resolve => server.close(resolve));
   }
 }
-const rawBody = JSON.stringify({connection: {mode: 'local', owner: 'local'}});
+const rawBody = JSON.stringify({connection: {mode: 'local', owner: 'local',
+  consentRefs: [], runners: []}});
 const postRaw = (url, body = rawBody) => fetch(url, {method: 'POST',
   headers: {'content-type': 'application/json'}, body, signal: AbortSignal.timeout(10000)});
 
