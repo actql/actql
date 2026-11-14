@@ -3,13 +3,12 @@
 /// New values cannot acquire completion authority without the exact source and
 /// successful verification of its whole ordered canonical identity.
 struct CompletedOutputImport {
-  source : CompletedOutput
+  mut source : CompletedOutput
   admitted : AdmittedOutput
   stream : AdmittedOutputStream
   mut open : Bool
   mut reading : Bool
   mut completed : Bool
-  mut finished_output : CompletedOutput?
 }
 
 ///|
@@ -124,15 +123,7 @@ pub fn prepare_completed_output_import(
   }
   admitted.buffer.deferred_reclamation = deferred_reclamation
   stream.buffer.deferred_reclamation = deferred_reclamation
-  Ok({
-    source,
-    admitted,
-    stream,
-    open: true,
-    reading: false,
-    completed: false,
-    finished_output: None,
-  })
+  Ok({ source, admitted, stream, open: true, reading: false, completed: false, })
 }
 
 ///|
@@ -297,7 +288,11 @@ pub fn finish_completed_output_import(
     table: Some(table),
     representation: None,
   }
-  value.finished_output = Some(output)
+  // The original source is needed only through identity verification above.
+  // Reuse its existing slot after handoff; no second standing output/Some is
+  // added to importers at other Host/Native entrances. Snapshot old-reference
+  // custody remains separately held by that original snapshot owner.
+  value.source = output
   Ok(output)
 }
 
@@ -329,9 +324,7 @@ pub fn completed_output_import_shared_scalar_text_bytes(
   if !value.completed ||
     value.open ||
     value.reading ||
-    !value.finished_output
-    .map(original => physical_equal(original, output))
-    .unwrap_or(false) ||
+    !physical_equal(value.source, output) ||
     !completed_import_plain_scalar_schema(value.admitted.buffer.schema) {
     return None
   }
@@ -341,9 +334,7 @@ pub fn completed_output_import_shared_scalar_text_bytes(
   if !available ||
     value.open ||
     !value.completed ||
-    !value.finished_output
-    .map(original => physical_equal(original, output))
-    .unwrap_or(false) {
+    !physical_equal(value.source, output) {
     return None
   }
   checked_preparation_add_product(

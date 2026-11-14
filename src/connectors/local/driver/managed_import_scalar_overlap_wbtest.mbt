@@ -19,6 +19,9 @@ test "closed scalar parser overlap composes observed prefixes without raising th
   let complete = base + next + imported_after + other_owners
   assert_eq(complete, existing + needed)
   assert_true(complete >= existing && complete <= 1073741824L)
+  let controls = local_managed_scalar_overlap_control_capacity().unwrap()
+  assert_eq(controls, 240L)
+  assert_true(complete + controls <= 1073741824L)
   // No second credit: later growth pays its complete new delta.
   assert_eq(
     local_managed_import_working_overlap(
@@ -34,6 +37,34 @@ test "closed scalar parser overlap composes observed prefixes without raising th
     local_managed_import_working_overlap(imported, 0L, previous, next),
     Some((imported, 0L, next - previous)),
   )
+}
+
+///|
+test "scalar overlap fixed controls cover initial and every nullable construction phase" {
+  let standing : @execution.PreparationRepresentationUnits = {
+    record_headers: 2L,
+    reference_slots: 7L,
+    scalar_words: 1L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
+  let quote = local_managed_scalar_overlap_control_capacity().unwrap()
+  assert_eq(@execution.preparation_representation_cost(standing), Some(96L))
+  for
+    phase in [
+      (0L, 0L, 0L), // Initial None, before any import is constructed.
+      (5L, 1L, 7L), // Old/getter/replacement Some and bind/map closures.
+      (3L, 1L, 6L), // Remaining Some plus arithmetic Some(tuple3).
+      (3L, 1L, 4L), // One current fence and original optional quantity.
+    ] {
+    let actual = @execution.preparation_representation_cost({
+      ..standing,
+      record_headers: standing.record_headers + phase.0,
+      reference_slots: standing.reference_slots + phase.1,
+      scalar_words: standing.scalar_words + phase.2,
+    }).unwrap()
+    assert_true(actual <= quote)
+  }
 }
 
 ///|

@@ -408,6 +408,32 @@ fn local_managed_import_working_overlap(
 }
 
 ///|
+// Fixed constructor inventory, independent of row/wire limits and backend
+// nullable optimizations. Standing 2H/7R/1W: two Ref cells (scalar/optional),
+// plus six closure slots (reserve/outer snapshot/finish, save/reload/finish).
+// The optional cell's None tag and Some reference each use one eight-byte
+// slot. Reload peak 5H/1R/7W covers old/getter/new Some values plus bind/map
+// closures; each Some has its own header, tag and payload. Growth's remaining
+// Some plus Some(tuple3) is only 3H/1R/6W; each post-current map/Some fence is
+// at most 3H/1R/4W. These phases do not overlap. Prepay standing + reload
+// (7H/8R/8W) before construction on this SAME task, independently of parser
+// Text. This is the logical representation tariff, not a backend heap claim.
+let local_managed_scalar_overlap_controls : @execution.PreparationRepresentationUnits = {
+  record_headers: 7L,
+  reference_slots: 8L,
+  scalar_words: 8L,
+  owned_utf16_units: 0L,
+  owned_wire_bytes: 0L,
+}
+
+///|
+fn local_managed_scalar_overlap_control_capacity() -> Int64? {
+  @execution.preparation_representation_cost(
+    local_managed_scalar_overlap_controls,
+  )
+}
+
+///|
 // Only the exact finished export supplies these copy extents. They fund the
 // existing importer; all original admission and identity limits still apply.
 fn local_relation_snapshot_reload_capacity(
@@ -795,6 +821,11 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
     imported += required
   }
   if per_input > 0L && count > 9223372036854775807L / per_input {
+    return Err(Configuration(InvalidLimits))
+  }
+  guard local_managed_scalar_overlap_control_capacity() is Some(controls) &&
+    @execution.checked_preparation_add_product(imported, controls, 1L)
+    is Some(imported) else {
     return Err(Configuration(InvalidLimits))
   }
   // Host metadata is a separately funded holding. It survives scratch release
@@ -3043,7 +3074,6 @@ pub fn[T] start_local_managed_dispatch(
       let emitted_bytes = Ref(0L)
       let reload_capacity : Ref[Int64?] = Ref(None)
       let reload_scalar_text : Ref[Int64?] = Ref(None)
-      let reload_scalar_text_capacity : Ref[Int64?] = Ref(None)
       let fund_part = fn(part : String) -> Result[Unit, LocalDispatchIssue] {
         let bytes = match
           managed_row_transfer_bytes(part, frames.maxFrameBytes) {
@@ -3170,7 +3200,7 @@ pub fn[T] start_local_managed_dispatch(
           content,
         )
         let imported_values = @execution.output_stream_value_usage(content)
-        reload_scalar_text_capacity.val = @execution.checked_preparation_add_product(
+        reload_scalar_text.val = @execution.checked_preparation_add_product(
           0L,
           Int::min(setup.imports.row.max_text_bytes, imported_values.text_bytes).to_int64(),
           8L,
@@ -3511,7 +3541,7 @@ pub fn[T] start_local_managed_dispatch(
               @execution.completed_output_import_shared_scalar_text_bytes(
                 original_import, value,
               ).bind(bytes => {
-                reload_scalar_text_capacity.val.map(capacity => {
+                reload_scalar_text.val.map(capacity => {
                   Int64::min(bytes, capacity)
                 })
               })

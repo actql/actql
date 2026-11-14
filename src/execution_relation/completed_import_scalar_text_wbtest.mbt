@@ -12,7 +12,7 @@ fn completed_scalar_text_fixture(
     row_wire_limits(),
     64,
   ).unwrap()
-  assert_true(importing.finished_output is None)
+  assert_true(physical_equal(importing.source, source))
   for row in 0..<2 {
     append_completed_output_import(importing, output_fixture_row(owner, row)).unwrap()
   }
@@ -24,6 +24,7 @@ fn completed_scalar_text_fixture(
 test "closed scalar import reports only same original shared text DATA" {
   let (importing, output) = completed_scalar_text_fixture(() => true)
   assert_true(!importing.open && importing.completed && !importing.reading)
+  assert_true(physical_equal(importing.source, output))
   assert_eq(importing.admitted.buffer.budget.text, 10)
   assert_eq(
     completed_output_import_shared_scalar_text_bytes(importing, output),
