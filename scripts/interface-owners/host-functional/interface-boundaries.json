@@ -136997,7 +136997,7 @@
     },
     {
       "module": "adapters/host-node/source-alias-construction.mjs",
-      "sha256": "24fde565586319f5b22e8b9495f7a2d64cb976726a4e86dfac94e621fdd4387e",
+      "sha256": "f6d02eddc0f161cb6074927b0bb62577d1099c823640913ead7069a5dab54a10",
       "exports": [
         "captureSourceAliasConstruction",
         "sourceAliasBorrowedGeometry",
