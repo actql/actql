@@ -14,6 +14,7 @@ fn content_capture_test_generation(
   template : RunEvidenceValue,
   run : PublicationContract,
   live : Ref[Bool],
+  available? : () -> Bool = () => true,
 ) -> BoundContentGeneration raise {
   let schema = @schema.from_fields(
     [
@@ -74,7 +75,7 @@ fn content_capture_test_generation(
   let candidate = prepare_generated_content_reference(encoder, binding, limits).unwrap()
   let issuer = @admitted.bind_reference_issuer(
     (_, wire) => live.val && wire == generated_content_reference_wire(candidate),
-    _ => live.val,
+    _ => live.val && available(),
   )
   let content = issue_generated_content_reference(candidate, issuer, limits).unwrap()
   let input = seal_run_evidence_value(
@@ -168,6 +169,7 @@ fn content_capture_test_template() -> RunEvidenceValue {
 ///|
 fn content_capture_test_chain(
   live : Ref[Bool],
+  available? : () -> Bool = () => true,
 ) -> (CapturedRunTestChain, BoundContentGeneration) raise {
   let original = captured_run_test_chain()
   let template = content_capture_test_template()
@@ -183,7 +185,12 @@ fn content_capture_test_chain(
     4096,
     32,
   ).unwrap()
-  let generation = content_capture_test_generation(template, run, live)
+  let generation = content_capture_test_generation(
+    template,
+    run,
+    live,
+    available~,
+  )
   let observation_body = @json.object_without_field(
     captured_test_value(
       run_evidence_value_json(receipt_test_observation(template)),

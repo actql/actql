@@ -236,26 +236,127 @@ pub fn advance_installed_effect_dependency_capture(
   issuer : @publication.CapturedRunIssuancePreparation,
   quantum : Int,
 ) -> Result[Bool, ClientInstalledManagedRunIssue] {
-  guard owner.original is Some(original) && physical_equal(original, owner) else { return Err(ForeignOriginal) }
-  if owner.effect_operation_opening || owner.effect_operation_closing { return Err(AlreadyBound) }
+  guard owner.original is Some(original) && physical_equal(original, owner) else {
+    return Err(ForeignOriginal)
+  }
+  if owner.effect_operation_opening || owner.effect_operation_closing {
+    return Err(AlreadyBound)
+  }
   owner.effect_operation_opening = true
-  defer { owner.effect_operation_opening = false }
-  guard owner.preparation is Some(preparation) && preparation is PlannedEffectManaged(admission, plan) &&
-    owner.ledger is Some(ledger) && owner.effect_operation_controls is Some(control) &&
-    control.dependency_capture is Some(original_issuer) && physical_equal(original_issuer, issuer) else { return Err(Retired) }
-  match check_installed_effect_managed_run_binding(owner, prepared, request) { Err(issue) => return Err(issue); Ok(_) => () }
-  if !physical_equal(plan, expected_plan) || quantum < 1 || quantum > 256 { return Err(ForeignOriginal) }
+  defer {
+    owner.effect_operation_opening = false
+  }
+  guard owner.preparation is Some(preparation) &&
+    preparation is PlannedEffectManaged(admission, plan) &&
+    owner.ledger is Some(ledger) &&
+    owner.effect_operation_controls is Some(control) &&
+    control.dependency_capture is Some(original_issuer) &&
+    physical_equal(original_issuer, issuer) else {
+    return Err(Retired)
+  }
+  match check_installed_effect_managed_run_binding(owner, prepared, request) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if !physical_equal(plan, expected_plan) || quantum < 1 || quantum > 256 {
+    return Err(ForeignOriginal)
+  }
+  if issuer.next_step_requires_reference_callback() {
+    // Debit the actual scalar step while scoped, then close/return that view
+    // BEFORE the existing reference-authorize callback can run or reenter.
+    match
+      with_installed_effect_dependency_work(
+        control,
+        admission,
+        plan,
+        ledger,
+        () => {
+          check_installed_effect_operation_original(
+            owner,
+            ledger,
+            preparation,
+            Some(control),
+          )
+        },
+        control.reservation,
+        () => owner.effect_operation_opening && !owner.effect_operation_closing,
+        spend => {
+          spend(1).map_err(issue => {
+            @resources.NodeManagedRunOperationIssue::Control(issue)
+          })
+        },
+      ) {
+      Err(issue) =>
+        return Err(installed_effect_operation_reservation_issue(issue))
+      Ok(_) => ()
+    }
+    let advanced = issuer.advance(1)
+    // No Work cursor is live here. Recheck the SAME original after the actual
+    // mutable callback; equality/metadata is not a cached authority decision.
+    match require_installed_effect_operation_plan(owner, prepared, request) {
+      Ok((current_plan, current_ledger)) if physical_equal(current_plan, plan) &&
+        physical_equal(current_ledger, ledger) => ()
+      Ok(_) => return Err(ForeignOriginal)
+      Err(issue) => return Err(issue)
+    }
+    match
+      check_installed_effect_operation_original(
+        owner,
+        ledger,
+        preparation,
+        Some(control),
+      ) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    return match advanced {
+      Ok((done, _)) => Ok(done)
+      Err(_) => Err(Unsupported)
+    }
+  }
   let refused : Ref[@resources.LedgerIssue?] = Ref(None)
-  let result = with_installed_effect_dependency_work(control, admission, plan, ledger,
-    () => check_installed_effect_operation_original(owner, ledger, preparation, Some(control)), control.reservation,
+  let result = with_installed_effect_dependency_work(
+    control,
+    admission,
+    plan,
+    ledger,
+    () => {
+      check_installed_effect_operation_original(
+        owner,
+        ledger,
+        preparation,
+        Some(control),
+      )
+    },
+    control.reservation,
     () => owner.effect_operation_opening && !owner.effect_operation_closing,
     spend => {
-      match issuer.advance_with_work(quantum, units => { match spend(units) { Ok(_) => true; Err(issue) => { refused.val = Some(issue); false } } }) {
+      match
+        issuer.advance_with_work(quantum, units => {
+          match spend(units) {
+            Ok(_) => true
+            Err(issue) => {
+              refused.val = Some(issue)
+              false
+            }
+          }
+        }) {
         Ok((done, _)) => Ok(done)
-        Err(_) => Err(@resources.NodeManagedRunOperationIssue::Original(Unsupported))
+        Err(_) =>
+          Err(@resources.NodeManagedRunOperationIssue::Original(Unsupported))
       }
-    }).map_err(installed_effect_operation_reservation_issue)
-  match result { Err(issue) => Err(match refused.val { Some(issue) => Ledger(issue); None => issue }); Ok(value) => Ok(value) }
+    },
+  ).map_err(installed_effect_operation_reservation_issue)
+  match result {
+    Err(issue) =>
+      Err(
+        match refused.val {
+          Some(issue) => Ledger(issue)
+          None => issue
+        },
+      )
+    Ok(value) => Ok(value)
+  }
 }
 
 ///|
@@ -265,30 +366,74 @@ pub fn finish_installed_effect_dependency_capture(
   request : @publication_host.ClientRequestIdentity,
   expected_plan : ClientInstalledEffectManagedPlan,
   issuer : @publication.CapturedRunIssuancePreparation,
-) -> Result[@publication.PreparedCapturedEffectRun, ClientInstalledManagedRunIssue] {
-  guard owner.original is Some(original) && physical_equal(original, owner) else { return Err(ForeignOriginal) }
-  if owner.effect_operation_opening || owner.effect_operation_closing { return Err(AlreadyBound) }
+) -> Result[
+  @publication.PreparedCapturedEffectRun,
+  ClientInstalledManagedRunIssue,
+] {
+  guard owner.original is Some(original) && physical_equal(original, owner) else {
+    return Err(ForeignOriginal)
+  }
+  if owner.effect_operation_opening || owner.effect_operation_closing {
+    return Err(AlreadyBound)
+  }
   owner.effect_operation_opening = true
-  defer { owner.effect_operation_opening = false }
-  guard owner.preparation is Some(preparation) && preparation is PlannedEffectManaged(admission, plan) &&
-    owner.ledger is Some(ledger) && owner.effect_operation_controls is Some(control) &&
-    control.dependency_inventory is Some(inventory) && control.dependency_capture is Some(original_issuer) &&
-    physical_equal(original_issuer, issuer) else { return Err(Retired) }
-  match check_installed_effect_managed_run_binding(owner, prepared, request) { Err(issue) => return Err(issue); Ok(_) => () }
-  if !physical_equal(plan, expected_plan) { return Err(ForeignOriginal) }
-  with_installed_effect_dependency_work(control, admission, plan, ledger,
-    () => check_installed_effect_operation_original(owner, ledger, preparation, Some(control)), control.reservation,
+  defer {
+    owner.effect_operation_opening = false
+  }
+  guard owner.preparation is Some(preparation) &&
+    preparation is PlannedEffectManaged(admission, plan) &&
+    owner.ledger is Some(ledger) &&
+    owner.effect_operation_controls is Some(control) &&
+    control.dependency_inventory is Some(inventory) &&
+    control.dependency_capture is Some(original_issuer) &&
+    physical_equal(original_issuer, issuer) else {
+    return Err(Retired)
+  }
+  match check_installed_effect_managed_run_binding(owner, prepared, request) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if !physical_equal(plan, expected_plan) {
+    return Err(ForeignOriginal)
+  }
+  with_installed_effect_dependency_work(
+    control,
+    admission,
+    plan,
+    ledger,
+    () => {
+      check_installed_effect_operation_original(
+        owner,
+        ledger,
+        preparation,
+        Some(control),
+      )
+    },
+    control.reservation,
     () => owner.effect_operation_opening && !owner.effect_operation_closing,
     spend => {
-      match spend(1) { Err(issue) => return Err(Control(issue)); Ok(_) => () }
-      let captured = match issuer.finish() { Ok(value) => value; Err(_) => return Err(Original(Unsupported)) }
+      match spend(1) {
+        Err(issue) => return Err(Control(issue))
+        Ok(_) => ()
+      }
+      let captured = match issuer.finish() {
+        Ok(value) => value
+        Err(_) => return Err(Original(Unsupported))
+      }
       // Existing binder compares canonical inventory/root text once. Debit
       // the exact completed borrowed wire span before those synchronous walks.
       let wire = @publication.publication_contract_json(captured)
-      for _ in 0..<8 { match spend(wire.length()) { Err(issue) => return Err(Control(issue)); Ok(_) => () } }
-      match @publication.bind_prepared_captured_effect_run(captured, inventory) {
+      for _ in 0..<8 {
+        match spend(wire.length()) {
+          Err(issue) => return Err(Control(issue))
+          Ok(_) => ()
+        }
+      }
+      match
+        @publication.bind_prepared_captured_effect_run(captured, inventory) {
         Ok(value) => Ok(value)
         Err(_) => Err(Original(ForeignOriginal))
       }
-    }).map_err(installed_effect_operation_reservation_issue)
+    },
+  ).map_err(installed_effect_operation_reservation_issue)
 }

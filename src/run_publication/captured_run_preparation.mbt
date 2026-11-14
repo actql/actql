@@ -297,7 +297,9 @@ fn CapturedRunIssuancePreparation::step(
       }
     }
     Sources => {
-      if !captured_issuance_work(work, self.source_work) { return Err(CaptureIssuanceEncoding) }
+      if !captured_issuance_work(work, self.source_work) {
+        return Err(CaptureIssuanceEncoding)
+      }
       // Effect-specific admission keeps its original position and semantics.
       // It is not yet an asynchronous dependency-closure preparation.
       self.source_inventory = Some(
@@ -540,7 +542,10 @@ fn CapturedRunIssuancePreparation::step(
       // One synchronous canonical dependency/root preflight. Incremental
       // hash/parse/row steps are charged separately by this same continuation.
       if child.phase is Inventory {
-        if !captured_issuance_work(work, 8L * child.inputs.unwrap().captured_run.wire.length().to_int64()) {
+        if !captured_issuance_work(
+            work,
+            8L * child.inputs.unwrap().captured_run.wire.length().to_int64(),
+          ) {
           return Err(CaptureIssuanceEncoding)
         }
       }
@@ -784,15 +789,18 @@ pub fn captured_run_preparation_fixture_inventory(
   )
 }
 
-
 ///|
 fn captured_issuance_work(work : ((Int) -> Bool)?, amount : Int64) -> Bool {
-  if amount < 0L { return false }
+  if amount < 0L {
+    return false
+  }
   guard work is Some(spend) else { return true }
   let mut remaining = amount
   while remaining > 0L {
     let chunk = Int64::min(remaining, 2147483647L).to_int()
-    if !spend(chunk) { return false }
+    if !spend(chunk) {
+      return false
+    }
     remaining -= chunk.to_int64()
   }
   true
@@ -803,16 +811,41 @@ fn captured_issuance_work(work : ((Int) -> Bool)?, amount : Int64) -> Bool {
 // step. The closed caller returns its view after this synchronous quantum;
 // no writer, callback or Work view is retained across an await.
 pub fn CapturedRunIssuancePreparation::advance_with_work(
-  self : CapturedRunIssuancePreparation, quantum : Int, work : (Int) -> Bool,
+  self : CapturedRunIssuancePreparation,
+  quantum : Int,
+  work : (Int) -> Bool,
 ) -> Result[(Bool, Int), CapturedRunIssuanceIssue] {
-  if self.closed || self.completed is Some(_) || quantum < 1 { return Err(CaptureIssuanceEncoding) }
+  if self.closed || self.completed is Some(_) || quantum < 1 {
+    return Err(CaptureIssuanceEncoding)
+  }
   let mut used = 0
   while used < quantum && !(self.phase is Done) {
-    if !work(1) { self.cancel(); return Err(CaptureIssuanceEncoding) }
+    if self.next_step_requires_reference_callback() {
+      break
+    }
+    if !work(1) {
+      self.cancel()
+      return Err(CaptureIssuanceEncoding)
+    }
     match self.step(work=Some(work)) {
-      Err(issue) => { self.cancel(); return Err(issue) }
+      Err(issue) => {
+        self.cancel()
+        return Err(issue)
+      }
       Ok(_) => used += 1
     }
   }
   Ok((self.phase is Done, used))
+}
+
+///|
+// The managed Host returns its Work view before these existing live Ref
+// callbacks and performs a fresh original-current observation afterward.
+pub fn CapturedRunIssuancePreparation::next_step_requires_reference_callback(
+  self : CapturedRunIssuancePreparation,
+) -> Bool {
+  match self.phase {
+    Context(child) => child.phase is ContentValue(_, _)
+    _ => false
+  }
 }

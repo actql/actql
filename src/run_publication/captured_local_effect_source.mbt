@@ -275,7 +275,9 @@ fn captured_local_effect_source_matches_preview(
     is Err(_) {
     return false
   }
-  captured_local_effect_source_preview_facts_match(preview, member_index, physical, local_value)
+  captured_local_effect_source_preview_facts_match(
+    preview, member_index, physical, local_value,
+  )
 }
 
 ///|
@@ -297,13 +299,12 @@ fn captured_local_effect_source_preview_facts_match(
   if expected == physical.identity {
     return true
   }
-  guard admitted_nested_local_contract(
-      local_value, "artifact", "result_artifact", max_wire_bytes, max_nodes, max_depth,
-    )
-    is Some(result) else {
+  // Complete admission of this exact immutable pair already established the
+  // nested artifact identity. Read its fact without a second parse/hash.
+  guard @json.object_field(local_value, "artifact") is Some(artifact) else {
     return false
   }
-  expected == result.identity
+  evidence_string(artifact, "result_artifact_cid") == Some(expected)
 }
 
 ///|

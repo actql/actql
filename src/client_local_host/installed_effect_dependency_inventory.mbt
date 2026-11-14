@@ -178,55 +178,62 @@ pub fn prepare_installed_effect_dependency_inventory(
   }
   // Artifact wire usage comes from its exact original final encoder. Root
   // parsing gets a separate measured extent before the existing classifier.
-  let roots_capacity = match segment(work => {
-  let mut roots_capacity = @execution.execution_capacity(0L, 0L).unwrap()
-  for artifact in artifacts {
-    if !work(1) { return Err(InsufficientCapacity) }
-    if !@publication_host.client_effect_local_artifact_matches_inputs(
-        artifact, inputs,
-      ) ||
-      !@publication_host.client_effect_local_artifact_matches_computation(
-        artifact, prepared,
-      ) ||
-      @publication_host.client_effect_local_artifact_run_definition_cid(
-        artifact,
-      ) !=
-      Some(@publication.publication_contract_identity(definition)) {
-      return Err(ForeignOriginal)
-    }
-    let contract = @publication_host.client_effect_local_result_artifact_contract(
-      artifact,
-    )
-    guard @publication.publication_contract_wire_usage(contract)
-      is Some((bytes, nodes, depth)) &&
-      bytes <= max_bytes &&
-      nodes <= max_nodes &&
-      depth <= max_depth else {
-      return Err(Unsupported)
-    }
-    guard installed_effect_dependency_body_capacity({
-        bytes,
-        nodes,
-        depth,
-        arrays: 0,
-        objects: nodes,
-        fields: nodes - 1,
-        largest_object: nodes - 1,
-        strings: nodes,
-        text_units: bytes,
-      })
-      is Some(capacity) &&
-      standard_create_sum_capacities(
-        [roots_capacity, capacity],
-        sequential_workspace=true,
-      )
-      is Some(next) else {
-      return Err(InsufficientCapacity)
-    }
-    roots_capacity = next
+  let roots_capacity = match
+    segment(work => {
+      let mut roots_capacity = @execution.execution_capacity(0L, 0L).unwrap()
+      for artifact in artifacts {
+        if !work(1) {
+          return Err(InsufficientCapacity)
+        }
+        if !@publication_host.client_effect_local_artifact_matches_inputs(
+            artifact, inputs,
+          ) ||
+          !@publication_host.client_effect_local_artifact_matches_computation(
+            artifact, prepared,
+          ) ||
+          @publication_host.client_effect_local_artifact_run_definition_cid(
+            artifact,
+          ) !=
+          Some(@publication.publication_contract_identity(definition)) {
+          return Err(ForeignOriginal)
+        }
+        let contract = @publication_host.client_effect_local_result_artifact_contract(
+          artifact,
+        )
+        guard @publication.publication_contract_wire_usage(contract)
+          is Some((bytes, nodes, depth)) &&
+          bytes <= max_bytes &&
+          nodes <= max_nodes &&
+          depth <= max_depth else {
+          return Err(Unsupported)
+        }
+        guard installed_effect_dependency_body_capacity({
+            bytes,
+            nodes,
+            depth,
+            arrays: 0,
+            objects: nodes,
+            fields: nodes - 1,
+            largest_object: nodes - 1,
+            strings: nodes,
+            text_units: bytes,
+          })
+          is Some(capacity) &&
+          standard_create_sum_capacities(
+            [roots_capacity, capacity],
+            sequential_workspace=true,
+          )
+          is Some(next) else {
+          return Err(InsufficientCapacity)
+        }
+        roots_capacity = next
+      }
+      Ok(Capacity(roots_capacity))
+    }) {
+    Ok(Capacity(value)) => value
+    Err(issue) => return Err(issue)
+    _ => return Err(ForeignOriginal)
   }
-    Ok(Capacity(roots_capacity))
-  }) { Ok(Capacity(value)) => value; Err(issue) => return Err(issue); _ => return Err(ForeignOriginal) }
   match grow(roots_capacity) {
     Err(issue) => return Err(issue)
     Ok(_) => ()

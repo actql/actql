@@ -154,35 +154,42 @@ fn prepare_funded_effect_dependency_inventory(
     Err(issue) => return Err(issue)
     _ => return Err(ForeignOriginal)
   }
-  let required = match segment(work => {
-  let mut required = @execution.execution_capacity(0L, 0L).unwrap()
-  for input in inputs {
-    if !work(1) { return Err(InsufficientCapacity) }
-    let added = match input.shape {
-      // The SAME controller already retained its raw/canonical/parser quota
-      // before producing this exact emitted wire. Do not buy it twice.
-      Emitted(_) => None
-      Observed(geometry) =>
-        installed_effect_dependency_wire_capacity(
-          geometry, max_bytes, max_nodes, max_depth,
-        )
-    }
-    if input.shape is Observed(_) && added is None {
-      return Err(InsufficientCapacity)
-    }
-    if added is Some(added) {
-      guard standard_create_sum_capacities(
-          [required, added],
-          sequential_workspace=true,
-        )
-        is Some(next) else {
-        return Err(InsufficientCapacity)
+  let required = match
+    segment(work => {
+      let mut required = @execution.execution_capacity(0L, 0L).unwrap()
+      for input in inputs {
+        if !work(1) {
+          return Err(InsufficientCapacity)
+        }
+        let added = match input.shape {
+          // The SAME controller already retained its raw/canonical/parser quota
+          // before producing this exact emitted wire. Do not buy it twice.
+          Emitted(_) => None
+          Observed(geometry) =>
+            installed_effect_dependency_wire_capacity(
+              geometry, max_bytes, max_nodes, max_depth,
+            )
+        }
+        if input.shape is Observed(_) && added is None {
+          return Err(InsufficientCapacity)
+        }
+        if added is Some(added) {
+          guard standard_create_sum_capacities(
+              [required, added],
+              sequential_workspace=true,
+            )
+            is Some(next) else {
+            return Err(InsufficientCapacity)
+          }
+          required = next
+        }
       }
-      required = next
-    }
+      Ok(Capacity(required))
+    }) {
+    Ok(Capacity(value)) => value
+    Err(issue) => return Err(issue)
+    _ => return Err(ForeignOriginal)
   }
-    Ok(Capacity(required))
-  }) { Ok(Capacity(value)) => value; Err(issue) => return Err(issue); _ => return Err(ForeignOriginal) }
   match grow(required) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -199,11 +206,17 @@ fn prepare_funded_effect_dependency_inventory(
         // agrees. Reusing already admitted immutable DATA avoids a second
         // parse/hash/graph walk for the same emitted dependency body.
         if input.identity is Some(identity) {
-          if !work(input.kind.length() + 1) || !work(identity.length()) { return Err(InsufficientCapacity) }
+          if !work(input.kind.length() + 1) || !work(identity.length()) {
+            return Err(InsufficientCapacity)
+          }
           let selected = input.kind + "\u0000" + identity
           if seen.get(selected) is Some((_, previous)) {
-            if !work(input.wire.length()) { return Err(InsufficientCapacity) }
-            if previous != input.wire { return Err(ForeignOriginal) }
+            if !work(input.wire.length()) {
+              return Err(InsufficientCapacity)
+            }
+            if previous != input.wire {
+              return Err(ForeignOriginal)
+            }
             continue
           }
         }
@@ -271,11 +284,15 @@ fn prepare_funded_effect_dependency_inventory(
         if !work(1) {
           return Err(InsufficientCapacity)
         }
-        let count = @publication.captured_effect_dependency_body_reference_count(body)
+        let count = @publication.captured_effect_dependency_body_reference_count(
+          body,
+        )
         if !work(count) {
           return Err(InsufficientCapacity)
         }
-        let (_, names) = @publication.captured_effect_dependency_body_index_geometry(body)
+        let (_, names) = @publication.captured_effect_dependency_body_index_geometry(
+          body,
+        )
         references += count.to_int64()
         units += names
       }

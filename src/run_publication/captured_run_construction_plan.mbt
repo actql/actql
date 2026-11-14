@@ -103,7 +103,10 @@ pub fn start_planned_captured_run(
 ) -> CapturedRunIssuancePreparation? {
   guard original.inputs is Some(inputs) else { return None }
   original.inputs = None
-  let issuer = start_captured_computation_preparation(inputs, original.max_workspace)
+  let issuer = start_captured_computation_preparation(
+    inputs,
+    original.max_workspace,
+  )
   issuer.source_work = original.extent.source_work
   Some(issuer)
 }

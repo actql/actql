@@ -502,6 +502,17 @@ fn content_generation_capture_field(
   if bound_content_generation_value(generation) is None {
     return None
   }
+  content_generation_capture_field_data(generation, index)
+}
+
+///|
+// Immutable already-admitted DATA for size-only census. Reading these fields
+// never authorizes Content use; the real issuer above retains its live Ref
+// callback on every original boundary.
+fn content_generation_capture_field_data(
+  generation : BoundContentGeneration,
+  index : Int,
+) -> @json.CanonicalValue? {
   match index {
     0 => Some(generation.derivation.value)
     1 => Some(generation.evidence.value)

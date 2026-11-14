@@ -160,7 +160,9 @@ fn captured_effectful_run_construction_extent(
       is Some(artifact) else {
       return None
     }
-    source_work += 8L * artifact.bytes.to_int64() + 16L * artifact.nodes.to_int64() + 128L * source.effect_id.length().to_int64()
+    source_work += 8L * artifact.bytes.to_int64() +
+      16L * artifact.nodes.to_int64() +
+      128L * source.effect_id.length().to_int64()
     bytes += 2L * capture_map_key_extent(source.effect_id) +
       artifact.bytes.to_int64() +
       3L +
@@ -176,7 +178,9 @@ fn captured_effectful_run_construction_extent(
     guard capture_value_construction_extent(source.value, work) is Some(value) else {
       return None
     }
-    source_work += 8L * value.bytes.to_int64() + 16L * value.nodes.to_int64() + 128L * source.effect_id.length().to_int64()
+    source_work += 8L * value.bytes.to_int64() +
+      16L * value.nodes.to_int64() +
+      128L * source.effect_id.length().to_int64()
     bytes += capture_map_key_extent(source.effect_id) + value.bytes.to_int64()
     nodes += value.nodes.to_int64()
     metadata_nodes += value.nodes.to_int64()
@@ -255,7 +259,8 @@ fn captured_effectful_run_construction_extent(
       nodes += 1L
       metadata_nodes += 1L
       for field in 0..<5 {
-        guard content_generation_capture_field(generation, field) is Some(value) &&
+        guard content_generation_capture_field_data(generation, field)
+          is Some(value) &&
           capture_value_construction_extent(value, work) is Some(value_extent) else {
           return None
         }

@@ -151,19 +151,45 @@ pub fn prepare_installed_effect_dependency_bodies(
   }
   // O(1) borrowed lengths and actual count, before owned composite keys,
   // first-occurrence indexes or Maps. This is DATA(kind,CID) only.
-  let key_units = match with_installed_effect_dependency_work(control, admission, plan, ledger,
-    () => check_installed_effect_operation_original(owner, ledger, preparation, Some(control)), control.reservation,
-    () => owner.effect_operation_opening && !owner.effect_operation_closing &&
-      @strategy.captured_effect_inputs_match_captured_run(inputs, captured), spend => {
-    let mut key_units = 0L
-  for (role, census) in censuses {
-    match spend(1) { Err(issue) => return Err(Control(issue)); Ok(_) => () }
-    key_units += role.length().to_int64() +
-      @checked.checked_local_dependency_census_cid(census).length().to_int64() +
-      1L
+  let key_units = match
+    with_installed_effect_dependency_work(
+      control,
+      admission,
+      plan,
+      ledger,
+      () => {
+        check_installed_effect_operation_original(
+          owner,
+          ledger,
+          preparation,
+          Some(control),
+        )
+      },
+      control.reservation,
+      () => {
+        owner.effect_operation_opening &&
+        !owner.effect_operation_closing &&
+        @strategy.captured_effect_inputs_match_captured_run(inputs, captured)
+      },
+      spend => {
+        let mut key_units = 0L
+        for (role, census) in censuses {
+          match spend(1) {
+            Err(issue) => return Err(Control(issue))
+            Ok(_) => ()
+          }
+          key_units += role.length().to_int64() +
+            @checked.checked_local_dependency_census_cid(census)
+            .length()
+            .to_int64() +
+            1L
+        }
+        Ok(key_units)
+      },
+    ).map_err(installed_effect_operation_reservation_issue) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
-    Ok(key_units)
-  }).map_err(installed_effect_operation_reservation_issue) { Ok(value) => value; Err(issue) => return Err(issue) }
   guard installed_effect_dependency_key_capacity(count, key_units)
     is Some(keys_capacity) else {
     return Err(InsufficientCapacity)
@@ -240,33 +266,68 @@ pub fn prepare_installed_effect_dependency_bodies(
     Ok(values) => values
     Err(issue) => return Err(issue)
   }
-  let bodies = match with_installed_effect_dependency_work(control, admission, plan, ledger,
-    () => check_installed_effect_operation_original(owner, ledger, preparation, Some(control)), control.reservation,
-    () => owner.effect_operation_opening && !owner.effect_operation_closing &&
-      @strategy.captured_effect_inputs_match_captured_run(inputs, captured), spend => {
-  let mut bodies = @execution.execution_capacity(0L, 0L).unwrap()
-  // The persistent same-Run cache retains only DATA(kind,CID). A repeated
-  // occurrence buys its wrapper, not another raw/tree/canonical body packet.
-  for index in 0..<count {
-    match spend(1) { Err(issue) => return Err(Control(issue)); Ok(_) => () }
-    match spend(keys[index].length()) { Err(issue) => return Err(Control(issue)); Ok(_) => () }
-    let geometry = @checked.checked_local_dependency_census_geometry(censuses[index].1)
-    let already = control.dependency_static.get(keys[index])
-    if already is Some((_, original_geometry)) && original_geometry != geometry {
-      return Err(Original(ForeignOriginal))
-    }
-    let added = if firsts[index] == index && already is None {
-      installed_effect_dependency_body_capacity(geometry)
-    } else {
-      installed_effect_dependency_shared_body_capacity()
-    }
-    guard added is Some(added) &&
-      standard_create_sum_capacities([bodies, added], sequential_workspace=true)
-      is Some(next) else { return Err(Original(InsufficientCapacity)) }
-    bodies = next
+  let bodies = match
+    with_installed_effect_dependency_work(
+      control,
+      admission,
+      plan,
+      ledger,
+      () => {
+        check_installed_effect_operation_original(
+          owner,
+          ledger,
+          preparation,
+          Some(control),
+        )
+      },
+      control.reservation,
+      () => {
+        owner.effect_operation_opening &&
+        !owner.effect_operation_closing &&
+        @strategy.captured_effect_inputs_match_captured_run(inputs, captured)
+      },
+      spend => {
+        let mut bodies = @execution.execution_capacity(0L, 0L).unwrap()
+        // The persistent same-Run cache retains only DATA(kind,CID). A repeated
+        // occurrence buys its wrapper, not another raw/tree/canonical body packet.
+        for index in 0..<count {
+          match spend(1) {
+            Err(issue) => return Err(Control(issue))
+            Ok(_) => ()
+          }
+          match spend(keys[index].length()) {
+            Err(issue) => return Err(Control(issue))
+            Ok(_) => ()
+          }
+          let geometry = @checked.checked_local_dependency_census_geometry(
+            censuses[index].1,
+          )
+          let already = control.dependency_static.get(keys[index])
+          if already is Some((_, original_geometry)) &&
+            original_geometry != geometry {
+            return Err(Original(ForeignOriginal))
+          }
+          let added = if firsts[index] == index && already is None {
+            installed_effect_dependency_body_capacity(geometry)
+          } else {
+            installed_effect_dependency_shared_body_capacity()
+          }
+          guard added is Some(added) &&
+            standard_create_sum_capacities(
+              [bodies, added],
+              sequential_workspace=true,
+            )
+            is Some(next) else {
+            return Err(Original(InsufficientCapacity))
+          }
+          bodies = next
+        }
+        Ok(bodies)
+      },
+    ).map_err(installed_effect_operation_reservation_issue) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
-    Ok(bodies)
-  }).map_err(installed_effect_operation_reservation_issue) { Ok(value) => value; Err(issue) => return Err(issue) }
   match
     retain_installed_effect_dependency_capacity(
       owner, preparation, admission, plan, ledger, control, bodies,

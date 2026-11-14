@@ -47,7 +47,9 @@ test "same operation Work segment observes physical current once and expires its
   assert_eq(calls.val, 1)
   assert_eq(ledger_usage(ledger).planning_work, before + 3)
   frame.origin.current = current
+  escaped.val = None
   settle_capacity(ledger, control).unwrap()
+  assert_false(retire_transferred_preparation(retirement).unwrap())
   return_preparation_body_borrow(holder).unwrap() |> ignore
   release_prepared_run_holder(admission).unwrap() |> ignore
   assert_true(retire_transferred_preparation(retirement).unwrap())
