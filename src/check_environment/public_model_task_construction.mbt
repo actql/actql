@@ -153,3 +153,51 @@ pub fn public_model_task_normalization_construction_extent(
       2L * hash.owned_wire_bytes,
   })
 }
+
+///|
+/// Quantities of THIS original admitted Task, not the document's unused limits.
+/// One scalar inspection visits only this Task's original index and contracts;
+/// it never revisits earlier registered Tasks or emits/hashes their bodies.
+pub fn public_model_task_declaration_retained_extent(
+  value : PublicModelTaskDeclaration,
+) -> RegistryConstructionExtent? {
+  let root = value.original
+  let g = @decode.observe_subtree_geometry(root, [])
+  let usage = @decode.admission_usage(root)
+  guard @source.json_index_borrowed_construction_extent(
+    g.nodes, g.fields, usage.total_string_bytes.to_int64(), keep_spans=true,
+  ) is Some(source) &&
+    @decode.admission_construction_inventory(g.nodes, g.fields, g.objects,
+      g.arrays, usage.depth) is Some(index) else { return None }
+  let mut retained : RegistryConstructionExtent = {
+    record_headers: source.record_headers + index.indexed.record_headers + 9L,
+    reference_slots: source.reference_slots + index.indexed.reference_slots + 20L,
+    scalar_words: source.scalar_words + index.indexed.scalar_words + 11L,
+    owned_utf16_units: source.owned_utf16_units,
+    owned_wire_bytes: 0L,
+  }
+  for original in [value.input, value.output] {
+    guard @value_contract.checked_emission_geometry(original.contract) is Some(g) &&
+      @value_contract.read_construction_inventory({
+        nodes: g.value_nodes, objects: g.value_nodes, arrays: g.value_nodes,
+        fields: g.value_nodes, max_fields: g.max_fields,
+        max_array_items: g.value_nodes - 1,
+        max_selected_text_units: 0, outer_depth: 0, work: 0L,
+      }) is Some(typed) &&
+      @source.json_index_borrowed_construction_extent(
+        g.value_nodes, 0, original.wire.length().to_int64(),
+        keep_spans=false,
+      ) is Some(text) else { return None }
+    retained = wire_admission_add(retained, {
+      record_headers: typed.retained.record_headers + text.record_headers + 2L,
+      reference_slots: typed.retained.reference_slots + text.reference_slots,
+      scalar_words: typed.retained.scalar_words + text.scalar_words,
+      // The checked Contract borrows canonical field/enum Strings. Keep those
+      // Strings, its emitted schema wire and original CID, not parser scratch.
+      owned_utf16_units: text.owned_utf16_units + original.wire.length().to_int64() +
+        original.cid.length().to_int64(),
+      owned_wire_bytes: 0L,
+    })
+  }
+  Some(retained)
+}
