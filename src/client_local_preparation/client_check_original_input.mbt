@@ -25,6 +25,7 @@ pub fn client_program_project_original_input_issue(
   parameters_bytes : Int,
   correlation_ref : String,
   structured_program? : Bool = true,
+  original_body? : @decode.Cursor? = None,
 ) -> String {
   let findings : Array[CheckFinding] = []
   let mut pointer = None
@@ -59,6 +60,7 @@ pub fn client_program_project_original_input_issue(
         None,
         value => pointer = value,
         format~,
+        original_body~,
       )
     OriginalParameterDeclarationInput(issue) =>
       check_program_diagnostic(

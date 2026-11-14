@@ -42076,7 +42076,7 @@
     },
     {
       "module": "src/client_local_host/preparation_program_json_source.mbt",
-      "sha256": "597f610b30de4ef8c76c703c34a27f985b6fa3a36e3def21b6e723a98c8940b8",
+      "sha256": "3486dea31de52d74ffc3d5c515e4d74bc3e6bc1b0f5c51b3bf353e6b42f741cf",
       "exports": [],
       "operations": [
         {
@@ -42211,7 +42211,7 @@
     },
     {
       "module": "src/client_local_host/preparation_program_json_source_layout.mbt",
-      "sha256": "0e607bae4e641c4cabd22fd58ca0d13075f6f9ed4e766ce560752fda98532e83",
+      "sha256": "2e60a00cd429044912648b79b7a16496a359e9c2d8f23e58d1b0fcffb985e482",
       "exports": [],
       "operations": [
         {
@@ -43109,7 +43109,7 @@
     {
       "module": "src/client_local_host/preparation_request_check_observation.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "aa520f780fca40a15321870ba6ddb9273e67571afbbd5ebe312fa466b6f1ccde",
+      "sha256": "595e6dbd6ef4fd7a7439ce736300be3d3162b0ed5bde0957f1dba06cebc3d703",
       "role": "common-semantics",
       "owner": "Existing Request check, preparation capacity and public observation owners",
       "exports": [],
@@ -43119,8 +43119,20 @@
           "declaration": "[ I ] project_request_check_outcome ( owner : ClientRequestPreparation [ I ] , input : I , terminal : ClientRequestTerminalIssue , visible_publication : String , context_ref : String , input_kind : String , input_revision : String , input_bytes : Int , declarations_revision : String ? , declarations_bytes : Int , parameters_revision : String ? , parameters_bytes : Int , correlation_ref : String , selector_namespace : @ local_preparation . ClientCheckSourceSelectorNamespace ? , source_namespace ? : @ local_preparation . ClientCheckSourceNamespace ?"
         },
         {
+          "name": "[I]project_request_completed_check_outcome",
+          "declaration": "[ I ] project_request_completed_check_outcome ( owner : ClientRequestPreparation [ I ] , input : I , visible_publication : String , context_ref : String , input_kind : String , input_revision : String , input_bytes : Int , declarations_revision : String ? , declarations_bytes : Int , parameters_revision : String ? , parameters_bytes : Int , correlation_ref : String , selector_namespace : @ local_preparation . ClientCheckSourceSelectorNamespace ? , original_parameters ? : String ?"
+        },
+        {
+          "name": "[I]project_request_semantic_check_observation",
+          "declaration": "[ I ] project_request_semantic_check_observation ( owner : ClientRequestPreparation [ I ] , input : I , original : @ checked . CheckOutcome , visible_publication : String , context_ref : String , input_kind : String , input_revision : String , input_bytes : Int , declarations_revision : String ? , declarations_bytes : Int , parameters_revision : String ? , parameters_bytes : Int , correlation_ref : String , selector_namespace : @ local_preparation . ClientCheckSourceSelectorNamespace ? , original_parameters ? : String ?"
+        },
+        {
+          "name": "[I]project_request_structural_check_observation",
+          "declaration": "[ I ] project_request_structural_check_observation ( owner : ClientRequestPreparation [ I ] , input : I , issue : @ syntax . SyntaxError , publication : String , context_ref : String , input_kind : String , input_revision : String , input_bytes : Int , declarations_revision : String ? , declarations_bytes : Int , parameters_revision : String ? , parameters_bytes : Int , correlation_ref : String , ) - > Result [ String ? , ClientRequestPreparationIssue ]"
+        },
+        {
           "name": "[I]request_check_observation_bytes",
-          "declaration": "[ I ] request_check_observation_bytes ( child : ClientProgramCheckPreparation [ I , Unit ] , source : @ stages . Source , outcome : @ checked . CheckOutcome , publication : String , input_label_bytes : Int64 , original_parameters : String ? , ) - > Int64 ?"
+          "declaration": "[ I ] request_check_observation_bytes ( child : ClientProgramCheckPreparation [ I , Unit ] , source : @ stages . Source , outcome : @ checked . CheckOutcome , publication : String , input_label_bytes : Int64 , original_parameters : String ? , original_document ? : String ?"
         },
         {
           "name": "request_check_observation_inventory_bytes",
@@ -43143,7 +43155,10 @@
             "[I]request_check_observation_bytes",
             "request_check_observation_inventory_bytes",
             "request_check_observation_reference",
-            "request_check_original_pointer_bytes"
+            "request_check_original_pointer_bytes",
+            "[I]project_request_completed_check_outcome",
+            "[I]project_request_semantic_check_observation",
+            "[I]project_request_structural_check_observation"
           ],
           "exports": [],
           "attributes": {
@@ -44900,7 +44915,7 @@
     {
       "module": "src/client_local_host/preparation_request_native_input.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "fbbef9ad73d85fcae69cd89158389744b8321a234fb8abec95457645c33e0cae",
+      "sha256": "0b871304f928a2b9fa939d138d73ebaef27af8f60b3de0a25ff0ea1c98435936",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],

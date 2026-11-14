@@ -5415,6 +5415,18 @@ provider, Source, writer, holding, Store or parent release.
 
 ## Live original Request refusal observation
 
+A structural Program refusal retains its original syntax issue beside the
+same admitted input index until Request cleanup. Projection checks both
+identities, reserves report and pointer workspace on the same parent before
+the current callback, and checks them again before using the existing original
+input diagnostic builder. It does not parse or check another Program or create
+a semantic outcome. The original cursor is forwarded through the existing
+optional input-body argument. Native inputs without original key-spelling spans
+keep the proven root pointer; no deeper authored location is invented.
+The pointer workspace uses the existing locator's 65-component search bound,
+including overlapping prefix vectors. Failed-child cleanup clears the issue
+with the original index; the existing busy/current fence also covers projection.
+
 A public check observation can borrow the same still-live Request check refusal.
 The Node projection accepts the original `Result` returned by that Request's
 check call, together with its existing parent and original input receipt. The

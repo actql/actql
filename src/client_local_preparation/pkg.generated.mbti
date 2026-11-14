@@ -54,7 +54,7 @@ pub fn client_program_check_unavailable(String) -> String
 
 pub fn client_program_project_original_check_outcome(@stage_syntax.Program, @stage_parameters.Source, @decode_core.Cursor?, @sourceview_input.Inputs?, @program_check.CheckOutcome, @program_check.CheckEnvironment, String, String, String, String, Int, String?, Int, String?, Int, String, ClientCheckSourceSelectorNamespace?, original_parameters? : String?, original_document? : String?, document_format? : @stage_syntax.Format) -> String
 
-pub fn client_program_project_original_input_issue(ClientCheckOriginalInputIssue, String, @stage_syntax.Format, String, String, Int, String?, Int, String?, Int, String, structured_program? : Bool) -> String
+pub fn client_program_project_original_input_issue(ClientCheckOriginalInputIssue, String, @stage_syntax.Format, String, String, Int, String?, Int, String?, Int, String, structured_program? : Bool, original_body? : @decode_core.Cursor?) -> String
 
 pub fn client_program_project_original_query_issue(@source_frontend.Issue, @program_check.CheckEnvironment?, @client_source_publication.PreparedPublishedQueryEnvironment?, String, String, String, Int, String?, Int, String?, Int, String, ClientCheckSourceNamespace?, query_original? : @query_syntax.Query?, binding_original? : @parameter_binding.BindingReadInput?, binding_declarations? : @parameter_binding.Declarations?, binding_supplied? : @decode_core.Cursor?, binding_limits? : @value_admission.Limits?, original_parameters? : String?) -> String
 

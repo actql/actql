@@ -26,6 +26,7 @@ struct ClientProgramJsonPreparation[I, P] {
   mut structure : @syntax.ProgramConstructorInventory?
   mut structure_quote : (Int64, Int64)?
   mut program : @syntax.Program?
+  mut structural_issue : @syntax.SyntaxError?
   mut work : @resources.PreparationPhaseWork64?
   limits : @syntax.Limits
   base_retained : Int64
@@ -100,6 +101,7 @@ pub fn[I, P] begin_program_json_preparation(
     structure: None,
     structure_quote: None,
     program: None,
+    structural_issue: None,
     work: None,
     limits,
     base_retained,
@@ -301,6 +303,7 @@ pub fn[I, P] clear_program_json_preparation(
   owner.structure = None
   owner.structure_quote = None
   owner.program = None
+  owner.structural_issue = None
   owner.input = None
   // Clearing this controller cannot retire the next consumer's taken DATA.
   // Keep that handoff fact for the original parent's cleanup boundary.
