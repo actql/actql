@@ -49,8 +49,10 @@ async function preparedJson(request, maxBytes, prepared) {
       request.readableEncoding !== null && request.readableEncoding !== undefined) {
     invalid('InvalidClientRequest');
   }
+  // Admit the empty copy/control inventory before constructing its chunk list.
+  prepared.beforeRead(0, 1, 1);
   const chunks = [];
-  let size = 0, reservedBytes = 0, reservedChunks = 0, reservedQuantum = 0;
+  let size = 0, reservedBytes = 0, reservedChunks = 1, reservedQuantum = 1;
   const reserve = (bytes, count, read) => {
     reservedBytes = Math.max(reservedBytes, bytes);
     reservedChunks = Math.max(reservedChunks, count);

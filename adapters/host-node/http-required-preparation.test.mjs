@@ -22,7 +22,7 @@ test('HTTP ingress requires Request preparation before installing a handler', ()
 // ports here. The separate Core case owns measured geometry, not this fixture.
 async function rawHttpFixture(run, {maxRequestBytes = 65536, denyAuth = false,
   denyConnection = false, failRead = false, failJson = false, mutateAfterDecode = false} = {}) {
-  const events = [], current = {}, parent = {}, receivers = [];
+  const events = [], current = {}, parent = {}, receivers = [], geometries = [];
   let ownReads = 0, opened = 0, prepared = 0, firstRead;
   const readStarted = new Promise(resolve => {firstRead = resolve;});
   const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
@@ -40,7 +40,7 @@ async function rawHttpFixture(run, {maxRequestBytes = 65536, denyAuth = false,
         assert(Number.isSafeInteger(bytes) && bytes <= limit + 1);
         assert(Number.isSafeInteger(chunks) && chunks > 0);
         assert(Number.isSafeInteger(quantum) && quantum > 0 && quantum <= limit + 1);
-        events.push('reserve');
+        events.push('reserve'); geometries.push([bytes, chunks, quantum]);
         if (failRead) throw Object.assign(new Error('same raw refusal'), {code: 'ClientRequestTooLarge'});
         current.reserved = true;
       },
@@ -91,7 +91,7 @@ async function rawHttpFixture(run, {maxRequestBytes = 65536, denyAuth = false,
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   try {
     await run({url: `http://127.0.0.1:${server.address().port}/actql/client/0.1/connect`,
-      events, receivers, readStarted, settled: () => Promise.allSettled([...active]),
+      events, receivers, geometries, readStarted, settled: () => Promise.allSettled([...active]),
       inspect: () => ({ownReads, opened, prepared})});
   } finally {
     server.closeAllConnections();
@@ -338,3 +338,15 @@ test('installed HTTP chosen wire policy retains its original Request above 64 Ki
     }
     scratch.passed();
   });
+
+
+test('HTTP raw empty input admits copy controls before its native JSON refusal', async () => {
+  await rawHttpFixture(async ({url, events, geometries, inspect}) => {
+    const response = await postRaw(url, '');
+    assert.equal(response.status, 400);
+    assert.deepEqual(await response.json(), {code: 'InvalidClientRequest'});
+    assert.deepEqual(geometries[0], [0, 1, 1]);
+    assert.equal(inspect().opened, 1); assert.equal(inspect().prepared, 0);
+    assert.equal(events.filter(value => value === 'raw-finish:failed').length, 1);
+  });
+});
