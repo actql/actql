@@ -377,7 +377,7 @@ export async function boundConstructionActualFixture(t, {capacityEvents, nativeC
     assert.equal(entry.registration, provider);
     return {path, value, registration: provider, journalPath: join(site.journalRoot, 'credential-journal.sqlite3')};
   }
-  async function tableSourceProfile({invalidAccount = false, invalidSelector = false} = {}) {
+  async function tableSourceProfile({invalidAccount = false, invalidSelector = false, targetCount = 1} = {}) {
     const schemaWire = (await readFile(new URL('../../connectors/local/iceberg/fixtures/presence-schema.json', import.meta.url), 'utf8')).trimEnd();
     const value = {...common(root), version: 'actql-installed-local-table-source/0.1',
       targets: [{resource: 'rows', schemaWire, selector: {catalog_identity_cid: cid('3'),
@@ -385,6 +385,10 @@ export async function boundConstructionActualFixture(t, {capacityEvents, nativeC
         table_uuid: '00000000-0000-0000-0000-000000000001',
         schema_cid: 'sha256:8f5aaf81ac549e3e1b2724b949725bffe152abbae67451b31276b17f11c74e9a'}}],
       limits: {maxPages: 3, maxPageBytes: 65536, maxPageRows: 16, maxCaptureRows: 16}};
+    if (targetCount !== 1) {
+      assert.ok(Number.isSafeInteger(targetCount) && targetCount > 0);
+      value.targets = Array.from({length: targetCount}, (_, index) => ({...value.targets[0], resource: `rows_${index}`}));
+    }
     if (invalidAccount) value.accountConfigurationWire = '{}';
     if (invalidSelector) value.targets[0].selector.catalog_identity_cid = cid('4');
     const path = join(root, `table-source-${++serial}.json`);

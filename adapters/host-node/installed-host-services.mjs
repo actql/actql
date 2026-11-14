@@ -676,6 +676,28 @@ function reserveInstalledTableConstruction(original, material, profile, construc
     [allNodes, allText, allWire, allNodes, allText, allWire]);
 }
 
+function installedTableReaderConstruction(original, material, profile, construction, bridge) {
+  const field = Object.getOwnPropertyDescriptor(bridge, 'inspectReadSelectorConstruction');
+  if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'function' ||
+      nodeTypes.isProxy(field.value) || nodeTypes.isAsyncFunction(field.value)) {
+    fail('InstalledTableSourceConstructionUnavailable');
+  }
+  const facts = construction.inspect(() => {
+    const maximum = {nodes: 0n, wire: 0n, strings: 0n, serializerText: 0n};
+    for (const target of profile.targets) {
+      const next = Reflect.apply(field.value, bridge, [target.selector, inspectInstalledTableConstruction]);
+      for (const key of ['nodes', 'wire', 'strings', 'serializerText']) {
+        if (next[key] > maximum[key]) maximum[key] = next[key];
+      }
+    }
+    return Object.freeze(maximum);
+  });
+  const [nodes, text, wire] = sourceCall(original, material, 'InstalledTableConstructionInventory',
+    [facts.nodes, facts.wire, facts.strings, facts.serializerText]);
+  return sourceCall(original, material, 'InstalledSourceConstructionCapacity',
+    [nodes, text, wire, nodes, text, wire]);
+}
+
 // The checked Environment owns its complete parse/native projection already.
 // Account admission occurs once; each existing connector-binding digest uses
 // the same physical-target projection. Keep their input-proportional controls,
@@ -1770,12 +1792,17 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
           nodeTypes.isAsyncFunction(createBridge)) fail('InvalidInstalledTableBridgeConstructor');
       owned.attempted = true; owned.constructing = true;
       try {
-        const profileCapacity = reserveInstalledTableConstruction(original, material, checkedProfile, profileConstruction);
+        reserveInstalledTableConstruction(original, material, checkedProfile, profileConstruction);
         const bridge = requireSynchronousSourceConstruction(material, Reflect.apply(createBridge, undefined, []));
         owned.bridge = bridge; material.inputs.push(bridge);
         if (!bridge || typeof bridge !== 'object' || nodeTypes.isProxy(bridge) ||
             'then' in bridge) fail('InvalidInstalledTableBridge');
         current();
+        // Full installation construction remains retained above. A selected
+        // Reader only sends ONE first selector; later reply-derived payloads
+        // grow through that SAME RowRun before their actual allocation.
+        const readerProfileCapacity = installedTableReaderConstruction(original, material,
+          checkedProfile, profileConstruction, bridge);
         const prepared = context.prepareDeclaration(input.targets.map(target => ({
           resource: target.resource, resource_kind: 'table', schema_wire: target.schemaWire,
           schema_cid: target.selector.schema_cid,
@@ -1796,7 +1823,7 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
           fail('InstalledTableSourceReaderUnavailable');
         }
         const columns = Math.max(...prepared.declared.views.map(view => view.fields.length));
-        const originalReaderCapacity = Reflect.apply(capacityMethod, original.moon, [columns, profileCapacity]);
+        const originalReaderCapacity = Reflect.apply(capacityMethod, original.moon, [columns, readerProfileCapacity]);
         // Preserve the original native reference Option for the existing typed
         // Source composition. Its canonical binding alone exposes the value;
         // Host never reconstructs a Some, tuple or scalar capacity.

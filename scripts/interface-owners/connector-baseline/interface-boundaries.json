@@ -8205,7 +8205,7 @@
     {
       "module": "adapters/connectors/local/host/installed-local-table.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0ef31c64589914a5272311863e80d2fff5303970f48ba09ff235e6e1e3e81ab0",
+      "sha256": "178db7581e7073f652a30fa75f1076bf0e58f9c5806bb2c51887e20bb22d330d",
       "role": "connector-semantics",
       "owner": "Local Table Source/Effect installation through generic Host; no separate Table scheduler or approval owner",
       "exports": [

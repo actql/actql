@@ -39,9 +39,12 @@ const original = [
 ];
 const retained = {name: 'retained Result before filtered Table write', expected: 6,
   pattern: '^Table retained Result before filtered CTAS through (Local|HTTPS) \\((json|sql|aql)\\)$'};
+const sourceInventory = {name: 'complete Source view inventory and cold Saved', expected: 1,
+  pattern: '^Table public129 Source views read real rows and retain SAME Saved after cold first-close$'};
 
 export function tablePublicTestGroups(selection = 'all') {
-  assert(['all', 'ctas'].includes(selection), 'Unknown Table public case group');
-  return Object.freeze((selection === 'all' ? [...original, retained]
-    : [original[0], retained]).map(value => Object.freeze({...value})));
+  assert(['all', 'ctas', 'source-inventory'].includes(selection), 'Unknown Table public case group');
+  return Object.freeze((selection === 'all' ? [...original, retained, sourceInventory]
+    : selection === 'source-inventory' ? [sourceInventory]
+      : [original[0], retained]).map(value => Object.freeze({...value})));
 }

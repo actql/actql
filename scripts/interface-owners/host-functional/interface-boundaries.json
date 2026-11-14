@@ -78337,7 +78337,7 @@
     {
       "module": "adapters/host-node/installed-table-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "af8e192566e66a06e32bc98219288ce20c571c0a3685157c7fecd62dc3869be4",
+      "sha256": "ea8a3d99acca08d17486a02002bddec6274b2282c3ac3a75ba74472e5347b77e",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -129700,7 +129700,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "866b3755a1d4ce3506041d118c8824e29ef0422ddc8dfa4dada4dc00d19e1c70",
+      "sha256": "4e1a738670dd6e332b42915dbb7ab00bd31dccc8817dda978eb99887d123b003",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -130837,6 +130837,22 @@
           "async": false
         },
         {
+          "name": "installedTableReaderConstruction",
+          "parameters": [
+            "original",
+            "material",
+            "profile",
+            "construction",
+            "bridge"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedTableReaderConstruction/facts/facts",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "isInstalledSourceInitializationRetired",
           "parameters": [
             "services"
@@ -131243,6 +131259,8 @@
             "installedSourceConfigurationReader/profileConstruction/profileConstruction/profileConstruction#2",
             "installedSourceConfigurationReader/reader/init:prepareProfile/init:prepareProfile",
             "installedSourceConfigurationReader/reader/init:readProfile/init:readProfile",
+            "installedTableReaderConstruction",
+            "installedTableReaderConstruction/facts/facts",
             "readInstalledSourceAcquisitionContract",
             "reserveInstalledTableConstruction/facts/facts",
             "reserveSourceJsonConstruction",
@@ -137998,7 +138016,7 @@
   ],
   "counts": {
     "modules": 194,
-    "operations": 5492,
+    "operations": 5494,
     "exports": 1188,
     "explicitContractGroups": 550
   },

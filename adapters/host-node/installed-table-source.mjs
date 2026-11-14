@@ -261,7 +261,7 @@ export async function createInstalledTableSource({moon, baseEnvironmentWire,
       !text(site?.connection) || typeof site?.issueReadGrant !== 'function' ||
       typeof authorization?.authorize !== 'function' ||
       !['checkReadSelector', 'resolveGeneration', 'read'].every(key => typeof bridge?.[key] === 'function') ||
-      !Array.isArray(targets) || targets.length < 1 || targets.length > 64) {
+      !Array.isArray(targets) || targets.length < 1) {
     fail('InvalidInstalledTableSource');
   }
   const installed = targets.map(target => {
