@@ -774,7 +774,7 @@ test('Native Core matrix retains Darwin profiles and adds Linux common without m
   assert.equal(command.env.ACTQL_TEST_NATIVE_CORE_PARTITION,
     "${{ matrix.target == 'native' && !startsWith(matrix.partition, 'linux-common-') && matrix.partition || '' }}");
   assert.equal(command.env.ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS,
-    "${{ matrix.target == 'native' && matrix.partition == 'scoped' && '2' || '1' }}");
+    '1');
   const artifact = core.steps.find(step => step.name === 'Retain only sanitized current Native compiler diagnostics');
   assert(artifact.with.name.includes('${{ strategy.job-index }}'));
   assert(!artifact.with.name.includes('${{ matrix.partition }}'), 'Partition slashes are invalid artifact names');

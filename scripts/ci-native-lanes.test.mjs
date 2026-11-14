@@ -26,8 +26,8 @@ test('Darwin Core starts from selected targets while Python retains its original
   assert.deepEqual(js.strategy.matrix, {target: ['js'], partition: ['1/4']});
   assert.equal(js.name, common.name);
   assert.equal(js.steps, common.steps); assert.equal(js.steps, darwin.steps);
-  assert.equal(darwin.strategy['max-parallel'], 4);
-  assert.deepEqual(darwin.strategy.matrix.partition.slice(0, 2), ['scoped', 'source']);
+  assert.equal(darwin.strategy['max-parallel'], 5);
+  assert.deepEqual(darwin.strategy.matrix.partition.slice(0, 3), ['scoped-runtime', 'scoped-review', 'source']);
   assert.deepEqual(darwin.needs, ['select-targets']);
   assert.deepEqual(workflow.jobs['python-wheels'].needs, ['select-targets', 'lint', 'core-js']);
   assert.deepEqual(workflow.jobs['native-macos-workloads'].needs, ['select-targets']);
@@ -49,7 +49,7 @@ test('Darwin Core starts from selected targets while Python retains its original
     const expected = [
       ...(targets.includes('js') ? [{target: 'js', partition: '1/4'}] : []),
       ...(targets.includes('wasm') ? [{target: 'wasm', partition: '1/4'}] : []),
-      ...(targets.includes('native') ? [...nativeCoreLinuxCommonPartitions, '1/2', '2/2', 'source', 'scoped']
+      ...(targets.includes('native') ? [...nativeCoreLinuxCommonPartitions, '1/2', '2/2', 'source', 'scoped-runtime', 'scoped-review']
         .map(partition => ({target: 'native', partition})) : []),
     ];
     assert.deepEqual(actual.map(row => JSON.stringify(row)).sort(), expected.map(row => JSON.stringify(row)).sort());
@@ -85,18 +85,18 @@ test('Core runner split caps only Darwin and retains the complete original matri
   assert.equal(common['runs-on'], 'ubuntu-24.04');
   assert.equal(common.strategy['max-parallel'], undefined);
   assert.equal(darwin['runs-on'], 'macos-15');
-  assert.equal(darwin.strategy['max-parallel'], 4);
+  assert.equal(darwin.strategy['max-parallel'], 5);
   assert.deepEqual({...darwin.strategy.matrix, partition: [...darwin.strategy.matrix.partition].sort()},
     {target: ['native'], partition: [...nativeCoreCiPartitions].sort()});
   assert.deepEqual(darwin.strategy.matrix.partition,
-    ['scoped', 'source', '1/2', '2/2']);
+    ['scoped-runtime', 'scoped-review', 'source', '1/2', '2/2']);
   assert.equal(common.strategy.matrix.target, '${{ fromJSON(needs.select-targets.outputs.targets) }}');
   assert.deepEqual(common.strategy.matrix.partition, ['1/4', ...nativeCoreLinuxCommonPartitions]);
   const rows = job => ['js', 'wasm', 'native'].flatMap(target => job.strategy.matrix.partition.map(partition => ({target, partition})))
     .filter(row => !job.strategy.matrix.exclude.some(x => x.target === row.target && x.partition === row.partition));
   const selected = [{target: 'js', partition: '1/4'}, ...rows(common), ...nativeCoreCiPartitions.map(partition => ({target: 'native', partition}))];
-  assert.equal(selected.length, 14);
-  assert.equal(new Set(selected.map(row => JSON.stringify(row))).size, 14);
+  assert.equal(selected.length, 15);
+  assert.equal(new Set(selected.map(row => JSON.stringify(row))).size, 15);
   assert.deepEqual(selected, [{target: 'js', partition: '1/4'}, {target: 'wasm', partition: '1/4'},
     ...nativeCoreLinuxCommonPartitions.map(partition => ({target: 'native', partition})),
     ...nativeCoreCiPartitions.map(partition => ({target: 'native', partition}))]);
@@ -170,8 +170,8 @@ test('normal Native object caching selects ordinary and Scoped jobs and retains 
       contains: (values, value) => values.includes(value), fromJSON: JSON.parse,
     });
   for (const target of ['js', 'wasm', 'native'])
-    for (const partition of ['1/2', '2/2', 'source', 'scoped'])
-      assert.equal(evaluate(target, partition), target === 'native' && ['1/2', '2/2', 'scoped'].includes(partition));
+    for (const partition of ['1/2', '2/2', 'source', 'scoped-runtime', 'scoped-review'])
+      assert.equal(evaluate(target, partition), target === 'native' && ['1/2', '2/2', 'scoped-review', 'scoped-runtime'].includes(partition));
   const action = 'actions/cache/';
   const pin = '@caa296126883cff596d87d8935842f9db880ef25';
   assert.equal(restore.uses, action + 'restore' + pin);
@@ -256,7 +256,7 @@ test('actual Native cache preparation admits only selected halves and Scoped whi
       matrix: {target: 'native', partition}, fromJSON: JSON.parse,
       contains: (values, value) => values.includes(value),
     }));
-  assert.deepEqual([...selected].sort(), ['1/2', '2/2', 'scoped']);
+  assert.deepEqual([...selected].sort(), ['1/2', '2/2', 'scoped-review', 'scoped-runtime']);
   assert.deepEqual(parts.filter(partition => !selected.includes(partition)), ['source'],
     'Only the explicitly uncached Source profile may omit this actual entry');
   const prefixes = new Set();
@@ -266,9 +266,9 @@ test('actual Native cache preparation admits only selected halves and Scoped whi
     assert.match(actual.output, /^key-prefix=ordinary-c-v1-darwin-arm64-fixture-image-[a-f0-9]{64}-/u);
     assert(actual.output.endsWith(`-${partition}-\n`)); prefixes.add(actual.output);
     assert(actual.environment.includes(`ACTQL_TEST_NATIVE_CORE_CCACHE=${actual.executable}\n`));
-    assert.equal(actual.environment.includes('ACTQL_TEST_NATIVE_CORE_SCOPED_SOFTWARE_ROOT='), partition === 'scoped');
+    assert.equal(actual.environment.includes('ACTQL_TEST_NATIVE_CORE_SCOPED_SOFTWARE_ROOT='), ['scoped-runtime', 'scoped-review'].includes(partition));
   }
-  assert.equal(prefixes.size, 3, 'Each actual partition retains an independent source/profile cache key');
+  assert.equal(prefixes.size, 4, 'Each actual partition retains an independent source/profile cache key');
   for (const partition of ['1/4', '4/4', '0/2', '3/2', '1/8', 'linux-common-1/8', 'source', 'http', 'scoped-copy', '', undefined]) {
     const actual = invoke(partition);
     assert.equal(actual.error?.code, 'ERR_ASSERTION', String(partition));

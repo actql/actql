@@ -2485,14 +2485,14 @@ test('Native checkpoint and full child keep the selected backend and explicit co
   }
 });
 
-test('Core Native prepares existing producer dependencies only for its scoped consumer', () => {
+test('Core Native prepares existing producer dependencies only for its two scoped consumers', () => {
   const steps = workflow.jobs['core-darwin'].steps;
   const dependencies = steps.find(step => step.name === 'Install existing scoped component producer dependencies');
   assert(dependencies, 'the Native scoped component producer imports the pinned Python dependencies');
   const existing = workflow.jobs['native-macos-workloads'].steps.find(step => step.name === dependencies.name);
   assert(existing);
   assert.equal(dependencies.run, existing.run, 'use the same existing pinned selection, not another version list');
-  assert.equal(dependencies.if, "${{ matrix.target == 'native' && matrix.partition == 'scoped' }}");
+  assert.equal(dependencies.if, "${{ matrix.target == 'native' && (matrix.partition == 'scoped-runtime' || matrix.partition == 'scoped-review') }}");
   assert.equal(dependencies['continue-on-error'], undefined);
   const setup = steps.find(step => step.uses === './.github/actions/setup-toolchain');
   assert.equal(setup.with.python, 'true');
@@ -2510,11 +2510,11 @@ test('Core Native prepares existing producer dependencies only for its scoped co
       const matrix = {target, partition};
       if ((job.strategy.matrix.exclude ?? []).some(value => value.target === target && value.partition === partition)) continue;
       const required = runInNewContext(dependencies.if.slice(3, -2), {matrix}, {timeout: 100});
-      assert.equal(required, target === 'native' && partition === 'scoped', JSON.stringify(matrix));
+      assert.equal(required, target === 'native' && ['scoped-runtime', 'scoped-review'].includes(partition), JSON.stringify(matrix));
       if (required) selected.push(matrix);
     }
   }
-  assert.deepEqual(selected, [{target: 'native', partition: 'scoped'}]);
+  assert.deepEqual(selected, [{target: 'native', partition: 'scoped-runtime'}, {target: 'native', partition: 'scoped-review'}]);
 });
 
 test('Native Core routes Content, target lineage and original file receipts with nonzero selected execution', t => {
@@ -2816,4 +2816,35 @@ test('hosted Scoped cache forwards separate software paths and retires only afte
   const selected=readFileSync(commands,'utf8').trim().split('\n').map(JSON.parse).filter(x=>x.profile!=='ordinary');
   assert.equal(selected.length,7);assert.equal(new Set(selected.map(x=>x.installedProcess)).size,7);
   f.verifyExternal();
+});
+
+test('hosted split scoped callers execute only their original allocator cases and retire their own software', t => {
+  for (const [partition, profile, count] of [['scoped-runtime', 'runtime-values', 2],
+    ['scoped-review', 'scoped-review-values', 5]]) {
+    const f = fixture(t, {scoped: true}), commands = join(f.root, 'split-commands.jsonl');
+    const events = join(f.root, 'split-software.jsonl');
+    const result = spawnSync(process.execPath, ['scripts/test-native-core.mjs',
+      '--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize'], {
+      cwd: f.checkout, encoding: 'utf8', timeout: 15000, env: {...f.env, GITHUB_ACTIONS: 'true',
+        ACTQL_TEST_NATIVE_CORE_PARTITION: partition, ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS: '1',
+        ACTQL_TEST_NATIVE_CORE_CCACHE: '/explicit/cache-port',
+        ACTQL_TEST_NATIVE_CORE_SCOPED_SOFTWARE_ROOT: join(f.checkout, '_build/native-core-scoped/compiler-software'),
+        ACTQL_FIXTURE_NATIVE_COMMANDS: commands, ACTQL_FIXTURE_SOFTWARE_EVENTS: events},
+    });
+    assert.ifError(result.error); assert.equal(result.status, 0, result.stdout + result.stderr);
+    const software = readFileSync(events, 'utf8').trim().split('\n').map(JSON.parse);
+    assert.deepEqual(software.map(record => [record.profile, record.phase]),
+      [[profile, 'prepared'], [profile, 'retired']]);
+    assert.equal(software[1].completed, count);
+    const selected = readFileSync(commands, 'utf8').trim().split('\n').map(JSON.parse)
+      .filter(call => call.profile !== 'ordinary');
+    assert.equal(selected.length, count); assert(selected.every(call => call.profile === profile));
+    assert.equal(new Set(selected.map(call => JSON.stringify(call.args))).size, count);
+    const phases = result.stderr.split('\n').filter(line => line.startsWith('ACTQL_NATIVE_CI_PHASE '))
+      .map(line => JSON.parse(line.slice('ACTQL_NATIVE_CI_PHASE '.length)));
+    assert.equal(phases.length, 1); assert.equal(phases[0].profile, profile);
+    assert.equal(phases[0].expectedCases, count); assert.equal(phases[0].passedCases, count);
+    assert.equal(phases[0].unexecutedCases, 0); assert.equal(phases[0].succeeded, true);
+    f.verifyExternal();
+  }
 });

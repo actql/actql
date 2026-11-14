@@ -273,7 +273,7 @@ test('eight Linux ordinary partitions retain original case ownership without phy
     assert.throws(() => nativeCorePartitionProfiles(profiles, invalid), /Invalid/u);
 });
 
-test('four hosted Darwin jobs keep HTTP Source scoped and repeated geometry under their original profile owners', () => {
+test('combined Darwin profiles keep HTTP Source scoped and repeated geometry under their original owners', () => {
   const partitions = [{args: ['--release', 'src/a'], cases: 4}, {args: ['--release', 'src/b'], cases: 7}];
   const profiles = {ordinary: {args: ['--release', 'src/a', 'src/b'], cases: 11, partitions},
     http: {args: ['src/http'], cases: 3}, source: {args: ['src/source'], cases: 5},
@@ -295,6 +295,39 @@ test('four hosted Darwin jobs keep HTTP Source scoped and repeated geometry unde
   assert.throws(() => nativeCorePartitionProfiles({...profiles, http: {args: null, cases: 0}},
     '1/2', {hostedDarwin: true}), /retain the original HTTP/u);
   assert.throws(() => nativeCorePartitionProfiles(profiles, '1/2', {hostedDarwin: 'true'}), /Invalid/u);
+});
+
+test('hosted scoped partitions preserve the disjoint original file index allocator and geometry union', () => {
+  const runtime = 'src/cmd/native_client/local_project_mock_physical_scoped_wbtest.mbt';
+  const geometry = 'src/cmd/native_client/local_command_business_wbtest.mbt';
+  const review = 'src/platform_native/installed_arena_control/original_read_consumer_scoped_wbtest.mbt';
+  const tests = [{source: runtime, index: 0}, {source: geometry, index: 3},
+    {source: review, index: 0}, {source: review, index: 2}];
+  const args = ['--release', '--strip', '-j', '2', '--no-parallelize', runtime, geometry, review];
+  const profiles = {ordinary: {args: ['src/ordinary'], cases: 1},
+    http: {args: ['src/http'], cases: 2}, source: {args: ['src/source'], cases: 3},
+    scoped: {args, cases: 4, tests}, physicalCases: 3, repeatedGeometryCases: 1};
+  const original = JSON.stringify(profiles);
+  const parts = ['scoped-runtime', 'scoped-review'].map(value => nativeCorePartitionProfiles(profiles, value));
+  assert.deepEqual(parts.map(part => part.scoped.tests), [tests.slice(0, 2), tests.slice(2)]);
+  assert.deepEqual(parts.flatMap(part => part.scoped.tests), tests);
+  assert.equal(new Set(parts.flatMap(part => part.scoped.tests.map(test => JSON.stringify(test)))).size, 4);
+  for (const [index, part] of parts.entries()) {
+    assert.deepEqual(part.scoped.args, [...args.slice(0, 5), ...(index ? [review] : [runtime, geometry])]);
+    assert.equal(part.scoped.cases, 2);
+    for (const name of ['ordinary', 'http', 'source']) assert.equal(part[name].args, null);
+    assert(part.scoped.tests.every(test => nativeCoreScopedAllocationProfile(test.source) ===
+      (index ? 'scoped-review-values' : 'runtime-values')));
+  }
+  assert.equal(parts.reduce((sum, part) => sum + part.physicalCases, 0), 3);
+  assert.equal(parts.reduce((sum, part) => sum + part.repeatedGeometryCases, 0), 1);
+  assert.equal(nativeCorePartitionProfiles(profiles, 'scoped').scoped, profiles.scoped);
+  assert.throws(() => nativeCorePartitionProfiles({...profiles, scoped: {args: [], tests: []}},
+    'scoped-runtime'), /Empty/u);
+  assert.throws(() => nativeCorePartitionProfiles({...profiles, scoped: {...profiles.scoped, args: args.slice(0, -1)}},
+    'scoped-review'), /Missing original/u);
+  assert.throws(() => nativeCorePartitionProfiles(profiles, 'scoped-copy'), /Invalid/u);
+  assert.equal(JSON.stringify(profiles), original);
 });
 
 test('four Native ordinary jobs and independent physical jobs exhaust the original profile inventory', () => {

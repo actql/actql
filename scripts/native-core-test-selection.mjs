@@ -7,7 +7,7 @@ import {mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync} from 'node:f
 import {tmpdir} from 'node:os';
 import {basename, dirname, join, relative, resolve, sep} from 'node:path';
 import {parseCommands} from './verification-actions.mjs';
-import {nativeCorePhysicalProfiles} from './ci-core-partitions.mjs';
+import {nativeCorePhysicalProfiles, nativeCoreScopedCiProfiles} from './ci-core-partitions.mjs';
 
 export const nativeRelationWorkTestFile =
   'src/platform_native/relation_file_work_tests/relation_file_original_physical_scoped_test.mbt';
@@ -201,6 +201,17 @@ export function nativeCorePartitionProfiles(profiles, value, {hostedDarwin = fal
   const empty = {...profiles, ordinary: {args: null, cases: 0},
     http: {args: null, cases: 0}, source: {args: null, cases: 0},
     scoped: {args: null, cases: 0, tests: []}, physicalCases: 0, repeatedGeometryCases: 0};
+  if (Object.hasOwn(nativeCoreScopedCiProfiles, value)) {
+    const allocation = nativeCoreScopedCiProfiles[value];
+    const tests = profiles.scoped.tests.filter(test => nativeCoreScopedAllocationProfile(test.source) === allocation);
+    assert(tests.length > 0, 'Empty Native scoped allocation partition');
+    const sources = new Set(tests.map(test => test.source));
+    const args = profiles.scoped.args?.filter(arg => !arg.startsWith('src/') || sources.has(arg));
+    assert(args && [...sources].every(source => args.includes(source)), 'Missing original scoped compiler input');
+    const repeatedGeometryCases = tests.filter(test => selectedGeometryFiles.has(test.source)).length;
+    return {...empty, scoped: {args, cases: tests.length, tests},
+      physicalCases: tests.length - repeatedGeometryCases, repeatedGeometryCases};
+  }
   if (physical) {
     assert(profiles[value].cases > 0 && profiles[value].args?.length > 0,
       'Empty Native physical partition');
