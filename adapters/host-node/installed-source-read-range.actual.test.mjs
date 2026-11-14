@@ -5,8 +5,9 @@ import {pathToFileURL} from 'node:url';
 import test from 'node:test';
 import {boundConstructionActualFixture} from './fixtures/bound-construction-actual.fixture.mjs';
 import {beginInstalledSourceInitialization, finishInstalledSourceInitialization,
-  retainInstalledHostServiceInstallation} from './installed-host-services.mjs';
+  installedSourceConfigurationReader, retainInstalledHostServiceInstallation} from './installed-host-services.mjs';
 import {createInstalledRowSource} from './installed-row-source.mjs';
+import {composeInstalledSourceEnvironment} from './installed-funded-environment.mjs';
 import {installedSourceReadAccesses, installedSourceReadBindings} from './installed-source.mjs';
 import {createInstalledConnectorTable, installedConnectorForTable} from './installed-connectors.mjs';
 import {installedConnectors} from '../connectors-builtin/installations.generated.mjs';
@@ -21,6 +22,9 @@ const runtimeCid = `sha256:${createHash('sha256').update(await readFile(runtimeU
 // provider or ordinary SDK/Host acceptance. All nominal values use f.moon.
 async function fixture(t, {denied = false} = {}) {
   const events = [], f = await boundConstructionActualFixture(t, {capacityEvents: events});
+  // The ordinary loader establishes this SAME metadata/file reader before
+  // starting a Source context; its protocol reads keep their original owner.
+  installedSourceConfigurationReader(f.services);
   const selected = await f.profile();
   const entry = installedConnectorForTable(createInstalledConnectorTable(installedConnectors),
     'source', selected.value);
@@ -29,7 +33,7 @@ async function fixture(t, {denied = false} = {}) {
   retainInstalledHostServiceInstallation(f.services, entry, runtimeCid);
   const baseWire = (await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
   const context = beginInstalledSourceInitialization(f.services, entry, 'fixture', baseWire);
-  const views = Array.from({length: 65}, (_, index) => ({resource: `records-${index}`,
+  const views = Array.from({length: 65}, (_, index) => ({resource: `records_${index}`,
     resource_kind: 'record', fields: [{name: 'id', type: 'number', nullable: false}]}));
   let reads = 0, grants = 0, adapter, original;
   const decisions = [];
@@ -45,7 +49,7 @@ async function fixture(t, {denied = false} = {}) {
       site: {connection: 'fixture:read-range', issueReadGrant() {grants++; return {};}, close() {}},
       authorization, readOperation: 'read', physicalTarget: (resource, fields) => ({resource, fields}),
       async readPages({resource, verifyRead, chargePage, consumePage}) {
-        assert.equal(resource, 'records-64');
+        assert.equal(resource, 'records_64');
         await verifyRead(); reads++;
         const rows = [{id: 65}], bytes = Buffer.from(JSON.stringify(rows));
         assert.equal(consumePage(rows, {charge: chargePage(bytes)}), 1);
@@ -57,17 +61,22 @@ async function fixture(t, {denied = false} = {}) {
     finishInstalledSourceInitialization(context, adapter, cause, true);
     throw cause;
   }
-  const accesses = installedSourceReadAccesses(adapter), access = accesses[64];
+  const accesses = installedSourceReadAccesses(adapter);
+  const access = accesses.find(value => value.resource === views[64].resource);
   assert.equal(accesses.length, 65);
-  assert.equal(installedSourceReadBindings(adapter)[64], access.sourceRef);
-  assert.equal(access.resource, 'records-64');
+  assert.ok(access);
+  assert.ok(installedSourceReadBindings(adapter).includes(access.sourceRef));
+  assert.equal(access.resource, 'records_64');
   assert.ok(events.some(event => event.accepted && event.operation ===
     'clientProgramReserveInstalledSourceConstruction'));
-  const checkedEnvironment = f.moon.clientProgramCheckEnvironment(original.environment.wire,
-    original.environment.evidenceCid, false, false, true, false, false, false, false);
+  // Use the ordinary funded complete-wire entrance, including every unused
+  // declaration. Compatibility admission alone is not construction backing.
+  const environmentOriginal = composeInstalledSourceEnvironment(f.services, f.moon,
+    baseWire, original.environment.wire);
+  const checkedEnvironment = environmentOriginal.admitted;
   assert.ok(checkedEnvironment);
   const program = {version: 'actql/0.1', id: 'source-read-range', stages: [{id: 'scan',
-    inputs: {remote: {connector: 'fixture', resource: 'records-64'}},
+    inputs: {remote: {connector: 'fixture', resource: 'records_64'}},
     steps: [{select: ['id'], as: 'out'}], results: {r: {from: 'out', fields: ['id']}}},
   {id: 'compute', inputs: {x: {result: {stage: 'scan', result: 'r'}}},
     steps: [{filter: 'id > 0'}, {select: ['id'], as: 'out'}],
@@ -100,7 +109,7 @@ test('same initial Source owner admits and captures the sixty-fifth declared rea
   try {
     assert.equal(f.moon.clientProgramCapturedSourceRowCount(capture.identity), 1);
     assert.deepEqual(f.counts(), {reads: 1, grants: 1});
-    assert.ok(f.decisions.length > 0 && f.decisions.every(resource => resource === 'records-64'));
+    assert.ok(f.decisions.length > 0 && f.decisions.every(resource => resource === 'records_64'));
   } finally {await capture.close();}
   await f.close();
   assert.equal(f.retire(), true);
@@ -109,10 +118,12 @@ test('same initial Source owner admits and captures the sixty-fifth declared rea
 test('larger Source range retains exact identity and current-read refusal controls', async t => {
   const f = await fixture(t, {denied: true});
   const original = installedSourceReadAccesses(f.adapter);
-  for (const last of [original[0], {...f.access, authorization: {...f.authorization}},
+  const selected = original.indexOf(f.access);
+  for (const replacement of [original[selected === 0 ? 1 : 0], {...f.access, authorization: {...f.authorization}},
     {...f.access, connection: 'foreign'}]) {
+    const invalid = [...original]; invalid[selected] = replacement;
     assert.throws(() => installedSourceReadBindings({...f.adapter,
-      sourceReadAccesses: [...original.slice(0, 64), last]}),
+      sourceReadAccesses: invalid}),
     {message: 'InvalidInstalledSourceReadAccesses'});
   }
   await assert.rejects(f.adapter.prepare(f.inputs), {code: 'ACTQL_E_ACCOUNT_DENIED'});
