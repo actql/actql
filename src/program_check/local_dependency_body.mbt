@@ -49,60 +49,33 @@ pub fn checked_local_catalog_dependency_body(
   max_depth : Int,
   before_body? : ((Int, Int, Int) -> Bool)? = None,
 ) -> Result[CheckedLocalDependencyBody, LocalDependencyBodyIssue] {
-  let (section, self_field) = match role {
-    "schema_evidence" => (@environment.SchemaSnapshots, None)
-    "capability_evidence" => (@environment.ConnectorCapabilities, None)
-    "source_contract" | "source_view_contract" =>
-      (@environment.SourceViews, Some("contract_cid"))
-    "data_policy" | "request_schema" | "carrier_schema" =>
-      (@environment.ContractRegistry, Some("cid"))
-    _ => return Err(MissingDependency)
+  guard local_catalog_selection_role(role) is Some((section, _)) else {
+    return Err(MissingDependency)
   }
-  let environment = checked_environment(program)
-  let count = @environment.member_count(environment, section)
+  let count = @environment.member_count(checked_environment(program), section)
+  // Standalone/public lookup preserves its original refusal before any cursor
+  // or body constructor, including callers that supply before_body.
   if count > 4096 {
     return Err(BudgetExceeded)
   }
-  let mut selected : Int? = None
-  for index in 0..<count {
-    let item = @environment.member_at(environment, section, index).unwrap()
-    let actual = match self_field {
-      None => @environment.member_cid(item)
-      Some(field) => {
-        guard @decode.open_object(@environment.member_body(item)) is Ok(object) &&
-          @decode.lookup(object, field) is Some(value) &&
-          @decode.text(value) is Ok(text) else {
-          return Err(MissingDependency)
-        }
-        text
-      }
-    }
-    if actual == identity {
-      if selected is Some(_) {
-        return Err(ForeignBody)
-      }
-      selected = Some(index)
-    }
+  let selected = match
+    begin_checked_local_catalog_selection(program, unit, role, identity) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
   }
-  guard selected is Some(index) else { return Err(MissingDependency) }
-  if before_body is Some(prepare) {
-    guard @environment.member_at(environment, section, index) is Some(original) else {
-      return Err(MissingDependency)
-    }
-    let (bytes, nodes, depth) = @environment.member_emission_geometry(original)
-    if !prepare(bytes, nodes, depth) {
-      return Err(BudgetExceeded)
-    }
+  match advance_checked_local_catalog_selection(selected, count) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
-  let kind = match role {
-    "schema_evidence" => SourceSchema(index)
-    "capability_evidence" => SourceCapability(index)
-    "data_policy" | "request_schema" | "carrier_schema" =>
-      RegistryContract(index)
-    _ => SourceViewContract(index)
+  guard checked_local_catalog_selection_geometry(selected)
+    is Some((bytes, nodes, depth)) else {
+    return Err(MissingDependency)
   }
-  checked_local_dependency_body(
-    program, unit, kind, max_bytes, max_nodes, max_depth,
+  if before_body is Some(prepare) && !prepare(bytes, nodes, depth) {
+    return Err(BudgetExceeded)
+  }
+  finish_checked_local_catalog_selection(
+    selected, max_bytes, max_nodes, max_depth,
   )
 }
 

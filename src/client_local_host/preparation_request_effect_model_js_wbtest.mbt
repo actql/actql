@@ -33,6 +33,7 @@ fn request_effect_model_plan_fixture(
   current? : () -> Bool = () => true,
   model_initial? : Bool = true,
   configure_quantities? : Bool = true,
+  catalog_registry_count? : Int = 0,
 ) -> (
   ClientRequestPreparation[Array[Int]],
   Array[Int],
@@ -42,7 +43,9 @@ fn request_effect_model_plan_fixture(
     @publication_host.PreparedClientEffectComputation,
   ],
 ) raise {
-  let (environment, document) = effect_model_plan_source()
+  let (environment, document) = effect_model_plan_source(
+    catalog_registry_count~,
+  )
   let ordinary = client_local_preparation_initial_limits(
     client_local_resource_policy(),
   ).unwrap()
