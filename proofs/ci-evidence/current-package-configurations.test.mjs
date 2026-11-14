@@ -166,7 +166,9 @@ for (const [path, entry] of Object.entries(currentPackageConfigurations)) {
     }
     const changes = [body + '\noptions(pre_build: {command: "unreviewed"})\n',
       body.replace(/"(?:actql\/actql|moonbitlang\/core)\/[^"\n]+"/, '"actql/actql/unreviewed_resource_owner"'),
-      body.replace(/"js"|"native"|"wasm"/, '"unreviewed-target"')];
+      (/"js"|"native"|"wasm"/u.test(body)
+        ? body.replace(/"js"|"native"|"wasm"/u, '"unreviewed-target"')
+        : body+'\noptions(targets: {"unreviewed.mbt": ["unreviewed-target"]})\n')];
     for (const changed of changes) {
       assert.notEqual(changed, body);
       assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
@@ -1001,3 +1003,35 @@ test('current Store scalar successor preserves the exact delivery selector and p
   assert.equal(packageConfigurationReviewFor(request(path, reviewedPackageConfigurations[path]))?.revision,
     packageConfigurationReview.revision, 'The historical configuration keeps its own unchanged review');
 });
+
+
+const accountConstructionImports = JSON.parse(readFileSync(new URL(
+  '../../docs/reviews/2026-11-15-account-construction-import-review.json', import.meta.url)));
+for (const entry of accountConstructionImports.configurations) {
+  test(`Account constructor import successor preserves exact previous descriptor and unknown refusal: ${entry.path}`, () => {
+    const before = gitTree(root, entry.previousRevision), selected = gitTree(root, entry.source);
+    const previous = before.read(entry.path).toString(), current = selected.read(entry.path).toString();
+    assert.equal(previous, entry.previousContent); assert.equal(hash(previous), entry.previousSha256);
+    assert.equal(current, entry.content); assert.equal(hash(current), entry.sha256);
+    let restored = current;
+    for (const line of entry.addedImports) {
+      assert.equal(restored.split(line).length, 2); restored = restored.replace(line, '');
+    }
+    assert.equal(restored, previous, 'Only the exact reviewed ordinary imports changed');
+    assert.deepEqual(packageImports(current).imports, [...packageImports(previous).imports,
+      ...entry.addedImports.map(line => /"([^"\n]+)"/u.exec(line)[1])].sort());
+    assert.equal(currentPackageConfigurations[entry.path].revision, entry.source);
+    assert.equal(currentPackageConfigurationReviewFor(request(entry.path, entry.sha256))?.rule, entry.rule);
+    assert.equal(currentPackageConfigurationReviewFor(request(entry.path, entry.previousSha256)), null);
+    for (const changed of [current+'\noptions(pre_build: {command: "unknown"})\n',
+      current.replace('"+js+wasm+native"', '"+js"'),
+      current.replace(entry.addedImports[0], '  "actql/actql/unreviewed_owner",\n')]) {
+      assert.notEqual(changed, current);
+      assert.equal(currentPackageConfigurationReviewFor(request(entry.path, hash(changed))), null);
+    }
+    for (const delta of [{target:'native'}, {target:'wasm'}, {toolchainDigest:'0'.repeat(64)},
+      {path:'./'+entry.path}, {path:'src/unreviewed/moon.pkg'}]) {
+      assert.equal(currentPackageConfigurationReviewFor({...request(entry.path, entry.sha256), ...delta}), null);
+    }
+  });
+}

@@ -381,7 +381,7 @@
     {
       "module": "adapters/host-common/authorization-gate.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bc110ead823b75962518cfca547d62ebeb67edb73f43f7934a8774a79f81efdd",
+      "sha256": "dcb432c7c76a773e97d6fd9e41cd7c2e9664a00e987767c20be52e25be2a3157",
       "role": "physical-io",
       "owner": "Existing execution_authorization/Checkpoint Owners and trusted Host gate",
       "exports": [
@@ -531,6 +531,8 @@
             "configuration",
             "configurationCid",
             "readConfiguration",
+            "admitConfiguration",
+            "withAccountObservation",
             "context",
             "decide",
             "answeringAuthorities",
@@ -616,6 +618,13 @@
           "async": false
         },
         {
+          "name": "gateFor/accountObservation/accountObservation",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
           "name": "gateFor/askHost",
           "parameters": [
             "view",
@@ -669,6 +678,11 @@
           "parameters": [
             "decision"
           ],
+          "async": false
+        },
+        {
+          "name": "gateFor/assertCurrentAccount/assertCurrentAccount/assertCurrentAccount",
+          "parameters": [],
           "async": false
         },
         {
@@ -801,6 +815,11 @@
         },
         {
           "name": "gateFor/init:assertConfigurationCurrent/init:assertConfigurationCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "gateFor/init:assertConfigurationCurrent/init:assertConfigurationCurrent/init:assertConfigurationCurrent",
           "parameters": [],
           "async": false
         },
@@ -1086,7 +1105,10 @@
             "subjectFields",
             "subjectFields/fields/fields",
             "subjectFields/subjectFields",
-            "text/text"
+            "text/text",
+            "gateFor/accountObservation/accountObservation",
+            "gateFor/assertCurrentAccount/assertCurrentAccount/assertCurrentAccount",
+            "gateFor/init:assertConfigurationCurrent/init:assertConfigurationCurrent/init:assertConfigurationCurrent"
           ],
           "exports": [
             "AUTHORIZATION_BOUNDARIES",
@@ -21059,7 +21081,7 @@
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1d4a053a5851a363ef833002c97fd6ca196f9fb0656d87a30240cfbf011cec24",
+      "sha256": "2a6db3267fef5c8de38023e6e5350fb140435899794c7d9096658c28d2e3f29d",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -50031,7 +50053,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/ordinary-local-account.mjs",
-                "anchor": "export async function prepareOrdinaryLocalAccount({root, principal, preparedOriginal,"
+                "anchor": "async function prepareOrdinaryLocalAccountOriginal({root, principal, preparedOriginal,"
               }
             ],
             "identity": [
@@ -71527,11 +71549,11 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const bounds = snapshotLimits(limits);"
+                "anchor": "const bounds = snapshotLimits(limits, construction !== undefined);"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
+                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid, environmentBody) {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -71617,7 +71639,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
+                "anchor": "const wire = construction === undefined"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
@@ -71703,7 +71725,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const tasks = [];"
+                "anchor": "const tasks = construct(() => jsCapacity(2n), () => []);"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -71729,7 +71751,7 @@
               },
               {
                 "path": "docs/design/model-provider-registration.md",
-                "anchor": "This connection supplies static checked materials, not execution dependencies,"
+                "anchor": "This connection supplies static checked materials."
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -71804,11 +71826,11 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const bounds = snapshotLimits(limits);"
+                "anchor": "const bounds = snapshotLimits(limits, construction !== undefined);"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
+                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid, environmentBody) {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -71870,7 +71892,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
+                "anchor": "const wire = construction === undefined"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
@@ -71932,7 +71954,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const tasks = [];"
+                "anchor": "const tasks = construct(() => jsCapacity(2n), () => []);"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -71950,7 +71972,7 @@
               },
               {
                 "path": "docs/design/model-provider-registration.md",
-                "anchor": "This connection supplies static checked materials, not execution dependencies,"
+                "anchor": "This connection supplies static checked materials."
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -72136,11 +72158,11 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const bounds = snapshotLimits(limits);"
+                "anchor": "const bounds = snapshotLimits(limits, construction !== undefined);"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
+                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid, environmentBody) {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -72226,7 +72248,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
+                "anchor": "const wire = construction === undefined"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
@@ -72312,7 +72334,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const tasks = [];"
+                "anchor": "const tasks = construct(() => jsCapacity(2n), () => []);"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -72338,7 +72360,7 @@
               },
               {
                 "path": "docs/design/model-provider-registration.md",
-                "anchor": "This connection supplies static checked materials, not execution dependencies,"
+                "anchor": "This connection supplies static checked materials."
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -75538,7 +75560,7 @@
     },
     {
       "module": "adapters/host-node/installed-project-model-tasks.mjs",
-      "sha256": "7ddbff43cad703b962333762d669670d2b1d831ac2fd6280b991682e7de09fd2",
+      "sha256": "6ced9ddfd8fb37959e4d3b80ba7f15d0d7c6ccb6b49e79e0bd8f7e15c0d98cea",
       "exports": [
         "loadInstalledProjectModelTasks",
         "prepareInstalledProjectModelTasks"
@@ -75559,7 +75581,8 @@
             "providers",
             "limits",
             "assertCurrent",
-            "openFile"
+            "openFile",
+            "installationServices"
           ],
           "async": true
         },
@@ -75572,6 +75595,7 @@
             "limits",
             "assertCurrent",
             "openFile",
+            "installationServices",
             "candidate"
           ],
           "async": true
@@ -75586,6 +75610,20 @@
         },
         {
           "name": "loadProjectModelTasks/check/check",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadProjectModelTasks/construct/construct",
+          "parameters": [
+            "capacity",
+            "project",
+            "retained"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadProjectModelTasks/construct/construct/construct",
           "parameters": [],
           "async": false
         },
@@ -75605,9 +75643,19 @@
         },
         {
           "name": "loadProjectModelTasks/init:bindInstalledProviders/init:bindInstalledProviders/bound/bound",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadProjectModelTasks/init:bindInstalledProviders/init:bindInstalledProviders/bound/bound/bound",
           "parameters": [
             "task"
           ],
+          "async": false
+        },
+        {
+          "name": "loadProjectModelTasks/init:bindInstalledProviders/init:bindInstalledProviders/bound/bound#2",
+          "parameters": [],
           "async": false
         },
         {
@@ -75623,14 +75671,27 @@
           "parameters": [
             "runtime",
             "wire",
-            "evidenceCid"
+            "evidenceCid",
+            "environmentBody"
           ],
           "async": false
         },
         {
           "name": "loadProjectModelTasks/installedView/init:projectEnvironmentForRuntime/init:projectEnvironmentForRuntime/projection/projection",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadProjectModelTasks/installedView/init:projectEnvironmentForRuntime/init:projectEnvironmentForRuntime/projection/projection#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadProjectModelTasks/jsCapacity/jsCapacity",
           "parameters": [
-            "task"
+            "retained",
+            "workspace",
+            "text"
           ],
           "async": false
         },
@@ -75643,6 +75704,53 @@
         },
         {
           "name": "loadProjectModelTasks/loadProjectModelTasks#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadProjectModelTasks/loadProjectModelTasks#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadProjectModelTasks/loadProjectModelTasks#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadProjectModelTasks/loadProjectModelTasks#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadProjectModelTasks/loadProjectModelTasks#6",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadProjectModelTasks/material/material",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadProjectModelTasks/material/material#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadProjectModelTasks/normalized/normalized",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadProjectModelTasks/normalized/normalized#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadProjectModelTasks/normalized/normalized#3",
           "parameters": [
             "value"
           ],
@@ -75656,6 +75764,48 @@
           "async": false
         },
         {
+          "name": "loadProjectModelTasks/selected/selected",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadProjectModelTasks/selected/selected#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadProjectModelTasks/selected/selected#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadProjectModelTasks/task/task",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadProjectModelTasks/task/task#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadProjectModelTasks/task/task#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadProjectModelTasks/tasks/tasks",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadProjectModelTasks/tasks/tasks#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareInstalledProjectModelTasks",
           "parameters": [
             "moon",
@@ -75663,14 +75813,23 @@
             "defaults",
             "limits",
             "assertCurrent",
-            "openFile"
+            "openFile",
+            "installationServices"
           ],
           "async": true
         },
         {
           "name": "snapshotLimits",
           "parameters": [
-            "value"
+            "value",
+            "funded"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotLimits/expected/expected",
+          "parameters": [
+            "key"
           ],
           "async": false
         },
@@ -75722,11 +75881,11 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const bounds = snapshotLimits(limits);"
+                "anchor": "const bounds = snapshotLimits(limits, construction !== undefined);"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
+                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid, environmentBody) {"
               }
             ],
             "identity": [
@@ -75764,7 +75923,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
+                "anchor": "const wire = construction === undefined"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
@@ -75802,7 +75961,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const tasks = [];"
+                "anchor": "const tasks = construct(() => jsCapacity(2n), () => []);"
               }
             ],
             "extension": [
@@ -75812,7 +75971,7 @@
               },
               {
                 "path": "docs/design/model-provider-registration.md",
-                "anchor": "This connection supplies static checked materials, not execution dependencies,"
+                "anchor": "This connection supplies static checked materials."
               }
             ],
             "verification": [
@@ -75906,7 +76065,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
+                "anchor": "const wire = construction === undefined"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
@@ -75948,7 +76107,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const bounds = snapshotLimits(limits);"
+                "anchor": "const bounds = snapshotLimits(limits, construction !== undefined);"
               }
             ],
             "extension": [
@@ -75992,11 +76151,11 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const bounds = snapshotLimits(limits);"
+                "anchor": "const bounds = snapshotLimits(limits, construction !== undefined);"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
+                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid, environmentBody) {"
               }
             ],
             "identity": [
@@ -76034,7 +76193,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
+                "anchor": "const wire = construction === undefined"
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
@@ -76072,7 +76231,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
-                "anchor": "const tasks = [];"
+                "anchor": "const tasks = construct(() => jsCapacity(2n), () => []);"
               }
             ],
             "extension": [
@@ -76082,7 +76241,7 @@
               },
               {
                 "path": "docs/design/model-provider-registration.md",
-                "anchor": "This connection supplies static checked materials, not execution dependencies,"
+                "anchor": "This connection supplies static checked materials."
               }
             ],
             "verification": [
@@ -76097,6 +76256,109 @@
               {
                 "path": "adapters/host-node/project-model-task-host.actual.test.mjs",
                 "anchor": "for(const scenario of ['checked','changed-registry','wrong-task','missing-provider'])"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "loadProjectModelTasks/construct/construct",
+            "loadProjectModelTasks/construct/construct/construct",
+            "loadProjectModelTasks/init:bindInstalledProviders/init:bindInstalledProviders/bound/bound/bound",
+            "loadProjectModelTasks/init:bindInstalledProviders/init:bindInstalledProviders/bound/bound#2",
+            "loadProjectModelTasks/installedView/init:projectEnvironmentForRuntime/init:projectEnvironmentForRuntime/projection/projection#2",
+            "loadProjectModelTasks/jsCapacity/jsCapacity",
+            "loadProjectModelTasks/loadProjectModelTasks#3",
+            "loadProjectModelTasks/loadProjectModelTasks#4",
+            "loadProjectModelTasks/loadProjectModelTasks#5",
+            "loadProjectModelTasks/loadProjectModelTasks#6",
+            "loadProjectModelTasks/material/material",
+            "loadProjectModelTasks/material/material#2",
+            "loadProjectModelTasks/normalized/normalized",
+            "loadProjectModelTasks/normalized/normalized#2",
+            "loadProjectModelTasks/normalized/normalized#3",
+            "loadProjectModelTasks/selected/selected",
+            "loadProjectModelTasks/selected/selected#2",
+            "loadProjectModelTasks/selected/selected#3",
+            "loadProjectModelTasks/task/task",
+            "loadProjectModelTasks/task/task#2",
+            "loadProjectModelTasks/task/task#3",
+            "loadProjectModelTasks/tasks/tasks",
+            "loadProjectModelTasks/tasks/tasks#2",
+            "snapshotLimits/expected/expected"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated inputs and outputs:"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "export async function loadInstalledProjectModelTasks(moon, project, providers,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "anchor": "test('actual same-parent loader registers 129 original Tasks once and funds complete nonempty final admission'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "anchor": "test('actual explicit maxTasks128 refuses 129 before acquiring or decoding a Task'"
+              },
+              {
+                "path": "src/check_environment/public_model_task_registry_demand_wbtest.mbt",
+                "anchor": "test \"public Task final constructor follows actual ordered member usage for 129 tasks\""
               }
             ]
           }
@@ -79528,7 +79790,7 @@
     {
       "module": "adapters/host-node/local-account-config.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "77498c5973d717839a1083a619ebe6dd6ee92fef9ba1a42051d76fda75a69e82",
+      "sha256": "7e49b407e95036f10dce005adc949339c867f61871c2a05ebf086277477b1d0a",
       "role": "physical-io",
       "owner": "Existing execution_authorization/Checkpoint Owners and trusted Host gate",
       "exports": [
@@ -79592,7 +79854,8 @@
         {
           "name": "configurationOf",
           "parameters": [
-            "text"
+            "text",
+            "frame"
           ],
           "async": false
         },
@@ -79606,23 +79869,60 @@
         {
           "name": "createLocalAuthorizationGate",
           "parameters": [
-            "accountConfig",
-            "accountConfiguration",
-            "principal",
-            "context",
+            "accountConstruction",
             "options"
           ],
           "async": true
         },
         {
-          "name": "createLocalAuthorizationGate/gate/gate",
+          "name": "createLocalAuthorizationGate/createLocalAuthorizationGate",
           "parameters": [],
           "async": false
         },
         {
-          "name": "createLocalAuthorizationGate/none/none",
+          "name": "createLocalAuthorizationGateOriginal",
+          "parameters": [
+            "accountConfig",
+            "accountConfiguration",
+            "principal",
+            "context",
+            "options",
+            "frame",
+            "construction"
+          ],
+          "async": true
+        },
+        {
+          "name": "createLocalAuthorizationGateOriginal/gate/gate",
+          "parameters": [
+            "moon",
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalAuthorizationGateOriginal/gate/gate#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalAuthorizationGateOriginal/none/none",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalAuthorizationGateOriginal/withAccountObservation/withAccountObservation",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalAuthorizationGateOriginal/withAccountObservation/withAccountObservation/withAccountObservation",
+          "parameters": [
+            "current"
           ],
           "async": false
         },
@@ -79652,7 +79952,8 @@
         {
           "name": "observeAccountConfigurationWire",
           "parameters": [
-            "authorization"
+            "authorization",
+            "frame"
           ],
           "async": false
         },
@@ -79660,8 +79961,31 @@
           "name": "observeInstalledAccount",
           "parameters": [
             "moon",
-            "authorization"
+            "authorization",
+            "construction"
           ],
+          "async": false
+        },
+        {
+          "name": "observeInstalledAccount/observeInstalledAccount",
+          "parameters": [
+            "frame"
+          ],
+          "async": false
+        },
+        {
+          "name": "observeInstalledAccountOriginal",
+          "parameters": [
+            "moon",
+            "authorization",
+            "frame",
+            "construction"
+          ],
+          "async": false
+        },
+        {
+          "name": "observeInstalledAccountOriginal/observeInstalledAccountOriginal",
+          "parameters": [],
           "async": false
         },
         {
@@ -79677,7 +80001,8 @@
         {
           "name": "readAccountConfiguration",
           "parameters": [
-            "path"
+            "path",
+            "frame"
           ],
           "async": true
         },
@@ -79705,8 +80030,8 @@
             "configurationOf",
             "contentCid",
             "createLocalAuthorizationGate",
-            "createLocalAuthorizationGate/gate/gate",
-            "createLocalAuthorizationGate/none/none",
+            "createLocalAuthorizationGateOriginal/gate/gate",
+            "createLocalAuthorizationGateOriginal/none/none",
             "fail/fail",
             "localAuthorizationContext",
             "normalizedText",
@@ -79741,7 +80066,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization) {"
+                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
               }
             ],
             "inputsOutputs": [
@@ -79759,7 +80084,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization) {"
+                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
               }
             ],
             "identity": [
@@ -79777,7 +80102,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization) {"
+                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
               }
             ],
             "ownership": [
@@ -79795,7 +80120,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization) {"
+                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
               }
             ],
             "synchronization": [
@@ -79813,7 +80138,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization) {"
+                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
               }
             ],
             "failure": [
@@ -79831,7 +80156,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization) {"
+                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
               }
             ],
             "cancellation": [
@@ -79885,7 +80210,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization) {"
+                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
               }
             ],
             "verification": [
@@ -79899,7 +80224,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "function observeAccountConfigurationWire(authorization) {"
+                "anchor": "function observeAccountConfigurationWire(authorization, frame) {"
               },
               {
                 "path": "adapters/host-node/local-account-current.test.mjs",
@@ -79932,7 +80257,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization) {"
+                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
               }
             ],
             "inputsOutputs": [
@@ -79950,7 +80275,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization) {"
+                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
               }
             ],
             "identity": [
@@ -79968,7 +80293,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization) {"
+                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
               }
             ],
             "ownership": [
@@ -79986,7 +80311,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization) {"
+                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
               }
             ],
             "synchronization": [
@@ -80004,7 +80329,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization) {"
+                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
               }
             ],
             "failure": [
@@ -80022,7 +80347,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization) {"
+                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
               }
             ],
             "cancellation": [
@@ -80076,7 +80401,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization) {"
+                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
               }
             ],
             "verification": [
@@ -80090,7 +80415,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "function observeAccountConfigurationWire(authorization) {"
+                "anchor": "function observeAccountConfigurationWire(authorization, frame) {"
               },
               {
                 "path": "adapters/host-node/local-account-current.test.mjs",
@@ -80120,7 +80445,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization) {"
+                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
               }
             ],
             "inputsOutputs": [
@@ -80138,7 +80463,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization) {"
+                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
               }
             ],
             "identity": [
@@ -80156,7 +80481,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization) {"
+                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
               }
             ],
             "ownership": [
@@ -80174,7 +80499,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization) {"
+                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
               }
             ],
             "synchronization": [
@@ -80192,7 +80517,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization) {"
+                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
               }
             ],
             "failure": [
@@ -80210,7 +80535,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization) {"
+                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
               }
             ],
             "cancellation": [
@@ -80264,7 +80589,7 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "export function observeInstalledAccount(moon, authorization) {"
+                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
               }
             ],
             "verification": [
@@ -80278,11 +80603,102 @@
               },
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "function observeAccountConfigurationWire(authorization) {"
+                "anchor": "function observeAccountConfigurationWire(authorization, frame) {"
               },
               {
                 "path": "adapters/host-node/local-account-current.test.mjs",
                 "anchor": "test('the shared account observer keeps its fixed byte and fatal UTF-8 bounds'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createLocalAuthorizationGate/createLocalAuthorizationGate",
+            "createLocalAuthorizationGateOriginal",
+            "createLocalAuthorizationGateOriginal/gate/gate#2",
+            "createLocalAuthorizationGateOriginal/withAccountObservation/withAccountObservation",
+            "createLocalAuthorizationGateOriginal/withAccountObservation/withAccountObservation/withAccountObservation",
+            "observeInstalledAccount/observeInstalledAccount",
+            "observeInstalledAccountOriginal",
+            "observeInstalledAccountOriginal/observeInstalledAccountOriginal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              },
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "export function observeInstalledAccount(moon, authorization, construction) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Reusing admitted Account originals"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Reusing admitted Account originals"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/account-construction.test.mjs",
+                "anchor": "test('original refusal occurs before Buffer backing or UTF8 decode and failed prefix stays held until cleanup'"
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read_wbtest.mbt",
+                "anchor": "test \"Account child sums siblings and refuses foreign and insufficient original before construction\""
               }
             ]
           }
@@ -123783,7 +124199,7 @@
     {
       "module": "adapters/host-node/ordinary-local-account.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e8b47f7ba7333f685cccd120f04e909102720ae13789f1f3b8605c1225a29371",
+      "sha256": "0ef984d846a7eec3a749cbbead2c7ae593be02894ab568a42b98c6743ce4dad8",
       "role": "physical-io",
       "owner": "Existing ordinary Local Host/Account initialization and Store exclusion Owners",
       "exports": [
@@ -123809,16 +124225,26 @@
         {
           "name": "prepareOrdinaryLocalAccount",
           "parameters": [
-            "root",
-            "principal",
-            "preparedOriginal",
-            "rootCreation",
-            "operatorAuthorization"
+            "accountConstruction",
+            "options"
           ],
           "async": true
         },
         {
-          "name": "prepareOrdinaryLocalAccount/createOriginal",
+          "name": "prepareOrdinaryLocalAccountOriginal",
+          "parameters": [
+            "root",
+            "principal",
+            "preparedOriginal",
+            "rootCreation",
+            "operatorAuthorization",
+            "frame",
+            "construction"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryLocalAccountOriginal/createOriginal",
           "parameters": [
             "path",
             "wire",
@@ -123827,26 +124253,26 @@
           "async": true
         },
         {
-          "name": "prepareOrdinaryLocalAccount/createOriginal/createOriginal",
+          "name": "prepareOrdinaryLocalAccountOriginal/createOriginal/createOriginal",
           "parameters": [
             "original"
           ],
           "async": false
         },
         {
-          "name": "prepareOrdinaryLocalAccount/createOriginal/createOriginal#2",
+          "name": "prepareOrdinaryLocalAccountOriginal/createOriginal/createOriginal#2",
           "parameters": [
             "handle"
           ],
           "async": true
         },
         {
-          "name": "prepareOrdinaryLocalAccount/current/current",
+          "name": "prepareOrdinaryLocalAccountOriginal/current/current",
           "parameters": [],
           "async": false
         },
         {
-          "name": "prepareOrdinaryLocalAccount/init:adopt/init:adopt",
+          "name": "prepareOrdinaryLocalAccountOriginal/init:adopt/init:adopt",
           "parameters": [
             "moon",
             "subjects",
@@ -123855,47 +124281,47 @@
           "async": false
         },
         {
-          "name": "prepareOrdinaryLocalAccount/init:adopt/init:adopt/init:adopt",
+          "name": "prepareOrdinaryLocalAccountOriginal/init:adopt/init:adopt/init:adopt",
           "parameters": [],
           "async": true
         },
         {
-          "name": "prepareOrdinaryLocalAccount/parse/parse",
+          "name": "prepareOrdinaryLocalAccountOriginal/parse/parse",
           "parameters": [
             "wire"
           ],
           "async": false
         },
         {
-          "name": "prepareOrdinaryLocalAccount/prepareOrdinaryLocalAccount",
+          "name": "prepareOrdinaryLocalAccountOriginal/prepareOrdinaryLocalAccountOriginal",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "prepareOrdinaryLocalAccount/readOptional",
+          "name": "prepareOrdinaryLocalAccountOriginal/readOptional",
           "parameters": [
             "path"
           ],
           "async": true
         },
         {
-          "name": "prepareOrdinaryLocalAccount/syncDirectory/syncDirectory",
+          "name": "prepareOrdinaryLocalAccountOriginal/syncDirectory/syncDirectory",
           "parameters": [
             "path"
           ],
           "async": false
         },
         {
-          "name": "prepareOrdinaryLocalAccount/syncDirectory/syncDirectory/syncDirectory",
+          "name": "prepareOrdinaryLocalAccountOriginal/syncDirectory/syncDirectory/syncDirectory",
           "parameters": [
             "original"
           ],
           "async": false
         },
         {
-          "name": "prepareOrdinaryLocalAccount/syncDirectory/syncDirectory/syncDirectory#2",
+          "name": "prepareOrdinaryLocalAccountOriginal/syncDirectory/syncDirectory/syncDirectory#2",
           "parameters": [
             "original"
           ],
@@ -123921,18 +124347,18 @@
             "exact/exact",
             "fail/fail",
             "prepareOrdinaryLocalAccount",
-            "prepareOrdinaryLocalAccount/createOriginal",
-            "prepareOrdinaryLocalAccount/createOriginal/createOriginal",
-            "prepareOrdinaryLocalAccount/createOriginal/createOriginal#2",
-            "prepareOrdinaryLocalAccount/current/current",
-            "prepareOrdinaryLocalAccount/init:adopt/init:adopt",
-            "prepareOrdinaryLocalAccount/init:adopt/init:adopt/init:adopt",
-            "prepareOrdinaryLocalAccount/parse/parse",
-            "prepareOrdinaryLocalAccount/prepareOrdinaryLocalAccount",
-            "prepareOrdinaryLocalAccount/readOptional",
-            "prepareOrdinaryLocalAccount/syncDirectory/syncDirectory",
-            "prepareOrdinaryLocalAccount/syncDirectory/syncDirectory/syncDirectory",
-            "prepareOrdinaryLocalAccount/syncDirectory/syncDirectory/syncDirectory#2"
+            "prepareOrdinaryLocalAccountOriginal/createOriginal",
+            "prepareOrdinaryLocalAccountOriginal/createOriginal/createOriginal",
+            "prepareOrdinaryLocalAccountOriginal/createOriginal/createOriginal#2",
+            "prepareOrdinaryLocalAccountOriginal/current/current",
+            "prepareOrdinaryLocalAccountOriginal/init:adopt/init:adopt",
+            "prepareOrdinaryLocalAccountOriginal/init:adopt/init:adopt/init:adopt",
+            "prepareOrdinaryLocalAccountOriginal/parse/parse",
+            "prepareOrdinaryLocalAccountOriginal/prepareOrdinaryLocalAccountOriginal",
+            "prepareOrdinaryLocalAccountOriginal/readOptional",
+            "prepareOrdinaryLocalAccountOriginal/syncDirectory/syncDirectory",
+            "prepareOrdinaryLocalAccountOriginal/syncDirectory/syncDirectory/syncDirectory",
+            "prepareOrdinaryLocalAccountOriginal/syncDirectory/syncDirectory/syncDirectory#2"
           ],
           "exports": [
             "prepareOrdinaryLocalAccount"
@@ -123947,7 +124373,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/ordinary-local-account.mjs",
-                "anchor": "export async function prepareOrdinaryLocalAccount({root, principal, preparedOriginal,"
+                "anchor": "async function prepareOrdinaryLocalAccountOriginal({root, principal, preparedOriginal,"
               }
             ],
             "identity": [
@@ -124015,7 +124441,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/ordinary-local-account.mjs",
-                "anchor": "export async function prepareOrdinaryLocalAccount({root, principal, preparedOriginal,"
+                "anchor": "async function prepareOrdinaryLocalAccountOriginal({root, principal, preparedOriginal,"
               }
             ],
             "identity": [
@@ -124064,6 +124490,90 @@
               {
                 "path": "adapters/host-node/ordinary-local-account.test.mjs",
                 "anchor": "test('ordinary Local preserves current Deny on the same Host and after reopening'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryLocalAccountOriginal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              },
+              {
+                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "anchor": "export async function prepareOrdinaryLocalAccount({accountConstruction, ...options}) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "anchor": "export async function prepareOrdinaryLocalAccount({accountConstruction, ...options}) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Reusing admitted Account originals"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Reusing admitted Account originals"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/account-construction.test.mjs",
+                "anchor": "test('original refusal occurs before Buffer backing or UTF8 decode and failed prefix stays held until cleanup'"
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read_wbtest.mbt",
+                "anchor": "test \"Account child sums siblings and refuses foreign and insufficient original before construction\""
               }
             ]
           }
@@ -130182,7 +130692,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "006efe87cc8636f58eb871746da5bf00145602ff9db9eebad635ebd0a0604fdf",
+      "sha256": "40e22075fc1f5dbe3e44930adc5ab5ac4de092338586044a9b7ab9c20190f331",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -130193,10 +130703,12 @@
         "bindInstalledSourceConstruction",
         "borrowInstalledSourceInitialization",
         "captureInstalledSourceServices",
+        "closeInstalledAccountConstruction",
         "closeInstalledSourceConstruction",
         "completeInstalledSourceInitialization",
         "createInstalledHostServices",
         "finishInstalledSourceInitialization",
+        "installedAccountConstruction",
         "installedSourceConfigurationReader",
         "installedSourceEnvironmentConstructionReader",
         "isInstalledSourceInitializationRetired",
@@ -130481,6 +130993,13 @@
           "async": false
         },
         {
+          "name": "closeInstalledAccountConstruction",
+          "parameters": [
+            "services"
+          ],
+          "async": true
+        },
+        {
           "name": "closeInstalledSourceConstruction",
           "parameters": [
             "context",
@@ -130506,6 +131025,7 @@
             "principalId",
             "moon",
             "assertCurrent",
+            "accountCurrent",
             "receiver",
             "initialPreparation"
           ],
@@ -131116,6 +131636,18 @@
           "async": false
         },
         {
+          "name": "installedAccountConstruction",
+          "parameters": [
+            "services"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedAccountConstruction/installedAccountConstruction",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installedSourceConfigurationReader",
           "parameters": [
             "services"
@@ -131214,6 +131746,13 @@
           "name": "installedSourceConfigurationReader/reader/init:parseJsonText/init:parseJsonText",
           "parameters": [
             "text"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSourceConfigurationReader/reader/init:prepareModelTaskInput/init:prepareModelTaskInput",
+          "parameters": [
+            "projection"
           ],
           "async": false
         },
@@ -131347,6 +131886,32 @@
             "context",
             "query",
             "evidence"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareModelTaskInput",
+          "parameters": [
+            "original",
+            "material",
+            "projection",
+            "attempts",
+            "validate"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareModelTaskInput/add/add",
+          "parameters": [
+            "previous",
+            "current"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareModelTaskInput/prepareModelTaskInput",
+          "parameters": [
+            "name"
           ],
           "async": false
         },
@@ -133276,6 +133841,178 @@
               {
                 "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
                 "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "closeInstalledAccountConstruction",
+            "installedAccountConstruction",
+            "installedAccountConstruction/installedAccountConstruction"
+          ],
+          "exports": [
+            "closeInstalledAccountConstruction",
+            "installedAccountConstruction"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "export function installedSourceConfigurationReader(services) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "export function installedSourceConfigurationReader(services) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Reusing admitted Account originals"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Reusing admitted Account originals"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/account-construction.test.mjs",
+                "anchor": "test('original refusal occurs before Buffer backing or UTF8 decode and failed prefix stays held until cleanup'"
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read_wbtest.mbt",
+                "anchor": "test \"Account child sums siblings and refuses foreign and insufficient original before construction\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installedSourceConfigurationReader/reader/init:prepareModelTaskInput/init:prepareModelTaskInput",
+            "prepareModelTaskInput",
+            "prepareModelTaskInput/add/add",
+            "prepareModelTaskInput/prepareModelTaskInput"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated inputs and outputs:"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "export function installedSourceConfigurationReader(services) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "anchor": "test('actual same-parent loader registers 129 original Tasks once and funds complete nonempty final admission'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "anchor": "test('actual explicit maxTasks128 refuses 129 before acquiring or decoding a Task'"
+              },
+              {
+                "path": "src/check_environment/public_model_task_registry_demand_wbtest.mbt",
+                "anchor": "test \"public Task final constructor follows actual ordered member usage for 129 tasks\""
               }
             ]
           }
@@ -136928,13 +137665,14 @@
     },
     {
       "module": "adapters/host-node/installed-funded-environment.mjs",
-      "sha256": "557f1c34ad7155ccc049277cfc36e41177b5caa6be533ceda919d9f764dc41b3",
+      "sha256": "b80cca5080bef0aea2175e43c6c7a181ba028bcbd81d42aa4a74388b511ef864",
       "exports": [
         "admitInstalledSourceFinalEnvironment",
         "assertInstalledEnvironmentPublicationOriginal",
         "bindInstalledEnvironmentConstruction",
         "composeInstalledInventoryEnvironment",
         "composeInstalledSourceEnvironment",
+        "readInstalledHostEnvironment",
         "readInstalledSourceEnvironment",
         "releaseRetiredInstalledEnvironmentComposition"
       ],
@@ -137191,6 +137929,67 @@
           "async": false
         },
         {
+          "name": "readInstalledHostEnvironment",
+          "parameters": [
+            "services",
+            "moon",
+            "wire",
+            "textTime",
+            "calendar",
+            "numericProfileCid",
+            "graphLawCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "readInstalledHostEnvironment/admitted/admitted",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readInstalledHostEnvironment/admitted/admitted#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readInstalledHostEnvironment/construct/construct",
+          "parameters": [
+            "capacity",
+            "project"
+          ],
+          "async": false
+        },
+        {
+          "name": "readInstalledHostEnvironment/parsed/parsed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readInstalledHostEnvironment/parsed/parsed#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readInstalledHostEnvironment/raw/raw",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readInstalledHostEnvironment/raw/raw#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readInstalledHostEnvironment/readInstalledHostEnvironment",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readInstalledHostEnvironment/readInstalledHostEnvironment#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "readInstalledSourceEnvironment",
           "parameters": [
             "services",
@@ -137365,6 +138164,97 @@
               {
                 "path": "adapters/host-node/installed-funded-environment.actual.test.mjs",
                 "anchor": "test('inventory retirement tracking still refuses a real pending metadata-load parent'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "readInstalledHostEnvironment",
+            "readInstalledHostEnvironment/admitted/admitted",
+            "readInstalledHostEnvironment/admitted/admitted#2",
+            "readInstalledHostEnvironment/construct/construct",
+            "readInstalledHostEnvironment/parsed/parsed",
+            "readInstalledHostEnvironment/parsed/parsed#2",
+            "readInstalledHostEnvironment/raw/raw",
+            "readInstalledHostEnvironment/raw/raw#2",
+            "readInstalledHostEnvironment/readInstalledHostEnvironment",
+            "readInstalledHostEnvironment/readInstalledHostEnvironment#2"
+          ],
+          "exports": [
+            "readInstalledHostEnvironment"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated inputs and outputs:"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.mjs",
+                "anchor": "export function bindInstalledEnvironmentConstruction(services, reader, begin) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "anchor": "test('actual same-parent loader registers 129 original Tasks once and funds complete nonempty final admission'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "anchor": "test('actual explicit maxTasks128 refuses 129 before acquiring or decoding a Task'"
+              },
+              {
+                "path": "src/check_environment/public_model_task_registry_demand_wbtest.mbt",
+                "anchor": "test \"public Task final constructor follows actual ordered member usage for 129 tasks\""
               }
             ]
           }
@@ -138722,6 +139612,311 @@
         }
       ],
       "referenceQualification": "Source ownership and selected component correspondence only; not a normal artifact, global RAM reservation or ordinary execution acceptance."
+    },
+    {
+      "module": "adapters/host-node/account-construction.mjs",
+      "sha256": "cfe54c60dee4b73aa208da361969cd7a82dbfa4a91163e0c402766c6c10bc800",
+      "exports": [
+        "createAccountConstruction",
+        "isAccountConstruction",
+        "readAccountCurrent",
+        "readAccountOriginal"
+      ],
+      "operations": [
+        {
+          "name": "createAccountConstruction",
+          "parameters": [
+            "moon",
+            "prepareRead",
+            "current"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAccountConstruction/begin",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createAccountConstruction/begin/failure",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAccountConstruction/begin/finish",
+          "parameters": [
+            "retain"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAccountConstruction/begin/frame/init:admit/init:admit",
+          "parameters": [
+            "runtime",
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAccountConstruction/begin/frame/init:assert/init:assert",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createAccountConstruction/begin/frame/init:closeUnknown/init:closeUnknown",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAccountConstruction/begin/frame/init:core/init:core",
+          "parameters": [
+            "retained",
+            "execution"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAccountConstruction/begin/frame/init:decodedBytes/init:decodedBytes",
+          "parameters": [
+            "size"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAccountConstruction/begin/frame/init:hold/init:hold",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createAccountConstruction/begin/frame/init:inputBytes/init:inputBytes",
+          "parameters": [
+            "size"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAccountConstruction/begin/frame/init:nativeJson/init:nativeJson",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAccountConstruction/begin/frame/init:record/init:record",
+          "parameters": [
+            "units",
+            "nodes",
+            "depth"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAccountConstruction/begin/prepare",
+          "parameters": [
+            "retained",
+            "execution"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAccountConstruction/facet/init:close/init:close",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createAccountConstruction/facet/init:onRetire/init:onRetire",
+          "parameters": [
+            "callback"
+          ],
+          "async": false
+        },
+        {
+          "name": "createAccountConstruction/facet/init:pending/init:pending",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createAccountConstruction/observe",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "isAccountConstruction/isAccountConstruction",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readAccountCurrent",
+          "parameters": [
+            "path",
+            "frame"
+          ],
+          "async": false
+        },
+        {
+          "name": "readAccountOriginal",
+          "parameters": [
+            "path",
+            "frame"
+          ],
+          "async": true
+        },
+        {
+          "name": "readAccountOriginal/readAccountOriginal",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readAccountOriginal/readAccountOriginal#2",
+          "parameters": [
+            "original"
+          ],
+          "async": true
+        },
+        {
+          "name": "valid/valid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing installed Host initialization original and execution_authorization Account admission/current owners",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createAccountConstruction",
+            "createAccountConstruction/begin",
+            "createAccountConstruction/begin/failure",
+            "createAccountConstruction/begin/finish",
+            "createAccountConstruction/begin/frame/init:admit/init:admit",
+            "createAccountConstruction/begin/frame/init:assert/init:assert",
+            "createAccountConstruction/begin/frame/init:closeUnknown/init:closeUnknown",
+            "createAccountConstruction/begin/frame/init:core/init:core",
+            "createAccountConstruction/begin/frame/init:decodedBytes/init:decodedBytes",
+            "createAccountConstruction/begin/frame/init:hold/init:hold",
+            "createAccountConstruction/begin/frame/init:inputBytes/init:inputBytes",
+            "createAccountConstruction/begin/frame/init:nativeJson/init:nativeJson",
+            "createAccountConstruction/begin/frame/init:record/init:record",
+            "createAccountConstruction/begin/prepare",
+            "createAccountConstruction/facet/init:close/init:close",
+            "createAccountConstruction/facet/init:onRetire/init:onRetire",
+            "createAccountConstruction/facet/init:pending/init:pending",
+            "createAccountConstruction/observe",
+            "fail/fail",
+            "isAccountConstruction/isAccountConstruction",
+            "readAccountCurrent",
+            "readAccountOriginal",
+            "readAccountOriginal/readAccountOriginal",
+            "readAccountOriginal/readAccountOriginal#2",
+            "valid/valid"
+          ],
+          "exports": [
+            "createAccountConstruction",
+            "isAccountConstruction",
+            "readAccountCurrent",
+            "readAccountOriginal"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              },
+              {
+                "path": "adapters/host-node/account-construction.mjs",
+                "anchor": "export function createAccountConstruction({moon, prepareRead, current}) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/account-construction.mjs",
+                "anchor": "export function createAccountConstruction({moon, prepareRead, current}) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Reusing admitted Account originals"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Reusing admitted Account originals"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Host initialization before Source loading"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Funded Account construction on the same original"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/account-construction.test.mjs",
+                "anchor": "test('original refusal occurs before Buffer backing or UTF8 decode and failed prefix stays held until cleanup'"
+              },
+              {
+                "path": "src/physical_resources/preparation_account_read_wbtest.mbt",
+                "anchor": "test \"Account child sums siblings and refuses foreign and insufficient original before construction\""
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "generated": [],

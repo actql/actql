@@ -3938,7 +3938,7 @@
     },
     {
       "module": "src/check_environment/public_model_task_normalization.mbt",
-      "sha256": "184bd9f0cb4ad18328cda5d6a3abea7ebd7d59c25aca799a9824cddb4e86b9b4",
+      "sha256": "1178c13bedf4b13f995617d62e7b41737e45cc4fd655524effff30ee61a64fa3",
       "exports": [],
       "operations": [
         {
@@ -5108,7 +5108,7 @@
     },
     {
       "module": "src/run_publication_host/client_infer_call_scope.mbt",
-      "sha256": "0dbacaf8c0874a620a8bc42e13ee46c5fbbc6037e03987917b669ac11a612ee3",
+      "sha256": "ad214ce665c3d894e0fd6450f995bf0948c760dc01b36dca0ac6361e3bfdb707",
       "exports": [],
       "operations": [
         {
@@ -5174,6 +5174,10 @@
         {
           "name": "client_infer_saved_source_originals",
           "declaration": "client_infer_saved_source_originals ( value : ClientInferSavedCallScope , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : ClientInferOccurrence , plan : ClientInferPlanGraph , ) - > Result [ Array [ ( @ publication . RunEvidenceValue , @ publication . RunEvidenceValue ) ] , ClientInferCallScopeIssue , ]"
+        },
+        {
+          "name": "emit_client_infer_call_scope_snapshot",
+          "declaration": "emit_client_infer_call_scope_snapshot ( value : ClientInferCallScope , writer : @ encode . Writer , ) - > Result [ Unit , ClientInferCallScopeIssue ]"
         },
         {
           "name": "infer_saved_call_scope_occurrence_originals",
@@ -5426,6 +5430,86 @@
               {
                 "path": "src/query_integration/result_publication_custody_wbtest.mbt",
                 "anchor": "captured consumer retirement retains original Result pins through same retry"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "emit_client_infer_call_scope_snapshot"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "src/run_publication_host/client_infer_call_scope.mbt",
+                "anchor": "pub fn client_infer_call_scope_model_execution("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/client_infer_call_scope.mbt",
+                "anchor": "pub fn client_infer_call_scope_model_execution("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "src/client_infer_host/original_scope_snapshot_wbtest.mbt",
+                "anchor": "test \"one129 prepared call inventory retains its prefunded snapshot without any provider invocation\""
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "src/run_publication_host/client_infer_call_scope.mbt",
+                "anchor": "pub fn client_infer_call_scope_model_execution("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_infer_host/original_scope_snapshot_wbtest.mbt",
+                "anchor": "test \"one129 prepared call inventory retains its prefunded snapshot without any provider invocation\""
               }
             ]
           }

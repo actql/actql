@@ -92,6 +92,10 @@ const foreignLibraryConfigurations = Object.freeze({
 // revision still applies to every unchanged entry.
 export const currentConfigurationReviewRevision = '38e95bfac2907700456de6c53ed0cad3620bb72d';
 export const currentPackageConfigurations = Object.freeze({
+  // Exact ordinary constructor imports; target/file/formatter options unchanged.
+  // See docs/reviews/2026-11-15-account-construction-import-review.json.
+  'src/canonical_json/moon.pkg': Object.freeze({digest: '46df3ca77a7499c858f5288453b15ad04b9d910e69b3978bda2340624e770436', rule: 'literal-target-selectors-with-bound-source-membership', revision: '05d5612068646662ebfeba489b8df50d03322291'}),
+  'src/execution_authorization/moon.pkg': Object.freeze({digest: '628b93c8c76191c2af413b5f0dac4f395ff02b3c506c0b1d5daf2a40719e5697', rule: 'literal-target-selectors-with-bound-source-membership', revision: '05d5612068646662ebfeba489b8df50d03322291'}),
   // The HTTP-header/native-control/discarded-projection/Definition and
   // empty-header regressions are JS-only. Removing
   // their selectors restores the reviewed scope-import descriptor exactly;

@@ -14208,7 +14208,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "623e4849a48d868073b39cc9daae7ae7b489ec0e36efd923352a43a7683f832b",
+      "sha256": "4dc45590489e0ccd4e3202738a0544ed89d6678b1eb651a4328caa23d04d6e03",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -15163,6 +15163,7 @@
             "runtimeBundleCid",
             "accountConfiguration",
             "originalContext",
+            "accountConstruction",
             "connection",
             "profile",
             "resolveSecret",

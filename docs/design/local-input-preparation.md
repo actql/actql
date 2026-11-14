@@ -3977,6 +3977,17 @@ constructor runs. Empty results retain no decoded text; invalid/overflow bounds
 remain refusals. This changes no logical policy ceiling, semantic authority,
 Result occurrence, currentness fence, reservation owner or cleanup obligation.
 
+A retained Result field contract with finite `Text(bounds).max_utf8_bytes`
+also supplies the existing Result-schema leaf proof. The quote counts every
+projected occurrence and authored field-name byte, then combines the checked
+closed row bound with the shared JSON leaf wire formula. A larger allowed work
+budget does not replace that same bounded payload proof with its policy ceiling.
+Unbounded/invalid Text and checked overflow keep the existing unknown fallback;
+explicit smaller row/work budgets and the actual Store/coheld metadata preflight
+still refuse. This performs no literal rescan or general RowStep analysis and
+changes no Store cap, default work or cleanup/currentness duty. The bounded-Text
+regressions are authored Source evidence; their runtime acceptance is separate.
+
 ## Source readers receive the same checked Run
 
 The installed managed Source view forwards its already selected original Run
