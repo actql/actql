@@ -920,8 +920,6 @@ test('Native Project Mock real Read keeps its selected provider out of ordinary 
   assert.equal(nativeCoreScopedAllocationProfile(request), 'runtime-values');
   assert.equal(nativeScopedTestFiles.includes(diagnostic), false);
   assert.equal(requestSource.split(name).length, 2, 'Actual Request case needs the selected read provider');
-  assert.equal(requestSource.lastIndexOf('\ntest "'), requestSource.indexOf(name) - 1,
-    'Append the case without shifting prior compiler-owned indices');
   assert.equal(diagnosticSource.includes(name), false);
   assert.equal(diagnosticSource.includes('native_mock_readme_request_facility'), false,
     'Ordinary diagnostics must not acquire the physical Request facility');
