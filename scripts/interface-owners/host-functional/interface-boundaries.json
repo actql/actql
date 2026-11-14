@@ -136057,7 +136057,7 @@
     },
     {
       "module": "adapters/host-node/installed-funded-environment.mjs",
-      "sha256": "f34bd6e19ad19dfe873931459a9214eb010f1c683ad473ae32c09b988d4bb693",
+      "sha256": "557f1c34ad7155ccc049277cfc36e41177b5caa6be533ceda919d9f764dc41b3",
       "exports": [
         "admitInstalledSourceFinalEnvironment",
         "assertInstalledEnvironmentPublicationOriginal",

@@ -27,7 +27,7 @@ function document(name) {
 // these tests establish ordering/identity, not actual Root/Ledger admission.
 function fixture() {
   const input = {}, unit = {}, capacity = {}, initial = {}, events = [];
-  const state = {reads: 0, from: 0, retire: 0, refuse: false, cause: undefined, current: true, retireReady: true, reconciled: [], zero: new Set(), delay: undefined};
+  const state = {reads: 0, from: 0, retire: 0, refuse: false, cause: undefined, current: true, retireReady: true, reconciled: [], zero: new Set(), rawSlots: new Set(), rawSlotCompositions: [], delay: undefined};
   const moon = {...native};
   for (const name of ['ReconcileInstalledSourceConstruction', 'CompleteInstalledSourceMaterial',
     'BorrowInstalledSourceMaterial', 'BorrowedInstalledSourceEnvironment', 'ReturnInstalledSourceMaterial',
@@ -37,6 +37,7 @@ function fixture() {
     clientProgramInstalledSourceConstructionCapacity(...values) {
       const result = native.clientProgramInstalledSourceConstructionCapacity(...values);
       if (values.every(value => value === 0n)) state.zero.add(result._0);
+      if (values[0] === 1n && values.slice(1).every(value => value === 0n)) state.rawSlots.add(result._0);
       return result;
     },
     clientProgramReconcileInstalledSourceConstruction(value, original, quote) {
@@ -45,7 +46,13 @@ function fixture() {
     },
     clientProgramTakeHostInitializationSourceCapacity(value) {assert.equal(value, initial);return ok({_0: input, _1: unit});},
     clientProgramContinueInstalledSourceMaterial(value, original) {assert.equal(value, unit);assert.equal(original, input);return ok(capacity);},
-    clientProgramComposeInstalledSourceConstructionCapacity: (original, providers) => ok({original, providers}),
+    clientProgramComposeInstalledSourceConstructionCapacity: (original, providers) => {
+      if (!state.rawSlots.has(original)) return ok({original, providers});
+      const result = native.clientProgramComposeInstalledSourceConstructionCapacity(original, providers);
+      state.rawSlotCompositions.push({original, providers, result: result._0});
+      events.push('raw-slot-quote');
+      return result;
+    },
     clientProgramReserveInstalledSourceConstruction(value, original) {
       assert.equal(value, capacity);assert.equal(original, input);events.push('reserve');
       if (state.refuse) throw state.cause;return ok();
@@ -72,6 +79,25 @@ function fixture() {
 
 const finalProfiles = Object.freeze({textTime:false,
   numericProfileCid:'sha256:'+'a'.repeat(64),graphLawCid:'sha256:'+'b'.repeat(64)});
+
+test('initial Environment admission reserves its retained raw reference before the first index insertion', () => {
+  const f=fixture();
+  f.compose(baseWire);
+  assert.equal(f.state.from,1);
+  assert.equal(f.state.rawSlotCompositions.length,1);
+  const {original,providers,result}=f.state.rawSlotCompositions[0];
+  assert.equal(providers.length,1);
+  const slot=native.clientProgramSerializationCapacityBytes(original);
+  const before=native.clientProgramSerializationCapacityBytes(providers[0]);
+  const after=native.clientProgramSerializationCapacityBytes(result);
+  assert.equal(slot._0,256n);assert.equal(slot._1,256n);
+  // Source's existing composition law retains the provider's full peak,
+  // including its constructor workspace, alongside the new raw-reference slot.
+  assert.equal(after._0,before._1+256n);assert.equal(after._1,before._1+256n);
+  assert.ok(f.events.indexOf('raw-slot-quote')<f.events.indexOf('from'));
+  assert.equal(f.events[f.events.indexOf('from')-1],'reserve');
+  assert.equal(f.close(),true);
+});
 // Spy for this NEW bridge's caller forwarding only. The old retained namespace
 // still lacks the graph/numeric port; shared Core tests separately exercise
 // that real selection. This is not an actual new-ABI or normal qualification.
