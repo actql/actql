@@ -264,9 +264,13 @@ function modelDefaultsResolver(moon, providerId, bindingOriginals, assertCurrent
     };
     if (construction === undefined) return project();
     const quantities = Reflect.apply(resolutionCapacities, moon, [original, taskMaxOutputTokens]);
+    if (!Array.isArray(quantities) || quantities.length !== 2) {
+      throw Object.assign(new Error('InstalledModelDefaultsConstructionUnavailable'),
+        {code: 'InstalledModelDefaultsConstructionUnavailable'});
+    }
     return construction.prepareModelTaskInput(Object.freeze({
-      capacity: () => runtimeField(quantities, 0), project,
-      retained: () => runtimeField(quantities, 1),
+      capacity: () => quantities[0], project,
+      retained: () => quantities[1],
     }));
   };
 }

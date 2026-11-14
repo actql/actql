@@ -31,10 +31,11 @@ const baseWire = (await readFile(new URL('../../spec/local-check-environment.jso
 const numeric = JSON.parse(await readFile(new URL('../../spec/contracts/actql-numeric-reduction.json', import.meta.url), 'utf8'));
 const graph = JSON.parse(await readFile(new URL('../../spec/dependencies/actql-graph-laws.json', import.meta.url), 'utf8'));
 
-async function fixture(t, {count = 129, small = false} = {}) {
+async function fixture(t, {count = 129, small = false, observeCounters} = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-funded-model-registry-'));
   t.after(() => rm(directory, {recursive: true, force: true}));
   const counters = {read: 0, normalize: 0, defaults: 0, reserve: 0, sends: 0, wire: 0, final: 0};
+  observeCounters?.(counters);
   let current = true;
   const assertCurrent = () => {if (!current) throw Object.assign(new Error('OriginalProjectLost'), {code: 'OriginalProjectLost'});};
   const moon = {...native};
@@ -54,8 +55,8 @@ async function fixture(t, {count = 129, small = false} = {}) {
   if (small) moon.clientLocalPreparationResourceLimits = policy =>
     native.clientLocalPreparationResourceLimits(policy, 2000000n, 2000000n);
   const parent = createInstalledLoaderParent({root: join(directory, '.state'), moon, assertCurrent});
-  parent.open();
   t.after(() => parent.close());
+  parent.open();
   const tasks = {};
   for (let index = 0; index < count; index++) {
     const name = `model-task:funded.${String(index).padStart(3, '0')}`;
@@ -130,11 +131,17 @@ test('actual explicit maxTasks128 refuses 129 before acquiring or decoding a Tas
   assert.equal(f.counters.defaults, 0); assert.equal(f.counters.sends, 0);
 });
 
-test('actual smaller original Resource refuses the next constructor without Model I/O and closes', async t => {
-  const f = await fixture(t, {count: 1, small: true});
-  await assert.rejects(f.load(), error => error.code === 'MoonBitHostFailure' || error.code === 'PreparationCapacityExceeded');
-  assert.equal(f.counters.read, 0, 'Current Task decoder must not precede its actual parent refusal');
-  assert.equal(f.counters.normalize, 0); assert.equal(f.counters.sends, 0);
+test('actual smaller original Host Resource refuses before Task construction and closes its partial parent', async t => {
+  let counters;
+  // This 2MB choice is insufficient for the initial Host constructor itself;
+  // keep that original refusal, rather than claiming a later admitted Task.
+  await assert.rejects(async () => {
+    const f = await fixture(t, {count: 1, small: true, observeCounters(value) {counters = value;}});
+    await f.load();
+  }, {code: 'MoonBitHostFailure'});
+  assert.ok(counters);
+  assert.equal(counters.read, 0, 'Current Task decoder must not precede its actual parent refusal');
+  assert.equal(counters.normalize, 0); assert.equal(counters.sends, 0);
 });
 
 test('actual populated constructor domain refuses an empty admitted original', async t => {
