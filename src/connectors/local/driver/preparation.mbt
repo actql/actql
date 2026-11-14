@@ -405,7 +405,6 @@ fn local_retained_input_metadata(
   metadata : LocalManagedMetadataLimits?,
 ) -> LocalManagedMetadataLimits? {
   if @local.local_import_retention_capacity(limits) is None ||
-    limits.row.max_bytes > 16777216 ||
     limits.max_batch_bytes > 16777216 ||
     limits.row.max_depth < 1 ||
     limits.row.max_depth > 64 ||

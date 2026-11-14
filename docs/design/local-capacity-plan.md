@@ -661,3 +661,20 @@ This composition is neither initial construction funding nor a tariff for
 provider closures, module controls or physical storage. Those independently
 live representations must be reserved by the original preparation owner
 before construction, and retired only through their actual borrowers.
+
+## Logical rows and physical windows
+
+The checked flat-row wire proof configures the complete row bound used by Local
+imports and by the fixed-record measurement guard. The latter's
+`max_value_bytes` argument measures the entire encoded row object, including
+all fields; it is not an independent per-cell ceiling. Neither bound is clipped
+to a physical batch size. Import/export batch windows remain bounded separately.
+These immutable limits do not reserve memory: the existing same-task admission
+must cover the actual row, decode and failed-child overlap before construction.
+
+The default sequence binding inventory follows the same retained checked demand
+fold. Each binding/projection occurrence consumes a visit before it is retained,
+so its cumulative `work_used` bounds those occurrences. The default keeps its
+original allowance and adds that bound with checked Int arithmetic. This is a
+count inequality in this particular fold, not an exchange of execution work for
+memory or a new resource grant. Explicit `SequenceLimits` remain unchanged.

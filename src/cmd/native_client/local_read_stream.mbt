@@ -42,12 +42,12 @@ fn local_same_read_request(
 }
 
 ///|
-// A row cannot exceed the selected total output ceiling. Keep the existing
-// durable framer's independent16MiB implementation limit. This is working
-// geometry only: the same original authority still admits max_output against
-// its actual grant before any delivery or payload read starts.
+// A row cannot exceed the selected total output ceiling. Native Store funds
+// the actual verified-payload-bounded backing from the SAME original Read
+// before frame/serializer construction. Physical chunks remain independent;
+// this DATA projection issues no grant or resource.
 fn local_result_row_frame_limit(max_output : Int) -> Int {
-  Int::min(max_output, 16777216)
+  max_output
 }
 
 ///|

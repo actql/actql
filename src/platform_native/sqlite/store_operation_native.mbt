@@ -83,6 +83,34 @@ pub fn NativeStoreOperationOriginal::prepare_delivery_window(
 }
 
 ///|
+#borrow(original)
+extern "C" fn store_operation_delivery_workspace_ffi(
+  original : NativeStoreOperationOriginal,
+  row : Int,
+  frame : Int,
+  schema_units : Int,
+  nodes : Int,
+) -> Int = "actql_native_sqlite_store_operation_prepare_delivery_workspace"
+
+///|
+/// Complete original READ workspace BEFORE framer/serializer construction.
+/// The private coordinator computes and backs the shared quote; these DATA
+/// extents issue no resource, grant, replacement Read or cleanup owner.
+pub fn NativeStoreOperationOriginal::prepare_delivery_workspace(
+  self : NativeStoreOperationOriginal,
+  row : Int,
+  frame : Int,
+  schema_units : Int,
+  nodes : Int,
+) -> Result[Unit, NativeSqliteIssue] {
+  store_operation_result(
+    store_operation_delivery_workspace_ffi(
+      self, row, frame, schema_units, nodes,
+    ),
+  )
+}
+
+///|
 /// Existing cleanup only. This cannot clear the original routing failure or
 /// restore normal dispatch; its coordinator never resumes business on leave.
 pub fn NativeStoreOperationOriginal::enter_cleanup(

@@ -6,6 +6,7 @@ struct actql_native_store_operation {
   void *receiver;
   actql_native_store_operation_route route;
   actql_native_store_delivery_construction delivery_construction;
+  actql_native_store_delivery_preparation delivery_preparation;
   pid_t process;
   pthread_t thread;
   void *bound_database;
@@ -80,6 +81,38 @@ MOONBIT_FFI_EXPORT void *actql_native_sqlite_prepare_store_operation_with_delive
     actql_native_sqlite_prepare_store_operation(library, receiver, route);
   value->delivery_construction = construction;
   return value;
+}
+/* Same existing coordinator, now including the complete row preparation peak.
+ * No callback executes while the original partial bridge is constructed. */
+MOONBIT_FFI_EXPORT void *actql_native_sqlite_prepare_store_operation_with_delivery_preparation(
+    void *library, void *receiver, actql_native_store_operation_route route,
+    actql_native_store_delivery_construction construction,
+    actql_native_store_delivery_preparation preparation) {
+  actql_native_store_operation *value =
+    actql_native_sqlite_prepare_store_operation_with_delivery_construction(
+      library, receiver, route, construction);
+  value->delivery_preparation = preparation;
+  return value;
+}
+MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_prepare_delivery_workspace(
+    actql_native_store_operation *value, int32_t row, int32_t frame,
+    int32_t schema_units, int32_t nodes) {
+  if (!actql_store_operation_thread(value) || value->closed ||
+      !value->activated || value->failed || value->cleanup_only ||
+      !value->flight || value->sql || value->cleanup ||
+      value->receiver == NULL || value->delivery_preparation == NULL ||
+      row < 1 || frame < 1 || frame > 16777216 || schema_units < 0 || nodes < 1)
+    return -1;
+  if (value->calling) return actql_store_operation_failed(value, -2);
+  value->callback_failed = false;
+  value->callback_code = 0;
+  value->calling = true;
+  int32_t code = value->delivery_preparation(
+    value->receiver, value->library, row, frame, schema_units, nodes);
+  value->calling = false;
+  if (code != 0) return actql_store_operation_failed(value, code);
+  if (value->callback_failed) return value->callback_code;
+  return 0;
 }
 MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_prepare_delivery_window(
     actql_native_store_operation *value, int32_t target) {
