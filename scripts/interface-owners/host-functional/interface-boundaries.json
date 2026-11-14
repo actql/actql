@@ -120759,7 +120759,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-mock-account.mjs",
-      "sha256": "ffbdb5e13ead71f959635260d330c998234cf5de7743ca7fd0e1dca541e565c5",
+      "sha256": "f88147fe657e85944d532a5483ccd31ea1c4a131c5c73d12946b35ff1d315bfc",
       "exports": [
         "initializeOrdinaryMockAccount"
       ],
@@ -121021,6 +121021,14 @@
               {
                 "path": "adapters/host-node/ordinary-mock-account-profile-history.test.mjs",
                 "anchor": "test('missing saved public verification is not invented to replace an absent Reviewer'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-mock-account-profile-history.test.mjs",
+                "anchor": "test('diagnostic-only Mock observer retains bootstrap and all 129 original Task subjects'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-mock-account-profile-history.test.mjs",
+                "anchor": "test('diagnostic exception does not bootstrap explicit or unrecognized authorization selections'"
               }
             ]
           }

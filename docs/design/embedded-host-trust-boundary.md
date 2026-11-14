@@ -120,6 +120,13 @@ selected UPDATE uses explicit existing Delegate/Checkpoint approval. No manual
 Account, Reviewer, external login or key-registration steps are required for
 the ordinary Mock experience; no automatic approve is introduced.
 
+A Host installation containing only its own data-valued diagnostic `observe`
+function keeps this same Mock bootstrap selection. The initializer captures and
+retains that callback without treating observation as an Account, policy or
+signer override. Every other explicit authorization selection keeps the existing
+bootstrap opt-out; current operator restrictions and saved originals are neither
+merged nor recreated by adding diagnostics.
+
 Bind to the actual Mock backend/installation, principal, Project/managed area
 and resource contracts. Never resolve live Credentials, initialize live
 Providers or fall back to them after a Mock error. One approval can discharge
