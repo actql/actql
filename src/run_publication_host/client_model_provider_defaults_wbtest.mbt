@@ -174,3 +174,15 @@ test "one installed defaults constructor retains actual configuration rather tha
   assert_true(client_model_provider_defaults_construction_extent("models/independent",
     "{}", "{}", wire, {..installed_defaults_limits(), max_bytes: 1}) is None)
 }
+
+///|
+test "defaults resolution quantities preserve the exact original override and profile inventory" {
+  let original = installed_defaults_read(installed_defaults_wire())
+  let (peak, retained) = client_model_provider_defaults_resolution_extents(original, None)
+  let (_, overridden) = client_model_provider_defaults_resolution_extents(original, Some(200L))
+  assert_true(peak.record_headers > retained.record_headers)
+  assert_true(overridden.record_headers > retained.record_headers)
+  assert_eq(peak.owned_utf16_units, 0L)
+  let selected = resolve_client_model_provider_defaults(original, None, Some(200L), 1000).unwrap()
+  assert_eq(client_model_provider_defaults_generation(original, selected).unwrap().max_output_tokens, 200L)
+}

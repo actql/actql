@@ -216,7 +216,7 @@ function modelDefaultsResolver(moon, providerId, bindingOriginals, assertCurrent
       throw Object.assign(new Error('InstalledModelDefaultsLimitsChanged'),
         {code: 'InstalledModelDefaultsLimitsChanged'});
     }
-    if (bounds !== undefined && originalConstruction !== construction) {
+    if (bounds !== undefined && construction !== undefined && originalConstruction !== construction) {
       throw Object.assign(new Error('InstalledModelDefaultsConstructionChanged'),
         {code: 'InstalledModelDefaultsConstructionChanged'});
     }
