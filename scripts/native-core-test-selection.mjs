@@ -7,7 +7,7 @@ import {mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync} from 'node:f
 import {tmpdir} from 'node:os';
 import {basename, dirname, join, relative, resolve, sep} from 'node:path';
 import {parseCommands} from './verification-actions.mjs';
-import {nativeCoreCiPartitions} from './ci-core-partitions.mjs';
+import {nativeCorePhysicalProfiles} from './ci-core-partitions.mjs';
 
 export const nativeRelationWorkTestFile =
   'src/platform_native/relation_file_work_tests/relation_file_original_physical_scoped_test.mbt';
@@ -192,10 +192,11 @@ export function nativeCoreOrdinaryPartitions(args, paths, records, count = 2) {
   return result;
 }
 
-export function nativeCorePartitionProfiles(profiles, value) {
+export function nativeCorePartitionProfiles(profiles, value, {hostedDarwin = false} = {}) {
+  assert.equal(typeof hostedDarwin, 'boolean', 'Invalid hosted Darwin profile selection');
   if (value === undefined || value === '') return profiles;
-  const match = /^([1-4])\/(2|4)$/u.exec(value);
-  const physical = nativeCoreCiPartitions.slice(4).includes(value);
+  const match = /^([1-8])\/(2|4|8)$/u.exec(value);
+  const physical = nativeCorePhysicalProfiles.includes(value);
   assert(physical || match && Number(match[1]) <= Number(match[2]), 'Invalid Native Core partition');
   const empty = {...profiles, ordinary: {args: null, cases: 0},
     http: {args: null, cases: 0}, source: {args: null, cases: 0},
@@ -210,8 +211,13 @@ export function nativeCorePartitionProfiles(profiles, value) {
   assert.equal(profiles.ordinary.partitions?.length, Number(match[2]), 'Missing Native Core partitions');
   const ordinary = profiles.ordinary.partitions[Number(match[1]) - 1];
   assert(ordinary.cases > 0 && ordinary.args?.length > 0, 'Empty Native Core partition');
-  // Preserve the old two-runner local interface. The hosted four-way plan
-  // gives each physical profile its own runner, with identical fixture owners.
+  if (value === '1/2' && hostedDarwin) {
+    assert(profiles.http.cases > 0 && profiles.http.args?.length > 0,
+      'Hosted Darwin ordinary owner must retain the original HTTP profile');
+    return {...empty, ordinary, http: profiles.http};
+  }
+  // Preserve the old two-runner local interface. Hosted Darwin keeps HTTP
+  // with its first ordinary job and gives Source/scoped their original owners.
   return value === '1/2' ? {...profiles, ordinary} : {...empty, ordinary};
 }
 

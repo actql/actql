@@ -9,16 +9,18 @@ import {normalizeMoonGraph} from './ci-moon-test-plan.mjs';
 import {tokens} from './portable-core.mjs';
 
 export function partitionNativeCorePlatformPackages(graph, readManifest) {
-  const differences = new Set();
+  const direct = new Set();
   for (const pkg of graph.packages) {
     const metadata = tokens(readManifest(pkg.path));
-    // Retain all existing Native command/platform packages, explicit C stubs
-    // and linker overrides on Darwin, including their complete test importers.
+    // Direct command/platform packages, explicit C stubs and linker overrides
+    // retain Darwin. Keep their complete source/test importers as a distinct
+    // compiler-owned group for the matching Linux ordinary profile.
     if (/^src\/(?:platform_native|cmd)(?:\/|$)/u.test(pkg.path) ||
         metadata.some(token => token.value === 'native-stub' || token.value === 'link')) {
-      differences.add(pkg.name);
+      direct.add(pkg.name);
     }
   }
+  const differences = new Set(direct);
   let changed = true;
   while (changed) {
     changed = false;
@@ -27,11 +29,12 @@ export function partitionNativeCorePlatformPackages(graph, readManifest) {
     }
   }
   const common = graph.packages.filter(pkg => !differences.has(pkg.name)).map(pkg => pkg.path);
-  const darwin = graph.packages.filter(pkg => differences.has(pkg.name)).map(pkg => pkg.path);
-  assert.equal(common.length + darwin.length, graph.packages.length);
-  assert.equal(new Set([...common, ...darwin]).size, graph.packages.length);
+  const importers = graph.packages.filter(pkg => differences.has(pkg.name) && !direct.has(pkg.name)).map(pkg => pkg.path);
+  const darwin = graph.packages.filter(pkg => direct.has(pkg.name)).map(pkg => pkg.path);
+  assert.equal(common.length + importers.length + darwin.length, graph.packages.length);
+  assert.equal(new Set([...common, ...importers, ...darwin]).size, graph.packages.length);
   assert(common.length > 0 && darwin.length > 0, 'Both Native platform scopes must be explicit and nonempty');
-  return {common, darwin, graphSha256: graph.digest};
+  return {common, importers, darwin, graphSha256: graph.digest};
 }
 
 export function readNativeCorePlatformPackages(repository, {env = process.env,

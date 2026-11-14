@@ -11,7 +11,7 @@ import {nativeCoreLinuxCommonArguments, nativeCoreLinuxCommonPartitions, runNati
 
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 
-test('Linux common Native is mandatory without removing the original Darwin matrix', () => {
+test('Linux importers retain eight mandatory shards and four explicit Darwin profile owners', () => {
   const core = workflow.jobs['core-common'], matrix = core.strategy.matrix;
   assert.deepEqual(matrix.partition, ['1/4', ...nativeCoreLinuxCommonPartitions]);
   assert.equal(core.strategy['fail-fast'], false);
@@ -24,7 +24,7 @@ test('Linux common Native is mandatory without removing the original Darwin matr
   assert.equal(core['runs-on'], 'ubuntu-24.04');
   assert.equal(workflow.jobs['core-darwin']['runs-on'], 'macos-15');
   assert.deepEqual([...workflow.jobs['core-darwin'].strategy.matrix.partition].sort(),
-    ['1/4', '2/4', '3/4', '4/4', 'http', 'scoped', 'source']);
+    ['1/2', '2/2', 'scoped', 'source']);
 });
 
 test('Linux common Native uses its selected compiler profile rather than Darwin preparation', () => {
@@ -44,68 +44,55 @@ test('Linux common Native uses its selected compiler profile rather than Darwin 
   assert(reader.if.includes("!startsWith(matrix.partition, 'linux-common-')"));
 });
 
-test('Linux common Native orchestration retains exact flags, compiler environment, case count and failure', async () => {
+test('Linux dispatch leaves discovery and expected counts to the sole original Native entry', async () => {
+  let entered = 0;
+  const repeat = () => { throw new Error('Duplicate caller-side metadata discovery'); };
+  const actual = await runNativeCoreLinuxCommon({platform: 'linux', partition: 'linux-common-4/8',
+    platformPackages: repeat, selectTests: repeat, countTests: repeat,
+    executeProfile: (_root, args, options) => {
+      entered++;
+      assert.deepEqual(args, [...nativeCoreLinuxCommonArguments]);
+      assert.equal(options.env.ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE, 'linux-common-importers');
+      assert.equal(options.env.ACTQL_TEST_NATIVE_CORE_PARTITION, '4/8');
+      assert.equal(options.expectedTests, undefined, 'The original counted entry owns its actual count');
+      return 19;
+    }});
+  assert.equal(entered, 1); assert.equal(actual, 19);
+});
+
+test('Linux dispatch preserves original flags and environment and propagates profile failures', async () => {
   assert.deepEqual(nativeCoreLinuxCommonArguments, [
     '--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize', '--verbose',
   ]);
   const original = {PATH: '/original/pinned/bin', RUNNER_TEMP: '/original/runner', ORIGINAL: 'retained'};
   for (const status of [0, 17]) {
-    const calls = [];
+    let calls = 0;
     const actual = await runNativeCoreLinuxCommon({platform: 'linux', partition: 'linux-common-8/8', env: original,
-      createScratch: async options => {
-        assert.equal(options.parent, '/original/runner/core-linux-common');
-        return {path: '/original/owned/compiler', passed: () => calls.push('passed')};
-      },
-      platformPackages: () => ({common: ['src/portable'], graphSha256: 'a'.repeat(64)}),
-      selectTests: (_root, args, options) => {
+      executeProfile: (_root, args, options) => {
+        calls++;
         assert.deepEqual(args, [...nativeCoreLinuxCommonArguments]);
-        assert.equal(options.ordinaryPartitions, 8);
-        assert.deepEqual(options.executionPackages, ['src/portable']);
-        return {executionScope: {mode: 'subset'}, profiles: {
-          ordinary: {partitions: Array.from({length: 8}, (_, index) => ({args: [...args, `src/selected-${index}`], cases: 73}))},
-          http: {cases: 0}, source: {cases: 0}, scoped: {cases: 0}}};
-      },
-      selectCompiler: (_root, scratch, env) => {
-        assert.equal(scratch, '/original/owned/compiler'); assert.equal(env, original);
-        calls.push('compiler'); return {PATH: '/original/owned/compiler/test-c-compiler:/original/pinned/bin'};
-      },
-      countTests: (_root, args, options) => {
-        assert.deepEqual(args, [...nativeCoreLinuxCommonArguments, 'src/selected-7']);
-        assert.equal(options.env.MOONBIT_NEW_NATIVE, '0');
-        assert.equal(options.timeoutMs, 300000); calls.push('metadata'); return 73;
-      },
-      executeTests: (kind, args, options) => {
-        assert.equal(kind, 'moon');
-        assert.deepEqual(args, ['--target', 'native', ...nativeCoreLinuxCommonArguments, 'src/selected-7']);
-        assert.equal(options.expectedTests, 73); assert.equal(options.timeout, 3600000);
-        assert.equal(options.env.PATH, '/original/owned/compiler/test-c-compiler:/original/pinned/bin');
+        assert.equal(options.expectedTests, undefined);
+        assert.equal(options.env.PATH, original.PATH);
         assert.equal(options.env.ORIGINAL, 'retained');
         assert.equal(options.env.MOONBIT_NEW_NATIVE, '0');
-        calls.push('execute'); return status;
+        assert.equal(options.env.ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE, 'linux-common-importers');
+        assert.equal(options.env.ACTQL_TEST_NATIVE_CORE_PARTITION, '8/8');
+        return status;
       }});
-    assert.equal(actual, status);
-    assert.deepEqual(calls, ['compiler', 'metadata', 'execute', ...(status === 0 ? ['passed'] : [])]);
+    assert.equal(actual, status); assert.equal(calls, 1);
   }
+  const failed = new Error('original profile failure');
+  await assert.rejects(runNativeCoreLinuxCommon({platform: 'linux', partition: 'linux-common-1/8',
+    executeProfile: () => {throw failed;}}), error => error === failed);
   assert.deepEqual(original, {PATH: '/original/pinned/bin', RUNNER_TEMP: '/original/runner', ORIGINAL: 'retained'});
 });
 
-test('Linux common Native refuses a foreign platform, empty metadata or failed discovery before execution', async () => {
-  let allocated = false, executed = false;
-  await assert.rejects(runNativeCoreLinuxCommon({platform: 'darwin',
-    createScratch: async () => { allocated = true; }}), /actual Linux runner/u);
-  assert.equal(allocated, false);
-  const original = new Error('original metadata refusal');
-  for (const countTests of [() => 0, () => { throw original; }]) {
-    await assert.rejects(runNativeCoreLinuxCommon({platform: 'linux', partition: 'linux-common-1/8', env: {},
-      createScratch: async () => ({path: '/owned', passed() { throw new Error('unconfirmed owner'); }}),
-      selectCompiler: () => ({}), countTests,
-      platformPackages: () => ({common: ['src/portable']}),
-      selectTests: () => ({executionScope: {mode: 'subset'}, profiles: {
-        ordinary: {partitions: Array.from({length: 8}, () => ({args: [...nativeCoreLinuxCommonArguments, 'src/portable']}))},
-        http: {cases: 0}, source: {cases: 0}, scoped: {cases: 0}}}),
-      executeTests: () => { executed = true; }}),
-    error => error === original || /Nonempty compiler-owned/u.test(error.message));
-  }
+test('Linux dispatch refuses a foreign platform or partition before entering the original profile', async () => {
+  let executed = false;
+  for (const options of [{platform: 'darwin', partition: 'linux-common-1/8'},
+    {platform: 'linux', partition: 'linux-common-9/8'}, {platform: 'linux'}])
+    await assert.rejects(runNativeCoreLinuxCommon({...options,
+      executeProfile: () => {executed = true;}}), /actual Linux runner|original Linux common partition/u);
   assert.equal(executed, false);
 });
 
@@ -135,7 +122,7 @@ test('Linux common Native metadata counts original native runnable cases without
   assert.deepEqual(calls, ['test', 'generate-test-driver']);
 });
 
-test('Linux common scope covers every package while Darwin retains FFI and all source and test importers', () => {
+test('Native platform classes separate original FFI owners from every source and test importer', () => {
   const names = ['scalar', 'canonical', 'platform_native/sqlite', 'native_fixture', 'caller', 'transitive', 'cmd/native_client', 'linker'];
   const packages = names.map(name => ({name: 'actql/actql/' + name, path: 'src/' + name}));
   const edge = (from, to, kinds) => ({from: packages[from].name, to: packages[to].name, kinds});
@@ -148,25 +135,32 @@ test('Linux common scope covers every package while Darwin retains FFI and all s
     ? 'options("native-stub": ["actual.c"])' : path.endsWith('/linker')
       ? 'options(link: {"native": {"cc": "./original-driver"}})' : 'supported_targets = "+js+wasm+native"');
   assert.deepEqual(selected.common, ['src/scalar', 'src/canonical']);
-  assert.deepEqual(selected.darwin, names.slice(2).map(name => 'src/' + name));
+  assert.deepEqual(selected.importers, ['src/caller', 'src/transitive']);
+  assert.deepEqual(selected.darwin, ['src/platform_native/sqlite', 'src/native_fixture',
+    'src/cmd/native_client', 'src/linker']);
   assert.equal(selected.graphSha256, graph.digest);
   assert.equal(JSON.stringify(graph), original);
 });
 
-test('Linux common scope cannot silently accept missing metadata or an unreviewed physical fallback', async () => {
+test('the platform classifier preserves the original manifest failure and the entry owns all selection', () => {
+  const failed = new Error('missing original manifest');
   assert.throws(() => partitionNativeCorePlatformPackages({packages: [{name: 'original', path: 'src/original'}], edges: []},
-    () => { throw new Error('missing original manifest'); }), /missing original manifest/u);
-  let executed = false;
-  for (const mode of ['full-fallback', 'subset']) {
-    await assert.rejects(runNativeCoreLinuxCommon({platform: 'linux', partition: 'linux-common-1/8', env: {},
-      createScratch: async () => ({path: '/owned', passed() { throw new Error('unconfirmed owner'); }}),
-      selectCompiler: () => ({}), platformPackages: () => ({common: ['src/original']}),
-      selectTests: () => ({executionScope: {mode}, profiles: {
-        ordinary: {}, http: {cases: 1}, source: {cases: 0}, scoped: {cases: 0}}}),
-      executeTests: () => { executed = true; }}),
-    /cannot fall back|unrelated physical fixture/u);
-  }
-  assert.equal(executed, false);
+    () => {throw failed;}), error => error === failed);
+  const wrapper = readFileSync(new URL('./test-native-core-linux-common.mjs', import.meta.url), 'utf8');
+  assert(wrapper.includes("await import('./test-native-core.mjs')"));
+  assert(wrapper.includes('process.argv.splice(2, process.argv.length - 2, ...args)'));
+  for (const retired of ['spawnSync', 'nativeCoreCCompiler', 'nativeCoreTestSelection', 'nativeCoreFocusedTestCount', 'readNativeCorePlatformPackages'])
+    assert(!wrapper.includes(retired), retired);
+  const entry = readFileSync(new URL('./test-native-core.mjs', import.meta.url), 'utf8');
+  assert(entry.includes('selection.profiles.http.cases + selection.profiles.source.cases + selection.profiles.scoped.cases !== 0'));
+  assert.equal((entry.match(/full \? nativeCoreTestSelection/g) ?? []).length, 1);
+});
+
+test('the actual Native profile entry refuses library reentry before changing argv or importing fixtures', async () => {
+  const argv = [...process.argv];
+  await assert.rejects(runNativeCoreLinuxCommon({platform: 'linux', partition: 'linux-common-1/8'}),
+    /Original one-shot Linux cohort CLI required/u);
+  assert.deepEqual(process.argv, argv);
 });
 
 test('hosted Darwin Core selects the complementary scope without changing local full diagnostics', () => {
@@ -180,9 +174,11 @@ test('hosted Darwin Core selects the complementary scope without changing local 
   ]) assert.equal(runInNewContext(expression.slice(3, -2), {matrix: {target, partition},
     startsWith: (value, prefix) => value.startsWith(prefix)}), expected);
   const core = readFileSync(new URL('./test-native-core.mjs', import.meta.url), 'utf8');
-  assert(core.includes("platformScope !== 'darwin-differences'"));
-  assert(core.includes("process.platform !== 'darwin'"));
-  assert(core.includes('platformPackages?.darwin'));
+  assert(core.includes("['darwin-differences', 'linux-common-importers'].includes(platformScope)"));
+  assert(core.includes("process.platform !== (linuxCommonImporters ? 'linux' : 'darwin')"));
+  assert(core.includes(': platformPackages.darwin)'));
+  assert(core.includes("{hostedDarwin: platformScope === 'darwin-differences'}"));
+  assert(core.includes('[...platformPackages.common, ...platformPackages.importers].sort()'));
   assert(core.includes('allowNestedFileInputs: platformPackages !== undefined'));
   assert.equal((core.match(/ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE: undefined/gu) ?? []).length, 2,
     'The selection-only marker cannot leak into original producers or runtime children');

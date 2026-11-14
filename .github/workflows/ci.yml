@@ -359,12 +359,12 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
   # Linux keeps both portable targets and eight complete Native common drivers.
-  # Darwin retains its four ordinary and three physical profiles under a separate
-  # four-job cap, leaving another macOS slot for the original long workloads.
-  # Both matrices use the same step owner; Core requires their selected outcomes.
+  # The original JS row has its own status boundary before scarce Mac fan-out.
+  # Native Mac workloads start early; three Core slots leave room for them and
+  # Python. Every Core row shares the same steps and remains mandatory when selected.
   core-common:
     needs: [select-targets]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && (contains(fromJSON(needs.select-targets.outputs.targets), 'wasm') || contains(fromJSON(needs.select-targets.outputs.targets), 'native')) }}
     name: core (${{ matrix.target }}${{ matrix.target == 'native' && format(' {0}', matrix.partition) || '' }})
     strategy:
       fail-fast: false
@@ -372,6 +372,8 @@ jobs:
         target: ${{ fromJSON(needs.select-targets.outputs.targets) }}
         partition: ['1/4', 'linux-common-1/8', 'linux-common-2/8', 'linux-common-3/8', 'linux-common-4/8', 'linux-common-5/8', 'linux-common-6/8', 'linux-common-7/8', 'linux-common-8/8']
         exclude:
+          - target: js
+            partition: '1/4'
           - target: js
             partition: linux-common-1/8
           - target: js
@@ -428,11 +430,11 @@ jobs:
             test "$(uname -m)" = arm64
           fi
       - name: Test pinned Native C compiler orchestration
-        if: ${{ matrix.target == 'native' && matrix.partition == '1/4' }}
+        if: ${{ matrix.target == 'native' && matrix.partition == '1/2' }}
         run: node --test scripts/native-core-c-compiler.test.mjs
       - name: Prepare pinned Native C object caching
         id: native-c-object-cache
-        if: ${{ matrix.target == 'native' && contains(fromJSON('["1/4","2/4","3/4","4/4","scoped"]'), matrix.partition) }}
+        if: ${{ matrix.target == 'native' && contains(fromJSON('["1/2","2/2","scoped"]'), matrix.partition) }}
         env:
           CACHE_PARTITION: ${{ matrix.partition }}
         run: |
@@ -503,7 +505,7 @@ jobs:
       - name: Check common core
         # The full Native check belongs to the required 1/4 matrix member;
         # every partition still compiles and executes its original tests.
-        if: ${{ matrix.target != 'native' || matrix.partition == '1/4' }}
+        if: ${{ matrix.target != 'native' || matrix.partition == '1/2' }}
         run: moon check --target "${{ matrix.target }}" --deny-warn
       - name: Check independent fixed Run materials identity
         run: node --test scripts/client-values-run-materials-vector.test.mjs scripts/client-publication-values-identity.test.mjs scripts/client-values-compilation-work.test.mjs scripts/client-source-publication-work.test.mjs
@@ -627,21 +629,33 @@ jobs:
             _build/native-reader-helper-tests/callbacks-*/callback-*.json
           if-no-files-found: warn
           retention-days: 14
-  core-darwin:
+  core-js:
     needs: [select-targets]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && contains(fromJSON(needs.select-targets.outputs.targets), 'native') }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && contains(fromJSON(needs.select-targets.outputs.targets), 'js') }}
     name: core (${{ matrix.target }}${{ matrix.target == 'native' && format(' {0}', matrix.partition) || '' }})
     strategy:
       fail-fast: false
-      max-parallel: 4
+      matrix:
+        target: [js]
+        partition: ['1/4']
+    runs-on: ubuntu-24.04
+    timeout-minutes: ${{ matrix.target == 'native' && 90 || 30 }}
+    steps: *core_steps
+  core-darwin:
+    needs: [select-targets, lint, core-js]
+    if: ${{ always() && !cancelled() && needs.lint.result == 'success' && ((needs.select-targets.outputs.profile == 'full' && contains(fromJSON(needs.select-targets.outputs.targets), 'js') && needs.core-js.result == 'success') || ((needs.select-targets.outputs.profile != 'full' || !contains(fromJSON(needs.select-targets.outputs.targets), 'js')) && needs.core-js.result == 'skipped')) && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && contains(fromJSON(needs.select-targets.outputs.targets), 'native') }}
+    name: core (${{ matrix.target }}${{ matrix.target == 'native' && format(' {0}', matrix.partition) || '' }})
+    strategy:
+      fail-fast: false
+      max-parallel: 3
       matrix:
         target: [native]
-        partition: [scoped, '1/4', source, '3/4', '2/4', '4/4', http]
+        partition: [scoped, source, '1/2', '2/2']
     runs-on: macos-15
     timeout-minutes: ${{ matrix.target == 'native' && 90 || 30 }}
     steps: *core_steps
   core:
-    needs: [select-targets, core-common, core-darwin]
+    needs: [select-targets, core-js, core-common, core-darwin]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -649,6 +663,7 @@ jobs:
       - name: Require every selected original Core matrix
         env:
           CORE_TARGETS: ${{ needs.select-targets.outputs.targets }}
+          JS_RESULT: ${{ needs.core-js.result }}
           COMMON_RESULT: ${{ needs.core-common.result }}
           DARWIN_RESULT: ${{ needs.core-darwin.result }}
         run: |
@@ -656,9 +671,10 @@ jobs:
             const targets = JSON.parse(process.env.CORE_TARGETS || "null");
             const valid = Array.isArray(targets) && targets.length > 0 &&
               new Set(targets).size === targets.length && targets.every(target => ["js", "wasm", "native"].includes(target));
-            if (!valid || process.env.COMMON_RESULT !== "success" ||
+            if (!valid || process.env.JS_RESULT !== (targets.includes("js") ? "success" : "skipped") ||
+                process.env.COMMON_RESULT !== (targets.some(target => target === "wasm" || target === "native") ? "success" : "skipped") ||
                 process.env.DARWIN_RESULT !== (targets.includes("native") ? "success" : "skipped")) {
-              console.error(`Core common=${process.env.COMMON_RESULT || "missing"}, Darwin=${process.env.DARWIN_RESULT || "missing"}`);
+              console.error(`Core JS=${process.env.JS_RESULT || "missing"}, common=${process.env.COMMON_RESULT || "missing"}, Darwin=${process.env.DARWIN_RESULT || "missing"}`);
               process.exitCode = 1;
             }
           '
@@ -2937,8 +2953,8 @@ jobs:
             }
           '
   python-wheels:
-    needs: [select-targets]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.python_wheels == 'true' }}
+    needs: [select-targets, lint, core-js]
+    if: ${{ always() && !cancelled() && needs.lint.result == 'success' && ((needs.select-targets.outputs.profile == 'full' && contains(fromJSON(needs.select-targets.outputs.targets), 'js') && needs.core-js.result == 'success') || ((needs.select-targets.outputs.profile != 'full' || !contains(fromJSON(needs.select-targets.outputs.targets), 'js')) && needs.core-js.result == 'skipped')) && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.python_wheels == 'true' }}
     runs-on: macos-15
     timeout-minutes: 40
     steps:

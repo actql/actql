@@ -26,6 +26,7 @@ const ciOnly = new Map([
   ['performance-matrix', 'registered performance runs'],
   ['check', 'aggregates the other jobs'],
   ['client', 'aggregates all required Client producers and consumers'],
+  ['core-js', 'uses the hosted JS matrix; select the complete local core entrance'],
   ['core-common', 'uses the hosted Core matrix; select the complete local core entrance'],
   ['core-darwin', 'uses the hosted Darwin matrix; select the complete local core entrance'],
   ...Object.entries(ciOnlyPipelineJobs),

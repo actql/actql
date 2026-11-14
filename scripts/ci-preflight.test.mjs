@@ -59,14 +59,17 @@ test('read-only ref lookup verifies exact ref/type and never follows token-beari
   }
 });
 test('preflight remains mandatory at the final gate without delaying independent jobs', () => {
-  const heavy = ['core-common', 'core-darwin', 'host', 'client-packages', 'client-supported-versions', 'client-distribution', 'client-distribution-callers',
+  const heavy = ['core-js', 'core-common', 'core-darwin', 'host', 'client-packages', 'client-supported-versions', 'client-distribution', 'client-distribution-callers',
     'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-composition', 'client-salesforce', 'client-readme-packed',
     'native-cli-installed', 'native-cli-linux-local', 'native-workloads', 'native-http', 'session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos-workloads',
     'native-separated-network', 'workers', 'connector-addition', 'duckdb-node'];
   for (const name of [...heavy, 'lint', 'spec']) {
     assert(!jobs[name].needs.includes('preflight'), name);
     assert(!jobs[name].needs.includes('spec'), name);
-    assert(!/always\(|failure\(|cancelled\(/u.test(jobs[name].if), `${name} must retain implicit success()`);
+    if (name === 'core-darwin') {
+      assert.deepEqual(jobs[name].needs, ['select-targets', 'lint', 'core-js']);
+      assert(jobs[name].if.includes("always() && !cancelled() && needs.lint.result == 'success'"));
+    } else assert(!/always\(|failure\(|cancelled\(/u.test(jobs[name].if), `${name} must retain implicit success()`);
     assert.equal(jobs[name]['continue-on-error'], undefined);
   }
   for (const [name, job] of Object.entries(jobs)) {

@@ -416,26 +416,96 @@ test('Native partition caller passes the complete compiler inventory before sele
   const profiles = {ordinary: {cases: 5, partitions: parts},
     http: {args: ['src/http'], cases: 1}, source: {args: ['src/source'], cases: 1},
     scoped: {args: ['src/scoped'], cases: 1, tests: []}};
-  for (const partition of ['1/2', '2/2']) {
-    let discoveries = 0;
-    const args = ['--release', '--strip'], env = {original: true};
-    const selected = runInNewContext(source.slice(start, end) + '\nselection;', {
-      full: true, root: '/original', args, compilerEnvironment: env, partition, executionPackages: undefined,
-      platformPackages: undefined,
-      nativeCorePartitionProfiles,
-      nativeCoreTestSelection(root, originalArgs, options) {
-        discoveries++;
-        assert.equal(root, '/original'); assert.equal(originalArgs, args);
-        assert.equal(options.env, env); assert.equal(options.partitionProfiles, true);
-        assert.equal(options.ordinaryPartitions, true);
-        assert.equal(options.timeoutMs, 300_000);
-        assert.equal(options.executionPackages, undefined, 'Unscoped local fixture retains the complete inventory');
-        return {profiles};
-      }, console: {log() {}},
+  for (const role of ['local', 'darwin', 'linux']) {
+    const linuxCommonImporters = role === 'linux';
+    const labels = linuxCommonImporters ? Array.from({length: 8}, (_, i) => `${i + 1}/8`) : ['1/2', '2/2'];
+    const originalParts = linuxCommonImporters
+      ? Array.from({length: 8}, (_, i) => ({args: [`src/package-${i}`], cases: i + 1})) : parts;
+    const originalProfiles = linuxCommonImporters ? {
+      ordinary: {cases: 36, partitions: originalParts}, http: {args: null, cases: 0},
+      source: {args: null, cases: 0}, scoped: {args: null, cases: 0, tests: []},
+    } : profiles;
+    const executionPackages = role === 'local' ? undefined : ['src/original'];
+    for (const partition of labels) {
+      let discoveries = 0;
+      const args = ['--release', '--strip'], env = {original: true};
+      const selected = runInNewContext(source.slice(start, end) + '\nselection;', {
+        full: true, root: '/original', args, compilerEnvironment: env, partition, executionPackages,
+        linuxCommonImporters, platformScope: role === 'darwin' ? 'darwin-differences' : linuxCommonImporters ? 'linux-common-importers' : undefined,
+        platformPackages: role === 'local' ? undefined : {common: [], importers: [], darwin: []},
+        nativeCorePartitionProfiles,
+        nativeCoreTestSelection(root, originalArgs, options) {
+          discoveries++;
+          assert.equal(root, '/original'); assert.equal(originalArgs, args);
+          assert.equal(options.env, env); assert.equal(options.partitionProfiles, true);
+          assert.equal(options.ordinaryPartitions, linuxCommonImporters ? 8 : true);
+          assert.equal(options.timeoutMs, 300_000);
+          assert.equal(options.executionPackages, executionPackages);
+          assert.equal(options.allowNestedFileInputs, role !== 'local');
+          return {profiles: originalProfiles, executionScope: {mode: 'subset'}};
+        }, console: {log() {}},
+      });
+      assert.equal(discoveries, 1);
+      assert.equal(selected.profiles.ordinary, originalParts[Number(partition[0]) - 1]);
+      assert.equal(selected.profiles.http.args === null, linuxCommonImporters || partition === '2/2');
+      if (role !== 'local') for (const name of ['source', 'scoped']) assert.equal(selected.profiles[name].args, null);
+    }
+  }
+});
+
+test('the original Linux entry refuses foreign scope physical profiles empty partitions and original discovery failure', () => {
+  const source = readFileSync(new URL('test-native-core.mjs', import.meta.url), 'utf8');
+  const start = source.indexOf('const selection = full ? nativeCoreTestSelection');
+  const end = source.indexOf('if (selection) console.log', start);
+  assert(start >= 0 && end > start);
+  const fixture = () => ({executionScope: {mode: 'subset'}, profiles: {
+    ordinary: {cases: 8, partitions: Array.from({length: 8}, (_, i) => ({args: [`src/owner-${i}`], cases: 1}))},
+    http: {args: null, cases: 0}, source: {args: null, cases: 0}, scoped: {args: null, cases: 0, tests: []},
+  }});
+  const inspect = discover => runInNewContext(source.slice(start, end), {
+    full: true, root: '/original', args: ['--release'], compilerEnvironment: {}, partition: '1/8',
+    executionPackages: ['src/common', 'src/importer'], linuxCommonImporters: true,
+    platformScope: 'linux-common-importers', platformPackages: {common: [], importers: [], darwin: []},
+    nativeCorePartitionProfiles, nativeCoreTestSelection: discover, console: {log() {}},
+  });
+  for (const [label, change, reason] of [
+    ['fallback', value => {value.executionScope.mode = 'full-fallback';}, /exact compiler-owned/u],
+    ...['http', 'source', 'scoped'].map(name => [name, value => {value.profiles[name].cases = 1;}, /unrelated physical fixture/u]),
+    ['empty', value => {value.profiles.ordinary.partitions[0].cases = 0;}, /Empty Native Core partition/u],
+    ['missing', value => {value.profiles.ordinary.partitions.pop();}, /Missing Native Core partitions/u],
+  ]) {
+    let calls = 0;
+    assert.throws(() => inspect(() => {calls++; const value = fixture(); change(value); return value;}), reason, label);
+    assert.equal(calls, 1, label);
+  }
+  const original = new Error('original compiler discovery failure');
+  assert.throws(() => inspect(() => {throw original;}), error => error === original);
+});
+
+test('the original Native profile consumes its selected case count and refuses original child failure', () => {
+  const source = readFileSync(new URL('test-native-core.mjs', import.meta.url), 'utf8');
+  const checkStart = source.indexOf('const checkChild = result =>');
+  const checkEnd = source.indexOf('if (full)', checkStart);
+  const profileStart = source.indexOf('  const runProfile = (profile, environment) =>');
+  const profileEnd = source.indexOf('  runProfile(selection.profiles.ordinary', profileStart);
+  assert(checkStart >= 0 && checkEnd > checkStart && profileStart >= 0 && profileEnd > profileStart);
+  for (const status of [0, 17]) {
+    const exit = new Error('original child refused'); let calls = 0;
+    const environment = {original: 'same'}, profile = {args: ['--release', 'src/importer'], cases: 37};
+    const run = runInNewContext(source.slice(checkStart, checkEnd) + source.slice(profileStart, profileEnd) + '\nrunProfile;', {
+      root: '/original', console: {log() {}, error() {}},
+      process: {execPath: '/original/node', exit(code) {assert.equal(code, status); throw exit;}},
+      spawnSync(command, args, options) {
+        calls++; assert.equal(command, '/original/node');
+        assert.equal(args[0], 'scripts/test-native-salesforce-effect-preview.mjs');
+        assert.equal(args[args.indexOf('--core-test-json') + 1], JSON.stringify(profile.args));
+        assert.equal(args[args.indexOf('--core-test-count') + 1], '37');
+        assert.equal(options.env, environment); return {status};
+      },
     });
-    assert.equal(discoveries, 1);
-    assert.equal(selected.profiles.ordinary, parts[Number(partition[0]) - 1]);
-    assert.equal(selected.profiles.http.args === null, partition === '2/2');
+    if (status === 0) run(profile, environment);
+    else assert.throws(() => run(profile, environment), error => error === exit);
+    assert.equal(calls, 1);
   }
 });
 

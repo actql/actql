@@ -704,7 +704,7 @@ for (const [name, driver, output] of [
 
 test('whole-family scheduling retains the core matrix and complete selected proof campaigns', () => {
   assert.equal(jobs['session-evidence']['timeout-minutes'], 60);
-  assert.deepEqual(jobs.core.needs, ['select-targets', 'core-common', 'core-darwin']);
+  assert.deepEqual(jobs.core.needs, ['select-targets', 'core-js', 'core-common', 'core-darwin']);
   assert.equal(jobs['core-common'].strategy['fail-fast'], false);
   assert.equal(jobs['core-darwin'].strategy['fail-fast'], false);
   for (const target of ['js', 'wasm', 'native']) {
@@ -742,8 +742,8 @@ test('Native Core matrix retains Darwin profiles and adds Linux common without m
   const core = jobs['core-darwin'], common = jobs['core-common'];
   const partitions = [...core.strategy.matrix.partition, ...common.strategy.matrix.partition.filter(value => value.startsWith('linux-common-'))];
   assert.deepEqual([...partitions].sort(), [...nativeCoreCiPartitions, ...nativeCoreLinuxCommonPartitions].sort());
-  const selected = all.flatMap(target => common.strategy.matrix.partition.map(partition => ({target, partition})))
-    .filter(row => !common.strategy.matrix.exclude.some(excluded => excluded.target === row.target && excluded.partition === row.partition))
+  const selected = [{target: 'js', partition: '1/4'}].concat(all.flatMap(target => common.strategy.matrix.partition.map(partition => ({target, partition})))
+    .filter(row => !common.strategy.matrix.exclude.some(excluded => excluded.target === row.target && excluded.partition === row.partition)))
     .concat(core.strategy.matrix.partition.map(partition => ({target: 'native', partition})));
   assert.deepEqual(selected.map(row => JSON.stringify(row)).sort(), [{target: 'js', partition: '1/4'}, {target: 'wasm', partition: '1/4'},
     ...nativeCoreLinuxCommonPartitions.map(partition => ({target: 'native', partition})),
@@ -756,11 +756,11 @@ test('Native Core matrix retains Darwin profiles and adds Linux common without m
   assert.equal(checks.length, 1);
   const [check] = checks;
   assert.equal(check.run, 'moon check --target "${{ matrix.target }}" --deny-warn');
-  assert.equal(check.if, "${{ matrix.target != 'native' || matrix.partition == '1/4' }}");
+  assert.equal(check.if, "${{ matrix.target != 'native' || matrix.partition == '1/2' }}");
   assert.equal(check['continue-on-error'], undefined);
   const checked = selected.filter(matrix => runInNewContext(check.if.slice(3, -2), {matrix}));
   assert.deepEqual(checked, [{target: 'js', partition: '1/4'},
-    {target: 'wasm', partition: '1/4'}, {target: 'native', partition: '1/4'}]);
+    {target: 'wasm', partition: '1/4'}, {target: 'native', partition: '1/2'}]);
   // The complete matrix above requires this Native owner. The existing final
   // gate must reject missing, failed, cancelled or skipped Core matrix work.
   const full = selectTargets(['.github/workflows/ci.yml']);
@@ -1227,7 +1227,7 @@ test('large CI plans reach the original aggregate through files without shell in
   // The real needs object repeats the full plan in select-targets outputs.
   outcomes['select-targets'].outputs = {plan: original};
   for (const [job, name] of [['focused-tests', 'Check package and execute changed tests plus owning JS family'],
-    ['core-common', 'Test common core'], ['core-darwin', 'Test common core'],
+    ['core-js', 'Test common core'], ['core-common', 'Test common core'], ['core-darwin', 'Test common core'],
     ['check', 'Require every selected integration obligation']]) {
     const step = (job === 'native' ? [...nativeCases('native'), ...jobs['native-http'].steps] : jobs[job].steps).find(step => step.name === name);
     assert.equal(step.env.CI_PLAN, undefined, job);
