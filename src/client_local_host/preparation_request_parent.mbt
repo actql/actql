@@ -134,6 +134,7 @@ struct ClientRequestPreparation[I] {
   mut intent_source_quote : (Int64, Int64)?
   mut native_intake_base : (Int64, Int64)?
   mut native_intake_wire_bytes : Int
+  mut http_input : ClientRequestHttpInput?
   mut intent_attempted : Bool
   mut intent_peak_live : Bool
   mut intent_work : @resources.PreparationPhaseWork64?
@@ -272,9 +273,11 @@ let request_preparation_fixed_control_envelope : @execution.PreparationRepresent
   // 1H/1R/1W, retained before any fallible syntax grow/current callback.
   // Coheld return wrapper for the shared post-lowering default selection.
   // Original selected limits remain retained on the same Request.
-  record_headers: 243L,
-  reference_slots: 437L,
-  scalar_words: 510L,
+  // HTTP's same-parent raw input record/Some, baseline tuple and parent slot:
+  // 3H/4R/5W. This is retained control, not a byte or transport allowance.
+  record_headers: 246L,
+  reference_slots: 441L,
+  scalar_words: 515L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }
@@ -406,6 +409,7 @@ fn[I] begin_request_preparation_original(
     intent_source_quote: None,
     native_intake_base: None,
     native_intake_wire_bytes: 0,
+    http_input: None,
     intent_attempted: false,
     intent_peak_live: false,
     intent_work: None,
@@ -778,6 +782,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
   owner.intent_source_quote = None
   owner.native_intake_base = None
   owner.native_intake_wire_bytes = 0
+  owner.http_input = None
   owner.intent_peak_live = false
   owner.held_program = None
   owner.native_parameters = None
