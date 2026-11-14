@@ -14,7 +14,7 @@ import {createLocalFileStoreDriver,LOCAL_STORE_LIMITS} from './installed-project
 
 const cid=digit=>'sha256:'+digit.repeat(64);
 const wire=value=>canonicalJson(value,{dataKeys:true});
-function fixture(runBounds={}){
+function fixture(runBounds={},countLimits=LOCAL_STORE_LIMITS){
   const run=Object.freeze({}),binding=Object.freeze({});
   const resource=Object.freeze({$actql_ref:'resource',version:'actql-resource-ref/0.1',
     provider_namespace:'local',resource_kind:'file_collection',provider_identity_cid:cid('a'),
@@ -24,8 +24,9 @@ function fixture(runBounds={}){
   const command={command_id:'command:local.local.files.store.v1',contract_cid:cid('f')};
   const member={kind:'command',resource:'files',command:{commandRef:command.command_id,
     commandCid:command.contract_cid}};
-  const limits={...LOCAL_STORE_LIMITS,maxFileBytes:1024};
-  const retainedLimits={...limits,...runBounds};
+  const limits={maxRequestBytes:LOCAL_STORE_LIMITS.maxRequestBytes,
+    maxResponseBytes:LOCAL_STORE_LIMITS.maxResponseBytes,maxFileBytes:1024,...countLimits};
+  const retainedLimits={...LOCAL_STORE_LIMITS,maxFileBytes:1024,...runBounds};
   let live=true,nativeCalls=0;
   const nativeFilesystem=Object.freeze(Object.fromEntries(['openFileRoot','openFileDirectory',
     'openRootFileWriter','fileRootCurrent','fileRootWrite','fileRootPublish','fileRootClose']
@@ -62,7 +63,7 @@ test('Local STORE retains original Content borrower and exact input before appro
 });
 
 test('Local STORE retained inventory reconstructs 101 rows across 17 definitions before any send',async()=>{
-  const f=fixture({maxRows:1717,maxEffects:17}),children=[],entries=[];
+  const f=fixture({maxRows:1717,maxEffects:17},{}),children=[],entries=[];
   try{
     for(let index=0;index<101;index++){
       const child=f.prepare({value:{...f.value,path:`out-${index}.jsonl`}});
@@ -84,6 +85,45 @@ test('Local STORE retained inventory reconstructs 101 rows across 17 definitions
       body:{effects:members.map(()=>({changes:[{}]}))},durable:{connectorRecovery:[]}}),
       {code:'InvalidLocalStoreRecovery'});
     await narrow.site.close();
+    assert.equal(f.nativeCalls(),0);
+  }finally{for(const child of children)await child.release();await f.site.close();}
+});
+
+test('Local STORE explicit driver count limits narrow larger retained Run inventory before recovery or send',async()=>{
+  const f=fixture({maxRows:1717,maxEffects:17},{maxRows:2,maxEffects:2}),children=[],entries=[];
+  try{
+    for(let index=0;index<3;index++){
+      const child=f.prepare({value:{...f.value,path:`policy-${index}.jsonl`}});
+      children.push(child);entries.push(child.prepare());
+    }
+    const saved2=f.driver.recoveryEntry({entries:entries.slice(0,2)}),
+      saved3=f.driver.recoveryEntry({entries});
+    const member={...f.member,memberIndex:0};
+    const recover=(count,saved,rows)=>{
+      const members=Array.from({length:count},(_,memberIndex)=>({...member,memberIndex}));
+      return f.driver.recoverRequests({runOriginal:f.run,members,
+        body:{effects:members.map(()=>({changes:Array.from({length:rows},()=>({}))}))},
+        durable:{connectorRecovery:members.map(({memberIndex})=>({memberIndex,...saved}))},
+        runInvocationCid:cid('3'),dispatches:members.map(()=>cid('4'))});
+    };
+    const restored=recover(2,saved2,2);
+    assert.equal(restored.requests.length,2);
+    assert.equal(restored.requests[0].length,2);
+    assert.throws(()=>recover(1,saved3,3),{code:'InvalidLocalStoreRecovery'});
+    assert.throws(()=>recover(3,saved2,2),{code:'InvalidLocalStoreRecovery'});
+    // Count admission still supplies no Account grant. The accepted two-row
+    // prefix reaches the unchanged authorization gate, before any native use.
+    for(const request of restored.requests[0])await assert.rejects(
+      f.driver.send({member,request,current:restored.currents[0],runOriginal:f.run}),
+      {code:'ForeignLocalStoreUse'});
+    const recovered={prepared:{},allowed:{},runDefinition:{}};
+    let contentConstructed=0;
+    assert.throws(()=>f.driver.prepareRecoveredContentChild({recovered,members:[member],
+      entries:[entries],memberIndexes:[0],runOriginal:f.run,principalId:'reader',
+      control:{adoptCheckedClientEffectSerializationRun:()=>({})},
+      contentRun:{prepareRecoveredCommandContent(){contentConstructed++;assert.fail('No third row');}}}),
+    {code:'LocalStoreRecoveryLimit'});
+    assert.equal(contentConstructed,0);
     assert.equal(f.nativeCalls(),0);
   }finally{for(const child of children)await child.release();await f.site.close();}
 });
