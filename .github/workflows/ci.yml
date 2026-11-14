@@ -293,9 +293,9 @@ jobs:
       - name: Install the pinned Python row-schema dependency
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: python3 -m pip install --disable-pip-version-check pydantic==2.12.5
-      - name: Test source-only Python SDK and Remote callers
+      - name: Test reviewed Python SDK and Local-source callers
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
-        run: node scripts/check-python-client.mjs --remote-only
+        run: node scripts/check-python-client.mjs --source-only
       - name: Test normal Python wheel acceptance harness guards
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: python3 -B scripts/test_ci_python_wheels.py
