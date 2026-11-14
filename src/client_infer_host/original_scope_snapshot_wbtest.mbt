@@ -95,7 +95,16 @@ test "snapshot wrapper quantity follows actual requested references rather than 
 }
 
 ///|
-test "one129 prepared call inventory retains its prefunded snapshot without any provider invocation" {
+fn original_129_snapshot_fixture(
+  durable_calls? : Bool = true,
+  token_reservation? : Int64 = 128L,
+  duration_ms? : Int64 = 1000L,
+) -> (
+  Execution,
+  @resources.Ledger,
+  @publication_host.ClientModelReadConsumer,
+  Ref[Int],
+) raise {
   let rows = Array::makei(129, i => {
     "{\"id\":\"r" + i.to_string() + "\",\"text\":\"hello\"}"
   })
@@ -129,6 +138,8 @@ test "one129 prepared call inventory retains its prefunded snapshot without any 
   let plan = call_identity_plan(
     prepared,
     attempts=258,
+    token_reservation~,
+    duration_ms~,
     wire_bytes=8583144L,
     sequence_limits=Some(sequence),
   )
@@ -137,6 +148,7 @@ test "one129 prepared call inventory retains its prefunded snapshot without any 
     ..base.model.ledger,
     planning_work: 20000000,
     attempts: 258,
+    holdings: 258,
     transfer_bytes: 8583144L,
     retained_bytes: 67108864L,
     execution_bytes: 67108864L,
@@ -164,7 +176,7 @@ test "one129 prepared call inventory retains its prefunded snapshot without any 
   let ledger = @resources.create_ledger(ledger_limits).unwrap()
   let bootstrap = @resources.reserve_capacity(ledger, 3L, 2L).unwrap()
   let scope = @publication_host.begin_client_model_read_scope(
-    compiled, definition, plan, ledger, bootstrap, 140, 2, 0,
+    compiled, definition, plan, ledger, bootstrap, 1024, 260, 0,
   ).unwrap()
   let read = @publication_host.prepare_client_model_read(scope, 7L, 5L).unwrap()
   let consumer = @publication_host.claim_client_model_read_preparation(
@@ -217,7 +229,7 @@ test "one129 prepared call inventory retains its prefunded snapshot without any 
     4194304L,
     input_body_read=Some(read),
   ).unwrap()
-  active.durable_calls = true
+  active.durable_calls = durable_calls
   let configuration = evidence_account(@authorization.Allow)
   let permit = @publication_host.issue_client_infer_dispatch_admission(
     compiled,
@@ -258,6 +270,12 @@ test "one129 prepared call inventory retains its prefunded snapshot without any 
     call_scope_snapshot(active).unwrap(),
     active.identity_body.unwrap().snapshot.unwrap(),
   )
+  (active, ledger, consumer, calls)
+}
+
+///|
+test "one129 prepared call inventory retains its prefunded snapshot without any provider invocation" {
+  let (active, ledger, consumer, calls) = original_129_snapshot_fixture()
   assert_true(cancel(active))
   assert_true(fixture_finish(active, initial_work=active.work) is Stopped(..))
   assert_true(cleanup(active).unwrap())

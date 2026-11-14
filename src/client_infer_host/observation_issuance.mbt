@@ -141,7 +141,9 @@ pub struct ObservationIssuance {
 // the ONE whole-Run publication borrow. Find that actual nominal receiver
 // without reordering members; a non-owner comparison runs no current callback.
 fn original_observation_inventory_valid(owners : Array[Execution]) -> Bool {
-  !owners.is_empty() && owners.length() <= 128
+  // Original callers retain the exact compiler inventory on one same-parent
+  // byte reservation. The legacy metadata entrance keeps its own128 envelope.
+  !owners.is_empty()
 }
 
 ///|
@@ -332,14 +334,14 @@ fn start_observation_issuance_owned(
   generations : Array[@publication_host.ClientSerializationGeneration],
 ) -> Result[ObservationIssuance, Issue] {
   if limits.max_slots < 0 ||
-    limits.max_slots > 128 ||
+    (original_capacity is None && limits.max_slots > 128) ||
     limits.max_wire_bytes < 1 ||
     limits.max_wire_bytes > 16384 ||
     limits.max_work < 1 {
     return Err(InvalidAdvance)
   }
   guard owners.length() > 0 &&
-    owners.length() <= 128 &&
+    (original_capacity is Some(_) || owners.length() <= 128) &&
     owners[0].run_binding is Some(bound) else {
     return Err(Model(@model.OutputIdentity))
   }
