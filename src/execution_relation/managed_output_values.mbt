@@ -714,7 +714,8 @@ fn finish_managed_output_row_active(
   let budget = stream.buffer.budget
   if budget.row_scratch_start is Some(_) {
     // This changes only the next row's physical extent origin. All semantic
-    // counters and the TWO-largest-rows reservation remain cumulative/live.
+    // counters and the funded peak remain live; a later row also funds the
+    // previous row backing under the two-largest-rows allowance.
     budget.row_scratch_start = Some((budget.nodes, budget.text))
   }
   Ok(())
