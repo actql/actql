@@ -95,16 +95,43 @@ fn client_values_row_limit_supported(
 pub fn prepared_client_values_sequence_limits(
   value : PreparedClientProgram,
 ) -> @lower.SequenceLimits {
-  {
-    ..client_sequence_limits_with_projection_demand(
-      value.sequence_preparation_demand,
-    ),
-    max_rows: value.local_values_max_rows,
-    max_cells: Int::max(
-      client_standard_values_sequence_limits().max_cells,
+  let original = client_standard_values_sequence_limits()
+  client_sequence_limits_with_selected_demand(
+    value.sequence_preparation_demand,
+    original,
+    original.max_steps,
+    value.local_values_max_rows,
+    Int::max(
+      original.max_cells,
       value.sequence_preparation_demand.authored_literal_cells,
     ),
+  )
+}
+
+///|
+/// The graph retains the original bound pipeline for this exact task. Its
+/// cached node count is the full sequence's actual step inventory, even when
+/// this task consumes only one step. No graph/node walk or new check runs.
+pub fn prepared_client_values_task_sequence_limits(
+  value : PreparedClientProgram,
+  task : Int,
+) -> @lower.SequenceLimits? {
+  guard @strategy.graph_task_owner(value.graph, task) is Some(owner) else {
+    return None
   }
+  let original = client_standard_values_sequence_limits()
+  Some(
+    client_sequence_limits_with_selected_demand(
+      value.sequence_preparation_demand,
+      original,
+      @lower.node_count(@lower.bound_preparation(owner)),
+      value.local_values_max_rows,
+      Int::max(
+        original.max_cells,
+        value.sequence_preparation_demand.authored_literal_cells,
+      ),
+    ),
+  )
 }
 
 ///|

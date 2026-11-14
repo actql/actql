@@ -58,6 +58,33 @@ pub fn[I] request_default_program_preparation_limits(
   @publication_host.ClientProgramPreparationLimits,
   ClientRequestTerminalIssue,
 ] {
+  request_selected_input_preparation_limits(owner, input, generated_query=false)
+}
+
+///|
+// A generated Stage owns at least one node in the SAME finite artifact
+// envelope. Authored JSON Stage policy is separate. This selects only a
+// constructor ceiling; the completed original Program later supplies its
+// actual Stage inventory to semantic checking.
+fn[I] request_default_query_preparation_limits(
+  owner : ClientRequestPreparation[I],
+  input : I,
+) -> Result[
+  @publication_host.ClientProgramPreparationLimits,
+  ClientRequestTerminalIssue,
+] {
+  request_selected_input_preparation_limits(owner, input, generated_query=true)
+}
+
+///|
+fn[I] request_selected_input_preparation_limits(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  generated_query~ : Bool,
+) -> Result[
+  @publication_host.ClientProgramPreparationLimits,
+  ClientRequestTerminalIssue,
+] {
   guard owner.input is Some(original) && physical_equal(original, input) else {
     return Err(Preparation(ForeignOriginal))
   }
@@ -84,7 +111,11 @@ pub fn[I] request_default_program_preparation_limits(
           max_string_bytes: selected.max_input_bytes,
           max_total_string_bytes: selected.max_input_bytes,
         },
-        max_stages: standard.checking.input.max_stages,
+        max_stages: if generated_query {
+          standard.checking.compilation.artifacts.nodes
+        } else {
+          standard.checking.input.max_stages
+        },
       },
     },
   })

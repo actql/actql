@@ -756,6 +756,20 @@ fn prepare_client_local_sequences_owned(
     guard @strategy.graph_task_owner(graph, task) is Some(owner) else {
       return Err(Unsupported)
     }
+    // Select the full sequence's cached original pipeline inventory ONCE for
+    // this task, before the existing bounded sequence constructor. A task can
+    // consume one step while its original full sequence contains many steps.
+    let task_limits = match prepared {
+      Pure(value) =>
+        @publication_host.prepared_client_values_task_sequence_limits(
+          value, task,
+        )
+      Effect(value) =>
+        @publication_host.prepared_client_effect_task_sequence_limits(
+          value, task,
+        )
+    }
+    guard task_limits is Some(task_limits) else { return Err(Unsupported) }
     let source_index = match acquisition_source {
       Some((source_task, source_index)) if source_task == task => source_index
       _ => 0
@@ -809,33 +823,23 @@ fn prepare_client_local_sequences_owned(
       (match serialization_restore {
         Some((selected, producer, consumer)) if selected == task =>
           @lower.prepare_serialization_infer_input_sequence(
-            owner,
-            producer,
-            consumer,
-            client_local_owner_sequence_limits(prepared),
+            owner, producer, consumer, task_limits,
           )
         _ =>
           match serialization_input {
             Some((serialization_task, barrier)) if task == serialization_task =>
-              @lower.prepare_serialization_input_sequence(
-                barrier,
-                client_local_owner_sequence_limits(prepared),
-              )
+              @lower.prepare_serialization_input_sequence(barrier, task_limits)
             _ =>
               match infer_prefix {
                 Some((prefix_task, terminal)) if task == prefix_task =>
-                  @lower.prepare_sequence_prefix(
-                    owner,
-                    terminal,
-                    client_local_owner_sequence_limits(prepared),
-                  )
+                  @lower.prepare_sequence_prefix(owner, terminal, task_limits)
                 _ =>
                   match infer_suffix {
                     Some((suffix_task, step)) if suffix_task == task =>
                       @lower.prepare_sequence_with_infer_boundary(
                         owner,
                         step,
-                        client_local_owner_sequence_limits(prepared),
+                        task_limits,
                         serialization=serialization_boundary,
                       )
                     _ =>
@@ -844,24 +848,20 @@ fn prepare_client_local_sequences_owned(
                           @lower.prepare_sequence_with_infer_boundary(
                             owner,
                             step,
-                            client_local_owner_sequence_limits(prepared),
+                            task_limits,
                             serialization=serialization_boundary,
                           )
                         _ =>
                           match serialization_boundary {
                             Some(step) =>
                               @lower.prepare_sequence_with_serialization_boundary(
-                                owner,
-                                step,
-                                client_local_owner_sequence_limits(prepared),
+                                owner, step, task_limits,
                               )
                             _ =>
                               match prepared {
                                 Pure(value) =>
                                   @publication_host.prepare_prepared_client_full_sequence(
-                                    value,
-                                    task,
-                                    client_local_owner_sequence_limits(prepared),
+                                    value, task, task_limits,
                                   ).map_err(issue => {
                                     match issue {
                                       @publication_host.Sequence(issue) => issue
@@ -869,10 +869,7 @@ fn prepare_client_local_sequences_owned(
                                     }
                                   })
                                 Effect(_) =>
-                                  @lower.prepare_sequence(
-                                    owner,
-                                    client_local_owner_sequence_limits(prepared),
-                                  )
+                                  @lower.prepare_sequence(owner, task_limits)
                               }
                           }
                       }
@@ -1072,7 +1069,7 @@ fn prepare_client_local_sequences_owned(
             task,
             contracts,
             contexts,
-            client_local_owner_sequence_limits(prepared),
+            task_limits,
             sequence_construction_work,
             sequence_construction_entries,
             prepared_sequence=Some(sequence),
@@ -1083,7 +1080,7 @@ fn prepare_client_local_sequences_owned(
             task,
             contracts,
             contexts,
-            client_local_owner_sequence_limits(prepared),
+            task_limits,
             sequence_construction_work,
             sequence_construction_entries,
             prepared_sequence=Some(sequence),

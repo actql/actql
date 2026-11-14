@@ -398,7 +398,7 @@ fn[I, T] prepare_request_native_source_computation_input(
     // does not measure the Query AST: syntax uses the lowering policy, then
     // the generated Program retains its original artifact envelope.
     let captured = match
-      request_default_program_preparation_limits(owner, input) {
+      request_default_query_preparation_limits(owner, input) {
       Ok(selected) => selected
       Err(issue) => return Err(issue)
     }

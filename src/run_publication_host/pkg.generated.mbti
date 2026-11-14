@@ -2367,6 +2367,8 @@ pub fn prepared_client_effect_serialization_occurrences(PreparedClientEffectComp
 
 pub fn prepared_client_effect_target_selections(PreparedClientEffectComputation) -> String?
 
+pub fn prepared_client_effect_task_sequence_limits(PreparedClientEffectComputation, Int) -> @lowering_relation.SequenceLimits?
+
 pub fn prepared_client_graph(PreparedClientProgram) -> @physical_strategy.CheckedDAG
 
 pub fn prepared_client_identity(PreparedClientProgram) -> ClientProgramIdentity
@@ -2420,6 +2422,8 @@ pub fn prepared_client_uses_graph_carrier(PreparedClientProgram) -> Bool
 pub fn prepared_client_values_max_rows(PreparedClientProgram) -> Int
 
 pub fn prepared_client_values_sequence_limits(PreparedClientProgram) -> @lowering_relation.SequenceLimits
+
+pub fn prepared_client_values_task_sequence_limits(PreparedClientProgram, Int) -> @lowering_relation.SequenceLimits?
 
 pub fn project_client_remote_effect_task_run(ClientRemoteEffectTaskProgress, String, Bool, Array[ClientRemoteEffectTaskRunClaim]) -> Result[ClientRemoteEffectTaskRunProjection, ClientRemoteTaskRunProjectionIssue]
 

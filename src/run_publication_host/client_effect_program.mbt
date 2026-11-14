@@ -87,6 +87,29 @@ pub fn prepared_client_effect_sequence_limits(
 }
 
 ///|
+/// Same original Effect graph/task and cached pipeline inventory. This selects
+/// no Effect permission, request or cleanup outcome.
+pub fn prepared_client_effect_task_sequence_limits(
+  value : PreparedClientEffectComputation,
+  task : Int,
+) -> @lower.SequenceLimits? {
+  let graph = @strategy.checked_effect_computation_graph(value.graph)
+  guard @strategy.graph_task_owner(graph, task) is Some(owner) else {
+    return None
+  }
+  let original = client_standard_values_sequence_limits()
+  Some(
+    client_sequence_limits_with_selected_demand(
+      value.sequence_preparation_demand,
+      original,
+      @lower.node_count(@lower.bound_preparation(owner)),
+      original.max_rows,
+      original.max_cells,
+    ),
+  )
+}
+
+///|
 pub fn prepare_client_effect_computation(
   document : String,
   format : @syntax.Format,
