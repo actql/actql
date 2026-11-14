@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
-import {appendFileSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {appendFileSync, chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {runInNewContext} from 'node:vm';
 import {parse} from 'yaml';
+import {parse as parseJavaScript} from 'acorn';
+import {nativeCoreCCachePin} from './native-core-c-compiler.mjs';
 import {gateJobs, gateJobRequired, selectTargets} from './ci-targets.mjs';
 import {validateGroups} from './ci-native-background-groups.mjs';
 import {nativeCoreCiPartitions} from './ci-core-partitions.mjs';
@@ -176,6 +178,72 @@ test('normal Native object caching selects ordinary and Scoped jobs and retains 
   assert.equal(source.split('ACTQL_TEST_NATIVE_CORE_CCACHE=').length - 1, 1);
   assert(steps[compile].run.includes('MOONBIT_NEW_NATIVE=0 node scripts/test-native-core.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose'));
   assert.equal(workflow.jobs['core-darwin']['timeout-minutes'], "${{ matrix.target == 'native' && 90 || 30 }}");
+});
+
+test('actual Native cache preparation admits only selected halves and Scoped while preserving both digest guards', t => {
+  const prepare = workflow.jobs['core-darwin'].steps.find(step => step.id === 'native-c-object-cache');
+  const match = /^node --input-type=module <<'NODE'\n([\s\S]+)\nNODE\s*$/u.exec(prepare.run);
+  assert(match, 'Execute the real workflow Node entry');
+  const body = parseJavaScript(match[1], {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .filter(node => node.type !== 'ImportDeclaration').map(node => match[1].slice(node.start, node.end)).join('\n');
+  const parent = mkdtempSync(join(tmpdir(), 'actql-cache-admission-'));
+  t.after(() => rmSync(parent, {recursive: true, force: true}));
+  const archive = Buffer.from('independent test-only original ccache archive');
+  const binary = Buffer.from('independent test-only original ccache executable');
+  const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+  const pin = {...nativeCoreCCachePin, archiveSha256: hash(archive), binarySha256: hash(binary)};
+  let ordinal = 0;
+  const invoke = (partition, {badArchive = false, badBinary = false, image = 'fixture-image'} = {}) => {
+    const root = join(parent, String(ordinal++)); mkdirSync(root, {mode: 0o700});
+    const output = join(root, 'output'), environment = join(root, 'environment'), calls = [];
+    const tool = join(root, 'actql-core-ordinary-c-cache-tool'), executable = join(tool, 'ccache');
+    let error;
+    try { runInNewContext(body, {
+      assert, createHash, appendFileSync, chmodSync, lstatSync, mkdirSync, readFileSync, join, pin,
+      process: {platform: 'darwin', arch: 'arm64', cwd: () => '/original/source',
+        env: {RUNNER_TEMP: root, CACHE_PARTITION: partition, ImageVersion: image,
+          GITHUB_OUTPUT: output, GITHUB_ENV: environment}},
+      execFileSync(command, args, options) {
+        calls.push(command);
+        if (command === '/usr/bin/curl') {
+          assert.deepEqual(JSON.parse(JSON.stringify(args)), ['--fail', '--location', '--silent', '--show-error',
+            '--connect-timeout', '20', '--max-time', '60', pin.url, '--output', join(tool, 'original.tar.gz')]);
+          assert.equal(options.timeout, 65000);
+          writeFileSync(args.at(-1), badArchive ? Buffer.from('changed archive') : archive);
+        } else if (command === '/usr/bin/tar') {
+          assert.deepEqual(JSON.parse(JSON.stringify(args)), ['-xzf', join(tool, 'original.tar.gz'), '-C', tool,
+            '--strip-components=1', `ccache-${pin.version}-darwin/ccache`]);
+          writeFileSync(executable, badBinary ? Buffer.from('changed binary') : binary);
+        } else {
+          assert.equal(command, executable); assert.deepEqual(JSON.parse(JSON.stringify(args)), ['--version']);
+          assert.equal(lstatSync(executable).mode & 0o777, 0o700);
+        }
+      },
+    }); } catch (cause) { error = cause; }
+    return {error, calls, executable,
+      output: existsSync(output) ? readFileSync(output, 'utf8') : '',
+      environment: existsSync(environment) ? readFileSync(environment, 'utf8') : ''};
+  };
+  const prefixes = new Set();
+  for (const partition of ['1/2', '2/2', 'scoped']) {
+    const actual = invoke(partition); assert.ifError(actual.error);
+    assert.equal(actual.calls.length, 3);
+    assert.match(actual.output, /^key-prefix=ordinary-c-v1-darwin-arm64-fixture-image-[a-f0-9]{64}-/u);
+    assert(actual.output.endsWith(`-${partition}-\n`)); prefixes.add(actual.output);
+    assert(actual.environment.includes(`ACTQL_TEST_NATIVE_CORE_CCACHE=${actual.executable}\n`));
+    assert.equal(actual.environment.includes('ACTQL_TEST_NATIVE_CORE_SCOPED_SOFTWARE_ROOT='), partition === 'scoped');
+  }
+  assert.equal(prefixes.size, 3, 'Each actual partition retains an independent source/profile cache key');
+  for (const partition of ['1/4', '4/4', '0/2', '3/2', '1/8', 'linux-common-1/8', 'source', 'http', 'scoped-copy', '', undefined]) {
+    const actual = invoke(partition);
+    assert.equal(actual.error?.code, 'ERR_ASSERTION', String(partition));
+    assert.equal(actual.output, ''); assert.equal(actual.environment, '');
+  }
+  for (const [options, calls] of [[{badArchive: true}, 1], [{badBinary: true}, 2], [{image: 'bad/image'}, 3]]) {
+    const actual = invoke('1/2', options);
+    assert.equal(actual.error?.code, 'ERR_ASSERTION'); assert.equal(actual.calls.length, calls);
+    assert.equal(actual.output, ''); assert.equal(actual.environment, '');
+  }
 });
 
 function compilerDiagnosticsFixture(t, prior = '') {
