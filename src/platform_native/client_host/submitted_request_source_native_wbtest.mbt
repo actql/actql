@@ -196,6 +196,11 @@ test "Native static raw Request keeps compiler and original physical retirement"
     @checked.checking_environment_cid(environment) +
     "\",\"aliases\":[]}",
   ).native_request_stage("Static Native original stage 3")
+  // The ordinary raw entrance reserves this SAME original intake before
+  // shared default selection. It has no captured Snapshot or submitted intent.
+  @local.reserve_request_native_intake_wire(parent, input, input.length()).native_request_stage(
+    "Static Native original raw intake",
+  )
   let checked = @local.prepare_request_native_document_check(
     parent,
     input,
