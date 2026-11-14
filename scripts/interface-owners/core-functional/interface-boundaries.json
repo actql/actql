@@ -33851,7 +33851,7 @@
     },
     {
       "module": "src/client_local_host/client_sequence.mbt",
-      "sha256": "b435e7167b61362b75eb93b43858626d3a92b012cf5de29f12a9862d865d6b5f",
+      "sha256": "0cd7223083b0bd72ce416f4998f577e275f13830f34ff0e5e0a882ed9b8f89ba",
       "exports": [],
       "operations": [
         {
@@ -43662,7 +43662,7 @@
     {
       "module": "src/client_local_host/preparation_request_intent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "94a05495b5d2839072d0765adcf9722bc51b5475e8390ebf895c4fd0e09394b7",
+      "sha256": "cd885e0ce44fab568306414b1203a410a0e2289d6f2596ddc7f5176dfe40148a",
       "role": "common-semantics",
       "owner": "Existing submitted-intent identity and original Request preparation Owners",
       "exports": [],
@@ -43670,6 +43670,10 @@
         {
           "name": "[I,T]prepare_request_submitted_intent",
           "declaration": "[ I , T ] prepare_request_submitted_intent ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , ) - > Result [ String , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]finish_request_native_intake_wire",
+          "declaration": "[ I ] finish_request_native_intake_wire ( owner : ClientRequestPreparation [ I ] , input : I , intent : @ publication_host . ClientSubmittedIntent , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
         },
         {
           "name": "[I]finish_request_submitted_intent",
@@ -43680,12 +43684,28 @@
           "declaration": "[ I ] request_default_program_preparation_limits ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . ClientProgramPreparationLimits , ClientRequestTerminalIssue , ]"
         },
         {
+          "name": "[I]request_default_query_preparation_limits",
+          "declaration": "[ I ] request_default_query_preparation_limits ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . ClientProgramPreparationLimits , ClientRequestTerminalIssue , ]"
+        },
+        {
           "name": "[I]request_intent_input_ready",
           "declaration": "[ I ] request_intent_input_ready ( owner : ClientRequestPreparation [ I ] ) - > Bool"
         },
         {
+          "name": "[I]request_selected_input_preparation_limits",
+          "declaration": "[ I ] request_selected_input_preparation_limits ( owner : ClientRequestPreparation [ I ] , input : I , generated_query ~ : Bool , ) - > Result [ @ publication_host . ClientProgramPreparationLimits , ClientRequestTerminalIssue , ]"
+        },
+        {
           "name": "[I]request_submitted_intent_original",
           "declaration": "[ I ] request_submitted_intent_original ( owner : ClientRequestPreparation [ I ] , input : I , ) - > @ publication_host . ClientSubmittedIntent ?"
+        },
+        {
+          "name": "[I]reserve_request_native_intake_wire",
+          "declaration": "[ I ] reserve_request_native_intake_wire ( owner : ClientRequestPreparation [ I ] , input : I , wire_bytes : Int , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]reserve_request_retained_intent_source",
+          "declaration": "[ I ] reserve_request_retained_intent_source ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ source . ParseLimits , ClientRequestPreparationIssue ]"
         },
         {
           "name": "[I]reserve_request_retained_program_material",
@@ -43718,7 +43738,12 @@
             "[I]request_submitted_intent_original",
             "request_intent_construction_bytes",
             "[I]request_default_program_preparation_limits",
-            "request_captured_intent_limits"
+            "request_captured_intent_limits",
+            "[I]finish_request_native_intake_wire",
+            "[I]request_default_query_preparation_limits",
+            "[I]request_selected_input_preparation_limits",
+            "[I]reserve_request_native_intake_wire",
+            "[I]reserve_request_retained_intent_source"
           ],
           "exports": [],
           "attributes": {
@@ -45095,7 +45120,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_native_query.mbt",
-      "sha256": "070e93184a0845481004e4adaa4339a7de1b6cc11d3dde722e895c728c1a14f6",
+      "sha256": "00b82962a79595144bf4d48e72a7e541cb553b1d5fc87c004694197724d3de4b",
       "exports": [],
       "operations": [
         {
@@ -45449,7 +45474,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "a558ca289aa468b3a27564ed183a5c9281d0218e471d9bb848ef785d3e2bc59f",
+      "sha256": "2fba90929950a8437ac25e7b39552d9f09129894464d8fc665e5af4297240023",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -71861,7 +71886,7 @@
     },
     {
       "module": "src/run_publication_host/client_effect_program.mbt",
-      "sha256": "43adaa963e126fbaf3a7e2cc38c198ff0c00da6ca5b0c211b8e45253c2d01c8e",
+      "sha256": "bab79694a4b89f8ee7eb57d38116b7a64b04304637c454be9573bc71c06f59d9",
       "exports": [],
       "operations": [
         {
@@ -71979,6 +72004,14 @@
         {
           "name": "prepared_client_effect_run_graph",
           "declaration": "prepared_client_effect_run_graph ( value : PreparedClientEffectRun , ) - > @ strategy . CheckedEffectRunDAG"
+        },
+        {
+          "name": "prepared_client_effect_sequence_limits",
+          "declaration": "prepared_client_effect_sequence_limits ( value : PreparedClientEffectComputation , ) - > @ lower . SequenceLimits"
+        },
+        {
+          "name": "prepared_client_effect_task_sequence_limits",
+          "declaration": "prepared_client_effect_task_sequence_limits ( value : PreparedClientEffectComputation , task : Int , ) - > @ lower . SequenceLimits ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -72016,7 +72049,9 @@
             "prepared_client_effect_result_name",
             "prepared_client_effect_run_computation",
             "prepared_client_effect_run_graph",
-            "clear_prepared_client_effect_custody_after_cleanup"
+            "clear_prepared_client_effect_custody_after_cleanup",
+            "prepared_client_effect_sequence_limits",
+            "prepared_client_effect_task_sequence_limits"
           ],
           "exports": [],
           "attributes": {
@@ -72751,7 +72786,9 @@
             "prepared_client_values_sequence_limits",
             "retain_client_task_pipeline_input",
             "with_prepared_client_values_row_limit",
-            "measure_prepared_client_values_pipeline_construction"
+            "measure_prepared_client_values_pipeline_construction",
+            "prepared_client_artifact_limits",
+            "prepared_client_values_task_sequence_limits"
           ],
           "exports": [],
           "attributes": {
@@ -73175,7 +73212,7 @@
           }
         }
       ],
-      "sha256": "792906edd2c720bc7db7581ca233d0297195958d32c4ebac905154292c13e04f",
+      "sha256": "36f199500710d1171d110098e5912f053eb030f932057c0a9071179f5912d909",
       "exports": [],
       "operations": [
         {
@@ -73388,7 +73425,7 @@
         },
         {
           "name": "prepare_client_task_pipeline_input",
-          "declaration": "prepare_client_task_pipeline_input ( owner : @ lower . BoundPrepared , end_step : Int , output : String , selected : Int ? , prefix_end : Int ? , acquisition_prefix : Bool , limits : @ lower . SequenceLimits , infer_boundary ? : Int ?"
+          "declaration": "prepare_client_task_pipeline_input ( owner : @ lower . BoundPrepared , end_step : Int , output : String , selected : Int ? , prefix_end : Int ? , acquisition_prefix : Bool , limits : @ lower . SequenceLimits , original_input ? : Int ?"
         },
         {
           "name": "prepare_client_task_sequence",
@@ -73413,6 +73450,10 @@
         {
           "name": "prepare_prepared_client_task_pipeline_input",
           "declaration": "prepare_prepared_client_task_pipeline_input ( value : PreparedClientProgram , task : Int , limits : @ lower . SequenceLimits , ) - > Result [ ClientTaskPipelineInput , ClientTaskPipelineIssue ]"
+        },
+        {
+          "name": "prepared_client_artifact_limits",
+          "declaration": "prepared_client_artifact_limits ( value : PreparedClientProgram , ) - > ( Int , Int , Int )"
         },
         {
           "name": "prepared_client_check_environment_cid",
@@ -73457,6 +73498,10 @@
         {
           "name": "prepared_client_values_sequence_limits",
           "declaration": "prepared_client_values_sequence_limits ( value : PreparedClientProgram , ) - > @ lower . SequenceLimits"
+        },
+        {
+          "name": "prepared_client_values_task_sequence_limits",
+          "declaration": "prepared_client_values_task_sequence_limits ( value : PreparedClientProgram , task : Int , ) - > @ lower . SequenceLimits ?"
         },
         {
           "name": "retain_client_task_pipeline_input",
@@ -86535,7 +86580,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_default_document.mbt",
-      "sha256": "a270602c6b2c9c99d60d8fce115eb586e8078394f2cfddf4734a1e045c7d7bac",
+      "sha256": "76489b19f935d2ad7a86fed3d067ff970ca57aa07f0670413a973fe8406cac5d",
       "exports": [],
       "operations": [
         {
@@ -88696,12 +88741,16 @@
     },
     {
       "module": "src/run_publication_host/client_sequence_preparation_demand.mbt",
-      "sha256": "c5d057bdaf332b2e20e05a6b19bd97ae6117339b72e0c2d0e4f177539248e34a",
+      "sha256": "c50f3a0a8f4e012dbbcd4fd6b62a3fb6a170c90878233837527cf0d4da5e8a82",
       "exports": [],
       "operations": [
         {
           "name": "client_sequence_limits_with_projection_demand",
           "declaration": "client_sequence_limits_with_projection_demand ( demand : @ lower . SequencePreparationDemand , ) - > @ lower . SequenceLimits"
+        },
+        {
+          "name": "client_sequence_limits_with_selected_demand",
+          "declaration": "client_sequence_limits_with_selected_demand ( demand : @ lower . SequencePreparationDemand , original : @ lower . SequenceLimits , steps : Int , rows : Int , cells : Int , ) - > @ lower . SequenceLimits"
         },
         {
           "name": "client_sequence_preparation_demand",
@@ -88717,7 +88766,8 @@
           "operations": [
             "<module>",
             "client_sequence_limits_with_projection_demand",
-            "client_sequence_preparation_demand"
+            "client_sequence_preparation_demand",
+            "client_sequence_limits_with_selected_demand"
           ],
           "exports": [],
           "attributes": {

@@ -3092,6 +3092,29 @@ dimensions; generic explicit check/reuse APIs retain their supplied restrictions
 Installed collection/join dimensions, depth, CTE policy and original target,
 Catalog, Parameter and Environment bindings remain independent.
 
+For default textual Query input only, the generated Program's Stage ceiling
+comes from the selected compiler artifact-node envelope: every generated Stage
+requires an artifact node. After lowering, the retained Program's constant-time
+Stage count selects the semantic structure bound. The default checking-work
+ceiling preserves the selected profile's work per Stage envelope: the original
+work multiplied by `max(1, ceil(generated_stages / original_stage_limit))`, with
+checked arithmetic. This is a finite checking policy, not a prediction of exact
+consumed work, physical storage or permission. The original work meter still
+charges actual work on the same parent; no refund, second check or retry occurs.
+Raw authored Program input, every explicit caller selection, depth, memory,
+artifact-node and all other policy bounds remain unchanged. Four immutable
+limit records coexist with the original selection; the Request fixed-control
+quote funds their 4 headers, 11 reference slots and 14 scalar words before
+construction. A repeated or reentrant entry refuses before selecting again.
+
+Sequence construction uses the same checked task owner and its retained
+pipeline node count for that task's full-step allowance, before selecting the
+execution step. Its canonical demand projection retains the original row,
+cell, name and expression bounds. It does not traverse or rebuild the graph,
+reinterpret the input, or turn a task ordinal into an execution grant. Direct
+calls with an explicit smaller sequence budget still refuse.
+
+
 These projections are immutable DATA in the existing Program owner, not a new
 Resource, authority or preparation controller. The same Request reserves the
 actual document/syntax and expanded-material coexistence before either call.

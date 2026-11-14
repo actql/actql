@@ -57,8 +57,31 @@ fn client_sequence_limits_with_projection_demand(
   demand : @lower.SequencePreparationDemand,
 ) -> @lower.SequenceLimits {
   let original = client_standard_values_sequence_limits()
+  client_sequence_limits_with_selected_demand(
+    demand,
+    original,
+    original.max_steps,
+    original.max_rows,
+    original.max_cells,
+  )
+}
+
+///|
+// All quantities come from the same checked preparation and selected task.
+// Reuse this constructor so task selection adds no policy-sized storage or
+// extra limit-record copy. It is immutable DATA, not a resource grant.
+fn client_sequence_limits_with_selected_demand(
+  demand : @lower.SequencePreparationDemand,
+  original : @lower.SequenceLimits,
+  steps : Int,
+  rows : Int,
+  cells : Int,
+) -> @lower.SequenceLimits {
   {
     ..original,
+    max_steps: steps,
+    max_rows: rows,
+    max_cells: cells,
     max_name_bytes: original.max_name_bytes + demand.projection_name_bytes_bound,
     expressions: {
       ..original.expressions,
