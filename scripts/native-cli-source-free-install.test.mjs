@@ -9,6 +9,28 @@ import {observeFreshSubmissionFailureDiagnostic, preserveOrdinaryFailureWithDiag
   observeNativeResourceOperatorShapes, requireNativeSourceFreeWorkCounts, observeNativeSourceFreeCommand}
   from './test-native-cli-source-free-install.mjs';
 
+test('Native requirements construction stays inside the original business scope with its typed failure', async () => {
+  const source = await readFile(new URL('../src/cmd/native_client/local_command_business_preparation.mbt', import.meta.url), 'utf8');
+  const enclosed = `let requirements = self.with_business_request(capture, () => {
+    match @local_values.prepare_source_free_runtime_requirements_result(
+      prepared, runtime.installed_contracts, assets.values, Some(assets.fragment), assets.ordered,
+    ) {
+      Ok(original) => original
+      Err(issue) => local_stop_runtime_requirements(issue)
+    }
+  })`.replace(/\s+/gu, ' ');
+  const verify = body => {
+    assert.equal(body.split('@local_values.prepare_source_free_runtime_requirements_result(').length, 2);
+    // Source-enclosure regression only. The installed Native case must still
+    // prove actual scope entry, original close and cold Saved independently.
+    assert(body.replace(/\s+/gu, ' ').includes(enclosed),
+      'The unchanged constructor and typed failure must share the original business callback');
+  };
+  verify(source);
+  assert.throws(() => verify(source.replace('let requirements = self.with_business_request(capture, () => {', 'let requirements = (() => {')));
+  assert.throws(() => verify(source.replace('Err(issue) => local_stop_runtime_requirements(issue)', 'Err(issue) => stop("LocalBusinessProgramUnavailable")')));
+});
+
 // Independent counter DATA checks, not Native execution or a second protocol
 // fixture. The shared diagnostic parser owns stream/schema validation.
 const sourceFreeCounterRows = (operation = 'run') => [
