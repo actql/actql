@@ -245,11 +245,15 @@ test "original request bootstrap entry carriers are already debited at the sole 
   let usage = @resources.ledger_usage(parent.ledger)
   // Domain quote540H155R1153W +driver23H31R39W +stage5H7R4W
   // +preflight17H35R58W +observed-geometry/canonical return8H4R20W
-  // =593H232R1274W=21536, once. It neither
+  // +original SyntaxError alias/conservative Some1H2R2W (48 bytes)
+  // =594H234R1276W=21584, once. It neither
   // replaces nor supplies the pre-entry carriers observed by that callback.
-  assert_eq(16L * (585L + 8L) + 8L * (228L + 4L) + 8L * (1254L + 20L), 21536L)
-  assert_eq(usage.reserved_retention_bytes, 15040L + 21536L)
-  assert_eq(usage.reserved_execution_bytes, 21536L)
+  assert_eq(
+    16L * (585L + 8L + 1L) + 8L * (228L + 4L + 2L) + 8L * (1254L + 20L + 2L),
+    21536L + 48L,
+  )
+  assert_eq(usage.reserved_retention_bytes, 15040L + 21536L + 48L)
+  assert_eq(usage.reserved_execution_bytes, 21536L + 48L)
   assert_true(physical_equal(child.capacity, parent.capacity))
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).reserved_retention_bytes, 0L)
