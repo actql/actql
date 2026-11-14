@@ -997,6 +997,7 @@ test('independent normal consumers continue after collection and variant failure
     URL, checkoutState: () => before, execFileSync: () => 'b'.repeat(40), mkdir, join, writeFile,
     packedReadmeCases, packedCompositionCases, packedEffectControlCases,
     runPackedAccountControls: async ({report}) => {report.account.completed = true; report.account.status = 'passed';},
+    runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 4}, (_, index) => ({case: index < 2 ? 'rows101' : 'members17', phase: index % 2 === 0 ? 'capture' : 'saved', completed: true, status: 'passed'})));},
     packedModelControlPhases, runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
     runMockEffectControls: async ({records}) => records.forEach(record => {record.completed = true; record.status = 'passed';}),
     nodeBenchmarkFailure, execute: async () => assert.fail('No product command'),
@@ -1052,6 +1053,7 @@ test('each required Model composition is distinct from README three and cannot p
       URL, checkoutState: () => before, execFileSync: () => 'b'.repeat(40), mkdir, join, writeFile,
       packedReadmeCases, packedCompositionCases, packedEffectControlCases,
       runPackedAccountControls: async ({report}) => {report.account.completed = true; report.account.status = 'passed';},
+    runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 4}, (_, index) => ({case: index < 2 ? 'rows101' : 'members17', phase: index % 2 === 0 ? 'capture' : 'saved', completed: true, status: 'passed'})));},
     packedModelControlPhases, runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
       runMockEffectControls: async ({records}) => records.forEach(record => {record.completed = true; record.status = 'passed';}),
       nodeBenchmarkFailure,
@@ -1123,6 +1125,7 @@ test('failed shared package preparation records every dependent as unexecuted an
     checkoutState: () => before, execFileSync: () => 'b'.repeat(40), mkdir, join, writeFile,
     packedReadmeCases, packedCompositionCases, packedEffectControlCases,
     runPackedAccountControls: async ({report}) => {report.account.completed = true; report.account.status = 'passed';},
+    runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 4}, (_, index) => ({case: index < 2 ? 'rows101' : 'members17', phase: index % 2 === 0 ? 'capture' : 'saved', completed: true, status: 'passed'})));},
     packedModelControlPhases, runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
     runMockEffectControls: async ({records}) => records.forEach(record => {record.completed = true; record.status = 'passed';}),
     nodeBenchmarkFailure, execute: async () => assert.fail('No product command'),
@@ -1563,6 +1566,7 @@ test('required normal controls preserve original errors and cannot pass an unexe
     runProjectFileJoinConsumer: async ({report}) => report.projectFiles.forEach(row => row.completed = true),
     runReadmeCases: async ({report, cases = report.cases}) => cases.forEach(row => row.completed = true),
     runPackedAccountControls: async ({report}) => {report.account.completed = true; report.account.status = 'passed';},
+    runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 4}, (_, index) => ({case: index < 2 ? 'rows101' : 'members17', phase: index % 2 === 0 ? 'capture' : 'saved', completed: true, status: 'passed'})));},
     packedModelControlPhases, runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
     runMockEffectControls: async ({records}) => records.filter(row => row.mode !== 'publication-io-failure')
       .forEach(row => {row.completed = true; row.status = 'passed';}), verifyNodeBenchmarkPackages: async () => {}});
@@ -2516,6 +2520,7 @@ test('normal Project file JOIN cannot pass with an unexecuted capture or Saved',
         .forEach(row => {row.completed = true; row.status = 'passed';}),
       runReadmeCases: async ({report, cases = report.cases}) => cases.forEach(row => row.completed = true),
       runPackedAccountControls: async ({report}) => {report.account.completed = true; report.account.status = 'passed';},
+    runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 4}, (_, index) => ({case: index < 2 ? 'rows101' : 'members17', phase: index % 2 === 0 ? 'capture' : 'saved', completed: true, status: 'passed'})));},
     packedModelControlPhases, runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
       runMockEffectControls: async ({records}) => records.forEach(row => row.completed = true),
       verifyNodeBenchmarkPackages: async () => {}});
@@ -2780,7 +2785,8 @@ test('required Account control uses SAME prepared artifact once and cannot pass 
       fileURLToPath:()=>repository,URL,checkoutState:()=>before,execFileSync:()=>'b'.repeat(40),mkdir,join,writeFile,
       packedReadmeCases,packedCompositionCases,packedEffectControlCases,nodeBenchmarkFailure,
       execute:async()=>assert.fail('No product command'),prepareHealthPackages:async()=>prepared,
-      packedModelControlPhases, runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
+      runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 4}, (_, index) => ({case: index < 2 ? 'rows101' : 'members17', phase: index % 2 === 0 ? 'capture' : 'saved', completed: true, status: 'passed'})));},
+    packedModelControlPhases, runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
       async runPackedAccountControls(options) {
         calls++; assert.strictEqual(options.prepared,prepared); assert.equal(options.repository,repository);
         assert.equal(options.root,output); assert.equal(typeof options.command,'function'); assert(Array.isArray(options.cleanup));
@@ -2812,6 +2818,7 @@ test('required Model controls use the same artifact and every phase must complet
       packedModelControlPhases, nodeBenchmarkFailure, execute: async () => assert.fail('No product command'),
       prepareHealthPackages: async () => prepared,
       runPackedAccountControls: async ({report}) => {report.account.completed = true;},
+      runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 4}, (_, index) => ({case: index < 2 ? 'rows101' : 'members17', phase: index % 2 === 0 ? 'capture' : 'saved', completed: true, status: 'passed'})));},
       async runPackedModelControls(options) {
         calls++; assert.strictEqual(options.prepared, prepared); assert.equal(options.repository, repository);
         assert.equal(options.root, output); assert.equal(typeof options.command, 'function');
@@ -2822,6 +2829,42 @@ test('required Model controls use the same artifact and every phase must complet
           row.completed = mode !== 'partial' || index !== 3;
           row.status = mode === 'wrong-status' ? 'failed' : 'passed';
         });
+      },
+      runCollectionConsumer: async ({report}) => report.collection.forEach(row => {row.completed = true;}),
+      runProjectFileJoinConsumer: async ({report}) => report.projectFiles.forEach(row => {row.completed = true;}),
+      runReadmeCases: async ({report, cases = report.cases}) => cases.forEach(row => {row.completed = true;}),
+      runMockEffectControls: async ({records}) => records.forEach(row => {row.completed = true;}),
+      verifyNodeBenchmarkPackages: async () => {}});
+    if (mode === 'passed') assert.equal((await run(output)).complete, true);
+    else await assert.rejects(run(output), error => mode === 'failed' ? error === primary : error.code === 'ERR_ASSERTION');
+    assert.equal(calls, 1);
+    assert.equal(JSON.parse(await readFile(join(output, 'summary.json'), 'utf8')).complete, mode === 'passed');
+  }
+});
+
+
+test('required packed File boundaries reject missing, failed or duplicate phases on the same artifact', async t => {
+  for (const mode of ['passed', 'failed', 'unexecuted', 'partial', 'duplicate']) {
+    const {root, consumer} = await scratch(t), output = join(root, 'out'), load = await runnerFunctions();
+    const before = {clean: true, revision: 'a'.repeat(40)}, prepared = {consumer, manifest: {}, manifestPath: '/same-normal'};
+    const primary = new Error('OriginalFileControlFailure'); let calls = 0;
+    const run = load('runPackedReadmeWorkflows', {assert, isAbsolute: value => value.startsWith('/'),
+      process: {env: {ACTQL_PACKED_CLIENT_PACKAGES: '/same-normal'}, version: 'explicit-test'},
+      fileURLToPath: () => repository, URL, checkoutState: () => before, execFileSync: () => 'b'.repeat(40),
+      mkdir, join, writeFile, packedReadmeCases, packedCompositionCases, packedEffectControlCases,
+      packedModelControlPhases, nodeBenchmarkFailure, execute: async () => assert.fail('No product command'),
+      prepareHealthPackages: async () => prepared,
+      runPackedAccountControls: async ({report}) => {report.account.completed = true;},
+      runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
+      async runPackedProjectFileStoreInventory(options) {
+        calls++; assert.strictEqual(options.prepared, prepared); assert.equal(options.repository, repository);
+        assert.equal(options.root, join(output, 'project-store-inventory')); assert.equal(typeof options.command, 'function');
+        assert(Array.isArray(options.cleanup));
+        if (mode === 'failed') throw primary;
+        if (mode === 'unexecuted') return;
+        options.report.cases.push(...Array.from({length: mode === 'partial' ? 3 : 4}, (_, index) => ({
+          case: mode === 'duplicate' || index < 2 ? 'rows101' : 'members17',
+          phase: index % 2 === 0 ? 'capture' : 'saved', completed: true, status: 'passed'})));
       },
       runCollectionConsumer: async ({report}) => report.collection.forEach(row => {row.completed = true;}),
       runProjectFileJoinConsumer: async ({report}) => report.projectFiles.forEach(row => {row.completed = true;}),

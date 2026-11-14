@@ -10,6 +10,7 @@ import {prepareHealthPackages, mockWorkflowMetrics, execute} from './health-moni
 import {packedEffectControlCases, runMockEffectControls} from './packed-mock-effect-controls.mjs';
 import {runPackedAccountControls} from './packed-account-controls.mjs';
 import {packedModelControlPhases, runPackedModelControls} from './packed-model-controls.mjs';
+import {runPackedProjectFileStoreInventory} from './packed-project-file-store-inventory.mjs';
 import {verifyNodeBenchmarkPackages, nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
 
 export const packedReadmeCases = Object.freeze([
@@ -438,6 +439,7 @@ export async function runPackedReadmeWorkflows(root) {
     collection: ['budget', 'memory-recovery', 'work-recovery', 'accepted-memory-recovery', 'capture', 'saved', 'large-row-capture', 'large-row-saved'].map(phase => ({phase, completed: false, status: 'unexecuted',
       unexecutedReason: phase === 'saved' ? 'Requires completed original 100000 Result, matching handoff and FIRST close'
         : phase === 'large-row-saved' ? 'Requires both original large Results, SQL removal and FIRST close' : 'Requires verified normal packages'})),
+    fileInventory: {cases: []},
     account: {completed: false, status: 'unexecuted', unexecutedReason: 'Requires verified normal packages'},
     model: packedModelControlPhases.map(phase => ({phase, completed: false, status: 'unexecuted',
       unexecutedReason: 'Requires the same verified normal packages and original capture'})),
@@ -464,6 +466,9 @@ export async function runPackedReadmeWorkflows(root) {
     catch (error) {failures.push(error);}
     try {await runPackedModelControls({prepared, root, repository, command, records: report.model, failures});}
     catch (error) {failures.push(error);}
+    try {await runPackedProjectFileStoreInventory({prepared, root: join(root, 'project-store-inventory'),
+      repository, command, report: report.fileInventory, cleanup});}
+    catch (error) {failures.push(error);}
     try {
       await runProjectFileJoinConsumer({prepared, root, repository, command, report, cleanup});
     } catch (error) {failures.push(error);}
@@ -471,6 +476,9 @@ export async function runPackedReadmeWorkflows(root) {
     await runReadmeCases({prepared, root, repository, command, report, failures, cases: report.compositions});
     await runMockEffectControls({prepared, root, repository, command, records: report.controls, failures});
     report.complete = failures.length === 0 && report.account.completed &&
+      report.fileInventory.cases.length === 4 &&
+      report.fileInventory.cases.every((row, index) => row.completed && row.status === 'passed' &&
+        row.case === (index < 2 ? 'rows101' : 'members17') && row.phase === (index % 2 === 0 ? 'capture' : 'saved')) &&
       report.model.every(row => row.completed && row.status === 'passed') && report.collection.every(row => row.completed) &&
       report.projectFiles.every(row => row.completed) &&
       report.cases.every(row => row.completed) && report.compositions.every(row => row.completed) && report.controls.every(row => row.completed);
