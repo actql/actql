@@ -6602,6 +6602,25 @@ batch, nodes, other live owners and all generic import costs remain covered;
 nested, reference and sparse schemas keep the complete existing path. Limits,
 identity, currentness, finalization and cleanup retain their original owners.
 
+After successful identity verification and row handoff, the importer reuses its
+existing source-reference slot for that exact returned output. Its closed
+append/finish and completed cancellation paths do not read the old source;
+cumulative work reads the original budgets. The copied completion preserves
+the same logical origin/current restrictions, independently of physical source
+availability as before. An importer borrows the source; it has no physical
+release method or acknowledgement. The original Source, producer read,
+snapshot or Native retained-file owner still holds its own cleanup duty.
+
+The Local driver prepays its added controls in startup scratch, before either
+new Ref cell is constructed. The shared representation tariff counts standing
+2H/7R/1W plus the largest nullable construction phase 5H/1R/7W: 240 logical
+bytes. This covers the two cells, six closure capture slots, initial None,
+overlapping original/getter/replacement Some values, bind/map closures, the
+arithmetic Some(tuple3) and post-current fences. Growth and fence phases fit
+that same fixed inventory. There is no assumption of backend nullable
+unboxing, spare parser pages or opaque allocator/GC release. The importer adds
+no standing field or Some record at other Host/Native entrances.
+
 ### Value-root entries and internal row decoding
 
 A constructed Array may retain many child values while using only one
