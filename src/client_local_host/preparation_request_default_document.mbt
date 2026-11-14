@@ -85,36 +85,15 @@ fn[I] request_default_lowered_program_limits(
             // inflated shared profile. The initial Request control quote backs
             // these immutable selection records before the checker is called.
             let stages = @syntax.stage_count(program)
-            // This remaining legacy work policy is separately tracked for
-            // replacement; do not mistake the common structural bound for its
-            // former Stage32 denominator while that work correspondence is open.
-            let original_stages = @publication_host.client_standard_program_preparation_limits().checking.compilation.structure.stages
-            let original_work = selected.checking.compilation.work
-            // The default generated representation selects bounded checking work
-            // for its actual normalized Stage groups. Keep the installed work /
-            // Stage envelope; do not change the shared profile or any explicit
-            // caller's budget. This ceiling is not a debit or storage allocation.
-            guard original_stages > 0 && original_work >= 0 else {
-              return Err(Preparation(Policy))
-            }
-            let groups = (stages.to_int64() + original_stages.to_int64() - 1L) /
-              original_stages.to_int64()
-            guard @execution.checked_preparation_add_product(
-                0L,
-                Int64::max(1L, groups),
-                original_work.to_int64(),
-              )
-              is Some(work) &&
-              work <= 2147483647L else {
-              return Err(Preparation(ProgramCheck(Overflow)))
-            }
+            // Work was already selected ONCE by the same ordinary input
+            // getter, from the original codec quota. Stage count selects only
+            // structure; it cannot multiply or refill that work allowance.
             let selected = {
               ..selected,
               checking: {
                 ..selected.checking,
                 compilation: {
                   ..selected.checking.compilation,
-                  work: work.to_int(),
                   structure: {
                     ..selected.checking.compilation.structure,
                     stages,

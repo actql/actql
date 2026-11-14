@@ -167,3 +167,64 @@ test "semantic compile meters retain every preparation cap without phase inputs"
     [101, 105, 102, 103, 104, 109, 108, 109, 110, 126, 112, 129],
   )
 }
+
+///|
+test "artifact work ceiling preserves original limits and refuses signed work overflow" {
+  let original = distinct_compile_limits()
+  let before = original
+  assert_eq(compilation_artifact_pass_work_limit(original), Some(715))
+  assert_eq(original, before)
+  for
+    invalid in [
+      { ..original, work: -1, },
+      { ..original, artifacts: { ..original.artifacts, bytes: -1, }, },
+      { ..original, artifacts: { ..original.artifacts, nodes: -1, }, },
+      {
+        ..original,
+        work: 2147483643,
+        artifacts: { bytes: 2, nodes: 0, depth: 1, },
+      },
+    ] {
+    assert_eq(compilation_artifact_pass_work_limit(invalid), None)
+  }
+  let largest = {
+    ..original,
+    work: 2147483643,
+    artifacts: { bytes: 1, nodes: 0, depth: 1, },
+  }
+  assert_eq(compilation_artifact_pass_work_limit(largest), Some(2147483647))
+}
+
+///|
+test "artifact work ceiling funds actual original Host wire projection and keeps one-short refusal" {
+  let construction = IdentityBudget::{
+    work: 100000000,
+    bytes: 10000000,
+    nodes: 1000000,
+    depth: 100,
+  }
+  let (_, _, _, _, units) = local_construction_fixture(construction)
+  let host = @host.create(
+    @context.publication_row_limit_host(units[0].publication_rows[0]),
+    { max_bytes: 10000, max_nodes: 1000, max_depth: 100, },
+  ).unwrap()
+  let (bytes, nodes, _) = @host.measure(host, 10000, 1000, 100)
+  let original = {
+    ..distinct_compile_limits(),
+    work: 0,
+    artifacts: { bytes, nodes, depth: 100, },
+  }
+  let maximum = compilation_artifact_pass_work_limit(original).unwrap()
+  let exact = IdentityBudget::{ work: maximum, bytes, nodes, depth: 100, }
+  let witness = publication_host_wire(host, exact)
+  assert_true(physical_equal(witness, @host.wire_witness(host)))
+  assert_eq((exact.work, exact.bytes, exact.nodes), (0, 0, 0))
+  let short = IdentityBudget::{ work: maximum - 1, bytes, nodes, depth: 100, }
+  try publication_host_wire(host, short) catch {
+    UnitBuildFailure::BudgetExceeded => ()
+    _ => fail("expected the original typed artifact-work refusal")
+  } noraise {
+    _ => fail("real original artifact work must remain bounded")
+  }
+  assert_true(short.work >= 0)
+}
