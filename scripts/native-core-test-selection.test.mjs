@@ -360,6 +360,41 @@ test('Darwin ordinary scheduling uses measured compiler units without balancing 
   assert.equal(JSON.stringify(records), original);
 });
 
+test('measured Darwin scheduling reaches compiler-owned original drivers without C compilation', t => {
+  const root = fixture(t), paths = ['src/cmd/native_client', 'src/query_integration',
+    'src/native_values_integration', 'src/platform_native/remote_values_host',
+    'src/cmd/native_remote_resident_site', 'src/platform_native/row_source',
+    'src/cmd/native_retained_case_probe', 'src/new-native-owner'];
+  for (const path of paths) {
+    mkdirSync(join(root, path), {recursive: true});
+    writeFileSync(join(root, path, 'main_test.mbt'), 'Original test-only compiler metadata input\n');
+  }
+  const command = path => ['moon', 'generate-test-driver', '--output-driver', `_build/${path}/driver.mbt`,
+    '--output-metadata', `_build/${path}/info.json`, `${path}/main_test.mbt`, '--target', 'native',
+    '--pkg-name', `fixture/${path}`, '--driver-kind', 'blackbox'].join(' ');
+  let generated = 0;
+  const execute = (_tool, values) => {
+    if (values[0] === 'test') {
+      const selected = paths.filter(path => values.includes(path));
+      return (selected.length ? selected : paths).map(command).join('\n');
+    }
+    assert.equal(values[0], 'generate-test-driver'); generated++;
+    writeFileSync(values[values.indexOf('--output-metadata') + 1], JSON.stringify({tests: {
+      'main_test.mbt': [{index: 0, name: 'same original', attrs: [], line_number: 1}],
+    }}));
+    return '';
+  };
+  const selected = nativeCoreTestSelection(root, ['--release', '--strip'], {execute,
+    partitionProfiles: true, ordinaryPartitions: true, measuredCompilerWeights: true});
+  assert.equal(generated, paths.length); assert.equal(selected.cases, paths.length);
+  const parts = selected.profiles.ordinary.partitions;
+  assert.deepEqual(parts.map(part => part.args.slice(2)), [
+    [paths[0], paths[4], paths[6]], [paths[1], paths[2], paths[3], paths[5], paths[7]],
+  ]);
+  assert.equal(parts.flatMap(part => part.drivers).length, paths.length);
+  assert.equal(new Set(parts.flatMap(part => part.drivers.map(driver => JSON.stringify(driver.command)))).size, paths.length);
+});
+
 test('four Native ordinary jobs and independent physical jobs exhaust the original profile inventory', () => {
   const paths = Array.from({length: 12}, (_, i) => `src/package-${i}`);
   const records = paths.flatMap(directory => Array.from({length: 3}, (_, index) => ({
