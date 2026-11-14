@@ -60,7 +60,9 @@ pub fn original_model_tasks_admission_limits(
   for entry in original.sections[position(ModelTaskContracts)] {
     bytes += entry.bytes.to_int64()
     nodes += entry.nodes.to_int64()
-    text += @decode.admission_usage(entry.cursor).total_string_bytes.to_int64()
+    // Complete encoded member bytes bound decoded Contract text independently
+    // of its node count. Do not read the whole arena usage through a child.
+    text += entry.bytes.to_int64()
   }
   // Per member the three subset hashes and two Contract reconstructions each
   // debit full (bytes+nodes). Closed-object field/name, selected text, number,
@@ -98,7 +100,7 @@ pub fn model_tasks_admission_construction_extent(
   })
   for entry in original.sections[position(ModelTaskContracts)] {
     let n = entry.nodes
-    let text = @decode.admission_usage(entry.cursor).total_string_bytes
+    let text = entry.bytes
     guard model_task_contract_read_bounds(n, entry.depth, text) is Some(contracts) &&
       wire_hash_construction_extent(n) is Some(hash) else { return None }
     // Contract readers retain their typed trees while subsequent hashes run.
