@@ -69,7 +69,7 @@ const mutations = [
     from: 'submissionCheckObservations.set(error, freezeInput(checkObservation));',
     to: 'void checkObservation;',
     targets: ['local', 'http'].flatMap(entrance => [
-      target(`${entrance}: original submission retains a disclosed analysis budget without input blame`,
+      target(`${entrance}: original submission separates checker budget from later acquisition refusal`,
         'submission-budget-observation'),
       target(`${entrance}: original submission projects implementation limits only from public checking`,
         'submission-implementation-observation'),

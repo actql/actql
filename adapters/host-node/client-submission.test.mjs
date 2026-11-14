@@ -942,7 +942,8 @@ test('retained Source analysis budget rechecks original intent and current discl
       assert.strictEqual(error, failure); originalReports++; return observe(value);
     }, check(value) {laterChecks++; return observe(value);}});
   const first = await f.service.submitIntent(f.body('SELECT original AS n'));
-  assert.deepEqual(first.problem, {code: 'ClientProgramAnalysisLimit', classification: 'implementation_limit'});
+  assert.deepEqual(first.problem, {code: 'ClientProgramAnalysisLimit', classification: 'implementation_limit'},
+    '[check-mutation:submission-budget-public]');
   f.restart();
   disclosed = false;
   const hidden = await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref});
