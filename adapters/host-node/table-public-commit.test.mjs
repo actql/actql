@@ -129,7 +129,32 @@ test('Table public129 Source views read real rows and retain SAME Saved after co
         publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
       hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},
     }}};
-  let client = await connectEmbeddedLocal(options);
+  let client;
+  try { client = await connectEmbeddedLocal(options); }
+  catch (cause) {
+    try {
+      // Report only bounded own scalar diagnostic fields, never Source bodies,
+      // credentials, arbitrary thrown properties or filesystem paths.
+      const scalar = value => typeof value === 'number' || typeof value === 'boolean' ? value
+        : typeof value === 'string' ? value.match(/^[A-Za-z][A-Za-z0-9_]{0,95}(?=\(|$)/u)?.[0] : undefined;
+      const diagnostic = (value, depth = 0) => {
+        if (value === null || typeof value !== 'object' || depth > 4) return scalar(value);
+        const result = {};
+        for (const key of ['name', 'message', 'code', 'kind', 'phase', 'installedSourcePhase',
+          'installedSourceIssueTag', 'installedSourceResourceIssue', 'issue',
+          '_0', '_1', '_2', '$tag', 'tag', 'cause', 'primaryFailure', 'cleanupPending']) {
+          const field = Object.getOwnPropertyDescriptor(value, key);
+          if (!field || !Object.hasOwn(field, 'value')) continue;
+          const observed = key === 'cause' || key === 'primaryFailure' || key === '_0' || key === '_1' || key === '_2'
+            ? diagnostic(field.value, depth + 1) : scalar(field.value);
+          if (observed !== undefined) result[key] = observed;
+        }
+        return result;
+      };
+      t.diagnostic('Table Source inventory initial connect: ' + JSON.stringify(diagnostic(cause)));
+    } catch { /* Diagnostic observation never replaces the original failure. */ }
+    throw cause;
+  }
   let ref, savedRows;
   const expected = rows.map(row => ({...row, doubled: row.id * 2}));
   try {
