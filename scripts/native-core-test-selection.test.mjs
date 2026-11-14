@@ -273,7 +273,7 @@ test('eight Linux ordinary partitions retain original case ownership without phy
     assert.throws(() => nativeCorePartitionProfiles(profiles, invalid), /Invalid/u);
 });
 
-test('four hosted Darwin jobs keep HTTP Source scoped and repeated geometry under their original profile owners', () => {
+test('combined Darwin profiles keep HTTP Source scoped and repeated geometry under their original owners', () => {
   const partitions = [{args: ['--release', 'src/a'], cases: 4}, {args: ['--release', 'src/b'], cases: 7}];
   const profiles = {ordinary: {args: ['--release', 'src/a', 'src/b'], cases: 11, partitions},
     http: {args: ['src/http'], cases: 3}, source: {args: ['src/source'], cases: 5},
@@ -295,6 +295,104 @@ test('four hosted Darwin jobs keep HTTP Source scoped and repeated geometry unde
   assert.throws(() => nativeCorePartitionProfiles({...profiles, http: {args: null, cases: 0}},
     '1/2', {hostedDarwin: true}), /retain the original HTTP/u);
   assert.throws(() => nativeCorePartitionProfiles(profiles, '1/2', {hostedDarwin: 'true'}), /Invalid/u);
+});
+
+test('hosted scoped partitions preserve the disjoint original file index allocator and geometry union', () => {
+  const runtime = 'src/cmd/native_client/local_project_mock_physical_scoped_wbtest.mbt';
+  const geometry = 'src/cmd/native_client/local_command_business_wbtest.mbt';
+  const review = 'src/platform_native/installed_arena_control/original_read_consumer_scoped_wbtest.mbt';
+  const tests = [{source: runtime, index: 0}, {source: geometry, index: 3},
+    {source: review, index: 0}, {source: review, index: 2}];
+  const args = ['--release', '--strip', '-j', '2', '--no-parallelize', runtime, geometry, review];
+  const profiles = {ordinary: {args: ['src/ordinary'], cases: 1},
+    http: {args: ['src/http'], cases: 2}, source: {args: ['src/source'], cases: 3},
+    scoped: {args, cases: 4, tests}, physicalCases: 3, repeatedGeometryCases: 1};
+  const original = JSON.stringify(profiles);
+  const parts = ['scoped-runtime', 'scoped-review'].map(value => nativeCorePartitionProfiles(profiles, value));
+  assert.deepEqual(parts.map(part => part.scoped.tests), [tests.slice(0, 2), tests.slice(2)]);
+  assert.deepEqual(parts.flatMap(part => part.scoped.tests), tests);
+  assert.equal(new Set(parts.flatMap(part => part.scoped.tests.map(test => JSON.stringify(test)))).size, 4);
+  for (const [index, part] of parts.entries()) {
+    assert.deepEqual(part.scoped.args, [...args.slice(0, 5), ...(index ? [review] : [runtime, geometry])]);
+    assert.equal(part.scoped.cases, 2);
+    for (const name of ['ordinary', 'http', 'source']) assert.equal(part[name].args, null);
+    assert(part.scoped.tests.every(test => nativeCoreScopedAllocationProfile(test.source) ===
+      (index ? 'scoped-review-values' : 'runtime-values')));
+  }
+  assert.equal(parts.reduce((sum, part) => sum + part.physicalCases, 0), 3);
+  assert.equal(parts.reduce((sum, part) => sum + part.repeatedGeometryCases, 0), 1);
+  assert.equal(nativeCorePartitionProfiles(profiles, 'scoped').scoped, profiles.scoped);
+  assert.throws(() => nativeCorePartitionProfiles({...profiles, scoped: {args: [], tests: []}},
+    'scoped-runtime'), /Empty/u);
+  assert.throws(() => nativeCorePartitionProfiles({...profiles, scoped: {...profiles.scoped, args: args.slice(0, -1)}},
+    'scoped-review'), /Missing original/u);
+  assert.throws(() => nativeCorePartitionProfiles(profiles, 'scoped-copy'), /Invalid/u);
+  assert.equal(JSON.stringify(profiles), original);
+});
+
+test('Darwin ordinary scheduling uses measured compiler units without balancing away original cases', () => {
+  const paths = ['src/cmd/native_client', 'src/query_integration', 'src/native_values_integration',
+    'src/platform_native/remote_values_host', 'src/cmd/native_remote_resident_site',
+    'src/platform_native/row_source', 'src/cmd/native_retained_case_probe', 'src/new-native-owner'];
+  const recordsFor = queryCases => paths.flatMap(directory => Array.from({length:
+    directory === 'src/query_integration' ? queryCases : 1}, (_, index) => ({
+    directory, source: `${directory}/original_test.mbt`, benchmark: false,
+    entry: [`${directory}/original-driver`, 'original_test.mbt', {index, original: true}],
+  })));
+  const records = recordsFor(40), original = JSON.stringify(records);
+  const args = ['--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize'];
+  const parts = nativeCoreOrdinaryPartitions(args, paths, records, 2, {measuredCompilerWeights: true});
+  assert.deepEqual(parts.map(part => part.args.slice(args.length)), [
+    [paths[0], paths[4], paths[6]], [paths[1], paths[2], paths[3], paths[5], paths[7]],
+  ]);
+  assert.deepEqual(parts.map(part => part.cases), [3, 44]);
+  assert.deepEqual(parts.flatMap(part => part.args.slice(args.length)).sort(), [...paths].sort());
+  for (const part of parts) assert.deepEqual(part.args.slice(0, args.length), args);
+  assert.deepEqual(nativeCoreOrdinaryPartitions(args, paths, recordsFor(1), 2,
+    {measuredCompilerWeights: true}).map(part => part.args), parts.map(part => part.args),
+  'one expensive compiler unit stays whole even when its original case count changes');
+  for (const count of [4, 8]) {
+    assert.deepEqual(nativeCoreOrdinaryPartitions(args, paths, records, count, {measuredCompilerWeights: true}),
+      nativeCoreOrdinaryPartitions(args, paths, records, count), 'Linux and four-way local plans keep their existing policy');
+  }
+  assert.throws(() => nativeCoreOrdinaryPartitions(args, paths, records, 2,
+    {measuredCompilerWeights: 'true'}), /Invalid Native compiler scheduling/u);
+  assert.equal(JSON.stringify(records), original);
+});
+
+test('measured Darwin scheduling reaches compiler-owned original drivers without C compilation', t => {
+  const root = fixture(t), paths = ['src/cmd/native_client', 'src/query_integration',
+    'src/native_values_integration', 'src/platform_native/remote_values_host',
+    'src/cmd/native_remote_resident_site', 'src/platform_native/row_source',
+    'src/cmd/native_retained_case_probe', 'src/new-native-owner'];
+  for (const path of paths) {
+    mkdirSync(join(root, path), {recursive: true});
+    writeFileSync(join(root, path, 'main_test.mbt'), 'Original test-only compiler metadata input\n');
+  }
+  const command = path => ['moon', 'generate-test-driver', '--output-driver', `_build/${path}/driver.mbt`,
+    '--output-metadata', `_build/${path}/info.json`, `${path}/main_test.mbt`, '--target', 'native',
+    '--pkg-name', `fixture/${path}`, '--driver-kind', 'blackbox'].join(' ');
+  let generated = 0;
+  const execute = (_tool, values) => {
+    if (values[0] === 'test') {
+      const selected = paths.filter(path => values.includes(path));
+      return (selected.length ? selected : paths).map(command).join('\n');
+    }
+    assert.equal(values[0], 'generate-test-driver'); generated++;
+    writeFileSync(values[values.indexOf('--output-metadata') + 1], JSON.stringify({tests: {
+      'main_test.mbt': [{index: 0, name: 'same original', attrs: [], line_number: 1}],
+    }}));
+    return '';
+  };
+  const selected = nativeCoreTestSelection(root, ['--release', '--strip'], {execute,
+    partitionProfiles: true, ordinaryPartitions: true, measuredCompilerWeights: true});
+  assert.equal(generated, paths.length); assert.equal(selected.cases, paths.length);
+  const parts = selected.profiles.ordinary.partitions;
+  assert.deepEqual(parts.map(part => part.args.slice(2)), [
+    [paths[0], paths[4], paths[6]], [paths[1], paths[2], paths[3], paths[5], paths[7]],
+  ]);
+  assert.equal(parts.flatMap(part => part.drivers).length, paths.length);
+  assert.equal(new Set(parts.flatMap(part => part.drivers)).size, paths.length);
 });
 
 test('four Native ordinary jobs and independent physical jobs exhaust the original profile inventory', () => {

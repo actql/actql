@@ -61,7 +61,7 @@ const executionPackages = platformPackages ? (linuxCommonImporters
 const partition = process.env.ACTQL_TEST_NATIVE_CORE_PARTITION;
 if (linuxCommonImporters && !/^[1-8]\/8$/u.test(partition ?? '')) throw new Error('One original Linux eight-way partition required');
 if (!linuxCommonImporters && partition?.endsWith('/8')) throw new Error('Eight-way partitions require the Linux importer scope');
-const scopedSoftwareRoot = full && partition === 'scoped'
+const scopedSoftwareRoot = full && ['scoped', 'scoped-runtime', 'scoped-review'].includes(partition)
   ? process.env.ACTQL_TEST_NATIVE_CORE_SCOPED_SOFTWARE_ROOT : undefined;
 if (scopedSoftwareRoot !== undefined && (process.env.GITHUB_ACTIONS !== 'true' ||
     process.env.ACTQL_TEST_NATIVE_CORE_CCACHE === undefined ||
@@ -89,13 +89,14 @@ const selection = full ? nativeCoreTestSelection(root, args,
   // One absolute metadata-preparation envelope covers four dry-run plans and
   // all original driver generations. It grants no extra test or C-build time.
   {env: compilerEnvironment, partitionProfiles: true,
-    ordinaryPartitions: linuxCommonImporters ? 8 : partition?.endsWith('/4') ? 4 : Boolean(partition) && !['http', 'source', 'scoped'].includes(partition),
+    measuredCompilerWeights: platformScope === 'darwin-differences',
+    ordinaryPartitions: linuxCommonImporters ? 8 : partition?.endsWith('/4') ? 4 : Boolean(partition) && !['http', 'source', 'scoped', 'scoped-runtime', 'scoped-review'].includes(partition),
     // Physical jobs retain their complete profile even when an ordinary PR
     // closure has no member in it. An empty job cannot establish execution.
     timeoutMs: 5 * 60_000,
     allowNestedFileInputs: platformPackages !== undefined,
     executionPackages: platformPackages ? executionPackages :
-      ['http', 'source', 'scoped'].includes(partition) ? undefined : executionPackages}) : undefined;
+      ['http', 'source', 'scoped', 'scoped-runtime', 'scoped-review'].includes(partition) ? undefined : executionPackages}) : undefined;
 if (platformPackages && selection.executionScope?.mode !== 'subset') {
   throw new Error('Native platform scope must retain its exact compiler-owned package/file scope');
 }

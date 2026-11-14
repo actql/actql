@@ -11,7 +11,7 @@ import {nativeCoreLinuxCommonArguments, nativeCoreLinuxCommonPartitions, runNati
 
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 
-test('Linux importers retain eight mandatory shards and four explicit Darwin profile owners', () => {
+test('Linux importers retain eight mandatory shards and five explicit Darwin profile owners', () => {
   const core = workflow.jobs['core-common'], matrix = core.strategy.matrix;
   assert.deepEqual(matrix.partition, ['1/4', ...nativeCoreLinuxCommonPartitions]);
   assert.equal(core.strategy['fail-fast'], false);
@@ -24,7 +24,7 @@ test('Linux importers retain eight mandatory shards and four explicit Darwin pro
   assert.equal(core['runs-on'], 'ubuntu-24.04');
   assert.equal(workflow.jobs['core-darwin']['runs-on'], 'macos-15');
   assert.deepEqual([...workflow.jobs['core-darwin'].strategy.matrix.partition].sort(),
-    ['1/2', '2/2', 'scoped', 'source']);
+    ['1/2', '2/2', 'scoped-review', 'scoped-runtime', 'source']);
 });
 
 test('Linux common Native uses its selected compiler profile rather than Darwin preparation', () => {
