@@ -472,9 +472,11 @@ test('Host collection retains original command bodies and their actual build pre
   assert.equal(step('Test portable Run Host compilation package').run, runHost[2]);
   assert.equal(step('Test packed Run Host compilation package').run, runHost[3]);
   assert.equal(step('Test original Local result authorization').run,
-    'node --test adapters/host-node/local-result-authorization.test.mjs adapters/host-node/local-result-read-workspace.actual.test.mjs adapters/host-node/local-result-metadata-demand.actual.test.mjs adapters/host-node/local-result-read-policy.test.mjs adapters/host-node/ordinary-local-account.test.mjs');
+    'node --test adapters/host-node/local-result-authorization.test.mjs adapters/host-node/local-result-read-workspace.actual.test.mjs adapters/host-node/local-result-metadata-demand.actual.test.mjs adapters/host-node/local-result-read-policy.test.mjs adapters/host-node/ordinary-local-account.test.mjs adapters/host-node/ordinary-mock-account-profile-history.test.mjs');
   assert.equal(steps.filter(row => row.run?.includes('ordinary-local-account.test.mjs')).length, 1,
     'Actual standard Account bootstrap/current cases run once behind the existing runtime preparation');
+  assert.equal(steps.filter(row => row.run?.includes('ordinary-mock-account-profile-history.test.mjs')).length, 1,
+    'Mock Account observation, override and saved-original cases run in the existing Account lane');
   assert.equal(step('Test original Local Source inventory and lookup policy').run,
     'node --test adapters/host-node/ordinary-source-inventory.test.mjs adapters/host-node/local-files-lookup-policy.test.mjs');
   assert.equal(step('Test original Local Source inventory and lookup policy').if,
