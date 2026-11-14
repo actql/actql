@@ -258,3 +258,18 @@ test "normalization Request first cached original checks current before its firs
   )
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "normalization actual Native submitted preparation borrow order" {
+  let (parent, input) = normalization_request_control_fixture()
+  let borrow = borrow_request_program_plan_input(parent, input).unwrap()
+  let observed = match prepare_request_program_normalization(parent, input) {
+    Ok(_) => "issued"
+    Err(Preparation(WrongPhase)) => "request-wrong-phase-after-plan-borrow"
+    Err(issue) => { let original : Error = issue; @debug.to_string(original) }
+  }
+  @resources.return_preparation_body_borrow(borrow).unwrap() |> ignore
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  assert_eq(observed, "issued")
+}
