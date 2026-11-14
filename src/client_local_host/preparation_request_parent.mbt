@@ -268,9 +268,11 @@ pub impl Debug for ClientProgramCheckPreparationIssue with fn to_repr(self) {
 let request_preparation_fixed_control_envelope : @execution.PreparationRepresentationUnits = {
   // Common observed default input adds its Source-limit copy (1H/3W),
   // Compile limits (1H/6R/1W) and Structure limits (1H/9W).
-  record_headers: 241L,
-  reference_slots: 435L,
-  scalar_words: 509L,
+  // Original optional raw lexical-work selection and its holder reference:
+  // 1H/1R/1W, retained before any fallible syntax grow/current callback.
+  record_headers: 242L,
+  reference_slots: 436L,
+  scalar_words: 510L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }

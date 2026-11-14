@@ -683,3 +683,46 @@ test "explicit small Program budget remains explicit after common observed selec
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "ordinary Source lexical work follows its same retained document through checking" {
+  let document = "SELECT 7 AS n" + " ".repeat(1000000)
+  let (parent, input) = native_driver_parent(document)
+  let (environment, publication) = request_query_publication_fixture()
+  let outcome = prepare_request_default_source_computation_check(
+    parent,
+    input,
+    request_document_test_source(document, "sql"),
+    native_json_reader,
+    environment,
+    publication,
+    [],
+    None,
+    @publication_host.client_standard_effect_computation_limits(),
+  )
+  let detail = match outcome {
+    Ok(_) => "ok"
+    Err(QuerySyntax(Frontend(@frontend.QuerySyntax(diagnostic)))) =>
+      match diagnostic.issue {
+        @query_syntax.Limit(@query_syntax.Work) => "original_lexical_work_limit"
+        _ => "other_original_query_syntax"
+      }
+    Err(issue) => direct_union_terminal_detail(issue)
+  }
+  let calls = request_preparation_work_calls(parent)
+  let observation = match parent.query_syntax {
+    Some(query) => (query.known_work, query.counters_complete)
+    None => (-1L, false)
+  }
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  println(
+    "LEXICAL_OBSERVED units=" +
+    document.length().to_string() +
+    " cause=" +
+    detail,
+  )
+  assert_true(outcome is Ok(_))
+  assert_eq(calls, (1L, 1L, 1L, 0L))
+  assert_true(observation.1 && observation.0 >= document.length().to_int64())
+}

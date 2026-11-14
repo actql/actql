@@ -6284,9 +6284,10 @@ Unknown physical outcomes retain these same duties and consumed work.
 A retained structured Program and a Source envelope have different inventory
 subjects. Observing the envelope's single document String does not establish
 the JSON/YAML document's structural node count or the SQL/Pipe lowering's Program
-inventory. The Native Source continuation retains its original syntax policy;
-its existing same-Request document/Query constructor reserves the selected
-representation before parsing or lowering. The structured Program continuation
+inventory. The Native Source continuation selects the same observed default
+input and lexical-work bounds as Node/RelA, while preserving its original
+result convention. Its same-Request document/Query constructor reserves the
+selected representation before parsing or lowering. The structured Program continuation
 continues to use its observed native input inventory. No permission, additional
 check, fallback compiler or numerical resource grant follows from this choice.
 
@@ -6503,3 +6504,22 @@ inventories and separately selected explicit import profiles retain their
 original route. Cumulative value/work/identity checks, byte/depth bounds and
 SDK per-row retention controls remain independent. Quote and decoder consume
 the same selected profile under the original Task reservation.
+
+### Retained Source lexical work
+
+The default Node, RelA and Native Source entrances select lexical work from the
+same retained document: scanner advancement charges at most its UTF-16 unit
+count, and first quoted-name normalization charges at most that count again.
+The selected work bound is therefore twice the original String length, checked
+against the existing signed-Int representation. This uses the scanner's raw
+work unit, not dispatch planning work, time or capacity headroom. No second
+input scan or parser is needed. Explicit selected budgets remain unchanged.
+
+The existing Request retains that selection with the document and syntax quote.
+A refused grow cannot replace it. The fixed Request prefix backs the selection
+holder before callbacks; the syntax grow separately backs the coheld original
+and selected limit records before their constructors. The original phase work
+observer, current fence, once-only parser, lowering, checker and cleanup remain
+in place. Grammar, expression, nesting and other independent work limits are
+unchanged; a lexical bound does not establish their complete demand. Native
+keeps its original result convention through the same default Source entry.
