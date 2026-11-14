@@ -2502,6 +2502,14 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ],
             "inputsOutputs": [
@@ -2564,6 +2572,14 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ],
             "identity": [
@@ -2630,6 +2646,14 @@
               {
                 "path": "src/run_publication_host/client_effect_combined_source_unit.mbt",
                 "anchor": "pub fn issue_combined_source_client_effect_local_result_artifact("
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ],
             "ownership": [
@@ -2696,6 +2720,14 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ],
             "synchronization": [
@@ -2762,6 +2794,14 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ],
             "failure": [
@@ -2824,6 +2864,14 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ],
             "cancellation": [
@@ -2878,6 +2926,14 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ],
             "resources": [
@@ -2952,6 +3008,14 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ],
             "extension": [
@@ -3014,6 +3078,14 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ],
             "verification": [
@@ -3132,6 +3204,14 @@
               {
                 "path": "src/run_publication_host/client_effect_saved_model_imports_wbtest.mbt",
                 "anchor": "test \"saved Model imported Source join rejects another actual capture with equal logical rows\""
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ]
           }
@@ -7344,6 +7424,233 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "publicationControl/init:bindCheckedInstalledEffectModelInvocation/init:bindCheckedInstalledEffectModelInvocation",
+            "publicationControl/init:bindCheckedInstalledEffectSourceFreeInvocation/init:bindCheckedInstalledEffectSourceFreeInvocation",
+            "publicationControl/init:issueCheckedClientEffectSourceFreeInvocationOriginal/init:issueCheckedClientEffectSourceFreeInvocationOriginal",
+            "publicationControl/init:issueCheckedInstalledEffectCapturedInvocation/init:issueCheckedInstalledEffectCapturedInvocation",
+            "publicationControl/init:issueCheckedInstalledEffectContentInvocation/init:issueCheckedInstalledEffectContentInvocation",
+            "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation",
+            "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued",
+            "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#2",
+            "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#3",
+            "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#4",
+            "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#5",
+            "publicationControl/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation",
+            "publicationControl/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation/issued/issued",
+            "publicationControl/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation/issued/issued#2",
+            "publicationControl/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation/issued/issued#3",
+            "publicationControl/init:originalCheckedClientEffectPublication/init:originalCheckedClientEffectPublication"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "originalCheckedClientEffectPublication(allowed, definition, limits)"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
+                "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "originalCheckedClientEffectPublication(allowed, definition, limits)"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
+                "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "originalCheckedClientEffectPublication(allowed, definition, limits)"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
+                "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "originalCheckedClientEffectPublication(allowed, definition, limits)"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
+                "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "originalCheckedClientEffectPublication(allowed, definition, limits)"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
+                "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "originalCheckedClientEffectPublication(allowed, definition, limits)"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
+                "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "originalCheckedClientEffectPublication(allowed, definition, limits)"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
+                "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "originalCheckedClientEffectPublication(allowed, definition, limits)"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
+                "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "originalCheckedClientEffectPublication(allowed, definition, limits)"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
+                "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:hasPreparedCapturedEffectRun/init:hasPreparedCapturedEffectRun",
+            "publicationControl/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory",
+            "publicationControl/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory",
+            "publicationControl/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory/originals/originals",
+            "publicationControl/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory/originals/originals#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/recovered-effect-capture-control.test.mjs",
+                "anchor": "test('prepared Source adapter projects N original handles with one Core call and no legacy member admissions'"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -9377,6 +9684,35 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:bindCheckedInstalledEffectModelInvocation/init:bindCheckedInstalledEffectModelInvocation",
+          "parameters": [
+            "parent",
+            "prepared",
+            "request",
+            "plan",
+            "host",
+            "compilation",
+            "admission",
+            "definition",
+            "issued"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:bindCheckedInstalledEffectSourceFreeInvocation/init:bindCheckedInstalledEffectSourceFreeInvocation",
+          "parameters": [
+            "parent",
+            "prepared",
+            "request",
+            "plan",
+            "host",
+            "admission",
+            "definition",
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:bindClientQueryTime/init:bindClientQueryTime",
           "parameters": [
             "original",
@@ -10647,6 +10983,13 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:hasPreparedCapturedEffectRun/init:hasPreparedCapturedEffectRun",
+          "parameters": [
+            "capturedRun"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:inferSerializationGraph/init:inferSerializationGraph",
           "parameters": [
             "inferGraph"
@@ -10693,7 +11036,8 @@
             "retention",
             "limits",
             "unit",
-            "publicationRetention"
+            "publicationRetention",
+            "deferCatalogs"
           ],
           "async": false
         },
@@ -10864,6 +11208,15 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:issueCheckedClientEffectSourceFreeInvocationOriginal/init:issueCheckedClientEffectSourceFreeInvocationOriginal",
+          "parameters": [
+            "compilation",
+            "policy",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:issueCheckedClientInferRawCapturePolicy/init:issueCheckedClientInferRawCapturePolicy",
           "parameters": [
             "compiled",
@@ -10891,6 +11244,40 @@
           "parameters": [
             "compiled",
             "definition",
+            "generation",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedInstalledEffectCapturedInvocation/init:issueCheckedInstalledEffectCapturedInvocation",
+          "parameters": [
+            "parent",
+            "prepared",
+            "request",
+            "plan",
+            "host",
+            "compilation",
+            "admission",
+            "definition",
+            "capturedSource",
+            "source",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedInstalledEffectContentInvocation/init:issueCheckedInstalledEffectContentInvocation",
+          "parameters": [
+            "parent",
+            "prepared",
+            "request",
+            "plan",
+            "host",
+            "compilation",
+            "admission",
+            "definition",
+            "compiled",
             "generation",
             "limits"
           ],
@@ -10934,6 +11321,97 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation",
+          "parameters": [
+            "parent",
+            "prepared",
+            "request",
+            "plan",
+            "host",
+            "compilation",
+            "admission",
+            "definition",
+            "sources",
+            "context",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation",
+          "parameters": [
+            "parent",
+            "prepared",
+            "request",
+            "plan",
+            "host",
+            "compilation",
+            "admission",
+            "definition",
+            "sources",
+            "sourceEvidence",
+            "context",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation/issued/issued",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation/issued/issued#2",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation/issued/issued#3",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:issueCheckedWholeEffectSourceUnit/init:issueCheckedWholeEffectSourceUnit",
           "parameters": [
             "plan",
@@ -10947,7 +11425,8 @@
             "observation",
             "authorityScopeCid",
             "retention",
-            "limits"
+            "limits",
+            "deferCatalogs"
           ],
           "async": false
         },
@@ -11258,7 +11737,8 @@
             "model",
             "retention",
             "imports",
-            "limits"
+            "limits",
+            "deferCatalogs"
           ],
           "async": false
         },
@@ -11733,6 +12213,15 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:originalCheckedClientEffectPublication/init:originalCheckedClientEffectPublication",
+          "parameters": [
+            "allowed",
+            "definition",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:originalClientInferNodeReadStateRead/init:originalClientInferNodeReadStateRead",
           "parameters": [
             "writer"
@@ -11763,6 +12252,38 @@
             "definition",
             "programCid",
             "evidence"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory",
+          "parameters": [
+            "chain",
+            "preview",
+            "sources",
+            "storeAuthorityCid",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory/originals/originals",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory/originals/originals#2",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -12393,7 +12914,8 @@
             "publication",
             "unit",
             "retention",
-            "limits"
+            "limits",
+            "deferCatalogs"
           ],
           "async": false
         },
@@ -12452,7 +12974,8 @@
             "inputs",
             "unit",
             "retention",
-            "limits"
+            "limits",
+            "deferCatalogs"
           ],
           "async": false
         },
@@ -12599,7 +13122,8 @@
             "retained",
             "current",
             "retainedBase",
-            "executionBase"
+            "executionBase",
+            "deferCatalogs"
           ],
           "async": false
         },
@@ -13877,7 +14401,8 @@
           "parameters": [
             "issued",
             "publicationRetention",
-            "limits"
+            "limits",
+            "deferCatalogs"
           ],
           "async": false
         },
@@ -16217,7 +16742,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "ef436a4158c2b880474543e260337bac35f61b211f9ba089223a232c7d671083"
+      "sha256": "e5fc381ed80165ce074226f7a7224907daddc62f172bc7a6012bf7d1f56e3f10"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -39077,7 +39602,7 @@
           "declaration": "source_free_installed_managed_preparation_owned ( owner : ClientLocalSequenceOwner , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , mock_model : Bool , model ? : @ publication_host . ClientInferPlanGraph ?"
         }
       ],
-      "sha256": "989c7b2bdc22303615fc28262a328b8639040cd2945405e358baae8af2d0781f"
+      "sha256": "f0b2e820dee09f1beb2a1cf61be7a6490126583358c9eedd98d648e52c3c80a4"
     },
     {
       "module": "src/client_local_host/installed_mock_model_plan.mbt",
@@ -44602,7 +45127,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "d9c2f26d36e614fe076acc6a6f47db18c2b756046a68753d695c86f27e7eb997",
+      "sha256": "59621b21e0b7b5837f018d91037dc039232be3536f20c7b42c458e864a5aa6a7",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Effect Plan owners",
       "exports": [],
@@ -55186,7 +55711,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_dispatch.mbt",
-      "sha256": "25e877a7c372793ce9d0dbead303006b4de1439d615d51c5b59c62b5f25fb52b",
+      "sha256": "12f4862242cc5ff6b4121bc8d37b65a9aa86405253b9c17f8f1f1ce26d143e62",
       "role": "common-semantics",
       "owner": "Existing Local managed task/Source/resource owners; native supplied lifetime and imported producer custody remain distinct",
       "responsibilityFacet": "primary",
@@ -55254,6 +55779,14 @@
         {
           "name": "local_managed_import_start_bytes",
           "declaration": "local_managed_import_start_bytes ( limits : @ local . LocalImportLimits , ) - > Int64 ?"
+        },
+        {
+          "name": "local_managed_import_working_overlap",
+          "declaration": "local_managed_import_working_overlap ( imported : Int64 , reusable : Int64 , previous_working : Int64 , next_working : Int64 , ) - > ( Int64 , Int64 , Int64 ) ?"
+        },
+        {
+          "name": "local_managed_scalar_overlap_control_capacity",
+          "declaration": "local_managed_scalar_overlap_control_capacity ( ) - > Int64 ?"
         },
         {
           "name": "local_managed_snapshot_reload_extent",
@@ -55890,6 +56423,111 @@
               {
                 "path": "adapters/local-node/carrier-snapshot.test.mjs",
                 "anchor": "retains export custody until the actual seal promise settles"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "local_managed_import_working_overlap",
+            "local_managed_scalar_overlap_control_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "fn local_managed_import_working_overlap("
+              },
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "// combined reservation never shrinks, and a later grow cannot spend it twice."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "fn local_managed_import_working_overlap("
+              },
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "// combined reservation never shrinks, and a later grow cannot spend it twice."
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "fn local_managed_import_working_overlap("
+              },
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "// combined reservation never shrinks, and a later grow cannot spend it twice."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "fn local_managed_import_working_overlap("
+              },
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "// combined reservation never shrinks, and a later grow cannot spend it twice."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "fn local_managed_import_working_overlap("
+              },
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "// combined reservation never shrinks, and a later grow cannot spend it twice."
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "fn local_managed_import_working_overlap("
+              },
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "// combined reservation never shrinks, and a later grow cannot spend it twice."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "fn local_managed_import_working_overlap("
+              },
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "// combined reservation never shrinks, and a later grow cannot spend it twice."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "fn local_managed_import_working_overlap("
+              },
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "// combined reservation never shrinks, and a later grow cannot spend it twice."
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "fn local_managed_import_working_overlap("
+              },
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "// combined reservation never shrinks, and a later grow cannot spend it twice."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/local/driver/managed_import_scalar_overlap_wbtest.mbt",
+                "anchor": "test \"scalar overlap fixed controls cover initial and every nullable construction phase\""
               }
             ]
           }
@@ -71016,7 +71654,7 @@
     },
     {
       "module": "src/physical_strategy_host/captured_dag.mbt",
-      "sha256": "b176a9deb4341da6c6b88dc0cf9849518d0495656df3dadac0ed96e01b7e0d0b",
+      "sha256": "279a47f6a3182a54845aaddf619825af2b8ac481ba2e8399924fc8ec9d18a7fb",
       "exports": [],
       "operations": [
         {
@@ -71150,6 +71788,10 @@
         {
           "name": "captured_root_statistics",
           "declaration": "captured_root_statistics ( run : CapturedDAG , ) - > @ query . CapturedSourceStatistics ?"
+        },
+        {
+          "name": "captured_source_input_original_matches",
+          "declaration": "captured_source_input_original_matches ( run : CapturedDAG , task : Int , input : Int , source : @ query . CapturedInputSource , ) - > Bool"
         },
         {
           "name": "captured_supplied_task_input",
@@ -71551,6 +72193,110 @@
               {
                 "path": "src/client_local_host/captured_source_reentry_wbtest.mbt",
                 "anchor": "test \"captured binding rechecks DAG Source port after original verifier callback\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "captured_source_input_original_matches"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn captured_source_input_original_matches("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "physical_equal(original, read)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn captured_source_input_original_matches("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "physical_equal(original, read)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn captured_source_input_original_matches("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "physical_equal(original, read)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn captured_source_input_original_matches("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "physical_equal(original, read)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn captured_source_input_original_matches("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "physical_equal(original, read)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn captured_source_input_original_matches("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "physical_equal(original, read)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn captured_source_input_original_matches("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "physical_equal(original, read)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn captured_source_input_original_matches("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "physical_equal(original, read)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn captured_source_input_original_matches("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "physical_equal(original, read)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_effect_publication_binding_js_wbtest.mbt",
+                "anchor": "test \"closed Source publication uses actual captured generation and original issuer before dependency export\""
               }
             ]
           }
@@ -79708,7 +80454,7 @@
     },
     {
       "module": "src/client_local_host/preparation_dispatch_custody.mbt",
-      "sha256": "f498e7f34f4e5d6dcda6573154bf07be21b9a427f0e9ee660e36fe23275f601c",
+      "sha256": "44b6c2bbcad3d914522ecc3cf67daf92e9458447befb26552119c5d85fa662f7",
       "exports": [],
       "operations": [
         {
@@ -92813,7 +93559,7 @@
       "role": "common-semantics",
       "owner": "Existing checked completed Result identity and representation-conversion owner",
       "referenceQualification": "Same-original source and focused component only; matching normal distribution, ordinary cold Saved and physical FD acceptance remain separate.",
-      "sha256": "98bf7927c8cb66ba9610e49bb041ea999e3983e8cdff6f84cdbd7986dcd81182",
+      "sha256": "3793bf6df4ba3b49192086998c151ea4d9ad1c42598f97b5e898cc8646d803be",
       "exports": [],
       "operations": [
         {
@@ -92833,8 +93579,16 @@
           "declaration": "cancel_completed_output_import ( value : CompletedOutputImport ) - > Bool"
         },
         {
+          "name": "completed_import_plain_scalar_schema",
+          "declaration": "completed_import_plain_scalar_schema ( schema : @ schema . Schema ) - > Bool"
+        },
+        {
           "name": "completed_output_import_cumulative_work",
           "declaration": "completed_output_import_cumulative_work ( value : CompletedOutputImport , ) - > Int64"
+        },
+        {
+          "name": "completed_output_import_shared_scalar_text_bytes",
+          "declaration": "completed_output_import_shared_scalar_text_bytes ( value : CompletedOutputImport , output : CompletedOutput , ) - > Int64 ?"
         },
         {
           "name": "completed_output_occurrence_identity_matches",
@@ -92932,6 +93686,111 @@
               {
                 "path": "src/execution_relation/completed_output_import_wbtest.mbt",
                 "anchor": "retained import verifies canonical identity without buffering discarded row text"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "completed_import_plain_scalar_schema",
+            "completed_output_import_shared_scalar_text_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/execution_relation/completed_output_import.mbt",
+                "anchor": "pub fn completed_output_import_shared_scalar_text_bytes("
+              },
+              {
+                "path": "src/execution_relation/completed_output_import.mbt",
+                "anchor": "/// after its separate framing, body and reference cleanup has really finished."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/execution_relation/completed_output_import.mbt",
+                "anchor": "pub fn completed_output_import_shared_scalar_text_bytes("
+              },
+              {
+                "path": "src/execution_relation/completed_output_import.mbt",
+                "anchor": "/// after its separate framing, body and reference cleanup has really finished."
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/execution_relation/completed_output_import.mbt",
+                "anchor": "pub fn completed_output_import_shared_scalar_text_bytes("
+              },
+              {
+                "path": "src/execution_relation/completed_output_import.mbt",
+                "anchor": "/// after its separate framing, body and reference cleanup has really finished."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/execution_relation/completed_output_import.mbt",
+                "anchor": "pub fn completed_output_import_shared_scalar_text_bytes("
+              },
+              {
+                "path": "src/execution_relation/completed_output_import.mbt",
+                "anchor": "/// after its separate framing, body and reference cleanup has really finished."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/execution_relation/completed_output_import.mbt",
+                "anchor": "pub fn completed_output_import_shared_scalar_text_bytes("
+              },
+              {
+                "path": "src/execution_relation/completed_output_import.mbt",
+                "anchor": "/// after its separate framing, body and reference cleanup has really finished."
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/execution_relation/completed_output_import.mbt",
+                "anchor": "pub fn completed_output_import_shared_scalar_text_bytes("
+              },
+              {
+                "path": "src/execution_relation/completed_output_import.mbt",
+                "anchor": "/// after its separate framing, body and reference cleanup has really finished."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/execution_relation/completed_output_import.mbt",
+                "anchor": "pub fn completed_output_import_shared_scalar_text_bytes("
+              },
+              {
+                "path": "src/execution_relation/completed_output_import.mbt",
+                "anchor": "/// after its separate framing, body and reference cleanup has really finished."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/execution_relation/completed_output_import.mbt",
+                "anchor": "pub fn completed_output_import_shared_scalar_text_bytes("
+              },
+              {
+                "path": "src/execution_relation/completed_output_import.mbt",
+                "anchor": "/// after its separate framing, body and reference cleanup has really finished."
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/execution_relation/completed_output_import.mbt",
+                "anchor": "pub fn completed_output_import_shared_scalar_text_bytes("
+              },
+              {
+                "path": "src/execution_relation/completed_output_import.mbt",
+                "anchor": "/// after its separate framing, body and reference cleanup has really finished."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/execution_relation/completed_import_scalar_text_wbtest.mbt",
+                "anchor": "test \"closed scalar import reports only same original shared text DATA\""
               }
             ]
           }

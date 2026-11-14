@@ -16711,6 +16711,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "### Original INFER materials in the installed Host"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ],
             "inputsOutputs": [
@@ -16729,6 +16737,14 @@
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
                 "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ],
             "identity": [
@@ -16747,6 +16763,14 @@
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
                 "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ],
             "ownership": [
@@ -16765,6 +16789,14 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "const restoredInferRuns = new WeakSet();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ],
             "synchronization": [
@@ -16783,6 +16815,14 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ],
             "failure": [
@@ -16801,6 +16841,14 @@
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
                 "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ],
             "cancellation": [
@@ -16815,6 +16863,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ],
             "resources": [
@@ -16833,6 +16889,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ],
             "extension": [
@@ -16851,6 +16915,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "compilation and existing custody path."
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ],
             "verification": [
@@ -16877,6 +16949,14 @@
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
                 "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ]
           }
@@ -18231,6 +18311,14 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ],
             "inputsOutputs": [
@@ -18281,6 +18369,14 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ],
             "identity": [
@@ -18331,6 +18427,14 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ],
             "ownership": [
@@ -18385,6 +18489,14 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ],
             "synchronization": [
@@ -18439,6 +18551,14 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ],
             "failure": [
@@ -18489,6 +18609,14 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ],
             "cancellation": [
@@ -18535,6 +18663,14 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ],
             "resources": [
@@ -18593,6 +18729,14 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ],
             "extension": [
@@ -18643,6 +18787,14 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ],
             "verification": [
@@ -18741,6 +18893,14 @@
               {
                 "path": "src/run_publication_host/client_effect_saved_model_imports_wbtest.mbt",
                 "anchor": "test \"saved Model imported Source join rejects another actual capture with equal logical rows\""
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               }
             ]
           }
@@ -23737,6 +23897,233 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "publicationControl/init:bindCheckedInstalledEffectModelInvocation/init:bindCheckedInstalledEffectModelInvocation",
+            "publicationControl/init:bindCheckedInstalledEffectSourceFreeInvocation/init:bindCheckedInstalledEffectSourceFreeInvocation",
+            "publicationControl/init:issueCheckedClientEffectSourceFreeInvocationOriginal/init:issueCheckedClientEffectSourceFreeInvocationOriginal",
+            "publicationControl/init:issueCheckedInstalledEffectCapturedInvocation/init:issueCheckedInstalledEffectCapturedInvocation",
+            "publicationControl/init:issueCheckedInstalledEffectContentInvocation/init:issueCheckedInstalledEffectContentInvocation",
+            "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation",
+            "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued",
+            "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#2",
+            "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#3",
+            "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#4",
+            "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#5",
+            "publicationControl/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation",
+            "publicationControl/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation/issued/issued",
+            "publicationControl/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation/issued/issued#2",
+            "publicationControl/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation/issued/issued#3",
+            "publicationControl/init:originalCheckedClientEffectPublication/init:originalCheckedClientEffectPublication"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "originalCheckedClientEffectPublication(allowed, definition, limits)"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
+                "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "originalCheckedClientEffectPublication(allowed, definition, limits)"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
+                "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "originalCheckedClientEffectPublication(allowed, definition, limits)"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
+                "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "originalCheckedClientEffectPublication(allowed, definition, limits)"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
+                "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "originalCheckedClientEffectPublication(allowed, definition, limits)"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
+                "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "originalCheckedClientEffectPublication(allowed, definition, limits)"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
+                "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "originalCheckedClientEffectPublication(allowed, definition, limits)"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
+                "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "originalCheckedClientEffectPublication(allowed, definition, limits)"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
+                "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "originalCheckedClientEffectPublication(allowed, definition, limits)"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
+                "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:hasPreparedCapturedEffectRun/init:hasPreparedCapturedEffectRun",
+            "publicationControl/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory",
+            "publicationControl/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory",
+            "publicationControl/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory/originals/originals",
+            "publicationControl/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory/originals/originals#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/recovered-effect-capture-control.test.mjs",
+                "anchor": "test('prepared Source adapter projects N original handles with one Core call and no legacy member admissions'"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -25770,6 +26157,35 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:bindCheckedInstalledEffectModelInvocation/init:bindCheckedInstalledEffectModelInvocation",
+          "parameters": [
+            "parent",
+            "prepared",
+            "request",
+            "plan",
+            "host",
+            "compilation",
+            "admission",
+            "definition",
+            "issued"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:bindCheckedInstalledEffectSourceFreeInvocation/init:bindCheckedInstalledEffectSourceFreeInvocation",
+          "parameters": [
+            "parent",
+            "prepared",
+            "request",
+            "plan",
+            "host",
+            "admission",
+            "definition",
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:bindClientQueryTime/init:bindClientQueryTime",
           "parameters": [
             "original",
@@ -27040,6 +27456,13 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:hasPreparedCapturedEffectRun/init:hasPreparedCapturedEffectRun",
+          "parameters": [
+            "capturedRun"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:inferSerializationGraph/init:inferSerializationGraph",
           "parameters": [
             "inferGraph"
@@ -27086,7 +27509,8 @@
             "retention",
             "limits",
             "unit",
-            "publicationRetention"
+            "publicationRetention",
+            "deferCatalogs"
           ],
           "async": false
         },
@@ -27257,6 +27681,15 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:issueCheckedClientEffectSourceFreeInvocationOriginal/init:issueCheckedClientEffectSourceFreeInvocationOriginal",
+          "parameters": [
+            "compilation",
+            "policy",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:issueCheckedClientInferRawCapturePolicy/init:issueCheckedClientInferRawCapturePolicy",
           "parameters": [
             "compiled",
@@ -27284,6 +27717,40 @@
           "parameters": [
             "compiled",
             "definition",
+            "generation",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedInstalledEffectCapturedInvocation/init:issueCheckedInstalledEffectCapturedInvocation",
+          "parameters": [
+            "parent",
+            "prepared",
+            "request",
+            "plan",
+            "host",
+            "compilation",
+            "admission",
+            "definition",
+            "capturedSource",
+            "source",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedInstalledEffectContentInvocation/init:issueCheckedInstalledEffectContentInvocation",
+          "parameters": [
+            "parent",
+            "prepared",
+            "request",
+            "plan",
+            "host",
+            "compilation",
+            "admission",
+            "definition",
+            "compiled",
             "generation",
             "limits"
           ],
@@ -27327,6 +27794,97 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation",
+          "parameters": [
+            "parent",
+            "prepared",
+            "request",
+            "plan",
+            "host",
+            "compilation",
+            "admission",
+            "definition",
+            "sources",
+            "context",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation",
+          "parameters": [
+            "parent",
+            "prepared",
+            "request",
+            "plan",
+            "host",
+            "compilation",
+            "admission",
+            "definition",
+            "sources",
+            "sourceEvidence",
+            "context",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation/issued/issued",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation/issued/issued#2",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation/issued/issued#3",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:issueCheckedWholeEffectSourceUnit/init:issueCheckedWholeEffectSourceUnit",
           "parameters": [
             "plan",
@@ -27340,7 +27898,8 @@
             "observation",
             "authorityScopeCid",
             "retention",
-            "limits"
+            "limits",
+            "deferCatalogs"
           ],
           "async": false
         },
@@ -27651,7 +28210,8 @@
             "model",
             "retention",
             "imports",
-            "limits"
+            "limits",
+            "deferCatalogs"
           ],
           "async": false
         },
@@ -28126,6 +28686,15 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:originalCheckedClientEffectPublication/init:originalCheckedClientEffectPublication",
+          "parameters": [
+            "allowed",
+            "definition",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:originalClientInferNodeReadStateRead/init:originalClientInferNodeReadStateRead",
           "parameters": [
             "writer"
@@ -28156,6 +28725,38 @@
             "definition",
             "programCid",
             "evidence"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory",
+          "parameters": [
+            "chain",
+            "preview",
+            "sources",
+            "storeAuthorityCid",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory/originals/originals",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory/originals/originals#2",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -28786,7 +29387,8 @@
             "publication",
             "unit",
             "retention",
-            "limits"
+            "limits",
+            "deferCatalogs"
           ],
           "async": false
         },
@@ -28845,7 +29447,8 @@
             "inputs",
             "unit",
             "retention",
-            "limits"
+            "limits",
+            "deferCatalogs"
           ],
           "async": false
         },
@@ -28992,7 +29595,8 @@
             "retained",
             "current",
             "retainedBase",
-            "executionBase"
+            "executionBase",
+            "deferCatalogs"
           ],
           "async": false
         },
@@ -30270,7 +30874,8 @@
           "parameters": [
             "issued",
             "publicationRetention",
-            "limits"
+            "limits",
+            "deferCatalogs"
           ],
           "async": false
         },
@@ -32610,7 +33215,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "ef436a4158c2b880474543e260337bac35f61b211f9ba089223a232c7d671083"
+      "sha256": "e5fc381ed80165ce074226f7a7224907daddc62f172bc7a6012bf7d1f56e3f10"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -33236,7 +33841,7 @@
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "6f3644d2a55cddc3531d9d1db576262ba3e962c78d3ee9940c8fa52b4bc47347",
+      "sha256": "0870b070db7865af690bcbe33f1e29a4581f127b0de2dade170522c72140fb75",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -41148,7 +41753,7 @@
     {
       "module": "adapters/host-node/effect-input-export.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "4c3eb0aca20175591b296a50131254fabaabfb75dd30991f64a0ebad7e5882e3",
+      "sha256": "c6a681a0f7fe2acc1b5919f45d9c082d5939d746eed252ac5c3fb42e4309ebfe",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -66058,7 +66663,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "2d71aee488b65a9c309a6baa6bb15e4ed1d9899178764bd39629dbd0cb90ca82"
+      "sha256": "5a4e211672d7d4dfa2191b2749780e3413f2149e6c1bd884a49ca567fa951737"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -80996,7 +81601,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "b06c4c71f41ededc4e09ef9721ced3e0113bd86a399833975a615a0040227c28",
+      "sha256": "41c0533733bd9b596e6fdf25724d9363e494ecdebc0b933da6ea79c7c083443b",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -100109,7 +100714,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "a397cd27fefadc13418dc34183abb7be4d956fca6c56b174257e1890f5516610",
+      "sha256": "5a6f1d499f4f302b3af796a4ec2f398eb386c31d80f5f59c55c43218661ba5de",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -100137,6 +100742,7 @@
         "serializationTaskRunAdmission",
         "sourceFreeContentEffectPublicationPlan",
         "sourceFreeEffectPublicationPlan",
+        "sourceFreeEffectPublicationPlanOriginal",
         "sourceFreeInferEffectPublicationPlan",
         "sourceFreePlanExecutionOwner",
         "sourceFreePlanOriginal",
@@ -100162,7 +100768,10 @@
             "captureStartedAt",
             "captureCompletedAt",
             "content",
-            "sourcePlan"
+            "sourcePlan",
+            "managedRun",
+            "sourceHost",
+            "deferCatalogs"
           ],
           "async": false
         },
@@ -100189,10 +100798,12 @@
             "signal",
             "sourcePlan",
             "managedRun",
+            "sourceHost",
             "sourceUnitsOriginal",
             "fundingOperation",
             "current",
-            "retainBinding"
+            "retainBinding",
+            "deferCatalogs"
           ],
           "async": true
         },
@@ -100292,7 +100903,9 @@
             "keyedSource",
             "sourcePlan",
             "managedRun",
-            "sourceUnitsOriginal"
+            "sourceHost",
+            "sourceUnitsOriginal",
+            "deferCatalogs"
           ],
           "async": false
         },
@@ -100597,6 +101210,17 @@
           "async": false
         },
         {
+          "name": "finishSourceFreeEffectPublicationPlan",
+          "parameters": [
+            "acquired",
+            "observation",
+            "invocation",
+            "invocationOwner",
+            "sourceFreeInvocationOriginal"
+          ],
+          "async": false
+        },
+        {
           "name": "inferTaskPublicationPlan",
           "parameters": [
             "moon",
@@ -100682,7 +101306,8 @@
             "sources",
             "sourcePlan",
             "managedRun",
-            "modelUnits"
+            "modelUnits",
+            "deferCatalogs"
           ],
           "async": false
         },
@@ -100841,12 +101466,22 @@
           "parameters": [
             "acquired",
             "compiled",
-            "generation"
+            "generation",
+            "managedRun",
+            "sourcePlan",
+            "sourceHost"
           ],
           "async": false
         },
         {
           "name": "sourceFreeEffectPublicationPlan",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeEffectPublicationPlanOriginal",
           "parameters": [
             "options"
           ],
@@ -100861,7 +101496,10 @@
             "issuance",
             "modelEvidence",
             "issuedModel",
-            "modelOriginals"
+            "modelOriginals",
+            "managedRun",
+            "sourcePlan",
+            "sourceHost"
           ],
           "async": false
         },
@@ -101255,6 +101893,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "inputsOutputs": [
@@ -101265,6 +101911,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "identity": [
@@ -101275,6 +101929,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "ownership": [
@@ -101285,6 +101947,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "synchronization": [
@@ -101295,6 +101965,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "failure": [
@@ -101305,6 +101983,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "cancellation": [
@@ -101315,6 +102001,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "resources": [
@@ -101325,6 +102019,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "extension": [
@@ -101335,6 +102037,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "verification": [
@@ -101349,6 +102059,14 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ]
           }
@@ -101377,6 +102095,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "inputsOutputs": [
@@ -101387,6 +102113,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "identity": [
@@ -101397,6 +102131,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "ownership": [
@@ -101407,6 +102149,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "synchronization": [
@@ -101417,6 +102167,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "failure": [
@@ -101427,6 +102185,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "cancellation": [
@@ -101437,6 +102203,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "resources": [
@@ -101447,6 +102221,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "extension": [
@@ -101457,6 +102239,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "verification": [
@@ -101475,6 +102265,14 @@
               {
                 "path": "adapters/host-node/infer-model-effect-control.test.mjs",
                 "anchor": "same Model binding and typed Whole contribution reach complete Model Artifact without Query conversion"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ]
           }
@@ -101626,6 +102424,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "inputsOutputs": [
@@ -101636,6 +102442,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "identity": [
@@ -101646,6 +102460,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "ownership": [
@@ -101656,6 +102478,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "synchronization": [
@@ -101666,6 +102496,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "failure": [
@@ -101676,6 +102514,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "cancellation": [
@@ -101686,6 +102532,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "resources": [
@@ -101696,6 +102550,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "extension": [
@@ -101706,6 +102568,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "verification": [
@@ -101720,6 +102590,14 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ]
           }
@@ -104088,6 +104966,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "inputsOutputs": [
@@ -104102,6 +104988,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "identity": [
@@ -104116,6 +105010,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "ownership": [
@@ -104130,6 +105032,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "synchronization": [
@@ -104140,6 +105050,14 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "failure": [
@@ -104150,6 +105068,14 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "cancellation": [
@@ -104160,6 +105086,14 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "resources": [
@@ -104170,6 +105104,14 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "extension": [
@@ -104184,12 +105126,28 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "verification": [
               {
                 "path": "src/connectors_builtin_node/client_source_free_effect_content_wbtest.mbt",
                 "anchor": "test \"source-free Content Effect compiler requires"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ]
           }
@@ -104325,6 +105283,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "inputsOutputs": [
@@ -104335,6 +105301,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "identity": [
@@ -104345,6 +105319,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "ownership": [
@@ -104355,6 +105337,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "synchronization": [
@@ -104365,6 +105355,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "failure": [
@@ -104375,6 +105373,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "cancellation": [
@@ -104385,6 +105391,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "resources": [
@@ -104395,6 +105409,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "extension": [
@@ -104405,6 +105427,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ],
             "verification": [
@@ -104419,6 +105449,14 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
+              },
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               }
             ]
           }
@@ -105398,6 +106436,113 @@
               {
                 "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
                 "anchor": "test('Store lease rejects replacement of its exact opened anchor"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "finishSourceFreeEffectPublicationPlan",
+            "sourceFreeEffectPublicationPlanOriginal"
+          ],
+          "exports": [
+            "sourceFreeEffectPublicationPlanOriginal"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function sourceFreeEffectPublicationPlanOriginal(options)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('late Values binding consumes its exact early receipt once at the closed port'"
               }
             ]
           }
@@ -160514,7 +161659,7 @@
     {
       "module": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "4c83dea067fd162d6198c93d964bcdd0e099fe567c7b8d3906415812cbac2031",
+      "sha256": "45f40ffd4aa8cab4e1554b2e42e1e020cd0f378375c153571e333e05e96b144f",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [

@@ -58,18 +58,42 @@
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Responsibility:"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "source_free_max_work? : Int? = None,"
+              },
+              {
+                "path": "src/client_local_host/source_free_work_boundary_js_wbtest.mbt",
+                "anchor": "test \"source-free work bounds Fragment preparation after independent Program checking\""
               }
             ],
             "inputsOutputs": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "source_free_max_work? : Int? = None,"
+              },
+              {
+                "path": "src/client_local_host/source_free_work_boundary_js_wbtest.mbt",
+                "anchor": "test \"source-free work bounds Fragment preparation after independent Program checking\""
               }
             ],
             "identity": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Identity:"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "source_free_max_work? : Int? = None,"
+              },
+              {
+                "path": "src/client_local_host/source_free_work_boundary_js_wbtest.mbt",
+                "anchor": "test \"source-free work bounds Fragment preparation after independent Program checking\""
               }
             ],
             "ownership": [
@@ -80,12 +104,28 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The preparation-owned Pure source-free route admits that actual retained body"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "source_free_max_work? : Int? = None,"
+              },
+              {
+                "path": "src/client_local_host/source_free_work_boundary_js_wbtest.mbt",
+                "anchor": "test \"source-free work bounds Fragment preparation after independent Program checking\""
               }
             ],
             "synchronization": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Synchronization:"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "source_free_max_work? : Int? = None,"
+              },
+              {
+                "path": "src/client_local_host/source_free_work_boundary_js_wbtest.mbt",
+                "anchor": "test \"source-free work bounds Fragment preparation after independent Program checking\""
               }
             ],
             "failure": [
@@ -100,12 +140,28 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"Request installed module preserves exact one-byte-short refusal before its original factory\""
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "source_free_max_work? : Int? = None,"
+              },
+              {
+                "path": "src/client_local_host/source_free_work_boundary_js_wbtest.mbt",
+                "anchor": "test \"source-free work bounds Fragment preparation after independent Program checking\""
               }
             ],
             "cancellation": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Cancellation:"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "source_free_max_work? : Int? = None,"
+              },
+              {
+                "path": "src/client_local_host/source_free_work_boundary_js_wbtest.mbt",
+                "anchor": "test \"source-free work bounds Fragment preparation after independent Program checking\""
               }
             ],
             "resources": [
@@ -116,12 +172,28 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The preparation-owned Pure source-free route admits that actual retained body"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "source_free_max_work? : Int? = None,"
+              },
+              {
+                "path": "src/client_local_host/source_free_work_boundary_js_wbtest.mbt",
+                "anchor": "test \"source-free work bounds Fragment preparation after independent Program checking\""
               }
             ],
             "extension": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Extension:"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "source_free_max_work? : Int? = None,"
+              },
+              {
+                "path": "src/client_local_host/source_free_work_boundary_js_wbtest.mbt",
+                "anchor": "test \"source-free work bounds Fragment preparation after independent Program checking\""
               }
             ],
             "verification": [
@@ -148,6 +220,14 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"Request installed module preserves exact one-byte-short refusal before its original factory\""
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "source_free_max_work? : Int? = None,"
+              },
+              {
+                "path": "src/client_local_host/source_free_work_boundary_js_wbtest.mbt",
+                "anchor": "test \"source-free work bounds Fragment preparation after independent Program checking\""
               }
             ]
           }
@@ -293,7 +373,7 @@
         },
         {
           "name": "prepare_installed_managed_source_free_with_contracts",
-          "declaration": "prepare_installed_managed_source_free_with_contracts ( prepared : @ publication_host . PreparedClientProgram , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , query_time ? : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , ) ?"
+          "declaration": "prepare_installed_managed_source_free_with_contracts ( prepared : @ publication_host . PreparedClientProgram , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , source_free_max_work ? : Int ?"
         },
         {
           "name": "prepared_installed_managed_publication_limits",
@@ -320,7 +400,7 @@
           "declaration": "source_free_installed_managed_preparation_owned ( owner : ClientLocalSequenceOwner , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , mock_model : Bool , model ? : @ publication_host . ClientInferPlanGraph ?"
         }
       ],
-      "sha256": "eed678f29df8223287110f2e58c16ce06a7c97eba0c4ed246d4773d64891f5fe"
+      "sha256": "f0b2e820dee09f1beb2a1cf61be7a6490126583358c9eedd98d648e52c3c80a4"
     },
     {
       "module": "src/client_local_host/installed_capture_plan.mbt",
@@ -1932,7 +2012,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "d9c2f26d36e614fe076acc6a6f47db18c2b756046a68753d695c86f27e7eb997",
+      "sha256": "59621b21e0b7b5837f018d91037dc039232be3536f20c7b42c458e864a5aa6a7",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],

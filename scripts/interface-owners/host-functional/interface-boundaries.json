@@ -1970,7 +1970,7 @@
     {
       "module": "adapters/host-common/completed-run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9be3b46b329e32b3fff07ebb265747791f6f9bf9c60c3b6cc88968e66b691f36",
+      "sha256": "e82f07e9ef231b31193be2b845f4fcf539c252c6516bb9c8d1b75c3589113343",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -2349,7 +2349,8 @@
           "name": "prepareCompletedEffectfulCaptureRetirement/sourceCids/sourceCids",
           "parameters": [
             "memberIndex",
-            "artifact"
+            "artifact",
+            "index"
           ],
           "async": false
         },
@@ -3116,6 +3117,14 @@
               {
                 "path": "docs/design/prepared-publication-custody.md",
                 "anchor": "## Publication retry diagnostic prefixes"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              },
+              {
+                "path": "adapters/host-common/recovered-effect-capture-control.test.mjs",
+                "anchor": "test('prepared Source adapter projects N original handles with one Core call and no legacy member admissions'"
               }
             ],
             "inputsOutputs": [
@@ -3138,6 +3147,14 @@
               {
                 "path": "docs/design/prepared-publication-custody.md",
                 "anchor": "## Publication retry diagnostic prefixes"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              },
+              {
+                "path": "adapters/host-common/recovered-effect-capture-control.test.mjs",
+                "anchor": "test('prepared Source adapter projects N original handles with one Core call and no legacy member admissions'"
               }
             ],
             "identity": [
@@ -3164,6 +3181,14 @@
               {
                 "path": "docs/design/prepared-publication-custody.md",
                 "anchor": "## Publication retry diagnostic prefixes"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              },
+              {
+                "path": "adapters/host-common/recovered-effect-capture-control.test.mjs",
+                "anchor": "test('prepared Source adapter projects N original handles with one Core call and no legacy member admissions'"
               }
             ],
             "ownership": [
@@ -3194,6 +3219,14 @@
               {
                 "path": "docs/design/prepared-publication-custody.md",
                 "anchor": "## Publication retry diagnostic prefixes"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              },
+              {
+                "path": "adapters/host-common/recovered-effect-capture-control.test.mjs",
+                "anchor": "test('prepared Source adapter projects N original handles with one Core call and no legacy member admissions'"
               }
             ],
             "synchronization": [
@@ -3220,6 +3253,14 @@
               {
                 "path": "docs/design/prepared-publication-custody.md",
                 "anchor": "## Publication retry diagnostic prefixes"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              },
+              {
+                "path": "adapters/host-common/recovered-effect-capture-control.test.mjs",
+                "anchor": "test('prepared Source adapter projects N original handles with one Core call and no legacy member admissions'"
               }
             ],
             "failure": [
@@ -3246,6 +3287,14 @@
               {
                 "path": "docs/design/prepared-publication-custody.md",
                 "anchor": "## Publication retry diagnostic prefixes"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              },
+              {
+                "path": "adapters/host-common/recovered-effect-capture-control.test.mjs",
+                "anchor": "test('prepared Source adapter projects N original handles with one Core call and no legacy member admissions'"
               }
             ],
             "cancellation": [
@@ -3272,6 +3321,14 @@
               {
                 "path": "docs/design/prepared-publication-custody.md",
                 "anchor": "## Publication retry diagnostic prefixes"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              },
+              {
+                "path": "adapters/host-common/recovered-effect-capture-control.test.mjs",
+                "anchor": "test('prepared Source adapter projects N original handles with one Core call and no legacy member admissions'"
               }
             ],
             "resources": [
@@ -3298,6 +3355,14 @@
               {
                 "path": "docs/design/prepared-publication-custody.md",
                 "anchor": "## Publication retry diagnostic prefixes"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              },
+              {
+                "path": "adapters/host-common/recovered-effect-capture-control.test.mjs",
+                "anchor": "test('prepared Source adapter projects N original handles with one Core call and no legacy member admissions'"
               }
             ],
             "extension": [
@@ -3320,6 +3385,14 @@
               {
                 "path": "docs/design/prepared-publication-custody.md",
                 "anchor": "## Publication retry diagnostic prefixes"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              },
+              {
+                "path": "adapters/host-common/recovered-effect-capture-control.test.mjs",
+                "anchor": "test('prepared Source adapter projects N original handles with one Core call and no legacy member admissions'"
               }
             ],
             "verification": [
@@ -3329,7 +3402,7 @@
               },
               {
                 "path": "adapters/host-common/completed-effect-capture-retirement.test.mjs",
-                "anchor": "test(`terminal capture retirement keeps its record until deletion succeeds (${publicResults ? 1 : 0} public Results)${dependencyPayloads ? \" with retained Table/Result dependencies\" : \"\"}`,"
+                "anchor": "test(`terminal capture retirement keeps its record until deletion succeeds (${publicResults ? 1 : 0} public Results)${dependencyPayloads ? \" with retained Table/Result dependencies\" : \"\"}${preparedProjection ? ' using prepared Source projection' : ''}`,"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -3366,6 +3439,14 @@
               {
                 "path": "adapters/store-local/private-evidence-consumer-lifetime.test.mjs",
                 "anchor": "decoded capture capacity refuses before JSON.parse"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              },
+              {
+                "path": "adapters/host-common/recovered-effect-capture-control.test.mjs",
+                "anchor": "test('prepared Source adapter projects N original handles with one Core call and no legacy member admissions'"
               }
             ]
           }
@@ -3753,7 +3834,7 @@
               },
               {
                 "path": "adapters/host-common/completed-effect-capture-retirement.test.mjs",
-                "anchor": "test(`terminal capture retirement keeps its record until deletion succeeds (${publicResults ? 1 : 0} public Results)${dependencyPayloads ? \" with retained Table/Result dependencies\" : \"\"}`,"
+                "anchor": "test(`terminal capture retirement keeps its record until deletion succeeds (${publicResults ? 1 : 0} public Results)${dependencyPayloads ? \" with retained Table/Result dependencies\" : \"\"}${preparedProjection ? ' using prepared Source projection' : ''}`,"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
