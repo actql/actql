@@ -41,12 +41,19 @@ pub fn admit_client_check_environment_wire(
   body : String,
   evidence_bundle_cid : String,
 ) -> @environment.WireEnvironment? {
+  // A JSON node or top-level evidence member needs at least one input byte.
+  // These intrinsic finite decoder ceilings do not price bytes as nodes or
+  // grant capacity. The installed Source entrance reserves its measured
+  // same-wire construction geometry before calling this pure reader. Explicit
+  // callers of environment.read keep their independently selected limits.
+  let bytes = @utf8.encode(body)
+  let input_extent = bytes.length()
   match
-    @environment.read(@utf8.encode(body), evidence_bundle_cid, {
-      max_bytes: 65536,
-      max_nodes: 4096,
+    @environment.read(bytes, evidence_bundle_cid, {
+      max_bytes: input_extent,
+      max_nodes: input_extent,
       max_depth: 64,
-      max_members: 256,
+      max_members: input_extent,
     }) {
     Ok(value) => Some(value)
     Err(_) => None
