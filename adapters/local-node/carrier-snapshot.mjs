@@ -138,12 +138,19 @@ function prepareLocalSnapshot(operations, createLease, checked, signal, moon) {
         }
         if (!sourceReadRejected) throw new Error('LocalRelationSourceStillReadable');
         checked(operation.begin_reload());
+        signal?.throwIfAborted();
+        // The SAME sealed content bounds this receiving constructor. Common
+        // has already reserved its reload geometry from this exact receipt;
+        // a broader policy ceiling is not an eagerly allocated row buffer.
+        const reloadFrames = {...operation.frames,
+          maxBytes: Math.min(operation.frames.maxBytes, content.bytes),
+          maxRowBytes: Math.min(operation.frames.maxRowBytes, content.bytes)};
         const frames = createMoonBitRetainedRowFrames({
           retainedFramesPrepare: moon.strategyPrepareDurableResultRowFrames,
           retainedFramesFeed: moon.strategyFeedDurableResultRowFrames,
           retainedFramesFinish: moon.strategyFinishDurableResultRowFrames,
           retainedFramesCancel: moon.strategyCancelDurableResultRowFrames,
-        }, operation.frames, row => checked(operation.append_reload(row)));
+        }, reloadFrames, row => checked(operation.append_reload(row)));
         let receivedBytes = 0;
         let usage;
         try {

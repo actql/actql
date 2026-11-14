@@ -32,12 +32,12 @@ function operationFixture() {
     released = check; events.push('prepare'); return operation;
   }}};
 }
-async function fileFixture() {
+async function fileFixture({capacityBytes = 256} = {}) {
   const parent = new URL('../../_build/carrier-snapshot-transport/', import.meta.url);
   await mkdir(parent, {recursive:true});
   const directory = await mkdtemp(new URL('case-', parent));
   const store = await createLocalRetainedStore({parentDirectory:directory,
-    capacityBytes:256,maxFrameBytes:256,maxEntries:1});
+    capacityBytes,maxFrameBytes:256,maxEntries:1});
   return {directory,store};
 }
 
@@ -274,6 +274,65 @@ test('Relation Store roundtrip preserves ordered missing/NULL/value rows after s
   assert.deepEqual(await readdir(directory),[]);
 });
 
+test('Relation reload framer uses exact sealed byte geometry only after the original reload grant', async () => {
+  const {directory,store} = await fileFixture({capacityBytes: 180000000});
+  const f = relationFixture();
+  f.operation.frames.maxBytes = f.operation.frames.maxRowBytes = 180000000;
+  let constructions = 0;
+  const observed = {...moon, strategyPrepareDurableResultRowFrames(...limits) {
+    constructions++;
+    assert.equal(f.events.includes('reload'), true);
+    assert.equal(f.operation.source_available(), false);
+    assert.deepEqual(limits, [f.identity.bytes, 3, f.identity.bytes, 8, 256]);
+    return moon.strategyPrepareDurableResultRowFrames(...limits);
+  }};
+  const owner = prepareLocalRelationSnapshot(f.operations, () => store, checked, undefined, observed);
+  await owner.roundtrip();
+  assert.equal(constructions, 1);
+  assert.deepEqual(f.restored, f.rows);
+  assert.equal(store.status().reservedBytes, 0);
+  assert.deepEqual(await readdir(directory), []);
+});
+
+for (const rowLimit of [18, 2]) {
+  test(`Relation sealed geometry preserves explicit smaller row policy ${rowLimit}`, async () => {
+    const {directory,store} = await fileFixture();
+    const f = relationFixture();
+    f.operation.frames.maxRowBytes = rowLimit;
+    let constructions = 0;
+    const observed = {...moon, strategyPrepareDurableResultRowFrames(...limits) {
+      constructions++;
+      assert.deepEqual(limits, [f.identity.bytes, 3, rowLimit, 8, 256]);
+      return moon.strategyPrepareDurableResultRowFrames(...limits);
+    }};
+    const owner = prepareLocalRelationSnapshot(f.operations, () => store, checked, undefined, observed);
+    if (rowLimit === 18) await owner.roundtrip();
+    else {
+      await assert.rejects(owner.roundtrip(), {code: 'MoonBitHostFailure'});
+      assert.equal(f.events.includes('restore'), false);
+      await owner.cleanupHandle.retry();
+    }
+    assert.equal(constructions, 1);
+    assert.equal(store.status().reservedBytes, 0);
+    assert.deepEqual(await readdir(directory), []);
+  });
+}
+
+test('Relation refused original reload grant constructs no row framer and retains the primary cause', async () => {
+  const {directory,store} = await fileFixture();
+  const f = relationFixture(), failure = new Error('OriginalReloadGrantRefused');
+  f.operation.begin_reload = () => {throw failure;};
+  const observed = {...moon, strategyPrepareDurableResultRowFrames() {
+    assert.fail('refused original cannot construct a receiving framer');
+  }};
+  const owner = prepareLocalRelationSnapshot(f.operations, () => store, checked, undefined, observed);
+  await assert.rejects(owner.roundtrip(), error => error === failure);
+  assert.equal(owner.cleanupHandle.status().pending, true);
+  await owner.cleanupHandle.retry();
+  assert.equal(store.status().reservedBytes, 0);
+  assert.deepEqual(await readdir(directory), []);
+});
+
 test('Relation snapshot retires reference roots after file release and before finish', async () => {
   const {directory,store} = await fileFixture();
   const f = relationFixture();
@@ -339,7 +398,10 @@ test('Relation cancellation after original output revocation retains cleanup and
   f.operation.begin_reload = () => {
     begin(); controller.abort(new Error('RelationReloadCancelled'));
   };
-  const owner = prepareLocalRelationSnapshot(f.operations,() => store,checked,controller.signal,moon);
+  const observed = {...moon, strategyPrepareDurableResultRowFrames() {
+    assert.fail('cancelled original cannot construct a receiving framer');
+  }};
+  const owner = prepareLocalRelationSnapshot(f.operations,() => store,checked,controller.signal,observed);
   await assert.rejects(owner.roundtrip(),/RelationReloadCancelled/);
   assert.throws(() => f.operations.output_row(0),/OriginalOutputUnavailable/);
   assert.equal(f.events.includes('restore'),false);
