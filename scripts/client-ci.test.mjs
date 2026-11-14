@@ -831,6 +831,18 @@ mkdir -m 700 "$compiler_bin"
 ln -s "$(realpath /usr/bin/clang-19)" "$compiler_bin/cc"
 ln -s "$(realpath /usr/bin/ar)" "$compiler_bin/ar"
 echo "$compiler_bin" >> "$GITHUB_PATH"`,
+    `python -m venv "$RUNNER_TEMP/table-python"
+"$RUNNER_TEMP/table-python/bin/python" -m pip install --require-hashes -r adapters/connectors/local/iceberg/requirements.lock`,
+    'test -n "${ACTQL_PACKED_CLIENT_PACKAGES:-}"\n' +
+      'test -z "${ACTQL_TABLE_NORMAL_RELEASE:-}"\n' +
+      'node --test scripts/packed-table-private-input.test.mjs',
+    `{
+  printf '### Packed Table Source inventory\\n\\n'
+  printf 'Source: \`%s\`; Client artifact: \`%s\`.\\n\\n' "$GITHUB_SHA" "$CLIENT_ARTIFACT_ID"
+  printf 'Selection: \`source-inventory\` (one required case).\\n\\n'
+  printf 'Python preparation: \`%s\`; acceptance: \`%s\`.\\n\\n' "$TABLE_PYTHON_OUTCOME" "$TABLE_TEST_OUTCOME"
+  printf 'See [this run logs](%s/%s/actions/runs/%s) for the original setup or test failure.\\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
+} >> "$GITHUB_STEP_SUMMARY"`,
     'node scripts/test-packed-local-node-assets.mjs',
     'node scripts/test-packed-sheets.mjs',
     'node scripts/test-packed-hubspot-source.mjs --ci --approval',
@@ -893,6 +905,7 @@ done`,
         if (['client-packed', 'client-packed-composition', 'client-distribution-packed'].includes(name)) preparation = 'client-inputs';
         else if (Object.hasOwn(partitions, name)) preparation = 'distribution-preparation';
       }
+      if (name === 'client-packed' && step.id === 'table-python') preparation = 'client-inputs';
       if (name === 'client-packed') {
         const group = /matrix\.group == '([^']+)'/u.exec(step.if)?.[1];
         assert(jobs[name].strategy.matrix.group.includes(group));
@@ -900,8 +913,13 @@ done`,
         const ownership = step.id === 'packed-query'
           ? "(matrix.group == 'query-portable-1' || matrix.group == 'query-portable-2' || matrix.group == 'query-portable-3')"
           : `matrix.group == '${group}'`;
-        assert.deepEqual(terms, [ownership, ...(preparation
-          ? ['!cancelled()', `steps.${preparation}.outcome == 'success'`] : [])].sort(),
+        if (step.id === 'packed-table-source-summary') {
+          assert.deepEqual(terms, [ownership, 'always()',
+            "(steps.table-python.outcome == 'failure' || steps.packed-table-source.outcome == 'failure')"].sort(),
+          'only the exact Table failure summary runs after its selected prerequisite or acceptance fails');
+        } else assert.deepEqual(terms, [ownership, ...(preparation
+          ? ['!cancelled()', `steps.${preparation}.outcome == 'success'`] : []),
+        ...(step.id === 'packed-table-source' ? ["steps.table-python.outcome == 'success'"] : [])].sort(),
         'matrix ownership retains the original preparation/current-cancellation barrier');
       } else assert.equal(step.if, preparation
         ? '${{ !cancelled() && steps.' + preparation + ".outcome == 'success' }}" : undefined,
