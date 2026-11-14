@@ -90,6 +90,9 @@ pub fn[P, R, E] with_prepared_run_operation_control_work(
   let holding_serial = ledger.next_holding_serial
   let control_retained = control.reservation.retention
   let control_execution = control.reservation.execution
+  // Borrow the immutable usage snapshot. Update this fence only after this
+  // view's own debit; an unrelated resize/settlement cannot keep it current.
+  let expected_usage = Ref(ledger.usage)
   let active = Ref(true)
   let spending = Ref(false)
   defer {
@@ -104,7 +107,8 @@ pub fn[P, R, E] with_prepared_run_operation_control_work(
     defer {
       spending.val = false
     }
-    if ledger.next_capacity_serial != capacity_serial ||
+    if ledger.usage != expected_usage.val ||
+      ledger.next_capacity_serial != capacity_serial ||
       ledger.next_attempt_serial != attempt_serial ||
       ledger.next_holding_serial != holding_serial ||
       control.reservation.retention != control_retained ||
@@ -114,16 +118,25 @@ pub fn[P, R, E] with_prepared_run_operation_control_work(
       return Err(ForeignOwner)
     }
     let current = live()
-    if !active.val || !current {
+    if !active.val ||
+      !current ||
+      ledger.usage != expected_usage.val ||
+      !prepared_run_operation_work_binding(value, prepared, ledger, control) {
       active.val = false
       return Err(ForeignOwner)
+    }
+    if units == 0 {
+      return Ok(())
     }
     match charge_planning_current(ledger, units) {
       Err(issue) => {
         active.val = false
         Err(issue)
       }
-      Ok(_) => Ok(())
+      Ok(_) => {
+        expected_usage.val = ledger.usage
+        Ok(())
+      }
     }
   }
   match work(spend) {

@@ -156,3 +156,38 @@ test "operation Work checks foreign original and reentrant or stopped lifetime b
   assert_false(entered.val)
   assert_eq(ledger_usage(ledger).planning_work, 0)
 }
+
+///|
+test "operation Work view expires across another existing reservation resize" {
+  let (_, _, admission, body, ledger, _, _, _) = backed_prepared_operation_fixture()
+  let control = reserve_prepared_run_operation_controls(
+    admission,
+    body,
+    ledger,
+    () => (Ok(()) : Result[Unit, Unit]),
+    None,
+    1L,
+    1L,
+  ).unwrap()
+  let other = reserve_capacity(ledger, 0L, 0L).unwrap()
+  let result : Result[Unit, NodeManagedRunOperationIssue[Unit]] = with_prepared_run_operation_control_work(
+    admission,
+    body,
+    ledger,
+    () => Ok(()),
+    control,
+    () => true,
+    spend => {
+      spend(1).unwrap()
+      // An existing token can grow without changing the capacity serial.
+      // The original usage fence still catches that allocating boundary.
+      grow_capacity_reservation(ledger, other, 1L, 1L).unwrap()
+      assert_eq(spend(1), Err(ForeignOwner))
+      Err(Control(ForeignOwner))
+    },
+  )
+  assert_true(result is Err(Control(ForeignOwner)))
+  assert_eq(ledger_usage(ledger).planning_work, 1)
+  assert_true(capacity_reservation_open(control))
+  assert_true(capacity_reservation_open(other))
+}

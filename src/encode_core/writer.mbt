@@ -717,6 +717,9 @@ pub fn advance_string_value(
   }
   let w = cursor.writer
   active(w)
+  // The String span was charged at start, but its synchronous view may have
+  // expired before this resumed chunk. Zero validates the view without work.
+  construction_work_step(w, 0)
   if !w.string_active {
     fail(w, InvalidStructure)
   }
@@ -837,6 +840,7 @@ pub fn advance_ordered_key(
   }
   let w = cursor.writer
   active(w)
+  construction_work_step(w, 0)
   if !w.string_active {
     fail(w, InvalidStructure)
   }

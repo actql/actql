@@ -79,3 +79,39 @@ test "declined or expired controlled work closes the writer before further trave
     _ => fail("failed controlled writer must remain closed")
   }
 }
+
+///|
+test "prepaid String and ordered-key cursors cannot scan after work view expiry" {
+  for key_cursor in [false, true] {
+    let live = Ref(true)
+    let writer = work_construction_measuring_writer(1000, 20, 5, _ => live.val)
+    if key_cursor {
+      begin_ordered_object(writer)
+      let cursor = start_ordered_key(writer, "unvisited")
+      let position = cursor.position
+      live.val = false
+      try {
+        advance_ordered_key(cursor) |> ignore
+        fail("expired ordered-key cursor must not scan")
+      } catch {
+        OutputLimit => ()
+        _ => fail("expired key view must refuse before scanning")
+      }
+      assert_eq(cursor.position, position)
+    } else {
+      begin_array(writer)
+      let cursor = start_string_value(writer, "unvisited")
+      let position = cursor.position
+      live.val = false
+      try {
+        advance_string_value(cursor) |> ignore
+        fail("expired String cursor must not scan")
+      } catch {
+        OutputLimit => ()
+        _ => fail("expired String view must refuse before scanning")
+      }
+      assert_eq(cursor.position, position)
+    }
+    assert_true(writer.closed)
+  }
+}
