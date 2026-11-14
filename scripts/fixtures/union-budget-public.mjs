@@ -12,7 +12,7 @@ assert(['run', 'saved'].includes(phase) && handoffPath);
 const directory = resolve('union-budget-state');
 await mkdir(directory, {recursive: true});
 const reportPath = resolve(`union-budget-${phase}.json`);
-const report = {phase, complete: false, references: [], firstCloseReturned: false,
+const report = {phase, complete: false, references: [], firstCloseReturned: false, firstClosePending: false,
   scopedFd0: false, compileCount: 'UNOBSERVABLE', normalPackageAcceptance: false};
 await writeFile(reportPath, JSON.stringify(report) + '\n', {flag: 'wx'});
 const persist = () => writeFile(reportPath, JSON.stringify(report, null, 2) + '\n');
@@ -73,11 +73,23 @@ try {
     code: cause?.code, message: String(cause?.message ?? cause)};
 } finally {
   if (client) {
-    try { await client.close(); report.firstCloseReturned = true; }
+    // Keep the original primary and pending close durable BEFORE awaiting it.
+    // A timeout cannot run the remainder of this finally block. A rejected
+    // close still supplies no acknowledgment and leaves this pending fact.
+    report.firstClosePending = true;
+    try { await persist(); }
+    catch (cause) { primary ??= cause; }
+    try {
+      await client.close();
+      report.firstCloseReturned = true;
+      report.firstClosePending = false;
+    }
     catch (cause) {
       report.closeFailure = {code: cause?.code, message: String(cause?.message ?? cause)};
       primary ??= cause;
     }
+    try { await persist(); }
+    catch (cause) { primary ??= cause; }
     try {
       report.descriptors = await observeRecordApprovalDescriptors([directory]);
       report.scopedFd0 = report.descriptors.openPaths.length === 0;
@@ -86,7 +98,8 @@ try {
   }
   report.complete = !primary;
   report.normalPackageAcceptance = !primary;
-  await persist();
+  try { await persist(); }
+  catch (cause) { primary ??= cause; }
 }
 if (primary) throw primary;
 if (phase === 'run') await writeFile(handoffPath,

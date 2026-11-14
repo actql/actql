@@ -1090,8 +1090,11 @@ explicit tiny checking-work refusal is a separate Core component obligation,
 not an invented public budget option. Original references are recorded before
 wait. A second process attaches those same Saved references, reads their full
 Results and checks the original submission lookup without resubmitting.
-Each process awaits its first public close and observes scoped descriptors
-while still alive. Source fixture tests do not establish this normal-package
+Each process persists any original primary and close-pending fact before
+awaiting its first public close, then observes scoped descriptors while still
+alive. This finite selector retains the existing owned artifact/evidence scope
+even on timeout, so the pending report is not removed by runner cleanup.
+Source fixture tests do not establish this normal-package
 acceptance, compiler-call counts, performance or other backends. Run the packed
 selection only against one useful matching immutable cohort under the ordinary
 resource guard; it is not a request for another notification build.

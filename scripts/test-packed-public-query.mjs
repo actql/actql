@@ -31,7 +31,9 @@ const revision = spawnSync('git', ['rev-parse', 'HEAD'], {cwd: repository,
 if (revision.status !== 0) throw new Error('PackedQueryRevisionUnavailable');
 await withPackedQueryEvidence({scratch, revision: revision.stdout.trim(),
   githubOutput: process.env.GITHUB_OUTPUT,
-  keepArtifacts: process.argv.includes('--keep-artifacts')},
+  // The finite original-reference fixture keeps its pending/failed close report
+  // inside this existing owned evidence scope, including a killed child.
+  keepArtifacts: unionBudgetOnly || process.argv.includes('--keep-artifacts')},
 async ({root, directory, run: capture, recordTarball}) => {
 const environment = {...process.env, npm_config_cache: packedNpmCache(root)};
 function run(command, args, cwd = root, env = environment,
