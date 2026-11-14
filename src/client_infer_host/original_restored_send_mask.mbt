@@ -32,9 +32,15 @@ pub fn prepare_original_restored_send_mask(
     execution_input_unadvanced(active) &&
     active.model_send_mask is None &&
     active.identity_body is Some(body) &&
-    body.send_mask_funded < 0 &&
-    @input.client_infer_completed_input(active.input) is Some(input) &&
-    original_restored_send_mask_originals(active) else {
+    body.send_mask_funded < 0 else {
+    return Err(InvalidAdvance)
+  }
+  active.advancing = true
+  guard @input.client_infer_completed_input(active.input) is Some(input) &&
+    original_restored_send_mask_originals(active) &&
+    !active.cancelled &&
+    !active.reclaimed else {
+    active.advancing = false
     return Err(InvalidAdvance)
   }
   let count = @relation.completed_row_count(input)
@@ -52,9 +58,9 @@ pub fn prepare_original_restored_send_mask(
     })
     is Some(bytes) &&
     @relation.execution_capacity(bytes, bytes) is Some(next) else {
+    active.advancing = false
     return Err(InvalidAdvance)
   }
-  active.advancing = true
   let result = grow_original_infer_facts_span(active, next)
   let originals = result is Ok(_) &&
     original_restored_send_mask_originals(active)
@@ -79,8 +85,6 @@ pub fn prepare_original_restored_send_mask(
 fn original_restored_send_mask_current(active : Execution, count : Int) -> Bool {
   guard active.identity_body is Some(body) &&
     body.send_mask_funded == count &&
-    @input.client_infer_completed_input(active.input) is Some(input) &&
-    @relation.completed_row_count(input) == count &&
     active.original_preparation is Some(original) &&
     original.read is Claimed(consumer) &&
     active.run_binding is Some(bound) &&
@@ -88,7 +92,11 @@ fn original_restored_send_mask_current(active : Execution, count : Int) -> Bool 
     return false
   }
   active.advancing = true
-  if !original_restored_send_mask_originals(active) {
+  guard @input.client_infer_completed_input(active.input) is Some(input) &&
+    @relation.completed_row_count(input) == count &&
+    original_restored_send_mask_originals(active) &&
+    !active.cancelled &&
+    !active.reclaimed else {
     active.advancing = false
     return false
   }
