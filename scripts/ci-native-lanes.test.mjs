@@ -199,7 +199,7 @@ test('actual Native cache preparation admits only selected halves and Scoped whi
     const tool = join(root, 'actql-core-ordinary-c-cache-tool'), executable = join(tool, 'ccache');
     let error;
     try { runInNewContext(body, {
-      assert, createHash, appendFileSync, chmodSync, lstatSync, mkdirSync, readFileSync, join, pin,
+      assert, Buffer, createHash, appendFileSync, chmodSync, lstatSync, mkdirSync, readFileSync, join, pin,
       process: {platform: 'darwin', arch: 'arm64', cwd: () => '/original/source',
         env: {RUNNER_TEMP: root, CACHE_PARTITION: partition, ImageVersion: image,
           GITHUB_OUTPUT: output, GITHUB_ENV: environment}},
