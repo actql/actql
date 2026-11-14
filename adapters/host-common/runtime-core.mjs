@@ -5980,9 +5980,13 @@ function publicationControl(moon) {
         sources.map(value => token(value.artifact)),
       );
     },
-    prepareCapturedEffectSourceInventory(preview, sources, invocation, capturedRun, storeAuthorityCid, limits) {
+    hasPreparedCapturedEffectRun(capturedRun) {
       token(capturedRun);
-      const prepared = recoveredEffectCaptures.get(capturedRun);
+      return recoveredEffectCaptures.has(capturedRun);
+    },
+    prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits) {
+      token(chain.capturedRun);
+      const prepared = recoveredEffectCaptures.get(chain.capturedRun);
       if (prepared === undefined) return undefined;
       issuanceLimits(limits, 'prepared recovered Effect source inventory');
       const ownedPreview = computationPreviewTokens.get(preview);
@@ -5995,7 +5999,9 @@ function publicationControl(moon) {
       // and returned original Source handles. No second persistent cache or
       // replacement owner is created; the complete checked context is reused.
       const originals = checked(moon.clientProgramRecoveredEffectCapturedRunSources(
-        token(capturedRun), prepared, ownedPreview, token(invocation),
+        token(chain.runDefinition), token(chain.invocation), chain.definitions.map(token),
+        chain.artifacts.map(token), token(chain.manifest), token(chain.computationReceipt),
+        token(chain.capturedRun), prepared, ownedPreview,
         sources.map(value => value.memberIndex), sources.map(value => token(value.artifact)),
         storeAuthorityCid, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
       return Object.freeze(originals.map(inspectEffectSource));

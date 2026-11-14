@@ -928,8 +928,11 @@ async function prepareCompletedEffectfulCaptureRetirement(store, control, run,
       contractLimits), contractLimits);
   const previewBinding = control.effectPrivateEvidenceBinding(preview,
     store.storeAuthorityCid);
+  // This selects immutable DATA routing only. The prepared branch validates
+  // the SAME complete chain inside its one Source projection call below.
+  const preparedRoute = control.hasPreparedCapturedEffectRun?.(chain.capturedRun) === true;
   if (chain.capturedRun.identity !== record.manifest_cid ||
-      !control.effectfulComputationEvidenceChainValid(chain, preview,
+      !preparedRoute && !control.effectfulComputationEvidenceChainValid(chain, preview,
         contractLimits)) {
     fail('InvalidCompletedEffectfulCaptureChain');
   }
@@ -949,9 +952,9 @@ async function prepareCompletedEffectfulCaptureRetirement(store, control, run,
     return Object.freeze({memberIndex: item.member_index, artifact,
       ...(schema === undefined ? {} : {schema: Object.freeze({...schema})})});
   });
-  const preparedSources = control.prepareCapturedEffectSourceInventory?.(preview,
-    sources, chain.invocation, chain.capturedRun, store.storeAuthorityCid, contractLimits);
-  if (preparedSources !== undefined && (!Array.isArray(preparedSources) || preparedSources.length !== sources.length)) {
+  const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory(
+    chain, preview, sources, store.storeAuthorityCid, contractLimits) : undefined;
+  if (preparedRoute && (!Array.isArray(preparedSources) || preparedSources.length !== sources.length)) {
     fail('InvalidCompletedEffectfulCaptureSource');
   }
   if (preparedSources === undefined && !control.capturedEffectSourceInventoryFromCaptureValid(preview,
@@ -1170,10 +1173,12 @@ async function recoverCompletedEffectfulPlaintext(store, control, contractLimits
     captured.authoring_context, contractLimits);
   const preview = control.admitEffectComputationPreview(
     captured.preview, admittedRun, authoringContext, contractLimits);
-  if (!control.effectfulComputationEvidenceChainValid({
+  const chain = {
     runDefinition: admittedRun, invocation, definitions, artifacts,
     manifest, computationReceipt, capturedRun,
-  }, preview, contractLimits)) {
+  };
+  const preparedRoute = control.hasPreparedCapturedEffectRun?.(capturedRun) === true;
+  if (!preparedRoute && !control.effectfulComputationEvidenceChainValid(chain, preview, contractLimits)) {
     fail('InvalidCompletedEffectfulCaptureChain');
   }
   const sourceInventory = captured.effect_source_artifacts.map(item => {
@@ -1214,9 +1219,9 @@ async function recoverCompletedEffectfulPlaintext(store, control, contractLimits
       kind: item.kind, observationCid: item.observation_cid,
       wire: item.wire});
   });
-  const preparedSources = control.prepareCapturedEffectSourceInventory?.(preview,
-    sourceInventory, invocation, capturedRun, store.storeAuthorityCid, contractLimits);
-  if (preparedSources !== undefined && (!Array.isArray(preparedSources) || preparedSources.length !== sourceInventory.length)) {
+  const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory(
+    chain, preview, sourceInventory, store.storeAuthorityCid, contractLimits) : undefined;
+  if (preparedRoute && (!Array.isArray(preparedSources) || preparedSources.length !== sourceInventory.length)) {
     fail('InvalidCompletedEffectfulCaptureSource');
   }
   if (preparedSources === undefined && !control.capturedEffectSourceInventoryFromCaptureValid(

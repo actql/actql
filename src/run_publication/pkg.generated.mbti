@@ -925,7 +925,7 @@ pub fn prepared_captured_effect_run_payloads(PreparedCapturedEffectRun) -> Array
 
 pub fn prepared_captured_effect_run_schemas(PreparedCapturedEffectRun) -> Array[(String, String)]
 
-pub fn prepared_captured_effect_run_sources(PublicationContract, PreparedCapturedEffectRun, EffectPreviewIdentity, PublicationContract, Array[Int], Array[PublicationContract], String, Int, Int, Int) -> Result[Array[CapturedEffectSourceArtifact], CapturedRunIssuanceIssue]
+pub fn prepared_captured_effect_run_sources(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, PreparedCapturedEffectRun, EffectPreviewIdentity, Array[Int], Array[PublicationContract], String, Int, Int, Int) -> Result[Array[CapturedEffectSourceArtifact], RunEvidenceChainIssue]
 
 pub fn project_committed_result_read(PublicationContract, PublicationContract, String, Array[PublicationContract]) -> Result[CommittedResultRead, DeliveryIssuanceIssue]
 

@@ -172,10 +172,12 @@ test('actual decoded capture retains SAME schema cleanup and reservation through
     admitRunEvidence:() => ({}), admitEffectComputationPreview:() => ({}),
     effectComputationCaptureHoldingCid:() => captureCid,
     effectComputationRecordHoldingCid:() => f.holding,
-    effectfulComputationEvidenceChainValid:() => {chainChecked=true;return true;},
-    ...(preparedProjection?{prepareCapturedEffectSourceInventory(_preview,sources,invocation,captured,authority){
-      assert(chainChecked);assert.equal(begins,1);assert.equal(reserves,1);assert.equal(completed,0);
-      assert.equal(captured.identity,capturedCid);assert.equal(invocation.wire,'invocation');
+    effectfulComputationEvidenceChainValid:() => {assert.equal(preparedProjection,false);chainChecked=true;return true;},
+    ...(preparedProjection?{hasPreparedCapturedEffectRun:()=>true,
+    prepareCapturedEffectSourceInventory(chain,_preview,sources,authority){
+      assert.equal(begins,1);assert.equal(reserves,1);assert.equal(completed,0);
+      assert.equal(chain.capturedRun.identity,capturedCid);assert.equal(chain.invocation.wire,'invocation');
+      assert.equal(chain.runDefinition.identity,run.identity);chainChecked=true;
       assert.equal(authority,store.storeAuthorityCid);assert.deepEqual(sources.map(value=>value.memberIndex),[0]);
       projections++;return [source];
     }}:{}),
@@ -232,6 +234,7 @@ test('actual decoded capture retains SAME schema cleanup and reservation through
   assert.equal(completed,1);
   assert.equal(begins,1, 'cleanup must not re-enter admission or reserve another peak');
   assert.equal(projections,preparedProjection?1:0);
+  assert(chainChecked);
   assert.notEqual(await f.store.inspectPhysicalHolding(f.holding), undefined);
   assert.notEqual(await f.store.inspectPhysicalHolding(captureCid), undefined);
 });

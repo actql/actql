@@ -87,10 +87,12 @@ test(`terminal capture retirement keeps its record until deletion succeeds (${pu
       },
       effectComputationRecordHoldingCid() { return recordCid; },
       effectComputationCaptureHoldingCid() { return captureCid; },
-      effectfulComputationEvidenceChainValid() {chainChecked=true; return true; },
-      ...(preparedProjection?{prepareCapturedEffectSourceInventory(preview,sources,invocation,captured,authority){
-        assert(chainChecked);assert.equal(captured.identity,capturedCid);
-        assert.equal(authority,store.storeAuthorityCid);assert.equal(invocation.wire,'invocation');
+      effectfulComputationEvidenceChainValid() {assert.equal(preparedProjection,false);chainChecked=true; return true; },
+      ...(preparedProjection?{hasPreparedCapturedEffectRun:()=>true,
+      prepareCapturedEffectSourceInventory(chain,preview,sources,authority){
+        assert.equal(chain.capturedRun.identity,capturedCid);assert.equal(chain.runDefinition.identity,run.identity);
+        assert.equal(authority,store.storeAuthorityCid);assert.equal(chain.invocation.wire,'invocation');
+        chainChecked=true;
         assert.deepEqual(sources.map(source=>source.memberIndex),[0]);projectionCalls++;
         return [originalSource];
       }}:{}),
@@ -121,6 +123,13 @@ test(`terminal capture retirement keeps its record until deletion succeeds (${pu
     };
     const options = {store, control, runDefinition: run,
       contractLimits: {maxWireBytes: 1000, maxNodes: 100, maxDepth: 10}};
+    if(preparedProjection&&!dependencyPayloads&&!publicResults){
+      const original=control.prepareCapturedEffectSourceInventory;
+      control.prepareCapturedEffectSourceInventory=()=>undefined;
+      await assert.rejects(retireCompletedEffectfulCapture(options),{code:'InvalidCompletedEffectfulCaptureSource'});
+      assert.deepEqual(visits,[],'routing DATA alone never permits deletion or legacy fallback');
+      control.prepareCapturedEffectSourceInventory=original;
+    }
     await assert.rejects(retireCompletedEffectfulCapture(options),
       {code: 'CompletedEffectfulCaptureCleanupPending'});
     assert.deepEqual(visits, [sourceCid, captureCid]);
@@ -134,6 +143,7 @@ test(`terminal capture retirement keeps its record until deletion succeeds (${pu
     assert.equal(captureCustody, false);
     assert.equal(await retireCompletedEffectfulCapture(options), false);
     assert.equal(projectionCalls,preparedProjection?2:0);
+    assert(chainChecked);
   });
 }
 }

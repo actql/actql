@@ -3660,7 +3660,7 @@ pub fn client_program_recovered_effect_captured_run_payloads(@run_publication.Pr
 
 pub fn client_program_recovered_effect_captured_run_schemas(@run_publication.PreparedCapturedEffectRun) -> Array[(String, String)]
 
-pub fn client_program_recovered_effect_captured_run_sources(@run_publication.PublicationContract, @run_publication.PreparedCapturedEffectRun, @run_publication.EffectPreviewIdentity, @run_publication.PublicationContract, Array[Int], Array[@run_publication.PublicationContract], String, Int, Int, Int) -> Result[Array[@run_publication.CapturedEffectSourceArtifact], @run_publication.CapturedRunIssuanceIssue]
+pub fn client_program_recovered_effect_captured_run_sources(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PreparedCapturedEffectRun, @run_publication.EffectPreviewIdentity, Array[Int], Array[@run_publication.PublicationContract], String, Int, Int, Int) -> Result[Array[@run_publication.CapturedEffectSourceArtifact], @run_publication.RunEvidenceChainIssue]
 
 pub fn client_program_recovered_effect_command_content_matches(@run_publication_host.RecoveredClientEffectCommandContent, @run_publication_host.ClientCompiledRun, @run_publication_host.PreparedClientEffectComputation, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity, Int, Int, String) -> Bool
 

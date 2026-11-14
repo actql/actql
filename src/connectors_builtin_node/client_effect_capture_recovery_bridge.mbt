@@ -164,10 +164,15 @@ pub fn client_program_recovered_effect_captured_run_chain_valid(
 ///|
 #export_name("clientProgramRecoveredEffectCapturedRunSources")
 pub fn client_program_recovered_effect_captured_run_sources(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  result_artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
   captured : @publication.PublicationContract,
   prepared : @publication.PreparedCapturedEffectRun,
   preview : @publication.EffectPreviewIdentity,
-  invocation : @publication.PublicationContract,
   member_indices : Array[Int],
   artifacts : Array[@publication.PublicationContract],
   store_authority_cid : String,
@@ -176,10 +181,11 @@ pub fn client_program_recovered_effect_captured_run_sources(
   max_depth : Int,
 ) -> Result[
   Array[@publication.CapturedEffectSourceArtifact],
-  @publication.CapturedRunIssuanceIssue,
+  @publication.RunEvidenceChainIssue,
 ] {
   @publication.prepared_captured_effect_run_sources(
-    captured, prepared, preview, invocation, member_indices, artifacts, store_authority_cid,
+    run_definition, invocation, definitions, result_artifacts, manifest, receipt,
+    captured, prepared, preview, member_indices, artifacts, store_authority_cid,
     max_bytes, max_nodes, max_depth,
   )
 }

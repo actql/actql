@@ -1,57 +1,50 @@
 ///|
-// One checked immutable context on the existing prepared capture, not another
-// Resource Owner or cached approval. It borrows the already-funded tree and
-// original nominal contracts; it never reconstructs a Read or a send grant.
-priv struct PreparedCapturedEffectSourceContext {
-  preview : EffectPreviewIdentity
-  invocation : PublicationContract
-  context : @json.CanonicalValue
-  max_bytes : Int
-  max_nodes : Int
-  max_depth : Int
-}
-
-///|
-// The complete chain has validated this SAME context once. Project every
-// actual Source binding once, retaining the old duplicate/coverage/body/Store
-// checks. The returned vector replaces the legacy seen + repeated admissions;
-// its transient index and existing typed Source handles remain on the SAME
-// decoded Read's pre-funded typed-body/index inventory, never a fresh budget.
+// Validate the complete chain once, then project every Source in this SAME
+// synchronous call. No standing field, Some/proof record or retained context
+// tuple is added to any fresh, cold or legacy constructor. Already-funded
+// lexical arguments borrow the original immutable tree. The transient index
+// vector and returned typed Source handles use the SAME decoded Read's
+// existing typed-body/index inventory. No permission or current is cached.
 pub fn prepared_captured_effect_run_sources(
+  run_definition : PublicationContract,
+  invocation : PublicationContract,
+  definitions : Array[PublicationContract],
+  result_artifacts : Array[PublicationContract],
+  manifest : PublicationContract,
+  receipt : PublicationContract,
   captured : PublicationContract,
   prepared : PreparedCapturedEffectRun,
   preview : EffectPreviewIdentity,
-  invocation : PublicationContract,
   member_indices : Array[Int],
   artifacts : Array[PublicationContract],
   store_authority_cid : String,
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[Array[CapturedEffectSourceArtifact], CapturedRunIssuanceIssue] {
-  guard physical_equal(captured, prepared.captured) &&
-    prepared.source_context is Some(original) &&
-    physical_equal(preview, original.preview) &&
-    physical_equal(invocation, original.invocation) &&
-    max_bytes == original.max_bytes &&
-    max_nodes == original.max_nodes &&
-    max_depth == original.max_depth else {
-    return Err(
-      CaptureIssuanceReferenceMismatch("effect_source_prepared_context"),
-    )
+) -> Result[Array[CapturedEffectSourceArtifact], RunEvidenceChainIssue] {
+  match
+    validate_prepared_effectful_computation_evidence_chain(
+      run_definition, invocation, definitions, result_artifacts, manifest, receipt,
+      captured, prepared, preview, max_bytes, max_nodes, max_depth,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard @json.object_field(captured.value, "effect_context") is Some(context) else {
+    return Err(EvidenceInventoryMismatch("effect_source_prepared_context"))
   }
   let count = effect_preview_member_count(preview)
   if count == 0 ||
     member_indices.length() != artifacts.length() ||
     member_indices.length() > count {
-    return Err(CaptureIssuanceReferenceMismatch("effect_source_inventory"))
+    return Err(EvidenceInventoryMismatch("effect_source_inventory"))
   }
   let seen = Array::make(count, false)
   let sources = []
   for index in 0..<member_indices.length() {
     let member_index = member_indices[index]
     if member_index < 0 || member_index >= count || seen[member_index] {
-      return Err(CaptureIssuanceReferenceMismatch("effect_source_inventory"))
+      return Err(EvidenceInventoryMismatch("effect_source_inventory"))
     }
     let source = match
       captured_effect_source_from_checked_context(
@@ -59,14 +52,14 @@ pub fn prepared_captured_effect_run_sources(
         member_index,
         invocation,
         artifacts[index],
-        original.context,
+        context,
         store_authority_cid,
         max_bytes,
         max_nodes,
         max_depth,
       ) {
       Ok(value) => value
-      Err(issue) => return Err(issue)
+      Err(_) => return Err(EvidenceInventoryMismatch("effect_source_capture"))
     }
     seen[member_index] = true
     sources.push(source)
@@ -74,7 +67,7 @@ pub fn prepared_captured_effect_run_sources(
   for index in 0..<count {
     if (effect_preview_member_relation_source(preview, index) is Some(_)) !=
       seen[index] {
-      return Err(CaptureIssuanceReferenceMismatch("effect_source_inventory"))
+      return Err(EvidenceInventoryMismatch("effect_source_inventory"))
     }
   }
   Ok(sources)

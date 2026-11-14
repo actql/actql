@@ -1,13 +1,20 @@
 ///|
-fn prepared_source_test_validate(
+fn prepared_source_test_project(
   chain : CapturedRunTestChain,
   captured : PublicationContract,
   prepared : PreparedCapturedEffectRun,
   preview : EffectPreviewIdentity,
-) -> Unit {
-  validate_prepared_effectful_computation_evidence_chain(
+  indices : Array[Int],
+  artifacts : Array[PublicationContract],
+  store : String,
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+  invocation? : PublicationContract? = None,
+) -> Result[Array[CapturedEffectSourceArtifact], RunEvidenceChainIssue] {
+  prepared_captured_effect_run_sources(
     chain.run,
-    chain.invocation,
+    invocation.unwrap_or(chain.invocation),
     [chain.definition],
     [chain.artifact],
     chain.manifest,
@@ -15,14 +22,17 @@ fn prepared_source_test_validate(
     captured,
     prepared,
     preview,
-    65536,
-    4096,
-    32,
-  ).unwrap()
+    indices,
+    artifacts,
+    store,
+    bytes,
+    nodes,
+    depth,
+  )
 }
 
 ///|
-test "prepared Source projection requires the original checked chain and preserves legacy binding semantics" {
+test "prepared Source combined call preserves legacy Result and Table binding semantics without a standing proof" {
   for table in [false, true] {
     let chain = captured_run_test_chain()
     let captured = final_test_captured(chain, table~)
@@ -35,27 +45,11 @@ test "prepared Source projection requires the original checked chain and preserv
       _ => true,
     ).unwrap()
     let artifact = final_test_source_artifact(chain, table~)
-    assert_true(
-      prepared_captured_effect_run_sources(
-        captured,
-        prepared,
-        preview,
-        chain.invocation,
-        [0],
-        [artifact],
-        ordering_test_cid("d"),
-        65536,
-        4096,
-        32,
-      )
-      is Err(_),
-    )
-    prepared_source_test_validate(chain, captured, prepared, preview)
-    let sources = prepared_captured_effect_run_sources(
+    let sources = prepared_source_test_project(
+      chain,
       captured,
       prepared,
       preview,
-      chain.invocation,
       [0],
       [artifact],
       ordering_test_cid("d"),
@@ -87,7 +81,7 @@ test "prepared Source projection requires the original checked chain and preserv
 }
 
 ///|
-test "prepared Source projection rejects foreign context limits coverage and changed per-item body" {
+test "prepared Source combined call rejects foreign capture changed chain body Store coverage and insufficient limits" {
   let chain = captured_run_test_chain()
   let captured = final_test_captured(chain)
   let preview = final_test_preview(chain)
@@ -99,7 +93,6 @@ test "prepared Source projection rejects foreign context limits coverage and cha
     _ => true,
   ).unwrap()
   let artifact = final_test_source_artifact(chain)
-  prepared_source_test_validate(chain, captured, prepared, preview)
   for
     (
       other_captured,
@@ -125,7 +118,7 @@ test "prepared Source projection rejects foreign context limits coverage and cha
       ),
       (
         captured,
-        final_test_preview(chain),
+        final_test_preview(chain, table=true, plan=false),
         chain.invocation,
         [0],
         [artifact],
@@ -137,7 +130,7 @@ test "prepared Source projection rejects foreign context limits coverage and cha
       (
         captured,
         preview,
-        captured_run_test_chain().invocation,
+        chain.manifest,
         [0],
         [artifact],
         ordering_test_cid("d"),
@@ -196,7 +189,7 @@ test "prepared Source projection rejects foreign context limits coverage and cha
         [0],
         [artifact],
         ordering_test_cid("d"),
-        65537,
+        1,
         4096,
         32,
       ),
@@ -208,7 +201,7 @@ test "prepared Source projection rejects foreign context limits coverage and cha
         [artifact],
         ordering_test_cid("d"),
         65536,
-        4095,
+        1,
         32,
       ),
       (
@@ -220,87 +213,233 @@ test "prepared Source projection rejects foreign context limits coverage and cha
         ordering_test_cid("d"),
         65536,
         4096,
-        31,
+        1,
       ),
     ] {
     assert_true(
-      prepared_captured_effect_run_sources(
-        other_captured, prepared, other_preview, invocation, indices, artifacts,
-        store, bytes, nodes, depth,
+      prepared_source_test_project(
+        chain,
+        other_captured,
+        prepared,
+        other_preview,
+        indices,
+        artifacts,
+        store,
+        bytes,
+        nodes,
+        depth,
+        invocation=Some(invocation),
       )
       is Err(_),
     )
   }
-}
-
-///|
-test "prepared Source DATA replay performs N member projections after one chain instead of 2N whole-context entries" {
-  for n in [1, 17] {
-    let chain = captured_run_test_chain()
-    let captured = final_test_captured(chain)
-    let preview = final_test_preview(chain)
-    let prepared = prepare_recovered_captured_effect_run(
+  // A previous successful projection cannot cache acceptance for changed DATA.
+  prepared_source_test_project(
+    chain,
+    captured,
+    prepared,
+    preview,
+    [0],
+    [artifact],
+    ordering_test_cid("d"),
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  |> ignore
+  assert_true(
+    prepared_source_test_project(
+      chain,
       captured,
+      prepared,
+      preview,
+      [0],
+      [artifact],
+      ordering_test_cid("e"),
       65536,
       4096,
       32,
-      _ => true,
-    ).unwrap()
-    let artifact = final_test_source_artifact(chain)
-    // Actual Core validators, not elapsed time or a fake Resource receipt.
-    // N is repeated immutable one-member DATA projections, not N Effects.
-    let mut chain_calls = 0
-    prepared_source_test_validate(chain, captured, prepared, preview)
-    chain_calls += 1
-    let mut member_calls = 0
-    let mut legacy_context_entries = 0
-    for _ in 0..<n {
-      assert_true(
-        captured_effect_source_inventory_from_capture_valid(
-          preview,
-          [0],
-          [artifact],
-          chain.invocation,
-          captured,
-          ordering_test_cid("d"),
-          65536,
-          4096,
-          32,
+    )
+    is Err(_),
+  )
+}
+
+///|
+// Existing synthetic reference-closure fixture, expanded to actual N distinct
+// members. No provider, send, authorisation or physical holding is executed.
+fn prepared_source_test_members(
+  chain : CapturedRunTestChain,
+  n : Int,
+) -> (PublicationContract, EffectPreviewIdentity, Array[PublicationContract]) {
+  let placeholder = ordering_test_cid("a")
+  let raw = final_test_preview_wire(chain, placeholder, placeholder)
+  let value = captured_test_value(raw)
+  let effects = match @json.object_field(value, "effects") {
+    Some(@json.Array(items)) => items
+    _ => abort("Missing fixture effects")
+  }
+  let original = captured_test_wire(@json.array_values(effects)[0])
+  let build = fn(cids : Array[String], preview_cid : String) -> String {
+    let wires = []
+    let identity_pins = [
+      "01", "02", "03", "04", "05", "06", "07", "08", "09", "0a", "0b", "0c", "0d",
+      "0e", "0f", "10", "11",
+    ]
+    for index in 0..<n {
+      wires.push(
+        original
+        .replace(
+          old="\"effect_id\":\"WriteOne\"",
+          new="\"effect_id\":\"Write" + index.to_string() + "\"",
+        )
+        .replace(
+          old="\"effect_identity_cid\":\"" + placeholder + "\"",
+          new="\"effect_identity_cid\":\"sha256:" +
+            "0".repeat(62) +
+            identity_pins[index] +
+            "\"",
+        )
+        .replace(
+          old="\"effect_member_preview_cid\":\"" + placeholder + "\"",
+          new="\"effect_member_preview_cid\":\"" + cids[index] + "\"",
         ),
       )
-      legacy_context_entries += 1
+    }
+    raw
+    .replace(
+      old="\"effects\":[" + original + "]",
+      new="\"effects\":[" + wires.join(",") + "]",
+    )
+    .replace(
+      old="\"effect_preview_cid\":\"" + placeholder + "\"",
+      new="\"effect_preview_cid\":\"" + preview_cid + "\"",
+    )
+  }
+  let (_, members) = derive_effect_preview_identities(
+    build(Array::make(n, placeholder), placeholder),
+    2097152,
+    100000,
+    32,
+  ).unwrap()
+  let (preview_cid, _) = derive_effect_preview_identities(
+    build(members, placeholder),
+    2097152,
+    100000,
+    32,
+  ).unwrap()
+  let preview = admit_effect_preview_identity(
+    build(members, preview_cid),
+    publication_contract_identity(chain.run),
+    run_evidence_value_identity(chain.authoring),
+    2097152,
+    100000,
+    32,
+  ).unwrap()
+  let artifact = final_test_source_artifact(chain)
+  let sources = []
+  let locals = []
+  let plans = []
+  for index in 0..<n {
+    let source = admit_captured_effect_source_artifact(
+      preview,
+      index,
+      chain.invocation,
+      artifact,
+      ordering_test_cid("d"),
+    ).unwrap()
+    sources.push(source)
+    locals.push(final_test_local_source(chain, source))
+    plans.push(("Write" + index.to_string(), "{}"))
+  }
+  let snapshot = admit_captured_result_snapshot(
+    chain.definition,
+    chain.artifact,
+    "[{\"value\":7}]",
+    ["value"],
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let captured = issue_effectful_captured_run(
+    chain.run,
+    chain.invocation,
+    [chain.definition],
+    [chain.artifact],
+    chain.manifest,
+    chain.receipt,
+    [snapshot],
+    sources,
+    locals,
+    [],
+    chain.authoring,
+    chain.models,
+    preview,
+    plans,
+    2097152,
+    100000,
+    32,
+  ).unwrap()
+  (captured, preview, Array::make(n, artifact))
+}
+
+///|
+test "prepared Source combined call validates one actual N-member chain instead of 2N repeated whole-context Source entries" {
+  for n in [1, 2, 17] {
+    let chain = captured_run_test_chain()
+    let (captured, preview, artifacts) = prepared_source_test_members(chain, n)
+    let prepared = prepare_recovered_captured_effect_run(
+      captured,
+      2097152,
+      100000,
+      32,
+      _ => true,
+    ).unwrap()
+    let indices = Array::makei(n, index => index)
+    let projected = prepared_source_test_project(
+      chain,
+      captured,
+      prepared,
+      preview,
+      indices,
+      artifacts,
+      ordering_test_cid("d"),
+      2097152,
+      100000,
+      32,
+    ).unwrap()
+    assert_eq(projected.length(), n)
+    assert_true(
+      captured_effect_source_inventory_from_capture_valid(
+        preview,
+        indices,
+        artifacts,
+        chain.invocation,
+        captured,
+        ordering_test_cid("d"),
+        2097152,
+        100000,
+        32,
+      ),
+    )
+    let mut whole_source_entries = n // Actual inventory validator visits N.
+    for index in 0..<n {
       let legacy = admit_captured_effect_source_from_capture(
         preview,
-        0,
+        index,
         chain.invocation,
-        artifact,
+        artifacts[index],
         captured,
         ordering_test_cid("d"),
-        65536,
-        4096,
+        2097152,
+        100000,
         32,
       ).unwrap()
-      legacy_context_entries += 1
-      let actual = prepared_captured_effect_run_sources(
-        captured,
-        prepared,
-        preview,
-        chain.invocation,
-        [0],
-        [artifact],
-        ordering_test_cid("d"),
-        65536,
-        4096,
-        32,
-      ).unwrap()
-      member_calls += actual.length()
+      whole_source_entries += 1
       assert_eq(
-        captured_effect_source_holding_cid(actual[0]),
+        captured_effect_source_holding_cid(projected[index]),
         captured_effect_source_holding_cid(legacy),
       )
     }
-    assert_eq(chain_calls, 1)
-    assert_eq(member_calls, n)
-    assert_eq(legacy_context_entries, 2 * n)
+    assert_eq(whole_source_entries, 2 * n)
   }
 }

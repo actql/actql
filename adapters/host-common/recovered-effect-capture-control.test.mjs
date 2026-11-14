@@ -59,27 +59,29 @@ test('prepared Source adapter projects N original handles with one Core call and
     const sources=Array.from({length:n},(_,memberIndex)=>({memberIndex,
       artifact:f.control.admit('effect_source_artifact','original '+memberIndex,f.limits)}));
     const originals=Array.from({length:n},(_,index)=>({index}));let calls=0;
-    f.moon.clientProgramRecoveredEffectCapturedRunSources=(actual,prepared,ownedPreview,issued,indices,artifacts,store,...bounds)=>{
+    f.moon.clientProgramRecoveredEffectCapturedRunSources=(run,issued,definitions,results,manifest,receipt,actual,prepared,ownedPreview,indices,artifacts,store,...bounds)=>{
       assert.strictEqual(actual,f.original);assert.strictEqual(prepared,f.prepared);
       assert.equal(ownedPreview.originalPreview,true);assert.equal(issued.wire,'original invocation');
       assert.deepEqual(indices,Array.from({length:n},(_,i)=>i));assert.equal(artifacts.length,n);
       assert.equal(store,cid(4));assert.deepEqual(bounds,[f.limits.maxWireBytes,f.limits.maxNodes,f.limits.maxDepth]);
       calls++;return ok(originals);
     };
+    const chain={runDefinition:f.definition,invocation,definitions:[],artifacts:[],manifest:f.definition,computationReceipt:f.definition,capturedRun:captured};
     f.moon.strategyCapturedEffectSourceHoldingCid=original=>cid(original.index+100);
     f.moon.strategyAdmitCapturedEffectSourceFromCapture=assert.fail;
     f.moon.strategyCapturedEffectSourceInventoryFromCaptureValid=assert.fail;
-    const projected=f.control.prepareCapturedEffectSourceInventory(preview,sources,invocation,captured,cid(4),f.limits);
+    assert.equal(f.control.hasPreparedCapturedEffectRun(captured),true);
+    const projected=f.control.prepareCapturedEffectSourceInventory(chain,preview,sources,cid(4),f.limits);
     assert.equal(projected.length,n);assert.equal(calls,1);
     projected.forEach((source,index)=>assert.equal(f.control.capturedEffectSourceHoldingCid(source),cid(index+100)));
-    assert.throws(()=>f.control.prepareCapturedEffectSourceInventory(preview,sources,invocation,{...captured},cid(4),f.limits),/Foreign publication contract/);
-    assert.throws(()=>f.control.prepareCapturedEffectSourceInventory({...preview},sources,invocation,captured,cid(4),f.limits),/Invalid prepared Effect source/);
+    assert.throws(()=>f.control.prepareCapturedEffectSourceInventory({...chain,capturedRun:{...captured}},preview,sources,cid(4),f.limits),/Foreign publication contract/);
+    assert.throws(()=>f.control.prepareCapturedEffectSourceInventory(chain,{...preview},sources,cid(4),f.limits),/Invalid prepared Effect source/);
     const primary=new Error('same original prepared Source refused');
     f.moon.clientProgramRecoveredEffectCapturedRunSources=()=>{throw primary;};
-    assert.throws(()=>f.control.prepareCapturedEffectSourceInventory(preview,sources,invocation,captured,cid(4),f.limits),e=>e===primary);
+    assert.throws(()=>f.control.prepareCapturedEffectSourceInventory(chain,preview,sources,cid(4),f.limits),e=>e===primary);
     assert.equal(calls,1);
     const legacy=f.control.admit('captured_run','legacy captured',f.limits);
-    assert.equal(f.control.prepareCapturedEffectSourceInventory(preview,sources,invocation,legacy,cid(4),f.limits),undefined);
+    assert.equal(f.control.prepareCapturedEffectSourceInventory({...chain,capturedRun:legacy},preview,sources,cid(4),f.limits),undefined);
   }
 });
 
