@@ -584,6 +584,37 @@ test('the original Native profile consumes its selected case count and refuses o
   }
 });
 
+test('actual counted Native child admits closed eight-way inputs before any fixture and refuses missing inventory', () => {
+  const script = fileURLToPath(new URL('test-native-salesforce-effect-preview.mjs', import.meta.url));
+  const original = ['--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize', '--verbose', 'src/stage_results'];
+  const invoke = (partition, {args = original, count = '37'} = {}) => {
+    const env = {...process.env, ACTQL_TEST_NATIVE_CORE_PARTITION: partition, ACTQL_TEST_SCRATCH_ROOT: ''};
+    delete env.NODE_TEST_CONTEXT;
+    return spawnSync(process.execPath, [script, ...(args === null ? [] : ['--core-test-json', JSON.stringify(args)]),
+      ...(count === null ? [] : ['--core-test-count', count])], {env, encoding: 'utf8', timeout: 5000});
+  };
+  // An explicitly empty scratch input stops the original CLI after its actual
+  // admission assertions and before mkdir, TLS, a compiler or any test child.
+  for (const partition of [2, 4, 8].flatMap(count => Array.from({length: count}, (_, i) => `${i + 1}/${count}`))) {
+    const result = invoke(partition);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /ACTQL_TEST_SCRATCH_ROOT is required/u, partition);
+    assert.doesNotMatch(result.stderr, /original selected case inventory|Invalid Native core/u);
+  }
+  for (const partition of ['0/8', '9/8', '8/4', '3/2', '3/3', '1/16']) {
+    const result = invoke(partition);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /original selected case inventory/u);
+    assert.doesNotMatch(result.stderr, /ACTQL_TEST_SCRATCH_ROOT is required/u);
+  }
+  for (const options of [{args: null, count: null}, {args: []}, {count: null}, {count: '0'}, {count: '-1'}, {count: 'NaN'}, {args: ['src/stage_results', 3]}]) {
+    const result = invoke('1/8', options);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /original selected case inventory|Invalid Native core/u);
+    assert.doesNotMatch(result.stderr, /ACTQL_TEST_SCRATCH_ROOT is required/u);
+  }
+});
+
 test('Native partition target oracle keeps original mandatory requests once and refuses every sibling request', () => {
   const source = readFileSync(new URL('test-native-salesforce-effect-preview.mjs', import.meta.url), 'utf8');
   const begin = source.indexOf('const corePartition = process.env.ACTQL_TEST_NATIVE_CORE_PARTITION;');
@@ -598,7 +629,7 @@ test('Native partition target oracle keeps original mandatory requests once and 
   ];
   const check = (partition, selected, changes = {}) => {
     const context = {assert, process: {env: {ACTQL_TEST_NATIVE_CORE_PARTITION: partition}},
-      coreArgs: selected ? ['src/platform_native/salesforce_effect_preview/native_test'] : ['src/other'],
+      coreExpectedTests: 37, coreArgs: selected ? ['src/platform_native/salesforce_effect_preview/native_test'] : ['src/other'],
       residentProposals: false, originalLocalReview: false, directLocalClaimCustody: false,
       residentMappedCreate: false, residentOriginalHolder: false,
       code: 0, signal: null, expected, paths: selected ? originalPaths : [],
@@ -612,7 +643,7 @@ test('Native partition target oracle keeps original mandatory requests once and 
     delete context.paths; delete context.writeBodies;
     return runInNewContext(body, {...context, pathsWire, bodiesWire});
   };
-  for (const partition of ['1/2', '2/2']) {
+  for (const partition of [2, 4, 8].flatMap(count => Array.from({length: count}, (_, i) => `${i + 1}/${count}`))) {
     assert.doesNotThrow(() => check(partition, true));
     assert.doesNotThrow(() => check(partition, false));
     assert.throws(() => check(partition, true, {writes: 0, rejectedWrites: 0, writeBodies: [], paths: []}));
@@ -620,7 +651,10 @@ test('Native partition target oracle keeps original mandatory requests once and 
     assert.throws(() => check(partition, false, {paths: [originalPaths[0]]}));
     assert.throws(() => check(partition, false, {code: 7}));
   }
-  assert.throws(() => check('3/3', false), /original selected case inventory/u);
+  for (const partition of ['0/8', '9/8', '8/4', '3/2', '3/3', '1/16'])
+    assert.throws(() => check(partition, false), /original selected case inventory/u);
+  for (const changes of [{coreArgs: undefined}, {coreArgs: []}, {coreExpectedTests: undefined}, {coreExpectedTests: 0}])
+    assert.throws(() => check('1/8', false, changes), /original selected case inventory/u);
 });
 
 test('Native partition marker reaches only its ordinary oracle and never other fixture or compiler children', () => {

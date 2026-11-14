@@ -36,7 +36,9 @@ if (coreArgs !== undefined) {
     'Invalid Native core fixture invocation');
 }
 const corePartition = process.env.ACTQL_TEST_NATIVE_CORE_PARTITION;
-assert(!corePartition || coreArgs !== undefined && /^[1-4]\/(?:2|4)$/u.test(corePartition) && Number(corePartition[0]) <= Number(corePartition.at(-1)),
+assert(!corePartition || Array.isArray(coreArgs) && coreArgs.length > 0 &&
+  Number.isSafeInteger(coreExpectedTests) && coreExpectedTests > 0 &&
+  /^[1-8]\/(?:2|4|8)$/u.test(corePartition) && Number(corePartition[0]) <= Number(corePartition.at(-1)),
   'Native Core partition requires its original selected case inventory');
 // The unchanged write-oracle package belongs to exactly one ordinary
 // partition. Its sibling retains the same peer but must make zero requests.
