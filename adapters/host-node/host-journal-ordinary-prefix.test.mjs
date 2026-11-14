@@ -290,17 +290,38 @@ test('ordinary Journal cold reopening uses fresh startup custody for the same sa
   const f = await fixture('ordinary Journal actual service fresh-process cold reopen');
   const openAndClose = expected => `
     import assert from 'node:assert/strict'; import {join} from 'node:path';
-    import {connect} from '@actql/local-node';
-    const client=await connect({mode:'local',installation:{directory:'.actql'},profile:'mock'});
-    const duty=await client.prepareJournal();
-    assert.equal(await duty.admitRootFormat(client.root),${JSON.stringify(expected)});
-    const journal=await duty.openRequestJournal(join(client.root,'requests'),{});
+    import {prepareHostJournalInstallation} from ${JSON.stringify(join(f.root, 'adapters/host-node/node-host-journal-installation.mjs'))};
+    import {beginInitialControlInstallation} from ${JSON.stringify(join(f.root, 'adapters/host-node/node-initial-control-installation.mjs'))};
+    import {readFileSync,writeFileSync} from 'node:fs';
+    const moon=await import(${JSON.stringify(process.env.ACTQL_TEST_COMMON_RUNTIME ?? new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url).href)});
+    const root=${JSON.stringify(join(f.scratch.path,'host'))};
+    const originals=Object.freeze({host:{},installation:{root},generation:{},
+      supplier:prepareHostJournalInstallation,moduleLifetime:import.meta});
+    const scope=await beginInitialControlInstallation(originals,{});
+    const duty=await prepareHostJournalInstallation(originals);
+    assert.equal(await duty.admitRootFormat(root),${JSON.stringify(expected)});
+    const journal=await duty.openRequestJournal(join(root,'requests'),{});
     journal.observationStorage();
+    const fields={authorityScopeCid:'sha256:'+'a'.repeat(64),currentAuthorization:true};
+    const originalPath=join(root,'..','same-journal-intent.json');
+    if(${JSON.stringify(expected)}==='new'){
+      const ref={epoch:journal.issueSubmissionEpoch(fields,moon),nonce:'same-original-intent'};
+      const intent=moon.clientSubmittedIntent(JSON.stringify({kind:'aql',input:{format:'aql-text',text:'SELECT 1 AS value'},parameters:null}),1048576,65536,64);
+      const retained=journal.recordSubmittedIntent(ref,intent,fields,moon);
+      assert.equal(retained.inserted,true);
+      writeFileSync(originalPath,JSON.stringify({ref,intentCid:retained.intentCid,revision:retained.revision}));
+    }else{
+      const original=JSON.parse(readFileSync(originalPath,'utf8'));
+      const retained=journal.lookupSubmittedIntent(original.ref,fields,moon);
+      assert.equal(retained.intentCid,original.intentCid);assert.equal(retained.revision,original.revision);
+    }
     assert.equal((await duty.close()).pending,false);
-    assert.equal((await client.scope.close()).pending,false);
+    assert.equal((await scope.close()).pending,false);
   `;
-  // Both children operate only on this newly created test's own state. No
-  // historical Run/DB/key is restored, repaired or replayed between processes.
+  // Exercise the actual ordinary private adapter, Host/Journal owner and
+  // initial-control scope. The controlled Host originals are explicit fixture
+  // inputs; the historical captured public-prefix loader is not this route.
+  // Both children use only this test's new state, never a historical Run/DB/key.
   f.run(openAndClose('new'));
   f.run(openAndClose('current'));
   f.scratch.passed();
