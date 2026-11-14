@@ -15,6 +15,7 @@ fn begin_native_local_host_adoption_original(
   root_opening? : NativeLocalAdoptionRootOpening = LegacyPrivateRoots,
   product_original? : NativeLocalProductConfigurationSession? = None,
   operator_host? : NativeLocalOperatorHostOriginal? = None,
+  construction? : ((@authorization.AccountConfigurationConstruction) -> Bool)? = None,
 ) -> Result[NativeLocalAdoptionSession, NativeLocalAdoptionIssue] {
   if !local_adoption_name(state_name) ||
     !local_adoption_name(source_name) ||
@@ -35,15 +36,26 @@ fn begin_native_local_host_adoption_original(
     Err(issue) => return Err(Filesystem(issue))
   }
   let (source_body, source_generation) = match
-    local_adoption_read(source_root, source_name, 1048576L) {
+    local_account_read(
+      source_root,
+      source_name,
+      None,
+      construction,
+      retain=true,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let text = @utf8.decode(source_body) catch { _ => return Err(Encoding) }
-  let configuration = match
-    @authorization.admit_account_configuration_json(text) {
+  let configuration = match local_account_decode(source_body, construction) {
     Ok(value) => value
-    Err(issue) => return Err(Configuration(issue))
+    Err(issue) => return Err(issue)
+  }
+  // Construction can span several synchronous reservations. The admitted
+  // bytes still belong to this exact selected Root/generation after it ends.
+  guard source_root.private_ownership() is Ok(current_source) &&
+    current_source == source_ownership &&
+    source_root.verify_generation(source_name, source_generation) else {
+    return Err(SourceChanged)
   }
   if configuration.account_id() != account_id {
     return Err(ForeignAccount)
