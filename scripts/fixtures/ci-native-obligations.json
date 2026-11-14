@@ -274,5 +274,14 @@
       "job": "native-workloads",
       "id": "native-effect"
     }
-  ]
+  ],
+  "remoteClientTransport": {
+    "source": "fd25a371e6888ef1b96b4104a34df51543c51bfe",
+    "previousJob": "client-distribution-native",
+    "owner": "native-cli-installed",
+    "script": "scripts/test-native-client.mjs",
+    "scriptSha256": "2db94aaa7910ce4e87bee57013e04c2f6139a6941e0cd38721970b9336dfded2",
+    "retiredCiBuild": "moon build --target native --release src/cmd/native_client",
+    "environmentPort": "ACTQL_TEST_NATIVE_CLIENT_BINARY"
+  }
 }

@@ -20,7 +20,9 @@ acceptance. The workflow now schedules these independent workloads:
 - `client-distribution-mutations` runs the four original mutation commands
 - `client-distribution-packed` uses the shared tarballs for Delivery, dependency-free
   Local, Node, Workspace, Graph and Checkpoint acceptance without a source runtime build
-- `client-distribution-native` builds and tests the original Native Client transport
+- `native-cli-installed` builds the versioned Remote CLI, exercises its fresh
+  installation, and runs the unchanged Native Client transport/contract corpus
+  against that exact installed binary; no second plain Remote build is needed
 - `client-packed` uses the shared tarballs for normal Local asset and Sheets
   consumers, and runs the unchanged Embedded Checkpoint, single INFER,
   public SQL/Pipe and Result description acceptance, with existing evidence uploads
@@ -30,7 +32,8 @@ acceptance. The workflow now schedules these independent workloads:
   both Compute-count probes and all nine process-death boundaries
 
 The package consumers and source-backed distribution jobs depend on the exact
-package producer. Native Client transport and Salesforce start independently.
+package producer. Native Client transport shares the existing installed Remote owner and its exact
+normal package input; Salesforce starts independently.
 Salesforce's source-backed recovery imports require the Local runtime bridges;
 it prepares these in its own checkout before the existing gates.
 The existing distribution and installed-query workloads retain their 30-minute
@@ -40,7 +43,10 @@ own runner so the other installed-query consumers cannot consume that budget.
 Its complete command is unchanged and remains required by `client`.
 The old 53-command
 `check:distribution-client` local umbrella is unchanged. Its independent CI
-workloads retain all 49 remaining commands once; the four common source
+workloads retain the 48 remaining original commands once: only the duplicate
+plain Remote compiler is retired, while its transport suite uses the versioned
+installed binary through `ACTQL_TEST_NATIVE_CLIENT_BINARY`. The local umbrella
+still keeps its original build-and-test command. The four common source
 preparation commands repeat only in the three source-backed jobs. Each job has
 private installation, mutation and compiler state. After successful preparation,
 independent cases continue after a sibling failure and respect cancellation.
