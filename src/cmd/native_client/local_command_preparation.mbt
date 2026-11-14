@@ -129,6 +129,8 @@ priv struct LocalCommandPreparationOriginal {
   mut journal_read_open : Bool
   mut reply_outcome : Result[String, String]?
   mut read_failure : @files.NativeBoundedTextFailure?
+  // Actual escaping metadata prefix, not completed constructor scratch.
+  mut metadata_retained : Int64
   mut phase_open : Bool
   mut standalone_cleanup_open : Bool
   mut primary : LocalCommandPreparationIssue?
@@ -296,6 +298,7 @@ fn prepare_local_command_preparation_original(
     journal_read_open: false,
     reply_outcome: None,
     read_failure: None,
+    metadata_retained: 0L,
     phase_open: false,
     standalone_cleanup_open: false,
     primary: None,
