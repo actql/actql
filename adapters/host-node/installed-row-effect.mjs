@@ -1245,8 +1245,10 @@ export function composeInstalledRowEffectOwners(effects, descriptors, environmen
       (owner.owned.recoverRequests !== undefined &&
         owner.owned.recoverMemberRequests === undefined))) fail('InstalledEffectSetOwnerMismatch');
   const first = owners[0];
-  if (owners.some(owner => owner.configuredMaxMembers !== undefined &&
-      descriptors.length > owner.configuredMaxMembers) || owners.some(owner => owner.moon !== first.moon ||
+  // This standalone composition has no original Request construction borrow.
+  // Preserve its installed envelope; a later managed Plan cannot retroactively
+  // fund the Set, route and owner vectors constructed here.
+  if (descriptors.length > first.limits.maxMembers || owners.some(owner => owner.moon !== first.moon ||
       owner.ledgerRoot !== first.ledgerRoot ||
       canonicalJson(owner.limits) !== canonicalJson(first.limits))) {
     fail('InstalledEffectSetOwnerMismatch');
