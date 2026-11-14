@@ -81,7 +81,12 @@ flat wire representation. Original literal Values retain their complete cached
 byte recipe even when it is smaller than a general output envelope.
 
 The default bounded Values and audited row chains fund actual persistent
-output on the same Task before each output commit. Dispatch preparation retains
+output on the same Task before each output commit. The existing Local module retains its selected default startup capacity once,
+alongside its original constructor selection. Dispatch preparation and repeated
+Run reads return that same stored capacity; only a genuinely different checked
+sequence refinement requires its own original-envelope calculation. The module
+container quote includes these retained per-slot records before construction.
+Dispatch preparation retains
 the same startup capacity that its selected default constructors consume;
 it does not first demand the maximum possible future output. Every child's
 fixed metadata and full live scratch remain backed. Sequential child scratch

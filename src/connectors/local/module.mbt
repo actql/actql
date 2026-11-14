@@ -9,11 +9,19 @@ struct LocalComputeModule {
   selected_providers : Array[ManagedProvider?]
   selected_capacities : Array[@execution.ExecutionCapacity?]
   // Original constructor selection only, not permission or runtime liveness.
-  selected_default : Array[Bool]
+  selected_default : Array[LocalDefaultConstructor]
   managed_capacity : @connector.FixedComputeCapacity
   execution : @execution.SequenceExecutionLimits
   measurement : @execution.FixedInputGuardMeasureLimits
   max_work : Int
+}
+
+///|
+// Original selected constructor DATA. The same module owns the computed
+// startup quote; none of these states supplies permission or liveness.
+priv enum LocalDefaultConstructor {
+  Injected
+  OriginalDefault(@execution.ExecutionCapacity?)
 }
 
 ///|
@@ -25,7 +33,7 @@ pub fn local_module_container_inventory(
   slots : Int,
   installed_providers : Int,
 ) -> @execution.PreparationRepresentationUnits? {
-  guard @execution.checked_preparation_add_product(10L, slots.to_int64(), 3L)
+  guard @execution.checked_preparation_add_product(10L, slots.to_int64(), 6L)
     is Some(references) &&
     @execution.checked_preparation_add_product(
       references,
@@ -36,9 +44,11 @@ pub fn local_module_container_inventory(
     return None
   }
   Some({
-    record_headers: 10L,
+    // One original selection carrier, its optional startup value and the
+    // retained two-word capacity per slot, alongside all five old containers.
+    record_headers: 10L + 3L * slots.to_int64(),
     reference_slots: references,
-    scalar_words: 8L + slots.to_int64(),
+    scalar_words: 8L + 3L * slots.to_int64(),
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   })
@@ -88,7 +98,10 @@ pub fn prepare_local_compute_module(
     original_sequences.length(),
     None,
   )
-  let selected_default = Array::make(original_sequences.length(), false)
+  let selected_default : Array[LocalDefaultConstructor] = Array::make(
+    original_sequences.length(),
+    Injected,
+  )
   for slot, sequence in original_sequences {
     let mut selected : ManagedProvider? = None
     for provider in original_providers {
@@ -102,7 +115,7 @@ pub fn prepare_local_compute_module(
     let selected = match selected {
       Some(_) => selected
       None => {
-        selected_default[slot] = true
+        selected_default[slot] = OriginalDefault(None)
         local_default_managed_provider(
           original_providers, execution, measurement, sequence,
         )
@@ -119,7 +132,7 @@ pub fn prepare_local_compute_module(
     selected_providers[slot] = selected
     selected_capacities[slot] = capacity
   }
-  Ok({
+  let installed : LocalComputeModule = {
     registry,
     registration,
     sequences: original_sequences,
@@ -136,7 +149,18 @@ pub fn prepare_local_compute_module(
     execution,
     measurement,
     max_work,
-  })
+  }
+  // No module handle has escaped. Default constructor quotation is pure and
+  // has no provider/current/IO callback; preserve its result once before the
+  // original module reaches dispatch preparation or a Run.
+  for slot, sequence in original_sequences {
+    if selected_default[slot] is OriginalDefault(_) {
+      selected_default[slot] = OriginalDefault(
+        local_module_default_output_start_capacity(installed, slot, sequence),
+      )
+    }
+  }
+  Ok(installed)
 }
 
 ///|
@@ -305,8 +329,27 @@ pub fn local_module_metered_output_start_capacity(
   slot : Int,
   sequence : @execution.GeneratedSequence,
 ) -> @execution.ExecutionCapacity? {
+  guard installed.sequences.get(slot) is Some(original) else { return None }
+  if physical_equal(sequence, original) {
+    return match installed.selected_default.get(slot) {
+      Some(OriginalDefault(startup)) => startup
+      _ => None
+    }
+  }
+  // A genuinely different checked refinement has different constructor
+  // demand. It still passes the old same-owner/full-envelope proof below;
+  // equal coordinates cannot read another original's retained quote.
+  local_module_default_output_start_capacity(installed, slot, sequence)
+}
+
+///|
+fn local_module_default_output_start_capacity(
+  installed : LocalComputeModule,
+  slot : Int,
+  sequence : @execution.GeneratedSequence,
+) -> @execution.ExecutionCapacity? {
   let count = @execution.generated_sequence_step_count(sequence)
-  guard installed.selected_default.get(slot) == Some(true) &&
+  guard installed.selected_default.get(slot) is Some(OriginalDefault(_)) &&
     count > 0 &&
     // Only these existing bounded singletons attach their output budget to
     // this same sequence's before-commit growth owner.
