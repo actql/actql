@@ -1814,3 +1814,18 @@ test('distribution mutation matrix executes each unchanged script once after its
   assert.deepEqual(job.needs, ['select-targets', 'client-packages']);
   assert(jobs.client.needs.includes('client-distribution-mutations'));
 });
+
+// These actual Core/SQLite cases use the existing distribution runtime setup.
+test('Journal same-parent retention and exact legacy adoption run once in distribution', () => {
+  const command = JSON.parse(readFileSync(new URL('../package.json', import.meta.url))).scripts['check:distribution-client'];
+  const commands = runs('client-distribution');
+  for (const path of ['adapters/host-node/client-request-journal-parent-budget.test.mjs',
+    'adapters/host-node/client-submission-usage.test.mjs',
+    'adapters/host-node/host-journal-schema-support.test.mjs']) {
+    assert.equal(command.split(/\s+/).filter(token => token === path).length, 1);
+    assert.equal(commands.flatMap(value => value.split(/\s+/)).filter(token => token === path).length, 1);
+    for (const consumer of consumers.filter(name => name !== 'client-distribution')) {
+      assert.equal(runs(consumer).flatMap(value => value.split(/\s+/)).filter(token => token === path).length, 0);
+    }
+  }
+});

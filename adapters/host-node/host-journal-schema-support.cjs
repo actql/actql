@@ -99,4 +99,9 @@ const sql = Object.freeze([
     UPDATE client_cancellation_row_usage SET retained_count = retained_count - 1 WHERE singleton = 1;
   END`
 ]);
-module.exports = Object.freeze({sql});
+// Exact current counter DDL plus the earlier closed format for atomic adoption.
+const parentBoundedCounters = sql.filter(value =>
+  value.startsWith('CREATE TABLE client_submitted_intent_usage (') ||
+  value.startsWith('CREATE TABLE client_submission_restart_usage (')).map(value =>
+    value.replace('retained_bytes <= 67108864','retained_bytes <= 9007199254740991'));
+module.exports = Object.freeze({sql: Object.freeze([...sql,...parentBoundedCounters])});
