@@ -35,7 +35,7 @@ test('actual entry facts correlate the original receipt without fabricated durat
     assert.deepEqual(f.emitted, [['infer', 'transport_completed', {
       ref: {namespaceId: 'namespace', authorityScopeCid: 'scope', runDefinitionCid: 'run-original'},
       task: 2, slot: 0, attempt: 1, attemptCid: 'attempt-original', outcome,
-    }, {segment: 'attempt-original'}]]);
+    }]]);
     assert.equal(f.losses(), 0);
     f.observe({event, slot: 0, attemptCid: 'attempt-original', outcome});
     assert.equal(f.emitted.length, 1);

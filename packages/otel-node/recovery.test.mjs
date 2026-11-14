@@ -55,7 +55,14 @@ function custody(root, action) {
   const database = new DatabaseSync(join(root, 'host/requests/client-requests.sqlite3'));
   try { return action(database); } finally { database.close(); }
 }
-test('public Local: real Source acquisition and Model invoke are separate CLIENT intervals', async () => {
+const transportRecords = packets => records(packets, 'logs').filter(record =>
+  attributes(record, 6)['actql.event'] === 'transport_completed');
+function assertNoInventedModelInterval(packets) {
+  assert.equal(records(packets, 'traces').filter(record =>
+    attributes(record, 9)['actql.event'] === 'transport_completed').length, 0,
+  'post-invocation diagnostic delivery times cannot measure a physical Model interval');
+}
+test('public Local: real Source interval and original Model entry fact remain distinct', async () => {
   const root = await realpath(await mkdtemp(join(tmpdir(), 'actql-otel-source-')));
   const packets = [];
   let succeeded = false;
@@ -76,7 +83,7 @@ test('public Local: real Source acquisition and Model invoke are separate CLIENT
     assert.ok(result.source.sourceReads > 0);
     assert.deepEqual(result.rows, [{id: 1, outcome: 'ok', value: {reason: null, risk: 'high'}}]);
     const spans = records(packets, 'traces');
-    for (const event of ['acquisition_interval', 'transport_completed']) {
+    for (const event of ['acquisition_interval']) {
       const selected = spans.filter(span => attributes(span, 9)['actql.event'] === event);
       assert.equal(selected.length, 1, event);
       assert.equal(field(selected[0], 6), 3n, 'real physical work uses CLIENT kind');
@@ -86,6 +93,13 @@ test('public Local: real Source acquisition and Model invoke are separate CLIENT
       assert.ok(end > start, 'elapsed time is measured, not invented');
       assert.equal(attributes(selected[0], 9)['actql.run.definition_cid'], result.ref.runDefinitionCid);
     }
+    const calls = transportRecords(packets);
+    assert.equal(calls.length, 1, 'one actual invoke emits one original Model entry fact');
+    const values = attributes(calls[0], 6);
+    assert.equal(values['actql.outcome'], 'confirmed');
+    assert.equal(values['actql.run.definition_cid'], result.ref.runDefinitionCid);
+    assert.match(values['actql.model.attempt_cid'], /^sha256:[a-f0-9]{64}$/u);
+    assertNoInventedModelInterval(packets);
     for (const packet of packets) for (const content of ['alpha', 'records.duckdb', 'public-model-resume']) {
       assert.equal(packet.body.includes(Buffer.from(content)), false, content);
     }
@@ -136,13 +150,13 @@ test(`public ${transport}: ${sampled ? 'sampled' : 'unsampled'} approval restart
     assert.ok(packets.some(packet => packet.body.includes(Buffer.from('actql.model.attempt_cid'))),
       'the physical Model attempt uses its Owner-issued identity');
     if (sampled) {
-      const calls = records(packets, 'traces').filter(record =>
-        attributes(record, 9)['actql.event'] === 'transport_completed');
-      assert.equal(calls.length, 1, 'one actual invoke produces one measured interval');
-      assert.equal(field(calls[0], 6), 3n, 'Model physical invocation is CLIENT, not HTTPS ingress');
-      assert.equal(attributes(calls[0], 9)['actql.outcome'], 'confirmed',
+      const calls = transportRecords(packets);
+      assert.equal(calls.length, 1, 'one actual invoke emits one original Model entry fact');
+      assert.equal(attributes(calls[0], 6)['actql.outcome'], 'confirmed',
         'returned is a physical observation, not Run or capture success');
-      assert.match(attributes(calls[0], 9)['actql.model.attempt_cid'], /^sha256:[a-f0-9]{64}$/u);
+      assert.match(attributes(calls[0], 6)['actql.model.attempt_cid'], /^sha256:[a-f0-9]{64}$/u);
+      assert.equal(attributes(calls[0], 6)['actql.run.definition_cid'], approved.ref.runDefinitionCid);
+      assertNoInventedModelInterval(packets);
     }
     const approvedBudget = custody(root, db => db.prepare('SELECT records, bytes FROM client_observation_runs').get());
     assert.ok(approvedBudget.records > waitingBudget.records);
@@ -156,9 +170,11 @@ test(`public ${transport}: ${sampled ? 'sampled' : 'unsampled'} approval restart
     const replayed = await phase(root, transport, endpoint, 'resume-again', flags);
     assert.deepEqual(replayed.rows, expectedRows);
     assert.equal(replayed.calls, 1, 'observation/recovery never resends the Model call');
-    if (sampled) assert.equal(records(packets, 'traces').filter(record =>
-      attributes(record, 9)['actql.event'] === 'transport_completed').length, 1,
-    'a saved response replay cannot manufacture another physical interval');
+    if (sampled) {
+      assert.equal(transportRecords(packets).length, 1,
+        'a saved response replay cannot manufacture another physical invocation fact');
+      assertNoInventedModelInterval(packets);
+    }
     if (transport === 'local') {
       custody(root, db => db.exec('DELETE FROM client_observation_runs'));
       const withoutBudget = await phase(root, transport, endpoint, 'resume-again',

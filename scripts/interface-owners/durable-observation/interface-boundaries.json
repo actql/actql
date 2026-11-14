@@ -3575,7 +3575,7 @@
     {
       "module": "adapters/host-node/infer-physical-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f13eb7b9c6506074cd33deef9e6c67723fe8b208b2b457d7061e5628a2686c65",
+      "sha256": "60d1d5ccb5a7b6e8d62b8519d12e4c31a28ef9e45c4067452b9d520373efc926",
       "exports": [
         "createInferPhysicalObservation"
       ],
