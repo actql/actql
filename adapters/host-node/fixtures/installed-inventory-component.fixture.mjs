@@ -17,7 +17,6 @@ import {captureSourceAliasConstruction, sourceAliasCollectionConstructionGeometr
   sourceMemberCollectionConstructionGeometry, sourceReferenceCollectionConstructionGeometry,
   sourceBindingCollectionConstructionGeometry}
   from '../source-alias-construction.mjs';
-import {MAX_INSTALLED_SOURCE_AUTHORITIES} from '../installed-source-limits.mjs';
 import {installedSourceReadBindings} from '../installed-source.mjs';
 import {composeInstalledEffects, validPluralEffectPaths} from '../installed-effect-inventory.mjs';
 
@@ -43,7 +42,7 @@ export async function copyInstalledInventoryLoader(from, to) {
 }
 
 function sourceFold(loadInstalledSource) {
-  const ports = {isAbsolute, MAX_INSTALLED_SOURCE_AUTHORITIES, loadInstalledSource,
+  const ports = {isAbsolute, loadInstalledSource,
     sourceMemberCollectionConstructionGeometry, sourceReferenceCollectionConstructionGeometry,
     sourceBindingCollectionConstructionGeometry,
     installedSourceReadBindings, installedSourceConfigurationReader, installedSourceEnvironmentConstructionReader,

@@ -20,11 +20,6 @@ const ownMethod = (owner, name) => {
       types.isProxy(field.value) || types.isAsyncFunction(field.value)) invalid();
   return field.value;
 };
-// Pure immutable constructor census only. Reuse the same original graph's
-// observed shape across identity/namespace phases, never authority/currentness,
-// a reservation, CID correspondence or an installed Source admission.
-const immutableCensuses = new WeakMap();
-
 // Capture originals before the profile read awaits. A quote never creates a
 // reader, changes its material, or grants a caller a construction capability.
 export function captureSourceAliasConstruction(configurationReader, moon) {
@@ -96,8 +91,6 @@ function jsonStringBytes(value) {
 export function sourceAliasDataGeometry(value) {
   if (value !== null && typeof value === 'object') {
     if (types.isProxy(value) || !Object.isFrozen(value)) invalid();
-    const original = immutableCensuses.get(value);
-    if (original !== undefined) return original;
   }
   let nodes = 0n, entries = 0n, units = 0n, weighted = 0n, depth = 0n, jsonBytes = 0n;
   const ancestors = [];
@@ -144,7 +137,6 @@ export function sourceAliasDataGeometry(value) {
   }
   visit(value, 0n);
   const result = Object.freeze({nodes, entries, units, weighted, depth, jsonBytes});
-  if (value !== null && typeof value === 'object') immutableCensuses.set(value, result);
   return result;
 }
 
