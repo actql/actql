@@ -213,7 +213,8 @@ pub fn[T] grow_funded_read_consumer_span(
     return Err(Resource(InvalidCharge))
   }
   let next = (r + retained_span, e + execution_span)
-  grow_funded_read_consumer_capacity(consumer, origin, next.0, next.1).map(_ => {
-    next
-  })
+  match grow_funded_read_consumer_capacity(consumer, origin, next.0, next.1) {
+    Ok(_) => Ok(next)
+    Err(issue) => Err(issue)
+  }
 }
