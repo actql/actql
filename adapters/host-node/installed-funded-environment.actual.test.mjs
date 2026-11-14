@@ -4,11 +4,13 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import test from 'node:test';
+import {parse} from 'acorn';
 import {createInstalledHostServices, retireInstalledSourceInitialization, withInstalledSourceLoading}
   from './installed-host-services.mjs';
 import {composeInstalledSourceEnvironment, composeInstalledInventoryEnvironment, releaseRetiredInstalledEnvironmentComposition,
   admitInstalledSourceFinalEnvironment, assertInstalledEnvironmentPublicationOriginal} from './installed-funded-environment.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
+import {selectInstalledHostEnvironment, selectInstalledLocalMaterializationEnvironment} from './installed-host-policy.mjs';
 import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
 import {createInstalledLoaderParent} from './fixtures/installed-loader-parent.fixture.mjs';
 
@@ -16,8 +18,8 @@ assert.ok(process.env.ACTQL_TEST_ENVIRONMENT_RUNTIME, 'Select the matching gener
 const native = await import(pathToFileURL(process.env.ACTQL_TEST_ENVIRONMENT_RUNTIME));
 const baseWire = readFileSync(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8').trimEnd();
 const ok = value => ({$tag: 1, _0: value});
-function document(name) {
-  const body = JSON.parse(baseWire);withFixtureConnector(body, `connector://${name}/records`);
+function document(name, selectedBase = baseWire) {
+  const body = JSON.parse(selectedBase);withFixtureConnector(body, `connector://${name}/records`);
   delete body.evidence_bundle_cid;
   return canonicalJson({...body, evidence_bundle_cid: contentCid(body)});
 }
@@ -27,7 +29,7 @@ function document(name) {
 // these tests establish ordering/identity, not actual Root/Ledger admission.
 function fixture() {
   const input = {}, unit = {}, capacity = {}, initial = {}, events = [];
-  const state = {reads: 0, from: 0, retire: 0, refuse: false, cause: undefined, current: true, retireReady: true, reconciled: [], zero: new Set(), delay: undefined};
+  const state = {reads: 0, from: 0, retire: 0, refuse: false, cause: undefined, current: true, retireReady: true, reconciled: [], zero: new Set(), rawSlots: new Set(), rawSlotCompositions: [], delay: undefined};
   const moon = {...native};
   for (const name of ['ReconcileInstalledSourceConstruction', 'CompleteInstalledSourceMaterial',
     'BorrowInstalledSourceMaterial', 'BorrowedInstalledSourceEnvironment', 'ReturnInstalledSourceMaterial',
@@ -37,6 +39,7 @@ function fixture() {
     clientProgramInstalledSourceConstructionCapacity(...values) {
       const result = native.clientProgramInstalledSourceConstructionCapacity(...values);
       if (values.every(value => value === 0n)) state.zero.add(result._0);
+      if (values[0] === 1n && values.slice(1).every(value => value === 0n)) state.rawSlots.add(result._0);
       return result;
     },
     clientProgramReconcileInstalledSourceConstruction(value, original, quote) {
@@ -45,7 +48,13 @@ function fixture() {
     },
     clientProgramTakeHostInitializationSourceCapacity(value) {assert.equal(value, initial);return ok({_0: input, _1: unit});},
     clientProgramContinueInstalledSourceMaterial(value, original) {assert.equal(value, unit);assert.equal(original, input);return ok(capacity);},
-    clientProgramComposeInstalledSourceConstructionCapacity: (original, providers) => ok({original, providers}),
+    clientProgramComposeInstalledSourceConstructionCapacity: (original, providers) => {
+      if (!state.rawSlots.has(original)) return ok({original, providers});
+      const result = native.clientProgramComposeInstalledSourceConstructionCapacity(original, providers);
+      state.rawSlotCompositions.push({original, providers, result: result._0});
+      events.push('raw-slot-quote');
+      return result;
+    },
     clientProgramReserveInstalledSourceConstruction(value, original) {
       assert.equal(value, capacity);assert.equal(original, input);events.push('reserve');
       if (state.refuse) throw state.cause;return ok();
@@ -72,6 +81,116 @@ function fixture() {
 
 const finalProfiles = Object.freeze({textTime:false,
   numericProfileCid:'sha256:'+'a'.repeat(64),graphLawCid:'sha256:'+'b'.repeat(64)});
+
+// These scalar selectors are explicit fixtures, not Resource funding. The
+// actual Environment parser, checker, Source constructor quantities and
+// original association below use the retained real component namespace.
+function localPolicyRuntime() {
+  const original=Object.freeze({});
+  return {...native,
+    clientLocalResourcePolicyOriginal:()=>original,
+    clientLocalResourcePolicyRowCeiling(value){assert.strictEqual(value,original);return 1000;},
+    clientLocalResourcePolicyModelRequestByteCeiling(value){assert.strictEqual(value,original);return 1000n;}};
+}
+
+test('Local graph defaults enter the first funded Source wire without a later policy change', () => {
+  const runtime=localPolicyRuntime();
+  const selected=selectInstalledLocalMaterializationEnvironment(runtime,baseWire,undefined,undefined,undefined,true);
+  const expected={...JSON.parse(baseWire).host_policy_profile.capacity,
+    max_file_listing_items:1000,max_graph_construction_edges:1000,
+    max_graph_construction_input_rows:1000,max_graph_construction_nodes:1000};
+  assert.deepEqual(JSON.parse(selected).host_policy_profile.capacity,expected);
+  const f=fixture(), source=document('graph-defaults',selected);
+  const composed=composeInstalledSourceEnvironment(f.services,f.moon,selected,source);
+  assert.equal(composed.wire,source);
+  assert.deepEqual(composed.body.host_policy_profile.capacity,expected);
+  assert.equal(composed.evidenceCid,contentCid(composed.body));
+  assert.ok(['max_graph_construction_edges','max_graph_construction_input_rows','max_graph_construction_nodes']
+    .every(key=>Object.hasOwn(composed.body.host_policy_profile.capacity,key)));
+  const prepared=native.clientProgramPreparePublicSourceEnvironment(composed.admitted,
+    JSON.stringify({environmentCid:composed.evidenceCid,aliases:[]}));
+  assert.ok(prepared);
+  assert.doesNotThrow(()=>assertInstalledEnvironmentPublicationOriginal(f.services,f.moon,composed,prepared,source));
+  assert.equal(f.close(),true);
+});
+
+test('Local graph defaults preserve explicit values and leave generic published policy selection unchanged', () => {
+  const runtime=localPolicyRuntime(),original=JSON.parse(baseWire).host_policy_profile.capacity;
+  const explicit={...original,max_graph_construction_edges:17,max_graph_construction_nodes:23};
+  const selected=selectInstalledLocalMaterializationEnvironment(runtime,baseWire,explicit,undefined,undefined,true);
+  assert.deepEqual(JSON.parse(selected).host_policy_profile.capacity,
+    {...explicit,max_graph_construction_input_rows:1000});
+  const independent=selectInstalledLocalMaterializationEnvironment(runtime,baseWire,explicit);
+  assert.deepEqual(JSON.parse(independent).host_policy_profile.capacity,explicit);
+  assert.equal(selectInstalledHostEnvironment(runtime,baseWire),baseWire);
+  const generic=selectInstalledHostEnvironment(runtime,baseWire,explicit);
+  assert.deepEqual(JSON.parse(generic).host_policy_profile.capacity,explicit);
+  assert.equal(Object.hasOwn(JSON.parse(generic).host_policy_profile.capacity,'max_graph_construction_input_rows'),false);
+});
+
+test('Table129 source-profile option uses the actual early-policy Host entrance', () => {
+  const source=readFileSync(new URL('./embedded-local.mjs',import.meta.url),'utf8');
+  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});
+  const host=tree.body.find(node=>node.type==='FunctionDeclaration'&&node.id.name==='openInstalledHost');
+  assert.ok(host);
+  const declarations=[];
+  const visit=node=>{
+    if(node===null||typeof node!=='object')return;
+    if(node.type==='VariableDeclarator'&&['selectBaseEnvironment','baseEnvironmentWire'].includes(node.id.name))declarations.push(node);
+    for(const value of Object.values(node)){
+      if(Array.isArray(value))value.forEach(visit);
+      else if(value!==null&&typeof value==='object')visit(value);
+    }
+  };
+  visit(host.body);assert.equal(declarations.length,2);
+  const runtime=localPolicyRuntime();
+  const select=(overrides={})=>{
+    const calls=[];
+    const values={mode:'local',effectInstallation:undefined,selectedEffectPaths:[],
+      originalInstallation:{sourceProfilePath:'source129.json'},moon:runtime,environmentSource:baseWire,
+      hostCapacityPolicy:undefined,selectedLookupPolicy:undefined,requestMemory:undefined,
+      calendarArtifact:undefined,modelInstallation:undefined,mockModels:undefined,project:undefined,
+      installedProjectOriginalsForRuntime(project,moon){assert.strictEqual(moon,runtime);return project;},
+      selectInstalledHostEnvironment,
+      selectInstalledLocalMaterializationEnvironment(...args){calls.push(args[5]);return selectInstalledLocalMaterializationEnvironment(...args);},
+      ...overrides};
+    const body=declarations.map(node=>'const '+source.slice(node.start,node.end)+';').join('\n');
+    const wire=new Function(...Object.keys(values),body+'\nreturn baseEnvironmentWire;')(...Object.values(values));
+    return {wire,calls};
+  };
+  const selected=select();assert.deepEqual(selected.calls,[true]);
+  const f=fixture(),original=document('table-profile-path',selected.wire);
+  const composed=composeInstalledSourceEnvironment(f.services,f.moon,selected.wire,original);
+  assert.equal(composed.wire,original);
+  assert.ok(['max_graph_construction_edges','max_graph_construction_input_rows','max_graph_construction_nodes']
+    .every(key=>Object.hasOwn(composed.body.host_policy_profile.capacity,key)));
+  assert.equal(f.close(),true);
+  for(const override of [{modelInstallation:{}},{mockModels:{}},{calendarArtifact:{}},{project:{modelRegistry:{}}}]){
+    const independent=select(override);assert.deepEqual(independent.calls,[false]);
+    assert.equal(Object.hasOwn(JSON.parse(independent.wire).host_policy_profile.capacity,'max_graph_construction_nodes'),false);
+  }
+  const declared=select({originalInstallation:{sourceProfilePath:'source129.json',declaredFileBaseEnvironmentWire:baseWire}});
+  assert.equal(declared.wire,baseWire);assert.deepEqual(declared.calls,[]);
+});
+
+test('initial Environment admission reserves its retained raw reference before the first index insertion', () => {
+  const f=fixture();
+  f.compose(baseWire);
+  assert.equal(f.state.from,1);
+  assert.equal(f.state.rawSlotCompositions.length,1);
+  const {original,providers,result}=f.state.rawSlotCompositions[0];
+  assert.equal(providers.length,1);
+  const slot=native.clientProgramSerializationCapacityBytes(original);
+  const before=native.clientProgramSerializationCapacityBytes(providers[0]);
+  const after=native.clientProgramSerializationCapacityBytes(result);
+  assert.equal(slot._0,256n);assert.equal(slot._1,256n);
+  // Source's existing composition law retains the provider's full peak,
+  // including its constructor workspace, alongside the new raw-reference slot.
+  assert.equal(after._0,before._1+256n);assert.equal(after._1,before._1+256n);
+  assert.ok(f.events.indexOf('raw-slot-quote')<f.events.indexOf('from'));
+  assert.equal(f.events[f.events.indexOf('from')-1],'reserve');
+  assert.equal(f.close(),true);
+});
 // Spy for this NEW bridge's caller forwarding only. The old retained namespace
 // still lacks the graph/numeric port; shared Core tests separately exercise
 // that real selection. This is not an actual new-ABI or normal qualification.

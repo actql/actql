@@ -181,7 +181,11 @@ function composeEnvironment(services, moon, baseInput, sourceInput, effectInput,
       });
       return construct(() => {
         const capacity = moon.clientProgramCheckEnvironmentFromWireConstructionCapacity(raw);
-        if (capacity === undefined) fail('InstalledEnvironmentModelConstructionUnavailable');return capacity;
+        if (capacity === undefined) fail('InstalledEnvironmentModelConstructionUnavailable');
+        // Retain the extra raw-wire reference in the private original index
+        // before its first insertion, including inputs before composition.
+        const rawSlot = checked(moon.clientProgramInstalledSourceConstructionCapacity(1n,0n,0n,0n,0n,0n));
+        return checked(moon.clientProgramComposeInstalledSourceConstructionCapacity(rawSlot,[capacity]));
       }, () => {
         const admitted = moon.clientProgramCheckEnvironmentFromWire(raw, false, false, true, false, false, false, false);
         if (admitted === undefined) fail('InstalledCheckEnvironmentConflict');
