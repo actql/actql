@@ -337,19 +337,16 @@ test "malformed configurations are rejected" {
     Err(InvalidSelectorValue("e", Scope(Resource))),
   )
   let too_many = Array::makei(MAX_SELECTOR_VALUES + 1, i => "v\{i}")
-  assert_eq(
-    checked(config([entry("e", Allow, resources(too_many))])),
-    Err(SelectorTooLarge("e", Scope(Resource))),
-  )
+  assert_eq(checked(config([entry("e", Allow, resources(too_many))])), Ok(()))
   let exclusions = Array::make(MAX_EXCLUSIONS_PER_ENTRY + 1, resources(["x"]))
   assert_eq(
     checked(config([entry("e", Allow, everything(), exclusions~)])),
-    Err(TooManyExclusions("e")),
+    Err(DuplicateExclusion("e", 1)),
   )
   let entries = Array::makei(MAX_ENTRIES + 1, i => {
     entry("e\{i}", Allow, everything())
   })
-  assert_eq(checked(config(entries)), Err(TooManyEntries(MAX_ENTRIES + 1)))
+  assert_eq(checked(config(entries)), Ok(()))
   assert_eq(
     checked({
       ..config([ok]),

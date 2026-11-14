@@ -40,8 +40,8 @@ pub(all) enum LocalStandardProfileIssue {
 
 ///|
 // Both Local materializers emit one finite Account configuration. Check its
-// actual entry inventory before allocating entries or duplicate indexes, using
-// the SAME admission Owner's bound rather than separate Source/Task ceilings.
+// actual entry inventory before allocating entries or duplicate indexes.
+// Keep the array representation bound, not a separate Source/Task allowance.
 fn local_profile_entry_inventory(
   sources : Int,
   tasks : Int,
@@ -50,9 +50,6 @@ fn local_profile_entry_inventory(
   let count = sources.to_int64() + tasks.to_int64() + fixed.to_int64()
   if count > 2147483647L {
     return Err(CanonicalDocumentTooLarge)
-  }
-  if count > MAX_ENTRIES.to_int64() {
-    return Err(TooManyEntries(count.to_int()))
   }
   Ok(())
 }

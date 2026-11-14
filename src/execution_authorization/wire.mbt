@@ -112,14 +112,6 @@ fn wire_entry(cursor : @decode.Cursor) -> RawAccountEntry raise WireStop {
   )
   let exclusions = []
   let listed = wire_decoded(@decode.required(object, "exclusions"))
-  match @decode.array_length(listed) {
-    Some(length) if length > MAX_EXCLUSIONS_PER_ENTRY =>
-      raise WireStop({
-        kind: InvalidShape,
-        path: wire_path(@decode.cursor_path(listed)),
-      })
-    _ => ()
-  }
   for item in wire_decoded(@decode.elements(listed)) {
     exclusions.push(
       wire_box(
@@ -155,8 +147,8 @@ fn wire_bootstrap(cursor : @decode.Cursor) -> BootstrapProfile raise WireStop {
 
 ///|
 /// Decode the `actql-execution-account-config/0.1` wire shape. Input size,
-/// node count, depth, string sizes, entry count and exclusion count are
-/// bounded before any per-entry work. Entries, `any_of` values and exclusions
+/// node count, depth and string sizes are bounded before per-entry work.
+/// Entries, `any_of` values and exclusions
 /// must already be in canonical ascending order (`NonCanonicalOrder`
 /// otherwise); equal neighbours are reported by admission as duplicates. The
 /// result is not admitted; pass it to `admit_account_configuration`.
@@ -202,11 +194,6 @@ fn decode_account_configuration_original(
     }
     let account_id = wire_text(object, "account_id")
     let listed = wire_decoded(@decode.required(object, "entries"))
-    match @decode.array_length(listed) {
-      Some(length) if length > MAX_ENTRIES =>
-        raise WireStop({ kind: InvalidShape, path: "$.entries", })
-      _ => ()
-    }
     let entries = []
     for item in wire_decoded(@decode.elements(listed)) {
       entries.push(wire_entry(item))

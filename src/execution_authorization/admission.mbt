@@ -96,9 +96,6 @@ fn compile_selector(
       if values.is_empty() {
         raise AdmissionStop(EmptyAnyOf(entry_id, location))
       }
-      if values.length() > MAX_SELECTOR_VALUES {
-        raise AdmissionStop(SelectorTooLarge(entry_id, location))
-      }
       for value in values {
         if !valid_name(value) {
           raise AdmissionStop(InvalidSelectorValue(entry_id, location))
@@ -140,9 +137,6 @@ fn compile_box(
 fn compile_entry(
   entry : RawAccountEntry,
 ) -> (CompiledEntry, CanonicalEntry) raise AdmissionStop {
-  if entry.exclusions.length() > MAX_EXCLUSIONS_PER_ENTRY {
-    raise AdmissionStop(TooManyExclusions(entry.entry_id))
-  }
   let scope = compile_box(entry.entry_id, None, entry.scope)
   let keyed : Array[(String, Region, SelectorBox)] = []
   for index, exclusion in entry.exclusions {
@@ -216,9 +210,6 @@ fn admit_with_overlap_budget(
       }
     None => ()
   }
-  if raw.entries.length() > MAX_ENTRIES {
-    return Err(TooManyEntries(raw.entries.length()))
-  }
   if first_unnormalized(raw) is Some(path) {
     return Err(NonNormalizedText(path))
   }
@@ -245,12 +236,20 @@ fn admit_with_overlap_budget(
     for j in (i + 1)..<entries.length() {
       let first = entries[i]
       let second = entries[j]
+      // Inspecting the pair is work even when equal outcomes need no set
+      // operation. Charge before any operation, without an Int subtraction
+      // that can wrap after larger finite selectors are admitted.
+      let work = if first.outcome == second.outcome {
+        1L
+      } else {
+        first.scope.work(second.scope)
+      }
+      if work > budget.val.to_int64() {
+        return Err(OverlapCheckBudgetExceeded(first.entry_id, second.entry_id))
+      }
+      budget.val -= work.to_int()
       if first.outcome == second.outcome {
         continue
-      }
-      budget.val = budget.val - first.scope.work(second.scope)
-      if budget.val < 0 {
-        return Err(OverlapCheckBudgetExceeded(first.entry_id, second.entry_id))
       }
       let common = match first.scope.intersect(second.scope) {
         None => continue

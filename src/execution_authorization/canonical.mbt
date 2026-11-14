@@ -7,10 +7,9 @@
 /// document.
 
 ///|
-/// Canonical encoder bounds. The admitted document is at most
-/// `MAX_ENTRIES × (1 + MAX_EXCLUSIONS_PER_ENTRY)` boxes; the JSON decoder
-/// already bounds wire input to `MAX_CONFIG_INPUT_BYTES`, and a typed
-/// configuration whose canonical document exceeds these bounds is rejected.
+/// Existing canonical encoder byte/node/depth bounds. Entry, selector and
+/// exclusion counts are not separate admission allowances; typed and wire
+/// documents still require this bounded complete canonical representation.
 const CANONICAL_MAX_BYTES : Int = 4194304
 
 ///|

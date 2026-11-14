@@ -195,3 +195,39 @@ test "Account observed inventory retains 257 original answering authorities and 
     prepare(names) is Err(DuplicateAnsweringAuthority("authority-0256")),
   )
 }
+
+///|
+test "Account observed inventory subtracts 4097 exclusions with the same exact work and witness" {
+  let region : Region = { dims: FixedArray::make(4, Cofinite([])), }
+  let exclusions : Array[Region] = Array::makei(4097, index => {
+    let dims = FixedArray::make(4, Cofinite([]))
+    dims[2] = Finite([account_inventory_name("resource-", index)])
+    { dims, }
+  })
+  let budget = Ref(10000000)
+  guard uncovered_region(region, exclusions, 0, budget) is Some(remaining) else {
+    fail("unlisted tuple must remain outside every exact exclusion")
+  }
+  // Each visited region costs 2 + its prior exclusion count:
+  // sum(i + 2, i=0..4096) = 8,398,850, independent of the implementation.
+  assert_eq(budget.val, 1601150)
+  assert_true(!remaining.contains(account_inventory_at("resource-0000")))
+  assert_true(!remaining.contains(account_inventory_at("resource-4096")))
+  assert_true(remaining.contains(account_inventory_at("resource-5000")))
+  let exhausted = try {
+    ignore(uncovered_region(region, exclusions, 0, Ref(1)))
+    false
+  } catch {
+    OverlapBudgetExhausted => true
+  }
+  assert_true(exhausted)
+  let pairs = account_inventory_raw([
+    account_inventory_entry(0),
+    account_inventory_entry(1),
+  ])
+  assert_true(
+    admit_with_overlap_budget(pairs, 0)
+    is Err(OverlapCheckBudgetExceeded("entry-0000", "entry-0001")),
+  )
+  assert_true(admit_with_overlap_budget(pairs, 1) is Ok(_))
+}

@@ -134,13 +134,13 @@ test "standard profile counts every emitted entry against the existing Account o
     local_standard_account_configuration(subjects).unwrap(),
   ).unwrap()
   assert_eq(original.entry_count(), MAX_ENTRIES)
-  assert_eq(
+  let extended = admit_account_configuration_json(
     local_standard_account_configuration({
       ..subjects,
       request_target: Some(("local-host", "realization")),
-    }),
-    Err(Configuration(TooManyEntries(MAX_ENTRIES + 1))),
-  )
+    }).unwrap(),
+  ).unwrap()
+  assert_eq(extended.entry_count(), MAX_ENTRIES + 1)
 }
 
 ///|
@@ -155,11 +155,11 @@ test "Mock profile counts request signer and both update entries before construc
     local_mock_account_configuration(subjects).unwrap(),
   ).unwrap()
   assert_eq(original.entry_count(), MAX_ENTRIES)
-  assert_eq(
+  let extended = admit_account_configuration_json(
     local_mock_account_configuration({
       ..subjects,
       model_tasks: subjects.model_tasks + [profile_inventory_task(65)],
-    }),
-    Err(Configuration(TooManyEntries(MAX_ENTRIES + 1))),
-  )
+    }).unwrap(),
+  ).unwrap()
+  assert_eq(extended.entry_count(), MAX_ENTRIES + 1)
 }
