@@ -125,7 +125,9 @@ pub fn export_client_infer_retained_input(
 
 ///|
 fn export_client_infer_retained_input_owned(
-  input : @execution.CompletedOutput, binding : String, max_rows : Int,
+  input : @execution.CompletedOutput,
+  binding : String,
+  max_rows : Int,
 ) -> Result[ClientInferRetainedInputExport, ClientInferRetainedInputIssue] {
   if binding.is_empty() || binding.length() > 262144 {
     return Err(BindingMismatch)
@@ -367,12 +369,19 @@ fn restore_client_retained_completion(
     // The fixed descriptor codec is paid before its first JSON/tree decoder.
     // Its existing128-node/8-depth grammar remains bounded on malformed data.
     let bytes = 3L * descriptor_wire.length().to_int64()
-    guard bytes > 0L && bytes <= 24576L &&
+    guard bytes > 0L &&
+      bytes <= 24576L &&
       program_artifact_parse_layout((bytes.to_int(), 128, 8)) is Some(metadata) &&
-      @execution.compose_preparation_representation([metadata.value, metadata.temporary]) is Some(metadata) &&
+      @execution.compose_preparation_representation([
+        metadata.value,
+        metadata.temporary,
+      ])
+      is Some(metadata) &&
       @execution.preparation_representation_cost(metadata) is Some(bytes) &&
       @execution.execution_capacity(bytes, bytes) is Some(next) &&
-      grow_original_infer_retained_input(original, next) else {return Err(CustodyUnavailable)}
+      grow_original_infer_retained_input(original, next) else {
+      return Err(CustodyUnavailable)
+    }
   }
   let descriptor = match
     read_client_infer_retained_input_descriptor(descriptor_wire) {
@@ -404,20 +413,47 @@ fn restore_client_retained_completion(
     None => 100
     Some(original) => {
       let mut text = 0L
-      for row in supplied_rows {text += row.length().to_int64()}
+      for row in supplied_rows {
+        text += row.length().to_int64()
+      }
       guard text <= 2147483647L &&
-        client_infer_retained_input_construction_capacity(descriptor.rows, descriptor.bytes, descriptor.nodes, descriptor.depth, descriptor.columns, text.to_int()) is Some(next) &&
-        grow_original_infer_retained_input(original, next) && custody_available() else {return Err(CustodyUnavailable)}
+        client_infer_retained_input_construction_capacity(
+          descriptor.rows,
+          descriptor.bytes,
+          descriptor.nodes,
+          descriptor.depth,
+          descriptor.columns,
+          text.to_int(),
+        )
+        is Some(next) &&
+        grow_original_infer_retained_input(original, next) &&
+        custody_available() else {
+        return Err(CustodyUnavailable)
+      }
       supplied_rows.length()
     }
   }
   let decode = if original_read is Some(_) {
     // Invalid descriptor/row pairs cannot construct beyond the same admitted
     // geometry before their existing content-identity refusal.
-    {..source_capture_decode(), max_bytes: Int::min(source_capture_decode().max_bytes, Int::max(1, descriptor.bytes)),
-      max_nodes: Int::min(source_capture_decode().max_nodes, Int::max(1, descriptor.nodes)),
-      max_text_bytes: Int::min(source_capture_decode().max_text_bytes, Int::max(1, descriptor.bytes))}
-  } else {source_capture_decode()}
+    {
+      ..source_capture_decode(),
+      max_bytes: Int::min(
+        source_capture_decode().max_bytes,
+        Int::max(1, descriptor.bytes),
+      ),
+      max_nodes: Int::min(
+        source_capture_decode().max_nodes,
+        Int::max(1, descriptor.nodes),
+      ),
+      max_text_bytes: Int::min(
+        source_capture_decode().max_text_bytes,
+        Int::max(1, descriptor.bytes),
+      ),
+    }
+  } else {
+    source_capture_decode()
+  }
   let rows = supplied_rows.copy()
   let reader = match
     @execution.prepare_retained_content_read(

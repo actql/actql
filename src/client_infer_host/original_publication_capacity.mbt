@@ -88,10 +88,15 @@ pub fn original_infer_capture_inventory_capacity(
   capacity : @model.OriginalModelPublicationCapacity,
 ) -> Result[(Int, Int64, Int64), Issue] {
   guard original_infer_publication_owner_current(active) &&
-    active.model is Some(model) && active.call_scope is Some(scope) &&
-    @model.original_model_publication_capacity_matches_parent(capacity, model, scope) &&
+    active.model is Some(model) &&
+    active.call_scope is Some(scope) &&
+    @model.original_model_publication_capacity_matches_parent(
+      capacity, model, scope,
+    ) &&
     @model.original_model_publication_capacity_covers(capacity, 0L, 0L) &&
-    active.rows is Some(rows) else {return Err(Model(@model.OutputIdentity))}
+    active.rows is Some(rows) else {
+    return Err(Model(@model.OutputIdentity))
+  }
   let count = @relation.prepared_infer_rows_count(rows)
   let slots = count.to_int64()
   // Per call: evaluation wrapper and its frozen/reference alternatives,
@@ -106,15 +111,18 @@ pub fn original_infer_capture_inventory_capacity(
       scalar_words: arrays.scalar_words + 4L * slots + 16L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
-    }) is Some(retained) &&
+    })
+    is Some(retained) &&
     @relation.preparation_representation_cost({
       record_headers: 8L,
       reference_slots: 4L * slots + 16L,
       scalar_words: 16L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
-    }) is Some(workspace) &&
-    @relation.checked_preparation_add_product(retained, workspace, 1L) is Some(execution) else {
+    })
+    is Some(workspace) &&
+    @relation.checked_preparation_add_product(retained, workspace, 1L)
+    is Some(execution) else {
     return Err(Model(@model.InvalidLimits))
   }
   Ok((count, retained, execution))

@@ -172,8 +172,12 @@ fn check_original_mock_capacity(
   // Attempt proofs are this SAME component's Model construction, unlike its
   // separate publication borrow. Preserve the original component ceiling.
   if state.attempt_proof_capacity is Some(proof) {
-    if proof.retained > available_retained { return Err(Ledger(@resources.RetentionLimit)) }
-    if proof.execution > available_execution { return Err(Ledger(@resources.ExecutionLimit)) }
+    if proof.retained > available_retained {
+      return Err(Ledger(@resources.RetentionLimit))
+    }
+    if proof.execution > available_execution {
+      return Err(Ledger(@resources.ExecutionLimit))
+    }
     available_retained -= proof.retained
     available_execution -= proof.execution
   }

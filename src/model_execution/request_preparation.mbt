@@ -288,7 +288,8 @@ fn advance_model_request_preparation(
       }
       // This actual call is now prepared; fund its fixed attempt/proof codecs
       // before the next owned wrapper and before ANY physical slot can enter.
-      match prepare_original_model_attempt_proof(state, request.slot, slot_cid) {
+      match
+        prepare_original_model_attempt_proof(state, request.slot, slot_cid) {
         Err(issue) => return @bounded.Failed(issue, 1, 1)
         Ok(_) => ()
       }

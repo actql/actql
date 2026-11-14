@@ -226,18 +226,29 @@ fn original_fixed_input_binding_valid(
   // Exact canonical fixed-binding grammar. Validate the fixed-width slot
   // directly: no generic JSON parser can construct an unrelated tree before
   // this small existing protocol's own control/String envelope is paid.
-  let prefix = "{\"input_artifact_cid\":\"" + witness.artifact_cid +
-    "\",\"run_definition_cid\":\"" + @publication.publication_contract_identity(definition) +
+  let prefix = "{\"input_artifact_cid\":\"" +
+    witness.artifact_cid +
+    "\",\"run_definition_cid\":\"" +
+    @publication.publication_contract_identity(definition) +
     "\",\"scope_cid\":\""
-  let suffix = "\",\"strategy_revision\":" + witness.revision.to_string() +
-    ",\"task_index\":" + witness.task.to_string() +
+  let suffix = "\",\"strategy_revision\":" +
+    witness.revision.to_string() +
+    ",\"task_index\":" +
+    witness.task.to_string() +
     ",\"version\":\"actql-model-fixed-input-binding/0.1\"}"
   if binding.length() != prefix.length() + 71 + suffix.length() ||
-    !binding.has_prefix(prefix) || !binding.has_suffix(suffix) {return false}
+    !binding.has_prefix(prefix) ||
+    !binding.has_suffix(suffix) {
+    return false
+  }
   let scope = binding[prefix.length():prefix.length() + 71].to_owned()
-  if !scope.has_prefix("sha256:") {return false}
+  if !scope.has_prefix("sha256:") {
+    return false
+  }
   for char in scope[7:].iter() {
-    if !((char >= '0' && char <= '9') || (char >= 'a' && char <= 'f')) {return false}
+    if !((char >= '0' && char <= '9') || (char >= 'a' && char <= 'f')) {
+      return false
+    }
   }
   true
 }

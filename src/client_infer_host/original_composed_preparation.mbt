@@ -126,8 +126,16 @@ pub fn start_original_restored_composed(
   }
   // The existing retained-input owner checks binding, descriptor, rows and
   // current custody. Failure keeps the same entered consumer for cleanup.
-  let original_read = identity_body.map(body => (input_body_read.unwrap(), consumer,
-    compiled, definition, plan, Ref((body.retained, body.execution))))
+  let original_read = identity_body.map(body => {
+    (
+      input_body_read.unwrap(),
+      consumer,
+      compiled,
+      definition,
+      plan,
+      Ref((body.retained, body.execution)),
+    )
+  })
   let started = start_restored_composed_input(
     occurrence,
     plan,

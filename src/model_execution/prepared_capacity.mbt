@@ -32,8 +32,11 @@ fn finish_prepared_model_capacity(
 ) -> Result[Bool, ModelExecutionIssue] {
   if state.prepared_capacity is Some(reservation) &&
     state.original_startup is Some(original) &&
-    (!original.used || !physical_equal(original.ledger, state.ledger) ||
-      !physical_equal(original.capacity, reservation)) {
+    (
+      !original.used ||
+      !physical_equal(original.ledger, state.ledger) ||
+      !physical_equal(original.capacity, reservation)
+    ) {
     return Err(RequestIdentity)
   }
   // Only the existing physical/alias cleanup reaches this function. The Host

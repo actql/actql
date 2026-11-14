@@ -361,7 +361,7 @@ fn completed_export_payload_fragment_bound(
   cursor : CompletedExportRowProgress,
 ) -> Int {
   match cursor.phase {
-    EmitColumn(false) => {
+    EmitColumn(false) =>
       if cursor.column == stream.order.columns.length() {
         1 // closing object
       } else {
@@ -370,7 +370,6 @@ fn completed_export_payload_fragment_bound(
         // keys retain their existing incremental cursor instead.
         6 * Int::min(64, name.length()) + 5
       }
-    }
     EmitKey(_, false) => @admitted.wire_emit_fragment_byte_bound()
     EmitCell(wire, false) =>
       match wire.cursor {
@@ -501,7 +500,8 @@ pub fn advance_completed_output_export(
           return Err(Admission(CaptureLimit))
         }
       }
-      if batch && before_batch_growth is Some(_) &&
+      if batch &&
+        before_batch_growth is Some(_) &&
         cursor.full_wire_bound > stream.max_batch_bytes {
         let pending = @encode.observed_writer_usage(stream.writer).0 -
           stream.drained_bytes

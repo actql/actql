@@ -137,7 +137,10 @@ fn[I] request_program_plan_quote(
       is Some(e) else {
       return Err(Policy)
     }
-    guard @publication_host.prepared_client_composed_infer_count(owner.compiled_program.unwrap()) is Some(model_count) &&
+    guard @publication_host.prepared_client_composed_infer_count(
+        owner.compiled_program.unwrap(),
+      )
+      is Some(model_count) &&
       installed_model_selection_layout(model_count) is Some((model_r, model_e)) &&
       @execution.checked_preparation_add_product(r, model_r, 1L) is Some(r) &&
       @execution.checked_preparation_add_product(e, model_e, 1L) is Some(e) else {
