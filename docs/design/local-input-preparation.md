@@ -2897,6 +2897,18 @@ raw/no-plan success or an unqualified fallback.
 
 ## Native submitted intent on the same Request
 
+The Node submission adapter first consumes its same retained intent or the
+original Journal's `prepareSubmittedIntent` port. A Journal refusal is never
+retried through the compatibility codec. Installations without that optional
+port keep their existing codec entrance, using the already retained canonical
+wire's UTF16 length `U`: at most `3*U` UTF8 bytes and `U` JSON nodes. This
+constant-time projection adds no snapshot or whole-input scan. It preserves the
+original recursion bound and the Core constructor's signed-Int headroom; these
+bounds do not reserve storage or issue an intent, Request or execution grant.
+Original CID matching, epoch/current, handler retirement and Journal policy
+remain independent and unchanged.
+
+
 The normal captured native Program caller explicitly selects the original
 Request's input envelope for its later Program Source/index admission. That
 default projection requires the same live Request/input association and ready
