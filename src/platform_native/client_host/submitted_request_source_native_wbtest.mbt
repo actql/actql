@@ -489,3 +489,146 @@ test "Native ordinary Source shares retained lexical work and original result co
   .native_request_stage("Native Request stage 31")
   arena.try_close().native_request_stage("Native Request stage 32")
 }
+
+///|
+// Same original retained Native Request/frame and real static checker.
+// No submitted business Run, Journal, normal package or Saved acceptance.
+test "Native static direct11 checks its same raw Request without compiling" {
+  let input = "SELECT 0 AS n" +
+    Array::makei(10, i => " UNION ALL SELECT " + (i + 1).to_string() + " AS n").join(
+      "",
+    )
+  // Match the SAME existing ordinary policy, rather than the first authored
+  // 32MiB component facility that correctly refused its full checker peak.
+  let policy = @local.client_local_preparation_initial_limits(
+    @local.client_local_resource_policy(),
+  ).native_request_stage("ordinary native Request policy")
+  let policy = {
+    ..policy,
+    attempts: 32,
+    holdings: 32,
+    transfer_bytes: 32000000L,
+  }
+  let payload = policy.retained_bytes + policy.execution_bytes
+  let mut domain_bytes = payload
+  for _ in 0..<16 {
+    let required = @bootstrap.execution_domain_necessary_bytes(
+      domain_bytes, payload,
+    )
+    assert_true(required > 0L)
+    if required <= domain_bytes {
+      break
+    }
+    domain_bytes = required
+  }
+  let bytes = domain_bytes * 2L
+  let arena = @arena.prepare_installed_arena_host(
+    "0123456789012345678901234567890123456789",
+    Bytes::make(32, 17),
+    1L,
+    bytes,
+    {
+      planning_work: 100000,
+      attempts: 100000,
+      holdings: 100000,
+      transfer_bytes: 100000000000L,
+      retained_bytes: 0L,
+      execution_bytes: bytes,
+    },
+    65536L,
+  ).native_request_stage("Native Request stage 19")
+  arena.acquire().native_request_stage("Native Request stage 20")
+  let backing = arena
+    .borrow_backing()
+    .native_request_stage("Native Request stage 21")
+  arena
+  .enter_backing_borrow_scope(backing)
+  .native_request_stage("Native Request stage 22")
+  let domain = match
+    arena
+    .prepare_domain_in_process(backing, domain_bytes, policy)
+    .native_request_stage("Native Request stage 23") {
+    @arena.PreparedDomain(value) => value
+    @arena.PendingDomain(_, _) => fail("actual Request domain pending")
+  }
+  arena.transfer_domain(domain).native_request_stage("Native Request stage 24")
+  arena
+  .leave_backing_borrow_scope(backing)
+  .native_request_stage("Native Request stage 25")
+  arena
+  .return_backing_borrow(backing)
+  .native_request_stage("Native Request stage 26")
+  arena
+  .prepare_domain_read(domain)
+  .native_request_stage("Native Request stage 27")
+  let (physical, initial) = match
+    arena
+    .prepare_domain_retained_request_execution(domain, input, {
+      bootstrap_retained: 1048576L,
+      bootstrap_execution: 1048576L,
+    })
+    .native_request_stage("Native Request stage 28") {
+    @arena.ReadyRequestExecution(physical, initial) => (physical, initial)
+    @arena.PendingRequestExecution(_, _) =>
+      fail("actual Request initializer pending")
+  }
+
+  arena
+  .enter_domain_retained_execution(physical)
+  .native_request_stage("Static Native original stage 1")
+  let parent = @local.begin_backed_request_preparation(
+    initial,
+    input,
+    @local.client_local_resource_policy(),
+  ).native_request_stage("Static Native original stage 2")
+  let environment = preparation_environment()
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @checked.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).native_request_stage("Static Native original stage 3")
+  // This is the ordinary static RAW-document entrance. No submitted intent,
+  // captured Snapshot or business Run is prepared by this case.
+  @local.reserve_request_native_intake_wire(parent, input, input.length()).native_request_stage(
+    "Static Native original raw intake",
+  )
+  let checked = @local.prepare_request_native_document_check(
+    parent,
+    input,
+    input,
+    @frontend.Sql,
+    None,
+    None,
+    environment,
+    publication,
+  )
+  match checked {
+    Err(@local.CheckOutcome(@checked.Rejected(diagnostic))) =>
+      fail(
+        "Static original check verdict: " +
+        @debug.to_string(@checked.diagnostic_category(diagnostic)),
+      )
+    Err(@local.Preparation(issue)) =>
+      fail("Static original preparation: " + @debug.to_string(issue))
+    _ => ()
+  }
+  checked.native_request_stage("Static Native original stage 4")
+  assert_eq(@local.request_preparation_work_calls(parent), (1L, 1L, 1L, 0L))
+  // Logical payload cleanup cannot acknowledge this still-live Native frame.
+  assert_true(@local.abort_request_preparation_after_cleanup(parent) is Err(_))
+  arena
+  .leave_domain_retained_execution(physical)
+  .native_request_stage("Static Native original stage 7")
+  arena
+  .close_domain_retained_execution(physical)
+  .native_request_stage("Static Native original stage 8")
+  @local.abort_request_preparation_after_cleanup(parent).native_request_stage(
+    "Static Native original stage 9",
+  )
+  assert_eq(@local.request_preparation_work_calls(parent), (1L, 1L, 1L, 0L))
+  arena
+  .close_domain_after_owner_ack(domain)
+  .native_request_stage("Static Native original stage 10")
+  arena.try_close().native_request_stage("Static Native original stage 11")
+}
