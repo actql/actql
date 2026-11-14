@@ -5,6 +5,7 @@ import {createHash, generateKeyPairSync, sign} from 'node:crypto';
 import {access, mkdir, readFile, readdir, stat, unlink, writeFile} from 'node:fs/promises';
 import {dirname, join} from 'node:path';
 import {userInfo} from 'node:os';
+import {types as nodeTypes} from 'node:util';
 import {setTimeout as delay} from 'node:timers/promises';
 import {open} from '@actql/node';
 import {projectFileStoreRows101, projectFileStoreMembers17,
@@ -24,15 +25,21 @@ const report = {case: caseId, phase, pid: process.pid, submits: 0, approvals: 0,
 const save = (path, body) => writeFile(path, JSON.stringify(body, null, 2) + '\n', {mode: 0o600});
 const digest = bytes => 'sha256:' + createHash('sha256').update(bytes).digest('hex');
 const snapshot = value => JSON.parse(JSON.stringify(value));
-const diagnosticData = (value, depth = 4) => {
+const diagnosticData = (value, depth = 12, budget = {nodes: 128}) => {
+  if (budget.nodes-- <= 0) return undefined;
   if (typeof value === 'string') return value.slice(0, 2048);
   if (value == null || typeof value === 'number' || typeof value === 'boolean') return value;
   if (depth === 0 || typeof value !== 'object') return undefined;
   const result = {};
+  if (nodeTypes.isNativeError(value) && typeof value.stack === 'string') result.stack = value.stack.slice(0, 4096);
   for (const key of ['code', 'primaryCode', 'issueTag', 'nestedIssueTag', 'phase',
     'kind', 'message', 'primaryDiagnostic', 'cause', '$tag', '_0', '_1']) {
-    const property = Object.getOwnPropertyDescriptor(value, key);
-    if (property && Object.hasOwn(property, 'value')) result[key] = diagnosticData(property.value, depth - 1);
+    let property;
+    for (let original = value, count = 0; original && count < 3; count++, original = Object.getPrototypeOf(original)) {
+      property = Object.getOwnPropertyDescriptor(original, key);
+      if (property) break;
+    }
+    if (property && Object.hasOwn(property, 'value')) result[key] = diagnosticData(property.value, depth - 1, budget);
   }
   return result;
 };
