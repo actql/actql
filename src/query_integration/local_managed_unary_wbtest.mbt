@@ -1022,6 +1022,7 @@ fn assert_captured_keyed_count_chain_budget(
   }
   let mut done = false
   let mut rejected = false
+  let mut workspace_refusal = None
   let mut charged_work = 0L
   for _ in 0..<1000 {
     if !done && !rejected {
@@ -1044,6 +1045,22 @@ fn assert_captured_keyed_count_chain_budget(
         Err(
           @local_driver.Execution(@strategy.Physical(@resources.ExecutionLimit))
         ) => rejected = expected == "workspace"
+        Err(
+          @local_driver.ExecutionCapacityRefusal(
+            @resources.ExecutionLimit,
+            needed,
+            available,
+            policy
+          )
+        ) => {
+          // The same one-byte-short reservation now retains its exact DATA.
+          // Other causes and a sufficient original allowance still fail.
+          assert_eq(expected, "workspace")
+          assert_eq(needed, available + 1L)
+          assert_true(available >= 0L && policy >= available)
+          workspace_refusal = Some((needed, available, policy))
+          rejected = true
+        }
         Err(_) => fail("keyed count chain rejected with another issue")
       }
     }
@@ -1094,18 +1111,26 @@ fn assert_captured_keyed_count_chain_budget(
         ),
       )
     } else if expected == "workspace" {
-      assert_true(
-        (operations.advance)(1)
-        is Err(
-          @local_driver.Execution(@strategy.Physical(@resources.ExecutionLimit))
-        ),
-      )
-      assert_true(
-        (operations.execute)()
-        is Err(
-          @local_driver.Execution(@strategy.Physical(@resources.ExecutionLimit))
-        ),
-      )
+      for
+        refusal in [
+          (operations.advance)(1).map(fn(_) { () }),
+          (operations.execute)(),
+        ] {
+        match refusal {
+          Err(
+            @local_driver.ExecutionCapacityRefusal(
+              @resources.ExecutionLimit,
+              needed,
+              available,
+              policy
+            )
+          ) => assert_eq(Some((needed, available, policy)), workspace_refusal)
+          _ =>
+            fail(
+              "keyed count chain did not retain its original capacity refusal",
+            )
+        }
+      }
     }
     assert_true((operations.output_row)(0) is Err(_))
     assert_false(@strategy.captured_task_completed(run, 1))

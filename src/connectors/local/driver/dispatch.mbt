@@ -80,6 +80,9 @@ pub(all) enum LocalDispatchIssue {
   IdentityExport(@execution.CompletedExportIssue)
   CarrierSnapshot(@carrier_runtime.SnapshotIssue)
   ControlWorkLimit(Int)
+  // Exact failed reservation DATA; the original quota cause stays distinct
+  // from current/foreign/cleanup and generic physical failures.
+  ExecutionCapacityRefusal(@resources.LedgerIssue, Int64, Int64, Int64)
 }
 
 ///|

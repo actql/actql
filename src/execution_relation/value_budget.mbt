@@ -29,6 +29,9 @@ pub(all) enum CaptureIssue {
   ForeignCheckedValue(Int, Int)
   // Only a typed scalar length refusal whose strictly smaller bound is work.
   CaptureWorkLimit(Int)
+  // The bounded UTF8 probe proves only that demand exceeds this remaining
+  // allowance. It does not scan again to invent a complete required length.
+  CaptureWorkRefusal(Int, Int)
 } derive(Eq, Debug)
 
 ///|
@@ -118,7 +121,7 @@ fn charge_text_issue(b : ValueBudget, text : String) -> CaptureIssue? {
       None
     }
     Err(@scalar.LimitExceeded) if work_remaining < text_remaining =>
-      Some(CaptureWorkLimit(b.limits.max_work))
+      Some(CaptureWorkRefusal(b.limits.max_work, work_remaining))
     Err(_) => Some(CaptureLimit)
   }
 }

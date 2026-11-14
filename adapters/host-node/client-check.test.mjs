@@ -1526,9 +1526,9 @@ for (const [entrance, open] of Object.entries(entrances)) {
         unresolved: []}}, '[check-mutation:construction-budget]');
   });
 
-  test(`${entrance}: original submission retains a disclosed analysis budget without input blame`, async t => {
+  test(`${entrance}: original submission separates checker budget from later acquisition refusal`, async t => {
     const text = 'SELECT id FROM records' + ' UNION ALL SELECT id FROM records'.repeat(50);
-    const problems = [];
+    const protectedCoverage = [];
     for (const configuration of [configurations.allowed, configurations.absent, configurations.denied]) {
       const client = await submissionObservationClient(t, entrance, configuration);
       const original = await client.newSubmission();
@@ -1538,30 +1538,37 @@ for (const [entrance, open] of Object.entries(entrances)) {
       const outcome = sdk.getSubmissionOutcome(error);
       const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
       const publicBudget = configuration === configurations.allowed;
-      // Missing visible relations stop lowering before this construction
-      // budget is proven. Absence and denied access are the same obligation;
-      // they cannot borrow the budget fact from the authorized configuration.
+      const beforeAcceptance = configuration === configurations.absent;
+      // Generated Query demand now carries its actual inventory through
+      // preparation. Its later unsupported acquisition is not the independent
+      // public checker's budget, and cannot borrow that report as an original
+      // submission observation. Missing publication fails before acceptance;
+      // an actual denied acquisition keeps its later Account refusal.
       assert.equal(checked.report.verdict, 'undetermined');
       assert.deepEqual(checked.report.coverage, publicBudget
         ? {limits: [{code: 'analysis_budget_exhausted'}], unresolved: []}
         : {limits: [], unresolved: [{boundary: 'source_resolution', reason: 'unresolved_protected'}]});
-      assert.equal(outcome?.kind, 'not_accepted');
+      assert.equal(outcome?.kind, beforeAcceptance ? 'not_accepted' : 'preparation_failed');
       assert.deepEqual(outcome.problem, publicBudget
-        ? {code: 'ClientProgramAnalysisLimit', classification: 'implementation_limit'}
-        : {code: 'ClientProgramRejected', classification: 'operation_failed'},
+        ? {code: 'ClientProgramUnsupported', classification: 'implementation_limit'}
+        : beforeAcceptance
+          ? {code: 'ClientProgramRejected', classification: 'operation_failed'}
+          : {code: 'ACTQL_E_ACCOUNT_DENIED', classification: 'operation_failed'},
         '[check-mutation:submission-budget-public]');
       const observed = sdk.getSubmissionCheckObservation(error);
-      assert.equal(observed?.outcome, 'completed', '[check-mutation:submission-budget-observation]');
-      assert.equal(observed.report.verdict, 'undetermined');
-      assert.deepEqual(observed.report.coverage, publicBudget
-        ? {limits: [{code: 'analysis_budget_exhausted'}], unresolved: []}
-        : {limits: [], unresolved: protectedSource});
-      assert.equal(sdk.getCheckInput(observed, 'source').text, text);
+      if (!beforeAcceptance) {
+        assert.equal(observed, undefined, '[check-mutation:submission-acquisition-no-borrow]');
+      } else {
+        assert.equal(observed?.outcome, 'completed', '[check-mutation:submission-budget-observation]');
+        assert.equal(observed.report.verdict, 'undetermined');
+        assert.deepEqual(observed.report.coverage, {limits: [], unresolved: protectedSource});
+        assert.equal(sdk.getCheckInput(observed, 'source').text, text);
+      }
       assert.equal(sdk.getSubmissionCheckObservation({...error}), undefined);
-      problems.push(outcome.problem);
+      if (!publicBudget) protectedCoverage.push(checked.report.coverage);
       const explanation = sdk.explainSubmission(error);
-      assert.equal(explanation.observation, 'not_accepted');
-      assert.equal(explanation.preparationIssue?.kind, publicBudget ? 'analysis_budget_exhausted' : undefined);
+      assert.equal(explanation.observation, beforeAcceptance ? 'not_accepted' : 'preparation_failed');
+      assert.equal(explanation.preparationIssue, undefined);
       assert.deepEqual(explanation.next.submissionRef, original);
       assert.deepEqual(await client.lookupSubmission(original), outcome);
       let invalid;
@@ -1574,7 +1581,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
         '[check-mutation:submission-budget-independent]');
       client.assertNoExecution();
     }
-    assert.deepEqual(problems[1], problems[2]);
+    assert.deepEqual(protectedCoverage[0], protectedCoverage[1]);
   });
 
   test(`${entrance}: original submission projects implementation limits only from public checking`, async t => {

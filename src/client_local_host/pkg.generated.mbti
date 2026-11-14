@@ -724,7 +724,7 @@ pub fn open_source_free_local_retained_host(@run_publication_host.PreparedClient
 
 pub fn open_source_free_local_retained_host_on_ledger(@run_publication_host.PreparedClientProgram, @physical_resources.Ledger, ClientInstalledSequenceContracts, String, String?, String?, requirements? : ClientLocalRequirements?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?
 
-pub fn[I] parse_request_query_syntax(ClientRequestPreparation[I], I, String, @source_frontend.Format, source_path? : String) -> Result[@query_syntax.Query, ClientRequestQuerySyntaxIssue]
+pub fn[I] parse_request_query_syntax(ClientRequestPreparation[I], I, String, @source_frontend.Format, source_path? : String, lexical_work? : Int?) -> Result[@query_syntax.Query, ClientRequestQuerySyntaxIssue]
 
 pub fn pin_installed_effect_model_unit_results(ClientInstalledManagedRun, ClientInstalledEffectManagedPlan, @run_publication_host.ClientRequestIdentity, @physical_strategy_host.CapturedEffectRunDAG, Int) -> Result[@physical_strategy_host.CapturedEffectLocalUnitInputs, ClientEffectUnitPreparationIssue]
 
@@ -932,7 +932,7 @@ pub fn[I] prepare_request_computation_check_preparation(ClientRequestPreparation
 
 pub fn[I] prepare_request_computation_policy_subjects(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, @program_check.CompileLimits) -> Result[Int, ClientRequestTerminalIssue]
 
-pub fn[I, T] prepare_request_default_source_computation_check(ClientRequestPreparation[I], I, T, @source_value.JsonDataReader[T], @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, Array[@pipeline_check_context.StageCapacityInput], Int?, @run_publication_host.ClientEffectComputationLimits, supplied? : T?) -> Result[Unit, ClientRequestTerminalIssue]
+pub fn[I, T] prepare_request_default_source_computation_check(ClientRequestPreparation[I], I, T, @source_value.JsonDataReader[T], @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, Array[@pipeline_check_context.StageCapacityInput], Int?, @run_publication_host.ClientEffectComputationLimits, supplied? : T?, public_primary? : Bool) -> Result[Unit, ClientRequestTerminalIssue]
 
 pub fn[I] prepare_request_effect_check_preparation(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], @run_publication_host.ClientEffectComputationLimits, source_catalog? : @program_check.PreparedSourceCatalog?, source_preparation? : @stage_parameters.Source?) -> Result[ClientProgramCheckPreparation[I, Unit], ClientRequestPreparationIssue]
 
@@ -1019,6 +1019,8 @@ pub fn prepare_single_captured_local_installed_ledger(@run_publication_host.Prep
 pub fn prepare_source_free_local_requirements(@run_publication_host.PreparedClientProgram, ClientInstalledSequenceContracts, String, String?, String?) -> ClientLocalRequirements?
 
 pub fn prepare_source_free_runtime_requirements(@run_publication_host.PreparedClientProgram, ClientInstalledSequenceContracts, String, String?, String?) -> ClientLocalRequirements?
+
+pub fn prepare_source_free_runtime_requirements_result(@run_publication_host.PreparedClientProgram, ClientInstalledSequenceContracts, String, String?, String?) -> Result[ClientLocalRequirements, ClientLocalRequirementsIssue]
 
 pub fn prepared_installed_effect_managed_capture_children(ClientInstalledEffectManagedPlan) -> Int
 
@@ -1175,6 +1177,8 @@ pub fn[I] request_preparation_work_calls(ClientRequestPreparation[I]) -> (Int64,
 pub fn[I] request_prepared_computation_kind(ClientRequestPreparation[I], I) -> Result[ClientRequestComputationKind, ClientRequestPreparationIssue]
 
 pub fn[I] request_program_compilation_limits(ClientRequestPreparation[I], I) -> Result[@run_publication_host.ClientPureCompilationLimits, ClientRequestProgramPlanIssue]
+
+pub fn request_program_plan_issue_is_sequence_limit(ClientRequestProgramPlanIssue) -> Bool
 
 pub fn[I] request_query_syntax_work(ClientRequestPreparation[I], I) -> Result[(Int64, Bool), ClientRequestQuerySyntaxIssue]
 
@@ -1647,6 +1651,18 @@ pub fn ClientLocalRequirements::publication_entry_limits(Self, @run_publication_
 pub fn ClientLocalRequirements::publication_limits(Self, @run_publication_host.PreparedClientProgram, Int) -> (@execution_relation.RetainedRowDecodeLimits, @run_publication_host.PublicationOutputExportLimits)?
 pub fn ClientLocalRequirements::simultaneous_limits(Self) -> @physical_resources.LedgerLimits?
 pub fn ClientLocalRequirements::wasm_publication_limits(Self, @run_publication_host.PreparedClientProgram) -> @run_publication_host.PublicationOutputExportLimits?
+
+pub(all) enum ClientLocalRequirementsIssue {
+  GraphShape
+  ModelOccurrencesUnavailable
+  ModelOccurrencesPresent
+  SequencePreparation(ClientInstalledManagedRunIssue)
+  SequenceCount
+  MissingDataEdge
+  InvalidDataEdge
+  InputPortCountLimit
+  CapacityQuoteUnavailable
+}
 
 type ClientLocalResourcePolicy
 

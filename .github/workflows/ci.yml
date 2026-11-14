@@ -258,6 +258,8 @@ jobs:
         run: node --test adapters/host-node/local-result-read-policy.test.mjs adapters/host-node/client-result-collection-policy.test.mjs adapters/host-node/request-memory-policy.test.mjs adapters/local-node/managed-advance-diagnostic.test.mjs scripts/packed-readme-ci.test.mjs
       - name: Test original Model failure and workflow observation
         run: node --test adapters/host-node/infer-model-effect-control.test.mjs adapters/host-node/acquired-effect-unknown-primary.test.mjs adapters/host-node/mock-project-effect-public.test.mjs adapters/host-common/observation.test.mjs adapters/host-common/sqlite-transaction.test.mjs scripts/owner-fault-mutations.test.mjs
+      - name: Test fast health monitor harness without Runtime build
+        run: node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- scripts/health-monitor.test.mjs
       - name: Test connector Source profiles and independent request fixtures
         run: node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- adapters/connectors/gcs/test/gcs-file-listing.test.mjs adapters/connectors/gcs/test/gcs-prefix-profile.test.mjs adapters/connectors/gcs/test/gcs-site-profile-bounds.test.mjs adapters/connectors/snowflake/test/snowflake-key-pair.test.mjs adapters/connectors/snowflake/test/snowflake-public-fixture.test.mjs adapters/connectors/kintone/test/installed-kintone-managed-loader.test.mjs adapters/connectors/kintone/test/kintone-managed-sequence.test.mjs
       - name: Build Explorer component assets
@@ -365,9 +367,9 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
   # Linux keeps both portable targets and eight complete Native common drivers.
-  # The original JS row has its own status boundary before scarce Mac fan-out.
-  # Native Mac workloads start early; three Core slots leave room for them and
-  # Python. Every Core row shares the same steps and remains mandatory when selected.
+  # Darwin's four original profiles start after target selection, alongside Native
+  # Mac workloads. Python retains its lint/JS boundary. Every Core row shares the
+  # same steps; the final join still requires selected JS, lint and preflight.
   core-common:
     needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && (contains(fromJSON(needs.select-targets.outputs.targets), 'wasm') || contains(fromJSON(needs.select-targets.outputs.targets), 'native')) }}
@@ -648,12 +650,12 @@ jobs:
     timeout-minutes: ${{ matrix.target == 'native' && 90 || 30 }}
     steps: *core_steps
   core-darwin:
-    needs: [select-targets, lint, core-js]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !cancelled() && needs.lint.result == 'success' && ((needs.select-targets.outputs.profile == 'full' && contains(fromJSON(needs.select-targets.outputs.targets), 'js') && needs.core-js.result == 'success') || ((needs.select-targets.outputs.profile != 'full' || !contains(fromJSON(needs.select-targets.outputs.targets), 'js')) && needs.core-js.result == 'skipped')) && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && contains(fromJSON(needs.select-targets.outputs.targets), 'native') }}
+    needs: [select-targets]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !cancelled() && needs.select-targets.result == 'success' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && contains(fromJSON(needs.select-targets.outputs.targets), 'native') }}
     name: core (${{ matrix.target }}${{ matrix.target == 'native' && format(' {0}', matrix.partition) || '' }})
     strategy:
       fail-fast: false
-      max-parallel: 3
+      max-parallel: 4
       matrix:
         target: [native]
         partition: [scoped, source, '1/2', '2/2']
@@ -1560,12 +1562,23 @@ jobs:
           node-version: ${{ matrix.node }}
       - run: npm ci
       - name: Download the single normal Client artifact
+        id: client-inputs
         uses: ./.github/actions/download-client-packages
         with:
           artifact-id: ${{ needs.client-packages.outputs.artifact-id }}
           path: ${{ runner.temp }}/client-readme-input
       - name: Test collection, original README workflows and Effect denial/cancel/current controls
         run: node scripts/test-packed-readme-workflows.mjs "$RUNNER_TEMP/client-readme-packed"
+      - name: Test direct and CTE UNION budgets through original Results and cold Saved
+        id: packed-union-budget
+        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        run: node scripts/test-packed-public-query.mjs --union-budget-only
+      - name: Preserve bounded UNION execution diagnostics
+        if: always() && steps.packed-union-budget.outputs.evidence-directory != ''
+        uses: ./.github/actions/upload-packed-query-evidence
+        with:
+          name: packed-union-budget-${{ matrix.node }}
+          directory: ${{ steps.packed-union-budget.outputs.evidence-directory }}
       - name: Preserve actual functional outcomes and failures
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

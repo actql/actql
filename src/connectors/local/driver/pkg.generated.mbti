@@ -9,6 +9,7 @@ import {
   "actql/actql/physical_cost",
   "actql/actql/physical_host",
   "actql/actql/physical_host_dispatch",
+  "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
   "actql/actql/physical_strategy_host",
 }
@@ -68,6 +69,8 @@ pub fn[T] local_managed_dispatch_site_capacity(LocalManagedDispatchConfiguration
 
 pub fn[T] local_managed_dispatch_uses_provider(LocalManagedDispatchConfiguration[T]) -> Bool
 
+pub fn local_managed_failure_budget(LocalDispatchIssue) -> (String, Bool, Int64, Int64, Int64)?
+
 pub fn local_managed_failure_resource_dimension(LocalDispatchIssue) -> String?
 
 pub fn[T] local_managed_relation_output(@execution_relation.ManagedCompletedOutput[T]) -> LocalManagedAvailableOutput[T]
@@ -123,6 +126,7 @@ pub(all) enum LocalDispatchIssue {
   IdentityExport(@execution_relation.CompletedExportIssue)
   CarrierSnapshot(@managed_carrier_runtime.SnapshotIssue)
   ControlWorkLimit(Int)
+  ExecutionCapacityRefusal(@physical_resources.LedgerIssue, Int64, Int64, Int64)
 }
 
 type LocalDispatchModule

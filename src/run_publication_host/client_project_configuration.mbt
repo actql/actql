@@ -49,22 +49,7 @@ fn project_configuration_optional_text(
 pub fn admit_client_project_configuration(
   wire : String,
 ) -> Result[ClientProjectConfiguration, ClientProjectConfigurationIssue] {
-  let source = match
-    @source.parse_json_bytes_preserving(@utf8.encode(wire), {
-      max_input_bytes: 65536,
-      max_nodes: 4096,
-      max_depth: 16,
-    }) {
-    Ok(value) => value
-    Err(_) => return Err(InvalidConfiguration)
-  }
-  let root = match
-    @decode.admit(source, {
-      max_nodes: 4096,
-      max_depth: 16,
-      max_string_bytes: 65536,
-      max_total_string_bytes: 65536,
-    }) {
+  let root = match project_metadata_cursor(@utf8.encode(wire)) {
     Ok(value) => value
     Err(_) => return Err(InvalidConfiguration)
   }

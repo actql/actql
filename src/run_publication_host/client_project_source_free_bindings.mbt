@@ -13,26 +13,38 @@ pub(all) enum ClientProjectBindingsIssue {
 } derive(Eq, Debug)
 
 ///|
+// The caller already retains this exact input under its finite intake owner.
+// Every JSON node and decoded text byte consumes at least one original wire
+// byte. Use that observed Int-sized geometry without another parse/count walk
+// or arithmetic expansion. These rejection bounds are not physical funding.
+fn project_metadata_cursor(bytes : Bytes) -> Result[@decode.Cursor, Unit] {
+  let bound = bytes.length()
+  if bound <= 0 {
+    return Err(())
+  }
+  let parsed = match
+    @source.parse_json_bytes_preserving(bytes, {
+      max_input_bytes: bound,
+      max_nodes: bound,
+      max_depth: 16,
+    }) {
+    Ok(value) => value
+    Err(_) => return Err(())
+  }
+  @decode.admit(parsed, {
+    max_nodes: bound,
+    max_depth: 16,
+    max_string_bytes: bound,
+    max_total_string_bytes: bound,
+  }).map_err(_ => ())
+}
+
+///|
 fn project_bindings_object(
   wire : String,
   fields : Array[String],
 ) -> Result[@decode.ObjectView, ClientProjectBindingsIssue] {
-  let parsed = match
-    @source.parse_json_bytes_preserving(@utf8.encode(wire), {
-      max_input_bytes: 65536,
-      max_nodes: 4096,
-      max_depth: 16,
-    }) {
-    Ok(value) => value
-    Err(_) => return Err(InvalidBindings)
-  }
-  let root = match
-    @decode.admit(parsed, {
-      max_nodes: 4096,
-      max_depth: 16,
-      max_string_bytes: 65536,
-      max_total_string_bytes: 65536,
-    }) {
+  let root = match project_metadata_cursor(@utf8.encode(wire)) {
     Ok(value) => value
     Err(_) => return Err(InvalidBindings)
   }

@@ -4,6 +4,7 @@ priv struct ClientRequestQuerySyntax {
   document : String
   format : @frontend.Format
   source_path : String
+  lexical_work : Int?
   quote : (Int64, Int64)
   // Reuse the existing outcome slot for the original success or failure.
   mut query : Result[@query_syntax.Query, ClientRequestQuerySyntaxIssue]?
@@ -26,15 +27,37 @@ pub(all) suberror ClientRequestQuerySyntaxIssue {
 // The original borrowed source String is not another owned input. This uses
 // the existing shared representation tariff, not a wrapper census or a heap
 // measurement. Catalog/Context/lowering and external backing are separate.
-fn request_query_syntax_data_bytes(document : String) -> Int64? {
+fn request_query_syntax_data_bytes(
+  document : String,
+  lexical_work? : Int? = None,
+) -> Int64? {
   let units = document.length().to_int64() + 1L
-  @execution.preparation_representation_cost({
-    record_headers: 4L * units,
-    reference_slots: 12L * units,
-    scalar_words: 20L * units,
-    owned_utf16_units: 4L * units,
-    owned_wire_bytes: 4L * units,
-  })
+  guard @execution.preparation_representation_cost({
+      record_headers: 4L * units,
+      reference_slots: 12L * units,
+      scalar_words: 20L * units,
+      owned_utf16_units: 4L * units,
+      owned_wire_bytes: 4L * units,
+    })
+    is Some(bytes) else {
+    return None
+  }
+  if lexical_work is None {
+    return Some(bytes)
+  }
+  // Coheld original and selected Lexical/Expression/Query limit records:
+  // 3H/3R/10W. The Request fixed control already backs the original Some.
+  guard @execution.preparation_representation_cost({
+      record_headers: 3L,
+      reference_slots: 3L,
+      scalar_words: 10L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(controls) else {
+    return None
+  }
+  @execution.checked_preparation_add_product(bytes, controls, 1L)
 }
 
 ///|
@@ -82,6 +105,7 @@ pub fn[I] parse_request_query_syntax(
   document : String,
   format : @frontend.Format,
   source_path? : String = "<source>",
+  lexical_work? : Int? = None,
 ) -> Result[@query_syntax.Query, ClientRequestQuerySyntaxIssue] {
   if !request_intent_input_ready(owner) ||
     (owner.phase != Open && owner.phase != QuerySyntaxQuoted) {
@@ -109,7 +133,8 @@ pub fn[I] parse_request_query_syntax(
     return Err(Frontend(@frontend.InvalidFormat))
   }
   if owner.phase == Open {
-    guard request_query_syntax_data_bytes(document) is Some(bytes) else {
+    guard request_query_syntax_data_bytes(document, lexical_work~)
+      is Some(bytes) else {
       return Err(Overflow)
     }
     let (r, e) = match
@@ -125,6 +150,7 @@ pub fn[I] parse_request_query_syntax(
       document,
       format,
       source_path,
+      lexical_work,
       quote: (r, e),
       query: None,
       known_work: 0L,
@@ -136,7 +162,8 @@ pub fn[I] parse_request_query_syntax(
   guard owner.query_syntax is Some(selected) &&
     selected.document == document &&
     selected.format == format &&
-    selected.source_path == source_path else {
+    selected.source_path == source_path &&
+    selected.lexical_work == lexical_work else {
     return Err(Request(ForeignOriginal))
   }
   owner.phase = Selecting
@@ -166,6 +193,17 @@ pub fn[I] parse_request_query_syntax(
   let syntax_limits = @publication_host.client_program_query_syntax_limits(
     program_limits,
   )
+  let syntax_limits = match selected.lexical_work {
+    None => syntax_limits
+    Some(maximum) => {
+      let lexical = { ..syntax_limits.lexical, max_work: maximum, }
+      {
+        ..syntax_limits,
+        lexical,
+        expression: { ..syntax_limits.expression, lexical, },
+      }
+    }
+  }
   let work = match
     @resources.begin_preparation_phase_work64(
       owner.capacity,
@@ -240,4 +278,16 @@ pub fn[I] parse_request_query_syntax(
     owner.phase = QuerySyntaxParsed
   }
   result
+}
+
+///|
+// Same raw lexical unit as Scanner.advance and first-spelling normalization.
+// No traversal or Resource grant; keep the original signed-Int headroom.
+fn request_source_lexical_work(document : String) -> Int? {
+  let units = document.length().to_int64()
+  if units > 1073741823L {
+    None
+  } else {
+    Some((2L * units).to_int())
+  }
 }

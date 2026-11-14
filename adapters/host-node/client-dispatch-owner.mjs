@@ -14,6 +14,7 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {installTaskObservation} from '../host-common/task-observation.mjs';
 import {bindClientSourceOperation} from './client-source-operation.mjs';
 import {ledgerUsageDiagnostic, ledgerUsageHasPendingResources} from '../host-common/runtime-core.mjs';
+import {issueInstalledUnpublishedRunState} from '../host-common/run-state-observation.mjs';
 
 // Diagnostics must not become a second owner of execution/cleanup capabilities.
 // Read only inert own data, including one existing primaryFailure diagnostic
@@ -78,6 +79,29 @@ function dispatchFailureSnapshot(error) {
         if (localWork) data.controlWorkLimit = workLimit.value;
         if (valueWork) data.workLimit = valueLimit.value;
         if (resource) data.dimension = dimension.value;
+        // Preserve only closed inert quantities supplied by that original
+        // failed reserve/probe. A later ledger sample is not this failure.
+        const budgetField = Object.getOwnPropertyDescriptor(field.value, 'budget');
+        if ((resource || valueWork) && budgetField && Object.hasOwn(budgetField, 'value')) {
+          const original = budgetField.value, selected = {};
+          const keys = ['requested', 'remaining', 'policy', 'requestedIsLowerBound'];
+          if (original != null && Object.keys(original).length === keys.length) {
+            let valid = true;
+            for (const key of keys) {
+              const member = Object.getOwnPropertyDescriptor(original, key);
+              if (!member || !Object.hasOwn(member, 'value')) { valid = false; break; }
+              selected[key] = member.value;
+            }
+            if (valid && keys.slice(0, 3).every(key => typeof selected[key] === 'string' &&
+                /^(?:0|[1-9][0-9]{0,18})$/u.test(selected[key]) && BigInt(selected[key]) <= 9223372036854775807n) &&
+                BigInt(selected.requested) > BigInt(selected.remaining) &&
+                BigInt(selected.remaining) <= BigInt(selected.policy) &&
+                selected.requestedIsLowerBound === valueWork &&
+                (!valueWork || selected.policy === String(data.workLimit))) {
+              data.budget = Object.freeze(selected);
+            }
+          }
+        }
         primaryDiagnostic = Object.freeze(data);
       }
     }
@@ -102,6 +126,27 @@ function dispatchFailureSnapshot(error) {
     message: typeof error === 'string' ? error : text('message'),
     ...(primaryDiagnostic === undefined ? {} : {primaryDiagnostic}),
     ...(cleanupDiagnostic === undefined ? {} : {cleanupDiagnostic})});
+}
+
+// This message extends the existing failed Run observation, not its status,
+// authority or cleanup evidence. Never format arbitrary exception text.
+function publicBudgetFailureMessage(error) {
+  const data = dispatchFailureSnapshot(error)?.primaryDiagnostic;
+  if (data?.phase !== 'local_managed_advance') return undefined;
+  const memory = data.kind === 'resource';
+  if (!memory && !['value_capture_work', 'control_work'].includes(data.kind)) return undefined;
+  const dimension = memory ? data.dimension : data.kind;
+  const setting = memory ? `installation.requestMemory.${dimension === 'retained_bytes' ? 'retainedBytes' : 'executionBytes'}`
+    : 'installation.sourceFreeMaxWork';
+  const unit = memory ? 'logical_bytes' : 'work_units';
+  const budget = data.budget;
+  const requested = budget === undefined ? 'unavailable'
+    : `${budget.requestedIsLowerBound ? '>=' : ''}${budget.requested}`;
+  const remaining = budget?.remaining ?? 'unavailable';
+  const policy = budget?.policy ?? (memory ? 'unavailable' : String(data.workLimit ?? data.controlWorkLimit));
+  return `Budget exceeded: phase=${data.phase}; dimension=${dimension}; requested_delta=${requested}; remaining=${remaining}; policy=${policy}; unit=${unit}; setting=${setting}. ` +
+    (memory ? 'Logical quota, not process RSS.'
+      : 'Runtime work, not Program parsing/checking. A lower bound does not give the complete UTF8 demand.');
 }
 
 // Only diagnostic custody moves here. An Unknown result keeps its outcome,
@@ -303,6 +348,10 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     new Error('ClientRunCancellationRequested'));
   const live = ref => current(ref)?.settled === false;
   const operation = ref => current(ref)?.promise;
+  const failureMessage = ref => {
+    const entry = current(ref);
+    return entry === undefined ? undefined : publicBudgetFailureMessage(entry.primaryFailure);
+  };
 
   async function acquireSource(entry, preparedProgram, preparedSource, sourceAccess,
     {captureOnly = false, originalEvidence = false, ledger, occurrence} = {}) {
@@ -468,8 +517,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     return {plan, setup};
   }
 
-  function retire(entry) {
-    if (entry.settled && entry.cleanupOwner === undefined &&
+  function retirementReady(entry) {
+    return entry.settled && entry.cleanupOwner === undefined &&
         entry.cleanupHandle === undefined && !entry.unresolvedCleanup &&
         entry.sourceCapture === undefined && entry.sourcePreparations === undefined &&
         entry.pendingSetup === undefined &&
@@ -477,7 +526,39 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         !entry.failureObservationPending && !entry.finishPending &&
         !entry.releasePending &&
         (!entry.physicalStarted || entry.stopObserved ||
-          !entry.physicalWorkMayHaveStarted)) {
+          !entry.physicalWorkMayHaveStarted);
+  }
+
+  function retainBudgetFailureObservation(entry) {
+    const message = publicBudgetFailureMessage(entry.primaryFailure);
+    if (message === undefined || !entry.stopObserved) return;
+    const frame = journal.lookupRunDefinition(entry.ref, moon, control);
+    if (frame?.physicalCloseConfirmed !== true || frame.observedTerminalOutcome !== 'failed') return;
+    const state = issueInstalledUnpublishedRunState(moon, {
+      runId: control.runDefinitionRunId(frame.runDefinition),
+      observedAt: now(), resultNames: frame.resultNames,
+      dispatchReserved: frame.dispatchReserved,
+      preDispatchFailureConfirmed: frame.preDispatchFailureConfirmed,
+      cancelledBeforeStart: false, observedTerminalOutcome: 'failed',
+      executionUnknown: false,
+    });
+    if (state.status !== 'failed' || state.terminal_error?.code !== 'ACTQL_E_UNPUBLISHED_RUN') return;
+    state.terminal_error = {...state.terminal_error, message};
+    // The original journal's exact frame and CAS still own this observation.
+    // No successful/pending/Unknown state or cleanup fact is issued here.
+    journal.publishRunState(frame, state, moon, control);
+  }
+
+  function retire(entry) {
+    if (retirementReady(entry) && !entry.publishingBudgetDiagnostic) {
+      if (!entry.budgetDiagnosticAttempted && entry.primaryFailure !== undefined) {
+        entry.budgetDiagnosticAttempted = true;
+        entry.publishingBudgetDiagnostic = true;
+        try { retainBudgetFailureObservation(entry); }
+        catch { /* Optional diagnosis cannot mask the primary or block cleanup. */ }
+        finally { entry.publishingBudgetDiagnostic = false; }
+        if (!retirementReady(entry) || entries.get(keyOf(entry.ref)) !== entry) return;
+      }
       try {
         entry.retirePreparation?.();
       } catch (failure) {
@@ -1536,5 +1617,5 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       });
     }
   };
-  return Object.freeze({start, track, cancel, live, operation, drain});
+  return Object.freeze({start, track, cancel, live, operation, failureMessage, drain});
 }

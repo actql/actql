@@ -260,10 +260,21 @@ pub impl Debug for ClientProgramCheckPreparationIssue with fn to_repr(self) {
 // continuation. No new observer record, parent backreference or callback exists.
 // Explicit source-free work selection retains one Some/header, its scalar and
 // two references on the SAME Request (1H/2R/1W), including failed construction.
+// Default Query's observed Stage selection retains four immutable records:
+// Program limits (3R/4W), Check limits (2R), Compile limits (6R/1W), and
+// structure limits (9W). Their 4H/11R/14W coexist with the original selection
+// before checking. Shared nested profiles and original Option payloads are
+// borrowed unchanged; no Stage-sized array or policy-sized storage is added.
 let request_preparation_fixed_control_envelope : @execution.PreparationRepresentationUnits = {
-  record_headers: 234L,
-  reference_slots: 418L,
-  scalar_words: 482L,
+  // Common observed default input adds its Source-limit copy (1H/3W),
+  // Compile limits (1H/6R/1W) and Structure limits (1H/9W).
+  // Original optional raw lexical-work selection and its holder reference:
+  // 1H/1R/1W, retained before any fallible syntax grow/current callback.
+  // Coheld return wrapper for the shared post-lowering default selection.
+  // Original selected limits remain retained on the same Request.
+  record_headers: 243L,
+  reference_slots: 437L,
+  scalar_words: 510L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }

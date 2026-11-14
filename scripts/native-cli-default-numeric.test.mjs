@@ -8,6 +8,111 @@ import {join} from 'node:path';
 import {nativeDefaultNumericQueries, observeNativeDefaultNumericQueries, observeNativeFileSourceNumeric,
   nativeDefaultUnionCases, observeNativeDefaultUnionMetadata, observeNativeFileTaskBoundary}
   from './test-native-cli-source-free-install.mjs';
+import {nativeUnionRowCases, nativeUnionRowSql, observeNativeUnionRows,
+  observeNativeUnionRowPolicy} from './native-cli-union-rows.mjs';
+
+// Explicit command ports qualify the new acceptance oracle, not Native ABI,
+// physical cleanup or the repaired installed product.
+async function unionRowsFixture(t, fault) {
+  const root = await mkdtemp(join(tmpdir(), 'native-union-rows-oracle-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const runs = new Map(), calls = [];
+  let pid = 100;
+  const reply = stdout => ({stdout, code: 0, signal: null, sourceFreeWork: {pid: ++pid},
+    stderr: 'ACTQL_NATIVE_PHASE ' + JSON.stringify({tag: 5, begins: 1,
+      ends: fault === 'close' ? 0 : 1, active: 0, unmatched_end: 0}) + '\n' +
+      'ACTQL_NATIVE_LAUNCHER_TIMINGS {"units":"nanoseconds","preparation":0,"child":0,"total":0}\n'});
+  const cli = async (args, cwd, code = 0) => {
+    calls.push({args, cwd, code});
+    const [operation, file] = args;
+    if (operation === 'init') {
+      assert.equal(cwd, root);
+      await mkdir(file); await writeFile(join(file, 'actql.config.json'), '{}\n');
+      return reply('');
+    }
+    assert.equal(cwd, join(root, 'ordinary-union-rows'));
+    if (operation === 'sql') {
+      if (file === 'SELECT )') {
+        assert.equal(code, 1); assert(args.includes('--json'));
+        return {stdout: '', stderr: '{"code":"ACTQL_E_PROGRAM_INVALID"}', code: 1, signal: null};
+      }
+      assert.equal(file, 'SELECT 9821 AS n'); return reply('{"n":9821}\n');
+    }
+    if (operation === 'check' || operation === 'run') {
+      const entry = nativeUnionRowCases.find(value =>
+        file === `union-${value.form}-${value.branches}-${value.duplicates ? 'duplicates' : 'unique'}.sql`);
+      assert(entry);
+      const sql = await readFile(join(cwd, file), 'utf8');
+      const values = [...sql.matchAll(/SELECT ([0-9]+) AS n/gu)].map(match => Number(match[1]));
+      assert.equal(values.length, entry.branches);
+      assert.equal(sql.match(/UNION ALL/gu).length, entry.branches - 1);
+      assert.equal(sql.startsWith('WITH'), entry.form === 'cte');
+      if (operation === 'check') return reply(JSON.stringify({outcome: 'completed',
+        report: {verdict: 'verified', runnable: {verdict: 'yes'}}}));
+      assert(![...runs.values()].some(value => value.file === file), 'No replacement submission');
+      const runId = `run-${runs.size}`;
+      runs.set(runId, {file, entry, values});
+      return reply(JSON.stringify({version: 'actql-run-state/0.1', status: 'succeeded', run_id: runId}));
+    }
+    assert.equal(operation, 'result');
+    const original = runs.get(file); assert(original);
+    let values = [...original.values], cold = false;
+    try {await access(join(cwd, original.file));} catch (error) {assert.equal(error.code, 'ENOENT'); cold = true;}
+    if (fault === 'late-row' && original.entry.branches === 25) values[values.length - 1] += 100;
+    if (fault === 'duplicate' && original.entry.duplicates) values.pop();
+    if (fault === 'cold' && cold) values[0] += 100;
+    if (args.at(-1) === 'csv') return reply((fault === 'csv-header' ? '"foreign"' : fault === 'csv-unquoted-header' ? 'n' : fault === 'csv-extra-column' ? '"n","other"' : '"n"') + '\n' + values.map(n =>
+      fault === 'csv-null' && n === 0 ? '' : n).join('\n') + '\n');
+    return reply(values.map(n => JSON.stringify(fault === 'schema' ? {foreign: n} : {n})).join('\n') + '\n');
+  };
+  return {root, cli, runs, calls};
+}
+
+test('UNION row oracle requires direct and CTE 10/11/24/25/40 complete values and duplicates', async t => {
+  assert.deepEqual(nativeUnionRowCases[0].rows, [0,1,2,3,4,5,6,7,8,9].map(n => ({n})));
+  assert.deepEqual(nativeUnionRowCases[1].rows, [0,1,2,0,1,2,0,1,2,0].map(n => ({n})));
+  assert(!nativeUnionRowSql(nativeUnionRowCases[0]).startsWith('WITH'));
+  const fixture = await unionRowsFixture(t);
+  const result = await observeNativeUnionRows(fixture);
+  assert.equal(result.cases.length, 20); assert.equal(fixture.runs.size, 20);
+  assert.deepEqual([...new Set(result.cases.map(value => value.branches))], [10,11,24,25,40]);
+  assert(result.cases.every(value => value.firstCloseObserved && value.coldSavedWithoutInput && value.recoveredAfterInvalidQuery));
+  assert.equal(fixture.calls.filter(value => value.args[0] === 'init').length, 1);
+});
+for (const fault of ['late-row', 'duplicate', 'schema', 'close', 'cold', 'csv-null', 'csv-header', 'csv-unquoted-header', 'csv-extra-column']) {
+  test(`UNION row oracle refuses ${fault} without replacing the original`, async t => {
+    const fixture = await unionRowsFixture(t, fault);
+    await assert.rejects(observeNativeUnionRows(fixture));
+    assert.equal(fixture.calls.filter(value => value.args[0] === 'run').length, fixture.runs.size);
+  });
+}
+
+for (const generic of [false, true]) {
+  test(`UNION row-policy oracle ${generic ? 'refuses generic failure' : 'retains typed failure and recovery'}`, async t => {
+    const project = await mkdtemp(join(tmpdir(), 'native-union-row-policy-oracle-'));
+    t.after(() => rm(project, {recursive: true, force: true}));
+    const cli = async (args, cwd, code = 0) => {
+      assert.equal(cwd, project);
+      if (args[0] === 'run') {
+        assert.equal(code, 1);
+        assert.equal(await readFile(join(project, args[1]), 'utf8'), 'SELECT 0 AS n UNION ALL SELECT 1 AS n');
+        return {stdout: '', signal: null, stderr: JSON.stringify({code:
+          generic ? 'ACTQL_E_COMMAND_FAILED' : 'ACTQL_E_PROGRAM_INVALID'})};
+      }
+      assert.deepEqual(args, ['sql', 'SELECT 83 AS n', '--format', 'jsonl']);
+      return {stdout: '{"n":83}\n'};
+    };
+    if (generic) await assert.rejects(observeNativeUnionRowPolicy({project, cli}));
+    else {
+      const observed = await observeNativeUnionRowPolicy({project, cli});
+      assert.deepEqual(observed.recoveryRows, [{n: 83}]);
+      assert.equal(observed.classification, 'static-row-policy-input-invalid');
+      assert.equal(observed.sameParentBudgetRefusal, 'not-tested');
+      assert.equal(observed.recoveryFirstCloseObserved, false);
+      assert.equal(observed.physicalAckIndependentlyObserved, false);
+    }
+  });
+}
 
 // Explicit command ports exercise the acceptance oracle, not Native execution.
 async function numericFixture(t, fault) {

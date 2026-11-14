@@ -48,15 +48,16 @@ test "project connections reject invalid unused members and duplicate originals"
 }
 
 ///|
-test "project connections preserve bounded intake without a source-free fallback" {
+test "project connections preserve original wire geometry without a source-free fallback" {
   let wire = "{\"version\":\"actql-connectors/0.1\",\"connections\":{\"n\":{\"connector\":\"notion\"}}}"
   let exact = wire + String::make(65536 - wire.length(), ' ')
   assert_eq(
     admit_client_project_connections(exact).unwrap().original_wire(),
     exact,
   )
-  assert_true(
-    admit_client_project_connections(exact + " ") is Err(InvalidBindings),
+  assert_eq(
+    admit_client_project_connections(exact + " ").unwrap().original_wire(),
+    exact + " ",
   )
   assert_true(
     admit_client_source_free_project_bindings(Some(wire), None)

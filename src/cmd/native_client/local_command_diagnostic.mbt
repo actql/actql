@@ -18,6 +18,13 @@ priv enum LocalCommandDiagnosticKind {
   ReadOnlyEffect
   RunObservationFailed
   JournalMaintenanceFailed
+  RuntimeSequenceSteps
+  RuntimeSequenceConfiguration
+  RuntimeSequenceOperation
+  RuntimeRequirementsGraph
+  RuntimeRequirementsInventory
+  RuntimeRequirementsPorts
+  RuntimeRequirementsCapacity
 }
 
 ///|
@@ -136,6 +143,8 @@ fn[T] local_stop_submitted_preparation(
           )
         @checked.Checked(_) => PreparationFailed
       }
+    Request(QuerySyntax(Frontend(issue))) =>
+      local_frontend_diagnostic_kind(issue)
     Request(_) | RequestPreparation(_) => PreparationFailed
     RequestBranchUnavailable => UnsupportedPreparation
   }
@@ -151,6 +160,28 @@ fn[T] local_stop_native_preparation(
   command_preparation_diagnostic.val = local_native_preparation_diagnostic_kind(
     issue,
   )
+  stop("LocalPreparationNotReady")
+}
+
+///|
+// Project only this original typed requirements refusal. The public diagnostic
+// keeps closed phase/dimension text, never Debug, SQL, paths or error payloads.
+fn[T] local_stop_runtime_requirements(
+  issue : @local_values.ClientLocalRequirementsIssue,
+) -> T raise ClientStop {
+  command_preparation_diagnostic.val = match issue {
+    SequencePreparation(Sequence(SequenceLimit)) => RuntimeSequenceSteps
+    SequencePreparation(Sequence(InvalidSequenceLimits)) =>
+      RuntimeSequenceConfiguration
+    SequencePreparation(_) => RuntimeSequenceOperation
+    GraphShape | ModelOccurrencesPresent => RuntimeRequirementsGraph
+    ModelOccurrencesUnavailable
+    | SequenceCount
+    | MissingDataEdge
+    | InvalidDataEdge => RuntimeRequirementsInventory
+    InputPortCountLimit => RuntimeRequirementsPorts
+    CapacityQuoteUnavailable => RuntimeRequirementsCapacity
+  }
   stop("LocalPreparationNotReady")
 }
 
@@ -203,6 +234,34 @@ fn local_command_primary_diagnostic(message : String) -> (String, String) {
       )
     ReadOnlyEffect =>
       ("ACTQL_E_READ_ONLY_EFFECT", "The read-only request contains an Effect.")
+    RuntimeSequenceSteps =>
+      (
+        "ACTQL_E_PREPARATION_LIMIT", "Runtime sequence preparation exceeded its selected step bound.",
+      )
+    RuntimeSequenceConfiguration =>
+      (
+        "ACTQL_E_CONFIGURATION_INVALID", "Runtime sequence preparation has invalid selected limits.",
+      )
+    RuntimeSequenceOperation =>
+      (
+        "ACTQL_E_PREPARATION_FAILED", "Runtime sequence preparation could not be completed.",
+      )
+    RuntimeRequirementsGraph =>
+      (
+        "ACTQL_E_PREPARATION_UNSUPPORTED", "The selected runtime requirements entry cannot retain this graph shape.",
+      )
+    RuntimeRequirementsInventory =>
+      (
+        "ACTQL_E_PREPARATION_FAILED", "Runtime requirements could not retain the original task and input-port inventory.",
+      )
+    RuntimeRequirementsPorts =>
+      (
+        "ACTQL_E_PREPARATION_LIMIT", "Runtime requirements exceeded the selected input-port count bound.",
+      )
+    RuntimeRequirementsCapacity =>
+      (
+        "ACTQL_E_PREPARATION_FAILED", "Runtime demand capacity quoting is unavailable; no budget dimension was established.",
+      )
   }
 }
 

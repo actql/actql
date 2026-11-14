@@ -279,8 +279,18 @@ test('required README job reuses the exact single producer on Node 22 and 24 wit
   assert.equal(job.strategy['fail-fast'], false);
   assert.deepEqual(job.strategy.matrix.node, ['22.22.0', '24']);
   const input = job.steps.find(step => step.uses === './.github/actions/download-client-packages');
+  assert.equal(input.id, 'client-inputs');
   assert.equal(input.with['artifact-id'], '${{ needs.client-packages.outputs.artifact-id }}');
   assert(job.steps.some(step => step.run === 'node scripts/test-packed-readme-workflows.mjs "$RUNNER_TEMP/client-readme-packed"'));
+  const union = job.steps.find(step => step.id === 'packed-union-budget');
+  assert.equal(union.run, 'node scripts/test-packed-public-query.mjs --union-budget-only');
+  assert.equal(union.if, "${{ !cancelled() && steps.client-inputs.outcome == 'success' }}");
+  assert.equal(union['continue-on-error'], undefined);
+  const unionUpload = job.steps.find(step => step.with?.directory === '${{ steps.packed-union-budget.outputs.evidence-directory }}');
+  assert.equal(unionUpload.uses, './.github/actions/upload-packed-query-evidence');
+  assert.equal(unionUpload.if, "always() && steps.packed-union-budget.outputs.evidence-directory != ''");
+  assert.equal(unionUpload['continue-on-error'], undefined);
+  assert(!Object.hasOwn(unionUpload.with, 'path'), 'Only the bounded command diagnostics may be uploaded');
   assert(!job.steps.some(step => /npm pack|build:runtime|moon (?:build|test)/u.test(step.run ?? '')));
   assert(job.steps.every(step => !Object.hasOwn(step.env ?? {}, 'CI_PLAN')));
   const output = job.steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
@@ -492,28 +502,41 @@ test('failed README command retains original exit primary and first-close failur
   assert.equal(observed[0].samples[0].phases.length, 1);
 });
 
+function publicBudgetFixture(data, policy = data.kind === 'resource' ? 536870912 : data.workLimit ?? data.controlWorkLimit) {
+  const memory = data.kind === 'resource', dimension = memory ? data.dimension : data.kind;
+  const setting = memory ? `installation.requestMemory.${dimension === 'retained_bytes' ? 'retainedBytes' : 'executionBytes'}` : 'installation.sourceFreeMaxWork';
+  const budget = data.budget;
+  const message = `Budget exceeded: phase=local_managed_advance; dimension=${dimension}; requested_delta=${budget ? (memory ? '' : '>=') + budget.requested : 'unavailable'}; remaining=${budget?.remaining ?? 'unavailable'}; policy=${policy}; unit=${memory ? 'logical_bytes' : 'work_units'}; setting=${setting}. ` +
+    (memory ? 'Logical quota, not process RSS.' : 'Runtime work, not Program parsing/checking. A lower bound does not give the complete UTF8 demand.');
+  return {terminal: {status: 'failed', result_available: false, revision: 4,
+    control: {physical_stop: 'confirmed'}, terminal_error: {code: 'ACTQL_E_UNPUBLISHED_RUN', message}},
+    publicBudget: {message, phase: 'local_managed_advance', dimension, setting, quantities: budget ?? 'unavailable', policy: String(policy)}};
+}
+const publicBudgetRereadFixture = {sameHost: true, originalFailedRun: true, sameMessage: true, sameRevision: true, newSubmissions: 0};
+
 async function collectionBudgetPorts() {
   const source = await readFile(new URL('./fixtures/packed-result-collection.mjs', import.meta.url), 'utf8');
   const tree = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'});
   const load = name => {
     const node = tree.body.find(value => value.type === 'FunctionDeclaration' && value.id.name === name);
     assert(node);
-    return Function('assert', `return (${source.slice(node.start, node.end)});`)(assert);
+    return Function('assert', 'originalPublicBudget', `return (${source.slice(node.start, node.end)});`)(assert,
+      name === 'originalPublicBudget' ? undefined : load('originalPublicBudget'));
   };
   const body = tree.body.find(value => value.type === 'TryStatement').block;
   // Execute the actual fixture with explicit public/diagnostic ports, not a
   // substitute Core, Ledger, installed acceptance, or successful budget run.
   return {project: load('originalBudgetRefusal'), program: load('collectionProgram'), budgetProgram: load('oversizedRowProgram'),
     memoryProgram: load('memoryRecoveryProgram'), workProject: load('originalControlWorkRefusal'),
-    memoryProject: load('originalAcceptedMemoryRefusal'), exact: load('exactRows'),
+    memoryProject: load('originalAcceptedMemoryRefusal'), publicProject: load('originalPublicBudget'), exact: load('exactRows'),
     recovery: load('sameHostSmallResult'), createPrevious: load('createPreviousSavedResult'), readPrevious: load('readPreviousSavedResult'),
-    run: Function('ports', `return (async () => {
+    run: Function('originalBudgetReread', `return ports => (async () => {
       const {assert,report,span,open,phase,stateDir,capacityObservations,
         originalBudgetRefusal,getSubmissionOutcome,getSubmissionInput,getSubmissionAttempt,
         collectionProgram,oversizedRowProgram,memoryRecoveryProgram,originalControlWorkRefusal,originalAcceptedMemoryRefusal,exactRows,
         sameHostSmallResult,createPreviousSavedResult,readPreviousSavedResult,workObservations,save}=ports;
       let client; ${source.slice(body.start, body.end)}; return client;
-    })();`)};
+    })();`)(load('originalBudgetReread'))};
 }
 
 test('collection boundary fixtures keep all required rows and the original larger SQL statements', async () => {
@@ -1613,8 +1636,10 @@ test('normal resource work evidence refuses generic unpublished memory row and f
   const {workProject} = await collectionBudgetPorts(), ref = {original: 'same-run'};
   const terminal = {status: 'failed', result_available: false};
   const data = {code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'control_work', task: 3, controlWorkLimit: 100000};
+  const publicFixture = publicBudgetFixture(data);
+  Object.assign(terminal, publicFixture.terminal);
   const event = {ref, code: 'CapturedRunExecutionFailed', primaryCode: 'MoonBitHostFailure', primaryDiagnostic: data};
-  assert.deepEqual(workProject([event], ref, terminal, 100000), {...data, verified: true});
+  assert.deepEqual(workProject([event], ref, terminal, 100000), {...data, publicBudget: publicFixture.publicBudget, verified: true});
   for (const events of [[], [event, event], [{...event, ref: {original: 'foreign'}}],
     [{...event, primaryCode: 'ClientHostFailure'}], [{...event, primaryDiagnostic: undefined}],
     ...['execution', 'retention', 'row', 'workspace'].map(kind => [{...event, primaryDiagnostic: {...data, kind}}]),
@@ -1632,6 +1657,7 @@ test('normal resource fixture reuses the SAME finite-policy Host for a later ind
     const report = {phase, cases: [], submits: 0}, observations = [], work = [], events = [];
     const primary = new Error('Original snapshot refusal'), failedRef = {original: 'work-run'};
     let opens = 0, starts = 0, selected;
+    const failedState = publicBudgetFixture({code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'control_work', task: 3, controlWorkLimit: 100000}).terminal;
     const client = {async startSource(document, options) {
       assert.strictEqual(this, client); starts++;
       assert.deepEqual(options, {format: 'sql'});
@@ -1653,13 +1679,14 @@ test('normal resource fixture reuses the SAME finite-policy Host for a later ind
           selected.authorization.observe('dispatch_failed', {ref: failedRef, code: 'CapturedRunExecutionFailed',
             primaryCode: 'MoonBitHostFailure', primaryDiagnostic: {code: 'MoonBitHostFailure',
               phase: 'local_managed_advance', kind: 'control_work', task: 3, controlWorkLimit: 100000}});
-          events.push('refused'); return {status: 'failed', result_available: false};
-        }};
+          events.push('refused'); return failedState;
+        }, async status() {return failedState;}};
       }
       assert.equal(starts, 3); assert.equal(document, 'SELECT 7 AS n'); events.push('later-small');
       return {ref: {original: 'new-small'}, async wait() {return {status: 'succeeded', next_action: {results: ['answer']}};},
         result(name) {assert.equal(name, 'answer'); return {async all() {return [{n: 7}];}};}};
     }, async attach(ref) {
+      if (ref === failedRef) return {async status() {return failedState;}};
       assert.equal(starts, 3); assert.deepEqual(ref, {original: 'previous-Saved'}); events.push('attach-prior');
       let read = false;
       return {result(name) {assert.equal(name, 'prior'); return {async all() {read = true;return [{n: 41}];}};},
@@ -1701,7 +1728,9 @@ test('normal resource parent rejects missing recovery wrong policies misclassifi
   const {root} = await scratch(t), load = await runnerFunctions();
   const run = load('runCollectionPhase', {readFile, join, assert, process, nodeBenchmarkFailure});
   for (const phase of ['memory-recovery', 'work-recovery']) for (const mode of [
-    'exact', 'wrong-owner-limit', 'missing-recovery', 'wrong-rows', 'missing-prior', 'changed-prior', 'wrong-policy', 'wrong-kind', 'extra-submit', 'pending-close', 'open-fd', 'cleanup']) {
+    'exact', 'wrong-owner-limit', 'missing-recovery', 'wrong-rows', 'missing-prior', 'changed-prior', 'wrong-policy', 'wrong-kind', 'extra-submit', 'pending-close', 'open-fd', 'cleanup',
+    ...(phase === 'work-recovery' ? ['missing-public', 'wrong-public-phase', 'wrong-public-dimension',
+      'wrong-public-policy', 'wrong-public-setting', 'wrong-public-message', 'wrong-public-quantities', 'missing-public-reread'] : [])]) {
     const bytes = phase === 'memory-recovery' ? 268435456 : 1073741824;
     const actual = {phase, pid: 12345, complete: true, firstClose: 'returned', cleanup: [],
       aliveScopedFD: {before: 0, after: 0}, submits: 3,
@@ -1714,6 +1743,18 @@ test('normal resource parent rejects missing recovery wrong policies misclassifi
         dimension: 'retention', requiredRetentionBytes: '536870912', requiredExecutionBytes: '536870912',
         availableRetentionBytes: '268435456', availableExecutionBytes: '268435456'},
       workRefusal: {code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'control_work', task: 3, controlWorkLimit: 100000, verified: true}};
+    if (phase === 'work-recovery') {
+      actual.workRefusal.publicBudget = publicBudgetFixture(actual.workRefusal).publicBudget;
+      actual.publicBudgetReread = {...publicBudgetRereadFixture};
+    }
+    if (mode === 'missing-public') delete actual.workRefusal.publicBudget;
+    if (mode === 'wrong-public-phase') actual.workRefusal.publicBudget.phase = 'source_free_plan';
+    if (mode === 'wrong-public-dimension') actual.workRefusal.publicBudget.dimension = 'execution_bytes';
+    if (mode === 'wrong-public-policy') actual.workRefusal.publicBudget.policy = '30000000';
+    if (mode === 'wrong-public-setting') actual.workRefusal.publicBudget.setting = 'installation.requestMemory.executionBytes';
+    if (mode === 'wrong-public-message') actual.workRefusal.publicBudget.message = 'generic failure';
+    if (mode === 'wrong-public-quantities') actual.workRefusal.publicBudget.quantities = {requested: '100001', remaining: '100000'};
+    if (mode === 'missing-public-reread') delete actual.publicBudgetReread;
     if (mode === 'wrong-owner-limit') {actual.workRefusal.controlWorkLimit--; actual.memoryRefusal.dimension = 'control_work';}
     if (mode === 'missing-recovery') delete actual.resourceRecovery;
     if (mode === 'wrong-rows') actual.resourceRecovery.rows = [{n: 8}];
@@ -1833,8 +1874,11 @@ test('normal resource original value capture work evidence remains distinct from
   const {workProject}=await collectionBudgetPorts(),ref={original:'same-run'};
   const terminal={status:'failed',result_available:false};
   const data={code:'MoonBitHostFailure',phase:'local_managed_advance',kind:'value_capture_work',task:41,step:41,workLimit:100000};
+  data.budget = {requested: '8', remaining: '7', policy: '100000', requestedIsLowerBound: true};
+  const publicFixture = publicBudgetFixture(data);
+  Object.assign(terminal, publicFixture.terminal);
   const event={ref,code:'CapturedRunExecutionFailed',primaryCode:'MoonBitHostFailure',primaryDiagnostic:data};
-  assert.deepEqual(workProject([event],ref,terminal,100000),{...data,verified:true});
+  assert.deepEqual(workProject([event],ref,terminal,100000),{...data, publicBudget: publicFixture.publicBudget, verified: true});
   for(const changed of [{...data,kind:'capture'},{...data,kind:'CaptureLimit'},{...data,workLimit:99999},
     {...data,step:-1},{...data,controlWorkLimit:100000},{...data,unit:0}])assert.throws(()=>workProject([{...event,primaryDiagnostic:changed}],ref,terminal,100000));
 });
@@ -1845,6 +1889,8 @@ test('normal resource parent preserves exact value capture work evidence through
   const run=load('runCollectionPhase',{readFile,join,assert,process,nodeBenchmarkFailure});
   for(const mode of ['exact','wrong-limit','missing-step','generic-capture','foreign-control']){
     const data={code:'MoonBitHostFailure',phase:'local_managed_advance',kind:'value_capture_work',task:41,step:41,workLimit:100000,verified:true};
+    data.budget = {requested: '8', remaining: '7', policy: '100000', requestedIsLowerBound: true};
+    data.publicBudget = publicBudgetFixture(data).publicBudget;
     if(mode==='wrong-limit')data.workLimit--;
     if(mode==='missing-step')delete data.step;
     if(mode==='generic-capture')data.kind='capture';
@@ -1854,7 +1900,7 @@ test('normal resource parent preserves exact value capture work evidence through
       previousSaved:{complete:true,rows:[{n:41}],submits:0},sourceFreeMaxWork:100000,
       requestMemory:{retainedBytes:1073741824,executionBytes:1073741824},
       resourceRecovery:{complete:true,rows:[{n:7}],submits:1},
-      cases:[{expectedRefusal:'value_capture_work',complete:true}],workRefusal:data};
+      publicBudgetReread: publicBudgetRereadFixture, cases:[{expectedRefusal:'value_capture_work',complete:true}],workRefusal:data};
     const record={phase:'work-recovery',completed:false};
     const promise=run({collection:root,record,async command(){return {pid:12345,code:0,stdout:JSON.stringify(actual)};}});
     if(mode==='exact'){await promise;assert.equal(record.completed,true);}
@@ -1888,14 +1934,17 @@ test('accepted Compute memory oracle requires same original typed dimension and 
   const ref = {original: 'accepted-compute'};
   const terminal = {status: 'failed', result_available: false, control: {physical_stop: 'confirmed'}};
   const data = {code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'resource', task: 44, dimension: 'retained_bytes'};
+  data.budget = {requested: '8', remaining: '7', policy: '536870912', requestedIsLowerBound: false};
+  const publicFixture = publicBudgetFixture(data);
+  Object.assign(terminal, publicFixture.terminal);
   const event = {ref, code: 'CapturedRunExecutionFailed', primaryCode: 'MoonBitHostFailure', primaryDiagnostic: data};
-  assert.deepEqual(memoryProject([event], ref, terminal), {...data, verified: true});
+  assert.deepEqual(memoryProject([event], ref, terminal, {retainedBytes: 536870912, executionBytes: 536870912}), {...data, publicBudget: publicFixture.publicBudget, verified: true});
   for (const changed of [undefined, {...data, dimension: 'memory'}, {...data, task: -1},
     {...data, phase: 'request_snapshot'}, {...data, kind: 'control_work'}, {...data, unit: 0}]) {
-    assert.throws(() => memoryProject([{...event, primaryDiagnostic: changed}], ref, terminal));
+    assert.throws(() => memoryProject([{...event, primaryDiagnostic: changed}], ref, terminal, {retainedBytes: 536870912, executionBytes: 536870912}));
   }
-  assert.throws(() => memoryProject([{...event, ref: {original: 'foreign'}}], ref, terminal));
-  assert.throws(() => memoryProject([event, event], ref, terminal));
+  assert.throws(() => memoryProject([{...event, ref: {original: 'foreign'}}], ref, terminal, {retainedBytes: 536870912, executionBytes: 536870912}));
+  assert.throws(() => memoryProject([event, event], ref, terminal, {retainedBytes: 536870912, executionBytes: 536870912}));
   assert.throws(() => memoryProject([event], ref, {...terminal, status: 'needs_reconciliation'}));
   assert.throws(() => memoryProject([event], ref, {...terminal, control: {physical_stop: 'unknown'}}));
 });
@@ -1906,6 +1955,8 @@ test('accepted Compute fixed512 fixture checks refusal recovery and every legiti
     const report = {phase: 'accepted-memory-recovery', cases: [], submits: 0}, work = [], saved = new Map();
     let starts = 0, opens = 0, attached = 0, selected;
     const ref = {original: 'accepted-compute'}, previousRef = {original: 'previous-Saved'};
+    const memoryData = {code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'resource', task: 44, dimension: 'retained_bytes', budget: {requested: '8', remaining: '7', policy: '536870912', requestedIsLowerBound: false}};
+    const failedState = publicBudgetFixture(memoryData).terminal;
     const result = n => ({ref: n === 41 ? previousRef : {original: 'small'},
       async wait() {return {status: 'succeeded', next_action: {results: ['answer']}};},
       result() {return {async all() {return [{n}];}};}});
@@ -1919,17 +1970,17 @@ test('accepted Compute fixed512 fixture checks refusal recovery and every legiti
         if (mode === 'succeeded' || mode === 'wrong-row') return {status: 'succeeded', result_available: true,
           control: {physical_stop: 'confirmed'}, next_action: {results: ['answer']}};
         selected.authorization.observe('dispatch_failed', {ref, code: 'CapturedRunExecutionFailed', primaryCode: 'MoonBitHostFailure',
-          ...(mode === 'generic' ? {} : {primaryDiagnostic: {code: 'MoonBitHostFailure', phase: 'local_managed_advance',
-            kind: 'resource', task: 44, dimension: 'retained_bytes'}})});
-        return {status: mode === 'unknown' ? 'needs_reconciliation' : 'failed', result_available: false,
-          control: {physical_stop: mode === 'unknown' ? 'unknown' : 'confirmed'}};
-      }, result() {return {async all() {
+          ...(mode === 'generic' ? {} : {primaryDiagnostic: memoryData})});
+        return {...failedState, status: mode === 'unknown' ? 'needs_reconciliation' : 'failed',
+          control: {...failedState.control, physical_stop: mode === 'unknown' ? 'unknown' : 'confirmed'}};
+      }, async status() {return failedState;}, result() {return {async all() {
         const rows = Array.from({length: 100000}, () => ({n: 0}));
         if (mode === 'wrong-row') rows[99999].n = 1;
         return rows;
       }};}};
     }, async attach(original) {
-      attached++; assert.deepEqual(original, previousRef);
+      attached++; if (original === ref) return {async status() {return failedState;}};
+      assert.deepEqual(original, previousRef);
       return {result() {return {async all() {return [{n: 41}];}};}, async status() {return {status: 'succeeded'};}};
     }};
     const checking = run({assert, report, phase: report.phase, stateDir: '/fresh-accepted-memory',
@@ -1942,7 +1993,7 @@ test('accepted Compute fixed512 fixture checks refusal recovery and every legiti
         assert.deepEqual(selected.requestMemory, {retainedBytes: 536870912, executionBytes: 536870912}); return client;}});
     if (mode === 'refused' || mode === 'succeeded') {
       assert.equal(await checking, client);
-      assert.equal(starts, 3); assert.equal(attached, 1); assert.equal(report.submits, 3);
+      assert.equal(starts, 3); assert.equal(attached, mode === 'refused' ? 2 : 1); assert.equal(report.submits, 3);
       assert.deepEqual(report.resourceRecovery, {complete: true, rows: [{n: 7}], submits: 1});
       assert.deepEqual(report.previousSaved, {complete: true, rows: [{n: 41}], submits: 0});
       assert.equal(report.cases[0].disposition, mode === 'refused' ? 'resource_refused' : 'succeeded');
@@ -1997,8 +2048,9 @@ test('required accepted Compute parent rejects generic Unknown incomplete recove
   const {root} = await scratch(t), load = await runnerFunctions();
   const run = load('runCollectionPhase', {readFile, join, assert, process, nodeBenchmarkFailure});
   for (const mode of ['exact', 'success', 'generic', 'unknown', 'stop-unknown', 'wrong-dimension', 'foreign-ref',
-    'missing-recovery', 'missing-Saved', 'wrong-memory', 'wrong-work', 'missing-ref', 'two-closes', 'pending-close', 'open-fd', 'short-success']) {
-    const ref = {original: 'accepted'}, data = {code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'resource', task: 44, dimension: 'retained_bytes'};
+    'missing-recovery', 'missing-Saved', 'wrong-memory', 'wrong-work', 'missing-ref', 'two-closes', 'pending-close', 'open-fd', 'short-success', 'missing-public', 'wrong-setting', 'missing-reread']) {
+    const ref = {original: 'accepted'}, data = {code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'resource', task: 44, dimension: 'retained_bytes', budget: {requested: '8', remaining: '7', policy: '536870912', requestedIsLowerBound: false}};
+    const publicFixture = publicBudgetFixture(data);
     const actual = {phase: 'accepted-memory-recovery', pid: 12345, complete: true, firstClose: 'returned', firstCloseCalls: 1,
       cleanup: [], aliveScopedFD: {before: 0, after: 0}, submits: 3, sourceFreeMaxWork: 30000000,
       requestMemory: {retainedBytes: 536870912, executionBytes: 536870912},
@@ -2006,8 +2058,11 @@ test('required accepted Compute parent rejects generic Unknown incomplete recove
       resourceRecovery: {complete: true, rows: [{n: 7}], submits: 1}, originalRefRecordedBeforeWait: true,
       acceptedComputeRef: ref, acceptedComputeTerminal: {status: 'failed', result_available: false, physical_stop: 'confirmed'},
       capacityObservations: [], workObservations: [{ref, code: 'CapturedRunExecutionFailed', primaryCode: 'MoonBitHostFailure', primaryDiagnostic: data}],
-      acceptedMemoryRefusal: {...data, verified: true}, cases: [{count: 100000, disposition: 'resource_refused', complete: true}]};
+      publicBudgetReread: publicBudgetRereadFixture, acceptedMemoryRefusal: {...data, publicBudget: publicFixture.publicBudget, verified: true}, cases: [{count: 100000, disposition: 'resource_refused', complete: true}]};
     if (mode === 'generic') delete actual.acceptedMemoryRefusal;
+    if (mode === 'missing-public') delete actual.acceptedMemoryRefusal.publicBudget;
+    if (mode === 'wrong-setting') actual.acceptedMemoryRefusal.publicBudget.setting = 'installation.sourceFreeMaxWork';
+    if (mode === 'missing-reread') delete actual.publicBudgetReread;
     if (mode === 'unknown') actual.acceptedComputeTerminal.status = 'needs_reconciliation';
     if (mode === 'stop-unknown') actual.acceptedComputeTerminal.physical_stop = 'unknown';
     if (mode === 'wrong-dimension') actual.acceptedMemoryRefusal.dimension = 'memory';

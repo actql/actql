@@ -380,7 +380,9 @@ pub fn restore_relation_row_declaration(
       connector_registration,
       connector_version,
       specs,
-      limits,
+      // Preserve the admitted original range. The installed caller already
+      // owns reconstruction; explicit generator limits remain independent.
+      { ..limits, max_views: views.length(), },
       Some(classifications),
       Some(resource_identities),
     ) {

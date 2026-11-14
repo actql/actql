@@ -587,6 +587,16 @@ issued DAG before binding, so failed binding or reentrant current loss cannot
 issue another graph. A changed output mode refuses before graph construction;
 it cannot trigger a late factory or choose a fallback configuration.
 
+The runtime requirements entry retains the original sequence-selection failure
+in a typed Result; the existing Option entry remains its compatibility view.
+Both use the same checked Program, installed contracts and one preparation
+path. The CLI projects only closed phase and proven dimension labels from that
+failure. A sequence step bound stays distinct from invalid selected limits,
+graph/import inventory failure and an unavailable capacity quote. An absent
+quote establishes no memory/work shortage or execution permission. Debug text,
+SQL, paths and error payloads are not public diagnostic material; reporting
+does not retry checking or replace the original cleanup owner.
+
 The raw sequence preparation still serves explicitly unmigrated Effect/Model
 projections. The Request module path supplies its actual selected module; an absent module choice is
 an inline scalar word priced in that driver's existing semantic constructor
@@ -2897,6 +2907,18 @@ raw/no-plan success or an unqualified fallback.
 
 ## Native submitted intent on the same Request
 
+The Node submission adapter first consumes its same retained intent or the
+original Journal's `prepareSubmittedIntent` port. A Journal refusal is never
+retried through the compatibility codec. Installations without that optional
+port keep their existing codec entrance, using the already retained canonical
+wire's UTF16 length `U`: at most `3*U` UTF8 bytes and `U` JSON nodes. This
+constant-time projection adds no snapshot or whole-input scan. It preserves the
+original recursion bound and the Core constructor's signed-Int headroom; these
+bounds do not reserve storage or issue an intent, Request or execution grant.
+Original CID matching, epoch/current, handler retirement and Journal policy
+remain independent and unchanged.
+
+
 The normal captured native Program caller explicitly selects the original
 Request's input envelope for its later Program Source/index admission. That
 default projection requires the same live Request/input association and ready
@@ -3080,9 +3102,10 @@ lowerer and canonical Program emitter use the selected compiler artifact
 envelope, since generated Program material is not the original SQL wire.
 The default captured Source caller obtains its raw-input byte/Text envelope
 from `request_default_program_preparation_limits` on the same observed snapshot.
-The explicit caller retains its supplied profile. Native document input keeps
-its existing document-derived profile. No path replaces those selections with
-the standard profile after parsing or rescans the captured input.
+The explicit caller retains its supplied profile. Ordinary native Program and
+encoded JSON/YAML/SQL/Pipe input use the same original snapshot selection.
+No path replaces those selections with the standard profile after parsing or
+rescans the captured input.
 
 After lowering, the same existing Request `computation_limits` slot retains
 the generated-Program envelope for the ordinary checker/compiler continuation.
@@ -3091,6 +3114,68 @@ to the expanded artifact. This transition changes only the input representation
 dimensions; generic explicit check/reuse APIs retain their supplied restrictions.
 Installed collection/join dimensions, depth, CTE policy and original target,
 Catalog, Parameter and Environment bindings remain independent.
+
+The ordinary initial selection derives its Source/tree nodes and structural
+Stage, step, Result and parameter bounds from the same captured snapshot's
+finite encoded-byte envelope. Each encoded entry occupies at least one byte;
+outer snapshot value count alone does not bound nodes inside an encoded JSON
+String. The original Source owner observes and reserves actual geometry before
+parsing. This structural ceiling does not allocate its maximum or grant Resource
+capacity. The common Source, compilation and structure limit records coexist
+with the original profile; the fixed Request control quote includes their
+3 headers, 6 references and 13 scalar words (200 bytes by the common tariff).
+Explicit selected-limit entrances keep their original separate path and can
+still reject the same input under a smaller Stage budget.
+
+After Query lowering, the retained Program's constant-time Stage count selects
+the semantic structure bound. The existing generated checking-work policy uses
+the original standard work multiplied by
+`max(1, ceil(generated_stages / original_standard_stage_limit))`, with checked
+arithmetic. This remaining work selection is distinct from the common input
+structure: it is not exact consumed work or a conversion from Ledger dispatch
+planning work. The original phase meter still charges actual work on the same
+parent; no refund, second check or retry occurs. Depth, memory, artifact and
+other compiler restrictions remain separate. Its four immutable limit records
+retain their existing 4-header, 11-reference, 14-word fixed control quote.
+A repeated or reentrant entry refuses before selecting again.
+
+Sequence construction uses the same checked task owner and its retained
+pipeline node count for that task's full-step allowance, before selecting the
+execution step. Its canonical demand projection retains the original row,
+cell, name and expression bounds. It does not traverse or rebuild the graph,
+reinterpret the input, or turn a task ordinal into an execution grant. Direct
+calls with an explicit smaller sequence budget still refuse.
+
+The same existing demand fold also retains the maximum full-sequence step
+count across its original pipeline owners. The shared module/compiler getter
+uses that count too; it must not reset a prepared 160-step pipeline to a
+separate 100-step default during fragment measurement. Per-task selection
+reads the same original inventory. The per-pipeline observation and aggregate
+may coexist with their new scalar, so the original compilation reservation
+prices two scalar words through the common tariff before these constructors.
+This adds no scan, capacity grant or replacement owner.
+
+During that same binding inventory, the canonical demand also composes the
+original typed expressions' cached UTF8 accounting. That receipt includes
+admitted scalar-literal, contract and name text; it supplies known checked
+text to the lowering quota, not the configured maximum, runtime output size or
+a new storage allowance. It does not establish complete demand for untallied
+opaque JSON bodies or late parameter values; their original admission limits
+remain independently present.
+The shared and task selectors carry it into the existing expression text limit,
+so a checked long literal is not reset to an unrelated 10,000-byte default at
+Kernel construction. Explicit smaller sequence/expression text budgets retain
+their original refusal. Dynamic parameter and runtime expansion remain separate
+input/output obligations; static text demand does not grant them capacity.
+The new scalar on the per-pipeline demand and aggregate adds two more words;
+the same pre-compilation reservation therefore prices four words total for the
+full-step and text additions before either constructor. No Source/typing/tree
+scan, UTF8 Buffer, semantic check or additional capacity owner is created.
+
+The error owner alone
+recognizes exact nested sequence-budget failures for the existing analysis-limit
+projection; foreign, retired and general construction failures stay uncertain.
+
 
 These projections are immutable DATA in the existing Program owner, not a new
 Resource, authority or preparation controller. The same Request reserves the
@@ -6209,9 +6294,10 @@ Unknown physical outcomes retain these same duties and consumed work.
 A retained structured Program and a Source envelope have different inventory
 subjects. Observing the envelope's single document String does not establish
 the JSON/YAML document's structural node count or the SQL/Pipe lowering's Program
-inventory. The Native Source continuation retains its original syntax policy;
-its existing same-Request document/Query constructor reserves the selected
-representation before parsing or lowering. The structured Program continuation
+inventory. The Native Source continuation selects the same observed default
+input and lexical-work bounds as Node/RelA, while preserving its original
+result convention. Its same-Request document/Query constructor reserves the
+selected representation before parsing or lowering. The structured Program continuation
 continues to use its observed native input inventory. No permission, additional
 check, fallback compiler or numerical resource grant follows from this choice.
 
@@ -6262,9 +6348,12 @@ The installed `check` and unsaved `explain` commands retain their immutable
 argument/file producer before the ordinary observed reader opens any payload.
 They initialize the existing Request facility once. Raw Parameters are admitted
 first, then the original JSON/YAML Program or SQL/Pipe Query is parsed and
-checked through that same Request. Raw file storage follows the observed input;
-node/depth and Parameter/declaration scalar policies remain their original
-contracts. No submitted intent, module, provider, Engine or Run is created.
+checked through that same Request. The static caller selects its structural
+bounds from the common default selector's already-funded raw intake envelope,
+projects lexical work once from the same document and consumes the common
+post-lowering selection before checking. Raw depth and Parameter/declaration
+scalar policies remain their original contracts. No submitted intent, module,
+provider, Engine or Run is created.
 
 `check` stops at the original static semantic outcome. Its existing report
 constructor consumes that exact outcome, original Program cursor/spans,
@@ -6428,3 +6517,41 @@ inventories and separately selected explicit import profiles retain their
 original route. Cumulative value/work/identity checks, byte/depth bounds and
 SDK per-row retention controls remain independent. Quote and decoder consume
 the same selected profile under the original Task reservation.
+
+### Retained Source lexical work
+
+The default Node, RelA and Native Source entrances select lexical work from the
+same retained document: scanner advancement charges at most its UTF-16 unit
+count, and first quoted-name normalization charges at most that count again.
+The selected work bound is therefore twice the original String length, checked
+against the existing signed-Int representation. This uses the scanner's raw
+work unit, not dispatch planning work, time or capacity headroom. No second
+input scan or parser is needed. Explicit selected budgets remain unchanged.
+
+The existing Request retains that selection with the document and syntax quote.
+A refused grow cannot replace it. The fixed Request prefix backs the selection
+holder before callbacks; the syntax grow separately backs the coheld original
+and selected limit records before their constructors. The original phase work
+observer, current fence, once-only parser, lowering, checker and cleanup remain
+in place. Grammar, expression, nesting and other independent work limits are
+unchanged; a lexical bound does not establish their complete demand. Native
+keeps its original result convention through the same default Source entry.
+
+### Raw Native document default selection
+
+The ordinary raw Native checker keeps its existing Request and producer. Its
+Reader has already observed and reserved `native_intake_wire_bytes` before
+constructing document/parameter Strings. The common default selector consumes
+that same retained byte envelope when no captured snapshot or submitted intent
+exists. Encoded bytes bound structural entries; they are never written into
+snapshot value/Text observations. The original raw entrance depth remains.
+The same already-backed fixed limit records are used, without a second reader,
+input scan, Request, parser or permission issuer.
+
+Captured and raw callers share the existing post-lowering default selection,
+including the unchanged, separately tracked Stage-group work policy. The retained
+Program supplies its constant-time Stage count. The fixed Request control quote
+also backs the coheld selected-limit return wrapper (one header/reference).
+Both callers use one lexical-work projection of the original document. Explicit
+profiles, current/reentry, overflow, semantic/algorithm work and cleanup remain
+independent; these projections do not grant Resource capacity or compile a body.

@@ -102,7 +102,14 @@ pub fn restore_row_declaration(
   }
   let declaration = match
     generate_row_declaration(
-      connector_id, connector_registration, connector_version, views, declaration_limits,
+      connector_id,
+      connector_registration,
+      connector_version,
+      views,
+      // The installed caller funds this complete original specification before
+      // entering restore. Its admitted input determines the inventory; an
+      // independent default view count is not another Resource allowance.
+      { ..declaration_limits, max_views: views.length(), },
     ) {
     Ok(value) => value
     Err(issue) => return Err(Declaration(issue))

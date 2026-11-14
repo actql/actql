@@ -1443,6 +1443,18 @@ test('Explorer components require original built assets and keep Draft preparati
     for (const profile of ['full', 'maintenance', 'focused-tests']) assert.equal(draftStepEnabled(step, profile), true);
   }
 });
+test('fast health monitor harness runs in PR and Draft lint without enabling the main-only campaign', () => {
+  const command = 'node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- scripts/health-monitor.test.mjs';
+  const selected = jobs.lint.steps.filter(step => step.run === command);
+  assert.equal(selected.length, 1);
+  assert.equal(selected[0].if, undefined);
+  assert.equal(selected[0]['continue-on-error'], undefined);
+  for (const profile of ['draft', 'draft-focused', 'focused-tests', 'maintenance', 'full']) {
+    assert.equal(draftStepEnabled(selected[0], profile), true);
+  }
+  assert.deepEqual(jobs.lint.needs, ['select-targets']);
+  assert(!jobs.lint.steps.some(step => step.run?.includes('npm run health:quick')));
+});
 test('Draft cheap command inventory excludes compiler API generation and compound suites', () => {
   const commands = name => jobs[name].steps.filter(step => step.run && draftStepEnabled(step, 'draft')).map(step => step.run);
   const preflight = commands('preflight');
@@ -1465,6 +1477,7 @@ test('Draft cheap command inventory excludes compiler API generation and compoun
     'node --test scripts/ci-targets.test.mjs scripts/ci-main-base.test.mjs',
     'node --test adapters/host-node/local-result-read-policy.test.mjs adapters/host-node/client-result-collection-policy.test.mjs adapters/host-node/request-memory-policy.test.mjs adapters/local-node/managed-advance-diagnostic.test.mjs scripts/packed-readme-ci.test.mjs',
     'node --test adapters/host-node/infer-model-effect-control.test.mjs adapters/host-node/acquired-effect-unknown-primary.test.mjs adapters/host-node/mock-project-effect-public.test.mjs adapters/host-common/observation.test.mjs adapters/host-common/sqlite-transaction.test.mjs scripts/owner-fault-mutations.test.mjs',
+    'node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- scripts/health-monitor.test.mjs',
     'node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- adapters/connectors/gcs/test/gcs-file-listing.test.mjs adapters/connectors/gcs/test/gcs-prefix-profile.test.mjs adapters/connectors/gcs/test/gcs-site-profile-bounds.test.mjs adapters/connectors/snowflake/test/snowflake-key-pair.test.mjs adapters/connectors/snowflake/test/snowflake-public-fixture.test.mjs adapters/connectors/kintone/test/installed-kintone-managed-loader.test.mjs adapters/connectors/kintone/test/kintone-managed-sequence.test.mjs',
     'node --test scripts/operation-performance.test.mjs scripts/operation-performance-policy.test.mjs scripts/native-approval-performance.test.mjs scripts/native-approval-cpu-diagnostic.test.mjs scripts/node-wait-cpu-diagnostic.test.mjs',
     'node --test scripts/native-cli-default-numeric.test.mjs',

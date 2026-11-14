@@ -28,3 +28,18 @@ pub fn local_managed_advance_capture_work(
     _ => None
   }
 }
+
+///|
+/// Same failed result only; amounts are diagnostic DATA, never capacity.
+#export_name("strategyModule_local_ManagedAdvanceBudget")
+pub fn local_managed_advance_budget(
+  result : Result[
+    @local_driver.LocalManagedAdvance,
+    @local_driver.LocalDispatchIssue,
+  ],
+) -> (String, Bool, Int64, Int64, Int64)? {
+  match result {
+    Err(issue) => @local_driver.local_managed_failure_budget(issue)
+    _ => None
+  }
+}

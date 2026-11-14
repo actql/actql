@@ -15,6 +15,7 @@ fn local_dispatch_issue(
       InvalidConfiguration
     Dispatch(issue) => dispatch_driver_issue(issue)
     Execution(issue) => Run(issue)
+    ExecutionCapacityRefusal(original, _, _, _) => Run(Physical(original))
     Search(issue) => Search(issue)
     ManagedValues(_) => InvalidConfiguration
     ManagedCopy(_) => InvalidConfiguration

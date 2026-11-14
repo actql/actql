@@ -1,27 +1,5 @@
 ///|
-// Default JSON input has no independent document-size support policy. These
-// are the existing Int representation ceilings, not a reservation or node
-// estimate. The same original Source preflight observes actual wire geometry
-// before tree/index acquisition. Depth and stage policy stay independent.
-// This immutable recipe is shared runtime DATA, never copied per document.
-let request_default_json_input_limits : @syntax.Limits = {
-  source: {
-    // Existing Source offset/lookahead validation requires strictly below Int max.
-    max_input_bytes: 2147483646,
-    max_nodes: 2147483647,
-    max_depth: @publication_host.client_standard_program_preparation_limits().checking.input.source.max_depth,
-  },
-  tree: {
-    max_nodes: 2147483647,
-    max_depth: @publication_host.client_standard_program_preparation_limits().checking.input.tree.max_depth,
-    max_string_bytes: 2147483647,
-    max_total_string_bytes: 2147483647,
-  },
-  max_stages: @publication_host.client_standard_program_preparation_limits().checking.input.max_stages,
-}
-
-///|
-// The installed default Node driver selects this existing Request/domain
+// The installed default drivers select this existing Request/domain
 // connection. Explicitly selected limits keep their original separate entry;
 // no equality test recognizes a limit packet as the default. Parameters,
 // semantic/compiler policy and current Resource ownership are unchanged.
@@ -36,11 +14,14 @@ pub fn[I, T] prepare_request_default_source_computation_check(
   values_max_rows : Int?,
   effect_limits : @publication_host.ClientEffectComputationLimits,
   supplied? : T? = None,
+  public_primary? : Bool = true,
 ) -> Result[Unit, ClientRequestTerminalIssue] {
-  let program_limits = {
-    ..@publication_host.client_standard_program_preparation_limits(),
-    values_max_rows,
+  let original_limits = match
+    request_default_program_preparation_limits(owner, input) {
+    Err(issue) => return Err(issue)
+    Ok(limits) => limits
   }
+  let program_limits = { ..original_limits, values_max_rows, }
   match
     prepare_request_native_source_computation_input(
       owner,
@@ -51,7 +32,8 @@ pub fn[I, T] prepare_request_default_source_computation_check(
       publication,
       program_limits,
       supplied~,
-      default_json=true,
+      public_primary~,
+      default_source=true,
     ) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -61,17 +43,10 @@ pub fn[I, T] prepare_request_default_source_computation_check(
   // input bounds into reuse validation; resetting to the standard document
   // envelope here would reject already funded input. Query has no such child;
   // YAML retains the explicit bounds that its original parser selected.
-  let program_limits = match owner.program_json {
-    None =>
-      match (owner.query_syntax, owner.computation_limits) {
-        (Some(_), Some(selected)) => selected
-        _ => program_limits
-      }
-    Some(source) =>
-      {
-        ..program_limits,
-        checking: { ..program_limits.checking, input: source.limits, },
-      }
+  let program_limits = match
+    request_default_lowered_program_limits(owner, program_limits) {
+    Ok(original) => original
+    Err(issue) => return Err(issue)
   }
   let effect_limits = {
     ..effect_limits,
@@ -89,6 +64,79 @@ pub fn[I, T] prepare_request_default_source_computation_check(
 }
 
 ///|
+// Same default-selection continuation for captured and raw Native documents.
+// This is immutable selected DATA after the original lowerer, never another
+// parser, semantic checker, work receipt or Resource grant.
+fn[I] request_default_lowered_program_limits(
+  owner : ClientRequestPreparation[I],
+  program_limits : @publication_host.ClientProgramPreparationLimits,
+) -> Result[
+  @publication_host.ClientProgramPreparationLimits,
+  ClientRequestTerminalIssue,
+] {
+  Ok(
+    match owner.program_json {
+      None =>
+        match
+          (owner.query_syntax, owner.computation_limits, owner.held_program) {
+          (Some(_), Some(selected), Some(program)) => {
+            // The SAME lowerer has completed and retained this exact Program.
+            // Read its O(1) inventory, not text length, a second parser or an
+            // inflated shared profile. The initial Request control quote backs
+            // these immutable selection records before the checker is called.
+            let stages = @syntax.stage_count(program)
+            // This remaining legacy work policy is separately tracked for
+            // replacement; do not mistake the common structural bound for its
+            // former Stage32 denominator while that work correspondence is open.
+            let original_stages = @publication_host.client_standard_program_preparation_limits().checking.compilation.structure.stages
+            let original_work = selected.checking.compilation.work
+            // The default generated representation selects bounded checking work
+            // for its actual normalized Stage groups. Keep the installed work /
+            // Stage envelope; do not change the shared profile or any explicit
+            // caller's budget. This ceiling is not a debit or storage allocation.
+            guard original_stages > 0 && original_work >= 0 else {
+              return Err(Preparation(Policy))
+            }
+            let groups = (stages.to_int64() + original_stages.to_int64() - 1L) /
+              original_stages.to_int64()
+            guard @execution.checked_preparation_add_product(
+                0L,
+                Int64::max(1L, groups),
+                original_work.to_int64(),
+              )
+              is Some(work) &&
+              work <= 2147483647L else {
+              return Err(Preparation(ProgramCheck(Overflow)))
+            }
+            let selected = {
+              ..selected,
+              checking: {
+                ..selected.checking,
+                compilation: {
+                  ..selected.checking.compilation,
+                  work: work.to_int(),
+                  structure: {
+                    ..selected.checking.compilation.structure,
+                    stages,
+                  },
+                },
+              },
+            }
+            owner.computation_limits = Some(selected)
+            selected
+          }
+          _ => program_limits
+        }
+      Some(source) =>
+        {
+          ..program_limits,
+          checking: { ..program_limits.checking, input: source.limits, },
+        }
+    },
+  )
+}
+
+///|
 // Connect the existing original Program JSON preflight, tree/index and Program
 // phases. Source's original Unicode traversal supplies node/Text geometry;
 // document length is never substituted for retained node demand. A failed grow
@@ -97,11 +145,10 @@ fn[I] prepare_request_default_json_computation_input(
   owner : ClientRequestPreparation[I],
   input : I,
   document : String,
+  limits : @syntax.Limits,
 ) -> Result[Unit, ClientRequestTerminalIssue] {
   let source = match
-    prepare_request_program_json_preparation(
-      owner, input, document, request_default_json_input_limits,
-    ) {
+    prepare_request_program_json_preparation(owner, input, document, limits) {
     Err(issue) => return Err(Preparation(issue))
     Ok(original) => original
   }

@@ -1247,6 +1247,15 @@ pub fn client_program_request_program_module_issue_code(
       Some("source_free_metadata_capacity_unavailable")
     Err(Preparation(Installed(Sequence(ValuesFailure(_, ValuesLimit))))) =>
       Some("values_profile_unsupported")
+    // The original error owner projects only its exact sequence-budget cause.
+    // No caller reconstructs this read-only error or treats a current/foreign
+    // or general construction failure as a known input refusal.
+    Err(Preparation(issue)) =>
+      if @client_local_host.request_program_plan_issue_is_sequence_limit(issue) {
+        Some("check_compile_limit")
+      } else {
+        None
+      }
     _ => None
   }
 }

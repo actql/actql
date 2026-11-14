@@ -67,8 +67,9 @@ test('preflight remains mandatory at the final gate without delaying independent
     assert(!jobs[name].needs.includes('preflight'), name);
     assert(!jobs[name].needs.includes('spec'), name);
     if (name === 'core-darwin') {
-      assert.deepEqual(jobs[name].needs, ['select-targets', 'lint', 'core-js']);
-      assert(jobs[name].if.includes("always() && !cancelled() && needs.lint.result == 'success'"));
+      assert.deepEqual(jobs[name].needs, ['select-targets']);
+      assert(jobs[name].if.includes("always() && !cancelled() && needs.select-targets.result == 'success'"));
+      assert(!jobs[name].if.includes('needs.lint') && !jobs[name].if.includes('needs.core-js'));
     } else assert(!/always\(|failure\(|cancelled\(/u.test(jobs[name].if), `${name} must retain implicit success()`);
     assert.equal(jobs[name]['continue-on-error'], undefined);
   }

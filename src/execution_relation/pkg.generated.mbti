@@ -1950,6 +1950,7 @@ pub(all) enum CaptureIssue {
   ClosedCapture
   ForeignCheckedValue(Int, Int)
   CaptureWorkLimit(Int)
+  CaptureWorkRefusal(Int, Int)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum CaptureOrigin {

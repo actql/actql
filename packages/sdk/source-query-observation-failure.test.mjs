@@ -130,3 +130,29 @@ test('short queries sharing a borrowed exception retain distinct original inputs
       '[check-mutation:query-failure-input]');
   }
 });
+
+test('short query exposes original public memory and runtime-work diagnostics through execution and observation', async t => {
+  for (const [dimension, setting, demand, unit, explanation] of [
+    ['retained_bytes', 'installation.requestMemory.retainedBytes', '19', 'logical_bytes', 'Logical quota, not process RSS.'],
+    ['execution_bytes', 'installation.requestMemory.executionBytes', '19', 'logical_bytes', 'Logical quota, not process RSS.'],
+    ['value_capture_work', 'installation.sourceFreeMaxWork', '>=8', 'work_units', 'Runtime work, not Program parsing/checking. A lower bound does not give the complete UTF8 demand.'],
+  ]) {
+    const message = `Budget exceeded: phase=local_managed_advance; dimension=${dimension}; requested_delta=${demand}; remaining=7; policy=100; unit=${unit}; setting=${setting}. ${explanation}`;
+    const failed = {...running, status: 'failed', revision: 1,
+      terminal_error: {code: 'ACTQL_E_UNPUBLISHED_RUN', message}};
+    assert.equal(validRunState(failed), true);
+    const f = await fixture(t, () => failed);
+    let error;
+    try {await f.client.sql('SELECT 1 AS id', undefined,
+      {submissionRef: f.client.newSubmission({nonce: `budget-${dimension}`})});}
+    catch (original) {error = original;}
+    assert.equal(error.code, 'ExecutionUnsuccessful');
+    assert.equal(error.observation.terminal_error.message, message);
+    assert.equal(error.execution.ref.runDefinitionCid, ref.runDefinitionCid);
+    assert.equal((await error.execution.status()).terminal_error.message, message);
+    assert.deepEqual(f.operations, ['connect', 'submit-intent', 'wait', 'status']);
+    assert.equal(sdk.explainRunObservationFailure(error), undefined,
+      'A known failed execution is not an unknown observation or retry permission');
+    assert.equal(JSON.stringify(error).includes(message), false, 'Explicit original inspection stays nonenumerable');
+  }
+});

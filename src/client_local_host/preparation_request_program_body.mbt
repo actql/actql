@@ -421,6 +421,22 @@ pub suberror ClientRequestProgramPlanIssue {
 }
 
 ///|
+/// Read the original pre-admission compiler budget cause only. This callback-
+/// free diagnostic does not admit input, currentness, a Run or physical cleanup.
+/// All other original causes remain unclassified at this projection.
+pub fn request_program_plan_issue_is_sequence_limit(
+  issue : ClientRequestProgramPlanIssue,
+) -> Bool {
+  match issue {
+    Installed(Sequence(SequenceLimit))
+    | Construction(Graph(Fragment(AoA(Pipeline(Sequence(SequenceLimit))))))
+    | Construction(TaskGraph(Fragment(Pipeline(Sequence(SequenceLimit))))) =>
+      true
+    _ => false
+  }
+}
+
+///|
 /// Emit and retain the original execution compilation before its module when
 /// the invocation must bind QueryTime to an admitted Run first. The same input,
 /// contracts, factory identity and existing measured writer receipt are retained.
