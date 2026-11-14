@@ -538,6 +538,8 @@ pub fn completed_output_has_row_table(CompletedOutput) -> Bool
 
 pub fn completed_output_import_cumulative_work(CompletedOutputImport) -> Int64
 
+pub fn completed_output_import_shared_scalar_text_bytes(CompletedOutputImport, CompletedOutput) -> Int64?
+
 pub fn completed_output_matches_captured_inputs(CompletedOutput, Array[CapturedRows]) -> Bool
 
 pub fn completed_output_matches_fixed_inputs(CompletedOutput, Int?, Array[FixedRelationRead]) -> Bool
