@@ -5,11 +5,14 @@ test "Account wire geometry retains an original beyond the old one MiB byte boun
   assert_eq(admitted.entry_count(), 0)
   assert_true(admitted.retains_original_bytes(@utf8.encode(wire)))
   assert_true(
-    evaluate_account(admitted, account_inventory_at("resource")) is Deny(NoMatch),
+    evaluate_account(admitted, account_inventory_at("resource"))
+    is Deny(NoMatch),
   )
   assert_eq(
     admitted.configuration_cid(),
-    admit_account_configuration_json(account_inventory_wire([])).unwrap().configuration_cid(),
+    admit_account_configuration_json(account_inventory_wire([]))
+    .unwrap()
+    .configuration_cid(),
   )
 }
 
@@ -50,10 +53,12 @@ test "Account canonical geometry preserves the independently authored 4635253 by
     "sha256:f527e965a409a7c03c424071e3dd4fc29181744c84ef54c1ab51ddfc15f058b9",
   )
   assert_true(
-    evaluate_account(admitted, account_inventory_at(names[8999])) is Allow("entry-0000"),
+    evaluate_account(admitted, account_inventory_at(names[8999]))
+    is Allow("entry-0000"),
   )
   assert_true(
-    evaluate_account(admitted, account_inventory_at("resource-9000")) is Deny(NoMatch),
+    evaluate_account(admitted, account_inventory_at("resource-9000"))
+    is Deny(NoMatch),
   )
 }
 
@@ -78,16 +83,23 @@ test "Account wire geometry preserves exact nonempty identifiers beyond the hist
   )
   let decoded = admit_account_configuration_json(wire).unwrap()
   assert_eq(admitted.configuration_cid(), decoded.configuration_cid())
-  assert_true(evaluate_account(decoded, {
-    principal: name,
-    connection: name,
-    resource: name,
-    operation: "read",
-  }) is Allow(original) && original == name)
-  assert_true(evaluate_account(decoded, {
-    principal: name,
-    connection: name,
-    resource: name + "x",
-    operation: "read",
-  }) is Deny(NoMatch))
+  assert_true(
+    evaluate_account(decoded, {
+      principal: name,
+      connection: name,
+      resource: name,
+      operation: "read",
+    })
+    is Allow(original) &&
+    original == name,
+  )
+  assert_true(
+    evaluate_account(decoded, {
+      principal: name,
+      connection: name,
+      resource: name + "x",
+      operation: "read",
+    })
+    is Deny(NoMatch),
+  )
 }
