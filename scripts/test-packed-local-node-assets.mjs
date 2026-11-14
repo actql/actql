@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {readdirSync} from 'node:fs';
 import {mkdir, readFile, writeFile} from 'node:fs/promises';
+import {createRequire} from 'node:module';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {machineCid} from './actql-spec-family.mjs';
@@ -9,6 +10,7 @@ import {canonicalText} from './check-canonical-json.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {packedClientPackage, pinnedDuckDBPackage} from './packed-client-packages.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
+import {runFocusedTests} from './test-execution.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const build = join(repository, '_build');
@@ -306,5 +308,15 @@ try {
 `);
 run(process.execPath, ['smoke.mjs'], root);
 console.log('packed Local Host source-free and acquired computation passed');
+// Use the normal installation's public runtime entry and its original assets.
+// The declaration tests pass this one namespace to every nominal consumer.
+const installedCommon = createRequire(join(root, 'package.json'))
+  .resolve('@actql/local-node/runtime');
+assert.equal(runFocusedTests('node', [
+  'adapters/host-node/installed-project-mock.actual.test.mjs',
+], {cwd: repository, env: {...environment,
+  ACTQL_TEST_PROJECT_COMMON_RUNTIME: installedCommon},
+  timeout: 30000, expectedTests: 9}), 0,
+  'packed installed Mock declaration tests failed');
 // The smoke closed its Hosts and ran to completion through spawnSync.
 scratch.passed();

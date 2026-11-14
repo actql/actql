@@ -20,6 +20,7 @@ const mutations = [
     name: 'an observation wrapper cannot replace the original operation failure with success',
     module: 'observation.mjs',
     test: 'observation.test.mjs',
+    dependencies: ['ledger-contract.generated.mjs'],
     selected: '^queue overflow and delivery failure cannot replace an operation result',
     before: '        throw cause;',
     after: '        return undefined;',
@@ -34,6 +35,9 @@ for (const mutation of mutations) {
       assert.equal(source.split(mutation.before).length, 2, 'Select the exact existing Owner fence');
       writeFileSync(join(scratch, mutation.module), source.replace(mutation.before, mutation.after));
       writeFileSync(join(scratch, mutation.test), readFileSync(new URL(mutation.test, sourceRoot)));
+      for (const name of mutation.dependencies ?? []) {
+        writeFileSync(join(scratch, name), readFileSync(new URL(name, sourceRoot)));
+      }
       const env = {...process.env}; delete env.NODE_TEST_CONTEXT;
       const child = spawnSync(process.execPath, ['--test',
         `--test-name-pattern=${mutation.selected}`, mutation.test],
