@@ -71,7 +71,8 @@ test('existing Row constructor retains the same definition before its first I/O 
       'captureResponseConfirmation'].map(declaration).join('\n')}
     ${declaration('createInstalledRowEffect')}
     return createInstalledRowEffect;
-  `)({captureEffectResources: () => undefined, defaultLimits: {}, checkDriver: () => driver,
+  `)({captureEffectResources: () => undefined, installedRowEffectConstructionLimits,
+    captureInstalledEffectPlanRecipe, localContractLimits, nodeTypes, checkDriver: () => driver,
     profileOf: () => undefined, cidPattern: /^sha256:[0-9a-f]{64}$/u,
     async mkdir() {io++;}, createRowEffectStage(owners) {assert.equal(owners.length, 1);owner = owners[0];return owner;},
     capture, fail, text});
