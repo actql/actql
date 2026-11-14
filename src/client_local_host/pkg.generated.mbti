@@ -1236,6 +1236,12 @@ pub fn restore_accounted_client_whole_source_capture(ClientInstalledWholeSourceC
 
 pub fn restore_client_source_capture(@query_planning.QueryRequirement, String, String, String, String, Array[String], () -> Bool, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[ClientSourceCapture, ClientSourceCaptureIssue]
 
+pub fn result_read_frame_cost(Int, Int) -> Int64?
+
+pub fn result_read_row_cost(Int, Int) -> Int64?
+
+pub fn result_read_schema_cost(Int, Int) -> Int64?
+
 pub fn retain_accounted_client_source_capture_input(ClientAccountedSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, ClientSourceCaptureIssue]
 
 pub fn retain_accounted_client_source_capture_task(ClientAccountedSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, ClientSourceCaptureIssue]

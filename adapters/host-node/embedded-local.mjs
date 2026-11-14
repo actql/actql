@@ -1,4 +1,5 @@
-import {composeInstalledSourceEnvironment, readInstalledSourceEnvironment, readInstalledHostEnvironment} from './installed-funded-environment.mjs';
+import {composeInstalledSourceEnvironment, readInstalledSourceEnvironment,
+  admitInstalledSourceFinalEnvironment, readInstalledHostEnvironment} from './installed-funded-environment.mjs';
 import {captureSourceAliasConstruction} from './source-alias-construction.mjs';
 import {localProjectFilesystem} from './local-files-native.mjs';
 import {createInstalledHostServices, installedSourceConfigurationReader,
@@ -1751,11 +1752,14 @@ async function openInstalledHost(originalInstallation, preparation) {
   // not replace its policy with the ordinary Local row profile.
   // Ordinary Local materialization, including Remote Values/Source callers,
   // continues to consume the same installed Local Resource row selector.
-  const baseEnvironmentWire = originalInstallation.declaredFileBaseEnvironmentWire ??
-    ((mode === 'remote' && effectInstallation !== undefined) ||
+  const selectBaseEnvironment = (mode === 'remote' && effectInstallation !== undefined) ||
       selectedEffectPaths.length !== 0
-    ? selectInstalledHostEnvironment : selectInstalledLocalMaterializationEnvironment)(
-    moon, environmentSource.trimEnd(), hostCapacityPolicy, selectedLookupPolicy, requestMemory);
+    ? selectInstalledHostEnvironment : selectInstalledLocalMaterializationEnvironment;
+  const baseEnvironmentWire = originalInstallation.declaredFileBaseEnvironmentWire ?? selectBaseEnvironment(
+    moon, environmentSource.trimEnd(), hostCapacityPolicy, selectedLookupPolicy, requestMemory,
+    selectBaseEnvironment === selectInstalledLocalMaterializationEnvironment &&
+      calendarArtifact === undefined && modelInstallation === undefined && mockModels === undefined &&
+      (project === undefined || installedProjectOriginalsForRuntime(project, moon).modelRegistry === undefined));
   // Both adapters restore published declarations without provider I/O. The
   // combined environment is admitted before either can dispatch work.
   let sourceProfile;
@@ -1763,7 +1767,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   let sourceCheckpointInventory;
   let installedEffect;
   let environmentWire, effectiveHostCapacityPolicyCid;
-  let environmentBody, environmentEvidenceCid, composedEnvironment;
+  let environmentBody, environmentEvidenceCid, composedEnvironment, finalEnvironmentOriginal;
   let updateTargetOriginals;
   function assertMockEffectRunOriginal(original) {
     assertProjectRuntime();
@@ -2132,7 +2136,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         limits: {maxBytes: 65536, maxNodes: 4096, maxDepth: 64,
           maxMembers: 256, contractNodes: 4096, contractDepth: 64,
           contractTextBytes: 65536, maxWork: 2097152},
-        assertCurrent: assertProjectRuntime, services: installationServices,
+        assertCurrent: assertProjectRuntime, installationServices,
       });
     }
     let body;
@@ -2177,8 +2181,14 @@ async function openInstalledHost(originalInstallation, preparation) {
       // Extend AFTER Host-local policy encoding. Do not NFC-normalize the
       // original public Task identifier or rebuild its preimage in JS.
       if (mockModels === undefined) {
-        environmentWire = projectTasks.projectEnvironmentForRuntime(moon, environmentWire,
-          environmentEvidenceCid, body).environmentWire;
+        const projection = projectTasks.projectEnvironmentForRuntime(moon, environmentWire,
+          environmentEvidenceCid, body);
+        environmentWire = projection.environmentWire;
+        environmentEvidenceCid = projection.evidenceCid;
+        // Host policy is unchanged by the original Task-only projection. Borrow
+        // that already funded body for flag selection; the new final wire is
+        // parsed/admitted only inside its same-owner constructor below.
+        environmentBody = body;
       } else {
         // All Task/prompt/execution/retry/backoff bodies came from this same
         // Common profile/normalization. Do not rewrite the original model or
@@ -2186,10 +2196,8 @@ async function openInstalledHost(originalInstallation, preparation) {
         modelInstallation = mockModels.modelInstallationForRuntime(moon, environmentWire,
           environmentEvidenceCid);
         environmentWire = modelInstallation.environmentWire;
+        environmentBody = environmentEvidenceCid = undefined;
       }
-      // Read a newly issued Task document at the existing final-check phase,
-      // after connector binding validation, without retaining the old body.
-      environmentBody = environmentEvidenceCid = undefined;
     }
     verifyInstalledConnectorBindings(sourceProfile,
       installedEffect ?? effectInstallation);
@@ -2204,7 +2212,6 @@ async function openInstalledHost(originalInstallation, preparation) {
       {sourceProfile, installedEffect});
   }
   let environment;
-  let finalEnvironmentOriginal;
   let evidenceCid;
   let sourcePublication;
   try {
@@ -2228,10 +2235,22 @@ async function openInstalledHost(originalInstallation, preparation) {
     // The exact task offer and execution obligations still select capability.
     const textTimeEnabled = environmentBody.host_policy_profile?.text_time_evaluation !== undefined;
     environmentBody = undefined;
-    finalEnvironmentOriginal = readInstalledHostEnvironment(installationServices, moon, environmentWire,
-      {textTime: textTimeEnabled, calendar: calendarArtifact !== undefined,
-        numericProfileCid, graphLawCid: contentCid(graphLaw)});
-    environment = finalEnvironmentOriginal.admitted;
+    if (projectTasks !== undefined && mockModels === undefined) {
+      finalEnvironmentOriginal = readInstalledHostEnvironment(installationServices, moon, environmentWire,
+        {textTime: textTimeEnabled, calendar: calendarArtifact !== undefined,
+          numericProfileCid, graphLawCid: contentCid(graphLaw)});
+      environment = finalEnvironmentOriginal.admitted;
+    } else if (calendarArtifact === undefined && environmentWire === composedEnvironment.wire) {
+      finalEnvironmentOriginal = admitInstalledSourceFinalEnvironment(installationServices, moon,
+        composedEnvironment, {textTime:textTimeEnabled,numericProfileCid,graphLawCid:contentCid(graphLaw)});
+      environment = finalEnvironmentOriginal.admitted;
+    } else {
+      environment = moon.clientProgramCheckEnvironmentWithGraphProfile(
+        environmentWire, evidenceCid,
+        textTimeEnabled,
+        true, true, true, true,
+        calendarArtifact !== undefined, false, numericProfileCid, contentCid(graphLaw));
+    }
     if (environment !== undefined) {
       environment = admitInstalledCalendar(moon, environment, calendarArtifact);
     }
@@ -2259,8 +2278,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         if (preparation !== undefined) originalInstallation.sourceCheckpointInventory = sourceCheckpointInventory;
         completeInstalledSourceInitialization(installationServices, originalInstallation,
           sourceEnvironmentOriginal.preparedEnvironment, environmentWire,
-          environment === finalEnvironmentOriginal?.admitted ? finalEnvironmentOriginal :
-            environment === composedEnvironment.admitted ? composedEnvironment : undefined);
+          finalEnvironmentOriginal ?? (environment === composedEnvironment.admitted ? composedEnvironment : undefined));
         if (sourceCheckpointInventory !== undefined) {
           sourceCheckpointInventory.custody.holder = borrowInstalledSourceInitialization(installationServices,
             originalInstallation, sourceEnvironmentOriginal.preparedEnvironment);

@@ -1,7 +1,7 @@
 ///|
 test "selected Native Result output ceiling backs complete long rows without weakening a smaller ceiling" {
   assert_eq(local_result_row_frame_limit(16777216), 16777216)
-  assert_eq(local_result_row_frame_limit(33554432), 16777216)
+  assert_eq(local_result_row_frame_limit(33554432), 33554432)
   assert_eq(local_result_row_frame_limit(32768), 32768)
   let row = "{\"text\":\"" + "a".repeat(524288) + "\"}"
   let payload = @utf8.encode("[" + row + "]")

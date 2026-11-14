@@ -47,7 +47,7 @@ test "durable Result row frame backing preserves zero byte and original refusal 
     feed_durable_result_row_frames(truncated, b"]")
     is Err(DurableRowFrameByteLimit),
   )
-  for invalid in [0] {
+  for invalid in [0, -1] {
     // A small actual payload cannot mask an invalid configured row ceiling.
     assert_true(
       prepare_durable_result_row_frames(2, 0, invalid, 8, 32)

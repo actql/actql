@@ -628,6 +628,12 @@ erase file responsibility. The standard strategy entry does not infer a retained
 representation from connector identity: representation-aware candidate/copy
 selection is a separate admission responsibility.
 
+A logical row may span multiple bounded physical chunks. The original READ
+workspace reserves row backing, decoded text and frame overlap from the same
+capacity before constructing its framer. Its verified total payload bounds the
+initialized backing; the explicit row, chunk, depth and signed-Int limits remain
+independent. A larger row does not enlarge a chunk or reserve another capacity.
+
 `CompletedOutputImport` is an explicit representation conversion. It admits
 values provisionally and checks the complete ordered identity against the exact
 source result before exposing a Local-readable copy. Matching content alone
@@ -635,6 +641,13 @@ cannot acquire another producer's completion authority. The new copy retains
 logical use restrictions, but does not inherit the original copy's physical
 failure condition. Conversion reservations and the resulting holding remain
 the physical Host's responsibility.
+
+Its identity verifier uses the existing hash-only canonical encoder: canonical
+text is never returned by this consumer and must not be buffered and discarded.
+Value admission, ordered identity, byte/node/depth/work limits and source
+currentness still apply. The positive physical batch setting remains validated;
+actual input framing owns that window, while a row may cross multiple chunks.
+Exporters that actually return canonical text retain their bounded buffer.
 
 The inverse conversion serializes an existing completed cell representation
 through the same canonical encoder. It reads the sealed row/column storage one
@@ -1044,3 +1057,43 @@ attributes and refuses holes, accessors, extra own fields and out-of-range
 scalars. This presentation neither admits a report nor changes the original
 Run, Ledger, cancellation or retirement lifetime. Snapshot allocation and
 observation storage remain subject to their existing owners and limits.
+
+
+## Native streamed Result read construction
+
+Native streamed JSON, JSONL and CSV delivery uses the original Store operation
+and its original Host Read. After immutable payload metadata has been verified,
+the Store bounds eager row backing by the smaller of the selected row limit and
+the verified payload size. Before creating either the serializer or the row
+framer, it passes that bound, the selected input window, the actual schema and
+field spelling units, and the selected node limit through the same coordinator.
+A logical row may span multiple physical chunks. Input and output chunks retain
+their independent sixteen MiB bound; depth, output authorization, integer
+overflow, row count and current checks remain independent obligations.
+
+The original Request and Native Read share the frame, schema and row
+parse/serialization representation costs. Native adds its existing output
+window cost and obtains contiguous-block geometry from the selected runtime's
+managed-value layout. The block bound covers the pinned UTF-16 StringBuilder's
+geometric growth, CSV quote expansion, schema output, reference backing and the
+output Buffer. Representation costs are demand, never a capacity grant. The
+same original Read construction entry acquires the complete simultaneous peak
+before allocation. The output window is then reused by delivery rather than
+requoting and calling the same resource observer at the next internal step.
+
+The coordinator retains the cumulative constructor obligation before fallible
+acquisition. A failed constructor or current check does not refund consumed
+work, create a replacement Read or permit an unmanaged fallback. Existing
+partial Store custody, failed-flight cleanup, exact original Library/receiver,
+thread/process identity and physical acknowledgement duties remain. A local
+closed-state check after a resource callback catches synchronous Store
+retirement without repeating that external callback.
+
+The command's small initial Read working extents remain unchanged. Its maximum
+Read declaration derives from the existing ordinary finite Local preparation
+policy, independently of that startup basis; it does not introduce a second
+backend-specific all-input ceiling or eagerly acquire the policy maximum.
+Actual growth still requires checked demand and physical backing from the same
+owner. Buffered material/table collection has its own whole-result retention
+and rendering admission; streamed row funding does not change that separate
+receiver or imply that its complete-result limit has been removed.

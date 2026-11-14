@@ -7,7 +7,7 @@ import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {loadInstalledProjectConfiguration} from './installed-project-configuration.mjs';
 import {loadInstalledProjectModelTasks} from './installed-project-model-tasks.mjs';
-import {readInstalledHostEnvironment} from './installed-funded-environment.mjs';
+import {readInstalledHostEnvironment, assertInstalledEnvironmentPublicationOriginal} from './installed-funded-environment.mjs';
 import {installModelProviders} from './installed-model.mjs';
 import {createInstalledLoaderParent} from './fixtures/installed-loader-parent.fixture.mjs';
 import {providerBindingOriginals} from '../../scripts/fixtures/model-provider-binding-fixture.mjs';
@@ -40,7 +40,7 @@ async function fixture(t, {count = 129, small = false} = {}) {
   const moon = {...native};
   for (const [method, counter] of [['ReadPublicModelTask', 'read'],
     ['NormalizeProjectModelTask', 'normalize'], ['ReadInstalledModelDefaults', 'defaults'],
-    ['ReadCheckEnvironmentWire', 'wire'], ['CheckEnvironmentFromWireWithGraphProfile', 'final']]) {
+    ['ReadCheckEnvironmentWire', 'wire'], ['CheckEnvironmentModelFromWireWithGraphProfile', 'final']]) {
     moon['clientProgram' + method] = (...args) => {
       assert.ok(counters.reserve > 0, 'The actual parent must reserve before any constructor');
       counters[counter]++;
@@ -55,7 +55,7 @@ async function fixture(t, {count = 129, small = false} = {}) {
     native.clientLocalPreparationResourceLimits(policy, 2000000n, 2000000n);
   const parent = createInstalledLoaderParent({root: join(directory, '.state'), moon, assertCurrent});
   parent.open();
-  t.after(() => {current = true; return parent.close();});
+  t.after(() => parent.close());
   const tasks = {};
   for (let index = 0; index < count; index++) {
     const name = `model-task:funded.${String(index).padStart(3, '0')}`;
@@ -82,7 +82,7 @@ async function fixture(t, {count = 129, small = false} = {}) {
   return {moon, parent, project, providers, counters, assertCurrent,
     loseCurrent: () => {current = false;},
     load: (selected = limits) => loadInstalledProjectModelTasks(moon, project, providers,
-      {limits: selected, assertCurrent, services: parent.services})};
+      {limits: selected, assertCurrent, installationServices: parent.services})};
 }
 
 test('actual same-parent loader registers 129 original Tasks once and funds complete nonempty final admission', async t => {
@@ -101,6 +101,18 @@ test('actual same-parent loader registers 129 original Tasks once and funds comp
     {textTime: false, calendar: false, numericProfileCid: original(numeric).cid, graphLawCid: original(graph).cid});
   assert.ok(final.admitted && final.raw);
   assert.equal(final.body.model_task_contracts.length, 129);
+  assert.equal(native.clientProgramCheckEnvironmentFromWireConstructionCapacity(final.raw), undefined,
+    'An empty-only construction recipe must refuse this populated original');
+  assert.equal(native.clientProgramCheckEnvironmentFromWireWithGraphProfile(final.raw,
+    false, true, true, true, true, false, false, original(numeric).cid, original(graph).cid), undefined);
+  assert.throws(() => assertInstalledEnvironmentPublicationOriginal(f.parent.services, f.moon,
+    {...final}, undefined, final.wire), {code: 'ForeignInstalledEnvironmentOriginal'});
+  const other = await fixture(t, {count: 0});
+  assert.throws(() => assertInstalledEnvironmentPublicationOriginal(other.parent.services, other.moon,
+    final, undefined, final.wire), {code: 'ForeignInstalledEnvironmentOriginal'});
+  assert.throws(() => readInstalledHostEnvironment({...f.parent.services}, f.moon, final.wire,
+    {textTime: false, calendar: false, numericProfileCid: original(numeric).cid, graphLawCid: original(graph).cid}),
+  {code: 'ForeignInstalledHostServices'});
   assert.equal(f.counters.read, 129);
   assert.equal(f.counters.normalize, 129, 'No earlier prefix is re-normalized to quote a later member');
   assert.equal(f.counters.defaults, 1, 'The same three canonical originals and defaults profile are read once');
@@ -123,4 +135,14 @@ test('actual smaller original Resource refuses the next constructor without Mode
   await assert.rejects(f.load(), error => error.code === 'MoonBitHostFailure' || error.code === 'PreparationCapacityExceeded');
   assert.equal(f.counters.read, 0, 'Current Task decoder must not precede its actual parent refusal');
   assert.equal(f.counters.normalize, 0); assert.equal(f.counters.sends, 0);
+});
+
+test('actual populated constructor domain refuses an empty admitted original', async t => {
+  const f = await fixture(t, {count: 0});
+  const final = readInstalledHostEnvironment(f.parent.services, f.moon, baseWire,
+    {textTime: false, calendar: false, numericProfileCid: original(numeric).cid, graphLawCid: original(graph).cid});
+  assert.ok(final.admitted);
+  assert.equal(native.clientProgramCheckEnvironmentModelFromWireConstructionCapacity(final.raw), undefined);
+  assert.equal(native.clientProgramCheckEnvironmentModelFromWireWithGraphProfile(final.raw,
+    false, true, true, true, true, false, false, original(numeric).cid, original(graph).cid), undefined);
 });

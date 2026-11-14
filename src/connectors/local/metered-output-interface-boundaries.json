@@ -4,7 +4,7 @@
     {
       "module": "src/connectors/local/driver/preparation.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "fab42868f0bf10546a9190345329a9cd7a6cc986ef23292fd478e7080a6a3c38",
+      "sha256": "fe1f8bb85956d369df6ca4a1ebf29ee0f0139fcb717f4b362fb3cbcbbd4de6ee",
       "role": "physical-io",
       "owner": "Existing Local dispatch preparation and original Run binding; pure quotations do not grant physical resources",
       "referenceQualification": "Original selected constructor and same-Task resource correspondence; no normal distribution or physical acceptance",
@@ -188,6 +188,10 @@
               {
                 "path": "src/client_local_host/original_values_text_working_js_wbtest.mbt",
                 "anchor": "test \"original managed repeated Text"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Logical rows and physical windows"
               }
             ],
             "extension": [
@@ -216,6 +220,10 @@
               {
                 "path": "src/client_local_host/original_values_text_working_js_wbtest.mbt",
                 "anchor": "test \"original managed repeated Text"
+              },
+              {
+                "path": "src/client_local_host/original_values_text_working_js_wbtest.mbt",
+                "anchor": "original many small Text rows cross sixteen MiB total on the same finite owner"
               }
             ]
           }

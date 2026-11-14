@@ -301,7 +301,7 @@ test('installed HTTP chosen wire policy retains its original Request above 64 Ki
       consentRefs: Array.from({length: 400}, (_, index) => `${index}:` + 'x'.repeat(200))}});
     assert(Buffer.byteLength(large) > 65536 && Buffer.byteLength(large) < 131072);
     for (const maxRequestBytes of [131072, 65536]) {
-      let host, server, firstClose;
+      let host, server, firstClose, firstCloseReturned = false;
       try {
         host = await openInstalledRemoteHttpHost({directory: join(scratch.path, String(maxRequestBytes)),
           authenticate: () => userInfo().username, loopbackHttp: true, maxRequestBytes});
@@ -324,7 +324,10 @@ test('installed HTTP chosen wire policy retains its original Request above 64 Ki
         await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
         server = undefined;
         firstClose = await host.close();
-        assert.equal(firstClose.pending, false);
+        firstCloseReturned = true;
+        assert.equal(firstClose.storeCleanupPending, false);
+        assert.deepEqual(firstClose.pendingRetention, []);
+        assert.equal(firstClose.authorizationCleanupPending, false);
         assert.equal(firstClose.diagnosticDeliveryPending, false);
       } finally {
         if (server) {
@@ -333,7 +336,7 @@ test('installed HTTP chosen wire policy retains its original Request above 64 Ki
         }
         // A failed first close remains a failure. The finally can finish the
         // same retained cleanup but cannot turn that observation into success.
-        if (host && firstClose?.pending !== false) await host.close();
+        if (host && !firstCloseReturned) await host.close();
       }
     }
     scratch.passed();

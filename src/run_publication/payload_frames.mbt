@@ -65,7 +65,9 @@ pub fn prepare_durable_result_row_frames(
     max_depth,
     max_frame_bytes,
     // The existing total-byte guard bounds every row byte as well. Retain the
-    // original row limit; only unused private backing is reduced here.
+    // original row limit; only unused private backing is reduced here. The
+    // caller funds this same total-bounded backing before this constructor.
+    // Physical chunk limits remain independent of the logical row bound.
     row: Array::make(Int::min(max_row_bytes, max_bytes), 0x00),
     stack: Array::make(max_depth, 0x00),
     state: 0,

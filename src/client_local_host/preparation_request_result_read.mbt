@@ -23,7 +23,10 @@ fn result_read_data_cost(nodes : Int64, text : Int64, wire : Int64) -> Int64? {
 }
 
 ///|
-fn result_read_row_cost(units : Int, max_nodes : Int) -> Int64? {
+pub fn result_read_row_cost(units : Int, max_nodes : Int) -> Int64? {
+  if units < 0 || max_nodes < 1 {
+    return None
+  }
   let data = match
     result_read_data_cost(
       Int::min(units, max_nodes).to_int64(),
@@ -61,6 +64,35 @@ fn result_read_window_cost(bytes : Int) -> Int64? {
 }
 
 ///|
+/// Shared immutable workspace quote for the same bounded row-framer inputs.
+/// This neither reserves a Request nor certifies Native allocator geometry.
+pub fn result_read_frame_cost(max_row : Int, frame : Int) -> Int64? {
+  if max_row < 1 || frame < 1 {
+    return None
+  }
+  @execution.preparation_representation_cost({
+    record_headers: frame.to_int64(),
+    reference_slots: frame.to_int64(),
+    scalar_words: 0L,
+    owned_utf16_units: 2L * max_row.to_int64() + frame.to_int64(),
+    owned_wire_bytes: max_row.to_int64() + Int::min(frame, 65536).to_int64(),
+  })
+}
+
+///|
+/// Original schema/frame quote shared by the installed READ consumers.
+pub fn result_read_schema_cost(units : Int, max_nodes : Int) -> Int64? {
+  if units < 0 || max_nodes < 1 {
+    return None
+  }
+  result_read_data_cost(
+    Int::min(units, max_nodes).to_int64(),
+    4L * units.to_int64(),
+    units.to_int64(),
+  )
+}
+
+///|
 /// The same READ Request has already paid its Common fixed controls. Reserve
 /// only its next original metadata/frame/output work, not its policy maxima.
 /// The caller supplies actual retained schema units and bounded payload extent.
@@ -93,25 +125,12 @@ pub fn[I] reserve_request_result_read(
     Ok(value) => value
     Err(issue) => return Err(Capacity(issue))
   }
-  let schema = match
-    result_read_data_cost(
-      Int::min(schema_units, max_nodes).to_int64(),
-      4L * schema_units.to_int64(),
-      schema_units.to_int64(),
-    ) {
+  let schema = match result_read_schema_cost(schema_units, max_nodes) {
     Some(value) => value
     None => return Err(Policy)
   }
   let initial_row = Int::min(32, max_row)
-  let frames = match
-    @execution.preparation_representation_cost({
-      record_headers: frame.to_int64(),
-      reference_slots: frame.to_int64(),
-      scalar_words: 0L,
-      owned_utf16_units: 2L * initial_row.to_int64() + frame.to_int64(),
-      owned_wire_bytes: initial_row.to_int64() +
-      Int::min(frame, 65536).to_int64(),
-    }) {
+  let frames = match result_read_frame_cost(initial_row, frame) {
     Some(value) => value
     None => return Err(Policy)
   }

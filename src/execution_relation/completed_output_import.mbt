@@ -100,17 +100,26 @@ pub fn prepare_completed_output_import(
     Ok(admitted) => admitted
     Err(issue) => return Err(Admission(issue))
   }
+  // This consumer discards canonical text. Use the existing hash-only sink
+  // so a physical output batch is not a hidden logical row-size limit.
+  // Value admission and the full ordered canonical identity remain unchanged.
   let stream = match
-    prepare_admitted_output_stream(
+    prepare_admitted_stream(
       receipt.owner,
       receipt.target,
       max_rows,
       values,
       wire,
       max_batch_bytes,
+      false,
     ) {
     Ok(stream) => stream
     Err(issue) => return Err(Encoding(issue))
+  }
+  // Keep the original zero-batch refusal after the same admission/wire checks.
+  // Actual input framing still owns and enforces its positive physical window.
+  if max_batch_bytes == 0 {
+    return Err(Encoding(Wire(Encoding(@encode.OutputLimit))))
   }
   admitted.buffer.deferred_reclamation = deferred_reclamation
   stream.buffer.deferred_reclamation = deferred_reclamation

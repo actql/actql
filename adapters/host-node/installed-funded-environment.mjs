@@ -122,38 +122,53 @@ export function readInstalledSourceEnvironment(services, moon, wire) {
 export function readInstalledHostEnvironment(services, moon, wire,
   {textTime, calendar, numericProfileCid, graphLawCid}) {
   const reader = installedSourceEnvironmentConstructionReader(services, moon);
-  const construct = (capacity, project) => reader.prepareNativeInput(Object.freeze({capacity, project}));
-  const parsed = construct(() => {
-    const {retained, workspace} = installedEnvironmentParseConstructionGeometry(wire);
-    return checked(moon.clientProgramInstalledSourceConstructionCapacity(
-      retained.nodes, retained.text, retained.wire, workspace.nodes, workspace.text, workspace.wire));
-  }, () => freezeDocument(JSON.parse(wire), wire));
-  const counts = parsed.counts, evidenceCid = parsed.document.evidence_bundle_cid;
-  const raw = construct(() => moon.clientProgramCheckEnvironmentWireConstructionCapacity(
-    counts.bytes, counts.nodes, counts.depth, counts.fields, counts.objects, counts.arrays,
-    counts.rootFields, counts.maxFields, counts.keyUtf16Units, counts.maxKeyUtf16Units,
-    counts.members, counts.snapshots, counts.catalogs, counts.manifestEntries), () => {
-      const value = moon.clientProgramReadCheckEnvironmentWire(wire, evidenceCid);
+  const owner = owners.get(services);
+  if (owner === undefined || owner.failed || owner.busy || owner.reader !== reader) {
+    fail('ForeignInstalledEnvironmentOwner');
+  }
+  owner.busy = true;
+  try {
+    const construct = (capacity, project) => reader.prepareNativeInput(Object.freeze({capacity, project}));
+    const parsed = construct(() => {
+      const {retained, workspace} = installedEnvironmentParseConstructionGeometry(wire);
+      return checked(moon.clientProgramInstalledSourceConstructionCapacity(
+        retained.nodes, retained.text, retained.wire, workspace.nodes, workspace.text, workspace.wire));
+    }, () => freezeDocument(JSON.parse(wire), wire));
+    const counts = parsed.counts, evidenceCid = parsed.document.evidence_bundle_cid;
+    const raw = construct(() => moon.clientProgramCheckEnvironmentWireConstructionCapacity(
+      counts.bytes, counts.nodes, counts.depth, counts.fields, counts.objects, counts.arrays,
+      counts.rootFields, counts.maxFields, counts.keyUtf16Units, counts.maxKeyUtf16Units,
+      counts.members, counts.snapshots, counts.catalogs, counts.manifestEntries), () => {
+        const value = moon.clientProgramReadCheckEnvironmentWire(wire, evidenceCid);
+        if (value === undefined) fail('InstalledCheckEnvironmentConflict');
+        return value;
+      });
+    // The original raw reader validated the complete SAME document. A mismatched
+    // empty/populated selection refuses through its distinct quantity/bridge.
+    const populated = parsed.document.model_task_contracts.length > 0;
+    const quote = populated ? moon.clientProgramCheckEnvironmentModelFromWireConstructionCapacity
+      : moon.clientProgramCheckEnvironmentFromWireConstructionCapacity;
+    const admit = populated ? moon.clientProgramCheckEnvironmentModelFromWireWithGraphProfile
+      : moon.clientProgramCheckEnvironmentFromWireWithGraphProfile;
+    const admitted = construct(() => Reflect.apply(quote, moon, [raw]), () => {
+      const value = Reflect.apply(admit, moon, [raw,
+        textTime, true, true, true, true, calendar, false, numericProfileCid, graphLawCid]);
       if (value === undefined) fail('InstalledCheckEnvironmentConflict');
       return value;
     });
-  const admitted = construct(() => moon.clientProgramCheckEnvironmentFromWireConstructionCapacity(raw), () => {
-    const value = moon.clientProgramCheckEnvironmentFromWireWithGraphProfile(raw,
-      textTime, true, true, true, true, calendar, false, numericProfileCid, graphLawCid);
-    if (value === undefined) fail('InstalledCheckEnvironmentConflict');
-    return value;
-  });
-  // This exact raw original and checker remain retained by the parent. No
-  // independently reconstructed DTO becomes a publication matcher here.
-  return construct(() => checked(moon.clientProgramInstalledSourceConstructionCapacity(
-    BigInt(counts.rootFields + 12), 0n, 0n, 0n, 0n, 0n)), () => {
-      const {evidence_bundle_cid: ignored, ...body} = parsed.document;
-      void ignored;
-      const value = Object.freeze({runtime: moon, admitted, raw, wire, evidenceCid,
-        body: Object.freeze(body)});
-      originals.set(value, {services, moon, reader, counts});
-      return value;
-    });
+    // This exact raw original and checker remain retained by the parent. No
+    // independently reconstructed DTO becomes a publication matcher here.
+    return construct(() => checked(moon.clientProgramInstalledSourceConstructionCapacity(
+      BigInt(counts.rootFields + 12), 0n, 0n, 0n, 0n, 0n)), () => {
+        const {evidence_bundle_cid: ignored, ...body} = parsed.document;
+        void ignored;
+        const value = Object.freeze({runtime: moon, admitted, raw, wire, evidenceCid,
+          body: Object.freeze(body)});
+        originals.set(value, {services, moon, reader, counts, raw});
+        return value;
+      });
+  } catch (cause) {owner.failed = true; owner.cause = cause; throw cause;}
+  finally {owner.busy = false;}
 }
 
 // Completion adopts the SAME already-held native/Core original. The existing
@@ -221,12 +236,16 @@ function composeEnvironment(services, moon, baseInput, sourceInput, effectInput,
       });
       return construct(() => {
         const capacity = moon.clientProgramCheckEnvironmentFromWireConstructionCapacity(raw);
-        if (capacity === undefined) fail('InstalledEnvironmentModelConstructionUnavailable');return capacity;
+        if (capacity === undefined) fail('InstalledEnvironmentModelConstructionUnavailable');
+        // Retain the extra raw-wire reference in the private original index
+        // before its first insertion, including inputs before composition.
+        const rawSlot = checked(moon.clientProgramInstalledSourceConstructionCapacity(1n,0n,0n,0n,0n,0n));
+        return checked(moon.clientProgramComposeInstalledSourceConstructionCapacity(rawSlot,[capacity]));
       }, () => {
         const admitted = moon.clientProgramCheckEnvironmentFromWire(raw, false, false, true, false, false, false, false);
         if (admitted === undefined) fail('InstalledCheckEnvironmentConflict');
         const value = Object.freeze({runtime: moon, body, wire, evidenceCid, admitted});
-        originals.set(value, {services, moon, reader, counts});return value;
+        originals.set(value, {services, moon, reader, counts, raw});return value;
       });
     };
     const input = value => {
@@ -316,6 +335,68 @@ function composeEnvironment(services, moon, baseInput, sourceInput, effectInput,
     current();return result;
   } catch (cause) {owner.failed = true;owner.cause = cause;throw cause;}
   finally {owner.busy = false;}
+}
+
+// The final Host selects profiles on this SAME admitted WireEnvironment. The
+// earlier intermediate checker stays retained; no body is copied, credited
+// back or reclassified as current authority. Changed wires and Calendar's
+// distinct artifact constructor keep their independent complete route.
+export function admitInstalledSourceFinalEnvironment(services, moon, value,
+  {textTime, numericProfileCid, graphLawCid}) {
+  const owner = owners.get(services), record = originals.get(value);
+  const reader = installedSourceEnvironmentConstructionReader(services, moon);
+  if (owner === undefined || owner.failed || owner.busy || owner.reader !== reader ||
+      record === undefined || record.native !== undefined || record.retired === true ||
+      record.services !== services || record.moon !== moon || record.reader !== reader ||
+      record.raw === undefined || typeof textTime !== 'boolean' ||
+      typeof numericProfileCid !== 'string' || typeof graphLawCid !== 'string') {
+    fail('ForeignInstalledEnvironmentOriginal');
+  }
+  const quote = moon.clientProgramCheckEnvironmentFromWireConstructionCapacity;
+  const admit = moon.clientProgramCheckEnvironmentFromWireWithGraphProfile;
+  if (typeof quote !== 'function' || typeof admit !== 'function') {
+    fail('InstalledFinalEnvironmentRuntimeUnavailable');
+  }
+  owner.busy = true;
+  try {
+    const current = () => {
+      if (owners.get(services) !== owner || owner.reader !== reader ||
+          originals.get(value) !== record || record.retired === true) {
+        fail('ForeignInstalledEnvironmentOriginal');
+      }
+    };
+    // Resource performs original currentness before/after these latched
+    // synchronous callbacks. Do not reenter its public reader from inside
+    // capacity/project; there check only our already captured nominal parts.
+    const currentReader = () => {
+      if (installedSourceEnvironmentConstructionReader(services, moon) !== reader) {
+        fail('ForeignInstalledEnvironmentOriginal');
+      }
+      current();
+    };
+    currentReader();
+    const result = reader.prepareNativeInput(Object.freeze({capacity() {
+      current();
+      const native = Reflect.apply(quote, moon, [record.raw]);
+      if (native === undefined) fail('InstalledEnvironmentModelConstructionUnavailable');
+      // Final DTO/index records, returned association and the selected numeric
+      // profile wrapper borrow originals. They own no new body/text backing.
+      const controls = checked(moon.clientProgramInstalledSourceConstructionCapacity(8n,0n,0n,0n,0n,0n));
+      return checked(moon.clientProgramComposeInstalledSourceConstructionCapacity(controls,[native]));
+    }, project() {
+      current();
+      const admitted = Reflect.apply(admit, moon, [record.raw,textTime,true,true,true,true,false,false,
+        numericProfileCid,graphLawCid]);
+      if (admitted === undefined) fail('InstalledCheckEnvironmentConflict');
+      current();
+      const result = Object.freeze({runtime:moon,body:value.body,wire:value.wire,
+        evidenceCid:value.evidenceCid,admitted});
+      originals.set(result,{services,moon,reader,counts:record.counts,raw:record.raw});
+      return result;
+    }}));
+    currentReader();return result;
+  } catch (cause) {owner.failed=true;owner.cause=cause;throw cause;}
+  finally {owner.busy=false;}
 }
 
 // Only the existing Source retirement ACK authorizes dropping this retained

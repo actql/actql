@@ -88,3 +88,26 @@ pub fn admit_client_check_environment_from_wire(
     ),
   )
 }
+
+///|
+/// The same already admitted wire with the existing selected numeric profile.
+/// This neither parses/reissues its original nor selects an executable Owner.
+pub fn admit_client_check_environment_from_wire_with_numeric_profile_cid(
+  wire : @environment.WireEnvironment,
+  expressions : @context.ExpressionProfiles,
+  operations : @context.PureOperationProfiles,
+  numeric_profile_cid : String,
+  graph? : Bool = false,
+) -> @checked.CheckEnvironment? {
+  let numeric = @numeric.builtin_profile()
+  if numeric_profile_cid != @numeric.cid(numeric) {
+    return None
+  }
+  admit_client_check_environment_from_wire(
+    wire,
+    expressions,
+    operations,
+    numeric_profile=Some(numeric),
+    graph~,
+  )
+}

@@ -99,12 +99,115 @@ fn client_check_environment_add_extent(
 }
 
 ///|
-/// Exact original final inventory, including populated ModelTask contracts.
-/// The same parent must reserve this quote before ordinary full admission.
+/// Initial Source/Effect composition has no ModelTask declarations. A later
+/// Model owner must supply its own populated constructor inventory. Absence of
+/// this quote is refusal, never an implicit zero-cost ModelTask admission.
 #export_name("clientProgramCheckEnvironmentFromWireConstructionCapacity")
 pub fn client_program_check_environment_from_wire_construction_capacity(
   original : @check_environment.WireEnvironment,
 ) -> @execution.ExecutionCapacity? {
+  guard @check_environment.empty_model_tasks_construction_extent(original)
+    is Some(peak) &&
+    @check_environment.empty_model_tasks_retained_extent(original)
+    is Some(retained) else {
+    return None
+  }
+  client_check_environment_capacity(
+    client_check_environment_add_extent(
+      retained,
+      @publication_host.client_check_environment_wrapper_construction_extent(
+        false,
+      ),
+    ),
+    client_check_environment_add_extent(
+      peak,
+      @publication_host.client_check_environment_wrapper_construction_extent(
+        true,
+      ),
+    ),
+  )
+}
+
+///|
+/// Private installed composition cut: same wire, same seven selected flags and
+/// the original empty ModelTask reader. The full public compatibility entry
+/// continues to admit populated ModelTasks through its separate owner/path.
+#export_name("clientProgramCheckEnvironmentFromWire")
+pub fn client_program_check_environment_from_wire(
+  original : @check_environment.WireEnvironment,
+  text_time : Bool,
+  veca : Bool,
+  rela : Bool,
+  sga : Bool,
+  tea : Bool,
+  calendar : Bool,
+  text_rank : Bool,
+) -> @program_check.CheckEnvironment? {
+  if @check_environment.member_count(
+      original,
+      @check_environment.ModelTaskContracts,
+    ) !=
+    0 ||
+    (sga && !selected_sga_supported()) {
+    return None
+  }
+  @publication_host.admit_client_check_environment_from_wire(
+    original,
+    { text_time, veca, },
+    { rela, sga, tea, calendar, text_rank, },
+  )
+}
+
+///|
+/// Final installed profile selection on the SAME funded canonical wire. Keep
+/// the public compatibility entry's selected graph/SGA/numeric checks; this
+/// empty-ModelTask cut cannot substitute an independently read document.
+#export_name("clientProgramCheckEnvironmentFromWireWithGraphProfile")
+pub fn client_program_check_environment_from_wire_with_graph_profile(
+  original : @check_environment.WireEnvironment,
+  text_time : Bool,
+  veca : Bool,
+  rela : Bool,
+  sga : Bool,
+  tea : Bool,
+  calendar : Bool,
+  text_rank : Bool,
+  numeric_profile_cid : String,
+  graph_law_cid : String,
+) -> @program_check.CheckEnvironment? {
+  if !selected_graph_supported() ||
+    graph_law_cid != @graph_contract.law_cid() ||
+    (sga && !selected_sga_supported()) ||
+    @check_environment.member_count(
+      original,
+      @check_environment.ModelTaskContracts,
+    ) !=
+    0 {
+    return None
+  }
+  @publication_host.admit_client_check_environment_from_wire_with_numeric_profile_cid(
+    original,
+    { text_time, veca, },
+    { rela, sga, tea, calendar, text_rank, },
+    numeric_profile_cid,
+    graph=true,
+  )
+}
+
+///|
+/// Populated Model metadata has its own full construction inventory. An empty
+/// proof cannot price it, and this recipe cannot substitute an empty original.
+#export_name("clientProgramCheckEnvironmentModelFromWireConstructionCapacity")
+pub fn client_program_check_environment_model_from_wire_construction_capacity(
+  original : @check_environment.WireEnvironment,
+) -> @execution.ExecutionCapacity? {
+  if @check_environment.member_count(
+      original,
+      @check_environment.ModelTaskContracts,
+    ) ==
+    0 {
+    return None
+  }
   guard @check_environment.model_tasks_admission_construction_extent(original)
     is Some(peak) else {
     return None
@@ -138,35 +241,10 @@ pub fn client_program_check_environment_from_wire_construction_capacity(
 }
 
 ///|
-/// Private installed composition cut: same wire, same seven selected flags and
-/// the complete original ModelTask reader. The full public compatibility entry
-/// uses this same complete ModelTask admission.
-#export_name("clientProgramCheckEnvironmentFromWire")
-pub fn client_program_check_environment_from_wire(
-  original : @check_environment.WireEnvironment,
-  text_time : Bool,
-  veca : Bool,
-  rela : Bool,
-  sga : Bool,
-  tea : Bool,
-  calendar : Bool,
-  text_rank : Bool,
-) -> @program_check.CheckEnvironment? {
-  if sga && !selected_sga_supported() {
-    return None
-  }
-  @publication_host.admit_client_check_environment_from_wire(
-    original,
-    { text_time, veca, },
-    { rela, sga, tea, calendar, text_rank, },
-  )
-}
-
-///|
-/// Same complete checker and semantic selections, borrowing the funded raw
-/// original instead of parsing or hashing its wire for a second time.
-#export_name("clientProgramCheckEnvironmentFromWireWithGraphProfile")
-pub fn client_program_check_environment_from_wire_with_graph_profile(
+/// The SAME complete Core checker with identical profile/pin checks. Only the
+/// populated original belongs to this constructor domain.
+#export_name("clientProgramCheckEnvironmentModelFromWireWithGraphProfile")
+pub fn client_program_check_environment_model_from_wire_with_graph_profile(
   original : @check_environment.WireEnvironment,
   text_time : Bool,
   veca : Bool,
@@ -180,14 +258,19 @@ pub fn client_program_check_environment_from_wire_with_graph_profile(
 ) -> @program_check.CheckEnvironment? {
   if !selected_graph_supported() ||
     graph_law_cid != @graph_contract.law_cid() ||
-    (sga && !selected_sga_supported()) {
+    (sga && !selected_sga_supported()) ||
+    @check_environment.member_count(
+      original,
+      @check_environment.ModelTaskContracts,
+    ) ==
+    0 {
     return None
   }
-  @publication_host.admit_client_check_environment_from_wire_with_numeric_profile(
+  @publication_host.admit_client_check_environment_from_wire_with_numeric_profile_cid(
     original,
     { text_time, veca, },
     { rela, sga, tea, calendar, text_rank, },
     numeric_profile_cid,
-    true,
+    graph=true,
   )
 }

@@ -1,5 +1,6 @@
 import {open} from 'node:fs/promises';
 import {extname} from 'node:path';
+import {types as nodeTypes} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField, runtimeUnboxedReferenceOption} from '../host-common/compiler-binding.generated.mjs';
 import {installedProjectOriginalsForRuntime, resolveInstalledProjectTaskPath} from './installed-project-configuration.mjs';
@@ -41,26 +42,27 @@ function snapshotLimits(value, funded) {
 // Per-document bounds and a finite task count bound traversal, not heap/RSS:
 // the Host still funds all retained originals and read/decode/hash overlap.
 export async function loadInstalledProjectModelTasks(moon, project, providers,
-  {limits, assertCurrent, openFile = open, services} = {}) {
-  return loadProjectModelTasks(moon, project, providers, {limits, assertCurrent, openFile, services}, false);
+  {limits, assertCurrent, openFile = open, installationServices} = {}) {
+  return loadProjectModelTasks(moon, project, providers, {limits, assertCurrent, openFile, installationServices}, false);
 }
 
 // Candidate Task DATA can precede the physical assembler that needs its exact
 // Common-issued Task/prompt identities. It cannot project a Run environment
 // until the same original defaults are adopted by actual installed Providers.
 export async function prepareInstalledProjectModelTasks(moon, project, defaults,
-  {limits, assertCurrent, openFile = open, services} = {}) {
-  return loadProjectModelTasks(moon, project, defaults, {limits, assertCurrent, openFile, services}, true);
+  {limits, assertCurrent, openFile = open, installationServices} = {}) {
+  return loadProjectModelTasks(moon, project, defaults, {limits, assertCurrent, openFile, installationServices}, true);
 }
 
 async function loadProjectModelTasks(moon, project, providers,
-  {limits, assertCurrent, openFile, services}, candidate) {
+  {limits, assertCurrent, openFile, installationServices}, candidate) {
   const original = installedProjectOriginalsForRuntime(project, moon);
   if (typeof project.directory !== 'string' || !project.directory ||
       typeof assertCurrent !== 'function' || typeof openFile !== 'function' ||
       !(providers instanceof Map)) fail('InvalidInstalledProjectTaskInstallation');
-  const construction = services === undefined ? undefined : installedSourceConfigurationReader(services);
-  if (services !== undefined && construction === undefined) fail('InstalledModelTaskConstructionUnavailable');
+  const construction = installationServices === undefined ? undefined : installedSourceConfigurationReader(installationServices);
+  if (installationServices !== undefined && construction === undefined) fail('InstalledModelTaskConstructionUnavailable');
+  if (construction !== undefined && openFile !== open) fail('InstalledModelTaskReaderChanged');
   const bounds = snapshotLimits(limits, construction !== undefined);
   const construct = (capacity, project, retained = () => capacity()) => construction === undefined
     ? project() : construction.prepareModelTaskInput(Object.freeze({capacity, project, retained}));
@@ -110,6 +112,8 @@ async function loadProjectModelTasks(moon, project, providers,
     const format = extension === '.json' ? 'json' :
       extension === '.yaml' || extension === '.yml' ? 'yaml' : undefined;
     if (format === undefined) fail('InstalledProjectTaskFormatUnavailable');
+    // Path segments are actual slash-delimited slots. Locator text is priced
+    // independently; source bytes never become Task value-node credit.
     const locatorUnits = BigInt(project.registryPath.length + file.length + 2);
     let separators = 1n;
     for (const value of [project.registryPath, file]) {
@@ -168,6 +172,8 @@ async function loadProjectModelTasks(moon, project, providers,
     }
     if (candidate) assertInstalledModelDefaultsPreparation(provider, moon, providerId);
     else provider.assertNewTrustedRuntime?.();
+    // Current entry fields, two ordered vector slots and the original parent
+    // input references. Earlier entries stay in the accumulated retained sum.
     construct(() => jsCapacity(24n), () => {
       tasks.push(Object.freeze({name, file, path, wire, task, selection, providerId,
         ...(candidate ? {providerDefaults: provider} : {provider}),
@@ -200,13 +206,14 @@ async function loadProjectModelTasks(moon, project, providers,
         }
         let environmentBounds = coreBounds, geometry, baseMembers = 0, baseTasks = 0;
         if (construction !== undefined) {
-          if (environmentBody === null || typeof environmentBody !== 'object') {
+          if (environmentBody === null || typeof environmentBody !== 'object' || nodeTypes.isProxy(environmentBody)) {
             fail('InstalledModelTaskEnvironmentInventoryUnavailable');
           }
           for (const section of ['command_contracts', 'connector_capabilities', 'connector_catalogs',
             'contract_registry', 'mapping_contracts', 'model_task_contracts', 'schema_snapshots', 'source_views']) {
-            const entries = environmentBody[section];
-            if (!Array.isArray(entries)) fail('InstalledModelTaskEnvironmentInventoryUnavailable');
+            const field = Object.getOwnPropertyDescriptor(environmentBody, section);
+            const entries = field !== undefined && Object.hasOwn(field, 'value') ? field.value : undefined;
+            if (!Array.isArray(entries) || nodeTypes.isProxy(entries)) fail('InstalledModelTaskEnvironmentInventoryUnavailable');
             baseMembers += entries.length;
             if (section === 'model_task_contracts') baseTasks = entries.length;
           }
