@@ -70,10 +70,18 @@ test "actual Task output growth refusal preserves Source and returns only failed
   let operations = @local_driver.start_local_managed_dispatch_node(dispatch).unwrap()
   let tasks : Array[LocalValuesTaskExecution?] = Array::make(3, None)
   tasks[1] = Some({ operations, settled: false, completed: None, })
-  assert_true(
-    (operations.execute)()
-    is Err(@local_driver.Execution(Physical(ExecutionLimit))),
-  )
+  guard (operations.execute)()
+    is Err(
+      @local_driver.ExecutionCapacityRefusal(
+        @resources.ExecutionLimit,
+        needed,
+        available,
+        policy
+      )
+    ) else {
+    fail("expected the original typed ExecutionLimit reservation refusal")
+  }
+  assert_true(needed > available && available >= 0L && policy >= available)
   assert_false(@strategy.captured_task_completed(run, 1))
   let mut closed = false
   for _ in 0..<10000 {
@@ -252,10 +260,18 @@ test "real retention exhaustion refuses output before atomic capacity mutation" 
     Some({ operations, settled: false, completed: None, }),
     None,
   ]
-  assert_true(
-    (operations.execute)()
-    is Err(@local_driver.Execution(Physical(RetentionLimit))),
-  )
+  guard (operations.execute)()
+    is Err(
+      @local_driver.ExecutionCapacityRefusal(
+        @resources.RetentionLimit,
+        needed,
+        available,
+        policy
+      )
+    ) else {
+    fail("expected the original typed RetentionLimit reservation refusal")
+  }
+  assert_true(needed > available && available >= 0L && policy >= available)
   assert_eq(
     @resources.ledger_usage(value.ledger).reserved_execution_bytes,
     before.reserved_execution_bytes + execution + 528L,
