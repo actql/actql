@@ -64,10 +64,50 @@ const notAccepted = code => error => {
   assert.deepEqual(outcome.submissionRef, sdk.getSubmissionInput(error).submissionRef);
   return true;
 };
-// These actual Request failures precede an original semantic CheckOutcome.
-// Preserve the SDK's owned input/phase without manufacturing a report or
-// invoking a second checker to obtain a verdict, limits or text coordinates.
-function assertOriginalPreparationRefusal(fixture, error, program) {
+// These are retained input refusals, not semantic checking results. Assert
+// the independently expected closed issue/limit and the SDK's ORIGINAL input
+// association; never invoke another checker to obtain an observation.
+function assertOriginalInputReport(error, program, expected) {
+  const checked = sdk.getSubmissionCheckObservation(error);
+  if (expected === undefined) {
+    assert.equal(checked, undefined, '[check-mutation:program-presemantic-observation]');
+    assert.equal(sdk.getCheckInput(checked, 'program'), undefined);
+    assert.equal(sdk.getCheckFixes(checked), undefined);
+    return;
+  }
+  assert.equal(checked?.outcome, 'completed');
+  const {report} = checked;
+  assert.deepEqual(report.scope, {kind: 'bound_input'});
+  const original = sdk.getCheckInput(checked, 'program');
+  assert.equal(original.kind, 'structured');
+  assert.equal(original.documentId, 'program');
+  assert.match(original.revision, /^rev:[0-9a-f]{64}$/u);
+  assert.deepEqual(original.value, program);
+  assert.notStrictEqual(original.value, program);
+  assert.equal(Object.isFrozen(original), true);
+  assert.equal(Object.isFrozen(original.value), true);
+  assert.deepEqual(report.inputs, [{kind: 'structured', document_id: 'program',
+    revision: original.revision, byte_length: Buffer.byteLength(JSON.stringify(program))}]);
+  const location = {kind: 'structured', document_id: 'program',
+    revision: original.revision, pointer: ''};
+  assert.equal(report.verdict, expected.limit ? 'undetermined' : 'invalid');
+  assert.deepEqual(report.reasons, expected.limit ? [] : [{
+    code: 'program_structure_invalid', facts: {issue: expected.issue}, location}]);
+  assert.deepEqual(report.requirements, []);
+  assert.deepEqual(report.coverage, {limits: expected.limit
+    ? [{code: 'analysis_budget_exhausted', location}] : [], unresolved: []});
+  assert.deepEqual(report.runnable, {verdict: 'no', reasons: [{
+    code: expected.limit ? 'analysis_budget_exhausted' : 'program_structure_invalid'}]});
+  assert.deepEqual(sdk.getCheckFixes(checked), []);
+  assert.strictEqual(sdk.resolveCheckLocation(checked, location).input, original);
+  assert.equal(sdk.resolveCheckLocation(checked, location,
+    {...original, value: {...program, changed: true}}), undefined);
+  assert.equal(sdk.getCheckInput(structuredClone(checked), 'program'), undefined);
+  assert.equal(sdk.getCheckFixes(structuredClone(checked)), undefined);
+  assert.equal(sdk.getCheckInput({...checked}, 'program'), undefined);
+  assert.strictEqual(sdk.getSubmissionCheckObservation(error), checked);
+}
+function assertOriginalPreparationRefusal(fixture, error, program, expected) {
   assert.equal(error?.code, 'SubmissionNotAccepted');
   const outcome = sdk.getSubmissionOutcome(error), input = sdk.getSubmissionInput(error);
   assert.equal(outcome?.kind, 'not_accepted');
@@ -78,10 +118,7 @@ function assertOriginalPreparationRefusal(fixture, error, program) {
   assert.equal(Object.isFrozen(input), true); assert.equal(Object.isFrozen(input.input), true);
   assert.deepEqual(outcome.submissionRef, input.submissionRef);
   const before = [...fixture.operations];
-  const checked = sdk.getSubmissionCheckObservation(error);
-  assert.equal(checked, undefined, '[check-mutation:program-presemantic-observation]');
-  assert.equal(sdk.getCheckInput(checked, 'program'), undefined);
-  assert.equal(sdk.getCheckFixes(checked), undefined);
+  assertOriginalInputReport(error, program, expected);
   assert.equal(sdk.getSubmissionCheckObservation(structuredClone(error)), undefined);
   assert.equal(sdk.getSubmissionInput({...error}), undefined);
   assert.equal(sdk.getSubmissionOutcome({...error}), undefined);
@@ -426,12 +463,9 @@ for (const entrance of ['local', 'https']) {
     assert.equal(Object.isFrozen(input), true);
     assert.equal(Object.isFrozen(input.input), true);
     assert.deepEqual(outcome.submissionRef, input.submissionRef);
-    // Program JSON admission precedes the semantic CheckOutcome owner. An
-    // absent observation cannot supply a diagnostic pointer or a second check.
-    const checked = sdk.getSubmissionCheckObservation(rejected);
-    assert.equal(checked, undefined, '[check-mutation:program-structural-observation]');
-    assert.equal(sdk.getCheckInput(checked, 'program'), undefined);
-    assert.equal(sdk.getCheckFixes(checked), undefined);
+    // The Request retains its original closed input refusal, not a semantic
+    // outcome or a report obtained from a second check.
+    assertOriginalInputReport(rejected, program, {issue: 'missing_field'});
     assert.equal(sdk.getSubmissionCheckObservation(structuredClone(rejected)), undefined);
     assert.equal(sdk.getSubmissionInput({...rejected}), undefined);
     assert.equal(sdk.getSubmissionOutcome({...rejected}), undefined);
@@ -460,10 +494,7 @@ for (const entrance of ['local', 'https']) {
     assert.deepEqual(original.input, program);
     assert.equal(Object.isFrozen(original.input), true);
     const before = [...f.operations];
-    const checked = sdk.getSubmissionCheckObservation(rejected);
-    assert.equal(checked, undefined, '[check-mutation:program-structural-observation]');
-    assert.equal(sdk.getCheckInput(checked, 'program'), undefined);
-    assert.equal(sdk.getCheckFixes(checked), undefined);
+    assertOriginalInputReport(rejected, program, {issue: 'missing_field'});
     assert.equal(sdk.getSubmissionInput({...rejected}), undefined);
     assert.strictEqual(sdk.getSubmissionInput(rejected), original);
     assert.equal(sdk.explainSubmission(rejected).observation, 'preparation_failed');
@@ -478,9 +509,9 @@ for (const entrance of ['local', 'https']) {
 
   test(`${entrance}: structured Program refusals retain missing null and wrong-type inputs`, async t => {
     const f = await fixture(t, entrance);
-    for (const value of [{version: 'actql/0.1', id: 'missing'},
-      {version: 'actql/0.1', id: 'null', stages: null},
-      {version: 'actql/0.1', id: 'wrong', stages: {}}]) {
+    for (const [value, issue] of [[{version: 'actql/0.1', id: 'missing'}, 'missing_field'],
+      [{version: 'actql/0.1', id: 'null', stages: null}, 'unexpected_null'],
+      [{version: 'actql/0.1', id: 'wrong', stages: {}}, 'wrong_type']]) {
       let rejected;
       try {await f.client.start(value);} catch (error) {rejected = error;}
       assert.equal(rejected?.code, 'SubmissionNotAccepted');
@@ -496,9 +527,7 @@ for (const entrance of ['local', 'https']) {
         assert.equal(Object.isFrozen(original.input.stages), true);
       }
       assert.deepEqual(outcome.submissionRef, original.submissionRef);
-      const checked = sdk.getSubmissionCheckObservation(rejected);
-      assert.equal(checked, undefined, '[check-mutation:program-structural-observation]');
-      assert.equal(sdk.getCheckInput(checked, 'program'), undefined);
+      assertOriginalInputReport(rejected, value, {issue});
       assert.equal(sdk.getSubmissionInput({...rejected}), undefined);
       assert.strictEqual(sdk.getSubmissionInput(rejected), original);
       assert.equal(sdk.explainSubmission(rejected).observation, 'not_accepted');
@@ -553,10 +582,10 @@ for (const entrance of ['local', 'https']) {
     unsupported.bindings = {opaque: {type: 'string'}};
     const budget = JSON.parse(document);
     budget.stages = Array.from({length: 33}, (_, index) => ({...budget.stages[0], id: `stage-${index}`}));
-    for (const program of [unsupported, budget]) {
+    for (const [program, expected] of [[unsupported, undefined], [budget, {limit: true}]]) {
       let rejected;
       try {await f.client.start(program);} catch (error) {rejected = error;}
-      assertOriginalPreparationRefusal(f, rejected, program);
+      assertOriginalPreparationRefusal(f, rejected, program, expected);
     }
   });
 
@@ -564,10 +593,10 @@ for (const entrance of ['local', 'https']) {
     const f = await fixture(t, entrance);
     const unicode = {...JSON.parse(document), 'e\u0301/😀~': null};
     const defaultType = {...JSON.parse(document), params: {n: {type: 'number', default: 'private-default'}}};
-    for (const program of [unicode, defaultType]) {
+    for (const [program, expected] of [[unicode, {issue: 'invalid_structure'}], [defaultType, undefined]]) {
       let rejected;
       try {await f.client.start(program);} catch (error) {rejected = error;}
-      assertOriginalPreparationRefusal(f, rejected, program);
+      assertOriginalPreparationRefusal(f, rejected, program, expected);
       assert.equal(JSON.stringify(sdk.getSubmissionOutcome(rejected)).includes('private-default'), false);
     }
   });
