@@ -449,8 +449,8 @@ function prepareModelTaskInput(original, material, projection, attempts, validat
   const previous = material.modelRetained;
   let index = material.modelProviderIndex;
   const inputIndex = material.inputs.length;
+  let peak;
   try {
-    let peak;
     material.busy = true;
     try {peak = add(previous, requireSynchronousSourceConstruction(material,
       Reflect.apply(fields.capacity.value, projection, [])));}
@@ -484,6 +484,11 @@ function prepareModelTaskInput(original, material, projection, attempts, validat
     reconcileSource(original, material);
     return value;
   } catch (cause) {
+    if (peak !== undefined && index !== undefined) {
+      material.providers[index] = peak;
+      material.modelRetained = previous;
+      material.inputs[inputIndex] = projection;
+    }
     material.modelFailure = {cause};
     retainSourceFailure(material, cause);
     throw cause;
