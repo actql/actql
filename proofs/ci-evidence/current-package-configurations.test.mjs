@@ -282,7 +282,20 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
   assert.deepEqual(packageImports(unionBody).imports, packageImports(fileBody).imports);
   execFileSync('git', ['merge-base', '--is-ancestor', fileRevision, unionRevision], {cwd: root});
   execFileSync('git', ['merge-base', '--is-ancestor', unionRevision, 'HEAD'], {cwd: root});
-  assert.deepEqual(currentPackageConfigurations[path], {revision: unionRevision, digest: unionDigest, rule});
+  const httpRevision = '45906df586b5439ac03235e3b1a9b8f1576b98ec';
+  const httpDigest = '24a013cbcf540ebf0c47fba54b93516ad0ef498549a669237e6710f2232ce778';
+  const httpSelector = '    "preparation_request_http_input_js_wbtest.mbt": [ "js" ],\n';
+  const httpBody = gitTree(root, httpRevision).read(path).toString();
+  assert.equal(hash(httpBody), httpDigest);
+  assert.equal(Buffer.byteLength(httpBody), 11019);
+  assert.equal(Buffer.byteLength(httpSelector), 62);
+  assert.equal(httpBody.split(httpSelector).length, 2);
+  assert.equal(httpBody.replace(httpSelector, ''), unionBody,
+    'only the literal HTTP Request input JS selector extends the complete prior descriptor');
+  assert.deepEqual(packageImports(httpBody).imports, packageImports(unionBody).imports);
+  execFileSync('git', ['merge-base', '--is-ancestor', unionRevision, httpRevision], {cwd: root});
+  execFileSync('git', ['merge-base', '--is-ancestor', httpRevision, 'HEAD'], {cwd: root});
+  assert.deepEqual(currentPackageConfigurations[path], {revision: httpRevision, digest: httpDigest, rule});
   assert.equal(hash(fileBody), fileDigest);
   assert.equal(fileBody.split(fileSelector).length, 2);
   execFileSync('git', ['merge-base', '--is-ancestor', readRevision, fileRevision], {cwd: root});
@@ -483,9 +496,10 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
   assert.equal(currentPackageConfigurationReviewFor(request(path, hash(intakeRevision))), null);
   assert.deepEqual(packageImports(body).imports,
     [...packageImports(previous).imports, 'actql/actql/capacity_policy'].sort());
-  assert.equal(currentTree.read(path).toString(), unionBody);
+  assert.equal(currentTree.read(path).toString(), httpBody);
   assert.equal(hash(currentTree.read('toolchain.json')), toolchainDigest);
-  assert.equal(currentPackageConfigurationReviewFor(request(path, unionDigest))?.revision, unionRevision);
+  assert.equal(currentPackageConfigurationReviewFor(request(path, httpDigest))?.revision, httpRevision);
+  assert.equal(currentPackageConfigurationReviewFor(request(path, unionDigest)), null);
   assert.equal(currentPackageConfigurationReviewFor(request(path, fileDigest)), null);
   assert.equal(currentPackageConfigurationReviewFor(request(path, readDigest)), null);
   assert.equal(currentPackageConfigurationReviewFor(request(path, modelDigest)), null);
@@ -510,7 +524,7 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
   assert.deepEqual(selected.directories.find(entry => entry.path === 'src/logical_request_scope/*')?.members, scopeMembers);
   assert.deepEqual(packageImports(currentTree.read('src/logical_request_scope/moon.pkg').toString()).imports,
     ['actql/actql/canonical_value', 'actql/actql/encode_core', 'actql/actql/sha256', 'moonbitlang/core/encoding/utf8'].sort());
-  for (const member of [...members, ...catalogMembers, ...scopeMembers, ...[reentrySelector, keyedSelector, originalSelector, valuesSelector, provenanceSelector, ...selectors, ...successorSelectors, ...completionSelectors, ...workSelectors, ...readSelectors, fileSelector, unionSelector].map(selector =>
+  for (const member of [...members, ...catalogMembers, ...scopeMembers, ...[reentrySelector, keyedSelector, originalSelector, valuesSelector, provenanceSelector, ...selectors, ...successorSelectors, ...completionSelectors, ...workSelectors, ...readSelectors, fileSelector, unionSelector, httpSelector].map(selector =>
     'src/client_local_host/' + JSON.parse(selector.trim().split(':')[0]))]) {
     assert(selected.paths.includes(member), member);
     assert.equal(currentTree.entries.get(member)?.kind, 'blob');
@@ -524,9 +538,14 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
   const localMembers = [...currentTree.entries.keys()].filter(member => member.startsWith('src/client_local_host/') &&
     !member.slice('src/client_local_host/'.length).includes('/')).sort();
   assert(localMembers.includes('src/client_local_host/preparation_request_direct_union_js_wbtest.mbt'));
+  assert(localMembers.includes('src/client_local_host/preparation_request_http_input_js_wbtest.mbt'));
   assert.deepEqual(selected.directories.find(entry => entry.path === 'src/client_local_host/*')?.members, localMembers);
   for (const changed of [previous, callbackBody, valuesBody, effectBody, body, reentryBody, catalogBody, fourSelectorBody, currentBody, modelBody, requestSelectorBody, selectorBody, readBody,
-    fileBody,
+    fileBody, unionBody,
+    httpBody.replace(httpSelector, httpSelector.replace('"js"', '"native"')),
+    httpBody.replace(httpSelector, httpSelector.replace('"js"', '"wasm"')),
+    httpBody.replace(httpSelector, httpSelector.replace('.mbt', '_unreviewed.mbt')),
+    httpBody + '\noptions(pre_build: {command: "unreviewed"})\n',
     unionBody.replace(unionSelector, unionSelector.replace('"js"', '"native"')),
     unionBody.replace(unionSelector, unionSelector.replace('"js"', '"wasm"')),
     unionBody.replace(unionSelector, unionSelector.replace('.mbt', '_unreviewed.mbt')),
@@ -555,7 +574,7 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
       .unresolved.includes('Unreviewed package configuration: ' + path));
   }
   for (const delta of [{target: 'native'}, {target: 'wasm'}, {toolchainDigest: '0'.repeat(64)}])
-    assert.equal(currentPackageConfigurationReviewFor({...request(path, unionDigest), ...delta}), null);
+    assert.equal(currentPackageConfigurationReviewFor({...request(path, httpDigest), ...delta}), null);
 });
 
 test('historical Local Host review preserves the original carrier, Source builder and Model completion preimages', () => {
