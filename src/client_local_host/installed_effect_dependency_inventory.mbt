@@ -178,8 +178,10 @@ pub fn prepare_installed_effect_dependency_inventory(
   }
   // Artifact wire usage comes from its exact original final encoder. Root
   // parsing gets a separate measured extent before the existing classifier.
+  let roots_capacity = match segment(work => {
   let mut roots_capacity = @execution.execution_capacity(0L, 0L).unwrap()
   for artifact in artifacts {
+    if !work(1) { return Err(InsufficientCapacity) }
     if !@publication_host.client_effect_local_artifact_matches_inputs(
         artifact, inputs,
       ) ||
@@ -223,6 +225,8 @@ pub fn prepare_installed_effect_dependency_inventory(
     }
     roots_capacity = next
   }
+    Ok(Capacity(roots_capacity))
+  }) { Ok(Capacity(value)) => value; Err(issue) => return Err(issue); _ => return Err(ForeignOriginal) }
   match grow(roots_capacity) {
     Err(issue) => return Err(issue)
     Ok(_) => ()

@@ -176,7 +176,7 @@ fn installed_effect_dependency_fixed_capacity(
       // its borrowed Fields vector never grows with output field width.
       records: 16L + 24L * d,
       record_references: phase.reference_slots + 5L + 34L + 64L * d,
-      record_words: phase.scalar_words + 2L + 35L + 32L * d,
+      record_words: phase.scalar_words + 5L + 35L + 32L * d,
       reference_arrays: 6L,
       reference_items: 12L * d,
       scalar_arrays: 0L,

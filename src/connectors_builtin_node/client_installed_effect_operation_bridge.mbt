@@ -695,3 +695,28 @@ pub fn client_program_installed_effect_dependency_capture_begin(
     max_body_bytes, max_body_nodes, max_body_depth,
   )
 }
+
+///|
+#export_name("clientProgramInstalledEffectDependencyCaptureAdvance")
+pub fn client_program_installed_effect_dependency_capture_advance(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  issuer : @publication.CapturedRunIssuancePreparation,
+  quantum : Int,
+) -> Result[Bool, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.advance_installed_effect_dependency_capture(owner, prepared, request, plan, issuer, quantum)
+}
+
+///|
+#export_name("clientProgramFinishInstalledEffectDependencyCapture")
+pub fn client_program_finish_installed_effect_dependency_capture(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  issuer : @publication.CapturedRunIssuancePreparation,
+) -> Result[@publication.PreparedCapturedEffectRun, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.finish_installed_effect_dependency_capture(owner, prepared, request, plan, issuer)
+}

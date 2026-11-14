@@ -275,6 +275,19 @@ fn captured_local_effect_source_matches_preview(
     is Err(_) {
     return false
   }
+  captured_local_effect_source_preview_facts_match(preview, member_index, physical, local_value)
+}
+
+///|
+// Only after the same immutable local/physical pair passed complete admission
+// in this synchronous source inventory. This compares Preview references;
+// callers needing admission use the original validating wrapper above.
+fn captured_local_effect_source_preview_facts_match(
+  preview : EffectPreviewIdentity,
+  member_index : Int,
+  physical : PublicationContract,
+  local_value : @json.CanonicalValue,
+) -> Bool {
   guard effect_preview_member_result_artifact_cid(preview, member_index)
     is Some(expected) &&
     effect_source_artifact_relation_source(physical) ==

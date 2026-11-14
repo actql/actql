@@ -16,6 +16,7 @@ priv struct ClientEffectDependencyWireInput {
 // Closed phase results are immutable DATA only; no Work view/writer/cursor
 // can escape a synchronous original segment through these alternatives.
 priv enum ClientEffectDependencyGroupStep {
+  Capacity(@execution.ExecutionCapacity)
   Units(Int64)
   Index(Int, Int64)
   Shape(Array[ClientEffectDependencyWireInput])
@@ -153,8 +154,10 @@ fn prepare_funded_effect_dependency_inventory(
     Err(issue) => return Err(issue)
     _ => return Err(ForeignOriginal)
   }
+  let required = match segment(work => {
   let mut required = @execution.execution_capacity(0L, 0L).unwrap()
   for input in inputs {
+    if !work(1) { return Err(InsufficientCapacity) }
     let added = match input.shape {
       // The SAME controller already retained its raw/canonical/parser quota
       // before producing this exact emitted wire. Do not buy it twice.
@@ -178,6 +181,8 @@ fn prepare_funded_effect_dependency_inventory(
       required = next
     }
   }
+    Ok(Capacity(required))
+  }) { Ok(Capacity(value)) => value; Err(issue) => return Err(issue); _ => return Err(ForeignOriginal) }
   match grow(required) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -190,6 +195,18 @@ fn prepare_funded_effect_dependency_inventory(
         (@publication.CapturedEffectDependencyBody, String),
       ] = Map([])
       for input in inputs {
+        // A known kind+CID may share only after the complete original wire
+        // agrees. Reusing already admitted immutable DATA avoids a second
+        // parse/hash/graph walk for the same emitted dependency body.
+        if input.identity is Some(identity) {
+          if !work(input.kind.length() + 1) || !work(identity.length()) { return Err(InsufficientCapacity) }
+          let selected = input.kind + "\u0000" + identity
+          if seen.get(selected) is Some((_, previous)) {
+            if !work(input.wire.length()) { return Err(InsufficientCapacity) }
+            if previous != input.wire { return Err(ForeignOriginal) }
+            continue
+          }
+        }
         if !work(1) {
           return Err(InsufficientCapacity)
         }
@@ -254,12 +271,11 @@ fn prepare_funded_effect_dependency_inventory(
         if !work(1) {
           return Err(InsufficientCapacity)
         }
-        let (count, names) = @publication.captured_effect_dependency_body_index_geometry(
-          body,
-        )
+        let count = @publication.captured_effect_dependency_body_reference_count(body)
         if !work(count) {
           return Err(InsufficientCapacity)
         }
+        let (_, names) = @publication.captured_effect_dependency_body_index_geometry(body)
         references += count.to_int64()
         units += names
       }

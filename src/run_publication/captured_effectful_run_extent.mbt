@@ -117,6 +117,7 @@ fn captured_effectful_run_construction_extent(
       Int::max(authoring_extent.depth + 2, dependency_geometry.depth + 2),
     ),
   )
+  let mut source_work = 0L
   let mut fields = 0L
   let mut max_fields = 0
   for snapshot in snapshots {
@@ -159,6 +160,7 @@ fn captured_effectful_run_construction_extent(
       is Some(artifact) else {
       return None
     }
+    source_work += 8L * artifact.bytes.to_int64() + 16L * artifact.nodes.to_int64() + 128L * source.effect_id.length().to_int64()
     bytes += 2L * capture_map_key_extent(source.effect_id) +
       artifact.bytes.to_int64() +
       3L +
@@ -174,6 +176,7 @@ fn captured_effectful_run_construction_extent(
     guard capture_value_construction_extent(source.value, work) is Some(value) else {
       return None
     }
+    source_work += 8L * value.bytes.to_int64() + 16L * value.nodes.to_int64() + 128L * source.effect_id.length().to_int64()
     bytes += capture_map_key_extent(source.effect_id) + value.bytes.to_int64()
     nodes += value.nodes.to_int64()
     metadata_nodes += value.nodes.to_int64()
@@ -280,6 +283,7 @@ fn captured_effectful_run_construction_extent(
     total_fields: fields.to_int(),
     max_fields,
     models: models.length(),
+    source_work,
   })
 }
 

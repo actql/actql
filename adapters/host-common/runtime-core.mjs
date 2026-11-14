@@ -2193,20 +2193,30 @@ function publicationControl(moon) {
         maxNodes: originalLimits[1], maxDepth: originalLimits[2]});
   };
   const finishCapturedPreparation = async (preparation, signal,
-    retainComputation = false) => {
+    retainComputation = false, dependencyOriginal) => {
     let finished = false;
     try {
       const limits = capturedPreparationLimits(preparation);
       while (true) {
         signal?.throwIfAborted();
-        if (checked(moon.strategyCapturedRunAdvance(preparation, 256))) break;
+        const done = dependencyOriginal === undefined
+          ? checked(moon.strategyCapturedRunAdvance(preparation, 256))
+          : checked(moon.clientProgramInstalledEffectDependencyCaptureAdvance(
+            dependencyOriginal.parent, dependencyOriginal.prepared, dependencyOriginal.request,
+            dependencyOriginal.plan, preparation, 256));
+        dependencyOriginal?.current();
+        if (done) break;
         await new Promise(resolve => typeof setImmediate === 'function'
           ? setImmediate(resolve) : setTimeout(resolve, 0));
       }
       signal?.throwIfAborted();
-      const captured = inspect(checked(retainComputation
+      const captured = dependencyOriginal === undefined ? inspect(checked(retainComputation
         ? moon.strategyCapturedRunFinishRetained(preparation)
-        : moon.strategyCapturedRunFinish(preparation)), limits);
+        : moon.strategyCapturedRunFinish(preparation)), limits)
+        : inspectPreparedEffectCapturedRun(checked(moon.clientProgramFinishInstalledEffectDependencyCapture(
+          dependencyOriginal.parent, dependencyOriginal.prepared, dependencyOriginal.request,
+          dependencyOriginal.plan, preparation)));
+      dependencyOriginal?.current();
       if (retainComputation) {
         capturedComputationPreparations.set(captured, preparation);
       }
@@ -6096,7 +6106,7 @@ function publicationControl(moon) {
         contentCaptures(evidence.contentGenerations), limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
       ));
       original?.current();
-      const value = await finishCapturedPreparation(preparation, signal);
+      const value = await finishCapturedPreparation(preparation, signal, false, original);
       original?.current();
       return value;
     },
