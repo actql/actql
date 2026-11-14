@@ -77321,7 +77321,7 @@
     {
       "module": "adapters/host-node/installed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a34528ed2c701868ba3b3b9b5117c523b6f479e3593d48a786a60d858770192e",
+      "sha256": "c07ef0c10b2f278c428683e3dfe6f664a14d69a1f08a639f2b43e7caa1e96863",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -77435,8 +77435,14 @@
           "parameters": [
             "sourceProfilePath",
             "sourceProfilePaths",
-            "fallback"
+            "fallback",
+            "construct"
           ],
+          "async": false
+        },
+        {
+          "name": "installedSourcePaths/select/select",
+          "parameters": [],
           "async": false
         },
         {
@@ -77697,6 +77703,7 @@
             "installedSourceFor/matches/matches",
             "installedSourceIdentity",
             "installedSourcePaths",
+            "installedSourcePaths/select/select",
             "installedSourcePublicationFacts",
             "installedSourceReadAccesses",
             "installedSourceReadBindings",
@@ -77750,6 +77757,10 @@
               {
                 "path": "adapters/host-node/source-alias-construction.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "The normal installation identity and Host opening select profile paths under"
               }
             ],
             "inputsOutputs": [

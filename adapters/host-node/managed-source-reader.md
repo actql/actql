@@ -649,6 +649,16 @@ ordering separately from ordinary package or physical transport acceptance.
 
 ## Declared Source access inventory
 
+The normal installation identity and Host opening select profile paths under
+the same initial Source material before cloning the path array. Its existing
+native constructor recipe covers the actual retained slots and the temporary
+array and membership Set used by plural validation. Path text borrows the
+detached Host input; a path selected from the environment retains its text on
+this material. Unique absolute plural paths and mutually exclusive singular,
+plural and environment selection remain required. A refused reservation or
+original-current check cannot construct the selected array. This path selection
+does not establish the later registration, namespace or Checkpoint inventory.
+
 The installed RowSource builds its complete declared read-access array and
 membership Set under the original Source initialization material. It quotes the
 actual view count once before either constructor, using the existing shared

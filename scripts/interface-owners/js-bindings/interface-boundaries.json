@@ -47739,6 +47739,7 @@
           "operations": [
             "openPreparedInstalledHost/assertSourceInitializationSelection",
             "openPreparedInstalledHost/preparation/init:borrowSourceInitializationMaterial/init:borrowSourceInitializationMaterial",
+            "openPreparedInstalledHost/preparation/init:selectSourceProfilePaths/init:selectSourceProfilePaths",
             "openPreparedInstalledHost/preparation/init:sourceInitializationServices/init:sourceInitializationServices",
             "openPreparedInstalledHost/preparation/init:sourceInitializationServices/init:sourceInitializationServices/init:assertCurrent/init:assertCurrent"
           ],
@@ -47748,6 +47749,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "The normal installation identity and Host opening select profile paths under"
               }
             ],
             "inputsOutputs": [
@@ -64691,6 +64696,16 @@
           "async": false
         },
         {
+          "name": "openPreparedInstalledHost/preparation/init:selectSourceProfilePaths/init:selectSourceProfilePaths",
+          "parameters": [
+            "options",
+            "fallback",
+            "root",
+            "principalId"
+          ],
+          "async": false
+        },
+        {
           "name": "openPreparedInstalledHost/preparation/init:sourceInitializationServices/init:sourceInitializationServices",
           "parameters": [
             "runtime",
@@ -65538,6 +65553,7 @@
         "./ordinary-mock-account.mjs",
         "./ordinary-source-binding.mjs",
         "./result-access.mjs",
+        "./source-alias-construction.mjs",
         "./source-alias-publication.mjs",
         "./source-managed-original-input.mjs",
         "./source-profile-json.mjs",
@@ -65552,7 +65568,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "b60e22ba87eb418846c21d00fc58da485ec774ddedcd38614cb70d467e288ea6"
+      "sha256": "7a5394dee6dc1acb0d340b746f7f928d900a89012394e996ecc3a8e9ac542b1e"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",

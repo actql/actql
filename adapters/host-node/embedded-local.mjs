@@ -1,4 +1,5 @@
 import {composeInstalledSourceEnvironment} from './installed-funded-environment.mjs';
+import {captureSourceAliasConstruction} from './source-alias-construction.mjs';
 import {localProjectFilesystem} from './local-files-native.mjs';
 import {createInstalledHostServices, installedSourceConfigurationReader,
   completeInstalledSourceInitialization, borrowInstalledSourceInitialization,
@@ -1287,7 +1288,8 @@ async function embeddedInstallationIdentity(root, installation, project, moon, p
   validateSourceNamespace(installation?.sourceSelectorNamespace);
   const connectorTable = installation?.connectorTable;
   if (connectorTable !== undefined) assertInstalledConnectorTable(connectorTable);
-  const sourcePaths = installedSourcePaths(installation);
+  const sourcePaths = installedSourcePaths(installation, process.env.ACTQL_LOCAL_SOURCE_PROFILE,
+    captureSourceAliasConstruction(configurationReader, moon));
   const effectPaths = installedEffectPaths(installation);
   const identities = await Promise.all(sourcePaths.map(path =>
     installedSourceIdentity(path, {connectorTable, configurationReader, moon})));
@@ -1629,7 +1631,11 @@ async function openInstalledHost(originalInstallation, preparation) {
   if (typeof retainedRelationOutput !== 'boolean') {
     throw new TypeError('InvalidLocalRetainedOutputConfiguration');
   }
-  const selectedSourcePaths = installedSourcePaths({sourceProfilePath, sourceProfilePaths});
+  const principalId = userInfo().username;
+  const selectedSourcePaths = preparation === undefined
+    ? installedSourcePaths({sourceProfilePath, sourceProfilePaths})
+    : preparation.selectSourceProfilePaths({sourceProfilePath, sourceProfilePaths},
+      process.env.ACTQL_LOCAL_SOURCE_PROFILE, root, principalId);
   const selectedEffectPaths = installedEffectPaths({effectProfilePath, effectProfilePaths});
   if (valuesMaxRows !== undefined &&
       (effectInstallation !== undefined || selectedEffectPaths.length > 0)) {
@@ -1638,7 +1644,6 @@ async function openInstalledHost(originalInstallation, preparation) {
   if (effectInstallation !== undefined && selectedEffectPaths.length > 0) {
     throw new TypeError('InvalidInstalledEffectSite');
   }
-  const principalId = userInfo().username;
   const journalDirectory = join(root, 'requests');
   // Root-format admission can create and fsync the first marker. Retain the
   // actual Host subject before that operation, not only before SQLite open.
@@ -6904,6 +6909,15 @@ async function openPreparedInstalledHost(options, initialEntry) {
     } finally {entry.selecting = false;}
   }
   const preparation = Object.freeze({host, initialControl,
+    selectSourceProfilePaths(options, fallback, root, principalId) {
+      assertInitialControlHostPreparation(originals);
+      // This same Host already selected its runtime and detached options.
+      // Open no file: the original Source material owns only the pure path
+      // snapshot here and retains failed construction through initial close.
+      const services = preparation.sourceInitializationServices(moon, root, principalId);
+      const construct = captureSourceAliasConstruction(installedSourceConfigurationReader(services), moon);
+      return installedSourcePaths(options, fallback, construct);
+    },
     sourceInitializationServices(runtime, root, principalId, hostCurrent) {
       assertInitialControlHostPreparation(originals);
       if (runtime !== moon || record.runtime !== runtime || root !== originalInstallation.root ||
