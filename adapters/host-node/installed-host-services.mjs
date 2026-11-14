@@ -20,7 +20,7 @@ import {installedCheckEnvironmentInputs} from './installed-check-environment.mjs
 import {readSourceProfileJson, readBoundedConfigurationText, readBoundedConfigurationUtf8, installedConfigurationByteLimit,
   installedConfigurationChunkBytes, readOriginalConfigurationText, readOriginalConfigurationBytes,
   installedRuntimeBundleCid, captureConfigurationReaders} from './source-profile-json.mjs';
-import {runtimeField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from '../host-common/compiler-binding.generated.mjs';
+import {runtimeField, runtimeTag, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from '../host-common/compiler-binding.generated.mjs';
 import {createInstalledCredentialSourceReader, installedJsonSourceReaderLimitNames,
   installedJsonSourceReaderProfileLimitNames} from './installed-credential-source-reader.mjs';
 import {types as nodeTypes} from 'node:util';
@@ -111,6 +111,28 @@ function sourceCall(original, material, name, args) {
   if (typeof material.methods?.[name] !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
   material.busy = true;
   try {return checked(Reflect.apply(material.methods[name], original.moon, args));}
+  catch (cause) {
+    // This fixed method name identifies the failed constructor, not its DATA.
+    // Preserve the original failure and cleanup carrier even when diagnostics
+    // cannot be attached to a frozen/non-Error thrown value.
+    try {
+      if (cause instanceof Error && !Object.hasOwn(cause, 'installedSourcePhase')) {
+        Object.defineProperty(cause, 'installedSourcePhase', {value: name, enumerable: true});
+        const issue = Object.getOwnPropertyDescriptor(cause, 'cause')?.value;
+        const tag = runtimeTag(issue);
+        if (Number.isSafeInteger(tag)) {
+          Object.defineProperty(cause, 'installedSourceIssueTag', {value: tag, enumerable: true});
+        }
+        if (name === 'ReserveInstalledSourceConstruction' && tag === 7) {
+          const resource = runtimeField(issue, 0);
+          if (Number.isSafeInteger(resource)) {
+            Object.defineProperty(cause, 'installedSourceResourceIssue', {value: resource, enumerable: true});
+          }
+        }
+      }
+    } catch { /* Diagnostics never replace the original failure. */ }
+    throw cause;
+  }
   finally {material.busy = false;}
 }
 

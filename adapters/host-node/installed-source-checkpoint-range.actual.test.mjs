@@ -77,7 +77,8 @@ test('completed Source inventory quote refuses original-current loss before cons
   const f = await sourceReadRangeActualFixture(t, {viewCount: 129, originalAuthorization: true});
   const construct = captureSourceAliasConstruction(installedSourceConfigurationReader(f.services), f.moon);
   const fault = f.failCurrentOnNextReserve();
-  assert.throws(() => prepareInstalledSourceCheckpointInventory(f.adapter, construct));
+  assert.throws(() => prepareInstalledSourceCheckpointInventory(f.adapter, construct),
+    error => error.installedSourcePhase === 'ReserveInstalledSourceConstruction');
   assert.equal(fault.calls, 1);
   assert.deepEqual(f.counts(), {reads: 0, grants: 0});
   await f.close();

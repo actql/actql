@@ -1763,7 +1763,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   let sourceCheckpointInventory;
   let installedEffect;
   let environmentWire, effectiveHostCapacityPolicyCid;
-  let environmentBody, environmentEvidenceCid;
+  let environmentBody, environmentEvidenceCid, composedEnvironment;
   let updateTargetOriginals;
   function assertMockEffectRunOriginal(original) {
     assertProjectRuntime();
@@ -2115,7 +2115,7 @@ async function openInstalledHost(originalInstallation, preparation) {
               effectInstallation.privateEvidenceKey.byteLength !== 32))) {
       throw new TypeError('InvalidInstalledEffectSite');
     }
-    const composedEnvironment = composeInstalledSourceEnvironment(installationServices, moon,
+    composedEnvironment = composeInstalledSourceEnvironment(installationServices, moon,
       baseEnvironmentWire, sourceProfile?.environmentOriginal ?? sourceProfile?.environmentWire,
       installedEffect?.environmentOriginal ?? effectInstallation?.environmentWire);
     environmentWire = composedEnvironment.wire;
