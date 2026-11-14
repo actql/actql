@@ -180,8 +180,10 @@ fn export_client_infer_retained_input_owned(
       return Err(Export(issue))
     }
   }
+  // Input metadata and output rows have independent limits. A keyed input
+  // may complete fewer rows than the number of prepared Source inputs.
   let evidence = match
-    @execution.retain_completion_evidence(retained, max_rows, 100) {
+    @execution.retain_completion_evidence(retained, 100, 100) {
     Ok(value) => value
     Err(issue) => return Err(Evidence(issue))
   }
