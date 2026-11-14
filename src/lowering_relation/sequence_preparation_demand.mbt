@@ -8,6 +8,8 @@ pub(all) struct SequencePreparationDemand {
   projection_name_bytes_bound : Int
   authored_expression_nodes : Int
   work_used : Int
+  // Original cached pipeline inventory, separate from work and output rows.
+  full_sequence_steps : Int
 } derive(Eq, Debug)
 
 ///|
@@ -133,5 +135,6 @@ pub fn prepared_sequence_preparation_demand(
     projection_name_bytes_bound: projection_names.to_int(),
     authored_expression_nodes: expression_nodes.to_int(),
     work_used: max_work - remaining,
+    full_sequence_steps: count,
   })
 }

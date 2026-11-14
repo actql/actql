@@ -1,4 +1,16 @@
 ///|
+// Immutable installed pricing DATA: one new word on the existing per-pipeline
+// observation and one on its aggregate, through the original common tariff.
+let sequence_full_step_delta_bytes : Int64 = @execution.preparation_representation_cost({
+    record_headers: 0L,
+    reference_slots: 0L,
+    scalar_words: 2L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  },
+).unwrap()
+
+///|
 /// Continue the SAME retained check/capacity, without a parse or check fallback.
 /// The original variable-data envelope covers coexisting lowering/graph data;
 /// fixed controller frames remain trusted Host overhead. Limits are the
@@ -102,6 +114,15 @@ fn[I, P] begin_program_compilation_work(
 ] {
   if owner.phase == SemanticCheckComplete {
     guard program_check_data_extent_cost(data) is Some(bytes) else {
+      return Err(Overflow)
+    }
+    // The existing sequence-demand fold now retains one full-step scalar on
+    // its per-pipeline observation and aggregate. Those two words may coexist;
+    // fund their delta here before either constructor on the SAME capacity.
+    guard @execution.checked_preparation_add_product(
+        bytes, sequence_full_step_delta_bytes, 1L,
+      )
+      is Some(bytes) else {
       return Err(Overflow)
     }
     // The same checked occurrence inventory bounds retained selection records.

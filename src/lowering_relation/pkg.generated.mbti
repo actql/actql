@@ -1994,6 +1994,7 @@ pub(all) struct SequencePreparationDemand {
   projection_name_bytes_bound : Int
   authored_expression_nodes : Int
   work_used : Int
+  full_sequence_steps : Int
 } derive(Eq, @debug.Debug)
 
 pub(all) enum SequencePreparationDemandIssue {

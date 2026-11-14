@@ -79,6 +79,13 @@ try {
     report.firstClosePending = true;
     try { await persist(); }
     catch (cause) { primary ??= cause; }
+    // This bounded diagnostic deliberately excludes references, submission
+    // tokens, rows and exception messages. The private full report stays above.
+    const lastFixture = unionBudgetCases.find(item => item.name === report.references.at(-1)?.name)?.name;
+    const code = typeof primary?.code === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,95}$/u.test(primary.code)
+      ? primary.code : primary ? 'unclassified' : 'none';
+    process.stderr.write('ACTQL_UNION_PENDING_CLOSE ' + JSON.stringify({phase,
+      lastFixture: lastFixture ?? null, code, closePending: true}) + '\n');
     try {
       await client.close();
       report.firstCloseReturned = true;

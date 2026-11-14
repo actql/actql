@@ -438,3 +438,118 @@ test "direct forty-branch Request compiles once then prepares every original tas
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "CTE forty-branch same Request continues through actual module body preparation" {
+  let parts : Array[String] = []
+  for i in 0..<40 {
+    parts.push("SELECT " + (i % 3).to_string() + " AS n")
+  }
+  let query = "WITH all_rows AS (" +
+    parts.join(" UNION ALL ") +
+    ") SELECT n FROM all_rows"
+  let (parent, input) = native_driver_parent(query)
+  let (environment, publication) = request_query_publication_fixture()
+  prepare_request_default_source_computation_check(
+    parent,
+    input,
+    request_document_test_source(query, "sql"),
+    native_json_reader,
+    environment,
+    publication,
+    [],
+    None,
+    @publication_host.client_standard_effect_computation_limits(),
+  ).unwrap()
+  let checked = parent.program_check.unwrap()
+  assert_eq(
+    finish_request_checked_computation(parent, input, environment, publication).unwrap(),
+    Pure,
+  )
+  let prepared = parent.compiled_program.unwrap()
+  let graph = @publication_host.prepared_client_graph(prepared)
+  let original = @strategy.graph_task_owner(graph, 0).unwrap()
+  let steps = @lower.node_count(@lower.bound_preparation(original))
+  assert_eq(steps, 160)
+  let shared = @publication_host.prepared_client_values_sequence_limits(
+    prepared,
+  )
+  let task = @publication_host.prepared_client_values_task_sequence_limits(
+    prepared, 0,
+  ).unwrap()
+  assert_eq(shared.max_steps, steps)
+  assert_eq(task.max_steps, steps)
+  // A genuinely smaller explicit caller selection is still refused by the
+  // SAME original lowerer; neither common getter admits that narrower budget.
+  assert_true(
+    @lower.prepare_sequence(original, { ..shared, max_steps: 1, })
+    is Err(@lower.SequenceLimit),
+  )
+  let factories = Ref(0)
+  let outcome = prepare_request_program_module_body(
+    parent,
+    input,
+    request_program_module_contracts(),
+    manifests=request_program_module_manifests(),
+    compilation_limits=request_program_compilation_limits(parent, input).unwrap(),
+    retained_output=false,
+    provider_factory=_ => {
+      factories.val += 1
+      []
+    },
+  )
+  let typed = match outcome {
+    Ok(_) => "ok"
+    Err(
+      Construction(
+        Graph(Fragment(AoA(Pipeline(Sequence(@lower.SequenceLimit)))))
+      )
+    ) => "Construction.Graph.Fragment.AoA.Pipeline.Sequence.SequenceLimit"
+    Err(
+      Construction(
+        TaskGraph(Fragment(Pipeline(Sequence(@lower.SequenceLimit))))
+      )
+    ) => "Construction.TaskGraph.Fragment.Pipeline.Sequence.SequenceLimit"
+    Err(Construction(Graph(_))) => "Construction.Graph.other"
+    Err(Construction(TaskGraph(_))) => "Construction.TaskGraph.other"
+    Err(Construction(_)) => "Construction.other"
+    Err(Installed(Sequence(@lower.SequenceLimit))) =>
+      "Installed.Sequence.SequenceLimit"
+    Err(Installed(_)) => "Installed.other"
+    Err(Preparation(Capacity(_))) => "Preparation.Capacity"
+    Err(Preparation(_)) => "Preparation.other"
+    Err(CapacityExceeded(_)) => "CapacityExceeded"
+    Err(ValuesCompilation(_)) => "ValuesCompilation"
+    Err(TaskCompilation(_)) => "TaskCompilation"
+    Err(_) => "other original typed module issue"
+  }
+  println("CTE40_MODULE_TYPED=" + typed)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  assert_eq(checked._observed_semantic_check_calls, 1L)
+  assert_eq(checked._observed_program_compile_calls, 1L)
+  assert_eq(parent._observed_query_parse_calls, 1L)
+  assert_eq(parent._observed_query_lower_calls, 1L)
+  assert_eq(typed, "ok")
+  assert_eq(factories.val, 1)
+}
+
+///|
+test "module full-sequence projection classifies only original typed budget refusals" {
+  let failures : Array[ClientRequestProgramPlanIssue] = [
+    Installed(Sequence(SequenceLimit)),
+    Construction(Graph(Fragment(AoA(Pipeline(Sequence(SequenceLimit)))))),
+    Construction(TaskGraph(Fragment(Pipeline(Sequence(SequenceLimit))))),
+  ]
+  for original in failures {
+    assert_true(request_program_plan_issue_is_sequence_limit(original))
+  }
+  let uncertain : Array[ClientRequestProgramPlanIssue] = [
+    Preparation(ForeignOriginal),
+    Preparation(WrongPhase),
+    Construction(Encoding),
+  ]
+  for original in uncertain {
+    assert_false(request_program_plan_issue_is_sequence_limit(original))
+  }
+}

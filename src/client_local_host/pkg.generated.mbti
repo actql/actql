@@ -1178,6 +1178,8 @@ pub fn[I] request_prepared_computation_kind(ClientRequestPreparation[I], I) -> R
 
 pub fn[I] request_program_compilation_limits(ClientRequestPreparation[I], I) -> Result[@run_publication_host.ClientPureCompilationLimits, ClientRequestProgramPlanIssue]
 
+pub fn request_program_plan_issue_is_sequence_limit(ClientRequestProgramPlanIssue) -> Bool
+
 pub fn[I] request_query_syntax_work(ClientRequestPreparation[I], I) -> Result[(Int64, Bool), ClientRequestQuerySyntaxIssue]
 
 pub fn[I] request_source_input_parts(ClientRequestPreparation[I], I) -> Result[(String, @source_frontend.Format, String?, @decode_core.Cursor?), ClientRequestPreparationIssue]
