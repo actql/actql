@@ -30,7 +30,8 @@ test('scarce Mac admission waits for lint and the original JS row while Native M
     assert.deepEqual(job.needs, ['select-targets', 'lint', 'core-js']);
   assert.deepEqual(workflow.jobs['native-macos-workloads'].needs, ['select-targets']);
   const evaluate = (job, targets, lint, result, stopped = false, profile = 'full') =>
-    runInNewContext(job.if.slice(3, -2), {
+    runInNewContext(job.if.slice(3, -2).replaceAll('needs.select-targets', "needs['select-targets']")
+      .replaceAll('needs.core-js', "needs['core-js']"), {
       github: {event: {repository: {visibility: 'public', private: false}}}, inputs: {},
       needs: {'select-targets': {outputs: {profile, targets: JSON.stringify(targets), python_wheels: 'true'}},
         lint: {result: lint}, 'core-js': {result}},
