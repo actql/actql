@@ -92,6 +92,8 @@ pub fn borrow_original_restored_host_output(OutputUse, @run_publication_host.Cli
 
 pub fn call_scope(Execution) -> @run_publication_host.ClientInferCallScope?
 
+pub fn call_scope_snapshot(Execution) -> Result[String, @run_publication_host.ClientInferCallScopeIssue]
+
 pub fn call_settlement(Execution) -> @model_execution.ModelCallSettlement?
 
 pub fn cancel(Execution) -> Bool

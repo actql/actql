@@ -121,7 +121,9 @@ test "original first input scan capacity refusal preserves its read and never ca
   let (active, ledger, consumer) = original_observation_test_start(
     provider=original_funded_start_provider(calls),
     input_body=true,
-    input_read_ceiling=Some(10L),
+    // Original ten-byte zero-spare fixture plus the new48-byte cache link.
+    // No scan workspace fits; the product's installed budgets are unchanged.
+    input_read_ceiling=Some(58L),
   )
   assert_true(
     fixture_finish(active)
@@ -139,7 +141,7 @@ test "original first input scan capacity refusal preserves its read and never ca
   assert_eq(calls.val, 0)
   assert_true(active.identity is None)
   assert_true(active.original_preparation is Some(_))
-  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 10L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 58L)
   assert_true(cleanup(active).unwrap())
   original_composed_test_release(ledger, consumer)
 }
@@ -152,7 +154,7 @@ test "original restored input body refuses capacity and cancellation before scan
       provider=original_funded_start_provider(calls),
       input_body=true,
       restored_input=true,
-      input_read_ceiling=if stop { None } else { Some(10L) },
+      input_read_ceiling=if stop { None } else { Some(58L) },
     )
     assert_true(active.identity_body is Some(_))
     assert_true(active.identity is None)
@@ -173,7 +175,7 @@ test "original restored input body refuses capacity and cancellation before scan
           ..
         ),
       )
-      assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 10L)
+      assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 58L)
     }
     assert_eq(calls.val, 0)
     assert_true(active.identity is None)
@@ -211,37 +213,33 @@ test "original restored input body rejects a foreign checked Read before scan co
     () => true,
   )
   let foreign_before = @resources.ledger_usage(foreign_ledger)
-  let active = start_original_restored_composed(
-    occurrence,
-    plan,
-    prefix,
-    original_funded_start_provider(calls),
-    @input.client_infer_retained_input_export_binding(exported),
-    @input.client_infer_retained_input_export_descriptor(exported),
-    @input.client_infer_retained_input_export_rows(exported),
-    () => true,
-    saved,
-    limits,
-    compiled,
-    definition,
-    consumer,
-    7L,
-    5L,
-    100L,
-    5L,
-    input_body_read=Some(foreign_read),
-  ).unwrap()
   assert_true(
-    fixture_finish(active)
-    is Failed(
-      OriginalCapacity(@publication_host.Read(@publication_host.ForeignRun)),
-      ..
+    start_original_restored_composed(
+      occurrence,
+      plan,
+      prefix,
+      original_funded_start_provider(calls),
+      @input.client_infer_retained_input_export_binding(exported),
+      @input.client_infer_retained_input_export_descriptor(exported),
+      @input.client_infer_retained_input_export_rows(exported),
+      () => true,
+      saved,
+      limits,
+      compiled,
+      definition,
+      consumer,
+      7L,
+      5L,
+      100L,
+      5L,
+      input_body_read=Some(foreign_read),
+    )
+    is Err(
+      OriginalCapacity(@publication_host.Read(@publication_host.ForeignRun))
     ),
   )
   assert_eq(calls.val, 0)
-  assert_true(active.identity is None)
   assert_eq(@resources.ledger_usage(foreign_ledger), foreign_before)
-  assert_true(cleanup(active).unwrap())
   original_composed_test_release(ledger, consumer)
   original_composed_test_release(foreign_ledger, foreign_consumer)
 }

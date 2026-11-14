@@ -93,6 +93,7 @@ fn call_identity_plan(
   token_reservation? : Int64 = 128L,
   duration_ms? : Int64 = 1000L,
   occurrence? : @publication_host.ClientInferOccurrence? = None,
+  sequence_limits? : @lower.SequenceLimits? = None,
 ) -> @publication_host.ClientInferPlanGraph {
   let execution_wire =
     #|{"backoff_contract_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","default_publication":"outcomes","max_attempts_per_slot":2,"max_total_attempts":4,"max_total_cost_units":0,"max_total_duration_ms":1000,"max_total_token_reservation":128,"max_total_wire_bytes":2048,"media_input_contracts":{},"model_task_contract_cid":"sha256:cfb4c49389dd5ecbcd97d4b60276549dcf6fd2ce62584707b5c661d94dce4560","retry_classification_contract_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","self_cid":"sha256:564c77f8cde8da49fda0b61b072ddce8ee598116eada536c71d27457f1b478da","version":"actql-model-execution-contract/0.1"}
@@ -160,7 +161,9 @@ fn call_identity_plan(
         model_execution,
         "sha256:" + "b".repeat(64),
         "sha256:" + "c".repeat(64),
-        @publication_host.client_standard_values_sequence_limits(),
+        sequence_limits.unwrap_or(
+          @publication_host.client_standard_values_sequence_limits(),
+        ),
         100000,
         10000,
         100,
@@ -172,7 +175,9 @@ fn call_identity_plan(
         model_execution,
         "sha256:" + "b".repeat(64),
         "sha256:" + "c".repeat(64),
-        @publication_host.client_standard_values_sequence_limits(),
+        sequence_limits.unwrap_or(
+          @publication_host.client_standard_values_sequence_limits(),
+        ),
         100000,
         10000,
         100,

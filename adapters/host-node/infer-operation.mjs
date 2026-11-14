@@ -985,10 +985,15 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       const input = moon.clientProgramInferPreparedInput(preparedCallSet);
       const artifact = moon.clientProgramInferPreparedInputArtifact(preparedCallSet);
       const ids = moon.clientProgramInferPreparedIdentities(preparedCallSet);
-      if (!Number.isSafeInteger(count) || count < 0 || count > 128 ||
+      // The original composed Read funded these actual reference wrappers
+      // and prepared its Scope snapshot before handing the Model off. Legacy
+      // explicit envelopes retain their separately qualified count ceiling.
+      const maxFacts = originalInputBodyRead === undefined ? 128 : 2147483647;
+      if (!Number.isSafeInteger(count) || count < 0 || count > maxFacts ||
           input === undefined || artifact === undefined || ids === undefined) {
         throw new Error('InferPreparedOwnerUnavailable');
       }
+      const callScopeSnapshotWire = checked(moon.clientProgramInferCallScopeSnapshot(active));
       const slotWires = Array.from({length: count}, (_, slot) => {
         const call = moon.clientProgramInferPreparedCallAt(preparedCallSet, slot);
         if (call === undefined) throw new Error('InferPreparedCallUnavailable');
@@ -999,7 +1004,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         slotWires: Object.freeze(slotWires), providerId: runtimeField(ids, 0),
         modelTaskCid: runtimeField(ids, 1), fixedRequestCid: runtimeField(ids, 2),
         unitId: moon.clientProgramInferCallScopeUnitId(active),
-        callScopeSnapshotWire: checked(moon.clientProgramInferCallScopeSnapshot(active))});
+        callScopeSnapshotWire});
     },
     bindModelScope: (control, plan, preparedCallSet, originals) =>
       control.bindCheckedClientInferModelScope(plan.compiled, active,
