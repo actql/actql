@@ -807,8 +807,12 @@ test('each Client group retains its acceptance commands exactly once', () => {
     assert.deepEqual(runs(name), [
       ...(['client-distribution', 'client-distribution-callers', 'client-distribution-mutations'].includes(name) ? prepared : []),
       ...indexes.map(index => index === 4 ? distributionContracts : original[index]),
+      ...(name === 'client-distribution' ? ['npm run postcheck:distribution-client'] : []),
     ], name);
   }
+  const hooks = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).scripts;
+  assert.equal(hooks['postcheck:distribution-client'], 'npm run check:otel-node');
+  assert.equal(hooks['check:otel-node'], 'npm ci --prefix packages/otel-node --ignore-scripts && node scripts/test-otel-node.mjs');
   assert.deepEqual(Object.values(partitions).flat().sort((a, b) => a - b),
     Array.from({length: 49}, (_, index) => index + 4).filter(index => ![15, 16].includes(index)),
     'only the duplicate Native compiler is retired and its transport suite moves to the installed Remote owner');
