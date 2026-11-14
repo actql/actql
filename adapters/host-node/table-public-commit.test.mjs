@@ -136,12 +136,13 @@ test('Table public129 Source views read real rows and retain SAME Saved after co
       // Report only bounded own scalar diagnostic fields, never Source bodies,
       // credentials, arbitrary thrown properties or filesystem paths.
       const scalar = value => typeof value === 'number' || typeof value === 'boolean' ? value
-        : typeof value === 'string' ? value.match(/^[A-Za-z][A-Za-z0-9_]{0,95}(?=\(|$)/u)?.[0] : undefined;
+        : typeof value === 'string' ? value.match(/^(?:[A-Za-z][A-Za-z0-9_]{0,95}(?=\(|$)|[0-9]{1,20}$)/u)?.[0] : undefined;
       const diagnostic = (value, depth = 0) => {
         if (value === null || typeof value !== 'object' || depth > 4) return scalar(value);
         const result = {};
         for (const key of ['name', 'message', 'code', 'kind', 'phase', 'installedSourcePhase',
           'installedSourceIssueTag', 'installedSourceResourceIssue', 'issue',
+          'installedSourceRetainedBytes', 'installedSourceExecutionBytes',
           '_0', '_1', '_2', '$tag', 'tag', 'cause', 'primaryFailure', 'cleanupPending']) {
           const field = Object.getOwnPropertyDescriptor(value, key);
           if (!field || !Object.hasOwn(field, 'value')) continue;
