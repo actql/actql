@@ -20,10 +20,11 @@ fn managed_scalar_snapshot_barrier(cancel_on_release : Bool) -> Unit raise {
   (operations.execute)().unwrap()
   let released = Ref(false)
   let present = Ref(true)
+  let cancel_armed = Ref(false)
   let release_calls = Ref(0)
   let snapshot = (operations.prepare_relation_snapshot)(() => {
       release_calls.val += 1
-      if released.val && cancel_on_release {
+      if cancel_armed.val && cancel_on_release {
         (operations.request_cancel)() |> ignore
       }
       released.val
@@ -74,6 +75,10 @@ fn managed_scalar_snapshot_barrier(cancel_on_release : Bool) -> Unit raise {
   assert_eq(@resources.ledger_usage(value.ledger), reloaded)
   present.val = false
   parts.clear()
+  assert_false((snapshot.cleanup_references)(32))
+  released.val = true
+  // The body can be gone while the original retained-reference duty remains.
+  assert_true((snapshot.finish)() is Err(_))
   let mut cleaned = false
   for _ in 0..<10000 {
     if (snapshot.cleanup_references)(32) {
@@ -82,9 +87,8 @@ fn managed_scalar_snapshot_barrier(cancel_on_release : Bool) -> Unit raise {
     }
   }
   assert_true(cleaned)
-  assert_true((snapshot.finish)() is Err(_))
   assert_eq(@resources.ledger_usage(value.ledger), reloaded)
-  released.val = true
+  cancel_armed.val = true
   if cancel_on_release {
     assert_true((snapshot.finish)() is Err(@local_driver.Execution(Stopped)))
     assert_true(
