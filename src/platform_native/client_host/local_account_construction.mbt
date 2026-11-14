@@ -30,6 +30,16 @@ fn local_account_read(
   construction : ((@authorization.AccountConfigurationConstruction) -> Bool)?,
   retain? : Bool = false,
 ) -> Result[(Bytes, @filesystem.NativeFileGeneration), NativeLocalAdoptionIssue] {
+  // Only the SAME numeric constructor can replace the standalone intake bound.
+  // Keep that legacy refusal before Reader open, FixedArray and UTF8 allocation.
+  let max_bytes = match construction {
+    Some(_) => max_bytes
+    None =>
+      Some(match max_bytes {
+        Some(bound) => Int64::min(bound, 1048576L)
+        None => 1048576L
+      })
+  }
   local_adoption_read_observed(
     root,
     name,

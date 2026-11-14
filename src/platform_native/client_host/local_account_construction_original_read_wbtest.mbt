@@ -62,6 +62,33 @@ fn account_original_read_close_fixture(
 ///|
 test "Account construction uses sufficient same original Read above one MiB and rereads current generation" {
   let input = account_original_read_source("account-original-read-large")
+  // Reuse this existing bounded fixture: standalone intake must refuse before
+  // acquiring a Reader or copying its >one-MiB body. The SAME funded read below
+  // still admits it, so this is not a new Account grammar/physical size cap.
+  let legacy_root = @filesystem.open_private_root(input.source_path).unwrap()
+  assert_true(
+    local_account_read(legacy_root, input.source_name, None, None)
+    is Err(ConfigurationLimit),
+  )
+  assert_true(
+    local_account_read(legacy_root, input.source_name, Some(2097152L), None)
+    is Err(ConfigurationLimit),
+  )
+  let funded_calls = Ref(0)
+  assert_true(
+    local_account_read(
+      legacy_root,
+      input.source_name,
+      Some(1L),
+      Some(_ => {
+        funded_calls.val += 1
+        true
+      }),
+    )
+    is Err(ConfigurationLimit),
+  )
+  assert_eq(funded_calls.val, 0)
+  legacy_root.close().unwrap()
   let fixture = journal_metadata_original_read_fixture(retained_limit=8388608L)
   let capture = prepare_native_local_initial_adoption_capture_in_current_read_context(
     input,
