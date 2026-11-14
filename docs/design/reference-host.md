@@ -1556,6 +1556,13 @@ transport; those remain separately admitted Model duties.
 
 ### Values compilation component reuse
 
+The same finite Values policy row representation is validated at original
+issuance and retained Journal admission/cold lookup. The selected original
+policy wire and CID remain bound to the prepared and authorization facts and
+the same Run context; a fixed Journal-only row ceiling must not replace that
+original selection. This representation check grants no rows or memory, and
+checked Program limits still refuse an insufficient selected ceiling.
+
 A single source-free Values compilation constructs its checked graph, AoA
 identity, fragment, bound template and executable Plan once. Private compiler
 parts retain the original checked Program together with those typed immutable

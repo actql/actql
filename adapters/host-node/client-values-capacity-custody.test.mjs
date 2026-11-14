@@ -28,6 +28,17 @@ const request = {kind: 'program', input: program, parameters: null};
 const planFor = preparedProgram => sourceFreeValuesPlan({moon, control, preparedProgram, publicationOriginal: publicationOriginalFixture(moon, preparedProgram),
   ...scope, storeAuthorityCid: cid('7'), now: () => '2026-10-07T00:00:00.000Z'});
 
+// Retained artifacts keep the actual Request/Resource owner and Common in
+// one canonical installation; ordinary checkout CI uses its own default graph.
+async function prepareRetainedProfile(t, valuesMaxRows) {
+  const installed = process.env.ACTQL_TEST_PREPARATION_PACKAGE;
+  const preparationPorts = installed === undefined ? undefined : {
+    ...(await import(pathToFileURL(join(installed, 'adapters/host-node/ordinary-source-managed.mjs')))),
+    ...(await import(pathToFileURL(join(installed, 'adapters/host-node/client-program-preparation.mjs')))),
+  };
+  return fundedClientPreparation(t, {moon, environment, valuesMaxRows, preparationPorts});
+}
+
 // Retained prior-format records keep their original explicit policy binding.
 // Ordinary new Plans below do not invent this historical evidence field.
 function priorProfilePlan(prepared, selectedRows = 121) {
@@ -96,7 +107,7 @@ test('retained prior Values profile custody rejects altered originals and a diff
   async t => {
     const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-values-custody-', label: 'Values profile custody'});
     const directory = scratch.path;
-    const prepare = await fundedClientPreparation(t, {moon, environment, valuesMaxRows: 121});
+    const prepare = await prepareRetainedProfile(t, 121);
     const prepared = await prepare(request);
     const {plan, evidence} = priorProfilePlan(prepared);
     const identity = moon.clientProgramRequestIdentity(prepared, scope.authorityScopeCid, 'saved-profile', cid('b'));
@@ -153,12 +164,7 @@ test('retained Values profile above the old Journal ceiling keeps its original p
   const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-values-large-policy-',
     label: 'same selected Values policy original above the old Journal ceiling'});
   const selectedRows = 10001;
-  const installed = process.env.ACTQL_TEST_PREPARATION_PACKAGE;
-  const preparationPorts = installed === undefined ? undefined : {
-    ...(await import(pathToFileURL(join(installed, 'adapters/host-node/ordinary-source-managed.mjs')))),
-    ...(await import(pathToFileURL(join(installed, 'adapters/host-node/client-program-preparation.mjs')))),
-  };
-  const prepare = await fundedClientPreparation(t, {moon, environment, valuesMaxRows: selectedRows, preparationPorts});
+  const prepare = await prepareRetainedProfile(t, selectedRows);
   let prepared;
   try {prepared = await prepare(request);}
   catch (failure) {
@@ -195,4 +201,9 @@ test('retained Values profile above the old Journal ceiling keeps its original p
     assert.throws(() => journal.lookupRunDefinition(saved.ref, moon, control), {code: 'ClientRequestJournalCorrupt'});
     scratch.passed();
   } finally {journal?.close();}
+});
+
+test('smaller original Values policy refuses checked rows before Journal construction', async t => {
+  const prepare = await prepareRetainedProfile(t, 120);
+  await assert.rejects(prepare(request), {code: 'ClientProgramUnsupported'});
 });
