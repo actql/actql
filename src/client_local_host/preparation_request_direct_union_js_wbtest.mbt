@@ -553,3 +553,133 @@ test "module full-sequence projection classifies only original typed budget refu
     assert_false(request_program_plan_issue_is_sequence_limit(original))
   }
 }
+
+///|
+test "ordinary encoded and native Program input share observed Stage and step bounds" {
+  let (environment, publication) = request_query_publication_fixture()
+  for (stages, steps) in [(33, 1), (1, 1025)] {
+    let stage_bodies : Array[String] = []
+    for stage in 0..<stages {
+      let operations : Array[String] = [
+        "{\"values\":{\"schema\":{\"n\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"n\":1}]},\"as\":\"v0\"}",
+      ]
+      for step in 1..<steps {
+        operations.push(
+          "{\"from\":\"v" +
+          (step - 1).to_string() +
+          "\",\"select\":[\"n\"],\"as\":\"v" +
+          step.to_string() +
+          "\"}",
+        )
+      }
+      stage_bodies.push(
+        "{\"id\":\"s" +
+        stage.to_string() +
+        "\",\"inputs\":{},\"steps\":[" +
+        operations.join(",") +
+        "],\"results\":{\"rows\":{\"from\":\"v" +
+        (steps - 1).to_string() +
+        "\",\"fields\":[\"n\"]}}}",
+      )
+    }
+    let document = "{\"version\":\"actql/0.1\",\"id\":\"observed-input\",\"stages\":[" +
+      stage_bodies.join(",") +
+      "],\"results\":{\"main\":{\"from\":{\"stage\":\"s" +
+      (stages - 1).to_string() +
+      "\",\"result\":\"rows\"}}}}"
+    for native in [false, true] {
+      let (parent, input) = native_driver_parent(document)
+      let outcome = if native {
+        prepare_request_native_computation_check(
+          parent,
+          input,
+          request_native_test_value(document),
+          native_json_reader,
+          environment,
+          publication,
+          [],
+          request_default_program_preparation_limits(parent, input).unwrap(),
+          @publication_host.client_standard_effect_computation_limits(),
+        )
+      } else {
+        prepare_request_default_source_computation_check(
+          parent,
+          input,
+          request_document_test_source(document, "json"),
+          native_json_reader,
+          environment,
+          publication,
+          [],
+          None,
+          @publication_host.client_standard_effect_computation_limits(),
+        )
+      }
+      let detail = match outcome {
+        Ok(_) => "ok"
+        Err(issue) => direct_union_terminal_detail(issue)
+      }
+      println(
+        "OBSERVED_INPUT stages=" +
+        stages.to_string() +
+        " steps=" +
+        steps.to_string() +
+        " native=" +
+        native.to_string() +
+        " cause=" +
+        detail,
+      )
+      if outcome is Ok(_) {
+        assert_eq(@syntax.stage_count(parent.held_program.unwrap()), stages)
+        assert_eq(
+          parent.program_check.unwrap()._observed_semantic_check_calls,
+          1L,
+        )
+      }
+      abort_request_preparation_after_cleanup(parent).unwrap()
+      assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+      assert_eq(detail, "ok")
+    }
+  }
+}
+
+///|
+test "explicit small Program budget remains explicit after common observed selection" {
+  let stage = "{\"id\":\"one\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"n\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"n\":1}]},\"as\":\"v\"}],\"results\":{\"rows\":{\"from\":\"v\",\"fields\":[\"n\"]}}}"
+  let document = "{\"version\":\"actql/0.1\",\"id\":\"explicit-input\",\"stages\":[" +
+    stage +
+    "," +
+    stage.replace(old="one", new="two") +
+    "],\"results\":{\"main\":{\"from\":{\"stage\":\"two\",\"result\":\"rows\"}}}}"
+  let (environment, publication) = request_query_publication_fixture()
+  let (parent, input) = native_driver_parent(document)
+  let selected = request_default_program_preparation_limits(parent, input).unwrap()
+  let explicit = {
+    ..selected,
+    checking: {
+      ..selected.checking,
+      input: { ..selected.checking.input, max_stages: 1, },
+    },
+  }
+  let outcome = prepare_request_native_source_computation_check(
+    parent,
+    input,
+    request_document_test_source(document, "json"),
+    native_json_reader,
+    environment,
+    publication,
+    [],
+    explicit,
+    @publication_host.client_standard_effect_computation_limits(),
+  )
+  match outcome {
+    Err(Preparation(ProgramJson(Syntax(issue)))) =>
+      assert_true(issue is @syntax.Structure(@syntax.StageLimit, ..))
+    _ =>
+      fail(
+        "explicit original Program Stage bound must refuse before semantic checking",
+      )
+  }
+  assert_true(parent.program_check is None)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}

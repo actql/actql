@@ -3080,9 +3080,10 @@ lowerer and canonical Program emitter use the selected compiler artifact
 envelope, since generated Program material is not the original SQL wire.
 The default captured Source caller obtains its raw-input byte/Text envelope
 from `request_default_program_preparation_limits` on the same observed snapshot.
-The explicit caller retains its supplied profile. Native document input keeps
-its existing document-derived profile. No path replaces those selections with
-the standard profile after parsing or rescans the captured input.
+The explicit caller retains its supplied profile. Ordinary native Program and
+encoded JSON/YAML/SQL/Pipe input use the same original snapshot selection.
+No path replaces those selections with the standard profile after parsing or
+rescans the captured input.
 
 After lowering, the same existing Request `computation_limits` slot retains
 the generated-Program envelope for the ordinary checker/compiler continuation.
@@ -3092,20 +3093,29 @@ dimensions; generic explicit check/reuse APIs retain their supplied restrictions
 Installed collection/join dimensions, depth, CTE policy and original target,
 Catalog, Parameter and Environment bindings remain independent.
 
-For default textual Query input only, the generated Program's Stage ceiling
-comes from the selected compiler artifact-node envelope: every generated Stage
-requires an artifact node. After lowering, the retained Program's constant-time
-Stage count selects the semantic structure bound. The default checking-work
-ceiling preserves the selected profile's work per Stage envelope: the original
-work multiplied by `max(1, ceil(generated_stages / original_stage_limit))`, with
-checked arithmetic. This is a finite checking policy, not a prediction of exact
-consumed work, physical storage or permission. The original work meter still
-charges actual work on the same parent; no refund, second check or retry occurs.
-Raw authored Program input, every explicit caller selection, depth, memory,
-artifact-node and all other policy bounds remain unchanged. Four immutable
-limit records coexist with the original selection; the Request fixed-control
-quote funds their 4 headers, 11 reference slots and 14 scalar words before
-construction. A repeated or reentrant entry refuses before selecting again.
+The ordinary initial selection derives its Source/tree nodes and structural
+Stage, step, Result and parameter bounds from the same captured snapshot's
+finite encoded-byte envelope. Each encoded entry occupies at least one byte;
+outer snapshot value count alone does not bound nodes inside an encoded JSON
+String. The original Source owner observes and reserves actual geometry before
+parsing. This structural ceiling does not allocate its maximum or grant Resource
+capacity. The common Source, compilation and structure limit records coexist
+with the original profile; the fixed Request control quote includes their
+3 headers, 6 references and 13 scalar words (200 bytes by the common tariff).
+Explicit selected-limit entrances keep their original separate path and can
+still reject the same input under a smaller Stage budget.
+
+After Query lowering, the retained Program's constant-time Stage count selects
+the semantic structure bound. The existing generated checking-work policy uses
+the original standard work multiplied by
+`max(1, ceil(generated_stages / original_standard_stage_limit))`, with checked
+arithmetic. This remaining work selection is distinct from the common input
+structure: it is not exact consumed work or a conversion from Ledger dispatch
+planning work. The original phase meter still charges actual work on the same
+parent; no refund, second check or retry occurs. Depth, memory, artifact and
+other compiler restrictions remain separate. Its four immutable limit records
+retain their existing 4-header, 11-reference, 14-word fixed control quote.
+A repeated or reentrant entry refuses before selecting again.
 
 Sequence construction uses the same checked task owner and its retained
 pipeline node count for that task's full-step allowance, before selecting the
