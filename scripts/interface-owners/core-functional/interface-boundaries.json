@@ -41907,7 +41907,7 @@
     },
     {
       "module": "src/client_local_host/preparation_program_compile.mbt",
-      "sha256": "27fba2b27947f6a3dedc017dc4346fc41630b548b1012cf02966ddf27605ff87",
+      "sha256": "561ded1b0382ca2cd30557a2865bd1beede3c69e571f081636d1890e7e4470d2",
       "exports": [],
       "operations": [
         {
@@ -88647,7 +88647,7 @@
     },
     {
       "module": "src/lowering_relation/sequence_preparation_demand.mbt",
-      "sha256": "e9f689d757af80d642f42a9b396ae9b10561e56e7d64f5bc2fabff1140814a6e",
+      "sha256": "87ebe134586df8865214909792248e52f4469b76eec1683e1064cbe54954f7d6",
       "exports": [],
       "operations": [
         {
@@ -88746,7 +88746,7 @@
     },
     {
       "module": "src/run_publication_host/client_sequence_preparation_demand.mbt",
-      "sha256": "88745533faba0453f01a7c53f94e15f48de44f94a0ff3e75b33bc2fd1bd14424",
+      "sha256": "1ce1578ace7198c3a0255ee6c937417346cc92536a21def6463997b7c358e6eb",
       "exports": [],
       "operations": [
         {

@@ -1,10 +1,11 @@
 ///|
-// Immutable installed pricing DATA: one new word on the existing per-pipeline
-// observation and one on its aggregate, through the original common tariff.
-let sequence_full_step_delta_bytes : Int64 = @execution.preparation_representation_cost({
+// Immutable installed pricing DATA: full-step and checked-text scalars on
+// the existing per-pipeline observation and aggregate may coexist. Both use
+// the original common tariff before either demand constructor.
+let sequence_demand_scalar_delta_bytes : Int64 = @execution.preparation_representation_cost({
     record_headers: 0L,
     reference_slots: 0L,
-    scalar_words: 2L,
+    scalar_words: 4L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   },
@@ -116,11 +117,11 @@ fn[I, P] begin_program_compilation_work(
     guard program_check_data_extent_cost(data) is Some(bytes) else {
       return Err(Overflow)
     }
-    // The existing sequence-demand fold now retains one full-step scalar on
-    // its per-pipeline observation and aggregate. Those two words may coexist;
-    // fund their delta here before either constructor on the SAME capacity.
+    // Full-step and checked-text scalars on the existing per-pipeline demand
+    // and aggregate may coexist. Fund their four words here before either
+    // constructor on the SAME original capacity, never as text/output backing.
     guard @execution.checked_preparation_add_product(
-        bytes, sequence_full_step_delta_bytes, 1L,
+        bytes, sequence_demand_scalar_delta_bytes, 1L,
       )
       is Some(bytes) else {
       return Err(Overflow)

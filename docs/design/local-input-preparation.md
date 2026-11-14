@@ -3143,7 +3143,26 @@ separate 100-step default during fragment measurement. Per-task selection
 reads the same original inventory. The per-pipeline observation and aggregate
 may coexist with their new scalar, so the original compilation reservation
 prices two scalar words through the common tariff before these constructors.
-This adds no scan, capacity grant or replacement owner. The error owner alone
+This adds no scan, capacity grant or replacement owner.
+
+During that same binding inventory, the canonical demand also composes the
+original typed expressions' cached UTF8 accounting. That receipt includes
+admitted scalar-literal, contract and name text; it supplies known checked
+text to the lowering quota, not the configured maximum, runtime output size or
+a new storage allowance. It does not establish complete demand for untallied
+opaque JSON bodies or late parameter values; their original admission limits
+remain independently present.
+The shared and task selectors carry it into the existing expression text limit,
+so a checked long literal is not reset to an unrelated 10,000-byte default at
+Kernel construction. Explicit smaller sequence/expression text budgets retain
+their original refusal. Dynamic parameter and runtime expansion remain separate
+input/output obligations; static text demand does not grant them capacity.
+The new scalar on the per-pipeline demand and aggregate adds two more words;
+the same pre-compilation reservation therefore prices four words total for the
+full-step and text additions before either constructor. No Source/typing/tree
+scan, UTF8 Buffer, semantic check or additional capacity owner is created.
+
+The error owner alone
 recognizes exact nested sequence-budget failures for the existing analysis-limit
 projection; foreign, retired and general construction failures stay uncertain.
 
