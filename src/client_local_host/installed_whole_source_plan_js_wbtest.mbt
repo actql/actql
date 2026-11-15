@@ -232,6 +232,22 @@ test "one original Request Plan captures whole unfiltered Source and leaves auth
   let capture = @row_source_host.capture_row_run(run).unwrap()
   let captured = @row_source_host.row_capture_source(capture).unwrap()
   assert_eq(@query.captured_source_row_count(captured), Some(2))
+  let held = @resources.ledger_usage(parent.ledger)
+  assert_true(held.held_bytes > before.held_bytes)
+  assert_false(stopped.val)
+  assert_eq(
+    held.reserved_retention_bytes - before.reserved_retention_bytes,
+    @execution.execution_capacity_retained_bytes(provider),
+  )
+  // Provider and the physical page still coexist before their ORIGINAL ACK;
+  // returned receiver arrays stay funded independently in BOTH dimensions.
+  assert_eq(
+    held.reserved_execution_bytes -
+    before.reserved_execution_bytes -
+    @execution.execution_capacity_execution_bytes(provider) -
+    4096L,
+    held.held_bytes - before.held_bytes,
+  )
   let (_, dag, _) = open_installed_managed_capture_host(
     owner,
     prepared,

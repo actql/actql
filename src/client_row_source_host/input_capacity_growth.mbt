@@ -265,6 +265,8 @@ fn row_input_capture_retained(run : RowRun) -> Int64? {
       progress.tokens,
       0,
       None,
+      retain_wire=acquisition.preparation.file_listing is Some(_) ||
+        acquisition.preparation.listing_rows is Some(_),
     )
     is Some(capacity) else {
     return None

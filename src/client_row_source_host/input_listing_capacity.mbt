@@ -19,6 +19,7 @@ fn row_input_phase_capacity(
   token_units : Int64,
   body_bytes : Int,
   geometry : @source.JsonSourceGeometry?,
+  retain_wire? : Bool = true,
 ) -> @execution.ExecutionCapacity? {
   let request = @sourcequery.source_acquisition_request(preparation.original)
   let fields = @sourcequery.parameterized_request_field_count(request)
@@ -96,7 +97,14 @@ fn row_input_phase_capacity(
       retained,
       @execution.CanonicalWireBytes,
       wire,
-      1,
+      // The complete Source identity hashes rows incrementally. No full wire
+      // escapes that completed constructor; incoming phases retain the whole
+      // original allowance until parsing, validation and hashing return.
+      if retain_wire {
+        1
+      } else {
+        0
+      },
     )
     is Some(retained) else {
     return None
