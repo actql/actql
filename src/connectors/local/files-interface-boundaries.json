@@ -2135,17 +2135,20 @@
           "async": false
         },
         {
-          "name": "createLocalFileStoreDriver/driver/driver#3",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "createLocalFileStoreDriver/driver/init:describe/init:describe",
           "parameters": [
             "member",
             "runInvocationCid",
             "dispatchRequestCid",
             "runOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/init:footprint/init:footprint",
+          "parameters": [
+            "member",
+            "entries"
           ],
           "async": false
         },
@@ -2482,8 +2485,8 @@
             "createLocalFileStoreDriver/current/current",
             "createLocalFileStoreDriver/driver/driver",
             "createLocalFileStoreDriver/driver/driver#2",
-            "createLocalFileStoreDriver/driver/driver#3",
             "createLocalFileStoreDriver/driver/init:describe/init:describe",
+            "createLocalFileStoreDriver/driver/init:footprint/init:footprint",
             "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild",
             "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/child",
             "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare",
