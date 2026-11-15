@@ -261,7 +261,9 @@ fn normalize_public_model_task_selected(
       writer,
       budget,
     )
-    let (task_wire, task_bytes, task_nodes, task_depth) = @encode.finish_text_usage(writer)
+    let (task_wire, task_bytes, task_nodes, task_depth) = @encode.finish_text_usage(
+      writer,
+    )
     Ok({
       declaration,
       mock_profile,

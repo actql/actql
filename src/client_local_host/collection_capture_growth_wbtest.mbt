@@ -264,8 +264,14 @@ test "collection CrossJoin keeps checked scalar copy names on its original deman
 test "collection CrossJoin retains text input and nested value fallback" {
   for
     (sql, fallback_text) in [
-      ("SELECT LENGTH(a.text) AS n FROM (SELECT 'text' AS text) a CROSS JOIN (SELECT 1 AS n) b", 765432),
-      ("SELECT a.items AS items FROM (SELECT [1,2] AS items) a CROSS JOIN (SELECT 1 AS n) b", 500000),
+      (
+        "SELECT LENGTH(a.text) AS n FROM (SELECT 'text' AS text) a CROSS JOIN (SELECT 1 AS n) b",
+        765432,
+      ),
+      (
+        "SELECT a.items AS items FROM (SELECT [1,2] AS items) a CROSS JOIN (SELECT 1 AS n) b",
+        500000,
+      ),
     ] {
     collection_cross_text_proof_case(sql, false, fallback_text~)
   }

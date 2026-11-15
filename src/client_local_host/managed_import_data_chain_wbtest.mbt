@@ -340,7 +340,9 @@ fn managed_import_data_chain(
     // Actual started Task reservations coexist with every retained parent.
     // A provider's maximum future envelope is not an upfront reservation.
     let started_usage = @resources.ledger_usage(ledger)
-    assert_true(started_usage.reserved_execution_bytes <= limits.execution_bytes)
+    assert_true(
+      started_usage.reserved_execution_bytes <= limits.execution_bytes,
+    )
     assert_true(
       started_usage.reserved_retention_bytes + started_usage.held_bytes <=
       limits.retained_bytes,
@@ -375,8 +377,17 @@ fn managed_import_data_chain(
         )
         let before = @resources.ledger_usage(ledger).reserved_execution_bytes
         guard (operations.inputs[0].append)("{")
-          is Err(@local_driver.ExecutionCapacityRefusal(ExecutionLimit, needed, available, ceiling)) else {
-          fail("the original import must refuse funding before malformed row decode")
+          is Err(
+            @local_driver.ExecutionCapacityRefusal(
+              ExecutionLimit,
+              needed,
+              available,
+              ceiling
+            )
+          ) else {
+          fail(
+            "the original import must refuse funding before malformed row decode",
+          )
         }
         assert_true(needed > 0L)
         assert_eq(available, 0L)

@@ -88,12 +88,16 @@ pub fn project_public_model_task_environment(
   if output_bytes > limits.bodies.max_bytes.to_int64() ||
     output_nodes > limits.bodies.max_nodes.to_int64() ||
     output_depth > limits.bodies.max_depth {
-    return Err({kind: BodyLimit, source: Some(root)})
+    return Err({ kind: BodyLimit, source: Some(root), })
   }
   let selected = {
     ..limits,
-    bodies: {..limits.bodies, max_bytes: output_bytes.to_int(),
-      max_nodes: output_nodes.to_int(), max_depth: output_depth},
+    bodies: {
+      ..limits.bodies,
+      max_bytes: output_bytes.to_int(),
+      max_nodes: output_nodes.to_int(),
+      max_depth: output_depth,
+    },
   }
   let budget : ModelTaskBudget = {
     limits: selected,

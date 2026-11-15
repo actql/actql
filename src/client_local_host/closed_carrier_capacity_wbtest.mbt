@@ -168,7 +168,10 @@ test "captured Event suffix uses original record schemas without a closed Source
   assert_eq(plan.measurement.max_nodes, 2 * demand.nodes)
   // One row's complete JSON leaves can spend the original finite value work
   // on Text/name bytes. Escape expansion and every leaf's syntax coexist.
-  assert_eq(plan.measurement.max_bytes, 30 + 6 * 20000000 + 3 + 29 * demand.nodes)
+  assert_eq(
+    plan.measurement.max_bytes,
+    30 + 6 * 20000000 + 3 + 29 * demand.nodes,
+  )
   assert_eq(plan.measurement.max_depth, 100)
   assert_true(client_local_capacity_plan_matches(plan, tail, 100))
   // The actual configured per-task reservations still coexist. No max-only
@@ -204,7 +207,10 @@ test "captured Event suffix uses original record schemas without a closed Source
   let mut task_retained = 0L
   let mut task_execution = 0L
   for task in 1..<@strategy.graph_task_count(capture.graph) {
-    let envelope = @local_driver.local_dispatch_preparation_task_capacity(capture.configuration.dispatch, task).unwrap()
+    let envelope = @local_driver.local_dispatch_preparation_task_capacity(
+      capture.configuration.dispatch,
+      task,
+    ).unwrap()
     task_retained += envelope.retained_bytes
     task_execution += envelope.execution_bytes
   }
@@ -405,6 +411,9 @@ test "two captured Sources retain every Event task under the original execution 
   assert_eq(capture.captures.length(), 2)
   assert_eq(
     capture.limits.retained_bytes,
-    all_retained + capacities[0].retained_bytes + capacities[1].retained_bytes + selector,
+    all_retained +
+    capacities[0].retained_bytes +
+    capacities[1].retained_bytes +
+    selector,
   )
 }
