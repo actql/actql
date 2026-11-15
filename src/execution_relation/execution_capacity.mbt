@@ -173,6 +173,8 @@ pub fn bounded_number_group_borrows_input(
 // The bounded INNER JOIN compares only its checked immediate key columns.
 // Other required columns are carried as original immutable cells: neither
 // binary input scan nor projected output constructs their value forest.
+// Text keys use the existing charged UTF-16 comparison cursor, retaining the
+// original strings without a comparison wire or copied spelling.
 fn bounded_inner_join_borrows_input(kernel : @lower.PreparedJoinKernel) -> Bool {
   let owner = @lower.bound_preparation(@lower.join_kernel_owner(kernel))
   let step = @lower.join_kernel_step(kernel)
@@ -203,6 +205,7 @@ fn bounded_inner_join_borrows_input(kernel : @lower.PreparedJoinKernel) -> Bool 
       }
       match contract.shape {
         @contract.Number | @contract.Boolean => ()
+        @contract.Text(_) => if contract.nullable { return false }
         _ => return false
       }
     }

@@ -857,12 +857,14 @@ test "singleton CROSS JOIN borrows original inputs and refuses injected construc
 }
 
 ///|
-test "recursive carried Join funding preserves text-key and outer-join fallback" {
+test "recursive carried Join funding borrows bounded text keys and preserves nullable and outer fallback" {
   for
     (kind, contract, literal, borrowed) in [
       ("inner", "{\"type\":\"number\",\"nullable\":false}", "1", true),
       ("inner", "{\"type\":\"boolean\",\"nullable\":false}", "true", true),
-      ("inner", "{\"type\":\"string\",\"nullable\":false}", "\"key\"", false),
+      ("inner", "{\"type\":\"string\",\"nullable\":false}", "\"key\"", true),
+      ("inner", "{\"type\":\"string\",\"nullable\":true}", "\"key\"", false),
+      ("left", "{\"type\":\"string\",\"nullable\":false}", "\"key\"", false),
       ("left", "{\"type\":\"number\",\"nullable\":false}", "1", false),
     ] {
     let (chain, _, _) = chain_lifetime_fixture(

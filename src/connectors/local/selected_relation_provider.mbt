@@ -1179,6 +1179,7 @@ fn selected_join_borrows_carried_values(
       }
       match contract.shape {
         @contract.Number | @contract.Boolean => ()
+        @contract.Text(_) => if contract.nullable { return false }
         _ => return false
       }
     }

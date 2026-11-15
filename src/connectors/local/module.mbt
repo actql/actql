@@ -590,7 +590,8 @@ fn local_module_default_output_start_capacity(
       Some(@lower.JoinStep(kernel)) =>
         // The same bounded JOIN child funds every complete output row before
         // commit, including inside a reclaimed Relation chain. Admit only
-        // required immediate input/output cells here; other joined DATA keeps
+        // required scalar input/output cells here. Text requires the same
+        // INNER JOIN borrowed-cell/charged-comparison proof; other DATA keeps
         // its full prepaid lifecycle. This changes no comparison or row bound.
         if count > 1 {
           let prepared = @lower.bound_preparation(
@@ -617,6 +618,7 @@ fn local_module_default_output_start_capacity(
             for field in 0..<@schema.field_count(schema) {
               match @schema.field_at(schema, field).unwrap().contract.shape {
                 @contract.Number | @contract.Boolean => ()
+                @contract.Text(_) => if !append_chain { return None }
                 _ => return None
               }
             }

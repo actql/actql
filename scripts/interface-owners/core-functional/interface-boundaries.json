@@ -56610,7 +56610,7 @@
               },
               {
                 "path": "src/connectors/local/metered_output_start_wbtest.mbt",
-                "anchor": "test \"recursive carried Join funding preserves text-key and outer-join fallback\""
+                "anchor": "test \"recursive carried Join funding borrows bounded text keys and preserves nullable and outer fallback\""
               },
               {
                 "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
