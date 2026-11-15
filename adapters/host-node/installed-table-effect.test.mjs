@@ -241,10 +241,48 @@ for (const sparseTableInput of [false, true]) for (const empty of [false,true]) 
           assert.equal(durable.execution, null);
           assert.equal(durable.connectorRecovery.length, 2);
           assert.equal(durable.computation.capturedRun.identity, stage.computation.capturedRun.identity);
+          if (!empty) {
+            // A selected per-Artifact codec is not the extent of its complete
+            // captured context. Exercise both Result and private Table inputs
+            // with an actual finite Artifact bound, retaining the legacy small
+            // Artifact refusal and exact member/Source correspondence.
+            const previewBody = JSON.parse(control.effectComputationPreviewWire(durable.preview));
+            const context = JSON.parse(durable.computation.capturedRun.wire).effect_context;
+            const semanticArtifact = context.effect_source_local_inventory[
+              previewBody.effects[0].effect_id].artifact;
+            const artifactBytes = Buffer.byteLength(JSON.stringify(semanticArtifact));
+            assert(artifactBytes > 1);
+            assert(artifactBytes < Buffer.byteLength(durable.computation.capturedRun.wire));
+            const saved = JSON.parse(durable.connectorRecovery.find(value => value.memberIndex === 0).wire);
+            const source = durable.effectSources.find(value => value.memberIndex === 0).source;
+            const otherSource = durable.effectSources.find(value => value.memberIndex === 1).source;
+            const selected = {...plan.contractLimits, maxWireBytes: artifactBytes};
+            const bind = (limits, suppliedSource = source) => control.bindRecoveredTablePreview(
+              durable.preview, 0, durable.invocation, suppliedSource,
+              durable.computation.capturedRun, moon.clientRequestLogicalScope(identity),
+              saved.mapping_wire, f.physicalStore.storeAuthorityCid, limits, f.tableLimits);
+            assert.equal(bind(selected).operationWire, saved.operation_wire);
+            assert.throws(() => bind({...selected, maxWireBytes: artifactBytes - 1}),
+              error => error.code === 'MoonBitHostFailure' && error.cause?.$tag === 9);
+            assert.throws(() => bind(selected, otherSource),
+              error => error.code === 'MoonBitHostFailure' && error.cause?.$tag === 5);
+          }
+          let inverseCalls = 0;
+          // This is a Resource-port forwarding control, not numerical funding
+          // evidence. The real codec runs inside it; installed Read/Ledger and
+          // ordinary A/B/C qualify the actual payer separately.
+          const recoveryResources = {constructCaptured(captured, receiver, method, argument) {
+            assert.equal(captured, durable.computation.capturedRun);
+            assert.equal(receiver, control);
+            assert.equal(argument.method, control.bindRecoveredTablePreview);
+            inverseCalls++;
+            return Reflect.apply(method, receiver, [argument]);
+          }};
           recoveredStage = await factory.prepareRecovered({moon, control, store: f.physicalStore,
             recovered: {requestIdentity: identity, requestScope: moon.clientRequestLogicalScope(identity),
-              computation: durable}, continuation: {provider},
+              computation: durable, recoveryResources}, continuation: {provider},
             retainRecoveryOwner(owner) { recoveryOwner = owner; }});
+          assert.equal(inverseCalls, 2, 'Each recovered member uses its retained captured Read');
           assert.equal(recoveredStage.cleanupOwner, recoveryOwner);
           assert.equal(recoveredStage.publication.execution, null);
           assert.equal(recoveredStage.apply.computation, durable.computation);

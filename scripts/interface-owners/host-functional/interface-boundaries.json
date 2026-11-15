@@ -100911,7 +100911,8 @@
             "contractLimits",
             "tableLimits",
             "bridge",
-            "signal"
+            "signal",
+            "recoveryResources"
           ],
           "async": true
         },
@@ -101051,7 +101052,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/table-capture-recovery.mjs",
-                "anchor": "memberIndex, requestScope, contractLimits, tableLimits, bridge, signal}) {"
+                "anchor": "memberIndex, requestScope, contractLimits, tableLimits, bridge, signal, recoveryResources}) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -101065,7 +101066,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/table-capture-recovery.mjs",
-                "anchor": "memberIndex, requestScope, contractLimits, tableLimits, bridge, signal}) {"
+                "anchor": "memberIndex, requestScope, contractLimits, tableLimits, bridge, signal, recoveryResources}) {"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -101195,7 +101196,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/table-capture-recovery.mjs",
-                "anchor": "memberIndex, requestScope, contractLimits, tableLimits, bridge, signal}) {"
+                "anchor": "memberIndex, requestScope, contractLimits, tableLimits, bridge, signal, recoveryResources}) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -101209,7 +101210,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/table-capture-recovery.mjs",
-                "anchor": "memberIndex, requestScope, contractLimits, tableLimits, bridge, signal}) {"
+                "anchor": "memberIndex, requestScope, contractLimits, tableLimits, bridge, signal, recoveryResources}) {"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",

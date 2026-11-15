@@ -4,6 +4,7 @@ import {prepareCompletedEffectfulPublication, prepareCompletedEffectSourceMember
   confirmCompletedEffectfulApplySources}
   from '../host-common/completed-run-publication.mjs';
 import {readRecoveredEffectTableInput} from './effect-input-export.mjs';
+import {constructEffectfulPublication} from '../host-common/run-publication.mjs';
 
 const owners = new WeakMap();
 const fail = code => { throw Object.assign(new Error(code), {code}); };
@@ -21,7 +22,7 @@ export function capturedTableRecoveryRecord({control, tableInput, tablePreview})
 }
 
 export async function prepareRecoveredTableInput({recovered, store, control,
-  memberIndex, requestScope, contractLimits, tableLimits, bridge, signal}) {
+  memberIndex, requestScope, contractLimits, tableLimits, bridge, signal, recoveryResources}) {
   signal?.throwIfAborted();
   if (typeof bridge?.admitStorageMapping !== 'function') fail('MissingTableMappingValidator');
   const publicationOptions = {execution: null,
@@ -43,9 +44,17 @@ export async function prepareRecoveredTableInput({recovered, store, control,
   const mapping = bridge.admitStorageMapping({control,
     mappingWire: saved.mapping_wire, limits: tableLimits});
   if (mapping?.wire !== saved.mapping_wire) fail('ForeignTableRecoveryMapping');
-  const tablePreview = control.bindRecoveredTablePreview(inventory.preview, memberIndex,
-    inventory.chain.invocation, source.source, inventory.chain.capturedRun,
-    requestScope, mapping.wire, store.storeAuthorityCid, contractLimits, tableLimits);
+  // The prior Store return cut only temporary constructor workspace. Re-enter
+  // its SAME retained Read before the whole captured-context inverse; its
+  // typed original and current/cleanup fences are not a replacement budget.
+  const tablePreview = recoveryResources === undefined
+    ? control.bindRecoveredTablePreview(inventory.preview, memberIndex,
+      inventory.chain.invocation, source.source, inventory.chain.capturedRun,
+      requestScope, mapping.wire, store.storeAuthorityCid, contractLimits, tableLimits)
+    : constructEffectfulPublication(recoveryResources, inventory.chain.capturedRun,
+      control, control.bindRecoveredTablePreview, [inventory.preview, memberIndex,
+        inventory.chain.invocation, source.source, inventory.chain.capturedRun,
+        requestScope, mapping.wire, store.storeAuthorityCid, contractLimits, tableLimits]);
   if (tablePreview.operationWire !== saved.operation_wire ||
       records[0].observationCid !== JSON.parse(tablePreview.operationWire).request_cid) {
     fail('ForeignTableRecoveryOperation');

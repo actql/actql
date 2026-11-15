@@ -253,8 +253,10 @@ fn request_effect_capture_recovery_capacity(
       // Final publication borrows this SAME Read through its completed owner,
       // publication options, private preparation and current Store call (4R).
       // Its synchronous call carrier has one two-reference record plus an
-      // argument Array/backing with at most seven references (3H9R). These
-      // sequential carriers remain separate from all returned receipt trees.
+      // argument Array/backing with at most ten references (3H12R). Table's
+      // recovered Preview is the ten-argument maximum of this same adapter;
+      // its existing options carrier additionally retains this Read (1R).
+      // Sequential carriers remain separate from all returned receipt trees.
       // The SAME acquired-extent scalar cell and immutable nested limits
       // record add2H/8R/4W: cell1H1W, limits1H3W; eight references cover the
       // original Read/consume async frames and their existing closures.
@@ -266,7 +268,7 @@ fn request_effect_capture_recovery_capacity(
       17L +
       (if staged_envelope { utf8_h + 1L } else { 0L }),
       reference_slots: work.reference_slots +
-      46L +
+      50L +
       (if staged_envelope { utf8_r } else { 0L }),
       // The same Read distinguishes its prepared-token retirement from the
       // ordinary admitted capture's alias release with one retained Bool.

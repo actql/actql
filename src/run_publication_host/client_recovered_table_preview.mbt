@@ -48,17 +48,30 @@ pub fn bind_recovered_client_table_preview(
     Ok(_) => ()
     Err(issue) => return Err(Preview(issue))
   }
+  // The funded inverse borrows this SAME already admitted captured original.
+  // Its complete context can contain Source dependency DATA much larger than
+  // a Result Artifact or Table/schema codec. Only that whole-context proof
+  // uses the original's cached measurement; the individual limits below stay
+  // selected by their existing callers. The Host re-enters the original Read
+  // constructor before this synchronous inverse and retains its output.
+  guard @publication.publication_contract_wire_usage(captured)
+    is Some((capture_bytes, capture_nodes, capture_depth)) &&
+    capture_bytes > 0 &&
+    capture_nodes > 0 &&
+    capture_depth > 0 else {
+    return Err(ForeignInput)
+  }
   let projected = match
     @publication.effect_preview_member_relation_source(preview, member_index) {
     Some(@publication.Result(_)) =>
       @publication.captured_effect_source_result_from_capture(
         preview, member_index, invocation, source, captured, store_authority_cid,
-        max_bytes, max_nodes, max_depth,
+        capture_bytes, capture_nodes, capture_depth,
       )
     Some(@publication.TableInput(_)) =>
       @publication.captured_effect_source_table_input_from_capture(
         preview, member_index, invocation, source, captured, store_authority_cid,
-        max_bytes, max_nodes, max_depth,
+        capture_bytes, capture_nodes, capture_depth,
       )
     None => return Err(ForeignInput)
   }

@@ -528,7 +528,8 @@ export async function createInstalledTableEffect({moon, environmentWire, sourceI
       for (let index=0; index<targets.length; index++) {
         const input = await prepareRecoveredTableInput({recovered: durable, store,
           control, memberIndex: index, requestScope, contractLimits: localContractLimits,
-          tableLimits: limits.material, bridge, signal});
+          tableLimits: limits.material, bridge, signal,
+          recoveryResources: recovered.recoveryResources});
         recoveredInputs.push(input);
         const schema = await store.putPreparedResultSchema(input.schemaWire,
           JSON.parse(input.operationWire).schema_cid, inventory.chain.runDefinition.identity);
