@@ -38,7 +38,24 @@ export function preparePinnedEffectDependencyInventory({
     original.current();
   }
   const bodies = [], originalArtifacts = [];
+  const aliases = construction === undefined ? undefined : new Set();
   const append = body => {
+    // The private acquisition vector is shared by every Result path. Only
+    // an identical immutable DATA record can bypass a second wire traversal.
+    // Separate objects still receive Core's metered full-wire/CID comparison.
+    if (aliases !== undefined && body !== null && typeof body === 'object' &&
+        !types.isProxy(body) && Object.isFrozen(body) &&
+        (Object.getPrototypeOf(body) === Object.prototype || Object.getPrototypeOf(body) === null)) {
+      const kind = Object.getOwnPropertyDescriptor(body, 'kind'),
+        wire = Object.getOwnPropertyDescriptor(body, 'wire'),
+        cid = Object.getOwnPropertyDescriptor(body, 'cid');
+      if (kind && wire && Object.hasOwn(kind, 'value') && Object.hasOwn(wire, 'value') &&
+          typeof kind.value === 'string' && typeof wire.value === 'string' &&
+          (cid === undefined || Object.hasOwn(cid, 'value') && typeof cid.value === 'string')) {
+        if (aliases.has(body)) return;
+        aliases.add(body);
+      }
+    }
     if (construction === undefined && bodies.length >= 4096) throw new RangeError('EffectDependencyEntryLimit');
     bodies.push(body);
   };

@@ -23,6 +23,8 @@ fn catalog_group_test_issue(
   plan : ClientInstalledEffectManagedPlan,
   roots : Array[@publication.CapturedEffectDependencyBody],
   cold? : Bool = false,
+  copies? : Int = 1,
+  conflict? : String? = None,
 ) -> Result[
   (
     @publication.CapturedEffectDependencyInventory,
@@ -85,12 +87,28 @@ fn catalog_group_test_issue(
       }
     })
   }
+  let kinds = []
+  let identities = []
+  let wires = []
+  for copy in 0..<copies {
+    for root in roots {
+      kinds.push(@publication.captured_effect_dependency_body_kind(root))
+      identities.push(
+        Some(@publication.captured_effect_dependency_body_cid(root)),
+      )
+      wires.push(
+        if copy == copies - 1 && conflict is Some(changed) {
+          changed
+        } else {
+          @publication.captured_effect_dependency_body_json(root)
+        },
+      )
+    }
+  }
   prepare_funded_effect_dependency_inventory(
-    roots.map(root => @publication.captured_effect_dependency_body_kind(root)),
-    roots.map(root => {
-      Some(@publication.captured_effect_dependency_body_cid(root))
-    }),
-    roots.map(root => @publication.captured_effect_dependency_body_json(root)),
+    kinds,
+    identities,
+    wires,
     roots,
     Some(control.dependency_static),
     1000000,
@@ -372,4 +390,82 @@ test "COMMON exhausted original phase Work refuses before Catalog selection and 
   retire_installed_managed_run(owner).unwrap()
   assert_true(owner.effect_operation_controls is None)
   assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}
+
+///|
+test "COMMON repeated exact DATA is quoted once before packet construction while conflicting wire refuses" {
+  let text = StringBuilder()
+  text.write_string("{\"sort\":\"relation\",\"value\":[{\"document\":\"")
+  for _ in 0..<100000 {
+    text.write_string("x")
+  }
+  text.write_string("\"}]}")
+  let wire = text.to_string()
+  let cid = "sha256:" + @sha.text_hex(wire).unwrap()
+  let body = @publication.admit_captured_effect_dependency_body(
+    "relation_value",
+    Some(cid),
+    wire,
+    1000000,
+    100000,
+    64,
+  ).unwrap()
+  let holds = []
+  for copies in [1, 25] {
+    let (prepared, request, plan, owner, ledger, captured, execution) = dependency_original_fixture()
+    let inputs = pin_installed_effect_sources(
+      owner, prepared, request, plan, captured, 64,
+    ).unwrap()
+    let before = @resources.ledger_usage(ledger).reserved_retention_bytes
+    let (inventory, _) = catalog_group_test_issue(
+      owner,
+      plan,
+      [body],
+      cold=true,
+      copies~,
+    ).unwrap()
+    assert_eq(
+      @publication.captured_effect_dependency_inventory_count(inventory),
+      1,
+    )
+    assert_eq(
+      @publication.captured_effect_dependency_inventory_json(inventory),
+      "[{\"body\":" +
+      wire +
+      ",\"cid\":\"" +
+      cid +
+      "\",\"kind\":\"relation_value\"}]",
+    )
+    holds.push(
+      @resources.ledger_usage(ledger).reserved_retention_bytes - before,
+    )
+    assert_true(@strategy.release_captured_effect_inputs(inputs))
+    assert_true(execution.close())
+    retire_installed_managed_run(owner).unwrap()
+    assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+    assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+  }
+  // Candidate-index metadata scales with references; the identical parser/
+  // canonical body does not become 25 coheld copies. No tariff snapshot.
+  assert_true(holds[1] > holds[0] && holds[1] < 2L * holds[0])
+  let (prepared, request, plan, owner, ledger, captured, execution) = dependency_original_fixture()
+  let inputs = pin_installed_effect_sources(
+    owner, prepared, request, plan, captured, 64,
+  ).unwrap()
+  assert_true(
+    catalog_group_test_issue(
+      owner,
+      plan,
+      [body],
+      cold=true,
+      copies=2,
+      conflict=Some("{\"sort\":\"relation\",\"value\":[]}"),
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_true(@strategy.release_captured_effect_inputs(inputs))
+  assert_true(execution.close())
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
 }

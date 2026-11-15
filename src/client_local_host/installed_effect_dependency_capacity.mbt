@@ -169,8 +169,10 @@ fn installed_effect_dependency_fixed_capacity(
       reference_items: 5L * n,
       scalar_arrays: 1L,
       scalar_items: units.to_int64(),
-      maps: 0L,
-      map_entries: 0L,
+      // Frozen Host body aliases are indexed before DTO flattening. A Map
+      // quote dominates this Set, including actual candidate-count growth.
+      maps: 1L,
+      map_entries: n,
     })
     is Some(held) &&
     @encode.measuring_writer_construction_extent(0, depth) is Some(writer) &&
@@ -181,9 +183,10 @@ fn installed_effect_dependency_fixed_capacity(
       // Six exact emitter alternatives own only depth-sized continuations.
       // Contract emission adds <=6 fixed vocabulary member pairs per depth;
       // its borrowed Fields vector never grows with output field width.
-      records: 16L + 24L * d,
-      record_references: phase.reference_slots + 5L + 34L + 64L * d,
-      record_words: phase.scalar_words + 5L + 35L + 32L * d,
+      // Three Host DATA-property descriptors coexist during alias checking.
+      records: 19L + 24L * d,
+      record_references: phase.reference_slots + 5L + 37L + 64L * d,
+      record_words: phase.scalar_words + 5L + 44L + 32L * d,
       reference_arrays: 6L,
       reference_items: 12L * d,
       scalar_arrays: 0L,
@@ -470,8 +473,10 @@ fn installed_effect_dependency_key_capacity(
       reference_items: n,
       scalar_arrays: 1L,
       scalar_items: n,
-      maps: 2L,
-      map_entries: 2L * n,
+      // Early exact-wire DATA deduplication precedes the body parser/quote.
+      // Its keys/entries are funded here before that staging map exists.
+      maps: 3L,
+      map_entries: 3L * n,
     })
     is Some(index) else {
     return None

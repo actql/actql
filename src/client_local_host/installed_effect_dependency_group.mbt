@@ -111,6 +111,7 @@ fn prepare_funded_effect_dependency_inventory(
   let inputs = match
     segment(work => {
       let values : Array[ClientEffectDependencyWireInput] = []
+      let seen : Map[String, ClientEffectDependencyWireInput] = Map([])
       for index in 0..<count {
         if !work(1) {
           return Err(InsufficientCapacity)
@@ -118,14 +119,30 @@ fn prepare_funded_effect_dependency_inventory(
         let kind = kinds[index]
         let identity = identities[index]
         let wire = wires[index]
-        let existing = match (cached, identity) {
-          (Some(cache), Some(cid)) => {
+        // The complete Source set can reference the SAME immutable DATA from
+        // many Result paths. Deduplicate the exact wire before quoting/parsing
+        // its packet, as the later admitted-body set already does. Physical
+        // Source occurrences, retained inputs and root owners stay separate.
+        let selected = match identity {
+          Some(cid) => {
             if !work(kind.length() + 1) || !work(cid.length()) {
               return Err(InsufficientCapacity)
             }
-            let key = kind + "\u0000" + cid
-            cache.get(key)
+            Some(kind + "\u0000" + cid)
           }
+          None => None
+        }
+        if selected is Some(key) && seen.get(key) is Some(previous) {
+          if !work(wire.length()) {
+            return Err(InsufficientCapacity)
+          }
+          if previous.wire != wire {
+            return Err(ForeignOriginal)
+          }
+          continue
+        }
+        let existing = match (cached, selected) {
+          (Some(cache), Some(key)) => cache.get(key)
           _ => None
         }
         let mut shape = match existing {
@@ -197,7 +214,11 @@ fn prepare_funded_effect_dependency_inventory(
             break
           }
         }
-        values.push({ kind, identity, wire, shape, })
+        let input = { kind, identity, wire, shape, }
+        if selected is Some(key) {
+          seen[key] = input
+        }
+        values.push(input)
       }
       Ok(Shape(values))
     }) {
