@@ -9,11 +9,15 @@ import {fileURLToPath} from 'node:url';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import {parse} from 'yaml';
+import {inventory as verificationInventory} from './verification-actions.mjs';
+import {storedZip} from './fixtures/ci-artifact-zip.mjs';
+import {assertNativeApprovalAcceptanceBinding} from './native-approval-performance.mjs';
 import {CLIENT_PACKAGES} from './packed-client-packages.mjs';
 import {validatePerformancePackageProducer, inspectPerformancePackageProducer,
   prepareOrdinaryPerformanceConsumer, combineOrdinaryPerformanceMeasurements,
   validatePerformanceProcessPackageProducer, prepareOrdinaryNativePerformanceConsumer,
-  validateNativeApprovalSource, validatePerformanceBuildSource} from './ordinary-operation-packages.mjs';
+  validateNativeApprovalSource, validatePerformanceBuildSource, validateNativeApprovalDiagnosticProducer,
+  validateNativeApprovalDiagnosticSource, inspectNativeApprovalDiagnosticProducer, extractNativeApprovalDiagnosticArtifact} from './ordinary-operation-packages.mjs';
 import {readFixedSQLiteComparison} from './ordinary-operation-packages.mjs';
 import {nodeOperationProtocol, nodePriorityProtocol, nodeWarmSmallQueryFixtures} from './benchmark-node-operations.mjs';
 import {assessPerformanceEvidence, calibrateSqliteComparisonProfile} from './operation-performance.mjs';
@@ -227,6 +231,89 @@ test('Native approval keeps event head and exact same-head or PR-merge build ide
   }
 });
 
+function nativeCpuProvenance() {
+  const p = nativeApprovalProvenance({merge: true});
+  Object.assign(p.run, {status: 'completed', conclusion: 'failure'});
+  Object.assign(p.jobs[0], {conclusion: 'failure', steps: [
+    'Produce normal selected Linux Local artifact',
+    'Require Local payload in the selected npm cohort',
+    'Require actual bounded Crypto allocator conformance',
+  ].map(name => ({name, status: 'completed', conclusion: 'success'}))});
+  return p;
+}
+
+test('CPU-only producer diagnosis retains failed outcomes and cannot enter formal acceptance', () => {
+  const p = nativeCpuProvenance(), before = structuredClone(p);
+  const result = validateNativeApprovalDiagnosticSource(p);
+  assert.equal(result.purpose, 'native-approval-cpu-diagnostic');
+  assert.equal(result.acceptanceEligible, false); assert.equal(result.diagnosticOnly, true);
+  assert.equal(result.producerJobConclusion, 'failure'); assert.equal(result.sourceRunConclusion, 'failure');
+  assert.equal(result.sourceSha, p.manifest.sourceSha); assert.equal(result.sourceTreeSha, p.headCommit.tree.sha);
+  assert.equal(result.artifactDigest, p.artifact.digest); assert.deepEqual(p, before);
+  for (const flags of [{}, {purpose: result.purpose}, {diagnosticOnly: true}, {allowFailedProducer: true},
+    {nativeApproval: true, acceptanceEligible: true}]) {
+    assert.throws(() => validateNativeApprovalSource({...p, ...flags}));
+    assert.throws(() => validatePerformanceBuildSource({...p, ...flags}));
+    assert.throws(() => validatePerformanceProcessPackageProducer({...p, ...flags}));
+  }
+  assert.throws(() => assertNativeApprovalAcceptanceBinding(result));
+  const accepted = validateNativeApprovalSource(nativeApprovalProvenance());
+  assert.doesNotThrow(() => assertNativeApprovalAcceptanceBinding(accepted));
+  assert.throws(() => assertNativeApprovalAcceptanceBinding({...accepted, ...result, acceptanceEligible: true}));
+});
+
+test('CPU diagnosis requires all exact successful build steps and original provenance', () => {
+  for (const mutate of [p => p.jobs[0].steps.pop(), p => p.jobs[0].steps.push({...p.jobs[0].steps[0]}),
+    p => p.jobs[0].steps[1].conclusion = 'failure', p => p.jobs[0].steps[2].status = 'in_progress',
+    p => p.jobs[0].conclusion = 'cancelled', p => p.jobs[0].run_attempt++,
+    p => p.jobs[0].head_sha = 'f'.repeat(40), p => p.artifact.digest = '',
+    p => p.artifact.workflow_run.repository_id++, p => p.run.head_sha = 'f'.repeat(40),
+    p => p.artifact.name = 'native-cli-linux-local-17-1', p => p.adapter = 'python',
+    p => p.producerJob = 'client-packages', p => p.sourceCommit.tree.sha = 'f'.repeat(40),
+    p => p.sourceCommit.parents.reverse(), p => p.manifest.sourceSha = 'f'.repeat(40)]) {
+    const p = nativeCpuProvenance(); mutate(p);
+    assert.throws(() => validateNativeApprovalDiagnosticSource(p));
+  }
+});
+
+test('CPU artifact extraction verifies the whole ZIP and takes only original release members', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'native-cpu-original-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const p = nativeCpuProvenance(), payload = Buffer.from('not executable: immutable archive test bytes');
+  for (const item of p.manifest.packages) Object.assign(item, {version: p.manifest.cohort.packageVersion,
+    file: `${item.name.replace('@', '').replace('/', '-')}-${p.manifest.cohort.packageVersion}.tgz`,
+    bytes: payload.length, sha256: hash(payload)});
+  const bytes = Buffer.from(JSON.stringify(p.manifest)); p.manifestSha256 = hash(bytes);
+  const archive = join(root, 'original.zip');
+  const zipped = storedZip({'release/release.json': bytes,
+    ...Object.fromEntries(p.manifest.packages.map(item => [`release/${item.file}`, payload])),
+    'private-business-receipt.json': 'must not be extracted'});
+  p.artifact.digest = `sha256:${hash(zipped)}`; await writeFile(archive, zipped);
+  const producer = validateNativeApprovalDiagnosticProducer(p), output = join(root, 'release');
+  const extraction = await extractNativeApprovalDiagnosticArtifact({archive, producer, output});
+  assert.equal(extraction.archiveSha256, hash(zipped)); assert.equal(extraction.acceptanceEligible, false);
+  assert.deepEqual(await readFile(join(output, 'release.json')), bytes);
+  for (const item of p.manifest.packages) assert.deepEqual(await readFile(join(output, item.file)), payload);
+  await assert.rejects(readFile(join(output, 'private-business-receipt.json')), {code: 'ENOENT'});
+  await assert.rejects(extractNativeApprovalDiagnosticArtifact({archive, output: join(root, 'foreign'),
+    producer: {...producer, artifactDigest: 'sha256:' + '0'.repeat(64)}}), /SHA-256 mismatch/u);
+  await assert.rejects(extractNativeApprovalDiagnosticArtifact({archive, output: join(root, 'formal'),
+    producer: validateNativeApprovalSource(nativeApprovalProvenance())}));
+  const fetchMetadata = async url => ({ok: true, text: async () => JSON.stringify(
+    url.endsWith('/runs/17') ? p.run : url.endsWith('/artifacts/23') ? p.artifact
+    : url.includes('/jobs?') ? {total_count: 1, jobs: p.jobs}
+    : url.endsWith('/' + sha) ? p.headCommit : p.sourceCommit)});
+  const actual = await inspectNativeApprovalDiagnosticProducer({...p, token: 'test-only',
+    nativePackages: output, diagnosticArchive: archive}, fetchMetadata);
+  assert.equal(actual.archiveSha256, hash(zipped)); assert.equal(actual.manifestSha256, hash(bytes));
+  assert.equal(actual.acceptanceEligible, false); assert.equal(actual.producerJobConclusion, 'failure');
+  await assert.rejects(inspectPerformancePackageProducer({...p, token: 'test-only',
+    purpose: actual.purpose, nativePackages: output, diagnosticArchive: archive}, fetchMetadata));
+  await writeFile(join(output, 'release.json'), Buffer.concat([bytes, Buffer.from(' ')]));
+  await assert.rejects(inspectNativeApprovalDiagnosticProducer({...p, token: 'test-only',
+    nativePackages: output, diagnosticArchive: archive}, fetchMetadata));
+});
+
 test('Native approval rejects foreign runs attempts artifacts and uncompleted producers before collection', () => {
   assert.throws(() => validateNativeApprovalSource(ordinaryBuildProvenance('node')),
     'The Native-only entry must never admit a valid general Node producer');
@@ -310,12 +397,18 @@ test('Native-only workflow binds build source before collection and refuses chan
   git(['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgsign=false', 'commit', '--quiet', '-m', 'fixture']);
   const manifest = Buffer.from('{"sourceSha":"' + git(['rev-parse', 'HEAD']) + '"}\n');
   const manifestPath = join(root, 'native-approval/packages/release/release.json'); await writeFile(manifestPath, manifest);
-  await writeFile(join(root, 'native-approval/source.json'), JSON.stringify({sourceSha: git(['rev-parse', 'HEAD']), manifestSha256: hash(manifest)}));
+  await writeFile(join(root, 'native-approval/source.json'), JSON.stringify({sourceSha: git(['rev-parse', 'HEAD']), manifestSha256: hash(manifest),
+    purpose: 'native-approval-acceptance', acceptanceEligible: true, producerJobConclusion: 'success'}));
   const check = collect.run.match(/<<'JS'\n([\s\S]*?)\nJS\n/u)[1]
     .replace("'./scripts/packed-client-packages.mjs'", JSON.stringify(new URL('./packed-client-packages.mjs', import.meta.url).href));
   const run = () => spawnSync(process.execPath, ['--input-type=module', '-e', check],
     {cwd: repository, env: {...process.env, RUNNER_TEMP: root}, encoding: 'utf8', timeout: 5000});
   assert.equal(run().status, 0);
+  const acceptance = JSON.parse(await readFile(join(root, 'native-approval/source.json'), 'utf8'));
+  await writeFile(join(root, 'native-approval/source.json'), JSON.stringify({...acceptance,
+    purpose: 'native-approval-cpu-diagnostic', diagnosticOnly: true, acceptanceEligible: false}));
+  assert.notEqual(run().status, 0, 'Diagnostic evidence is not formal producer authority');
+  await writeFile(join(root, 'native-approval/source.json'), JSON.stringify(acceptance));
   await writeFile(manifestPath, Buffer.concat([manifest, Buffer.from(' ')])); assert.notEqual(run().status, 0);
   await writeFile(manifestPath, manifest); await writeFile(join(repository, 'original'), 'dirty\n');
   assert.notEqual(run().status, 0); git(['checkout', '--', 'original']);
@@ -624,12 +717,19 @@ test('controlled performance check consumes existing artifacts and cannot omit f
     'python-package-producer-job': "${{ fromJSON(inputs.performance_process_package_jobs || '{}').python || '' }}",
   });
   assert.ok(ci.jobs.lint.steps.some(s => s.run === 'node --test scripts/ordinary-operation-packages.test.mjs'));
-  assert.equal(ci.jobs.lint.steps.find(s => s.name === 'Test ordinary operation performance assessment').run,
-    'node --test scripts/benchmark-node-operations.test.mjs scripts/operation-performance-native-control.test.mjs scripts/benchmark-node-process-operations.test.mjs scripts/benchmark-node-sqlite.test.mjs scripts/benchmark-node-boundaries.test.mjs scripts/node-operation-fs-trace.test.mjs scripts/operation-performance-priority-transition.test.mjs scripts/operation-performance-transition-ci.test.mjs');
-  const policy = ci.jobs.lint.steps.find(s => s.name === 'Test ordinary operation performance policy oracles');
-  assert.equal(policy.run, 'node --test scripts/operation-performance.test.mjs scripts/operation-performance-policy.test.mjs scripts/native-approval-performance.test.mjs scripts/native-approval-cpu-diagnostic.test.mjs scripts/node-wait-cpu-diagnostic.test.mjs');
-  assert.equal(policy.if, undefined);
-  assert.equal(policy['continue-on-error'], undefined);
+  const actions = verificationInventory({workflowText: JSON.stringify({jobs: {lint: ci.jobs.lint}}),
+    packageText: readFileSync(new URL('../package.json', import.meta.url), 'utf8')}).actions;
+  for (const file of ['scripts/benchmark-node-operations.test.mjs', 'scripts/benchmark-node-process-operations.test.mjs',
+    'scripts/benchmark-node-boundaries.test.mjs', 'scripts/operation-performance.test.mjs',
+    'scripts/operation-performance-policy.test.mjs', 'scripts/native-approval-performance.test.mjs',
+    'scripts/native-approval-cpu-diagnostic.test.mjs', 'scripts/node-wait-cpu-diagnostic.test.mjs']) {
+    const action = actions.find(value => value.origin === 'workflow' && value.job === 'lint' &&
+      value.invocation?.kind === 'node-test' && value.invocation.argv.includes(file));
+    assert(action, `Required performance regression is absent: ${file}`);
+    assert.equal(action.condition.continueOnError, false);
+    if (file.includes('policy') || file.includes('native-approval') || file.includes('node-wait'))
+      assert.equal(action.condition.step, null, 'Performance policy controls also run on Drafts');
+  }
   const job = workflow.jobs['ordinary-operations'];
   assert.equal(job.permissions.actions, 'read');
   const inspect = job.steps.findIndex(s => s.name === 'Validate the original normal package producer');

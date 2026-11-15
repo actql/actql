@@ -131,7 +131,7 @@ export function saveApprovalPerfReport(output, scratch, report) {
   rmSync(scratch, {recursive: true});
 }
 
-export async function nativeApprovalCpuDiagnostic({root, normal, binding, perf, output}) {
+export async function nativeApprovalCpuDiagnostic({root, normal, binding, perf, output, collectorSource}) {
   assert.equal(process.platform, 'linux'); assert.equal(process.arch, 'x64');
   assert(process.getuid() !== 0, 'Profiler and consumer must retain the normal runner UID');
   root = realpathSync(root); normal = realpathSync(normal); perf = realpathSync(perf);
@@ -146,10 +146,15 @@ export async function nativeApprovalCpuDiagnostic({root, normal, binding, perf, 
   assert(source.clean && source.revision === manifest.sourceSha,
     'Unchanged installed fixture and artifact require the same original source');
   const original = JSON.parse(readFileSync(binding, 'utf8'));
+  assert.equal(original.purpose, 'native-approval-cpu-diagnostic');
+  assert.equal(original.diagnosticOnly, true); assert.equal(original.acceptanceEligible, false);
+  assert.equal(original.artifactDigest, `sha256:${original.archiveSha256}`);
+  assert.match(collectorSource, /^[a-f0-9]{40}$/u);
   assert.equal(original.sourceSha, source.revision);
   assert.equal(hash(readFileSync(join(normal, 'release.json'))), original.manifestSha256);
   const scratch = mkdtempSync(join(dirname(output), 'cpu-samples-'));
-  const report = {qualification: 'one instrumented installed workflow; not formal latency or thirty-sample acceptance',
+  const report = {purpose: 'native-approval-cpu-diagnostic', diagnosticOnly: true, acceptanceEligible: false,
+    collectorSourceSha: collectorSource, artifactBinding: original, qualification: 'one instrumented installed workflow; not formal latency or thirty-sample acceptance',
     sourceSha: source.revision, diagnosticSha256: hash(readFileSync(fileURLToPath(import.meta.url))),
     perfSha256: hash(readFileSync(perf)),
     manifestSha256: original.manifestSha256, uid: process.getuid(), event: 'cpu-clock:u', frequency: 49,
@@ -175,7 +180,7 @@ export async function nativeApprovalCpuDiagnostic({root, normal, binding, perf, 
     stage = 'unchanged installed consumer';
     const data = join(scratch, 'perf.data'); report.consumerInvocations++;
     const collected = run(['record', '-e', 'cpu-clock:u', '-F', '49', '--no-buildid', '--no-buildid-cache',
-      '-o', data, '--', process.execPath, join(root, 'scripts/test-native-cli-mock-install.mjs'), normal],
+      '-o', data, '--', process.execPath, join(root, 'scripts/test-native-cli-mock-install.mjs'), normal, '--measure-approval-resources'],
     // The original harness alone keeps the installed ELF for symbolization.
     // Its existing closed product environment does not forward this flag.
     {env: {...process.env, ACTQL_TEST_PRESERVE_SCRATCH: '1'}});
@@ -194,7 +199,10 @@ export async function nativeApprovalCpuDiagnostic({root, normal, binding, perf, 
     const selected = receipt.scenarios.map(scenario => {
       const approvals = scenario.commands.filter(command => command.args.includes('approve'));
       assert.equal(approvals.length, 1, 'Only the original approval of each fixture is selected');
-      return {template: scenario.template, pid: approvalCallCounts(approvals[0]).pid};
+      const approval = approvals[0];
+      return {template: scenario.template, pid: approvalCallCounts(approval).pid,
+        wallNs: approval.wallNs, resourceObservationIssue: approval.resourceObservationIssue ?? null,
+        ...approval.resources};
     });
     stage = 'flat sample attribution';
     report.selectedApprovals = selected;
@@ -219,9 +227,9 @@ export async function nativeApprovalCpuDiagnostic({root, normal, binding, perf, 
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const {values} = parseArgs({options: Object.fromEntries(
-    ['root', 'normal', 'binding', 'perf', 'output'].map(name => [name, {type: 'string'}]))});
-  assert(Object.values(values).length === 5 && Object.values(values).every(value => value));
-  const report = await nativeApprovalCpuDiagnostic(values);
+    ['root', 'normal', 'binding', 'perf', 'output', 'collector-source'].map(name => [name, {type: 'string'}]))});
+  assert(Object.values(values).length === 6 && Object.values(values).every(value => value));
+  const report = await nativeApprovalCpuDiagnostic({...values, collectorSource: values['collector-source']});
   console.log(JSON.stringify({complete: report.complete, conditions: report.conditions,
     failure: report.failure ?? null}));
   process.exitCode = report.complete ? 0 : 1;

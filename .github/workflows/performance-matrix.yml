@@ -260,6 +260,7 @@ jobs:
       - name: Validate the original normal Native artifact and producer job
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          NATIVE_APPROVAL_CPU_DIAGNOSTIC: ${{ inputs['native-approval-cpu-diagnostic'] }}
           PACKAGE_ADAPTER: native
           PACKAGE_RUN_ID: ${{ inputs.native-package-run-id }}
           PACKAGE_ARTIFACT_ID: ${{ inputs.native-package-artifact-id }}
@@ -268,7 +269,11 @@ jobs:
         run: |
           test "$PACKAGE_PRODUCER_JOB" = native-cli-linux-local
           mkdir "$RUNNER_TEMP/native-approval"
-          node scripts/ordinary-operation-packages.mjs inspect-native-approval-producer > "$RUNNER_TEMP/native-approval/producer.json"
+          if [ "$NATIVE_APPROVAL_CPU_DIAGNOSTIC" = true ]; then
+            node scripts/ordinary-operation-packages.mjs inspect-native-approval-cpu-producer > "$RUNNER_TEMP/native-approval/producer.json"
+          else
+            node scripts/ordinary-operation-packages.mjs inspect-native-approval-producer > "$RUNNER_TEMP/native-approval/producer.json"
+          fi
           node --input-type=module <<'JS'
           import assert from 'node:assert/strict';
           import {readFileSync} from 'node:fs';
@@ -277,6 +282,7 @@ jobs:
           assert.equal(producer.artifactName, `native-cli-linux-local-${producer.runId}-${producer.attempt}`);
           JS
       - name: Reuse only the exact formal Native artifact
+        if: ${{ !inputs['native-approval-cpu-diagnostic'] }}
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           github-token: ${{ github.token }}
@@ -284,9 +290,21 @@ jobs:
           artifact-ids: ${{ inputs.native-package-artifact-id }}
           path: ${{ runner.temp }}/native-approval/packages
           merge-multiple: true
+      - name: Reuse the digest-verified original artifact for CPU diagnosis only
+        if: ${{ inputs['native-approval-cpu-diagnostic'] }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PACKAGE_ARTIFACT_ID: ${{ inputs.native-package-artifact-id }}
+        run: |
+          gh api "/repos/$GITHUB_REPOSITORY/actions/artifacts/$PACKAGE_ARTIFACT_ID/zip" > "$RUNNER_TEMP/native-approval/artifact.zip"
+          mkdir "$RUNNER_TEMP/native-approval/packages"
+          node scripts/ordinary-operation-packages.mjs extract-native-approval-cpu-artifact \
+            "$RUNNER_TEMP/native-approval/artifact.zip" "$RUNNER_TEMP/native-approval/producer.json" \
+            "$RUNNER_TEMP/native-approval/packages/release"
       - name: Prepare the opt-in unprivileged flat CPU diagnostic
         if: ${{ inputs['native-approval-cpu-diagnostic'] }}
         run: |
+          echo "NATIVE_APPROVAL_COLLECTOR_SOURCE=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
           cp scripts/test-native-approval-cpu-diagnostic.mjs "$RUNNER_TEMP/native-approval/cpu-diagnostic.mjs"
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends linux-tools-generic
@@ -303,13 +321,20 @@ jobs:
       - name: Bind the original Native build source before collection
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          NATIVE_APPROVAL_CPU_DIAGNOSTIC: ${{ inputs['native-approval-cpu-diagnostic'] }}
           PACKAGE_RUN_ID: ${{ inputs.native-package-run-id }}
           PACKAGE_ARTIFACT_ID: ${{ inputs.native-package-artifact-id }}
           PACKAGE_PRODUCER_JOB: ${{ inputs.native-package-producer-job }}
           PACKAGE_EVENT_HEAD_SHA: ${{ inputs.native-approval-source-sha || github.event.pull_request.head.sha || github.sha }}
         run: |
-          node scripts/ordinary-operation-packages.mjs inspect-native-approval-source \
-            "$RUNNER_TEMP/native-approval/packages/release" > "$RUNNER_TEMP/native-approval/source.json"
+          if [ "$NATIVE_APPROVAL_CPU_DIAGNOSTIC" = true ]; then
+            node scripts/ordinary-operation-packages.mjs inspect-native-approval-cpu-source \
+              "$RUNNER_TEMP/native-approval/packages/release" "$RUNNER_TEMP/native-approval/artifact.zip" \
+              > "$RUNNER_TEMP/native-approval/source.json"
+          else
+            node scripts/ordinary-operation-packages.mjs inspect-native-approval-source \
+              "$RUNNER_TEMP/native-approval/packages/release" > "$RUNNER_TEMP/native-approval/source.json"
+          fi
           source_sha=$(node -e 'process.stdout.write(JSON.parse(require("node:fs").readFileSync(process.env.RUNNER_TEMP + "/native-approval/source.json", "utf8")).sourceSha)')
           git diff --exit-code
           git diff --cached --exit-code
@@ -326,6 +351,10 @@ jobs:
           import {readFileSync} from 'node:fs';
           import {checkoutState} from './scripts/packed-client-packages.mjs';
           const binding = JSON.parse(readFileSync(process.env.RUNNER_TEMP + '/native-approval/source.json', 'utf8'));
+          assert.equal(binding.purpose, 'native-approval-acceptance');
+          assert.equal(binding.acceptanceEligible, true);
+          assert.notEqual(binding.diagnosticOnly, true);
+          assert.equal(binding.producerJobConclusion, 'success');
           const bytes = readFileSync(process.env.RUNNER_TEMP + '/native-approval/packages/release/release.json');
           assert.equal(createHash('sha256').update(bytes).digest('hex'), binding.manifestSha256);
           assert.deepEqual(checkoutState(process.cwd()), {revision: binding.sourceSha, clean: true});
@@ -384,6 +413,7 @@ jobs:
           fi
           node "$RUNNER_TEMP/native-approval/cpu-diagnostic.mjs" \
             --root "$GITHUB_WORKSPACE" \
+            --collector-source "$NATIVE_APPROVAL_COLLECTOR_SOURCE" \
             --normal "$RUNNER_TEMP/native-approval/packages/release" \
             --binding "$RUNNER_TEMP/native-approval/source.json" \
             --perf "$NATIVE_APPROVAL_PERF" \

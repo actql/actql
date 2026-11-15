@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {readFileSync} from 'node:fs';
+import {readFileSync, mkdtempSync, writeFileSync, existsSync, rmSync} from 'node:fs';
+import {spawnSync} from 'node:child_process';
+import {join} from 'node:path';
+import {tmpdir} from 'node:os';
 import * as performance from './native-approval-performance.mjs';
 import {nativeApprovalTarget} from './operation-performance.mjs';
 import {approvalCallCounts, assertApprovalCallCounts, assessNativeApproval, approvalResources, approvalPhases} from './native-approval-performance.mjs';
@@ -9,6 +12,19 @@ const sourceSha = 'a'.repeat(40), fixtureSha256 = 'b'.repeat(64), runnerSha256 =
 const series = () => ({mode: 'final', sourceSha, fixtureSha256, runnerSha256,
   samples: Array.from({length: 30}, (_, iteration) => ({iteration, sourceSha, fixtureSha256,
     runnerSha256, wallNs: 2000000000, cpuUserUs: 1000, cpuSystemUs: 1000, cpuScope: 'synthetic OS sample', peakRssBytes: 4096, rssScope: 'synthetic OS sample', completed: true, verified: true}))});
+
+test('formal collector refuses a diagnostic binding before any artifact or workflow executes', t => {
+  const root = mkdtempSync(join(tmpdir(), 'native-formal-binding-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const binding = join(root, 'binding.json'), output = join(root, 'must-not-exist.json');
+  writeFileSync(binding, JSON.stringify({purpose: 'native-approval-cpu-diagnostic', diagnosticOnly: true,
+    acceptanceEligible: false, producerJobConclusion: 'failure'}));
+  const run = spawnSync(process.execPath, ['scripts/test-native-approval-performance.mjs',
+    '--normal', join(root, 'no-artifact'), '--output', output, '--runner', 'test-only', '--binding', binding],
+  {encoding: 'utf8', timeout: 5000});
+  assert.notEqual(run.status, 0); assert.match(run.stderr, /native-approval-acceptance/u);
+  assert.doesNotMatch(run.stderr, /ENOENT/u); assert.equal(existsSync(output), false);
+});
 
 function smokeScenarios(wallNs = 3000000000) {
   return ['deal-review-mock', 'churn-risk-mock'].map(template => ({template,

@@ -1,18 +1,17 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {createHash} from 'node:crypto';
 import {existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {parse} from 'yaml';
+import {inventory} from './verification-actions.mjs';
 import {approvalPerfDsoMembers, approvalPerfSamples, decodeApprovalPerf,
   saveApprovalPerfReport} from './test-native-approval-cpu-diagnostic.mjs';
 
 const selected = [{template: 'deal-review-mock', pid: 101}, {template: 'churn-risk-mock', pid: 202}];
 const workflow = parse(readFileSync(new URL('../.github/workflows/performance-matrix.yml', import.meta.url), 'utf8'));
 const driver = readFileSync(new URL('./test-native-approval-cpu-diagnostic.mjs', import.meta.url), 'utf8');
-const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const manifest = {platforms: {'linux-x64-gnu': {package: '@actql/cli-linux-x64-gnu'}},
   packages: [{name: '@actql/cli-linux-x64-gnu', files: [
     {path: 'bin/actql-native-client', bytes: 32, sha256: '1'.repeat(64)},
@@ -152,10 +151,13 @@ test('private profiler data is removed only after its complete sanitized report 
 
 test('CPU mode is explicit and false by default while all unrelated jobs exclude it', () => {
   const ci = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
-  const unit = ci.jobs.lint.steps.find(step => step.run?.split(/\s+/u)
-    .includes('scripts/native-approval-cpu-diagnostic.test.mjs'));
+  const actions = inventory({workflowText: JSON.stringify({jobs: {lint: ci.jobs.lint}}),
+    packageText: readFileSync(new URL('../package.json', import.meta.url), 'utf8')}).actions;
+  const unit = actions.find(action => action.origin === 'workflow' && action.job === 'lint' &&
+    action.invocation?.kind === 'node-test' && action.invocation.argv.includes('scripts/native-approval-cpu-diagnostic.test.mjs'));
   assert(unit, 'CPU decoder regressions must run in the required lint job');
-  assert.equal(unit.if, undefined, 'Small decoder tests also run during Draft preparation');
+  assert.equal(unit.condition.step, null, 'Small decoder tests also run during Draft preparation');
+  assert.equal(unit.condition.continueOnError, false);
   for (const event of ['workflow_dispatch', 'workflow_call']) {
     assert.deepEqual(workflow.on[event].inputs['native-approval-cpu-diagnostic'].default, false);
     assert.equal(workflow.on[event].inputs['native-approval-cpu-diagnostic'].type, 'boolean');
@@ -167,23 +169,20 @@ test('CPU mode is explicit and false by default while all unrelated jobs exclude
   }
 });
 
-test('normal Native and all other job bodies preserve the original performance matrix', () => {
-  const native = structuredClone(workflow.jobs['native-approval']);
-  native.if = native.if.replace(" && !inputs['node-wait-cpu-diagnostic']", '');
-  native.if = native.if.replace("(inputs['native-approval-only'] || inputs['native-approval-cpu-diagnostic'])", "inputs['native-approval-only']");
-  native.steps = native.steps.filter(step => ![
-    'Prepare the opt-in unprivileged flat CPU diagnostic',
-    'Sample one unchanged installed Native workflow by actual approval PID',
-    'Retain only sanitized CPU attribution and original artifact metadata',
-  ].includes(step.name));
-  delete native.steps.find(step => step.name === 'Measure thirty complete approvals for each original Native template').if;
-  native.steps.find(step => step.name === 'Retain Native approval failures partial samples and actual receipts').if = 'always()';
-  assert.equal(hash(native), 'f7df7463e4f64be21597375edf49013b83db843ba8a228e8d37b45f9fe8232fb');
-  const others = Object.fromEntries(Object.entries(workflow.jobs).filter(([name]) => !['native-approval', 'node-wait-cpu'].includes(name))
-    .map(([name, original]) => {const job = structuredClone(original);
-      job.if = job.if.replace(" && !inputs['node-wait-cpu-diagnostic']", '');
-      job.if = job.if.replace(" && !inputs['native-approval-cpu-diagnostic']", ''); return [name, job];}));
-  assert.equal(hash(others), 'e241961270d1a120521425289d5e6cba999bafe6c2ad098c5323cb755da731bc');
+test('CPU diagnosis selects a distinct producer path while formal collection stays gated', () => {
+  const steps = workflow.jobs['native-approval'].steps;
+  const validation = steps.find(step => step.name === 'Validate the original normal Native artifact and producer job');
+  assert(validation.run.includes('inspect-native-approval-cpu-producer'));
+  assert(validation.run.includes('inspect-native-approval-producer'));
+  const download = steps.find(step => step.name === 'Reuse the digest-verified original artifact for CPU diagnosis only');
+  assert(download.if.includes("inputs['native-approval-cpu-diagnostic']"));
+  const formal = steps.find(step => step.name === 'Measure thirty complete approvals for each original Native template');
+  assert(formal.if.includes("!inputs['native-approval-cpu-diagnostic']"));
+  assert(formal.run.includes('scripts/test-native-approval-performance.mjs'));
+  for (const step of [validation, download, steps.find(value => value.name === 'Bind the original Native build source before collection')]) {
+    const result = spawnSync('/bin/bash', ['-n'], {input: step.run, encoding: 'utf8'});
+    assert.equal(result.status, 0, result.stderr);
+  }
 });
 
 test('diagnostic uploads only sanitized attribution and original artifact metadata', () => {
@@ -202,7 +201,8 @@ test('diagnostic uploads only sanitized attribution and original artifact metada
   assert(driver.includes("'-F', 'pid,ip,sym,dso'"));
   assert.doesNotMatch(driver, /--call-graph|--user-regs|--user-stack|sysctl|setcap|sudo/u);
   assert.equal([...driver.matchAll(/join\(root, 'scripts\/test-native-cli-mock-install\.mjs'\)/gu)].length, 1);
-  assert(driver.includes('approvalCallCounts(approvals[0]).pid'));
+  assert(driver.includes('approvalCallCounts(approval).pid'));
+  assert(driver.includes("'--measure-approval-resources'"));
   assert(driver.includes("ACTQL_TEST_PRESERVE_SCRATCH: '1'"));
   assert(driver.includes('rmSync(scratch, {recursive: true})'));
 });

@@ -4,6 +4,15 @@ import {latencySummary, resourceSummary, nativeApprovalTarget} from './operation
 import {peakRssBytes} from './layout-measurement-support.mjs';
 import {mockTemplates} from './native-cli-mock-scenario.mjs';
 
+// A diagnostic-only producer binding cannot authorize a formal campaign.
+// Local fixed-artifact campaigns without hosted provenance remain separate.
+export function assertNativeApprovalAcceptanceBinding(binding) {
+  assert.equal(binding.purpose, 'native-approval-acceptance');
+  assert.equal(binding.acceptanceEligible, true);
+  assert.notEqual(binding.diagnosticOnly, true);
+  assert.equal(binding.producerJobConclusion, 'success');
+}
+
 // Two ordinary installed fixtures supply a maximum-only smoke check. Their
 // process stop/cleanup deadline and the formal 30-sample profile are separate.
 export function assessOrdinaryNativeApprovalSmoke(scenarios) {
