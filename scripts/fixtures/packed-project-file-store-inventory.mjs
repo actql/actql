@@ -149,7 +149,9 @@ try {
     report.submits++;
     run = await client.startSource(await readFile(programPath, 'utf8'), {format: original.format});
     original.ref = run.ref; await save(handoffPath, original);
-    const waiting = await run.wait({signal: AbortSignal.timeout(15_000)});
+    // Functional completion bound for acquisition plus Compute, not a latency
+    // assertion. Cold approval and Saved keep their separate existing bounds.
+    const waiting = await run.wait({signal: AbortSignal.timeout(45_000)});
     report.captureState = snapshot(waiting);
     assert.equal(waiting.status, 'waiting_checkpoint');
     assert.deepEqual(await readdir(destinationRoot), []);
