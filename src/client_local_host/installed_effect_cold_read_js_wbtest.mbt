@@ -240,8 +240,32 @@ test "staged capture Read prices original wide binary and byte-bounded writers o
   let before = @resources.ledger_usage(ledger)
   reserve_installed_effect_capture_encrypted(read, bytes).unwrap()
   reserve_installed_effect_capture_envelope(read, envelope).unwrap()
-  let wire = "{\"x\":\"" + "a".repeat(18886464) + "\"}"
+  // SAME observed WIDTH plaintext/node geometry. Embedded punctuation remains
+  // part of the conservative nested-contract census, not a semantic node grant.
+  let wire_prefix = "{\"x\":\""
+  let wire_suffix = "\"}"
+  let separators = ":".repeat(112513)
+  let wire = wire_prefix +
+    separators +
+    "a".repeat(
+      19934372 -
+      wire_prefix.length() -
+      wire_suffix.length() -
+      separators.length(),
+    ) +
+    wire_suffix
+  let before_decoded = @resources.ledger_usage(ledger)
   reserve_installed_effect_capture_decoded(read, wire).unwrap()
+  let after_decoded = @resources.ledger_usage(ledger)
+  assert_eq(read.material_nodes, Some(112517))
+  assert_true(
+    after_decoded.reserved_retention_bytes <
+    before_decoded.reserved_retention_bytes,
+  )
+  assert_true(
+    after_decoded.reserved_execution_bytes >
+    before_decoded.reserved_execution_bytes,
+  )
   assert_eq(read.material_plaintext_bytes, Some(wire.length()))
   assert_eq(read.material_bytes, Some(bytes))
   assert_eq(read.material_envelope_wire, Some(envelope))

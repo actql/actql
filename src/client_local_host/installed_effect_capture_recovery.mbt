@@ -594,6 +594,16 @@ fn resize_installed_effect_capture_recovery_material(
     ) {
     return original()
   }
+  if owner.material_staged_envelope && plaintext_bytes is Some(_) {
+    // The SAME authenticated plaintext refines an unused encrypted-byte text
+    // ceiling. Its retained bound can decrease while the actual decoded-node
+    // constructor workspace increases. This existing closed resize preserves
+    // all live envelope/binary/text/tree copies and the original current fence;
+    // grow-only cannot express that vector, and no physical ACK is inferred.
+    return @resources.resize_prepared_run_operation_control_construction(
+      admission, plan, ledger, original, material, retained, execution,
+    ).map_err(installed_effect_operation_reservation_issue)
+  }
   @resources.grow_prepared_run_operation_capacity(
     admission, plan, ledger, original, backing, retained, execution,
   ).map_err(installed_effect_operation_reservation_issue)

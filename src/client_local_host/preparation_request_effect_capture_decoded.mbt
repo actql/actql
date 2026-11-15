@@ -318,7 +318,7 @@ pub fn[I] reserve_request_effect_capture_decoded(
     let charged = @resources.spend_preparation_phase_work_continuation64(
       work,
       wire.length().to_int64() *
-      (if material.staged_envelope { 3L } else { 1L }),
+      (if material.staged_envelope && material.nodes is None { 3L } else { 1L }),
     )
     let nodes = match charged {
       Err(_) => None
