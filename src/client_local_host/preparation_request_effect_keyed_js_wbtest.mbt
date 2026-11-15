@@ -1,7 +1,9 @@
 ///|
 // Actual Request check/compiler and declared-file Source profile. There is no
 // Model node/provider or physical Source execution in this component fixture.
-fn request_source_keyed_graph_fixture() -> (
+fn request_source_keyed_graph_fixture(
+  generic? : Bool = false,
+) -> (
   ClientRequestPreparation[Array[Int]],
   Array[Int],
   @publication_host.PreparedClientEffectComputation,
@@ -36,7 +38,7 @@ fn request_source_keyed_graph_fixture() -> (
     },
   ).unwrap()
   let content = unbound.views.filter(view => view.resource == "contents")[0]
-  let declaration = @row_source_host.bind_declared_file_read_profile(
+  let native_declaration = @row_source_host.bind_declared_file_read_profile(
     unbound,
     content.source_ref,
     physical,
@@ -52,6 +54,7 @@ fn request_source_keyed_graph_fixture() -> (
       key_path: ["id"],
     },
   ).unwrap()
+  let declaration = if generic { unbound } else { native_declaration }
   guard @json.parse(wire) is Object(fields) &&
     fields["host_policy_profile"] is Object(policy) else {
     fail("original keyed Source policy")
@@ -153,6 +156,80 @@ test "Source-only Effect Request rejects a separately prepared keyed original be
     prepare_request_effect_keyed_plan(parent, input, keyed, contracts, [
       declaration,
     ])
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_eq(
+    @resources.preparation_capacity_working_extents(
+      parent.effect_capacity.unwrap(),
+      input,
+    ),
+    Ok(before),
+  )
+  assert_true(parent.program_domain_compilation_inputs is None)
+  abort_request_preparation_after_cleanup(parent).unwrap() |> ignore
+  abort_request_preparation_after_cleanup(other).unwrap() |> ignore
+}
+
+///|
+test "generic Source-only Effect Request uses actual content_ref facts without a Native profile" {
+  let (parent, input, prepared, keyed, contracts, _) = request_source_keyed_graph_fixture(
+    generic=true,
+  )
+  let before = @resources.preparation_capacity_working_extents(
+    parent.effect_capacity.unwrap(),
+    input,
+  ).unwrap()
+  let graph = prepare_request_effect_keyed_plan(
+    parent,
+    input,
+    keyed,
+    contracts,
+    [],
+  ).unwrap()
+  assert_true(
+    @publication_host.client_effect_keyed_plan_graph_is_generic(graph),
+  )
+  assert_true(
+    @publication_host.client_effect_keyed_plan_graph_matches(
+      graph, prepared, keyed,
+    ),
+  )
+  guard parent.program_domain_compilation_inputs
+    is Some(RequestEffectKeyedGraph(p, k, c, g)) else {
+    fail("same Request retains actual generic construction")
+  }
+  assert_true(
+    physical_equal(p, prepared) &&
+    physical_equal(k, keyed) &&
+    physical_equal(c, contracts) &&
+    physical_equal(g, graph),
+  )
+  let after = @resources.preparation_capacity_working_extents(
+    parent.effect_capacity.unwrap(),
+    input,
+  ).unwrap()
+  assert_true(after.0 > before.0 && after.1 > before.1)
+  assert_true(
+    prepare_request_effect_keyed_plan(parent, input, keyed, contracts, [])
+    is Err(_),
+  )
+  abort_request_preparation_after_cleanup(parent).unwrap() |> ignore
+}
+
+///|
+test "generic Source-only Effect Request refuses a foreign acquisition before construction" {
+  let (parent, input, _, _, contracts, _) = request_source_keyed_graph_fixture(
+    generic=true,
+  )
+  let (other, _, _, foreign, _, _) = request_source_keyed_graph_fixture(
+    generic=true,
+  )
+  let before = @resources.preparation_capacity_working_extents(
+    parent.effect_capacity.unwrap(),
+    input,
+  ).unwrap()
+  assert_true(
+    prepare_request_effect_keyed_plan(parent, input, foreign, contracts, [])
     is Err(Preparation(ForeignOriginal)),
   )
   assert_eq(

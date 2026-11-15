@@ -46,12 +46,13 @@ pub fn[I] prepare_request_effect_keyed_plan(
       profile = Some(selected)
     }
   }
-  guard profile is Some(profile) else { return Err(Installed(Unsupported)) }
   owner.phase = Selecting
   preparation_module_call(
     () => {
       guard @publication_host.prepared_client_effect_keyed_plan_measurement_storage(
-          prepared, keyed,
+          prepared,
+          keyed,
+          generic=profile is None,
         )
         is Some(storage) &&
         @execution.compose_preparation_representation([
@@ -88,16 +89,30 @@ pub fn[I] prepare_request_effect_keyed_plan(
         Err(issue) => return Err(issue)
         Ok(_) => ()
       }
-      let measured = match
-        @publication_host.measure_client_effect_keyed_plan_construction(
-          prepared,
-          keyed,
-          profile,
-          client_local_owner_sequence_limits(Effect(prepared)),
-          100000,
-          10000,
-          100,
-        ) {
+      let measurement = match profile {
+        Some(profile) =>
+          @publication_host.measure_client_effect_keyed_plan_construction(
+            prepared,
+            keyed,
+            profile,
+            client_local_owner_sequence_limits(Effect(prepared)),
+            100000,
+            10000,
+            100,
+          )
+        None =>
+          // The compiler itself checks actual file-content facts and Carrier.
+          // No absent Native profile is replaced by a declaration or permission.
+          @publication_host.measure_client_effect_generic_keyed_plan_construction(
+            prepared,
+            keyed,
+            client_local_owner_sequence_limits(Effect(prepared)),
+            100000,
+            10000,
+            100,
+          )
+      }
+      let measured = match measurement {
         Err(issue) => return Err(ModelGraph(issue))
         Ok(value) => value
       }

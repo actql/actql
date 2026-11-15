@@ -18,6 +18,7 @@ import {retireNodeInferOriginalRead, finishNodeInferOriginalReadScopes} from './
 // and FileHandles rather than a startup-wide provenance proof. Actual Account
 // checks stay at the Source consumer; this view grants no read or Model use.
 const installations = new WeakMap();
+const noNativeFileReadDeclarations = Object.freeze([]);
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const pending = value => {
   const field = value !== null && typeof value === 'object'
@@ -1365,7 +1366,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           state.compilationKind !== 'effectful' || state.effectBorrowMethods === undefined ||
           state.holder === undefined || state.inventoryHolder !== undefined || state.adopting ||
           state.preparing || state.effectKeyedPlan !== undefined ||
-          !Array.isArray(declarations) || types.isProxy(declarations) || !Object.isFrozen(declarations)) {
+          declarations !== undefined && (!Array.isArray(declarations) || types.isProxy(declarations) || !Object.isFrozen(declarations))) {
         fail('ForeignInstalledSourceProducer');
       }
       const moon = state.context.runtime, contracts = originals.installation.sequenceContractOriginal;
@@ -1376,7 +1377,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           read(state.holder) !== prepared) fail('NodeManagedRunRuntimeUnavailable');
       return constructRequestDomain(state, () => {
         state.effectKeyedPlan = checkedRequestProgramPreparation(moon,
-          construct(state.parent, producer.receipt, keyed, contracts.admission, declarations), issue);
+          construct(state.parent, producer.receipt, keyed, contracts.admission,
+            declarations === undefined ? noNativeFileReadDeclarations : declarations), issue);
         current();
         if (producer.finished || producer.preparation !== state || state.prepared !== prepared ||
             read(state.holder) !== prepared) fail('ForeignInstalledSourceProducer');

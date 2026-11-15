@@ -1108,6 +1108,8 @@ pub fn client_program_effect_keyed_native_activation_matches(@run_publication_ho
 
 pub fn client_program_effect_keyed_native_captured_page_matches(@run_publication_host.ClientKeyedNativeCapturedPage, @run_publication_host.ClientKeyedRequest, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectKeyedOriginal) -> Bool
 
+pub fn client_program_effect_keyed_plan_graph_is_generic(@run_publication_host.ClientEffectKeyedPlanGraph) -> Bool
+
 pub fn client_program_effect_keyed_source_unit_invocation(@run_publication_host.ClientEffectKeyedSourceUnit) -> @run_publication_host.ClientEffectLocalInvocation
 
 pub fn client_program_effect_keyed_source_unit_metadata_bodies(@run_publication_host.ClientEffectKeyedSourceUnit) -> Array[(String, String, String)]

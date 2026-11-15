@@ -216,7 +216,19 @@ pub fn start_installed_effect_keyed_capture_input(
     }
     inputs.push(input)
   }
+  guard @publication_host.client_keyed_acquisition_coordinates(keyed)
+    is Some((_, task, _)) &&
+    task >= 0 &&
+    task < plan.sequences.length() else {
+    return Err(ForeignOriginal)
+  }
   @publication_host.start_client_effect_keyed_capture_lookup_input(
-    original, inputs, max_entries, max_name_bytes, max_bytes, max_work,
+    original,
+    inputs,
+    max_entries,
+    max_name_bytes,
+    max_bytes,
+    max_work,
+    source_sequence=Some(plan.sequences[task]),
   ).map_err(_ => ForeignOriginal)
 }

@@ -125,6 +125,14 @@ pub fn client_program_effect_allowed_keyed_run(
 }
 
 ///|
+#export_name("clientProgramEffectKeyedPlanGraphIsGeneric")
+pub fn client_program_effect_keyed_plan_graph_is_generic(
+  plan : @publication_host.ClientEffectKeyedPlanGraph,
+) -> Bool {
+  @publication_host.client_effect_keyed_plan_graph_is_generic(plan)
+}
+
+///|
 #export_name("clientProgramEffectSingleKeyedAcquisition")
 pub fn client_program_effect_single_keyed_acquisition(
   prepared : @publication_host.PreparedClientEffectComputation,
