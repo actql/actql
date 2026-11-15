@@ -405,6 +405,10 @@ pub fn generated_bounded_sequence_capacity(
             // LIMIT measures every original cell and forwards checked cells;
             // its range/order metadata constructs no copied input forest.
             @lower.kernel_body(kernel) is @lower.Limit(_, _, _) ||
+            // ASSERT UNIQUE compares original cells through its bounded
+            // key/index workspace and forwards the same admitted values.
+            // It builds no second input forest or measurement wire.
+            @lower.kernel_body(kernel) is @lower.AssertUnique(_) ||
             // UNNEST scans original arrays and rechecks the same immutable
             // carried/element values. Its maps, row arrays, complete input
             // charge and recheck/measurement cursors remain funded below.

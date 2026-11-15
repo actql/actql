@@ -1,4 +1,97 @@
 ///|
+test "unique assertion borrows original Text cells without a second input codec" {
+  let (source_owner, source) = bounded_binding_rows_source(
+    "[{\"id\":2,\"tag\":\"é😀\"},{\"id\":1,\"tag\":\"other\"}]",
+    distinct=true,
+  )
+  let receiver = bounded_binding_rows_receiver(
+    source_owner,
+    assert_unique=true,
+    unique_text=true,
+  )
+  let prepared = prepared_sequence(receiver)
+  let first = @lower.node_at(@lower.bound_preparation(receiver), 0).unwrap()
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    prepared,
+    [],
+    [@lower.node_id(first)],
+    100000,
+    10000,
+  ).unwrap()
+  let generated = select_generated_sequence_step(generated, 0).unwrap()
+  guard generated_sequence_step_at(generated, 0) is Some(@lower.RowStep(kernel)) &&
+    @lower.kernel_body(kernel) is @lower.AssertUnique(_) else {
+    fail("original unique assertion constructor")
+  }
+  let limits = compute_test_limits()
+  let measurement : FixedInputGuardMeasureLimits = {
+    max_work: 10000,
+    max_bytes: 10000,
+    max_nodes: 10000,
+    max_depth: 100,
+  }
+  let before = generated_bounded_sequence_capacity(
+    generated, limits, measurement,
+  ).unwrap()
+  let after = generated_bounded_sequence_capacity(
+    generated,
+    {
+      ..limits,
+      rows: {
+        ..limits.rows,
+        input_values: {
+          ..limits.rows.input_values,
+          max_nodes: 1000000,
+          max_text_bytes: 20000000,
+        },
+      },
+    },
+    { ..measurement, max_nodes: 1000000, max_bytes: 20000000, },
+  ).unwrap()
+  assert_eq(before.retained_bytes, after.retained_bytes)
+  assert_eq(before.execution_bytes, after.execution_bytes)
+  let input = prepare_producer_read(
+    receiver,
+    bind_completed_input(receiver, 0, source_owner, source).unwrap(),
+    100,
+    10000,
+  ).unwrap()
+  let active = start_bounded_binding_rows(
+    @bounded.control(),
+    generated,
+    input,
+    100,
+    limits.rows.input_values,
+    limits.rows.output_values,
+    100000,
+    100,
+    10000,
+    10000,
+  ).unwrap()
+  let mut output : CompletedOutput? = None
+  for _ in 0..<10000 {
+    if output is Some(_) {
+      break
+    }
+    match advance_bounded_binding_rows(active, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(value, ..) => output = Some(value)
+      _ => fail("original Text unique assertion did not complete")
+    }
+  }
+  let output = output.unwrap()
+  assert_eq(completed_row_count(output), 2)
+  assert_true(completed_cell(output, 0, 0) is Some(Number(2.0)))
+  assert_true(completed_cell(output, 0, 1) is Some(Text("é😀")))
+  assert_true(completed_cell(output, 1, 0) is Some(Number(1.0)))
+  assert_true(completed_cell(output, 1, 1) is Some(Text("other")))
+  assert_true(cleanup_bounded_binding_rows(active).unwrap())
+  assert_true(producer_read_available(input))
+  assert_true(completed_output_available(source))
+}
+
+///|
 test "selected sequence capacity charges only reachable fragment contexts" {
   let sequence = prepared_sequence(
     row_owner(
@@ -422,7 +515,9 @@ test "bounded scalar grouped count keeps full output and falls back for copied i
       ("", "", "", true),
       (
         ",\"payload\":{\"type\":\"string\",\"nullable\":false}", ",\"payload\":\"x\"",
-        "", false,
+        // Direct COUNT's stepped cursor also borrows required Text cells.
+        // Recursive input retains the full constructor in the next case.
+         "", true,
       ),
       (
         ",\"payload\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}",
