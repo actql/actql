@@ -95,6 +95,9 @@ test('provider construction callback keeps the same original borrow before Query
         assert.equal(original, read); return ok();
       };
       f.moon.clientProgramWholeSourceBorrowResponses = f.moon.clientProgramRowSourceBorrowResponses;
+      f.moon.clientProgramWholeSourceIsListing = actual => {
+        assert.strictEqual(actual, f.acquisition); return false;
+      };
     }
     const session = f.start(wholeInput ? {wholeInput, originalRead: read} : undefined);
     const supplier = {prepare(options, retain, responseCapacity) {
@@ -477,7 +480,7 @@ test('truthy, missing or throwing reader cleanup observations never acknowledge 
 });
 
 
-function installCompletedProviderCapture(f) {
+function installCompletedProviderCapture(f, {wholeInput = false, listing = false} = {}) {
   const capture = {}, source = {}, checkedOwner = {}, requirement = {};
   Object.assign(f.moon, {
     clientProgramRowSourceFinish: actual => {assert.equal(actual,f.run);return ok(undefined);},
@@ -495,15 +498,35 @@ function installCompletedProviderCapture(f) {
       f.calls.push('retire-workspace'); return ok(undefined);
     },
   });
+  let originalRead;
+  if (wholeInput) {
+    originalRead = {};
+    Object.assign(f.moon, {
+      clientProgramInstalledSourceReadCheckLedger(read, ledger) {
+        assert.strictEqual(read, originalRead); assert.strictEqual(ledger, f.ledger); return ok();
+      },
+      clientProgramInstalledWholeSourceReadStartRows(read, acquisition) {
+        assert.strictEqual(read, originalRead); assert.strictEqual(acquisition, f.acquisition); return ok(f.run);
+      },
+      clientProgramInstalledSourceReadRetire(read) {assert.strictEqual(read, originalRead); return ok();},
+      clientProgramWholeSourceBorrowResponses: f.moon.clientProgramRowSourceBorrowResponses,
+      clientProgramWholeSourceIsListing(acquisition) {assert.strictEqual(acquisition, f.acquisition); return listing;},
+      clientProgramIssueEffectWholeSourceInputLogical: () => ok({}),
+    });
+  }
   return {capture,source,options:{owner:{checkedOwner,effectful:true,
-    requirement,occurrence:{task:0}},prepared:{checkedSource:{}},
-    registry:'registry',values:'values',currentRead:async()=>{}}};
+    ...(wholeInput ? {wholeInput, providerCaptureCapacity: {}} : {requirement}),
+    occurrence:{task:0}},prepared:{checkedSource:{}},
+    registry:'registry',values:'values',currentRead:async()=>{}},
+    start: () => f.start(wholeInput ? {wholeInput, originalRead} : undefined)};
 }
 
-test('completed provider capture retires SAME reader workspace before returning live Source', async () => {
+for (const wholeInput of [false, true]) {
+const kind = wholeInput ? 'WholeInput' : 'Query';
+test(`${kind} completed provider capture retires SAME reader workspace before returning live Source`, async () => {
   let f;
   f=fixture({stop(){f.retire();}});
-  const selected=installCompletedProviderCapture(f),session=f.start();
+  const selected=installCompletedProviderCapture(f,{wholeInput}),session=selected.start();
   await f.read(session);
   const result=await session.complete(selected.options);
   assert.deepEqual(f.calls.filter(name=>['stop','retire-workspace','close'].includes(name)),
@@ -515,8 +538,8 @@ test('completed provider capture retires SAME reader workspace before returning 
   assert.equal(f.counts().settles,1);
 });
 
-test('provider workspace completion refuses pending original stop and keeps SAME cleanup', async () => {
-  const f=fixture(),selected=installCompletedProviderCapture(f),session=f.start();
+test(`${kind} provider workspace completion refuses pending original stop and keeps SAME cleanup`, async () => {
+  const f=fixture(),selected=installCompletedProviderCapture(f,{wholeInput}),session=selected.start();
   await f.read(session);
   await assert.rejects(session.complete(selected.options),{code:'MoonBitHostFailure'});
   assert.equal(f.calls.includes('retire-workspace'),false);
@@ -528,9 +551,9 @@ test('provider workspace completion refuses pending original stop and keeps SAME
   assert.equal(f.counts().settles,1);
 });
 
-test('provider workspace Core refusal preserves original observer for final cleanup', async () => {
+test(`${kind} provider workspace Core refusal preserves original observer for final cleanup`, async () => {
   let f;f=fixture({stop(){f.retire();}});
-  const selected=installCompletedProviderCapture(f),session=f.start();
+  const selected=installCompletedProviderCapture(f,{wholeInput}),session=selected.start();
   f.moon.clientProgramRowSourceRetireResponseWorkspace=actual=>{
     assert.equal(actual,f.borrow);return error('same original current refused');
   };
@@ -541,9 +564,9 @@ test('provider workspace Core refusal preserves original observer for final clea
   assert.equal(f.counts().settles,1);
 });
 
-test('provider workspace completion cannot interpret an unresolved stop Promise as retirement', async () => {
+test(`${kind} provider workspace completion cannot interpret an unresolved stop Promise as retirement`, async () => {
   const pending=deferred();let f;f=fixture({stop(){f.retire();return pending.promise;}});
-  const selected=installCompletedProviderCapture(f),session=f.start();
+  const selected=installCompletedProviderCapture(f,{wholeInput}),session=selected.start();
   await f.read(session);
   await assert.rejects(session.complete(selected.options),{code:'MoonBitHostFailure'});
   assert.equal(f.calls.includes('retire-workspace'),false);
@@ -551,6 +574,28 @@ test('provider workspace completion cannot interpret an unresolved stop Promise 
   assert.equal(await session.cleanup(),true);
   assert.equal(f.calls.filter(name=>name==='stop').length,1);
   assert.equal(f.calls.filter(name=>name==='read').length,1);
+});
+}
+
+test('WholeInput listing keeps its original workspace and stop obligation until Source cleanup', async () => {
+  const f = fixture(), selected = installCompletedProviderCapture(f, {wholeInput: true, listing: true});
+  const session = selected.start();
+  await f.read(session);
+  const result = await session.complete(selected.options);
+  assert.equal(f.calls.includes('stop'), false);
+  assert.equal(f.calls.includes('retire-workspace'), false);
+  assert.throws(() => result.close(), {code: 'MoonBitHostFailure'});
+  assert.equal(f.counts().settles, 0);
+  f.retire();
+  assert.equal(await session.cleanup(), true);
+  assert.equal(f.counts().settles, 1);
+});
+
+test('WholeInput provider requires the real workspace retirement port before starting', () => {
+  const f = fixture(), selected = installCompletedProviderCapture(f, {wholeInput: true});
+  delete f.moon.clientProgramRowSourceRetireResponseWorkspace;
+  assert.throws(selected.start, {code: 'InstalledProviderSourceUnavailable'});
+  assert.equal(f.calls.includes('start'), false);
 });
 
 test('WholeInput forwards announced and charged growth through its same original borrow without Query substitution', async () => {
@@ -566,6 +611,9 @@ test('WholeInput forwards announced and charged growth through its same original
   };
   f.moon.clientProgramWholeSourceBorrowResponses = (run, selected) => {
     assert.equal(run, f.run); assert.equal(selected, f.acquisition); return ok(f.borrow);
+  };
+  f.moon.clientProgramWholeSourceIsListing = actual => {
+    assert.strictEqual(actual, f.acquisition); return false;
   };
   const phases = [];
   f.moon.clientProgramRowSourceGrowResponseConstructionCapacity = (borrow, capacity) => {

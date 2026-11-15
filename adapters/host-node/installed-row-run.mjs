@@ -58,7 +58,8 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
       : 'clientProgramInstalledSourceReadStartProviderRows',
       wholeInput ? 'clientProgramWholeSourceBorrowResponses' : 'clientProgramRowSourceBorrowResponses',
       'clientProgramRowSourceBindResponseCleanup',
-      ...(!wholeInput ? ['clientProgramRowSourceRetireResponseWorkspace'] : [])]
+      'clientProgramRowSourceRetireResponseWorkspace',
+      ...(wholeInput ? ['clientProgramWholeSourceIsListing'] : [])]
       .some(name => typeof moon[name] !== 'function')) fail('InstalledProviderSourceUnavailable');
   }
   if (reportCapacity !== undefined) {
@@ -320,11 +321,14 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     retainedRelationOutput, currentRead, signal, captureOnly = false}) {
     if (keyed) fail('InstalledSourceProgramMismatch');
     const captured = await capture({currentRead, signal});
-    if (providerCapacity !== undefined && !wholeInput) {
+    if (providerCapacity !== undefined &&
+        (!wholeInput || !moon.clientProgramWholeSourceIsListing(acquisition))) {
       // This SAME reader must actually retire its response/decode workspace
       // before Source/Compute/Effect consumers may use that phase allowance.
       // Keep its observer and receiver for final Row cleanup, including a
       // pending/throwing retirement; stopping alone never returns bytes.
+      // Whole input keeps its independently charged immutable capture. Its
+      // stopped provider workspace has the same cut; listing custody does not.
       stopReader();
       // Core invokes the SAME bound observer once for this cut. Do not first
       // observe it here and then repeat that external observation in Core.
