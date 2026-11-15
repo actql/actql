@@ -76,7 +76,7 @@ test('completed Source inventory refuses a foreign copied authority array before
 test('completed Source inventory quote refuses original-current loss before constructing authority slots', async t => {
   const f = await sourceReadRangeActualFixture(t, {viewCount: 129, originalAuthorization: true});
   const construct = captureSourceAliasConstruction(installedSourceConfigurationReader(f.services), f.moon);
-  const fault = f.failCurrentOnNextReserve();
+  const fault = f.failCurrentBeforeNextConstruction();
   assert.throws(() => prepareInstalledSourceCheckpointInventory(f.adapter, construct),
     error => error.installedSourcePhase === 'ReserveInstalledSourceConstruction' &&
       /^[0-9]+$/u.test(error.installedSourceRetainedBytes) &&

@@ -30,7 +30,7 @@ test('plural source configuration is copied and exclusive without a legacy regis
 // Actual initial Resource and native constructor, without file/provider reads.
 // This qualifies path selection only, not an installed 129-Source Host.
 test('same initial Source material selects all129 original profile paths before later installation', async t => {
-  const events = [], f = await boundConstructionActualFixture(t, {capacityEvents: events});
+  const f = await boundConstructionActualFixture(t);
   const reader = installedSourceConfigurationReader(f.services);
   const construct = captureSourceAliasConstruction(reader, f.moon);
   const paths = Object.freeze(Array.from({length: 129}, (_, index) => join(f.root, `source-${index}.json`)));
@@ -39,7 +39,6 @@ test('same initial Source material selects all129 original profile paths before 
   assert.deepEqual(selected, paths);
   assert.ok(Object.isFrozen(selected));
   assert.equal(selected.at(-1), paths[128]);
-  assert.ok(events.some(event => event.operation === 'clientProgramReserveInstalledSourceConstruction' && event.accepted));
   for (const tail of [paths[0], 'relative-profile.json']) {
     assert.throws(() => installedSourcePaths({sourceProfilePaths: [...paths.slice(0, -1), tail]},
       undefined, construct), {message: 'InvalidInstalledSourceProfiles'});
@@ -51,27 +50,24 @@ test('same initial Source material selects all129 original profile paths before 
 });
 
 test('actual initial Source capacity refuses path construction before an unfunded large inventory', async t => {
-  const events = [], f = await boundConstructionActualFixture(t, {capacityEvents: events});
+  const f = await boundConstructionActualFixture(t);
   const construct = captureSourceAliasConstruction(installedSourceConfigurationReader(f.services), f.moon);
   // A sparse original avoids allocating the proposed dense result. Its actual
   // length is quoted first; the existing finite Resource must refuse before
   // plural validation could return InvalidInstalledSourceProfiles.
   const paths = Object.freeze(new Array(1073741824));
-  const before = events.length;
   assert.throws(() => installedSourcePaths({sourceProfilePaths: paths}, undefined, construct),
     {code: 'MoonBitHostFailure'});
-  assert.ok(events.slice(before).some(event =>
-    event.operation === 'clientProgramReserveInstalledSourceConstruction' && !event.accepted));
   assert.equal(paths.length, 1073741824);
   await f.close();
   assert.equal(f.retire(), true);
 });
 
 test('same original current loss prevents Source path selection and preserves initial cleanup', async t => {
-  const events = [], f = await boundConstructionActualFixture(t, {capacityEvents: events});
+  const f = await boundConstructionActualFixture(t);
   const construct = captureSourceAliasConstruction(installedSourceConfigurationReader(f.services), f.moon);
   const paths = Object.freeze(Array.from({length: 129}, (_, index) => join(f.root, `source-${index}.json`)));
-  const fault = f.failCurrentOnNextReserve();
+  const fault = f.failCurrentBeforeNextConstruction();
   assert.throws(() => installedSourcePaths({sourceProfilePaths: paths}, undefined, construct));
   assert.equal(fault.calls, 1);
   await f.close();

@@ -174,12 +174,19 @@ function sourceIo(original, material) {
   return io;
 }
 
-function sourceCapacityQuote(original, material, values) {
-  const base = sourceCall(original, material, 'InstalledSourceConstructionCapacity', values);
-  if (material.providers.length === 0) return base;
+function sourceCapacityQuote(original, material, values, pendingProvider) {
+  let base = sourceCall(original, material, 'InstalledSourceConstructionCapacity', values);
+  if (material.providers.length === 0 && pendingProvider === undefined) return base;
   if (typeof material.methods.ComposeInstalledSourceConstructionCapacity !== 'function') {
     fail('InstalledSourceInitializationRuntimeUnavailable');
   }
+  // A pure pending quote has not entered its native constructor. Fold its
+  // fixed singleton before admission without registering ungranted DATA or
+  // copying the retained provider population. Failed admitted prefixes stay.
+  if (pendingProvider !== undefined) {
+    base = sourceCall(original, material, 'ComposeInstalledSourceConstructionCapacity', [base, [pendingProvider]]);
+  }
+  if (material.providers.length === 0) return base;
   return sourceCall(original, material, 'ComposeInstalledSourceConstructionCapacity', [base, material.providers]);
 }
 
@@ -200,7 +207,7 @@ function releaseFinishedSourceWorkspaces(material) {
   }
 }
 
-function reserveSource(original, material, nodes = 0n, text = 0n, wire = 0n, workspace, retained) {
+function reserveSource(original, material, nodes = 0n, text = 0n, wire = 0n, workspace, retained, pendingProvider) {
   if (material.phase !== 'working') fail('InstalledSourceInitializationClosed');
   releaseFinishedSourceWorkspaces(material);
   let activeNodes = nodes, activeText = text, activeWire = wire;
@@ -218,7 +225,7 @@ function reserveSource(original, material, nodes = 0n, text = 0n, wire = 0n, wor
   // after the same parent has admitted the complete simultaneous quantities.
   const quote = sourceCapacityQuote(original, material,
     [material.nodes + retainedNodes, material.text + retainedText, material.wire + retainedWire,
-      activeNodes, activeText, activeWire]);
+      activeNodes, activeText, activeWire], pendingProvider);
   sourceCall(original, material, 'ReserveInstalledSourceConstruction',
     [material.capacity, material.input, quote]);
   if (workspace !== undefined) Object.assign(workspace, {nodes, text, wire, retained});
@@ -367,9 +374,11 @@ function prepareSourceNativeInput(original, material, projection, attempts, vali
   try {quantity = requireSynchronousSourceConstruction(material, Reflect.apply(capacityFor, projection, []));}
   finally {material.busy = false;}
   if (!quantity || typeof quantity !== 'object' || nodeTypes.isProxy(quantity)) fail('InstalledSourceInputCapacityUnavailable');
+  // Register only after the SAME reservation admits the complete pending
+  // quantity. A refused pure quote creates no native holding or cleanup ACK.
+  reserveSource(original, material, 0n, 0n, 0n, undefined, undefined, quantity);
   const providerIndex = material.providers.length, projectionIndex = material.inputs.length;
   material.providers.push(quantity); material.inputs.push(projection);
-  reserveSource(original, material);
   validate();
   if (material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
   let value;
@@ -975,13 +984,13 @@ function createInstalledSourceContext(original, material, installation, connecto
       material.nodes += 4n * basis; material.text += 8n * basis; material.wire += 8n * basis;
       scope.declarationBasis = basis;
     } finally {material.busy = false;}
-    const retainReturnedDeclaration = () => {
+    const retainReturnedDeclaration = expectedPrepared => {
       const retained = sourceDeclarationRetainedGeometry(wire, declaredWire);
       // The old complete allowance remains held while observing the same
       // original parent. Only a successful closed restore/export/parse may
       // replace its temporary workspace with the actual coheld outputs.
       reserveSource(original, material);
-      if (!scope.active || material.phase !== 'working' || scope.prepared !== undefined) {
+      if (!scope.active || material.phase !== 'working' || scope.prepared !== expectedPrepared) {
         fail('ForeignInstalledSourceInitialization');
       }
       const prior = {nodes:material.nodes, text:material.text, wire:material.wire};
@@ -994,9 +1003,14 @@ function createInstalledSourceContext(original, material, installation, connecto
     let prepared;
     if (finish !== undefined) {
       prepared = finish(declaration, declaredWire);
-      retainReturnedDeclaration();
+      // A preliminary declaration does not publish a prepared slot; a final
+      // Command does. In either case retain the exact original across the
+      // current callback, never another scope's or a reentrant replacement.
+      const expectedPrepared = scope.prepared;
+      if (expectedPrepared !== undefined && expectedPrepared !== prepared) fail('ForeignInstalledSourceInitialization');
+      retainReturnedDeclaration(expectedPrepared);
     } else {
-      retainReturnedDeclaration();
+      retainReturnedDeclaration(undefined);
       // Use the SAME funded Environment constructor for authored and native
       // declarations. Its exact frozen original, census and failed prefix
       // stay with this Source material before any later semantic admission.

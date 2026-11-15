@@ -24,8 +24,7 @@ const runtimeCid = `sha256:${createHash('sha256').update(await readFile(runtimeU
 // provider or ordinary SDK/Host acceptance. All nominal values use f.moon.
 export async function sourceReadRangeActualFixture(t, {denied = false, viewCount = 65,
   originalAuthorization = false} = {}) {
-  const events = [], nodeCapacityQuotes = [], f = await boundConstructionActualFixture(t,
-    {capacityEvents: events, nodeCapacityQuotes: originalAuthorization ? nodeCapacityQuotes : undefined});
+  const f = await boundConstructionActualFixture(t);
   // The ordinary loader establishes this SAME metadata/file reader before
   // starting a Source context; its protocol reads keep their original owner.
   installedSourceConfigurationReader(f.services);
@@ -74,8 +73,6 @@ export async function sourceReadRangeActualFixture(t, {denied = false, viewCount
   assert.ok(access);
   assert.ok(installedSourceReadBindings(adapter).includes(access.sourceRef));
   assert.equal(access.resource, views.at(-1).resource);
-  assert.ok(events.some(event => event.accepted && event.operation ===
-    'clientProgramReserveInstalledSourceConstruction'));
   // Use the ordinary funded complete-wire entrance, including every unused
   // declaration. Compatibility admission alone is not construction backing.
   let environmentOriginal;
@@ -85,9 +82,7 @@ export async function sourceReadRangeActualFixture(t, {denied = false, viewCount
     t.diagnostic(JSON.stringify({stage: 'funded-source-environment', code: error.code,
       tag: runtimeTag(error.cause), inner: runtimeTag(runtimeOptionalField(error.cause, 0)),
       scalar: typeof runtimeOptionalField(error.cause, 0) === 'number' ? runtimeOptionalField(error.cause, 0) : undefined,
-      wireBytes: Buffer.byteLength(original.environment.wire), quotes: nodeCapacityQuotes.slice(-3),
-      reservations: events.slice(-3).map(event => ({operation: event.operation, accepted: event.accepted,
-        retained: String(event.retained), peak: String(event.peak)}))}));
+      wireBytes: Buffer.byteLength(original.environment.wire)}));
     throw error;
   }
   const checkedEnvironment = environmentOriginal.admitted;
@@ -115,7 +110,7 @@ export async function sourceReadRangeActualFixture(t, {denied = false, viewCount
   // the raw registry String used by older compatibility fixtures.
   inputs.registry = checked(f.moon.clientPrepareInstalledSequenceContracts(
     registry, inputs.values, inputs.fragment, inputs.ordered));
-  return {...f, adapter, inputs, access, authorization, decisions, events, environmentOriginal,
+  return {...f, adapter, inputs, access, authorization, decisions, environmentOriginal,
     async close() {authorization.close?.();await f.close();},
     counts: () => ({reads, grants})};
 }

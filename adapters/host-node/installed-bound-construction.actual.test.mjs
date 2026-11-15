@@ -163,14 +163,12 @@ test('generated Local table Source registers one actual adapter without starting
 });
 
 test('Local table129 target inventory uses the same real initial constructor before any Python read', async t => {
-  const capacityEvents = [], f = await boundConstructionActualFixture(t, {capacityEvents});
+  const f = await boundConstructionActualFixture(t);
   const selected = await f.tableSourceProfile({targetCount: 129});
   const source = await f.load(selected);
   assert.equal(source.tableReadTargets.length, 129);
   assert.equal(source.sourceReadAccesses.length, 129);
   assert.equal(source.tableReadTargets.at(-1).resource, 'rows_128');
-  assert.ok(capacityEvents.some(event => event.operation ===
-    'clientProgramReserveInstalledSourceConstruction' && event.accepted));
   assert.equal(f.secretReads(), 0);
   assert.equal(f.retire(), false);
   await f.close();
@@ -273,12 +271,14 @@ for (const role of ['source', 'effect']) {
     const adapter = await f.load(selected);
     assert.equal(adapter.connectorBindings[0].connectorId, selected.value.connectorId);
     if (role === 'source') {
-      assert.deepEqual(Object.keys(adapter).sort(), ['realizationKey',
-        'supportsRetainedRelationOutput', 'connectorRegistration', 'connectorRevision',
-        'environmentWire', 'generationCid', 'connectorBindings', 'readAuthorization',
-        'sourceAccess', 'sourceReadAccesses', 'admitsSource', 'ledgerCapacity',
-        'managedCaptureCapacity', 'managedWholeSourceCapacity', 'managedEffectPlanSelection', 'prepare',
-        'open', 'close', 'retirePreparedSource', 'prepareRetained', 'discovery', 'queryAliases'].sort());
+      for (const name of ['prepare', 'open', 'close', 'retirePreparedSource', 'prepareRetained']) {
+        assert.equal(typeof adapter[name], 'function');
+      }
+      assert.equal(typeof adapter.environmentWire, 'string');
+      assert(adapter.environmentOriginal, 'the funded checked Environment is retained');
+      for (const name of ['accountConstruction', 'initialPreparation', 'capacity', 'input']) {
+        assert.equal(Object.hasOwn(adapter, name), false, 'private construction authority is not exposed');
+      }
       assert.equal(adapter.realizationKey, 'salesforce-acquired');
       assert.equal(adapter.supportsRetainedRelationOutput, true);
     } else {

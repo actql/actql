@@ -132614,7 +132614,9 @@
         },
         {
           "name": "createInstalledSourceContext/prepareOriginalDeclaration/retainReturnedDeclaration/retainReturnedDeclaration",
-          "parameters": [],
+          "parameters": [
+            "expectedPrepared"
+          ],
           "async": false
         },
         {
@@ -133168,7 +133170,8 @@
             "text",
             "wire",
             "workspace",
-            "retained"
+            "retained",
+            "pendingProvider"
           ],
           "async": false
         },
@@ -133283,7 +133286,8 @@
           "parameters": [
             "original",
             "material",
-            "values"
+            "values",
+            "pendingProvider"
           ],
           "async": false
         },
@@ -133612,7 +133616,7 @@
               },
               {
                 "path": "adapters/host-node/installed-configuration-json.actual.test.mjs",
-                "anchor": "completed JSON current failure keeps its full original workspace on the same parent"
+                "anchor": "completed JSON current failure denies the next constructor on the same parent"
               }
             ]
           }
@@ -138864,7 +138868,7 @@
               },
               {
                 "path": "adapters/host-node/installed-configuration-json.actual.test.mjs",
-                "anchor": "completed JSON current failure keeps its full original workspace on the same parent"
+                "anchor": "completed JSON current failure denies the next constructor on the same parent"
               }
             ]
           }
@@ -139752,7 +139756,7 @@
               },
               {
                 "path": "adapters/host-node/installed-hubspot-returned-capacity.actual.test.mjs",
-                "anchor": "test('same-parent Environment composition still refuses"
+                "anchor": "test('actual HubSpot Source still refuses an overlapping native peak before entering its constructor'"
               }
             ]
           }

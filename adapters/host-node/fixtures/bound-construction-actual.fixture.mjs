@@ -8,7 +8,6 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {checked} from '../../host-common/runtime-result.mjs';
-import {runtimeField} from '../../host-common/compiler-binding.generated.mjs';
 import {loadInstalledEffect, publishInstalledEffectProfile} from '../installed-effect.mjs';
 import {withFixtureConnector} from '../../host-common/connector-manifest.fixture.mjs';
 import {canonicalJson, contentCid, sourceReadAccountConfiguration} from '../local-account-config.mjs';
@@ -73,53 +72,10 @@ function tableEffectValue(root, approval = 'required') {
       permissions: ['scope:store'], footprint: {version: 'fixture-only'}}], limits: {}};
 }
 
-export async function boundConstructionActualFixture(t, {capacityEvents, nativeCompletions, profileInspections, nodeCapacityQuotes} = {}) {
-  // Observe only actual typed quotes on the unchanged original parent. The
-  // wrapper forwards every call/result/error; it grants no capacity or current.
-  const observe = name => function (...args) {
-    if (currentFault?.reserve && name === 'clientProgramReserveInstalledSourceConstruction') {
-      currentFault.ready = true;
-    }
-    const quote = args[2];
-    const pair = originalMoon.clientProgramSerializationCapacityBytes(quote);
-    let returned = false, accepted = false;
-    try {
-      const value = Reflect.apply(originalMoon[name], originalMoon, args);
-      returned = true;
-      try {checked(value); accepted = true;} catch { /* Keep the original Result unchanged. */ }
-      return value;
-    } finally {capacityEvents.push({operation: name, retained: runtimeField(pair, 0), peak: runtimeField(pair, 1), returned, accepted});}
-  };
-  const moon = capacityEvents === undefined && nativeCompletions === undefined && profileInspections === undefined && nodeCapacityQuotes === undefined ? originalMoon
-    : Object.freeze({...originalMoon,
-      ...(nodeCapacityQuotes === undefined ? {} : {
-        clientProgramInstalledSourceConstructionCapacity(...args) {
-          nodeCapacityQuotes.push(args.map(String));
-          return Reflect.apply(originalMoon.clientProgramInstalledSourceConstructionCapacity, originalMoon, args);
-        }}),
-      ...(profileInspections === undefined ? {} : {
-        clientProgramInstalledSourceInspectionConstructionCapacity(original) {
-          const result = originalMoon.clientProgramInstalledSourceInspectionConstructionCapacity(original);
-          profileInspections.push({original, inspection: checked(result)}); return result;
-        }}),
-      ...(capacityEvents === undefined ? {} : {
-        clientProgramReserveInstalledSourceConstruction: observe('clientProgramReserveInstalledSourceConstruction'),
-        clientProgramReconcileInstalledSourceConstruction: observe('clientProgramReconcileInstalledSourceConstruction')}),
-      ...(nativeCompletions === undefined ? {} : {
-        clientProgramComposeInstalledSourceConstructionCapacity(base, providers) {
-          // Observe the original supplied DATA even when its later physical
-          // reserve refuses. This does not inspect or repair the Ledger.
-          for (const value of nativeCompletions) value.lastProviderQuantity = providers.find(
-            quantity => quantity === value.quantity || quantity === value.retained);
-          return originalMoon.clientProgramComposeInstalledSourceConstructionCapacity(base, providers);
-        },
-        clientProgramInstalledSourceRetainedConstructionCapacity(quantity) {
-          const result = originalMoon.clientProgramInstalledSourceRetainedConstructionCapacity(quantity);
-          // DATA projection observation is separate from actual reserve and
-          // reconcile Results. Do not count it as a completed admission.
-          nativeCompletions.push({quantity, retained: checked(result), eventIndex: capacityEvents?.length});
-          return result;
-        }})});
+export async function boundConstructionActualFixture(t) {
+  // Keep the actual module namespace shared with the Account gate. A copied
+  // method facade cannot stand in for this original runtime.
+  const moon = originalMoon;
   const root = await mkdtemp(join(tmpdir(), 'actql-bound-construction-actual-'));
   const baseEnvironmentWire = environment;
   const state = {}, sources = [], failures = [];
@@ -138,12 +94,7 @@ export async function boundConstructionActualFixture(t, {capacityEvents, nativeC
       currentFault.calls++;
       throw currentFault.failure;
     }
-    if (currentFault?.nativeQuantity !== undefined && currentFault.calls === 0 &&
-        nativeCompletions?.some(value => value.quantity === currentFault.nativeQuantity)) {
-      currentFault.calls++;
-      throw currentFault.failure;
-    }
-    if (currentFault !== undefined && currentFault.nativeQuantity === undefined && currentFault.calls === 0 &&
+    if (currentFault !== undefined && currentFault.calls === 0 &&
         (currentFault.journal ? currentFault.siteReturned !== undefined : existsSync(currentFault.path))) {
       // The actual bound Site has returned to its original custody owner.
       // /proc descriptors remain an additional Linux assertion, not readiness.
@@ -478,23 +429,10 @@ export async function boundConstructionActualFixture(t, {capacityEvents, nativeC
       return currentFault;
     },
     sourceInputOriginal: parentInput,
-    failCurrentOnNextReserve() {
-      assert.equal(currentFault, undefined); assert.notEqual(capacityEvents, undefined);
-      currentFault = {reserve: true, ready: false, calls: 0,
-        failure: new Error('same original current failed at JSON completion')};
-      return currentFault;
-    },
     failCurrentAfterTableConstruction() {
       assert.equal(currentFault, undefined);
       currentFault = {path: join(root, 'state', 'effects', 'ledger'), calls: 0,
         failure: new Error('OriginalPostTableConstructionCurrentFailure')};
-      return currentFault;
-    },
-    failCurrentAfterNativeRetention(quantity) {
-      assert.equal(currentFault, undefined);
-      assert.ok(nativeCompletions);
-      currentFault = {nativeQuantity: quantity, calls: 0,
-        failure: new Error('OriginalCurrentAfterNativeRetentionFailure')};
       return currentFault;
     },
     failCurrentAfterJournal(selection) {

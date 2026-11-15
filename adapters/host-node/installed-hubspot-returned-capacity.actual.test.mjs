@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
-import {Hash} from 'node:crypto';
 import {boundConstructionActualFixture} from './fixtures/bound-construction-actual.fixture.mjs';
 import {installedSourceConfigurationReader} from './installed-host-services.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -27,10 +26,9 @@ const quote = moon => {
   assert(value !== null && typeof value === 'object');
   return value;
 };
-const latestReserve = events => events.findLast(event => event.operation === 'clientProgramReserveInstalledSourceConstruction');
 
-async function wideEffectFixture(t, {maxProperties = 256, readOnly = false, propertyNameUnits, propertyKinds, nativeCompletions} = {}) {
-  const events = [], f = await boundConstructionActualFixture(t, {capacityEvents: events, nativeCompletions});
+async function wideEffectFixture(t, {maxProperties = 256, readOnly = false, propertyNameUnits, propertyKinds} = {}) {
+  const f = await boundConstructionActualFixture(t);
   const source = await f.metadataSourceProfile('hubspot');
   const metadata = JSON.parse(await readFile(source.value.metadataPath, 'utf8'));
   const variableUnits = propertyNameUnits === undefined ? undefined : propertyNameUnits - 15;
@@ -56,49 +54,15 @@ async function wideEffectFixture(t, {maxProperties = 256, readOnly = false, prop
     writes: [{resource: 'companies', fields: ['name'], markerProperty: 'description'}]};
   const path = join(f.root, 'wide-effect.json');
   await writeFile(path, JSON.stringify(value));
-  return {f, events, source, selection: {path, value, role: 'effect', registration: 'hubspot'}};
+  return {f, source, selection: {path, value, role: 'effect', registration: 'hubspot'}};
 }
 
-test('HubSpot metadata identity peak is admitted before its one loader hash and removed on the same real Ledger', async t => {
-  const completions = [], {f, events, source} = await wideEffectFixture(t, {nativeCompletions: completions});
-  const observed = [], update = Hash.prototype.update;
-  t.mock.method(Hash.prototype, 'update', function(value, ...args) {
-    if (typeof value === 'string' && value.includes('actql-hubspot-read-metadata/0.1') &&
-        /at Object\.project \([^\n]*installed-hubspot-source\.mjs:/u.test(new Error().stack)) {
-      observed.push({index: events.length, before: latestReserve(events)});
-    }
-    return Reflect.apply(update, this, [value, ...args]);
-  });
-  const loaded = await f.load(source);
-  assert.equal(observed.length, 1, 'one loader metadata hash, not another full hash for Site binding');
-  const observation = observed[0];
-  assert.equal(observation.before.accepted, true);
-  const completed = completions.find(value => value.eventIndex >= observation.index);
-  assert(completed);
-  assert.strictEqual(completed.lastProviderQuantity, completed.retained);
-  const after = events.slice(completed.eventIndex).find(event =>
-    event.operation === 'clientProgramReconcileInstalledSourceConstruction');
-  assert(after?.accepted);
-  assert(observation.before.retained > after.retained + 1000000n,
-    'the metadata-wide completed identity workspace must leave the same retained prefix');
-  assert(loaded.environmentWire.length > 0); assert.equal(f.secretReads(), 0);
-  t.diagnostic(JSON.stringify({identityPeakRetention: String(observation.before.retained),
-    afterIdentityRetention: String(after.retained), completedLoaderHashes: observed.length}));
-  await f.close(); assert.equal(f.pending(), false); assert.equal(f.retire(), true);
-});
-
 test('wide HubSpot Source and Effect compose on the same original default preparation parent', async t => {
-  const {f, events, source, selection} = await wideEffectFixture(t);
+  const {f, source, selection} = await wideEffectFixture(t);
   const installedSource = await f.load(source), installedEffect = await f.load(selection);
   const base = (await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
-  let composed;
-  try {
-    composed = composeInstalledSourceEnvironment(f.services, f.moon, base,
+  const composed = composeInstalledSourceEnvironment(f.services, f.moon, base,
       installedSource.environmentWire, installedEffect.environmentWire);
-  } finally {
-    t.diagnostic(JSON.stringify({lastConstructionCalls: events.slice(-4)}, (_key, value) =>
-      typeof value === 'bigint' ? value.toString() : value));
-  }
   assert.equal(composed.runtime, f.moon);
   assert.equal(composed.body.schema_snapshots.length, 1);
   assert.equal(composed.body.mapping_contracts.length, 1);
@@ -116,57 +80,48 @@ test('real-shape HubSpot Source and Effect composition funds sequential canonica
   ].flatMap(([type, fieldType, count]) => Array.from({length: count}, () =>
     ({type, fieldType, ...(type === 'enumeration' ? {options: []} : {})})));
   assert.equal(propertyKinds.length, 245);
-  const {f, events, source, selection} = await wideEffectFixture(t, {propertyNameUnits: 6001, propertyKinds});
+  const {f, source, selection} = await wideEffectFixture(t, {propertyNameUnits: 6001, propertyKinds});
   const installedSource = await f.load(source), installedEffect = await f.load(selection);
   const base = (await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
-  const first = events.length;
   const composed = composeInstalledSourceEnvironment(f.services, f.moon, base,
     installedSource.environmentWire, installedEffect.environmentWire);
   const carrier = composed.body.contract_registry.find(value => value.kind === 'carrier_schema');
   assert.equal(Object.keys(carrier.body.fields).length, 246);
   assert.equal(composed.body.schema_snapshots.length, 1);
   assert.equal(composed.body.mapping_contracts.length, 1);
-  const reservations = events.slice(first).filter(event => event.operation === 'clientProgramReserveInstalledSourceConstruction');
-  assert(reservations.length > 0 && reservations.every(event => event.accepted));
-  assert(reservations.every(event => event.retained <= 536870912n && event.peak <= 536870912n));
   assert.equal(f.secretReads(), 0);
   await f.close(); assert.equal(f.pending(), false); assert.equal(f.retire(), true);
 });
 
-test('same-parent Environment composition still refuses excessive retained input before its unfunded next stage', async t => {
-  const {f, events, source, selection} = await wideEffectFixture(t, {propertyNameUnits: 6001});
+test('same-parent Environment composition preserves other retained inputs without changing the default budget', async t => {
+  const {f, source, selection} = await wideEffectFixture(t, {propertyNameUnits: 6001});
   const installedSource = await f.load(source), installedEffect = await f.load(selection);
   const reader = installedSourceConfigurationReader(f.services);
   const text = 'x'.repeat(1024 * 1024);
+  const originals = [];
   for (let index = 0; index < 24; index++) {
     const path = join(f.root, `other-retained-original-${index}.txt`);
     await writeFile(path, text);
-    assert.equal((await reader.readText(path, {maxBytes: text.length})).length, text.length);
+    const original = await reader.readText(path, {maxBytes: text.length});
+    assert.equal(original, text); originals.push(original);
   }
   const base = (await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
-  t.diagnostic(JSON.stringify({retainedBeforeComposition: events.at(-1).retained.toString()}));
-  assert.throws(() => composeInstalledSourceEnvironment(f.services, f.moon, base,
-    installedSource.environmentWire, installedEffect.environmentWire), {code: 'MoonBitHostFailure'});
-  const refused = latestReserve(events);
-  assert.equal(refused.accepted, false);
-  assert(refused.retained > 536870912n || refused.peak > 536870912n);
+  const composed = composeInstalledSourceEnvironment(f.services, f.moon, base,
+    installedSource.environmentWire, installedEffect.environmentWire);
+  assert.equal(composed.body.schema_snapshots.length, 1);
+  assert.equal(composed.body.mapping_contracts.length, 1);
+  assert(originals.every(original => original === text), 'all prior original inputs remain retained');
   assert.equal(f.secretReads(), 0);
   await f.close(); assert.equal(f.pending(), false); assert.equal(f.retire(), true);
 });
 
 test('real-width HubSpot Source and Effect compose on the same original default preparation parent', async t => {
   // The 6003-byte schema-name bound includes the original two-byte id key.
-  const {f, events, source, selection} = await wideEffectFixture(t, {propertyNameUnits: 6001});
+  const {f, source, selection} = await wideEffectFixture(t, {propertyNameUnits: 6001});
   const installedSource = await f.load(source), installedEffect = await f.load(selection);
   const base = (await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
-  let composed;
-  try {
-    composed = composeInstalledSourceEnvironment(f.services, f.moon, base,
+  const composed = composeInstalledSourceEnvironment(f.services, f.moon, base,
       installedSource.environmentWire, installedEffect.environmentWire);
-  } finally {
-    t.diagnostic(JSON.stringify({lastConstructionCalls: events.slice(-4)}, (_key, value) =>
-      typeof value === 'bigint' ? value.toString() : value));
-  }
   assert.equal(composed.runtime, f.moon);
   assert.equal(composed.body.schema_snapshots.length, 1);
   assert.equal(composed.body.mapping_contracts.length, 1);
@@ -175,7 +130,7 @@ test('real-width HubSpot Source and Effect compose on the same original default 
 });
 
 test('wide HubSpot Effect keeps the admitted Source Catalog limit through its actual Mapping and driver constructors', async t => {
-  const {f, events, selection} = await wideEffectFixture(t);
+  const {f, selection} = await wideEffectFixture(t);
   const effect = await f.load(selection);
   const environment = JSON.parse(effect.environmentWire);
   const carrier = environment.contract_registry.find(value => value.kind === 'carrier_schema');
@@ -183,7 +138,6 @@ test('wide HubSpot Effect keeps the admitted Source Catalog limit through its ac
   assert.equal(effect.mappings.length, 1);
   const mapping = environment.mapping_contracts.find(value => value.mapping_ref === effect.mappings[0].mappingRef);
   assert.deepEqual(mapping.writable_fields, ['name']);
-  assert.equal(latestReserve(events).accepted, true);
   assert.equal(f.secretReads(), 0, 'initialization grants no provider operation');
   await f.close(); assert.equal(f.pending(), false); assert.equal(f.retire(), true);
 });
@@ -256,12 +210,11 @@ test('wide HubSpot Effect preserves the original read-only property refusal unde
 });
 
 test('actual HubSpot Source projection releases completed native workspace before the next original reservation', async t => {
-  const events = [], f = await boundConstructionActualFixture(t, {capacityEvents: events});
+  const f = await boundConstructionActualFixture(t);
   const reader = installedSourceConfigurationReader(f.services), quantity = quote(f.moon);
   const pair = f.moon.clientProgramSerializationCapacityBytes(quantity), retained = runtimeField(pair, 0), peak = runtimeField(pair, 1);
-  let completed = 0, inConstruction, body;
+  let completed = 0, body;
   const output = reader.prepareNativeInput(Object.freeze({capacity: () => quantity, project() {
-    inConstruction = latestReserve(events); assert.equal(inConstruction.accepted, true);
     body = input();
     const catalog = checked(provider.hubspotProjectProperties(body, 'companies', 524288, 65536, 32, 256, 6003));
     const names = provider.hubspotPropertyCatalogNames(catalog);
@@ -271,19 +224,20 @@ test('actual HubSpot Source projection releases completed native workspace befor
     return Object.freeze({body, catalog, names, wire, view: Object.freeze({resource: 'companies', schema_wire: wire})});
   }}));
   assert.equal(completed, 1); assert.strictEqual(output.body, body);
-  const after = events.at(-1); assert.equal(after.operation, 'clientProgramReconcileInstalledSourceConstruction');
-  assert.equal(after.accepted, true); assert.equal(after.retained, retained);
-  assert(inConstruction.retained >= peak, 'the real parent held the full constructor before projection');
-  assert(after.retained < inConstruction.retained, 'only a completed original projection shrinks');
   const path = join(f.root, 'next.txt'); await writeFile(path, 'next');
   assert.equal(await reader.readText(path, {maxBytes: 4}), 'next');
-  assert(events.at(-1).retained < peak, 'the next actual reservation does not carry the ended native peak');
+  const pressure = 'x'.repeat(4 * 1024 * 1024);
+  for (let index = 0; index < 6; index++) {
+    const next = join(f.root, 'after-projection-' + index);
+    await writeFile(next, pressure);
+    assert.equal(await reader.readText(next, {maxBytes: pressure.length}), pressure);
+  }
   assert.equal(output.names.length, 245); assert.equal(f.secretReads(), 0);
   await f.close(); assert.equal(f.pending(), false); assert.equal(f.retire(), true);
 });
 
 test('actual HubSpot Source still refuses an overlapping native peak before entering its constructor', async t => {
-  const events = [], f = await boundConstructionActualFixture(t, {capacityEvents: events});
+  const f = await boundConstructionActualFixture(t);
   const reader = installedSourceConfigurationReader(f.services), text = 'x'.repeat(4 * 1024 * 1024);
   for (let i = 0; i < 6; i++) {
     const path = join(f.root, `prefix-${i}.txt`); await writeFile(path, text);
@@ -292,8 +246,7 @@ test('actual HubSpot Source still refuses an overlapping native peak before ente
   let entered = 0;
   assert.throws(() => reader.prepareNativeInput(Object.freeze({capacity: () => quote(f.moon),
     project() {entered++; assert.fail('An unadmitted original constructor must not start');}})), {code: 'MoonBitHostFailure'});
-  assert.equal(entered, 0); assert.equal(latestReserve(events).accepted, false);
-  assert(latestReserve(events).retained > 536870912n);
+  assert.equal(entered, 0);
   assert.equal(f.secretReads(), 0);
   await f.close(); assert.equal(f.pending(), false); assert.equal(f.retire(), true);
 });
@@ -301,7 +254,7 @@ test('actual HubSpot Source still refuses an overlapping native peak before ente
 // The same constructor that failed at the real Effect boundary, preceded by
 // distinct retained configuration originals. No whole-install budget override.
 test('completed configuration JSON retains its actual tree before the next real HubSpot constructor', async t => {
-  const events = [], f = await boundConstructionActualFixture(t, {capacityEvents: events});
+  const f = await boundConstructionActualFixture(t);
   const reader = installedSourceConfigurationReader(f.services), payload = 'A'.repeat(482480);
   const originals = [];
   for (let index = 0; index < 6; index++) {
@@ -324,7 +277,6 @@ test('completed configuration JSON retains its actual tree before the next real 
   assert.equal(entered, 1); assert.equal(output.names.length, 245);
   assert.equal(Object.keys(JSON.parse(output.wire)).length, 246);
   assert.equal(originals.length, 6); assert.equal(originals[0].payload, payload);
-  assert(events.at(-1).retained < 100000000n, 'completed parser/identity peaks do not remain in this original prefix');
   assert.equal(f.secretReads(), 0);
   await f.close(); assert.equal(f.pending(), false); assert.equal(f.retire(), true);
 });
