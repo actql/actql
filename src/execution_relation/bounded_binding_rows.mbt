@@ -279,12 +279,10 @@ fn bounded_comparison_charge_text(
     Captured(@admitted.Date(text)) | Captured(@admitted.Timestamp(text)) =>
       Ok(Some(text))
     Captured(@admitted.Decimal(decimal)) => Ok(Some(decimal.coefficient))
-    Captured(@admitted.Reference(reference)) =>
-      if @admitted.reference_available(reference) {
-        Ok(Some(@admitted.reference_identity_cid(reference)))
-      } else {
-        Err(Scalar(InvalidOperand))
-      }
+    // Admitted reference CIDs have a fixed canonical width. Use the existing
+    // scalar operand charge, including its current-authorization check and
+    // complete CID work debit, rather than reopening the operand per byte.
+    Captured(@admitted.Reference(_)) => Ok(None)
     _ => Ok(None)
   }
 }
