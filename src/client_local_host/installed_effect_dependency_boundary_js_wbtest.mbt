@@ -244,12 +244,14 @@ fn dependency_boundary_execute_static(
   count : Int,
   complete? : Bool = false,
   program_id_width? : Int = 0,
+  expect_execution_refusal? : Bool = false,
 ) -> Unit raise {
-  // This component deliberately holds fresh artifacts and a second decoded
-  // cold inventory simultaneously. Select its finite dual-copy TEST ceiling
-  // at the original intake; this does not preallocate that memory.
-  let selected_memory = if complete && count == 2050 {
-    Some(1073741824L)
+  // The 2050-port component retains its original Request/Source alongside
+  // the materializing Compute quote. Complete variants additionally retain
+  // fresh and cold inventories. Select the existing finite TEST ceiling at
+  // intake; a separate same-input512MiB case preserves actual budget refusal.
+  let selected_memory = if count == 2050 {
+    Some(if expect_execution_refusal { 536870912L } else { 1073741824L })
   } else {
     None
   }
@@ -405,18 +407,102 @@ fn dependency_boundary_execute_static(
       let codes = dependency_boundary_failure_codes(
         local_values_execution_failure_issue(failure),
       )
+      let reports = []
+      for index in 0..<@strategy.strategy_report_count(dag) {
+        let report = @strategy.strategy_report_at(dag, index).unwrap()
+        reports.push(
+          "R=" +
+          report.retained_bytes.to_string() +
+          ";E=" +
+          report.execution_bytes.to_string() +
+          ";reject=" +
+          @debug.to_string(report.rejection),
+        )
+      }
+      let selected = @resources.ledger_admission_limits(original.parent.ledger)
+      let live = @resources.ledger_usage(original.parent.ledger)
+      if expect_execution_refusal {
+        assert_eq(count, 2050)
+        assert_eq(
+          (selected.retained_bytes, selected.execution_bytes),
+          (536870912L, 536870912L),
+        )
+        assert_true(
+          local_values_execution_failure_issue(failure) is Estimate(NoStrategy),
+        )
+        assert_true(@strategy.strategy_report_count(dag) > 0)
+        let remaining = selected.execution_bytes - live.reserved_execution_bytes
+        assert_true(remaining >= 0L)
+        for index in 0..<@strategy.strategy_report_count(dag) {
+          let report = @strategy.strategy_report_at(dag, index).unwrap()
+          assert_true(report.rejection is Some(@resources.ExecutionLimit))
+          assert_true(report.execution_bytes > remaining)
+        }
+        assert_true(
+          physical_equal(
+            installed_effect_managed_operation_plan(
+              original.run,
+              plan.prepared,
+              plan.request,
+            ).unwrap(),
+            plan,
+          ),
+        )
+        assert_eq(live.attempts, 1)
+        assert_false(original.run.publication_started)
+        assert_true(original.run.publication is None)
+      }
       for _ in 0..<10000 {
         if retry_local_values_execution_failure_cleanup(failure) {
           break
         }
       }
+      assert_false(local_values_execution_failure_cleanup_pending(failure))
       retire_installed_source_read(read).unwrap()
       retire_installed_managed_run(original.run).unwrap()
+      if expect_execution_refusal {
+        let cleaned = @resources.ledger_usage(original.parent.ledger)
+        assert_eq(cleaned.attempts, 1)
+        assert_eq(cleaned.live_reservations, 0)
+        assert_eq(
+          (
+            cleaned.reserved_retention_bytes,
+            cleaned.reserved_execution_bytes,
+            cleaned.held_bytes,
+          ),
+          (0L, 0L, 0L),
+        )
+        println(
+          "DependencyBoundary.ExecutionRefusal same2050 imports; actualquote exceeds same remaining execution; final_live_reservations=0",
+        )
+        return
+      }
       fail(
         "DependencyBoundary.ExecutionConstructors=" +
-        codes.to_json().stringify(),
+        codes.to_json().stringify() +
+        ";reports=" +
+        reports.to_json().stringify() +
+        ";selected=" +
+        @debug.to_string(selected) +
+        ";live=" +
+        @debug.to_string(live),
       )
     }
+  }
+  if expect_execution_refusal {
+    let mut closed = execution.close()
+    for _ in 0..<10000 {
+      if closed {
+        break
+      }
+      closed = execution.close()
+    }
+    assert_true(closed)
+    retire_installed_source_read(read).unwrap()
+    retire_installed_managed_run(original.run).unwrap()
+    fail(
+      "the explicit512MiB original must retain its actual execution-budget refusal",
+    )
   }
   assert_eq(execution.rows().unwrap(), ["{\"id\":3}", "{\"id\":5}"])
   let inputs = pin_installed_effect_sources(
@@ -507,6 +593,11 @@ test "two alias original Source issuer and actual Compute reach retained static 
 ///|
 test "2050 actual imports compile and Compute under finite TEST graph4M without changing default1M" {
   dependency_boundary_execute_static(2050)
+}
+
+///|
+test "2050 actual imports keep explicit512MiB execution refusal and original cleanup" {
+  dependency_boundary_execute_static(2050, expect_execution_refusal=true)
 }
 
 ///|
