@@ -1009,9 +1009,35 @@ fn assert_captured_keyed_count_chain_budget(
       (14 - max_entries).to_int64(),
       1,
     ).unwrap()
+    // This all-bounded chain no longer prepays the generic live-value region.
+    // The n > 0 predicate coholds the one-byte numeric operands, then
+    // releases both before retaining the four-byte true result (both n=1).
+    // Logical working extent counts canonical bytes, not just root handles:
+    // max(1+1,4)=4. It is separate from cursor slots and accepted output DATA.
+    // Exact and one-byte-short runs below enforce this independent peak.
+    let logical_peak = Int64::max(1L + 1L, 4L)
+    let logical = @execution.execution_capacity_inventory_add(
+        0L,
+        @execution.ValueNodeSlots,
+        logical_peak,
+        1,
+      )
+      .bind(bytes => {
+        @execution.execution_capacity_inventory_add(
+          bytes,
+          @execution.CanonicalWireBytes,
+          logical_peak,
+          1,
+        )
+      })
+      .unwrap()
     let required = @execution.checked_preparation_add_product(
-      persistent, workspace, 1L,
-    ).unwrap()
+        persistent, workspace, 1L,
+      )
+      .bind(bytes => {
+        @execution.checked_preparation_add_product(bytes, logical, 1L)
+      })
+      .unwrap()
     let headroom = required - (if expected == "workspace" { 1L } else { 0L })
     let available = @resources.ledger_limits(ledger).execution_bytes -
       @resources.ledger_usage(ledger).reserved_execution_bytes
@@ -1243,11 +1269,16 @@ test "ordinary keyed count chain reserves overlapping child capacity" {
   // Completed outputs still overlap. Confirmed child cleanup bounds scratch
   // to one live execution; the independent lifetime fixtures certify retirement.
   // Input-selection and common-read cursors coexist in two 256-byte handles.
-  assert_true(retained + scratch > base.execution_bytes)
   assert_eq(capacity.retained_bytes, base.retained_bytes)
   assert_eq(
     capacity.execution_bytes,
-    retained + scratch + count.to_int64() * 256L + 512L,
+    // The generic sequence's execution quote is not an ordering oracle for
+    // this audited chain. Its persistent output floor and the independently
+    // coheld child outputs/scratch/handles are simultaneous obligations.
+    Int64::max(
+      base.retained_bytes,
+      retained + scratch + count.to_int64() * 256L + 512L,
+    ),
   )
   @strategy.stop_captured_dag(run)
   @mock.close_mock_query_issuer(issuer)
