@@ -151,6 +151,8 @@ function effectApplicationControl(moon) {
     previewOrderedRowCid: moon.strategyEffectPreviewOrderedRowCid,
     recoveryBindings: (...args) => checked(
       moon.strategyEffectRecoveryBindings(...args)),
+    recoveryBindingsFromKeys: (...args) => checked(
+      moon.clientProgramEffectRecoveryBindingsFromKeys(...args)),
     recoveryBindingLocatorCid:
       moon.strategyEffectRecoveryBindingLocatorCid,
     recoverClaimsFromHeads: (...args) => checked(

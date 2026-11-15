@@ -189,3 +189,24 @@ pub fn client_program_recovered_effect_captured_run_sources(
     max_bytes, max_nodes, max_depth,
   )
 }
+
+///|
+/// Borrow the already funded key cohort for this admitted Preview's claims.
+/// This returns locator DATA, never a physical dispatch permission.
+#export_name("clientProgramEffectRecoveryBindingsFromKeys")
+pub fn client_program_effect_recovery_bindings_from_keys(
+  preview : @publication.EffectPreviewIdentity,
+  scope : @effect.LogicalRequestScope,
+  program_id : String,
+  node_id : String,
+  keys : Array[Array[@effect.EffectDispatchKey]],
+  max_rows : Int,
+  max_work : Int,
+) -> Result[
+  Array[Array[@effect.EffectRecoveryBinding]],
+  @effect.EffectRecoveredClaimIssue,
+] {
+  @effect.prepare_effect_recovery_bindings_from_keys(
+    preview, scope, program_id, node_id, keys, max_rows, max_work,
+  )
+}

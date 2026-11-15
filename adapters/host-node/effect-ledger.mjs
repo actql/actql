@@ -498,7 +498,7 @@ export function openEffectLedger({
     // recorded intents: current whole-set admission and the exact physical
     // request must be checked again before any dispatch.
     recoverClaimFacts({preview, scope, programId, nodeId, maxRows,
-      maxWork}) {
+      maxWork}, originalKeys) {
       if (!preview || !scope || typeof programId !== 'string' ||
           typeof nodeId !== 'string' ||
           !Number.isSafeInteger(maxRows) || maxRows < 1 ||
@@ -508,8 +508,12 @@ export function openEffectLedger({
           control.logicalRequestScopeCid(scope) !== scopeCid) {
         fail('InvalidEffectRecordedClaimRecovery');
       }
-      const bindings = control.recoveryBindings(preview, scope, programId,
-        nodeId, maxRows, maxWork);
+      // The managed recovery already funded and admitted these exact keys.
+      // Borrow that cohort; do not encode and retain another correlation set.
+      const bindings = originalKeys === undefined
+        ? control.recoveryBindings(preview, scope, programId, nodeId, maxRows, maxWork)
+        : control.recoveryBindingsFromKeys(preview, scope, programId, nodeId,
+          originalKeys, maxRows, maxWork);
       const locatorCids = bindings.flatMap(rows => rows.map(binding =>
         control.recoveryBindingLocatorCid(binding)));
       if (locatorCids.length === 0 || locatorCids.length > maxRows ||

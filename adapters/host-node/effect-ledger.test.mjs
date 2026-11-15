@@ -272,6 +272,17 @@ test('whole-set intents are durable and atomic before any dispatch',
       claim => claim.canonicalRequestCid)),
     claims.map(rows => rows.map(claim => claim.canonicalRequestCid)));
     assert.equal(effect.setFrontierReadyCount(recovered.frontier), 2);
+    const originalKeys = claims.map(rows => rows.map(claim => claim.key));
+    const borrowed = restarted.recoverClaimFacts({
+      preview: admitted, scope: claims[0][0].scope,
+      programId: 'program-1', nodeId: 'node-1', maxRows: 3, maxWork: 100,
+    }, originalKeys);
+    for (const [member, rows] of borrowed.members.entries()) {
+      for (const [row, claim] of rows.claims.entries()) {
+        assert.strictEqual(claim.key, originalKeys[member][row]);
+        assert.equal(claim.canonicalRequestCid, claims[member][row].canonicalRequestCid);
+      }
+    }
     assert.throws(() => restarted.recoverClaimFacts({
       preview: admitted, scope: claims[0][0].scope,
       programId: 'another-program', nodeId: 'node-1',

@@ -3490,7 +3490,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       const recorded = ledger.recoverClaimFacts({preview: admitted,
         scope: requestScope, programId: provider.program_id,
         nodeId: provider.stage_id, maxRows: limits.maxRows,
-        maxWork: limits.maxWork});
+        maxWork: limits.maxWork}, keys);
       assertCurrent?.();
       ({entries, currents} = prepareRecoveredEntries({members, body, durable, maxRows: limits.maxRowsPerMember,
         recorded, previewWire, runInvocationCid, dispatches,

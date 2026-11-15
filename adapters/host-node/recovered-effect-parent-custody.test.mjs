@@ -29,8 +29,10 @@ function fixture(selected=true){
     assert(retained,'parent retained before factory');events.push('construct child');return child;}}:{}};
   const members=[{memberIndex:0}],body={invocation_cid:'invocation',run_identity_cid:'run',
     authoring_context:{authoring_context_cid:'author'},effects:[{capability_evidence_cid:'capability',changes:[]}]};
-  const effect={recoveredPreviewKeys:()=>[[]],admitPreviewIdentity:()=>({})};
-  const ledger={close(){events.push('close ledger');},recoverClaimFacts:()=>({})};
+  const keys=[[]];let keyConstructions=0;
+  const effect={recoveredPreviewKeys:()=>{keyConstructions++;return keys;},admitPreviewIdentity:()=>({})};
+  const ledger={close(){events.push('close ledger');},recoverClaimFacts(_options,originalKeys){
+    assert.strictEqual(originalKeys,keys);events.push('borrow original keys');return{};}};
   const bindings={moon,owners:[owner],singular:undefined,limits:{maxMembers:1,maxRows:10,maxWork:100,
     key:{maxBytes:100,maxNodes:10,maxDepth:5},
     preview:{maxWireBytes:1000,maxNodes:100,maxDepth:10}},localContractLimits:{},ROUTING_VERSION:'original',
@@ -54,8 +56,17 @@ function fixture(selected=true){
     continuation:{version:'original',program_id:'program',stage_id:'stage',
       members:[{dispatch_request_cid:'dispatch'}]},
     retainRecoveryOwner(value){assert.equal(retained,undefined);retained=value;events.push('retain parent');}};
-  return{fn,facts,events,stop,parent:()=>retained,ack(){ack=true;},prepare(value){prepare=value;}};
+  return{fn,facts,events,stop,parent:()=>retained,keyConstructions:()=>keyConstructions,
+    ack(){ack=true;},prepare(value){prepare=value;}};
 }
+
+test('cold claim recovery borrows its single original key cohort before capability admission',()=>{
+  const f=fixture(false);
+  assert.throws(()=>f.fn(f.facts),error=>error===f.stop);
+  assert.equal(f.keyConstructions(),1);
+  assert.equal(f.events.filter(value=>value==='borrow original keys').length,1);
+  assert(f.events.indexOf('borrow original keys')<f.events.indexOf('capability'));
+});
 
 test('selected recovered Content stays in the original parent across await and pending cleanup',async()=>{
   const f=fixture();let enter,release;
