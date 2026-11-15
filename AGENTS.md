@@ -61,3 +61,19 @@ Open that file directly if the client does not discover repository skills.
 
 Runtime builds, tarballs and reviewed generated artifacts follow
 [Runtime package artifacts](docs/development.md#runtime-package-artifacts).
+
+## Maintainable regression tests
+
+- Exercise actual imported functions or public entry points. Do not reconstruct
+  private production functions with source slicing and `eval`/`Function`.
+- Assert results, refusal causes, authorization, ownership, resource accounting
+  and cleanup. Helper names, unrelated source bytes, test grouping and historical
+  command counts are not behavioral contracts.
+- Define test and build recipes once. Check required coverage and prerequisite
+  behavior instead of duplicating complete command strings in assertions.
+- Keep independent expected values and canonical protocol, CID, ABI and artifact
+  identity checks. A source-shape restriction needs a specific safety or machine
+  contract; it must not freeze unrelated code.
+- Remove migration-only snapshots after the current behavior has its own
+  regression coverage. Do not maintain tests whose only assertion is that other
+  tests or fixtures have not changed since an old implementation.
