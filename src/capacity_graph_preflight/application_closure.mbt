@@ -75,20 +75,39 @@ pub fn check_application_closure(
     let producer_count = @program.application_producer_count(
       app.sources.program,
     )
+    // The prepared closure registers descendants in their original array
+    // order. Continue from that same position instead of rescanning its
+    // prefix for every dependency. The wraparound retains full membership
+    // checks for arbitrary external order and equal-CID foreign owners.
+    let mut producer_start = i + 1
     for dependency in 0..<producer_count {
       let producer = @program.application_producer_at(
         app.sources.program,
         dependency,
       ).unwrap()
       let mut found = false
-      for candidate in applications {
+      for candidate in producer_start..<applications.length() {
         if work == max_work {
           return Err(ProofWorkLimit)
         }
         work += 1
-        if physical_equal(producer, candidate.sources.program) {
+        if physical_equal(producer, applications[candidate].sources.program) {
           found = true
+          producer_start = candidate + 1
           break
+        }
+      }
+      if !found {
+        for candidate in 0..<producer_start {
+          if work == max_work {
+            return Err(ProofWorkLimit)
+          }
+          work += 1
+          if physical_equal(producer, applications[candidate].sources.program) {
+            found = true
+            producer_start = candidate + 1
+            break
+          }
         }
       }
       if !found {
@@ -98,17 +117,32 @@ pub fn check_application_closure(
     let expected = @pipeline.contextual_orders_pipeline(
       @pipeline.contextual_closure_at(orders, i).unwrap(),
     )
+    let mut graph_start = i + 1
     for dependency in 0..<@input.dependency_count(app.sources.graph) {
       let graph = @input.dependency_at(app.sources.graph, dependency).unwrap()
       let mut found = false
-      for candidate in applications {
+      for candidate in graph_start..<applications.length() {
         if work == max_work {
           return Err(ProofWorkLimit)
         }
         work += 1
-        if physical_equal(graph, candidate.sources.graph) {
+        if physical_equal(graph, applications[candidate].sources.graph) {
           found = true
+          graph_start = candidate + 1
           break
+        }
+      }
+      if !found {
+        for candidate in 0..<graph_start {
+          if work == max_work {
+            return Err(ProofWorkLimit)
+          }
+          work += 1
+          if physical_equal(graph, applications[candidate].sources.graph) {
+            found = true
+            graph_start = candidate + 1
+            break
+          }
         }
       }
       if !found {
