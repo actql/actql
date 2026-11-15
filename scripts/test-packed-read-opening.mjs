@@ -8,6 +8,7 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {checkoutState, packClientPackages, packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
 import {nodeTestArguments, assertTestExecution} from './test-execution.mjs';
+import {packedFixtureSupport} from './packed-fixture-support.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const cancellationOnly = process.argv.slice(2).includes('--cancellation-only');
@@ -55,7 +56,7 @@ run('npm', ['install', '--ignore-scripts', '--no-save', '--no-audit', '--no-fund
 const installedHost = join(root, 'node_modules/@actql/local-node');
 const fixtureDirectory = join(root, 'adapters/host-node');
 await mkdir(fixtureDirectory, {recursive: true});
-const support = [
+const fixtureInputs = [
   'adapters/host-node/client-read-opening.test.mjs',
   'adapters/host-node/client-read-opening.fixture.mjs',
   'adapters/host-node/funded-client-preparation.fixture.mjs',
@@ -85,6 +86,7 @@ const support = [
   'packages/sdk/fixtures/values.json',
   'packages/sdk/fixtures/values.environment.json',
 ];
+const support = packedFixtureSupport(repository, fixtureInputs);
 for (const path of support) {
   const output = join(root, path);
   await mkdir(join(output, '..'), {recursive: true});

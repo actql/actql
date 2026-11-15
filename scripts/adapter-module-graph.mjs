@@ -5,10 +5,10 @@ import {buildSync} from 'esbuild';
 
 // Preserve every resolved source input before a caller applies an ownership
 // projection. Bare package imports remain external, as in ordinary packaging.
-export function localModuleGraphInputs(root, entries) {
+export function localModuleGraphInputs(root, entries, {external = []} = {}) {
   entries = [...new Set(entries)];
   const graph = buildSync({entryPoints: entries, bundle: true,
-    packages: 'external', platform: 'node', format: 'esm', target: 'node22',
+    packages: 'external', external, platform: 'node', format: 'esm', target: 'node22',
     metafile: true, write: false, absWorkingDir: root,
     outdir: join(root, '_build/local-node-adapter-graph')});
   return Object.keys(graph.metafile.inputs).sort();

@@ -14,6 +14,7 @@ import './npm-pack-json.test.mjs';
 import './normal-pack-source-inputs.test.mjs';
 import {packClientPackages, packedClientPackage, pinnedDuckDBPackage} from
   './packed-client-packages.mjs';
+import {packedFixtureSupport} from './packed-fixture-support.mjs';
 
 const tarball = name => `actql-${name}-0.0.0-development.tgz`;
 const git = (repository, ...args) => execFileSync('git', args,
@@ -21,7 +22,7 @@ const git = (repository, ...args) => execFileSync('git', args,
 
 // Exercise the actual packed wrapper callback without running a producer or
 // replacing its import decisions with a second test implementation.
-async function readOpeningImportRewriter(repository, path, installedHost) {
+async function readOpeningImportRewriter(repository, path, installedHost, existingSupport) {
   const {parse} = await import('acorn');
   const source = await readFile(new URL('./test-packed-read-opening.mjs', import.meta.url), 'utf8');
   const callbacks = [], supports = [];
@@ -33,7 +34,7 @@ async function readOpeningImportRewriter(repository, path, installedHost) {
         node.arguments[1].params.map(parameter => parameter.name).join(',') === 'original,quote,specifier') {
       callbacks.push(node);
     }
-    if (node.type === 'VariableDeclarator' && node.id.name === 'support') supports.push(node.init);
+    if (node.type === 'VariableDeclarator' && node.id.name === 'fixtureInputs') supports.push(node.init);
     for (const value of Object.values(node)) {
       if (Array.isArray(value)) value.forEach(visit);
       else if (value !== null && typeof value === 'object') visit(value);
@@ -43,11 +44,12 @@ async function readOpeningImportRewriter(repository, path, installedHost) {
   assert.equal(callbacks.length, 1);
   assert.equal(supports.length, 1);
   const call = callbacks[0], callback = call.arguments[1];
-  const support = supports[0].elements.map(value => value.value);
+  const support = existingSupport ??
+    packedFixtureSupport(repository, supports[0].elements.map(value => value.value));
   const pattern = new RegExp(call.arguments[0].regex.pattern, call.arguments[0].regex.flags);
-  const replacement = Function('relative', 'resolve', 'pathToFileURL', 'repository', 'path', 'support', 'installedHost',
+  const replacement = Function('relative', 'resolve', 'join', 'pathToFileURL', 'repository', 'path', 'support', 'installedHost',
     `return (${source.slice(callback.start, callback.end)});`)(
-      relative, resolve, pathToFileURL, repository, path, support, installedHost);
+      relative, resolve, join, pathToFileURL, repository, path, support, installedHost);
   const rewrite = text => text.replace(pattern, replacement);
   rewrite.support = support;
   return rewrite;
@@ -58,16 +60,19 @@ test('packed read-opening stages its complete authored static helper closure', a
   const repository = fileURLToPath(new URL('../', import.meta.url));
   const first = await readOpeningImportRewriter(repository,
     'adapters/host-node/client-read-opening.fixture.mjs', '/installed-local-node');
+  assert(first.support.includes('scripts/fixtures/packed-infer-preparation-diagnostic.mjs'));
+  assert(!first.support.includes('adapters/host-node/embedded-local.mjs'));
   for (const path of first.support.filter(path => path.endsWith('.mjs'))) {
-    const syntax = parse(await readFile(join(repository, path), 'utf8'),
-      {sourceType: 'module', ecmaVersion: 'latest'});
+    const source = await readFile(join(repository, path), 'utf8');
+    const syntax = parse(source, {sourceType: 'module', ecmaVersion: 'latest'});
+    const rewrite = await readOpeningImportRewriter(repository, path, '/installed-local-node', first.support);
     for (const declaration of syntax.body) {
       const specifier = declaration.source?.value;
       if (!specifier?.startsWith('.')) continue;
       const target = relative(repository, resolve(repository, path, '..', specifier));
-      if (/(?:\.fixture|\.test|\.child)\.mjs$/u.test(target)) {
-        assert(first.support.includes(target), `Missing authored helper: ${path} -> ${target}`);
-      }
+      if (first.support.includes(target)) continue;
+      const original = source.slice(declaration.start, declaration.end);
+      assert.notEqual(rewrite(original), original, `Unstaged checkout import: ${path} -> ${target}`);
     }
   }
   const path = 'adapters/host-node/funded-client-preparation.fixture.mjs';
@@ -78,6 +83,35 @@ test('packed read-opening stages its complete authored static helper closure', a
   assert.equal(rewrite(imported), "import {freezeInput} from '@actql/sdk/_internal/source-preparation';");
   const manifest = JSON.parse(await readFile(join(repository, 'packages/sdk/package.json'), 'utf8'));
   assert.equal(manifest.exports['./_internal/source-preparation'], './internal/private-source-preparation.mjs');
+});
+
+test('packed fixture support follows unnamed transitive helpers without copying product modules', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-packed-fixture-graph-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  await writeFile(join(root, 'product.mjs'), 'export const product = 1;\n');
+  await writeFile(join(root, 'entry.mjs'),
+    "import {product} from './product.mjs'; export {value} from './first.mjs';\n");
+  await writeFile(join(root, 'first.mjs'), "export {value} from './second.mjs';\n");
+  await writeFile(join(root, 'second.mjs'), 'export const value = 2;\n');
+  const options = {productEntries: ['product.mjs']};
+  assert.deepEqual(packedFixtureSupport(root, ['entry.mjs'], options),
+    ['entry.mjs', 'first.mjs', 'second.mjs']);
+  await writeFile(join(root, 'second.mjs'), "export {value} from './third.mjs';\n");
+  await writeFile(join(root, 'third.mjs'), 'export const value = 3;\n');
+  assert.deepEqual(packedFixtureSupport(root, ['entry.mjs'], options),
+    ['entry.mjs', 'first.mjs', 'second.mjs', 'third.mjs']);
+});
+
+test('packed fixture support refuses a transitive source outside its checkout', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-packed-fixture-foreign-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const repository = join(root, 'checkout');
+  await mkdir(repository);
+  await writeFile(join(repository, 'product.mjs'), 'export const product = 1;\n');
+  await writeFile(join(repository, 'entry.mjs'), "export {value} from '../foreign.mjs';\n");
+  await writeFile(join(root, 'foreign.mjs'), 'export const value = 2;\n');
+  assert.throws(() => packedFixtureSupport(repository, ['entry.mjs'],
+    {productEntries: ['product.mjs']}), /Unpackaged fixture import:/u);
 });
 
 test('packed capacity group includes every existing policy and recovery entrance', async () => {
