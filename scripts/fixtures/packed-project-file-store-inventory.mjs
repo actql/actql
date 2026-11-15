@@ -192,13 +192,13 @@ try {
       await save(join(directory, 'approval.json'), resolution);
       assert.equal(resolution.results.length, 1); assert.equal(resolution.results[0].status, 'committed');
       const signal = AbortSignal.timeout(15_000);
-      let state;
+      let resumedState;
       do {
-        state = await run.status({signal});
-        if (!['waiting_checkpoint', 'resuming', 'running'].includes(state.status)) break;
+        resumedState = await run.status({signal});
+        if (!['waiting_checkpoint', 'resuming', 'running'].includes(resumedState.status)) break;
         await delay(20, undefined, {signal});
       } while (true);
-      assert.equal(state.status, 'succeeded'); assert.equal(state.run_id, original.runId);
+      assert.equal(resumedState.status, 'succeeded'); assert.equal(resumedState.run_id, original.runId);
     } else assert.equal(state.status, 'succeeded');
   }
   if (phase !== 'capture') {
