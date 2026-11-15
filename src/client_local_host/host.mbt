@@ -804,7 +804,10 @@ fn bind_client_local_configuration(
       1,
     ) {
     Ok(value) => {
-      if first_compute == 1 {
+      if first_compute == 0 || first_compute == 1 {
+        // Install the same lazy estimator for an explicit row-file fallback.
+        // Managed preparation selects its actual candidate without refreshing
+        // this policy; the legacy next-task boundary performs the search.
         let fractions = Array::make(
           @strategy.graph_task_count(graph) - first_compute,
           Some(1000),

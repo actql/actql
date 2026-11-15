@@ -174,6 +174,21 @@ pub fn execute_source_free_values_guarded(
     stop_local_values_run(run)
     return Err(failed_local_values_execution(Fenced))
   }
+  // The one-task helper selects the same prepared managed implementation as
+  // the task-chain executor. A configured legacy fallback policy grants no
+  // authority to start a different or unselected managed registration.
+  match
+    @strategy.select_captured_managed_registration(
+      run,
+      0,
+      @local_driver.local_dispatch_registration(installed),
+    ) {
+    Ok(_) => ()
+    Err(issue) => {
+      stop_local_values_run(run)
+      return Err(failed_local_values_execution(Driver(Execution(issue))))
+    }
+  }
   let operations = match
     @local_driver.start_local_managed_dispatch_node(prepared) {
     Ok(value) => value
