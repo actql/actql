@@ -1,4 +1,27 @@
 ///|
+// Price the closed context inventory with independent unit tariffs, rather
+// than copying a refused byte demand. These synthetic grants only arrange
+// the zero-spare scan boundary; they are not an installed memory profile.
+fn original_input_body_zero_spare_setup() -> Int64 {
+  let unit = fn(headers, references, words) {
+    @relation.preparation_representation_cost({
+      record_headers: headers,
+      reference_slots: references,
+      scalar_words: words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }).unwrap()
+  }
+  // Original bootstrap3 + claimed Read7; the identity context retains its
+  // tuple/Ref, scalar emitter report and opaque materialization-link envelope.
+  3L +
+  7L +
+  12L * unit(1L, 0L, 0L) +
+  24L * unit(0L, 1L, 0L) +
+  20L * unit(0L, 0L, 1L)
+}
+
+///|
 // Actual checked input/Read/Model with the existing fixture provider and
 // synthetic explicit byte grants. This is not installed physical admission.
 test "original first input scan retains its body through Model and the same accepted observation" {
@@ -121,9 +144,8 @@ test "original first input scan capacity refusal preserves its read and never ca
   let (active, ledger, consumer) = original_observation_test_start(
     provider=original_funded_start_provider(calls),
     input_body=true,
-    // Original ten-byte zero-spare fixture plus the new48-byte cache link.
-    // No scan workspace fits; the product's installed budgets are unchanged.
-    input_read_ceiling=Some(58L),
+    // Admit the complete fixed context, leaving no byte for the first scan.
+    input_read_ceiling=Some(original_input_body_zero_spare_setup()),
   )
   assert_true(
     fixture_finish(active)
@@ -141,46 +163,51 @@ test "original first input scan capacity refusal preserves its read and never ca
   assert_eq(calls.val, 0)
   assert_true(active.identity is None)
   assert_true(active.original_preparation is Some(_))
-  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 58L)
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_retention_bytes,
+    original_input_body_zero_spare_setup(),
+  )
   assert_true(cleanup(active).unwrap())
   original_composed_test_release(ledger, consumer)
 }
 
 ///|
-test "original restored input body refuses capacity and cancellation before scanning or Model" {
+test "original restored input body refuses import capacity and cancellation before scanning or Model" {
   for stop in [false, true] {
     let calls = Ref(0)
-    let (active, ledger, consumer) = original_observation_test_start(
+    let selected = Ref((0L, 0L))
+    let (attempted, ledger, consumer) = original_observation_test_attempt(
       provider=original_funded_start_provider(calls),
       input_body=true,
       restored_input=true,
-      input_read_ceiling=if stop { None } else { Some(58L) },
+      short_restored_import=if stop { None } else { Some(selected) },
     )
-    assert_true(active.identity_body is Some(_))
-    assert_true(active.identity is None)
     if stop {
+      let active = original_observation_test_started(attempted)
+      assert_true(active.identity_body is Some(_))
+      assert_true(active.identity is None)
       assert_true(cancel(active))
       assert_true(fixture_finish(active) is Stopped(..))
+      assert_true(active.identity is None)
+      assert_true(active.original_preparation is Some(_))
+      assert_true(cleanup(active).unwrap())
     } else {
+      // A real original Read admits its fixed context and descriptor before
+      // rejecting the import's independently priced demand by exactly1 byte.
+      // No Execution/identity scan or Model is constructed on this branch.
       assert_true(
-        fixture_finish(active)
-        is Failed(
-          OriginalCapacity(
-            @publication_host.Read(
-              @publication_host.Resource(
-                @resources.Resource(@resources.RetentionLimit)
-              )
-            )
-          ),
-          ..
-        ),
+        attempted is Err(Input(@input.RetainedInput(@input.CustodyUnavailable))),
       )
-      assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 58L)
+      let usage = @resources.ledger_usage(ledger)
+      assert_true(
+        selected.val.0 < standard_limits().model.ledger.retained_bytes,
+      )
+      assert_eq(
+        selected.val.0 - usage.held_bytes - usage.reserved_retention_bytes,
+        selected.val.1 - 1L,
+      )
     }
     assert_eq(calls.val, 0)
-    assert_true(active.identity is None)
-    assert_true(active.original_preparation is Some(_))
-    assert_true(cleanup(active).unwrap())
     original_composed_test_release(ledger, consumer)
   }
 }
