@@ -140,6 +140,7 @@ fn local_effective_import_limits(
 fn local_dispatch_ready_input_capacity(
   installed : LocalDispatchModule,
   task : Int,
+  max_work : Int,
 ) -> Result[@strategy.PhysicalEnvelope, LocalDispatchIssue] {
   guard local_dispatch_preparation_task_capacity(installed.preparation, task)
     is Some(planned) else {
@@ -155,18 +156,33 @@ fn local_dispatch_ready_input_capacity(
     is Some(total) else {
     return Err(Configuration(InvalidLimits))
   }
+  if total == 0 {
+    return Ok(planned)
+  }
+  guard local_dispatch_preparation_input_scan_work(installed.preparation, task)
+    is Some(visits) && visits <= max_work else {
+    return Err(Configuration(InvalidLimits))
+  }
+  match @resources.charge_planning(
+    @strategy.captured_dag_ledger(installed.run), visits,
+  ) {
+    Err(issue) => return Err(Execution(Physical(issue)))
+    Ok(_) => ()
+  }
   let first = @strategy.captured_compute_first_task(installed.run)
   let mut missing = total
-  for
-    index, producer in @strategy.captured_next_managed_producers(installed.run) {
-    if producer >= 0 && producer < first {
+  let graph = installed.preparation.graph
+  for data_index in 0..<@strategy.graph_data_count(graph) {
+    let edge = @strategy.graph_data_at(graph, data_index).unwrap()
+    if edge.consumer == task && edge.producer >= 0 && edge.producer < first {
       let read = match
         @strategy.captured_task_input(
           installed.run,
           task,
           @local.local_module_execution_limits(installed.implementation).rows.metadata_entries,
           metadata.name_bytes,
-          input_index=index,
+          input_index=edge.input,
+          data_index~,
         ) {
         Ok(value) => value
         Err(issue) => return Err(Execution(issue))
@@ -217,11 +233,7 @@ pub fn estimate_local_dispatch_offer(
   if !local_dispatch_offer_supported(installed, task) {
     return Err(Configuration(ComputeUnsupported))
   }
-  if installed.import_policy is Some(_) &&
-    @strategy.graph_data_count(installed.preparation.graph) > max_work {
-    return Err(Configuration(InvalidLimits))
-  }
-  let capacity = match local_dispatch_ready_input_capacity(installed, task) {
+  let capacity = match local_dispatch_ready_input_capacity(installed, task, max_work) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

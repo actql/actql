@@ -18,6 +18,29 @@ struct LocalDispatchPreparation {
 }
 
 ///|
+/// Exact visits of the ready-input graph scan. Each selected edge reuses its
+/// original checked position for input binding, avoiding a new graph walk per
+/// input. This pure extent grants no read and constructs no producer array.
+pub fn local_dispatch_preparation_input_scan_work(
+  original : LocalDispatchPreparation,
+  task : Int,
+) -> Int? {
+  let slot = task - @strategy.graph_captured_prefix(original.graph)
+  guard original.input_counts.get(slot) is Some(inputs) && inputs >= 0 else {
+    return None
+  }
+  if inputs == 0 {
+    return Some(0)
+  }
+  let visits = @strategy.graph_data_count(original.graph).to_int64()
+  if visits < 0L || visits > 2147483647L {
+    None
+  } else {
+    Some(visits.to_int())
+  }
+}
+
+///|
 /// Select the actual installed physical steps/prefixes before opening a Run.
 /// The caller retains its existing preparation funding and admission duties.
 /// Capacity accessors quote the same module later used by the bound driver.

@@ -1351,6 +1351,7 @@ pub fn captured_task_input(
   max_entries : Int,
   max_name_bytes : Int,
   input_index? : Int = 0,
+  data_index? : Int = -1,
 ) -> Result[@execution.ProducerRead, RunIssue] {
   if run.stopped {
     return Err(Stopped)
@@ -1361,6 +1362,15 @@ pub fn captured_task_input(
   if input_index < 0 || input_index >= run.inputs[task].length() {
     return Err(NotReady)
   }
+  if data_index >= 0 {
+    guard run.graph.data_at(data_index) is Some(edge) &&
+      edge.consumer == task &&
+      edge.input == input_index else {
+      return Err(NotReady)
+    }
+  } else if data_index != -1 {
+    return Err(NotReady)
+  }
   if run.inputs[task][input_index] is Some(read) {
     if !@execution.producer_read_available(read) {
       let issue = RunIssue::Read(@execution.ProducerUnavailable)
@@ -1369,12 +1379,20 @@ pub fn captured_task_input(
     }
     return Ok(read)
   }
-  let mut selected : DataEdge? = None
-  for edge in run.graph.data_iter() {
-    if edge.consumer == task && edge.input == input_index {
-      selected = Some(edge)
-      break
+  // An installed caller already walking this exact immutable graph can
+  // supply its original edge position. The position grants no binding:
+  // retain exact receiving task/port checks and all original read guards.
+  let selected = if data_index >= 0 {
+    run.graph.data_at(data_index)
+  } else {
+    let mut selected : DataEdge? = None
+    for edge in run.graph.data_iter() {
+      if edge.consumer == task && edge.input == input_index {
+        selected = Some(edge)
+        break
+      }
     }
+    selected
   }
   guard selected is Some(edge) else { return Err(NotReady) }
   let receiver = run.graph.owners_at(task).unwrap()

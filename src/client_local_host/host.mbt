@@ -562,9 +562,6 @@ priv enum ClientLocalManagedBoundaryProfile {
 let client_local_adaptive_revisions : Int = 10
 
 ///|
-let client_local_estimate_work : Int = 1000
-
-///|
 /// Pure selected Local module and immutable policies retained before a Run.
 /// The actual driver binds this original instead of reconstructing providers
 /// or selecting another module from equal numerical limits.
@@ -729,6 +726,12 @@ fn bind_client_local_configuration(
   if !same_graph || @strategy.captured_compute_first_task(run) != first_compute {
     return reject_client_local_run(run)
   }
+  // Offer construction uses this same admitted planning dimension. The
+  // estimator still charges actual search work to the original Ledger;
+  // selecting its local bound neither reserves nor replenishes that work.
+  let offer_work = @resources.ledger_admission_limits(
+    @strategy.captured_dag_ledger(run),
+  ).planning_work
   let driver = @host_driver.open_dispatch_driver(run)
   let binding = match captured_effect {
     None => @local_driver.bind_local_dispatch_plan(driver, original.dispatch)
@@ -782,7 +785,7 @@ fn bind_client_local_configuration(
   )
   let estimate = match
     @local_driver.prepare_local_estimate_module(
-      installed, schedules, client_local_estimate_work,
+      installed, schedules, offer_work,
     ) {
     Ok(value) => value
     Err(_) => return reject_client_local_run(run)
@@ -816,7 +819,10 @@ fn bind_client_local_configuration(
               max_work: 10000,
               max_revisions: client_local_adaptive_revisions,
             },
-            client_local_estimate_work,
+            // This closed Local estimator charges its exact ready-input
+            // scan and offer slots directly to the same Ledger. Other
+            // configured implementations keep their own estimate contract.
+            0,
           ) {
           Ok(_) => ()
           Err(_) => return reject_client_local_run(run)
