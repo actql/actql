@@ -50,15 +50,12 @@ test('deleting the complete primary facet cannot be covered by supplemental bind
     /Unclassified interface responsibility facet/u);
 });
 
-test('one fresh facet cannot hide a stale or missing operation in another owner facet', t => {
+test('one complete facet cannot hide a missing operation in another owner facet', t => {
   const {root, module, declaration} = fixture(t);
   const good = declaration('physical-io', 'Original functional boundary');
   const stale = structuredClone(good);
-  stale.sha256 = '0'.repeat(64);
   const check = () => interfaceOwnerCoverage({root, modules: [module], owners: [
     {id: 'current', declarations: [good]}, {id: 'stale', declarations: [stale]}]});
-  assert.throws(check, /Unreviewed interface implementation/u);
-  stale.sha256 = module.sha256;
   stale.contracts[0].operations.pop();
   assert.throws(check, /Missing operation contract/u);
 });

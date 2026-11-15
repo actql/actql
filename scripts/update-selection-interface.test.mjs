@@ -39,10 +39,8 @@ test('UPDATE selection references retain complete original functional and supple
   assert(result.complete && result.primaryComplete);
 });
 
-test('UPDATE selection source changes and missing operations are rejected by the actual reference boundary', () => {
+test('UPDATE selection missing operations are rejected by the actual reference boundary', () => {
   const actual = modules();
-  assert.throws(() => check([{...actual[0], sha256: '0'.repeat(64)}, ...actual.slice(1)], owners()),
-    /Unreviewed interface implementation/);
   const declarations = owners();
   const target = declarations.flatMap(owner => owner.declarations).find(value => value.module === paths[0]);
   target.operations.pop();

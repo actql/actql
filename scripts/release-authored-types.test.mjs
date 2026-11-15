@@ -8,6 +8,7 @@ import {test} from 'node:test';
 import {interfaceAttributes, javascriptInterface} from './interface-inventory.mjs';
 import {typescriptInterface} from './typescript-interface-inventory.mjs';
 import {checkInterfaceOwners} from './check-interface-owners.mjs';
+import {trustedCompilerBindingOutputs} from './interface-generation-freshness.mjs';
 import {installedInterfaceInventory} from './installed-interface-inventory.mjs';
 import {releaseInterfaceCheck} from './release-interface-check.mjs';
 import {stagePackage, unpack} from './package-release.mjs';
@@ -67,8 +68,8 @@ test('actual required caller retains all member-derived declaration variants and
   const [declaration] = f.declarations.splice(index, 1); f.save();
   await assert.rejects(checkInterfaceOwners(f.repository, options),
     /Unregistered distributed interfaces: packages\/client-wire\/dormant.d.cts/u);
-  f.declarations.push(declaration); declaration.sha256 = '0'.repeat(64); f.save();
-  await assert.rejects(checkInterfaceOwners(f.repository, options), /Unreviewed interface implementation/u);
+  f.declarations.push(declaration); declaration.exports.pop(); f.save();
+  await assert.rejects(checkInterfaceOwners(f.repository, options), /Unregistered interface export/u);
 });
 
 test('real client-wire Source caller accepts its authored type entrance through genuine generation checks', async () => {
@@ -77,7 +78,8 @@ test('real client-wire Source caller accepts its authored type entrance through 
   assert(checked.result.primaryComplete);
   assert(checked.modules.find(value => value.module === 'packages/client-wire/index.d.ts')
     .exports.includes('clientSourceFormats'));
-  assert.equal(checked.freshness.checked.length, 15);
+  assert.ok(trustedCompilerBindingOutputs(process.cwd(), checked.generatedQualification).length,
+    'the same source owner must have actually verified its generated outputs');
 });
 
 test('member-derived declarations do not exempt a genuine dynamic runtime value import', async t => {

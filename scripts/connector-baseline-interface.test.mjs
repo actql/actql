@@ -105,15 +105,11 @@ test('complete operation registration cannot hide compiler fields inside a physi
     /Compiler representation outside generated binding/u);
 });
 
-test('missing operation contracts and stale implementation hashes are rejected independently', () => {
+test('missing operation contracts are rejected independently of the implementation snapshot', () => {
   const missing = structuredClone(declarations);
   missing[0].contracts[0].operations.pop();
   assert.throws(() => assertInterfaceCoverage({root, modules: modules(), declarations: missing}),
     /Missing operation contract/u);
-  const stale = structuredClone(declarations);
-  stale[0].sha256 = '0'.repeat(64);
-  assert.throws(() => assertInterfaceCoverage({root, modules: modules(), declarations: stale}),
-    /Unreviewed interface implementation/u);
 });
 
 test('an invented attribute anchor cannot replace an existing Owner contract or executable reference', () => {

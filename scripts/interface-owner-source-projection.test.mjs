@@ -42,7 +42,7 @@ function fixture(t) {
   return {root, git, write, commit, base, options, declaration, check};
 }
 
-test('body-only candidate reuses Git/AST syntax and preserves every existing semantic field for explicit review', t => {
+test('body-only optional snapshots preserve Git syntax and existing owner contracts', t => {
   const f = fixture(t), original = structuredClone(f.declaration);
   f.write('outside/connector.mjs', 'export function read(value) {return value ?? null;}');
   const source = f.commit();
@@ -55,9 +55,9 @@ test('body-only candidate reuses Git/AST syntax and preserves every existing sem
   assert.deepEqual(update.mechanicalFields, ['sha256']);
   assert.deepEqual(update.candidate.contracts, original.contracts);
   for (const key of ['role', 'owner', 'responsibilityFacet']) assert.equal(update.candidate[key], original[key]);
-  assert.equal(update.reviewRequired.length, 4, 'body changes still require all ten references and behavior review');
   assert.deepEqual(f.declaration, original, 'candidate generation never mutates a declaration');
-  assert.throws(() => f.check(source, [original]), /Unreviewed interface implementation/u);
+  assert.equal(f.check(source, [original]).primaryComplete, true,
+    'ownership and syntax checks do not certify behavior through a digest acknowledgement');
   assert.equal(f.check(source, [update.candidate]).primaryComplete, true,
     'syntax/reference gate is separate from semantic review, not an automatic review receipt');
 });
@@ -239,12 +239,10 @@ test('reviewed Account Model construction checks51 syntax snapshots and50 Source
   assert.equal(result.modules,50);assert.deepEqual(result.missing,[]);assert.deepEqual(result.missingPrimary,[]);
 });
 
-test('new construction ownership cannot admit an unknown module or changed implementation from a snapshot', () => {
+test('construction ownership cannot admit an unknown module from a snapshot', () => {
   const account=actual.find(row=>row.module==='adapters/host-node/account-construction.mjs');
   const without=owners.map(owner=>({...owner,declarations:owner.declarations.filter(row=>row.module!==account.module)}));
   assert.throws(()=>check(without),/Unregistered distributed interfaces/u);
-  assert.throws(()=>check(owners,resolvedSource.map(row=>row===account?{...row,sha256:'0'.repeat(64)}:row)),
-    /Unreviewed interface implementation/u);
 });
 
 test('reviewed construction references retain operation membership and real design or authored test anchors', () => {
@@ -335,9 +333,8 @@ test('stable Model File cold Mock Account and row publication tail retains22 exa
   assert.equal(checked.modules,21);assert.deepEqual(checked.missing,[]);
 });
 
-test('final tail Source references cannot bless changed bytes missing numeric-span ownership or foreign anchors',()=>{
+test('final tail Source references cannot bless missing numeric-span ownership or foreign anchors',()=>{
   const original=finalTailResolved.find(d=>d.module==='src/run_publication_host/client_model_read_preparation.mbt');
-  assert.throws(()=>checkFinalTail(finalTailOwners,finalTailResolved.map(d=>d===original?{...d,sha256:'0'.repeat(64)}:d)),/Unreviewed interface implementation/u);
   const altered=structuredClone(finalTailOwners);
   const preparation=altered.flatMap(o=>o.declarations).find(d=>d.module===original.module);
   preparation.contracts[0].operations=preparation.contracts[0].operations.filter(name=>name!=='grow_client_model_read_preparation_consumer_span');

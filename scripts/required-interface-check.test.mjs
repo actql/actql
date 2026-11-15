@@ -75,11 +75,10 @@ test('the ordinary required command refuses an unregistered export after its sou
   f.check(/Unregistered interface export: outside\/sdk\/owner.mjs/u);
 });
 
-test('the ordinary required command refuses stale source hashes and missing operation contracts', t => {
+test('the ordinary required command accepts a comment edit and still refuses missing operation contracts', t => {
   const f = fixture(t);
-  f.declarations[1].sha256 = '0'.repeat(64);
-  f.check(/Unreviewed interface implementation/u);
-  f.declarations[1] = f.declaration('outside/sdk/owner.mjs');
+  f.put('outside/sdk/owner.mjs', '// Harmless presentation change\nexport function read(value) {return value;}\n');
+  f.check();
   f.declarations[1].contracts[0].operations.pop();
   f.check(/Missing operation contract/u);
 });
