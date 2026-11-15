@@ -28,8 +28,8 @@ test "original reconciled-input constructor retains one returned work receipt on
   // The returned quotation frame341H146R738W covers this constructor too.
   // Original delta-binding controls add four scalar words to the prior frame.
   assert_eq(16L * 341L + 8L * 146L + 8L * 738L, 12528L)
-  // After return only live state8H11R4W +original Usage1H3W remains288.
-  assert_eq(owner.source_body_quote, Some((12528L, 288L)))
+  // After return only live state8H12R5W +original Usage1H3W remains304.
+  assert_eq(owner.source_body_quote, Some((12528L, 304L)))
   assert_eq(
     @resources.preparation_capacity_working_extents(parent.capacity, input),
     Ok((before.0 + 12528L, before.1 + 12528L)),
@@ -63,7 +63,7 @@ test "original reconciled-input constructor retains one returned work receipt on
   assert_true(physical_equal(owner.topology_work.unwrap(), work))
   assert_eq(
     @resources.preparation_capacity_working_extents(parent.capacity, input),
-    Ok((before.0 + 288L, before.1 + 288L)),
+    Ok((before.0 + 304L, before.1 + 304L)),
   )
   let maximum = @stage_results.local_program_read_work_bound(read).unwrap()
   assert_eq(
@@ -202,7 +202,7 @@ test "reconciled-input one-short admission does not claim work or advance the or
     assert_eq(@stage_results.local_program_read_phase(read), LocalInputs)
     @resources.settle_capacity(parent.ledger, blocker).unwrap()
     assert_eq(advance_program_check_source_topology(owner).unwrap(), Imports)
-    assert_eq(owner.source_body_quote.unwrap(), (12528L, 288L))
+    assert_eq(owner.source_body_quote.unwrap(), (12528L, 304L))
     clear_program_check_preparation(owner).unwrap()
     abort_request_preparation_after_cleanup(parent).unwrap()
   }

@@ -339,7 +339,8 @@ test "selected large Source default sequence uses its same checked expression de
   // Original generated Values/derive/select pipeline: the full-sequence
   // projection already retains this cached inventory rather than Stage100.
   assert_eq(selected.max_steps, 3)
-  assert_eq(selected.max_bindings, original.max_bindings)
+  // One owner plus its three steps and two binding/projection visits.
+  assert_eq(selected.max_bindings, original.max_bindings + 6)
   let before = @resources.ledger_usage(parent.ledger)
   let sequence = match
     @publication_host.prepare_prepared_client_full_sequence(

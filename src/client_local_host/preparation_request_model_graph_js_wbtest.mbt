@@ -3005,7 +3005,8 @@ test "two Model Request adopts one module and all original scopes with one aggre
   assert_eq(module_entries, [0, 1])
   // This authored graph has three configured tasks and two input edges. Its
   // retained two-root driver offers 17 work units per task and a 32-unit
-  // search, for 83 per original input binding and 166 for both terminal Models.
+  // search, plus two original ready-input visits:85 per input binding and170
+  // for both terminal Models. Those real visits are never free planning work.
   // The module's whole-Run ceiling remains a ceiling, not additional demand.
   let configured = selected_module.configuration.unwrap()
   assert_eq(@strategy.graph_task_count(configured.graph), 3)
@@ -3016,15 +3017,19 @@ test "two Model Request adopts one module and all original scopes with one aggre
   assert_true(selected_module.limits.planning_work > 166)
   // One configured module demand, two Model demands, total read partitions,
   // and the independent same-parent bootstrap exactly once.
-  assert_eq(plan.limits.planning_work, 166 + 34)
+  assert_eq(plan.limits.planning_work, 2 * (3 * 17 + 32 + 2) + 34)
   assert_eq(plan.limits.attempts, selected_module.limits.attempts + 8)
+  // The exact two-Model selection array/records also coexist with the module
+  // and child read partitions. Its constructor is not paid by bootstrap.
+  assert_eq(plan.models.unwrap().length(), 2)
+  let (selection_retained, selection_execution) = installed_model_selection_layout(2).unwrap()
   assert_eq(
     plan.limits.retained_bytes,
-    selected_module.limits.retained_bytes + 2000L + 16L + 31L,
+    selected_module.limits.retained_bytes + 2000L + 16L + 31L + selection_retained,
   )
   assert_eq(
     plan.limits.execution_bytes,
-    selected_module.limits.execution_bytes + 4000L + 11L + 37L,
+    selected_module.limits.execution_bytes + 4000L + 11L + 37L + selection_execution,
   )
   let after_plan = @resources.preparation_capacity_working_extents(
     parent.program_capacity.unwrap(),

@@ -286,16 +286,27 @@ test "Effect Request Plan grow keeps the same compiled original and quote at bot
     let (member_retained, member_execution) = installed_effect_member_selection_layout(
       1,
     ).unwrap()
+    // The same no-Model Plan still retains its empty selection field,
+    // early publication receipt and keyed-plan field before constructor entry.
+    let (model_retained, model_execution) = installed_model_selection_layout(0).unwrap()
+    let receipt = installed_effect_early_publication_receipt_capacity()
+    let keyed_field = installed_effect_keyed_plan_field_bytes()
     let retained = bytes +
       proof_retained +
       direct_selector_field +
       member_retained +
+      model_retained +
+      @execution.execution_capacity_retained_bytes(receipt) +
+      keyed_field +
       @execution.execution_capacity_retained_bytes(phase)
     let execution = bytes +
       proof_retained +
       proof_scratch +
       direct_selector_field +
       member_execution +
+      model_execution +
+      @execution.execution_capacity_execution_bytes(receipt) +
+      keyed_field +
       @execution.execution_capacity_execution_bytes(phase)
     let limits = @resources.ledger_limits(parent.ledger)
     let block = @resources.reserve_capacity(
