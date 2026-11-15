@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {realpathSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
-import {createInstalledHostServices, retireInstalledSourceInitialization}
+import {createInstalledHostServices, retireInstalledSourceInitialization, closeInstalledAccountConstruction}
   from '../installed-host-services.mjs';
 
 // A retained normal runtime has its own physical Resource module instance.
@@ -30,7 +30,7 @@ export function createInstalledLoaderParent({root, principalId = 'operator', moo
       const initialPreparation = openHostInitializationPreparation(state, moon, input,
         current, () => childrenPending);
       services = createInstalledHostServices({root, principalId, moon,
-        initialPreparation, assertCurrent: current});
+        initialPreparation, assertCurrent: current, accountCurrent: current});
       childrenPending = true;
     },
     async load(factory, path, options) {
@@ -61,7 +61,10 @@ export function createInstalledLoaderParent({root, principalId = 'operator', moo
         try {await source.close();} catch (error) {errors.push(error);}
       }
       if (errors.length) throw new AggregateError(errors, 'InstalledLoaderChildrenCleanupPending');
-      if (services !== undefined) assert.equal(retireInstalledSourceInitialization(services), true);
+      if (services !== undefined) {
+        assert.equal(await closeInstalledAccountConstruction(services), true);
+        assert.equal(retireInstalledSourceInitialization(services), true);
+      }
       childrenPending = false;
       if (opened) closeHostInitializationPreparation(state);
       active = false; closed = true;

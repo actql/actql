@@ -10,7 +10,7 @@ const {openHostInitializationPreparation, closeHostInitializationPreparation} =
     new URL('../../local-node/request-preparation-adapter.mjs', import.meta.url).href);
 import {createInstalledHostServices, retainInstalledHostServiceInstallation,
   installedSourceConfigurationReader, beginInstalledSourceInitialization,
-  finishInstalledSourceInitialization, retireInstalledSourceInitialization}
+  finishInstalledSourceInitialization, retireInstalledSourceInitialization, closeInstalledAccountConstruction}
   from '../installed-host-services.mjs';
 
 // Register one ordered after hook even though the underlying transport fixture
@@ -28,6 +28,7 @@ export function installedSourceFixtureLifetime(t) {
       for (const source of sources) await source.close();
       if (initialization !== undefined) {
         if (initialization.services !== undefined) {
+          assert.equal(await closeInstalledAccountConstruction(initialization.services), true);
           assert.equal(retireInstalledSourceInitialization(initialization.services), true);
         }
         initialization.childrenPending = false;
@@ -53,7 +54,7 @@ export function installedSourceFixtureLifetime(t) {
       const parent = openHostInitializationPreparation(initialization.state, moon,
         input, current, () => initialization.childrenPending);
       const services = createInstalledHostServices({root, principalId: 'operator', moon,
-        assertCurrent: current, initialPreparation: parent});
+        assertCurrent: current, accountCurrent: current, initialPreparation: parent});
       initialization.services = services;
       // The SAME service's acknowledged retirement, rather than an optional
       // provider status field, is what clears this original child duty.
