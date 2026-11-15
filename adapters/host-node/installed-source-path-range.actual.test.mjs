@@ -6,6 +6,27 @@ import {installedSourceConfigurationReader} from './installed-host-services.mjs'
 import {installedSourcePaths} from './installed-source.mjs';
 import {captureSourceAliasConstruction} from './source-alias-construction.mjs';
 
+test('plural source configuration is copied and exclusive without a legacy registration ceiling', () => {
+  const paths = ['/owned/left.json', '/owned/right.json'];
+  const admitted = installedSourcePaths({sourceProfilePaths: paths});
+  paths[0] = '/changed.json';
+  assert.deepEqual(admitted, ['/owned/left.json', '/owned/right.json']);
+  assert.equal(Object.isFrozen(admitted), true);
+  assert.deepEqual(installedSourcePaths({sourceProfilePath: '/single.json'}, '/fallback.json'),
+    ['/single.json']);
+  const registered = Array.from({length: 129}, (_, index) => `/owned/source-${index}.json`);
+  assert.deepEqual(installedSourcePaths({sourceProfilePaths: registered}), registered);
+  for (const sourceProfilePaths of [[], ['/left'], ['/same', '/same'],
+    ['relative', '/right'], 'not-an-array']) {
+    assert.throws(() => installedSourcePaths({sourceProfilePaths}),
+      {message: 'InvalidInstalledSourceProfiles'});
+  }
+  assert.throws(() => installedSourcePaths({sourceProfilePaths: [...admitted],
+    sourceProfilePath: '/single.json'}), {message: 'InvalidInstalledSourceProfiles'});
+  assert.throws(() => installedSourcePaths({sourceProfilePaths: [...admitted]}, '/env.json'),
+    {message: 'InvalidInstalledSourceProfiles'});
+});
+
 // Actual initial Resource and native constructor, without file/provider reads.
 // This qualifies path selection only, not an installed 129-Source Host.
 test('same initial Source material selects all129 original profile paths before later installation', async t => {
