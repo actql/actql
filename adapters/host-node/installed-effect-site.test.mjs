@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import './effect-cleanup-composition.test.mjs';
 import './effect-authorization-cleanup.test.mjs';
+import './installed-effect-site-primary-cause.test.mjs';
 import {createInstalledEffectSite} from './installed-effect-site.mjs';
 import {salesforceEffectSiteHooks} from '../connectors/salesforce/host/installed-salesforce-effect-hooks.mjs';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
