@@ -21,7 +21,7 @@ import {openInstalledRemoteHttpHost} from
 import {publishInstalledSourceProfile} from
   '../../../host-node/installed-source.mjs';
 import {canonicalJson, contentCid} from '../../../host-node/local-account-config.mjs';
-import {selectInstalledLocalMaterializationEnvironment} from
+import {selectInstalledHostEnvironment} from
   '../../../host-node/installed-host-policy.mjs';
 import {openHttpsExchangeFixture} from
   '../../../site-node/https-exchange-fixture.mjs';
@@ -177,7 +177,7 @@ async function installation(t, {faults = [], retainedRelationOutput = false,
       'adapters/host-node/fixtures/two-source/left.environment.json'), 'utf8'));
     // Publish Source facts under the SAME selected Host policy. The standalone
     // two-source checker fixture has its own policy and cannot replace it.
-    const baseEnvironment = selectInstalledLocalMaterializationEnvironment(commonMoon,
+    const baseEnvironment = selectInstalledHostEnvironment(commonMoon,
       (await readFile(join(repository, 'spec/local-check-environment.json'), 'utf8')).trimEnd());
     environment.host_policy_profile = JSON.parse(baseEnvironment).host_policy_profile;
     delete environment.evidence_bundle_cid;
