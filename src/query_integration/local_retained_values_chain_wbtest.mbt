@@ -301,6 +301,7 @@ fn retained_values_client_preparation(
 
 ///|
 test "product source-free retained factory executes its exact bounded chain" {
+  // resource-case-id: retained_source_free_product_configuration
   let prepared = retained_values_client_preparation(false)
   let setup = @client_local_host.open_source_free_local_retained_host(
     prepared,
@@ -350,6 +351,7 @@ test "product source-free retained factory executes its exact bounded chain" {
 
 ///|
 test "product retained factory admits the exact earlier Values producer of a checked branch" {
+  // resource-case-id: retained_source_free_product_branch_admission
   let prepared = retained_values_client_preparation(true)
   let setup = @client_local_host.open_source_free_local_retained_host(
     prepared,
@@ -398,6 +400,7 @@ test "product retained factory admits the exact earlier Values producer of a che
 
 ///|
 test "Values publication rejects wrong children and shadowing providers" {
+  // resource-case-id: retained_source_free_chain_rejection
   let limits = dispatch_test_limits()
   let registry = search_registry()
   let generated = task_test_generated(
@@ -453,6 +456,7 @@ test "Values publication rejects wrong children and shadowing providers" {
 
 ///|
 test "source-free Values chains preserve ordered results and cancellation custody" {
+  // resource-case-id: retained_source_free_branch_execution_and_cancellation
   for branched in [false, true] {
     let limits = dispatch_test_limits()
     let registry = search_registry()

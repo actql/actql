@@ -5,7 +5,7 @@ import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, w
 import {tmpdir} from 'node:os';
 import {basename, dirname, join, relative, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {validateResourceAccounting} from './validate-local-resource-accounting.mjs';
+import {validateResourceAccounting, executableBoundaryFixturePresent} from './validate-local-resource-accounting.mjs';
 import {deepFreeze, loadResourceAccountingSources} from './local-resource-accounting-sources.mjs';
 import {boundedSorterAliases, isProductionMoonSource, localResourceApiIssues} from './local-resource-api-guard.mjs';
 import {registeredResourceEnvironmentCase, registeredDirectTraversalHostCase} from './local-resource-environment-fixtures.mjs';
@@ -1518,8 +1518,8 @@ test('retained source-free Values requires exact admission and Host evidence', (
     'retained_source_free_product_branch_admission',
     'retained_source_free_branch_execution_and_cancellation']) {
     assert.match(run(undefined, routes => {
-      values(routes).boundary_tests.find(test => test.role === role).fixture =
-        'product source-free retained factory installs exact bounded chain offers';
+      values(routes).boundary_tests.find(test => test.role === role).case_id =
+        'retained_source_free_product_configuration';
     }), /must bind its distinct checked Values boundary/u);
   }
   for (const role of ['retained_source_free_named_results',
@@ -1537,6 +1537,26 @@ test('retained source-free Values requires exact admission and Host evidence', (
     values(routes).environment_tests.find(test =>
       test.role === 'retained_source_free_named_results').fixture = 'absent-values-fixture';
   }), /missing environment fixture absent-values-fixture/u);
+});
+
+test('Values boundary IDs survive display edits but reject missing, orphaned and duplicate executable cases', () => {
+  const file = join(root, 'src/query_integration/local_retained_values_chain_wbtest.mbt');
+  const original = sourceTemplate[file];
+  const marker = '  // resource-case-id: retained_source_free_product_configuration\n';
+  const title = 'test "product source-free retained factory executes its exact bounded chain" {';
+  const item = routesTemplate.routes.find(route => route.family === 'RelA' && route.operation === 'values')
+    .boundary_tests.find(item => item.role === 'retained_source_free_product_configuration');
+  const inspect = text => executableBoundaryFixturePresent(item, text);
+  assert.ok(original.text.includes(marker) && original.text.includes(title));
+  assert.equal(inspect(original.text.replace(title, 'test "renamed bounded chain presentation" {')), true);
+  for (const text of [
+    original.text.replace(marker, ''),
+    marker + original.text.replace(marker, ''),
+    original.text.replace(title, 'fn disabled_boundary() {'),
+    original.text + '\n' + title + '\n' + marker + '  assert_true(true)\n}\n',
+  ]) assert.equal(inspect(text), false);
+  assert.equal(executableBoundaryFixturePresent({...item,
+    case_id: 'retained_source_free_chain_rejection'}, original.text), false);
 });
 
 test('installed retained families require actual product Host fault evidence', () => {
