@@ -620,10 +620,10 @@ fn installed_effect_dependency_envelope_capacity(
     is Some(ordering) &&
     @shape.collection_construction_extent({
       // Canonical emit_value borrows every value/key. Its synchronous stack
-      // owns one cursor1H1R1W plus parent variant1H1R per open container.
+      // owns one cursor1H1R1W plus parent variant1H1R1W per open container.
       records: 2L * d + 2L,
       record_references: 2L * d + 2L,
-      record_words: d,
+      record_words: 2L * d,
       reference_arrays: 1L,
       reference_items: d,
       scalar_arrays: 0L,
