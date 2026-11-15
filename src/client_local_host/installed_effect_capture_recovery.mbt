@@ -281,13 +281,16 @@ fn prepare_installed_effect_capture_recovery_work(
 /// native JSON.parse or typed reconstruction. This is not JSON admission: all
 /// original validators still consume the complete wire. Include punctuation
 /// and escapes INSIDE strings to cover the embedded contract trees as well.
+/// One escape can introduce at most one decoded code unit, including a
+/// structural Unicode escape. First values are already covered by the root,
+/// collection openings and field/element separators; quotes are not two nodes.
 fn effect_capture_wire_nodes(wire : String) -> Int? {
   let mut nodes = 1L
   for index = 0; index < wire.length(); index = index + 1 {
     let code = wire[index].to_int()
-    nodes += if code == 123 || code == 91 || code == 92 {
+    nodes += if code == 123 || code == 91 {
       2L
-    } else if code == 58 || code == 44 {
+    } else if code == 58 || code == 44 || code == 92 {
       1L
     } else {
       0L

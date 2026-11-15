@@ -124,3 +124,88 @@ test "cold installed Read cannot restart spent Work or evade its original curren
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
 }
+
+///|
+test "capture node bounds cover literal and multiply escaped Unicode trees with the real parser" {
+  let cases = [
+    "null", "true", "1", "\"scalar\"", "[]", "{}", "[0,true,null,{},[]]", "{\"a\":[1,true,null],\"b\":{\"x\":\"quoted\"}}",
+    "\"\\u007b\\u0022x\\u0022\\u003a\\u005b1\\u002c\\u007b\\u007d\\u005d\\u007d\"",
+    "{\"text\":\"\\u005c\\u005c\\u005c\\u0022\\n\\t\\ud83d\\ude00\"}",
+  ]
+  for original in cases {
+    let mut wire = original
+    for _ in 0..<5 {
+      let upper = effect_capture_wire_nodes(wire).unwrap()
+      let mut current = wire
+      for _ in 0..<8 {
+        let parsed = @source.parse_json_measured(current, {
+          max_input_bytes: 2000000,
+          max_nodes: upper,
+          max_depth: 64,
+        }).unwrap()
+        assert_true(parsed.usage.nodes <= upper)
+        match parsed.node.value {
+          @source.String(inner) =>
+            if @source.parse_json(inner, {
+                max_input_bytes: 2000000,
+                max_nodes: upper,
+                max_depth: 64,
+              })
+              is Ok(_) {
+              current = inner
+            } else {
+              break
+            }
+          _ => break
+        }
+      }
+      wire = @identity.stringify_value(
+        @identity.from_json(Json::string(wire), 1, 1, 2000000),
+        2000000,
+        1,
+        1,
+      )
+    }
+  }
+  assert_true(
+    @source.parse_json("[1,]", {
+      max_input_bytes: 100,
+      max_nodes: effect_capture_wire_nodes("[1,]").unwrap(),
+      max_depth: 64,
+    })
+    is Err(_),
+  )
+}
+
+///|
+test "escaped capture scalar reserves once on the original 512MiB Read without promoting quote bytes to tree nodes" {
+  let wire = @identity.stringify_value(
+    @identity.from_json(Json::string("\"".repeat(400000)), 1, 1, 2000000),
+    2000000,
+    1,
+    1,
+  )
+  let parsed = @source.parse_json_measured(wire, {
+    max_input_bytes: 2000000,
+    max_nodes: effect_capture_wire_nodes(wire).unwrap(),
+    max_depth: 64,
+  }).unwrap()
+  assert_eq(parsed.usage.nodes, 1)
+  let (run, ledger, read) = installed_cold_read_fixture()
+  let before = @resources.ledger_usage(ledger)
+  let envelope = "{\"ciphertext\":\"" + "A".repeat(1100000) + "\"}"
+  // Geometry admission only. This deliberately makes no claim that a scalar
+  // is a valid captured Run or that these bytes have a physical AEAD receipt.
+  reserve_installed_effect_capture_encrypted(read, envelope.length()).unwrap()
+  reserve_installed_effect_capture_envelope(read, envelope).unwrap()
+  reserve_installed_effect_capture_decoded(read, wire).unwrap()
+  assert_true(installed_effect_capture_prepared_available(read))
+  assert_true(
+    @resources.ledger_usage(ledger).reserved_execution_bytes <= 536870912L,
+  )
+  assert_eq(@resources.ledger_usage(ledger).planning_work, before.planning_work)
+  assert_true(admit_installed_effect_captured_run(read, wire) is Err(_))
+  retire_installed_effect_capture_recovery(read).unwrap()
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}
