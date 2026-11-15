@@ -118,3 +118,12 @@ export const publicQueryInventoryKeys = (profile, inputs, offsets = {}) => ['suc
     return values.map((item, index) => JSON.stringify([profile, kind, offset + index, item.name,
       createHash('sha256').update(encodeRetainedFixture(item)).digest('hex')]));
   });
+
+// Select the existing current evidence protocols before the fixture CID is built.
+export function configurePublicQueryEvidenceContracts(environment) {
+  environment.connector_capabilities[0].capability_contract_cids = [
+    'sha256:2e9959187141ac09be2f4684ac2d0dc7a2819059c6764b1a527b48e0cee6a08d',
+    'sha256:dcf4b1e2c8a078d96f9160a75a9f8279047e7448ea39b3b882588e18b9ab0929',
+  ];
+  environment.connector_capabilities[0].capability_contract_cids.sort();
+}

@@ -183,7 +183,7 @@ import {computedObjectPropertySuccesses, computedObjectPropertyRefusals, compute
   from './computed-object-property-source-input.mjs';
 import {groupPropertySuccesses, groupPropertyRefusals, groupHavingImplicitAliasSuccesses, groupHavingImplicitAliasRefusals, orderGroupedSubexpressionSuccesses, orderGroupedSubexpressionRefusals, groupedImplicitPropertyNameSuccesses, groupedImplicitPropertyNameRefusals, havingGroupedSubexpressionSuccesses, havingGroupedSubexpressionRefusals, sqlGroupedSubexpressionSuccesses, sqlGroupedSubexpressionRefusals, pipeAggregateOrderSuccesses, pipeAggregateOrderRefusals, pipeAggregateExpressionSuccesses, pipeAggregateExpressionRefusals}
   from './group-property-source-input.mjs';
-import {uniquePublicQueryCases, publicQueryCohorts, partitionPublicQueryProfiles, publicQueryInventoryKeys as inventoryKeys} from './public-query-cases.mjs';
+import {uniquePublicQueryCases, publicQueryCohorts, partitionPublicQueryProfiles, publicQueryInventoryKeys as inventoryKeys, configurePublicQueryEvidenceContracts} from './public-query-cases.mjs';
 import {publicQueryProfiles} from './public-query-profiles.mjs';
 import {quotedIdentifierSuccesses, quotedIdentifierRefusals}
   from './quoted-identifier-source-input.mjs';
@@ -935,11 +935,7 @@ const environment = JSON.parse(await readFile('source-environment.json', 'utf8')
 const base = JSON.parse(await readFile('base-environment.json', 'utf8'));
 const hostCapacityPolicy = {...base.host_policy_profile.capacity, ...analyticCapacity};
 environment.host_policy_profile = {...base.host_policy_profile, capacity: hostCapacityPolicy};
-environment.connector_capabilities[0].capability_contract_cids = [
-  'sha256:2e9959187141ac09be2f4684ac2d0dc7a2819059c6764b1a527b48e0cee6a08d',
-  'sha256:dcf4b1e2c8a078d96f9160a75a9f8279047e7448ea39b3b882588e18b9ab0929',
-];
-environment.connector_capabilities[0].capability_contract_cids.sort();
+configurePublicQueryEvidenceContracts(environment);
 delete environment.evidence_bundle_cid;
 environment.evidence_bundle_cid = 'sha256:' + createHash('sha256')
   .update(canonical(environment)).digest('hex');
