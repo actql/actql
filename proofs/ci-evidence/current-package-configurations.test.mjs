@@ -274,10 +274,13 @@ test('current configuration entries bind exact authored Git inputs and literal d
 
 test('the prior Local descriptor stays historical without admitting it as current', () => {
   const path = 'src/client_local_host/moon.pkg';
-  const prior = gitTree(root, '776746d359ec107cf3172d90016d07e009384fc9').read(path);
-  const digest = '8c60608fabbcc3310000730ac92fb17768d5b87796e189a192dd1bee513f3ce8';
-  assert.equal(hash(prior), digest);
-  assert.equal(currentPackageConfigurationReviewFor(request(path, digest)), null);
+  for (const [revision, digest] of [
+    ['776746d359ec107cf3172d90016d07e009384fc9', '8c60608fabbcc3310000730ac92fb17768d5b87796e189a192dd1bee513f3ce8'],
+    ['4d25879b4f9443cfc73758b948fc472401a5a96e', '4411b9a5d341bf6d5ab235cb1c1a4f99ac12de9387b08f582bbe9e41c610f359'],
+  ]) {
+    assert.equal(hash(gitTree(root, revision).read(path)), digest);
+    assert.equal(currentPackageConfigurationReviewFor(request(path, digest)), null);
+  }
 });
 
 test('current physical Resource review binds platform VM selectors and refuses stale or changed input', () => {
