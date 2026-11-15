@@ -10888,7 +10888,7 @@
     {
       "module": "adapters/host-common/result-delivery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f71d1005b1d95e711e6d565b9887e836ad10f14d45fee8f3e2913e4fb733d00c",
+      "sha256": "3f95b94a471c09e408ae9a8c0b3a24354edad51172be6461a50f535b0b3af81d",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -11370,6 +11370,10 @@
               {
                 "path": "docs/design/prepared-publication-custody.md",
                 "anchor": "## Publication retry diagnostic prefixes"
+              },
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "### Result READ framing and wire geometry"
               }
             ],
             "extension": [
@@ -11414,6 +11418,10 @@
               {
                 "path": "docs/design/prepared-publication-custody.md",
                 "anchor": "## Publication retry diagnostic prefixes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-wire-workspace.test.mjs",
+                "anchor": "READ close cannot retire the same parent while a yielded original row callback is live"
               }
             ]
           }
@@ -29059,7 +29067,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -29222,7 +29230,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -29854,7 +29862,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -111108,7 +111116,7 @@
     {
       "module": "packages/run-host-core/result-delivery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f71d1005b1d95e711e6d565b9887e836ad10f14d45fee8f3e2913e4fb733d00c",
+      "sha256": "3f95b94a471c09e408ae9a8c0b3a24354edad51172be6461a50f535b0b3af81d",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -111558,6 +111566,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "## Joint delivery start"
+              },
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "### Result READ framing and wire geometry"
               }
             ],
             "extension": [
@@ -111594,6 +111606,10 @@
               {
                 "path": "adapters/host-node/local-result-authorization.test.mjs",
                 "anchor": "test('actual Result callbacks retain one heavy evaluation for unchanged Account and separate the next operation'"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-wire-workspace.test.mjs",
+                "anchor": "READ close cannot retire the same parent while a yielded original row callback is live"
               }
             ]
           }
@@ -128729,7 +128745,7 @@
       "sha256": "0f21a15f4e54ee8d1535938be8ea3e9518bfe52745f976d2aa29cc6d366bcf8c",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -129958,7 +129974,7 @@
       "sha256": "83a00a1bc68d19e218ed16c9abfe18046d53ff94a87c8fdb69247868d0b3b03b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "fundedEffectModelGroupCount",
@@ -131260,7 +131276,7 @@
       "sha256": "40e22075fc1f5dbe3e44930adc5ab5ac4de092338586044a9b7ab9c20190f331",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledPublishedSourceInitialization",
@@ -138683,7 +138699,7 @@
       "unresolvedSyntax": [],
       "role": "common-semantics",
       "responsibilityFacet": "primary",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -139079,7 +139095,7 @@
       "unresolvedSyntax": [],
       "role": "common-semantics",
       "responsibilityFacet": "primary",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -139810,7 +139826,7 @@
       "unresolvedSyntax": [],
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -139932,7 +139948,7 @@
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Result delivery and Request preparation owners; Node resource/cleanup adapter only",
-      "sha256": "5f55b46abdaecdfb87d46c21eaa699144097af98515bed61076ac492b0bbd6bb",
+      "sha256": "a176d227aa7bcd303d9448fcc7d2dd66299c3dba95b786fa94c83a184bcd3748",
       "exports": [
         "createLocalResultReadWorkspace"
       ],
@@ -140061,7 +140077,7 @@
           "name": "createLocalResultReadWorkspace/init:row/init:row",
           "parameters": [
             "request",
-            "units"
+            "value"
           ],
           "async": false
         },
@@ -140095,6 +140111,14 @@
           "async": false
         },
         {
+          "name": "createLocalResultReadWorkspace/prepareWireRow",
+          "parameters": [
+            "entry",
+            "wire"
+          ],
+          "async": true
+        },
+        {
           "name": "createLocalResultReadWorkspace/retire",
           "parameters": [
             "entry"
@@ -140119,14 +140143,14 @@
         "../host-common/result-delivery.mjs",
         "../host-common/runtime-result.mjs",
         "../local-node/request-preparation-adapter.mjs",
-        "../store-local/publication-store.mjs"
+        "../store-local/publication-store.mjs",
+        "node:timers/promises"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
       "contracts": [
         {
           "operations": [
-            "<module>",
             "createLocalResultReadWorkspace",
             "createLocalResultReadWorkspace/cleanupFailure",
             "createLocalResultReadWorkspace/cleanupFailure/error/error",
@@ -140150,7 +140174,9 @@
             "createLocalResultReadWorkspace/pending/pending/pending",
             "createLocalResultReadWorkspace/retire",
             "createLocalResultReadWorkspace/retry",
-            "createLocalResultReadWorkspace/unavailable/unavailable"
+            "createLocalResultReadWorkspace/unavailable/unavailable",
+            "createLocalResultReadWorkspace/prepareWireRow",
+            "<module>"
           ],
           "exports": [
             "createLocalResultReadWorkspace"
@@ -140234,6 +140260,10 @@
               {
                 "path": "adapters/host-node/local-result-read-workspace.mjs",
                 "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              },
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "### Result READ framing and wire geometry"
               }
             ],
             "extension": [
@@ -140254,6 +140284,10 @@
               {
                 "path": "adapters/host-node/local-result-read-workspace.actual.test.mjs",
                 "anchor": "record durability"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-wire-workspace.test.mjs",
+                "anchor": "READ close cannot retire the same parent while a yielded original row callback is live"
               }
             ]
           }
