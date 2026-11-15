@@ -820,6 +820,8 @@ pub fn generated_asof_search_ceiling(GeneratedSequence, Int) -> Int64?
 
 pub fn generated_bounded_sequence_capacity(GeneratedSequence, SequenceExecutionLimits, FixedInputGuardMeasureLimits) -> ExecutionCapacity?
 
+pub fn generated_bounded_sequence_match_capacity(GeneratedSequence, SequenceExecutionLimits, FixedInputGuardMeasureLimits, Int) -> ExecutionCapacity?
+
 pub fn generated_calendar_output_ceiling(GeneratedSequence, Int) -> Int64?
 
 pub fn generated_completion_preparation(GeneratedSequence) -> CompletionPreparation

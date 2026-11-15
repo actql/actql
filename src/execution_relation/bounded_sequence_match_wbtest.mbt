@@ -121,6 +121,7 @@ fn bounded_sequence_try_fixture(
   name_bytes? : Int = 10000,
   key_name? : String? = None,
   start_name? : String = "start",
+  first_predicate? : String = "value = 1",
   source_rows? : String? = None,
 ) -> (
   @bounded.Control,
@@ -162,7 +163,9 @@ fn bounded_sequence_try_fixture(
       "\"id\":\"id\",\"time\":\"clock\",\"pattern\":[{" +
       "\"as\":\"" +
       start_name +
-      "\",\"where\":\"value = 1\"},{" +
+      "\",\"where\":" +
+      first_predicate.to_json().stringify() +
+      "},{" +
       "\"as\":\"end\",\"where\":\"value = 2\"}" +
       pattern_tail +
       "]," +

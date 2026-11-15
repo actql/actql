@@ -135,7 +135,20 @@ fn cleanup_sequence_match_provider(
 pub fn sequence_match_provider(
   limits : @storage.Limits,
   capacity : @execution.ExecutionCapacity,
+  bounded_constructor? : Bool = false,
 ) -> @local.ManagedProvider {
+  let bounded_relation_capacity = if bounded_constructor {
+    // A scalar capture only; the selected module supplies its SAME actual
+    // execution/measurement profile when this pure recipe is invoked.
+    let workspace_slots = limits.max_workspace_slots
+    Some((sequence, execution, measurement) => {
+      @execution.generated_bounded_sequence_match_capacity(
+        sequence, execution, measurement, workspace_slots,
+      )
+    })
+  } else {
+    None
+  }
   @local.managed_provider_with_inputs(
     sequence_match_provider_accepts,
     sequence => {
@@ -205,5 +218,6 @@ pub fn sequence_match_provider(
         ),
       )
     },
+    bounded_relation_capacity~,
   )
 }
