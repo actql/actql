@@ -327,9 +327,13 @@ pub fn client_infer_retained_input_export_binding(ClientInferRetainedInputExport
 
 pub fn client_infer_retained_input_export_descriptor(ClientInferRetainedInputExport) -> String
 
+pub fn client_infer_retained_input_export_facts(ClientInferRetainedInputExport) -> @execution_relation.RetainedReadmissionFacts
+
 pub fn client_infer_retained_input_export_matches(ClientInferRetainedInputExport, @execution_relation.CompletedOutput) -> Bool
 
 pub fn client_infer_retained_input_export_rows(ClientInferRetainedInputExport) -> Array[String]
+
+pub fn client_infer_retained_input_facts_capacity(@execution_relation.RetainedReadmissionFacts, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_keyed_local_join_capacity(ClientKeyedJoinPreparation) -> @execution_relation.ExecutionCapacity
 
@@ -1652,6 +1656,7 @@ pub(all) enum ClientInferInputIssue {
 
 pub struct ClientInferInputMaterialization {
   mut input : @execution_relation.CompletedOutput?
+  mut facts : @execution_relation.RetainedReadmissionFacts?
   mut original : (@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientModelReadConsumer, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @ref.Ref[(Int64, Int64)])?
   retained : Int64
   execution : Int64
@@ -1670,6 +1675,7 @@ pub enum ClientInferInputPoll {
 
 pub struct ClientInferRetainedInputExport {
   input : @execution_relation.CompletedOutput
+  facts : @execution_relation.RetainedReadmissionFacts
   evidence : @execution_relation.RetainedCompletionEvidence
   binding : String
   descriptor_wire : String

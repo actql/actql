@@ -43,6 +43,8 @@ pub fn retained_readmission_close(InstalledRetainedReadmission) -> Unit
 
 pub fn retained_readmission_complete(InstalledRetainedReadmission, @execution_relation.AdmittedOutputStreamReceipt) -> @execution_relation.CompletedOutput raise RetainedReadmissionFailure
 
+pub fn retained_readmission_facts_control_bytes() -> Int64
+
 pub fn retained_readmission_install(@execution_relation.CompletionPreparation, @execution_relation.RetainedCompletionDescriptor, (@execution_relation.AdmittedOutputStreamReceipt) -> Bool, () -> Bool) -> InstalledRetainedReadmission raise RetainedReadmissionFailure
 
 pub fn retained_readmission_readable(InstalledRetainedReadmission, @execution_relation.ProducerRead) -> Bool

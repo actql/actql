@@ -3,6 +3,7 @@
 /// the completed occurrence but do not prove durable Store custody.
 pub struct ClientInferRetainedInputExport {
   input : @execution.CompletedOutput
+  facts : @execution.RetainedReadmissionFacts
   evidence : @execution.RetainedCompletionEvidence
   binding : String
   descriptor_wire : String
@@ -128,9 +129,18 @@ fn export_client_infer_retained_input_owned(
   input : @execution.CompletedOutput,
   binding : String,
   max_rows : Int,
+  facts? : @execution.RetainedReadmissionFacts? = None,
 ) -> Result[ClientInferRetainedInputExport, ClientInferRetainedInputIssue] {
   if binding.is_empty() || binding.length() > 262144 {
     return Err(BindingMismatch)
+  }
+  let facts = match facts {
+    Some(value) => value
+    None =>
+      match @execution.retained_input_facts(input) {
+        Ok(value) => value
+        Err(_) => return Err(BindingMismatch)
+      }
   }
   let stream = match
     @execution.prepare_completed_output_export(
@@ -180,20 +190,20 @@ fn export_client_infer_retained_input_owned(
       return Err(Export(issue))
     }
   }
-  // Input metadata and output rows have independent limits. A keyed input
-  // may complete fewer rows than the number of prepared Source inputs.
   let evidence = match
-    @execution.retain_completion_evidence(retained, 100, 100) {
+    @execution.retain_completion_evidence_with_facts(retained, facts) {
     Ok(value) => value
     Err(issue) => return Err(Evidence(issue))
   }
-  guard infer_retained_descriptor_wire(
-      @execution.retained_completion_descriptor(evidence),
-    )
-    is Some(descriptor_wire) else {
+  let descriptor = match
+    @execution.retained_completion_descriptor_with_facts(evidence, facts) {
+    Ok(value) => value
+    Err(issue) => return Err(Evidence(issue))
+  }
+  guard infer_retained_descriptor_wire(descriptor) is Some(descriptor_wire) else {
     return Err(InvalidDescriptor)
   }
-  Ok({ input, evidence, binding, descriptor_wire, rows, })
+  Ok({ input, facts, evidence, binding, descriptor_wire, rows, })
 }
 
 ///|
@@ -204,6 +214,13 @@ pub fn client_infer_retained_input_export_matches(
   physical_equal(value.input, input) &&
   @execution.completed_output_available(input) &&
   @execution.retained_completion_matches_output(value.evidence, input)
+}
+
+///|
+pub fn client_infer_retained_input_export_facts(
+  value : ClientInferRetainedInputExport,
+) -> @execution.RetainedReadmissionFacts {
+  value.facts
 }
 
 ///|
@@ -380,6 +397,12 @@ fn restore_client_retained_completion(
       ])
       is Some(metadata) &&
       @execution.preparation_representation_cost(metadata) is Some(bytes) &&
+      @execution.checked_preparation_add_product(
+        bytes,
+        @execution.retained_readmission_facts_control_bytes(),
+        1L,
+      )
+      is Some(bytes) &&
       @execution.execution_capacity(bytes, bytes) is Some(next) &&
       grow_original_infer_retained_input(original, next) else {
       return Err(CustodyUnavailable)
@@ -401,6 +424,16 @@ fn restore_client_retained_completion(
   if !custody_available() {
     return Err(CustodyUnavailable)
   }
+  let facts = match
+    @execution.prepare_retained_readmission_facts(
+      preparation,
+      descriptor,
+      supplied_rows.length(),
+      { producer_inputs: None, schema_columns: None, name_bytes: Some(10000), },
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Readmission(issue))
+  }
   let values = source_capture_values()
   let values = match value_work_limit {
     None => values
@@ -419,12 +452,11 @@ fn restore_client_retained_completion(
         text += row.length().to_int64()
       }
       guard text <= 2147483647L &&
-        client_infer_retained_input_construction_capacity(
-          descriptor.rows,
+        client_infer_retained_input_facts_capacity(
+          facts,
           descriptor.bytes,
           descriptor.nodes,
           descriptor.depth,
-          descriptor.columns,
           text.to_int(),
         )
         is Some(next) &&
@@ -432,7 +464,7 @@ fn restore_client_retained_completion(
         custody_available() else {
         return Err(CustodyUnavailable)
       }
-      supplied_rows.length()
+      @execution.retained_readmission_rows(facts)
     }
   }
   let decode = if original_read is Some(_) {
@@ -500,30 +532,11 @@ fn restore_client_retained_completion(
   let available = fn() { live.val && custody_available() }
   let held = @execution.retain_admitted_output_stream(receipt, (), available)
   let material = @execution.retained_output_material(held)
-  // Rows and metadata are separate inventories. A single retained row can
-  // carry several checked columns or original input ports. Select the latter
-  // from this SAME admitted preparation, never from a descriptor's self-claim.
-  let metadata_entries = if original_read is Some(_) {
-    let prepared = @lower.bound_preparation(
-      @execution.completion_preparation_owner(preparation),
-    )
-    guard @lower.preparation_schema_at(prepared, @pipeline.Step(output_step))
-      is Some(schema) else {
-      return Err(Readmission(@execution.InvalidTarget))
-    }
-    Int::max(
-      @lower.preparation_input_count(prepared),
-      @schema.field_count(schema),
-    )
-  } else {
-    max_rows
-  }
   let port = match
     @execution.prepare_trusted_retained_readmission(
       preparation,
       descriptor,
-      metadata_entries,
-      10000,
+      facts,
       fn(proof : @execution.AdmittedOutputStreamReceipt) {
         if available() &&
           physical_equal(proof, receipt) &&

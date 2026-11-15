@@ -1224,6 +1224,8 @@ pub fn prepare_retained_content_read(CompletionPreparation, RetainedCompletionDe
 
 pub fn prepare_retained_producer_scan(ProducerRead, Int, ValueLimits, RowWireLimits, Int) -> Result[RetainedProducerScan, CompletedImportIssue]
 
+pub fn prepare_retained_readmission_facts(CompletionPreparation, RetainedCompletionDescriptor, Int, RetainedReadmissionMetadataPolicy) -> Result[RetainedReadmissionFacts, TrustedOutputIssue]
+
 pub fn prepare_retained_relation_identity_scan(ProducerStorage, Int, ValueLimits, RowWireLimits, RowWireLimits, Int) -> Result[RetainedStorageScan, CompletedImportIssue]
 
 pub fn prepare_retained_serialization_completion(GeneratedSequence, @lowering_relation.PreparedSerialization) -> CompletionPreparation?
@@ -1256,7 +1258,7 @@ pub fn[P] prepare_trusted_output_port_with_inputs(CompletionPreparation, @pipeli
 
 pub fn[P] prepare_trusted_retained_output_port(CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> RetainedOutputMaterial?, inputs? : Array[ProducerRead]) -> Result[TrustedRetainedOutputPort[P], TrustedOutputIssue]
 
-pub fn[P] prepare_trusted_retained_readmission(CompletionPreparation, RetainedCompletionDescriptor, Int, Int, (P) -> RetainedOutputMaterial?) -> Result[TrustedRetainedReadmission[P], TrustedOutputIssue]
+pub fn[P] prepare_trusted_retained_readmission(CompletionPreparation, RetainedCompletionDescriptor, RetainedReadmissionFacts, (P) -> RetainedOutputMaterial?) -> Result[TrustedRetainedReadmission[P], TrustedOutputIssue]
 
 pub fn[P] prepare_trusted_retained_scan_reuse(ProducerRead, P, (P, ProducerRead) -> Bool) -> RetainedScanReuse?
 
@@ -1386,6 +1388,8 @@ pub fn retain_completed_segment_inputs(CompletedOutput, GeneratedSequence, Array
 
 pub fn retain_completion_evidence(CompletedOutput, Int, Int) -> Result[RetainedCompletionEvidence, RetainedCompletionEvidenceIssue]
 
+pub fn retain_completion_evidence_with_facts(CompletedOutput, RetainedReadmissionFacts) -> Result[RetainedCompletionEvidence, RetainedCompletionEvidenceIssue]
+
 pub fn retain_generated_sequence_refinement(GeneratedSequence, GeneratedSequence) -> GeneratedSequence?
 
 pub fn[P, T] retain_managed_output(ManagedOutputRetentionPort[P, T], P) -> Result[ManagedRetainedOutput[T], ManagedOutputRetentionIssue]
@@ -1398,11 +1402,15 @@ pub fn retained_completion_can_handoff(RetainedCompletionEvidence, CompletedOutp
 
 pub fn retained_completion_descriptor(RetainedCompletionEvidence) -> RetainedCompletionDescriptor
 
+pub fn retained_completion_descriptor_with_facts(RetainedCompletionEvidence, RetainedReadmissionFacts) -> Result[RetainedCompletionDescriptor, RetainedCompletionEvidenceIssue]
+
 pub fn retained_completion_matches_output(RetainedCompletionEvidence, CompletedOutput) -> Bool
 
 pub fn retained_completion_material(RetainedCompletionEvidence, CompletedOutput) -> RetainedOutputMaterial?
 
 pub fn retained_content_read_cumulative_work(RetainedContentRead) -> Int64
+
+pub fn retained_input_facts(CompletedOutput) -> Result[RetainedReadmissionFacts, TrustedOutputIssue]
 
 pub fn retained_output_matches_receipt(RetainedOutputMaterial, AdmittedOutputStreamReceipt) -> Bool
 
@@ -1419,6 +1427,16 @@ pub fn retained_producer_scan_column_measurement(RetainedProducerScan, Int) -> R
 pub fn retained_producer_scan_reuse_current(RetainedProducerScan) -> Bool
 
 pub fn retained_producer_scan_schema(RetainedProducerScan) -> @relation_schema.Schema
+
+pub fn retained_readmission_binding_entries(RetainedReadmissionFacts) -> Int
+
+pub fn retained_readmission_facts_control_bytes() -> Int64
+
+pub fn retained_readmission_producer_inputs(RetainedReadmissionFacts) -> Int
+
+pub fn retained_readmission_rows(RetainedReadmissionFacts) -> Int
+
+pub fn retained_readmission_schema_columns(RetainedReadmissionFacts) -> Int
 
 pub fn retained_storage_canonical_copy_matches(ProducerStorage, String, Int, Int) -> Bool
 
@@ -2799,6 +2817,14 @@ type RetainedOutputHandle[T]
 type RetainedOutputMaterial
 
 type RetainedProducerScan
+
+type RetainedReadmissionFacts
+
+pub(all) struct RetainedReadmissionMetadataPolicy {
+  producer_inputs : Int?
+  schema_columns : Int?
+  name_bytes : Int?
+}
 
 pub(all) enum RetainedRowDecodeIssue {
   InvalidLimits

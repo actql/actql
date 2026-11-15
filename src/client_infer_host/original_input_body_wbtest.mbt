@@ -187,6 +187,23 @@ test "original restored input body refuses import capacity and cancellation befo
       let active = original_observation_test_started(attempted)
       assert_true(active.identity_body is Some(_))
       assert_true(active.identity is None)
+      // This actual original Read restores one saved row with two columns;
+      // metadata cardinality cannot be inferred from the row cardinality.
+      let input = @input.client_infer_completed_input(active.input).unwrap()
+      assert_eq(@relation.completed_row_count(input), 1)
+      assert_eq(@relation.completed_column_count(input), 2)
+      let roundtrip = @input.export_client_infer_retained_input(
+        input, "original-read-roundtrip",
+      ).unwrap()
+      let descriptor = @input.read_client_infer_retained_input_descriptor(
+        @input.client_infer_retained_input_export_descriptor(roundtrip),
+      ).unwrap()
+      assert_eq(descriptor.rows, 1)
+      assert_eq(descriptor.columns, 2)
+      assert_eq(descriptor.input_count, 0)
+      assert_eq(@input.client_infer_retained_input_export_rows(roundtrip), [
+        "{\"id\":\"a\",\"text\":\"hello\"}",
+      ])
       assert_true(cancel(active))
       assert_true(fixture_finish(active) is Stopped(..))
       assert_true(active.identity is None)

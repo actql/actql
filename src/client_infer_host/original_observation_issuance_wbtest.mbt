@@ -45,6 +45,7 @@ fn original_observation_test_started(
 ///|
 fn original_observation_test_cold_setup(
   exported : @input.ClientInferRetainedInputExport,
+  sequence : @relation.GeneratedSequence,
 ) -> (Int64, Int64) {
   let wire = @input.client_infer_retained_input_export_descriptor(exported)
   let bytes = 3 * wire.length()
@@ -115,19 +116,27 @@ fn original_observation_test_cold_setup(
   }).unwrap()
   let observed = @input.read_client_infer_retained_input_descriptor(wire).unwrap()
   let rows = @input.client_infer_retained_input_export_rows(exported)
+  let facts = @relation.prepare_retained_readmission_facts(
+    @relation.generated_completion_preparation(sequence),
+    observed,
+    rows.length(),
+    { producer_inputs: None, schema_columns: None, name_bytes: Some(10000), },
+  ).unwrap()
   let mut text = 0
   for row in rows {
     text += row.length()
   }
-  let importing = @input.client_infer_retained_input_construction_capacity(
-    observed.rows,
+  let importing = @input.client_infer_retained_input_facts_capacity(
+    facts,
     observed.bytes,
     observed.nodes,
     observed.depth,
-    observed.columns,
     text,
   ).unwrap()
-  (descriptor, @relation.execution_capacity_retained_bytes(importing))
+  (
+    descriptor + @relation.retained_readmission_facts_control_bytes(),
+    @relation.execution_capacity_retained_bytes(importing),
+  )
 }
 
 ///|
@@ -205,9 +214,9 @@ fn original_observation_test_attempt(
   let selected_retained = match short_restored_import {
     None => input_read_ceiling.unwrap_or(limits.model.ledger.retained_bytes)
     Some(observed) => {
-      let (_, _, _, exported) = restored.unwrap()
+      let (_, prefix, _, exported) = restored.unwrap()
       let (descriptor, importing) = original_observation_test_cold_setup(
-        exported,
+        exported, prefix,
       )
       let selected = original_input_body_zero_spare_setup() +
         descriptor +

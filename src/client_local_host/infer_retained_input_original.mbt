@@ -104,6 +104,60 @@ pub fn client_infer_retained_input_construction_capacity(
 }
 
 ///|
+/// Named, bound geometry is the production capacity entrance. The scalar
+/// compatibility quote above remains DATA only and cannot issue readmission.
+pub fn client_infer_retained_input_facts_capacity(
+  facts : @execution.RetainedReadmissionFacts,
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+  text : Int,
+) -> @execution.ExecutionCapacity? {
+  guard client_infer_retained_input_construction_capacity(
+      @execution.retained_readmission_rows(facts),
+      bytes,
+      nodes,
+      depth,
+      @execution.retained_readmission_schema_columns(facts),
+      text,
+    )
+    is Some(base) &&
+    @execution.preparation_array_representation(
+      1L,
+      @execution.retained_readmission_binding_entries(facts).to_int64(),
+      true,
+    )
+    is Some(bindings) &&
+    @execution.preparation_representation_cost(bindings) is Some(copy) &&
+    // The existing materialization witness and exported input each retain
+    // one immutable facts link; neither enlarges the facts identity domain.
+    @execution.preparation_representation_cost({
+      record_headers: 0L,
+      reference_slots: 2L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(link) &&
+    @execution.checked_preparation_add_product(copy, link, 1L) is Some(extra) &&
+    @execution.checked_preparation_add_product(
+      @execution.execution_capacity_retained_bytes(base),
+      extra,
+      1L,
+    )
+    is Some(r) &&
+    @execution.checked_preparation_add_product(
+      @execution.execution_capacity_execution_bytes(base),
+      extra,
+      1L,
+    )
+    is Some(e) else {
+    return None
+  }
+  @execution.execution_capacity(r, e)
+}
+
+///|
 // A real Resource grow, not the presence of a callback or a quoted scalar.
 fn grow_original_infer_retained_input_span(
   original : ClientInferOriginalInputRead,
@@ -137,10 +191,11 @@ fn grow_original_infer_retained_input(
 
 ///|
 /// Borrowed one-shot materialization DATA on an existing original Read. The
-/// public type has no constructor/fields; caller Refs or numeric quotes cannot
+/// public type cannot be constructed or mutated by callers. Refs or quotes cannot
 /// create or alter its exact input/required-prefix binding. Not another owner.
 pub struct ClientInferInputMaterialization {
   mut input : @execution.CompletedOutput?
+  mut facts : @execution.RetainedReadmissionFacts?
   mut original : ClientInferOriginalInputRead?
   retained : Int64
   execution : Int64
@@ -178,16 +233,25 @@ pub fn prepare_original_client_infer_input_materialization(
     is Some(body) else {
     return Err(BindingMismatch)
   }
-  let (count, bytes, nodes, depth, columns) = @execution.completed_relation_export_scalar_geometry(
+  // The SAME existing Read owns fixed fact/return controls before issuance.
+  let control = @execution.retained_readmission_facts_control_bytes()
+  guard @execution.execution_capacity(control, control) is Some(fixed) &&
+    grow_original_infer_retained_input_span(original, fixed) is Some(_) else {
+    return Err(CustodyUnavailable)
+  }
+  let facts = match @execution.retained_input_facts(input) {
+    Ok(value) => value
+    Err(_) => return Err(BindingMismatch)
+  }
+  let (count, bytes, nodes, depth, _) = @execution.completed_relation_export_scalar_geometry(
     receipt,
   )
-  guard count == @execution.completed_row_count(input) &&
-    client_infer_retained_input_construction_capacity(
-      count,
+  guard count == @execution.retained_readmission_rows(facts) &&
+    client_infer_retained_input_facts_capacity(
+      facts,
       bytes,
       nodes,
       depth,
-      columns,
       body.length(),
     )
     is Some(next) &&
@@ -205,6 +269,7 @@ pub fn prepare_original_client_infer_input_materialization(
   let boundary = @publication_host.client_infer_plan_boundary(plan)
   Ok({
     input: Some(input),
+    facts: Some(facts),
     original: Some(original),
     retained: required.0,
     execution: required.1,
@@ -266,12 +331,15 @@ pub fn export_original_client_infer_retained_input(
   witness.used = true
   let original = witness.original
   let same = witness.input
+  let facts = witness.facts
   // A spent/failed witness cannot retain a large original graph or be retried
   // under another binding. Actual Read cleanup/prefix remain with its owner.
   witness.original = None
   witness.input = None
+  witness.facts = None
   guard same is Some(same) &&
     physical_equal(same, input) &&
+    facts is Some(facts) &&
     original is Some((read, consumer, compiled, definition, plan, _)) else {
     return Err(BindingMismatch)
   }
@@ -292,7 +360,8 @@ pub fn export_original_client_infer_retained_input(
   export_client_infer_retained_input_owned(
     input,
     binding,
-    @execution.completed_row_count(input),
+    @execution.retained_readmission_rows(facts),
+    facts=Some(facts),
   )
 }
 
@@ -305,4 +374,5 @@ pub fn retire_client_infer_input_materialization(
   value.used = true
   value.original = None
   value.input = None
+  value.facts = None
 }

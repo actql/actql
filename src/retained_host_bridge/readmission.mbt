@@ -23,14 +23,27 @@ pub fn retained_readmission_install(
   accepts : (@execution.AdmittedOutputStreamReceipt) -> Bool,
   permitted : () -> Bool,
 ) -> InstalledRetainedReadmission raise RetainedReadmissionFailure {
+  let facts = match
+    @execution.prepare_retained_readmission_facts(
+      preparation,
+      expected,
+      expected.rows,
+      {
+        producer_inputs: Some(100),
+        schema_columns: Some(100),
+        name_bytes: Some(10000),
+      },
+    ) {
+    Ok(value) => value
+    Err(issue) => raise Admission(issue)
+  }
   let current : Ref[@execution.RetainedOutputHandle[Unit]?] = Ref(None)
   let live = Ref(true)
   let port = match
     @execution.prepare_trusted_retained_readmission(
       preparation,
       expected,
-      100,
-      10000,
+      facts,
       fn(receipt : @execution.AdmittedOutputStreamReceipt) {
         if !live.val || !permitted() || !accepts(receipt) {
           return None
@@ -90,4 +103,10 @@ pub fn retained_readmission_close(
   installed : InstalledRetainedReadmission,
 ) -> Unit {
   installed.live.val = false
+}
+
+///|
+#export_name("retainedReadmissionFactsControlBytes")
+pub fn retained_readmission_facts_control_bytes() -> Int64 {
+  @execution.retained_readmission_facts_control_bytes()
 }

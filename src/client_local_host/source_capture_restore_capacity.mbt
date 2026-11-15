@@ -20,6 +20,38 @@ let source_capture_restore_quote_bytes : Int64 = @execution.preparation_represen
 ).unwrap()
 
 ///|
+// Returned header/query/preparation/fact references; descriptor+ValueUsage,
+// facts+origin and three fixed-width canonical CID Strings remain live.
+// generated_completion_preparation constructs its six-reference wrapper and
+// at most two scalar Options; the Query and GeneratedSequence are borrowed.
+let source_readmission_header_retained_bytes : Int64 = @execution.preparation_representation_cost({
+    record_headers: 11L,
+    reference_slots: 18L,
+    scalar_words: 16L,
+    owned_utf16_units: 3L * 71L,
+    owned_wire_bytes: 0L,
+  },
+).unwrap()
+
+///|
+// New returned header record and its Result, additional to the fact issuer.
+let source_readmission_header_return_bytes : Int64 = @execution.preparation_representation_cost({
+    record_headers: 2L,
+    reference_slots: 5L,
+    scalar_words: 0L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  },
+).unwrap()
+
+///|
+// Header data remains retained while the existing sizing recipe constructs
+// the next body demand. Its scalar/report scratch is still needed then.
+let source_readmission_header_quote_execution : Int64 = @execution.checked_preparation_add_product(
+  source_readmission_header_retained_bytes, source_capture_restore_quote_bytes, 1L,
+).unwrap()
+
+///|
 // Constructor DATA for the existing saved-capture receiver. It describes no
 // database query, native/broad executor, new grant or separate Ledger. Input
 // strings remain borrowed from the original authenticated custody.
@@ -75,6 +107,7 @@ fn source_capture_restoration_capacity(
   input_policy? : @row_source_host.RowInputLimits,
   input_columns? : Int,
   original_capacity? : (Int64, Int64),
+  metadata_facts? : @execution.RetainedReadmissionFacts? = None,
 ) -> @execution.ExecutionCapacity? {
   let max_rows = input_policy.map(value => value.max_rows).unwrap_or(100)
   let wire = input_policy
@@ -92,7 +125,8 @@ fn source_capture_restoration_capacity(
   }
   // Existing refusal paths precede Json/row allocation. Sizing does not
   // replace their original InvalidDescriptor/BindingMismatch/InputLimit.
-  let descriptor_units = if descriptor.length() > 8192 {
+  let descriptor_units = if metadata_facts is Some(_) ||
+    descriptor.length() > 8192 {
     0
   } else {
     descriptor.length()
@@ -253,6 +287,20 @@ fn source_capture_restoration_capacity(
         None => return None
       }
   }
+  let header = if metadata_facts is Some(facts) {
+    if @execution.retained_readmission_rows(facts) != rows.length() {
+      return None
+    }
+    source_readmission_header_retained_bytes
+  } else {
+    0L
+  }
+  guard @execution.checked_preparation_add_product(
+      original_retained, header, 1L,
+    )
+    is Some(retained_original) else {
+    return None
+  }
   @execution.preparation_execution_capacity({
     retained,
     workspace,
@@ -261,7 +309,7 @@ fn source_capture_restoration_capacity(
     retained_nodes: total_nodes,
     workspace_nodes: total_nodes +
     Int::min(largest, decode.max_nodes).to_int64(),
-    retained_bytes: original_retained,
+    retained_bytes: retained_original,
     workspace_bytes: original_execution - original_retained,
   })
 }
