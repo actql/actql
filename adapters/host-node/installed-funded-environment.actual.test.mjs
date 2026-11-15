@@ -146,7 +146,7 @@ test('Table129 source-profile option uses the actual early-policy Host entrance'
   const runtime=localPolicyRuntime();
   const select=(overrides={})=>{
     const calls=[];
-    const values={mode:'local',effectInstallation:undefined,selectedEffectPaths:[],
+    const values={mode:'local',effectInstallation:undefined,selectedSourcePaths:['source129.json'],selectedEffectPaths:[],
       originalInstallation:{sourceProfilePath:'source129.json'},moon:runtime,environmentSource:baseWire,
       hostCapacityPolicy:undefined,selectedLookupPolicy:undefined,requestMemory:undefined,
       calendarArtifact:undefined,modelInstallation:undefined,mockModels:undefined,project:undefined,
@@ -158,15 +158,19 @@ test('Table129 source-profile option uses the actual early-policy Host entrance'
     const wire=new Function(...Object.keys(values),body+'\nreturn baseEnvironmentWire;')(...Object.values(values));
     return {wire,calls};
   };
-  const selected=select();assert.deepEqual(selected.calls,[true]);
+  const selected=select();assert.deepEqual(selected.calls,[]);
+  assert.equal(selected.wire,baseWire,'A loaded Source keeps its independently published generic policy');
   const f=fixture(),original=document('table-profile-path',selected.wire);
   const composed=composeInstalledSourceEnvironment(f.services,f.moon,selected.wire,original);
   assert.equal(composed.wire,original);
-  assert.ok(['max_graph_construction_edges','max_graph_construction_input_rows','max_graph_construction_nodes']
-    .every(key=>Object.hasOwn(composed.body.host_policy_profile.capacity,key)));
+  assert.deepEqual(composed.body.host_policy_profile,JSON.parse(baseWire).host_policy_profile);
   assert.equal(f.close(),true);
+  const ordinary=select({selectedSourcePaths:[],originalInstallation:{}});
+  assert.deepEqual(ordinary.calls,[true]);
+  assert.ok(['max_graph_construction_edges','max_graph_construction_input_rows','max_graph_construction_nodes']
+    .every(key=>Object.hasOwn(JSON.parse(ordinary.wire).host_policy_profile.capacity,key)));
   for(const override of [{modelInstallation:{}},{mockModels:{}},{calendarArtifact:{}},{project:{modelRegistry:{}}}]){
-    const independent=select(override);assert.deepEqual(independent.calls,[false]);
+    const independent=select({selectedSourcePaths:[],originalInstallation:{},...override});assert.deepEqual(independent.calls,[false]);
     assert.equal(Object.hasOwn(JSON.parse(independent.wire).host_policy_profile.capacity,'max_graph_construction_nodes'),false);
   }
   const declared=select({originalInstallation:{sourceProfilePath:'source129.json',declaredFileBaseEnvironmentWire:baseWire}});
@@ -249,8 +253,14 @@ test('final Source checker caller refuses copied foreign or current-lost origina
 
 test('final Source checker caller preserves reservation refusal and refuses absent new runtime port', () => {
   const f=fixture(),value=f.compose(baseWire),calls=[];
-  assert.throws(()=>admitInstalledSourceFinalEnvironment(f.services,f.moon,value,finalProfiles),
-    {code:'InstalledFinalEnvironmentRuntimeUnavailable'});
+  for(const port of ['clientProgramCheckEnvironmentFromWireConstructionCapacity',
+    'clientProgramCheckEnvironmentFromWireWithGraphProfile']){
+    const actual=f.moon[port];assert.equal(typeof actual,'function');
+    delete f.moon[port];
+    assert.throws(()=>admitInstalledSourceFinalEnvironment(f.services,f.moon,value,finalProfiles),
+      {code:'InstalledFinalEnvironmentRuntimeUnavailable'});
+    f.moon[port]=actual;
+  }
   installFinalForwarder(f,calls);
   const cause=new Error('OriginalQuotaRefusal');f.state.refuse=true;f.state.cause=cause;
   assert.throws(()=>admitInstalledSourceFinalEnvironment(f.services,f.moon,value,finalProfiles),error=>error===cause);

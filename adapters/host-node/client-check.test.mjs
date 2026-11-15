@@ -26,8 +26,7 @@ import {installNodeClientCheck} from './client-check.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from
   './embedded-local.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
-import {selectInstalledHostEnvironment, selectInstalledLocalMaterializationEnvironment} from
-  './installed-host-policy.mjs';
+import {selectInstalledHostEnvironment} from './installed-host-policy.mjs';
 import {sourceAliasPublication} from './source-alias-publication.mjs';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
@@ -105,7 +104,7 @@ async function installedSource(root, {readOutcome, aliases,
   environment = sourceEnvironment, seedAuthoringRows = false, incompatiblePhysicalSchema = false}, hostEnvironmentWire) {
   // This is an adapter publication for the installed Host, not a standalone
   // checker profile. Preserve the Host's own policy when adding Source facts.
-  const base = JSON.parse(hostEnvironmentWire ?? selectInstalledLocalMaterializationEnvironment(moon,
+  const base = JSON.parse(hostEnvironmentWire ?? selectInstalledHostEnvironment(moon,
     (await readFile(join(repository, 'spec/local-check-environment.json'), 'utf8')).trimEnd()));
   environment = {...environment, host_policy_profile: base.host_policy_profile};
   delete environment.evidence_bundle_cid;
@@ -196,7 +195,10 @@ async function localClient(t, configuration, installed = {}) {
     await client?.close();
     await rm(root, {recursive: true, force: true});
   });
-  const sourceInstallation = await installedConfigurations(root, configuration);
+  const hostEnvironmentWire = selectInstalledHostEnvironment(moon,
+    (await readFile(join(repository, 'spec/local-check-environment.json'), 'utf8')).trimEnd(),
+    installed.hostCapacityPolicy, installed.hostLookupExecutionPolicy);
+  const sourceInstallation = await installedConfigurations(root, configuration, hostEnvironmentWire);
   const observation = observeCheckOnly(t, root);
   client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
     installation: {directory: join(root, 'state'), ...sourceInstallation, ...installed}});
@@ -208,12 +210,11 @@ async function localClient(t, configuration, installed = {}) {
 
 async function httpClient(t, configuration, mutateCheckReply, installed = {}) {
   const root = await mkdtemp(join(scratch, 'http-'));
-  // Match the existing Host branch for an independently supplied Remote
-  // Effect. Other Remote Source callers retain its ordinary Local selector.
-  const hostEnvironmentWire = installed.effectInstallation === undefined ? undefined
-    : selectInstalledHostEnvironment(moon,
-      (await readFile(join(repository, 'spec/local-check-environment.json'), 'utf8')).trimEnd(),
-      installed.hostCapacityPolicy, installed.hostLookupExecutionPolicy);
+  // Profile-loaded Sources publish against the generic Host policy at both
+  // entrances, including the Host's explicit capacity and lookup selections.
+  const hostEnvironmentWire = selectInstalledHostEnvironment(moon,
+    (await readFile(join(repository, 'spec/local-check-environment.json'), 'utf8')).trimEnd(),
+    installed.hostCapacityPolicy, installed.hostLookupExecutionPolicy);
   const sourceInstallation = await installedConfigurations(root, configuration, hostEnvironmentWire);
   const observation = observeCheckOnly(t, root);
   const host = await openInstalledRemoteHttpHost({
@@ -280,6 +281,28 @@ async function submissionObservationClient(t, entrance, configuration) {
 }
 
 const entrances = Object.freeze({local: localClient, http: httpClient});
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: published Source facts preserve the selected Host capacity and lookup policy`, async t => {
+    const base = JSON.parse(await readFile(join(repository,
+      'spec/local-check-environment.json'), 'utf8'));
+    const installed = {
+      hostCapacityPolicy: {...base.host_policy_profile.capacity,
+        max_effect_items: base.host_policy_profile.capacity.max_effect_items + 1},
+      hostLookupExecutionPolicy: {version: 'actql-lookup-execution-policy/0.1',
+        max_network_attempts_per_request: 3, max_request_bytes_per_attempt: 4096,
+        max_total_request_bytes: 32768, max_total_response_bytes: 32768,
+        max_total_decoded_response_bytes: 32768, max_total_duration_ms: 30000},
+    };
+    const client = entrance === 'local'
+      ? await localClient(t, configurations.allowed, installed)
+      : await httpClient(t, configurations.allowed, undefined, installed);
+    const outcome = await check(client, 'satisfied');
+    assert.equal(outcome.outcome, 'completed');
+    assert.equal(outcome.report.verdict, 'verified');
+    client.assertNoExecution();
+  });
+}
 
 for (const [entrance, open] of Object.entries(entrances)) {
   test(`${entrance}: actual check display keeps hostile declaration names as data`, async t => {
@@ -5667,12 +5690,10 @@ for (const entrance of ['local', 'http']) {
 
 // Inert test providers extend the SAME selected Host policy, as installed
 // Source declarations do. Their publication creates no dispatch authority.
-async function checkOnlyEffectEnvironment(entrance) {
+async function checkOnlyEffectEnvironment() {
   const body = JSON.parse(await readFile(join(repository,
     'packages/sdk/fixtures/values.environment.json'), 'utf8'));
-  const select = entrance === 'http' ? selectInstalledHostEnvironment
-    : selectInstalledLocalMaterializationEnvironment;
-  const base = select(moon, (await readFile(join(repository,
+  const base = selectInstalledHostEnvironment(moon, (await readFile(join(repository,
     'spec/local-check-environment.json'), 'utf8')).trimEnd());
   body.host_policy_profile = JSON.parse(base).host_policy_profile;
   delete body.evidence_bundle_cid;
@@ -5699,7 +5720,7 @@ for (const entrance of ['local', 'http']) {
       registerModelProviders: () => [{providerId: 'models/authoring-fixture',
         validatePrompt: () => false,
         invoke() {modelCalls++; throw new Error('UnexpectedAuthoringModelExecution');}}],
-      effectInstallation: {environmentWire: await checkOnlyEffectEnvironment(entrance),
+      effectInstallation: {environmentWire: await checkOnlyEffectEnvironment(),
         execute() {effectCalls++; throw new Error('UnexpectedAuthoringEffectExecution');},
         resume() {resumes++; throw new Error('UnexpectedAuthoringEffectResume');}}};
     const configuration = {...configurations.allowed, seedAuthoringRows: true};
@@ -5939,7 +5960,7 @@ for (const entrance of ['local', 'http']) {
       registerModelProviders: () => [{providerId: 'models/protected-authoring-fixture',
         validatePrompt: () => false,
         invoke() {modelCalls++; throw new Error('UnexpectedProtectedAuthoringModelExecution');}}],
-      effectInstallation: {environmentWire: await checkOnlyEffectEnvironment(entrance),
+      effectInstallation: {environmentWire: await checkOnlyEffectEnvironment(),
         execute() {effectCalls++; throw new Error('UnexpectedProtectedAuthoringEffectExecution');},
         resume() {effectCalls++; throw new Error('UnexpectedProtectedAuthoringEffectResume');}}};
     const clients = [];
@@ -5996,10 +6017,8 @@ for (const entrance of ['local', 'http']) {
     const effectEnvironment = JSON.parse(await readFile(join(repository,
       'packages/sdk/fixtures/values.environment.json'), 'utf8'));
     // The inert Effect publication extends this same installed Host policy.
-    // Remote Effect Hosts keep the generic selector; Local uses its own
-    // materialization policy, exactly as the Source fixture above does.
-    const hostEnvironment = (entrance === 'http' ? selectInstalledHostEnvironment
-      : selectInstalledLocalMaterializationEnvironment)(moon,
+    // Both entrances load the same generic Source profile alongside it.
+    const hostEnvironment = selectInstalledHostEnvironment(moon,
       (await readFile(join(repository, 'spec/local-check-environment.json'), 'utf8')).trimEnd());
     effectEnvironment.host_policy_profile = JSON.parse(hostEnvironment).host_policy_profile;
     delete effectEnvironment.evidence_bundle_cid;

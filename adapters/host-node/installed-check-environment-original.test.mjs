@@ -148,16 +148,28 @@ test('external wire encoding, CID and selected admission remain required', () =>
 
 const hostSource = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
 const hostAst = parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'});
+const host = hostAst.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'openInstalledHost');
+assert(host, 'Select only the actual installed Host owner');
 const compositionBlocks = [], finalBlocks = [];
 const call = (statement, name) => statement.type === 'ExpressionStatement' &&
   statement.expression.type === 'CallExpression' && statement.expression.callee.name === name;
-const compositionCheck = statement => statement.type === 'VariableDeclaration' &&
-  statement.declarations.some(value => value.id.name === 'composedEnvironment' &&
-    value.init?.callee?.name === 'composeInstalledSourceEnvironment');
-const finalCheck = statement => statement.type === 'ExpressionStatement' &&
-  statement.expression.type === 'AssignmentExpression' && statement.expression.left.name === 'environment' &&
-  statement.expression.right.type === 'CallExpression' &&
-  statement.expression.right.callee.property?.name === 'clientProgramCheckEnvironmentWithGraphProfile';
+const assignmentCall = (statement, target, name) => statement.type === 'ExpressionStatement' &&
+  statement.expression.type === 'AssignmentExpression' && statement.expression.left.name === target &&
+  statement.expression.right.type === 'CallExpression' && statement.expression.right.callee.name === name;
+const compositionCheck = statement => assignmentCall(statement, 'composedEnvironment', 'composeInstalledSourceEnvironment');
+const finalPorts = ['readInstalledHostEnvironment', 'admitInstalledSourceFinalEnvironment',
+  'clientProgramCheckEnvironmentWithGraphProfile'];
+function callsIn(node, names, output = []) {
+  if (node === null || typeof node !== 'object') return output;
+  if (node.type === 'CallExpression' && names.includes(node.callee.name ?? node.callee.property?.name)) output.push(node);
+  for (const value of Object.values(node)) {
+    if (Array.isArray(value)) value.forEach(child => callsIn(child, names, output));
+    else if (value !== null && typeof value === 'object') callsIn(value, names, output);
+  }
+  return output;
+}
+const finalCheck = statement => statement.type === 'IfStatement' &&
+  callsIn(statement, finalPorts).length === finalPorts.length;
 function hostBlocks(node) {
   if (node === null || typeof node !== 'object') return;
   if (node.type === 'BlockStatement') {
@@ -169,14 +181,26 @@ function hostBlocks(node) {
     else if (value !== null && typeof value === 'object') hostBlocks(value);
   }
 }
-hostBlocks(hostAst);
+hostBlocks(host.body);
 assert.equal(compositionBlocks.length, 1); assert.equal(finalBlocks.length, 1);
 const compositionBlock = compositionBlocks[0], finalBlock = finalBlocks[0];
 const compositionStart = compositionBlock.body.find(compositionCheck);
 const compositionEnd = compositionBlock.body.find(statement => call(statement, 'verifyInstalledConnectorBindings'));
-const finalStart = finalBlock.body[0];
-const finalEnd = finalBlock.body.find(finalCheck);
+const finalStart = finalBlock.body[0], finalEnd = finalBlock.body.find(finalCheck);
 assert(compositionStart && compositionEnd && finalStart && finalEnd);
+const compact = node => hostSource.slice(node.start, node.end).replace(/\s+/gu, '');
+const compositionCalls = callsIn(host.body, ['composeInstalledSourceEnvironment']);
+assert.equal(compositionCalls.length, 1, 'The same Host composes its selected originals once');
+assert.deepEqual(compositionCalls[0].arguments.map(compact), ['installationServices', 'moon', 'baseEnvironmentWire',
+  'sourceProfile?.environmentOriginal??sourceProfile?.environmentWire',
+  'installedEffect?.environmentOriginal??effectInstallation?.environmentWire']);
+const selectedFinalCalls = callsIn(finalEnd, finalPorts);
+assert.deepEqual(selectedFinalCalls.map(node => node.callee.name ?? node.callee.property.name), finalPorts);
+assert.deepEqual(selectedFinalCalls.slice(0, 2).map(node => node.arguments.slice(0, 3).map(compact)), [
+  ['installationServices', 'moon', 'environmentWire'], ['installationServices', 'moon', 'composedEnvironment']]);
+assert.equal(compact(finalEnd.test), 'projectTasks!==undefined&&mockModels===undefined');
+assert.equal(compact(finalEnd.alternate.test),
+  'calendarArtifact===undefined&&environmentWire===composedEnvironment.wire');
 const compositionCode = hostSource.slice(compositionStart.start, compositionEnd.end);
 const finalCode = hostSource.slice(finalStart.start, finalEnd.end);
 const numericWire = readFileSync(new URL('../../spec/contracts/actql-numeric-reduction.json', import.meta.url), 'utf8');
@@ -209,14 +233,14 @@ function hostHandoff(options = {}) {
     assert.deepEqual(flags, [false, false, true, false, false, false, false]);
     const original = {}; initial.calls.push({wire, cid, flags, original}); return original;
   }, clientProgramCheckEnvironmentWithGraphProfile(wire, cid, ...flags) {
-    assert.strictEqual(this, moon); finalCalls.push({wire, cid, flags});
+    assert.strictEqual(this, moon); phaseCalls.push('final-check'); finalCalls.push({wire, cid, flags});
     if (Object.hasOwn(options, 'failure')) throw options.failure;
     return options.refuse ? undefined : finalOriginal;
   }};
   const taskView = {projectEnvironmentForRuntime(runtime, wire, cid) {
     assert.strictEqual(this, taskView); assert.strictEqual(runtime, moon);
     assert.equal(JSON.parse(wire).evidence_bundle_cid, cid); phaseCalls.push('project');
-    return {environmentWire: options.taskWire};
+    return {environmentWire: options.taskWire, evidenceCid: options.taskEvidenceCid};
   }};
   const mockModels = options.mockTask ? {modelInstallationForRuntime(runtime, wire, cid) {
     assert.strictEqual(this, mockModels); assert.strictEqual(runtime, moon);
@@ -226,13 +250,35 @@ function hostHandoff(options = {}) {
   const assets = new Map([['spec/contracts/actql-numeric-reduction.json', numericWire],
     ['spec/dependencies/actql-graph-laws.json', graphWire]]);
   const assertCurrent = () => phaseCalls.push('current');
+  let composedOriginal;
   const context = {
     moon,
     // Explicit funded-constructor port for this lexical handoff fixture;
     // generated reservation ordering is covered by the actual bridge tests.
     composeInstalledSourceEnvironment(_services, runtime, base, source, effect) {
       phaseCalls.push('reserve');
-      return environmentOwner.composeInstalledCheckEnvironmentOriginal(runtime, base, source, effect);
+      assert.strictEqual(_services, context.installationServices); assert.strictEqual(runtime, moon);
+      assert.equal(base, selectedWire);
+      composedOriginal = environmentOwner.composeInstalledCheckEnvironmentOriginal(runtime, base, source, effect);
+      return composedOriginal;
+    },
+    // These lexical ports expose caller forwarding/order only. The separately
+    // executed generated-bridge controls qualify their actual funded owners.
+    readInstalledHostEnvironment(services, runtime, wire, flags) {
+      assert.strictEqual(services, context.installationServices); assert.strictEqual(runtime, moon);
+      phaseCalls.push('reserve-final');
+      const {evidence_bundle_cid: cid, ...body} = context.JSON.parse(wire);
+      return {body, wire, evidenceCid: cid, admitted: moon.clientProgramCheckEnvironmentWithGraphProfile(
+        wire, cid, flags.textTime, true, true, true, true, flags.calendar, false,
+        flags.numericProfileCid, flags.graphLawCid)};
+    },
+    admitInstalledSourceFinalEnvironment(services, runtime, original, flags) {
+      assert.strictEqual(services, context.installationServices); assert.strictEqual(runtime, moon);
+      assert.strictEqual(original, composedOriginal);
+      phaseCalls.push('reserve-final');
+      return {...original, admitted: moon.clientProgramCheckEnvironmentWithGraphProfile(
+        original.wire, original.evidenceCid, flags.textTime, true, true, true, true, false, false,
+        flags.numericProfileCid, flags.graphLawCid)};
     },
     baseEnvironmentWire: selectedWire, sourceProfile: undefined, effectInstallation: undefined,
     installedEffect: undefined, installationServices: {}, project: options.taskWire ? {} : undefined,
@@ -273,7 +319,8 @@ function hostHandoff(options = {}) {
     readFile() {assert.fail('No pathname fallback');}, join() {assert.fail('No pathname fallback');}, packageRoot: 'unused',
   };
   const run = new Function(...Object.keys(context), `return async function(){
-    let environmentWire, effectiveHostCapacityPolicyCid, environmentBody, environmentEvidenceCid;
+    let environmentWire, effectiveHostCapacityPolicyCid, environmentBody, environmentEvidenceCid, composedEnvironment;
+    let finalEnvironmentOriginal, textTimeEnabled;
     let projectTasks = initialProjectTasks, modelInstallation = initialModelInstallation;
     let environment, evidenceCid;
     ${compositionCode}
@@ -303,6 +350,8 @@ test('actual Host handoff reuses exact encoding only when its complete policy in
   assert.equal(result.environmentWire, wire);
   assert.equal(result.effectiveHostCapacityPolicyCid, contentCid(policy));
   assert.equal(f.parses, 0); assert.equal(f.hashes, 0);
+  assert.deepEqual(f.phaseCalls.slice(-2), ['reserve-final', 'final-check'],
+    'The same-original final admission stays inside its selected constructor port');
   assert.equal(f.finalCalls.length, 1);
 });
 
@@ -317,7 +366,7 @@ test('actual Host handoff does not reuse the composer body for a changed install
 test('actual Host handoff retains each selected Task output wire and its returned evidence CID', async () => {
   const taskWire = withGraphDefaults(installed('task-output'));
   for (const mockTask of [false, true]) {
-    const f = hostHandoff({taskWire, mockTask}), result = await f.run();
+    const f = hostHandoff({taskWire, mockTask, taskEvidenceCid: JSON.parse(taskWire).evidence_bundle_cid}), result = await f.run();
     assert.equal(result.environmentWire, taskWire);
     assert.equal(result.evidenceCid, JSON.parse(taskWire).evidence_bundle_cid);
     assert.equal(f.parses, 1); assert.equal(f.finalCalls.length, 1);
@@ -333,8 +382,11 @@ test('actual Host Task handoff preserves binding failure before parsing its new 
   assert.equal(rejected.finalCalls.length, 0);
   const malformed = hostHandoff({taskWire: '{'});
   await assert.rejects(malformed.run(), SyntaxError);
-  assert.deepEqual(malformed.phaseCalls, ['reserve', 'tasks', 'project', 'bindings']);
-  assert.equal(malformed.finalCalls.length, 0, 'Malformed Task wire refuses before final assets or admission');
+  // Static numeric/graph assets precede the new Task wire's funded inverse.
+  // Binding failure above still stops before either asset or that constructor.
+  assert.deepEqual(malformed.phaseCalls, ['reserve', 'tasks', 'project', 'bindings',
+    'asset', 'asset', 'reserve-final']);
+  assert.equal(malformed.finalCalls.length, 0, 'Malformed Task wire refuses before final admission');
 });
 
 test('actual Host handoff preserves selected Calendar semantic bytes and its distinct final flag', async () => {
