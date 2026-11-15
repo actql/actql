@@ -114,30 +114,59 @@ pub fn emit_censused_checked_local_dependency_body(
   let geometry = value.geometry
   let writer = try {
     match shared {
-    None => @encode.work_writer(geometry.bytes, geometry.nodes, geometry.depth, work)
-    Some(previous) => {
-      if previous.cid != value.cid { return Err(ForeignBody) }
-      @encode.work_comparing_writer(previous.wire, geometry.bytes, geometry.nodes, geometry.depth, work)
+      None =>
+        @encode.work_writer(
+          geometry.bytes,
+          geometry.nodes,
+          geometry.depth,
+          work,
+        )
+      Some(previous) => {
+        if previous.cid != value.cid {
+          return Err(ForeignBody)
+        }
+        @encode.work_comparing_writer(
+          previous.wire,
+          geometry.bytes,
+          geometry.nodes,
+          geometry.depth,
+          work,
+        )
+      }
     }
-    }
-  } catch { issue => return Err(Encoding(issue)) }
-  let cid = match emit_checked_local_dependency_body(
-    value.program, value.unit, value.kind, writer,
-  ) {
+  } catch {
+    issue => return Err(Encoding(issue))
+  }
+  let cid = match
+    emit_checked_local_dependency_body(
+      value.program,
+      value.unit,
+      value.kind,
+      writer,
+    ) {
     Ok(cid) => cid
     Err(issue) => return Err(issue)
   }
   let (wire, bytes, nodes, depth) = try {
     match shared {
-    None => @encode.finish_text_usage(writer)
-    Some(previous) => {
-      let (equal, bytes, nodes, depth) = @encode.finish_comparison_usage(writer)
-      if !equal { return Err(ForeignBody) }
-      (previous.wire, bytes, nodes, depth)
+      None => @encode.finish_text_usage(writer)
+      Some(previous) => {
+        let (equal, bytes, nodes, depth) = @encode.finish_comparison_usage(
+          writer,
+        )
+        if !equal {
+          return Err(ForeignBody)
+        }
+        (previous.wire, bytes, nodes, depth)
+      }
     }
-    }
-  } catch { issue => return Err(Encoding(issue)) }
-  if cid != value.cid || bytes != geometry.bytes || nodes != geometry.nodes || depth != geometry.depth {
+  } catch {
+    issue => return Err(Encoding(issue))
+  }
+  if cid != value.cid ||
+    bytes != geometry.bytes ||
+    nodes != geometry.nodes ||
+    depth != geometry.depth {
     return Err(ForeignBody)
   }
   Ok({ owner: value.program, unit: value.unit, kind: value.kind, cid, wire, })

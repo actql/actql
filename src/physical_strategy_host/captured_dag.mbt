@@ -459,7 +459,12 @@ pub fn open_captured_effect_keyed_source_run_dag(
   read : @execution.SuppliedRelationRead,
 ) -> Result[CapturedEffectRunDAG, RunIssue] {
   open_original_effect_keyed_read(
-    checked, checked.computation.graph_value(), sources, ledger, task, read,
+    checked,
+    checked.computation.graph_value(),
+    sources,
+    ledger,
+    task,
+    read,
   )
 }
 
@@ -522,11 +527,14 @@ pub fn captured_effect_keyed_supplied_input_matches(
   input : Int,
   read : @execution.SuppliedRelationRead,
 ) -> Bool {
-  guard !run.stopped && run.failure is None &&
+  guard !run.stopped &&
+    run.failure is None &&
     task >= run.graph.captured_prefix_value() &&
     task < run.supplied_reads.length() &&
-    task < run.lifetimes.length() && run.lifetimes[task].live &&
-    input >= 0 && input < run.supplied_reads[task].length() &&
+    task < run.lifetimes.length() &&
+    run.lifetimes[task].live &&
+    input >= 0 &&
+    input < run.supplied_reads[task].length() &&
     run.supplied_reads[task][input] is Some(original) &&
     @execution.supplied_relation_read_same_binding(original, read) &&
     run.graph.owners_at(task) is Some(owner) else {
@@ -535,7 +543,9 @@ pub fn captured_effect_keyed_supplied_input_matches(
   for slot in run.graph.supplied_slots_iter() {
     if slot.consumer == task && slot.input == input {
       return @execution.supplied_relation_read_matches_input(
-        read, owner, slot.source_input,
+        read,
+        owner,
+        slot.source_input,
       )
     }
   }

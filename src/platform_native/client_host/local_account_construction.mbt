@@ -35,10 +35,12 @@ fn local_account_read(
   let max_bytes = match construction {
     Some(_) => max_bytes
     None =>
-      Some(match max_bytes {
-        Some(bound) => Int64::min(bound, 1048576L)
-        None => 1048576L
-      })
+      Some(
+        match max_bytes {
+          Some(bound) => Int64::min(bound, 1048576L)
+          None => 1048576L
+        },
+      )
   }
   local_adoption_read_observed(
     root,

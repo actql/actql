@@ -291,7 +291,8 @@ fn[I, P] finish_preparation_work_state(
   }
   // A returned receipt can span a resize, whose original current callback may
   // reenter. Finishing inside that callback must not sever the live phase.
-  if state.run && (state.owner.phase != Run || state.owner.inventory_growth_active) {
+  if state.run &&
+    (state.owner.phase != Run || state.owner.inventory_growth_active) {
     return Err(WrongPhase)
   }
   if state.owner.phase == Completing ||

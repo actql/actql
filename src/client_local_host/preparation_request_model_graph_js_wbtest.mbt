@@ -3022,14 +3022,24 @@ test "two Model Request adopts one module and all original scopes with one aggre
   // The exact two-Model selection array/records also coexist with the module
   // and child read partitions. Its constructor is not paid by bootstrap.
   assert_eq(plan.models.unwrap().length(), 2)
-  let (selection_retained, selection_execution) = installed_model_selection_layout(2).unwrap()
+  let (selection_retained, selection_execution) = installed_model_selection_layout(
+    2,
+  ).unwrap()
   assert_eq(
     plan.limits.retained_bytes,
-    selected_module.limits.retained_bytes + 2000L + 16L + 31L + selection_retained,
+    selected_module.limits.retained_bytes +
+    2000L +
+    16L +
+    31L +
+    selection_retained,
   )
   assert_eq(
     plan.limits.execution_bytes,
-    selected_module.limits.execution_bytes + 4000L + 11L + 37L + selection_execution,
+    selected_module.limits.execution_bytes +
+    4000L +
+    11L +
+    37L +
+    selection_execution,
   )
   let after_plan = @resources.preparation_capacity_working_extents(
     parent.program_capacity.unwrap(),

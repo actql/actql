@@ -15,7 +15,9 @@ pub fn yaml_literal_construction_extent(
     return None
   }
   guard json_literal_construction_extent(input_bytes, max_nodes, max_depth)
-    is Some(common) else { return None }
+    is Some(common) else {
+    return None
+  }
   let depth = Int::min(max_nodes, max_depth).to_int64() + 1L
   let count = lines.to_int64()
   // One YamlFrame plus its start/end Point, optional key tuple/Some and
