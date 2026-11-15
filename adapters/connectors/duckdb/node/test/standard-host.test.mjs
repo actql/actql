@@ -874,6 +874,95 @@ test('standard native and broad Node Hosts own verification through real capture
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
 
+// Exercise the same real retained root on its own as well as in the full
+// strategy graph campaign. Fixed metadata census belongs to the Core tests;
+// this boundary checks sealed file capacity and original release ACKs.
+async function exerciseRetainedRootAllocation(fixture, args, program, grant, suppliedLimits) {
+  const retainedRootDirectory = await mkdtemp(join(root, '_build/duckdb-fixtures/retained-root-'));
+  const rootRetention = {parentDirectory: retainedRootDirectory, maxFrameBytes: 4096,
+    wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64, max_columns: 10, max_order_work: 10000}};
+  try {
+    const retainedBridge = await import(pathToFileURL(join(root, '_build/js/release/build/connectors/duckdb/host_node/host_node.js')));
+    const preparedOnly = fixture.strategyFixtureAccounted(fixture.strategyFixtureCreate(...args, program));
+    const setupOnly = fixture.strategyFixtureAcquisition(preparedOnly);
+    const ledgerOnly = fixture.strategyFixtureLedger(preparedOnly);
+    assert.throws(() => checked(retainedBridge.nativeRetainedStrategyHostOpen(setupOnly, ledgerOnly,
+      'invalid-batch', () => true, 100000n, 134217728n, 100000n, 0, () => true)));
+    assert.throws(() => checked(retainedBridge.nativeRetainedStrategyHostOpen(setupOnly, ledgerOnly,
+      'oversized-batch', () => true, 100000n, 134217728n, 100000n, 100001, () => true)));
+    assert.equal(fixture.strategyFixtureUsage(preparedOnly, 3), 0n);
+    const fixedStream = checked(retainedBridge.nativeRetainedStrategyHostOpen(setupOnly, ledgerOnly,
+      'fixed-stream', () => true, 100000n, 134217728n, 100000n, 4096, () => true));
+    assert.equal(fixture.strategyFixtureUsage(preparedOnly, 3), 0n);
+    // The lower retention reservation never exposes a switchable receiver.
+    assert.throws(() => checked(retainedBridge.nativeHostStreamPrepare(fixedStream, 4096)));
+    // Even confirmed native stop cannot turn a missing sealed body into a
+    // zero-byte holding. Keep the original reservation on this failed path.
+    checked(retainedBridge.nativeHostPhysicalSettle(fixedStream, true));
+    const pendingRetention = fixture.strategyFixtureUsage(preparedOnly, 5);
+    assert(pendingRetention > 0n);
+    assert.throws(() => checked(retainedBridge.nativeHostComplete(fixedStream)));
+    assert.equal(fixture.strategyFixtureUsage(preparedOnly, 5), pendingRetention);
+    assert.equal(fixture.strategyFixtureUsage(preparedOnly, 4), 0n);
+    // No transport was started in this boundary probe. Close alone is still
+    // not the native-stop acknowledgement required by the physical ledger.
+    retainedBridge.nativeHostClose(fixedStream);
+    checked(retainedBridge.nativeHostPhysicalSettle(fixedStream, true));
+    for (const field of [0, 1, 2, 4, 5]) assert.equal(fixture.strategyFixtureUsage(preparedOnly, field), 0n);
+    // This admission-only probe never entered a physical session.
+    assert.equal(fixture.strategyFixtureUsage(preparedOnly, 3), 0n);
+    for (const adopt of [false, true]) {
+      const f = fixture.strategyFixtureAccounted(fixture.strategyFixtureCreate(...args, program));
+      const captured = await runRetainedStrategyNativeHostQuery(grant,
+        fixture.strategyFixtureAcquisition(f), fixture.strategyFixtureLedger(f), suppliedLimits, rootRetention);
+      try {
+        assert.equal(captured.output, undefined);
+        assert.equal(typeof captured.source, 'function');
+        assert.ok(captured.source());
+        // Admission keeps the full file ceiling. Only the exact sealed body
+        // becomes a holding; unused capacity is released after completion.
+        const upfrontRetention = captured.physicalCapacity.retentionBytes;
+        const fileCeiling = BigInt(rootRetention.wire.max_bytes);
+        assert(upfrontRetention > fileCeiling);
+        const fileBytes = BigInt(captured.storageUsage().reservedBytes);
+        assert(fileBytes > 0n && fileBytes < fileCeiling);
+        const heldBytes = upfrontRetention - fileCeiling + fileBytes;
+        assert(heldBytes < upfrontRetention,
+          'Only unused file capacity is released; the original capture remains held');
+        assert.equal(fixture.strategyFixtureUsage(f, 4), heldBytes);
+        assert.equal(fixture.strategyFixtureUsage(f, 2), 0n);
+        if (adopt) assert.equal(fixture.strategyFixtureAttach(f,
+          captured.openDAG(fixture.strategyFixtureGraph(f))), true);
+        captured.close();
+        assert.equal(captured.cleanupHandle.status().pending, true);
+        assert.equal(fixture.strategyFixtureUsage(f, 4), heldBytes);
+        const spent = fixture.strategyFixtureUsage(f, 0);
+        await captured.cleanupHandle.retry();
+        await captured.cleanupHandle.retry();
+        assert.equal(captured.cleanupHandle.status().pending, false);
+        assert.equal(fixture.strategyFixtureUsage(f, 4), 0n);
+        assert.equal(fixture.strategyFixtureUsage(f, 0), spent);
+      } finally { captured.close(); await captured.cleanupHandle.retry(); }
+    }
+    for (const invalid of ['settings', 'ledger', 'capacity', 'stream']) {
+      const f = fixture.strategyFixtureAccounted(fixture.strategyFixtureCreate(...args, program));
+      await assert.rejects(runRetainedStrategyNativeHostQuery(grant,
+        fixture.strategyFixtureAcquisition(f), invalid === 'ledger' ? undefined : fixture.strategyFixtureLedger(f),
+        invalid === 'settings' ? {...suppliedLimits, threads: 0} : suppliedLimits,
+        invalid === 'stream' ? {...rootRetention, maxFrameBytes: 1}
+          : invalid === 'capacity' ? {...rootRetention, wire: {...rootRetention.wire, max_bytes: 100000000}}
+            : rootRetention).catch(async error => {
+          await error.cleanupHandle?.retry();
+          assert.equal(error.cleanupHandle?.status().pending ?? false, false);
+          throw error;
+        }));
+      for (const field of [1, 2, 4, 5]) assert.equal(fixture.strategyFixtureUsage(f, field), 0n);
+      assert.equal(fixture.strategyFixtureUsage(f, 3), invalid === 'stream' ? 1n : 0n);
+    }
+    assert.deepEqual(await readdir(retainedRootDirectory), []);
+  } finally { await rm(retainedRootDirectory, {recursive: true, force: true}); }
+}
+
 async function exerciseStrategyGraph(
   fixture,
   args,
@@ -894,6 +983,10 @@ async function exerciseStrategyGraph(
       results: { r: { from: 'captured', fields: ['id'] } } },
     stage('compute_a', 'a', 'id > 2'), stage('compute_b', 'a', 'id > 0'), stage('compute_c', 'compute_a', 'id < 9')],
     results: { b: { from: { stage: 'compute_b', result: 'r' } }, c: { from: { stage: 'compute_c', result: 'r' } } } });
+  if (process.env.ACTQL_STANDARD_HOST_GRAPH_CASE === 'retained-root-capacity') {
+    await exerciseRetainedRootAllocation(fixture, args, program, grant, suppliedLimits);
+    return;
+  }
   async function replaceRows(sql) {
     const db = await DuckDBInstance.create(path);
     const connection = await db.connect();
@@ -12841,85 +12934,7 @@ async function exerciseStrategyGraph(
     assert.equal(fixture.strategyFixtureUsage(failed, 3), mode === 'transfer' ? 1n : 0n);
   }
   const accountedFixture = fixture.strategyFixtureAccounted(fixture.strategyFixtureCreate(...args, program));
-  const retainedRootDirectory = await mkdtemp(join(root, '_build/duckdb-fixtures/retained-root-'));
-  const rootRetention = {parentDirectory: retainedRootDirectory, maxFrameBytes: 4096,
-    wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64, max_columns: 10, max_order_work: 10000}};
-  try {
-    const retainedBridge = await import(pathToFileURL(join(root, '_build/js/release/build/connectors/duckdb/host_node/host_node.js')));
-    const preparedOnly = fixture.strategyFixtureAccounted(fixture.strategyFixtureCreate(...args, program));
-    const setupOnly = fixture.strategyFixtureAcquisition(preparedOnly);
-    const ledgerOnly = fixture.strategyFixtureLedger(preparedOnly);
-    assert.throws(() => checked(retainedBridge.nativeRetainedStrategyHostOpen(setupOnly, ledgerOnly,
-      'invalid-batch', () => true, 100000n, 134217728n, 100000n, 0, () => true)));
-    assert.throws(() => checked(retainedBridge.nativeRetainedStrategyHostOpen(setupOnly, ledgerOnly,
-      'oversized-batch', () => true, 100000n, 134217728n, 100000n, 100001, () => true)));
-    assert.equal(fixture.strategyFixtureUsage(preparedOnly, 3), 0n);
-    const fixedStream = checked(retainedBridge.nativeRetainedStrategyHostOpen(setupOnly, ledgerOnly,
-      'fixed-stream', () => true, 100000n, 134217728n, 100000n, 4096, () => true));
-    assert.equal(fixture.strategyFixtureUsage(preparedOnly, 3), 0n);
-    // The lower retention reservation never exposes a switchable receiver.
-    assert.throws(() => checked(retainedBridge.nativeHostStreamPrepare(fixedStream, 4096)));
-    // Even confirmed native stop cannot turn a missing sealed body into a
-    // zero-byte holding. Keep the original reservation on this failed path.
-    checked(retainedBridge.nativeHostPhysicalSettle(fixedStream, true));
-    const pendingRetention = fixture.strategyFixtureUsage(preparedOnly, 5);
-    assert(pendingRetention > 0n);
-    assert.throws(() => checked(retainedBridge.nativeHostComplete(fixedStream)));
-    assert.equal(fixture.strategyFixtureUsage(preparedOnly, 5), pendingRetention);
-    assert.equal(fixture.strategyFixtureUsage(preparedOnly, 4), 0n);
-    // No transport was started in this boundary probe. Close alone is still
-    // not the native-stop acknowledgement required by the physical ledger.
-    retainedBridge.nativeHostClose(fixedStream);
-    checked(retainedBridge.nativeHostPhysicalSettle(fixedStream, true));
-    for (const field of [0, 1, 2, 4, 5]) assert.equal(fixture.strategyFixtureUsage(preparedOnly, field), 0n);
-    // This admission-only probe never entered a physical session.
-    assert.equal(fixture.strategyFixtureUsage(preparedOnly, 3), 0n);
-    for (const adopt of [false, true]) {
-      const f = fixture.strategyFixtureAccounted(fixture.strategyFixtureCreate(...args, program));
-      const captured = await runRetainedStrategyNativeHostQuery(grant,
-        fixture.strategyFixtureAcquisition(f), fixture.strategyFixtureLedger(f), suppliedLimits, rootRetention);
-      try {
-        assert.equal(captured.output, undefined);
-        assert.equal(typeof captured.source, 'function');
-        assert.ok(captured.source());
-        // Admission keeps the full file ceiling. Only the exact sealed body
-        // becomes a holding; unused capacity is released after completion.
-        assert.equal(captured.physicalCapacity.retentionBytes, 134615840n);
-        const fileBytes = BigInt(captured.storageUsage().reservedBytes);
-        assert(fileBytes > 0n && fileBytes < 100000n);
-        const heldBytes = 134515840n + fileBytes;
-        assert.equal(fixture.strategyFixtureUsage(f, 4), heldBytes);
-        assert.equal(fixture.strategyFixtureUsage(f, 2), 0n);
-        if (adopt) assert.equal(fixture.strategyFixtureAttach(f,
-          captured.openDAG(fixture.strategyFixtureGraph(f))), true);
-        captured.close();
-        assert.equal(captured.cleanupHandle.status().pending, true);
-        assert.equal(fixture.strategyFixtureUsage(f, 4), heldBytes);
-        const spent = fixture.strategyFixtureUsage(f, 0);
-        await captured.cleanupHandle.retry();
-        await captured.cleanupHandle.retry();
-        assert.equal(captured.cleanupHandle.status().pending, false);
-        assert.equal(fixture.strategyFixtureUsage(f, 4), 0n);
-        assert.equal(fixture.strategyFixtureUsage(f, 0), spent);
-      } finally { captured.close(); await captured.cleanupHandle.retry(); }
-    }
-    for (const invalid of ['settings', 'ledger', 'capacity', 'stream']) {
-      const f = fixture.strategyFixtureAccounted(fixture.strategyFixtureCreate(...args, program));
-      await assert.rejects(runRetainedStrategyNativeHostQuery(grant,
-        fixture.strategyFixtureAcquisition(f), invalid === 'ledger' ? undefined : fixture.strategyFixtureLedger(f),
-        invalid === 'settings' ? {...suppliedLimits, threads: 0} : suppliedLimits,
-        invalid === 'stream' ? {...rootRetention, maxFrameBytes: 1}
-          : invalid === 'capacity' ? {...rootRetention, wire: {...rootRetention.wire, max_bytes: 100000000}}
-            : rootRetention).catch(async error => {
-          await error.cleanupHandle?.retry();
-          assert.equal(error.cleanupHandle?.status().pending ?? false, false);
-          throw error;
-        }));
-      for (const field of [1, 2, 4, 5]) assert.equal(fixture.strategyFixtureUsage(f, field), 0n);
-      assert.equal(fixture.strategyFixtureUsage(f, 3), invalid === 'stream' ? 1n : 0n);
-    }
-    assert.deepEqual(await readdir(retainedRootDirectory), []);
-  } finally { await rm(retainedRootDirectory, {recursive: true, force: true}); }
+  await exerciseRetainedRootAllocation(fixture, args, program, grant, suppliedLimits);
   const accounted = await runStrategyNativeHostQuery(grant,
     fixture.strategyFixtureAcquisition(accountedFixture),
     fixture.strategyFixtureLedger(accountedFixture), suppliedLimits);
