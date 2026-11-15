@@ -48,6 +48,7 @@ fn request_capture_plan_fixture(
   factory? : (@execution.ExecutionCapacity) -> Array[@local.ManagedProvider] = _ => {
     []
   },
+  runtime_admission? : Bool = false,
 ) -> (
   ClientInstalledManagedCapturePlan,
   @publication_host.ClientRequestIdentity,
@@ -90,6 +91,7 @@ fn request_capture_plan_fixture(
     None,
     retained_output=true,
     provider_factory=factory,
+    runtime_admission~,
   ).unwrap()
   (plan, request)
 }
@@ -904,7 +906,12 @@ test "captured Event Plan adopts the same backed Request and retires without cha
     document=captured_events_schema_budget_program,
     events=true,
   )
-  let (plan, request) = request_capture_plan_fixture(prepared)
+  // The Request-owned entrance admits each actual task on its original
+  // finite Ledger, rather than requiring a simultaneous whole-Run maximum.
+  let (plan, request) = request_capture_plan_fixture(
+    prepared,
+    runtime_admission=true,
+  )
   complete_request_capture_preparation(parent, input, plan).unwrap()
   let run = begin_request_capture_managed_run(parent, request).unwrap()
   assert_true(
@@ -933,7 +940,10 @@ test "captured Event Program reserves its original first task on the same finite
       document=captured_events_schema_budget_program,
       events=true,
     )
-    let (plan, request) = request_capture_plan_fixture(prepared)
+    let (plan, request) = request_capture_plan_fixture(
+      prepared,
+      runtime_admission=true,
+    )
     complete_request_capture_preparation(parent, input, plan).unwrap()
     let run = begin_request_capture_managed_run(parent, request).unwrap()
     let read = begin_installed_managed_capture_read(run, 0).unwrap()
