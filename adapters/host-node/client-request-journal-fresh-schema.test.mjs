@@ -67,7 +67,8 @@ const digest=value=>createHash('sha256').update(value).digest('hex');
 test('actual older base format adopts the same DDL and preserves its original row on current reopen',async()=>{
   const {scratch,directory}=await fixture();
   let journal=openClientRequestJournal(directory);journal.close();journal=undefined;
-  const currentSchema=inspectDatabase(directory,schema);
+  const current=inspectDatabase(directory,database=>({schema:schema(database),
+    version:database.prepare('PRAGMA user_version').get().user_version}));
   const identity='sha256:'+'1'.repeat(64);
   inspectDatabase(directory,database=>{
     // This fixture downgrades ONLY its newly created test database to the
@@ -97,9 +98,9 @@ test('actual older base format adopts the same DDL and preserves its original ro
     usage:database.prepare('SELECT * FROM client_request_row_usage').get(),
     rows:database.prepare('SELECT * FROM client_requests').all(),
     version:database.prepare('PRAGMA user_version').get().user_version}));
-  assert.deepEqual(retained.schema,currentSchema);
+  assert.deepEqual(retained.schema,current.schema);
   assert.equal(retained.custody.issued_count,1);assert.equal(retained.usage.retained_count,1);
-  assert.equal(retained.rows[0].caller_request_id,'retained-original');assert.equal(retained.version,2);
+  assert.equal(retained.rows[0].caller_request_id,'retained-original');assert.equal(retained.version,current.version);
   const originalExec=DatabaseSync.prototype.exec;let transactions=0;
   DatabaseSync.prototype.exec=function(sql){if(sql==='BEGIN IMMEDIATE')transactions++;
     return Reflect.apply(originalExec,this,[sql]);};
@@ -166,6 +167,11 @@ for(const stage of ['before-commit','after-commit','partial-markers','after-dire
     assert.equal(child.error,undefined);assert.equal(child.signal,null);
     assert.equal(child.status,73,child.stderr);
     const before=databaseBytes(directory),entries=fs.readdirSync(directory).sort();
+    const committed=stage==='after-directory-ack' ? inspectDatabase(directory,database=>({
+      schema:schema(database),version:database.prepare('PRAGMA user_version').get().user_version,
+      tables:schema(database).filter(row=>row.type==='table').map(({name})=>({name,
+        rows:database.prepare(`SELECT * FROM "${name.replaceAll('"','""')}"`).all()})),
+    })) : undefined;
     let journal;
     try {
       if(stage==='after-directory-ack')journal=openClientRequestJournal(directory);
@@ -175,7 +181,15 @@ for(const stage of ['before-commit','after-commit','partial-markers','after-dire
     if(stage!=='after-directory-ack'){
       assert.equal(digest(databaseBytes(directory)),digest(before));
       assert.deepEqual(fs.readdirSync(directory).sort(),entries);
-    } else inspectDatabase(directory,database=>assert.equal(database.prepare('PRAGMA user_version').get().user_version,2));
+    } else {
+      // A completed directory ACK permits reopening the exact committed
+      // schema and rows. SQLite may checkpoint its physical WAL on reopen.
+      assert.deepEqual(inspectDatabase(directory,database=>({
+        schema:schema(database),version:database.prepare('PRAGMA user_version').get().user_version,
+        tables:schema(database).filter(row=>row.type==='table').map(({name})=>({name,
+          rows:database.prepare(`SELECT * FROM "${name.replaceAll('"','""')}"`).all()})),
+      })),committed);
+    }
     scratch.passed();
   });
 }
