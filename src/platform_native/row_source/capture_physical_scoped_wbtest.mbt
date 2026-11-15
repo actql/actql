@@ -1455,6 +1455,9 @@ fn managed_capture_fixture_work(
       None,
       retained_output=true,
       provider_factory=_ => [],
+      // This capture adopts the SAME Request before its runtime Source read.
+      // Provider/import/output growth uses that finite Ledger, as in Whole.
+      runtime_admission=true,
     ).managed_capture_stage("same Query Plan before original module")
     (plan, None, Some((requirement, acquisition)))
   } else {
