@@ -268,6 +268,14 @@ pub fn run_evidence_value_json(value : RunEvidenceValue) -> String {
 }
 
 ///|
+/// Original final-encoder dimensions, without parsing, hashing or authority.
+pub fn run_evidence_value_wire_usage(
+  value : RunEvidenceValue,
+) -> (Int, Int, Int)? {
+  value.wire_usage
+}
+
+///|
 /// Embed a previously admitted value without a caller-authored text/count
 /// pair. The caller selects explicit bounds for this indivisible document.
 pub fn run_evidence_value_document(

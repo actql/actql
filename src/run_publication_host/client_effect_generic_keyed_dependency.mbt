@@ -87,24 +87,108 @@ fn build_client_effect_keyed_generic_dependency_bodies(
     seen[key] = wire
     remaining -= bytes
   }
+  fn append_original(
+    kind : String,
+    cid : String,
+    wire : String,
+    usage : (Int, Int, Int)?,
+    project : () -> Result[
+      @publication.CapturedEffectDependencyBody,
+      @publication.CapturedEffectDependencyIssue,
+    ],
+  ) -> Unit raise GenericKeyedDependencyStop {
+    let key = kind + "\u0000" + cid
+    if seen.get(key) is Some(previous) {
+      if previous != wire {
+        raise GenericKeyedDependencyStop(Dependency(DuplicateIdentity))
+      }
+      return
+    }
+    guard usage is Some((bytes, nodes, depth)) else {
+      raise GenericKeyedDependencyStop(Dependency(InvalidBody))
+    }
+    if bodies.length() >= lookup.max_work {
+      raise GenericKeyedDependencyStop(Dependency(EntryLimit))
+    }
+    if bytes > remaining {
+      raise GenericKeyedDependencyStop(Dependency(ByteLimit))
+    }
+    if nodes < 1 || nodes > max_nodes || depth < 0 || depth > max_depth {
+      raise GenericKeyedDependencyStop(Dependency(InvalidBody))
+    }
+    // The SAME original wire/value are borrowed. Only the typed edge
+    // projection and member controls are constructed; no byte encoder,
+    // canonical parser or hash runs a second time for these originals.
+    if before_body is Some(prepare) && !prepare(0, nodes, depth) {
+      raise GenericKeyedDependencyStop(ConstructionRefused)
+    }
+    if lookup.closed ||
+      lookup.left.lookup_issue is Some(_) ||
+      !state.completed
+      .map(value => physical_equal(value, completed))
+      .unwrap_or(false) {
+      raise GenericKeyedDependencyStop(ForeignInput)
+    }
+    let body = require_generic_keyed_dependency(
+      project().map_err(issue => {
+        ClientEffectDependencyCaptureIssue::Dependency(issue)
+      }),
+    )
+    if @publication.captured_effect_dependency_body_kind(body) != kind ||
+      @publication.captured_effect_dependency_body_cid(body) != cid ||
+      @publication.captured_effect_dependency_body_json(body) != wire {
+      raise GenericKeyedDependencyStop(Dependency(InvalidBody))
+    }
+    bodies.push(body)
+    seen[key] = wire
+    remaining -= bytes
+  }
   fn contract(
     kind : String,
     value : @publication.PublicationContract,
   ) -> Unit raise GenericKeyedDependencyStop {
-    append(
+    if @publication.publication_contract_wire_usage(value) is None {
+      append(
+        kind,
+        @publication.publication_contract_identity(value),
+        @publication.publication_contract_json(value),
+      )
+      return
+    }
+    append_original(
       kind,
       @publication.publication_contract_identity(value),
       @publication.publication_contract_json(value),
+      @publication.publication_contract_wire_usage(value),
+      () => {
+        @publication.capture_publication_effect_dependency_body(
+          kind, value, remaining, max_nodes, max_depth,
+        )
+      },
     )
   }
   fn evidence(
     kind : String,
     value : @publication.RunEvidenceValue,
   ) -> Unit raise GenericKeyedDependencyStop {
-    append(
+    if @publication.run_evidence_value_wire_usage(value) is None {
+      append(
+        kind,
+        @publication.run_evidence_value_identity(value),
+        @publication.run_evidence_value_json(value),
+      )
+      return
+    }
+    append_original(
       kind,
       @publication.run_evidence_value_identity(value),
       @publication.run_evidence_value_json(value),
+      @publication.run_evidence_value_wire_usage(value),
+      () => {
+        @publication.capture_source_effect_dependency_body(
+          value, remaining, max_nodes, max_depth,
+        )
+      },
     )
   }
   fn emit(
