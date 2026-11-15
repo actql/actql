@@ -114,6 +114,10 @@ export function checkedLocalOutputLimits(moon, preparedProgram, publicationOrigi
   } else {
     throw new TypeError('InvalidCheckedLocalPublicationOriginal');
   }
+  return checkedPublicationLimitValues(values);
+}
+
+function checkedPublicationLimitValues(values) {
   const names = resultOutputLimitFields;
   if (!Array.isArray(values) || values.length !== names.length ||
       values.some(value => !Number.isSafeInteger(value) || value < 0)) {
@@ -485,6 +489,8 @@ export function acquiredKeyedEffectPublicationPlan({acquired, sources, keyedFami
     createdAt: run.created_at, now, retainUntil: run.valid_until,
     resultCount: moon.clientProgramEffectCompilationResultNames(compilation).length,
     moon, effectCompilation: compilation, preparedEffect: prepared,
+    outputLimits: checkedPublicationLimitValues(moon.clientProgramInstalledEffectPublicationLimits(
+      managedRun, prepared, acquired.requestIdentity, sourcePlan, hostResultStorePolicy.maxObjectBytes)),
     retentionSelection: acquired.selectRetention?.()});
   const acquiredEvidence = control.prepareInstalledEffectKeyedSourceUnit(managedRun,
     prepared, acquired.requestIdentity, sourcePlan, sourceHost, keyedFamily.sourceOriginal,

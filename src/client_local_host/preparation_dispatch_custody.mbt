@@ -140,6 +140,25 @@ fn effect_unit_publication_body(
 }
 
 ///|
+/// Publication DATA from the same admitted Effect Compute plan. This neither
+/// widens the installed policy nor grants execution, input access or a claim.
+/// The original metadata quote already owns the Result row/index envelope.
+pub fn installed_effect_managed_publication_limits(
+  value : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledEffectManagedPlan,
+  max_payload_bytes : Int,
+) -> @publication_host.PublicationOutputExportLimits? {
+  guard check_installed_effect_managed_run(value, prepared, request) is Ok(_) &&
+    physical_equal(plan.prepared, prepared) &&
+    effect_unit_publication_body(value, plan, request) is Ok(_) else {
+    return None
+  }
+  client_node_publication_limits_original(max_payload_bytes, plan.capacity_plan)
+}
+
+///|
 // The owned contract registry selects the identity field. Measuring that
 // single field uses the same String encoder; no second protocol field table,
 // manufactured contract, wire or identity is introduced by this calculation.

@@ -717,3 +717,106 @@ test "keyed complete evidence geometry grows the same original publication body"
   )
   close_effect_publication_values(original)
 }
+
+///|
+test "Effect publication limits project the same backed Compute Result envelope" {
+  let original = effect_publication_source_original()
+  let plan = original.plan
+  let before = @resources.ledger_usage(original.parent.ledger)
+  let limits = installed_effect_managed_publication_limits(
+    original.run,
+    plan.prepared,
+    plan.request,
+    plan,
+    1000000,
+  ).unwrap()
+  let publication = plan.capacity_plan.publication.unwrap()
+  assert_eq(limits.max_rows, publication.rows)
+  assert_eq(limits.max_result_order_work, publication.order_work)
+  assert_eq(
+    limits.max_result_workspace_entries,
+    publication.envelope.unwrap().publication_workspace_entries,
+  )
+  assert_true(limits.max_result_workspace_entries >= 2 * limits.max_rows)
+  let row_index_floor = @execution.preparation_representation_cost({
+    record_headers: 1L,
+    reference_slots: 0L,
+    scalar_words: limits.max_rows.to_int64(),
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  assert_true(plan.capacity_plan.metadata_retained_bytes >= row_index_floor)
+  assert_true(before.reserved_retention_bytes >= row_index_floor)
+  assert_true(before.reserved_execution_bytes >= row_index_floor)
+  assert_eq(@resources.ledger_usage(original.parent.ledger), before)
+  let narrow = installed_effect_managed_publication_limits(
+    original.run,
+    plan.prepared,
+    plan.request,
+    plan,
+    4096,
+  ).unwrap()
+  assert_eq(narrow.max_rows, limits.max_rows)
+  assert_true(narrow.payload_wire.max_bytes <= 4096)
+  assert_true(narrow.payload_wire.max_bytes <= limits.payload_wire.max_bytes)
+  assert_true(
+    installed_effect_managed_publication_limits(
+      original.run,
+      plan.prepared,
+      plan.request,
+      plan,
+      0,
+    )
+    is None,
+  )
+  retire_installed_effect_captured_consumers(original.run).unwrap() |> ignore
+  retire_installed_managed_run(original.run).unwrap()
+}
+
+///|
+test "Effect publication limits refuse copied plan request and retired original" {
+  let original = effect_publication_source_original()
+  let plan = original.plan
+  let duplicate = { ..plan, }
+  let copied_request = @publication_host.prepare_client_effect_request_identity(
+    plan.prepared,
+    "sha256:" + "a".repeat(64),
+    "source-effect-operation-plan",
+    "sha256:" + "b".repeat(64),
+  ).unwrap()
+  assert_eq(copied_request, plan.request)
+  let before = @resources.ledger_usage(original.parent.ledger)
+  assert_true(
+    installed_effect_managed_publication_limits(
+      original.run,
+      plan.prepared,
+      plan.request,
+      duplicate,
+      1000000,
+    )
+    is None,
+  )
+  assert_true(
+    installed_effect_managed_publication_limits(
+      original.run,
+      plan.prepared,
+      copied_request,
+      plan,
+      1000000,
+    )
+    is None,
+  )
+  assert_eq(@resources.ledger_usage(original.parent.ledger), before)
+  retire_installed_effect_captured_consumers(original.run).unwrap() |> ignore
+  retire_installed_managed_run(original.run).unwrap()
+  assert_true(
+    installed_effect_managed_publication_limits(
+      original.run,
+      plan.prepared,
+      plan.request,
+      plan,
+      1000000,
+    )
+    is None,
+  )
+}

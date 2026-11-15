@@ -25509,7 +25509,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "db999330f1eee5b554ee9fa8650c8b8dacb32db65dafc5a14880bb3655325311",
+      "sha256": "0ca0ab8e0365fae74702ca3d315b030867aa17daf18765969a451d3c31361d09",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -25941,21 +25941,6 @@
           "async": false
         },
         {
-          "name": "checkedLocalOutputLimits/checkedLocalOutputLimits",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "checkedLocalOutputLimits/checkedLocalOutputLimits#2",
-          "parameters": [
-            "name",
-            "index"
-          ],
-          "async": false
-        },
-        {
           "name": "checkedOriginalQueryInvocation",
           "parameters": [
             "original",
@@ -25964,6 +25949,28 @@
             "request",
             "kind",
             "retainedWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkedPublicationLimitValues",
+          "parameters": [
+            "values"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkedPublicationLimitValues/checkedPublicationLimitValues",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkedPublicationLimitValues/checkedPublicationLimitValues#2",
+          "parameters": [
+            "name",
+            "index"
           ],
           "async": false
         },
@@ -26919,8 +26926,9 @@
         {
           "operations": [
             "checkedLocalOutputLimits",
-            "checkedLocalOutputLimits/checkedLocalOutputLimits",
-            "checkedLocalOutputLimits/checkedLocalOutputLimits#2"
+            "checkedPublicationLimitValues",
+            "checkedPublicationLimitValues/checkedPublicationLimitValues",
+            "checkedPublicationLimitValues/checkedPublicationLimitValues#2"
           ],
           "exports": [
             "checkedLocalOutputLimits"
@@ -27024,6 +27032,10 @@
               {
                 "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
                 "anchor": "actual multi-Source Effect publication keeps all Source originals but unique logical Result dependencies"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-publication.test.mjs",
+                "anchor": "test('Source-only keyed publication preserves tighter limits and refuses malformed projections'"
               }
             ]
           }

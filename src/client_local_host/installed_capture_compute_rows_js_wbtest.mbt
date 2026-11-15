@@ -43,6 +43,21 @@ test "captured Source row bounds survive into the same Compute configuration" {
   assert_true(rows > 100)
   assert_eq(compute.configuration.capacity.max_rows, rows)
   assert_eq(compute.capacity_plan.execution.rows.max_rows, rows)
+  let publication = client_node_publication_limits_original(
+    1000000,
+    compute.capacity_plan,
+  ).unwrap()
+  assert_eq(publication.max_rows, rows)
+  assert_eq(publication.max_result_order_work, rows)
+  assert_true(publication.max_result_workspace_entries >= 2 * rows)
+  let row_index_floor = @execution.preparation_representation_cost({
+    record_headers: 1L,
+    reference_slots: 0L,
+    scalar_words: rows.to_int64(),
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  assert_true(compute.capacity_plan.metadata_retained_bytes >= row_index_floor)
   // A Source envelope does not change the unrelated Values default.
   assert_eq(
     @publication_host.client_standard_values_sequence_limits().max_rows,

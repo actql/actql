@@ -101177,7 +101177,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "db999330f1eee5b554ee9fa8650c8b8dacb32db65dafc5a14880bb3655325311",
+      "sha256": "0ca0ab8e0365fae74702ca3d315b030867aa17daf18765969a451d3c31361d09",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -101611,21 +101611,6 @@
           "async": false
         },
         {
-          "name": "checkedLocalOutputLimits/checkedLocalOutputLimits",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "checkedLocalOutputLimits/checkedLocalOutputLimits#2",
-          "parameters": [
-            "name",
-            "index"
-          ],
-          "async": false
-        },
-        {
           "name": "checkedOriginalQueryInvocation",
           "parameters": [
             "original",
@@ -101634,6 +101619,28 @@
             "request",
             "kind",
             "retainedWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkedPublicationLimitValues",
+          "parameters": [
+            "values"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkedPublicationLimitValues/checkedPublicationLimitValues",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkedPublicationLimitValues/checkedPublicationLimitValues#2",
+          "parameters": [
+            "name",
+            "index"
           ],
           "async": false
         },
@@ -103663,8 +103670,9 @@
         {
           "operations": [
             "checkedLocalOutputLimits",
-            "checkedLocalOutputLimits/checkedLocalOutputLimits",
-            "checkedLocalOutputLimits/checkedLocalOutputLimits#2"
+            "checkedPublicationLimitValues",
+            "checkedPublicationLimitValues/checkedPublicationLimitValues",
+            "checkedPublicationLimitValues/checkedPublicationLimitValues#2"
           ],
           "exports": [
             "checkedLocalOutputLimits"
@@ -103764,6 +103772,10 @@
               {
                 "path": "adapters/host-node/client-publication-plan-original.test.mjs",
                 "anchor": "test('publication reads the same original before admission and after its move to the live Run',()=>{"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-publication.test.mjs",
+                "anchor": "test('Source-only keyed publication preserves tighter limits and refuses malformed projections'"
               }
             ]
           }

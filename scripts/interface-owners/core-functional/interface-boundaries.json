@@ -81067,7 +81067,7 @@
     },
     {
       "module": "src/client_local_host/preparation_dispatch_custody.mbt",
-      "sha256": "44b6c2bbcad3d914522ecc3cf67daf92e9458447befb26552119c5d85fa662f7",
+      "sha256": "57e9f284615ac56af5fd579f1f209cb01c888ccc0043ff114fdb14e71aa37bd3",
       "exports": [],
       "operations": [
         {
@@ -81088,11 +81088,15 @@
         },
         {
           "name": "effect_unit_publication_capacity",
-          "declaration": "effect_unit_publication_capacity ( bodies : Array [ ( String , @ encode . EncodingConstructionGeometry ) ] , identity : String , ) - > @ execution . ExecutionCapacity ?"
+          "declaration": "effect_unit_publication_capacity ( bodies : Array [ ( String , @ encode . EncodingConstructionGeometry ) ] , identity : String , complete_body ? : Bool"
         },
         {
           "name": "effect_unit_sealed_geometry",
           "declaration": "effect_unit_sealed_geometry ( name : String , body : @ encode . EncodingConstructionGeometry , identity : String , ) - > @ encode . EncodingConstructionGeometry ?"
+        },
+        {
+          "name": "installed_effect_managed_publication_limits",
+          "declaration": "installed_effect_managed_publication_limits ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , max_payload_bytes : Int , ) - > @ publication_host . PublicationOutputExportLimits ?"
         },
         {
           "name": "installed_effect_model_unit_parent",
@@ -81152,6 +81156,7 @@
             "effect_unit_publication_body",
             "effect_unit_publication_capacity",
             "effect_unit_sealed_geometry",
+            "installed_effect_managed_publication_limits",
             "installed_effect_model_unit_parent",
             "installed_effect_model_unit_result_export_limits",
             "installed_managed_preparation_usage_isolated",
@@ -81236,6 +81241,10 @@
               {
                 "path": "src/physical_resources/backed_preparation_admission_wbtest.mbt",
                 "anchor": "test \"backed prepared operation preserves original consumer refusal and post-consumer current fence\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_binding_js_wbtest.mbt",
+                "anchor": "test \"Effect publication limits refuse copied plan request and retired original\""
               }
             ]
           }
