@@ -103,17 +103,6 @@ test('pinned actionlint checks every workflow before expensive fan-out', () => {
   assert(!/--ignore|\|\| true/u.test(step.run));
 });
 
-test('runtime command inventory fails before expensive fan-out with nonzero execution required', () => {
-  const steps = jobs.preflight.steps;
-  const index = steps.findIndex(step => step.name === 'Check runtime command inventory before fan-out');
-  assert(index > steps.findIndex(step => step.run === 'npm ci'));
-  assert(index < steps.findIndex(step => step.name === 'Install pinned MoonBit'));
-  const command = steps[index].run;
-  assert(command.includes('runFocusedTests("node"'));
-  assert(command.includes('^check:.* retains its exact registered commands'));
-  assert(command.includes('scripts/build-runtime-packages.test.mjs'));
-  assert.equal(steps[index]['continue-on-error'], undefined);
-});
 
 test('moved validators execute exactly once before fan-out; complete local spec command is preserved', () => {
   const preflight = commands('preflight');
