@@ -12,7 +12,7 @@ import fsPromises from 'node:fs/promises';
 import {syncBuiltinESMExports} from 'node:module';
 import './npm-pack-json.test.mjs';
 import './normal-pack-source-inputs.test.mjs';
-import {packClientPackages, packedClientPackage, pinnedDuckDBPackage} from
+import {packClientPackages, packedClientPackage, pinnedDuckDBPackage, acquireRunHostClientPackages} from
   './packed-client-packages.mjs';
 import {packedFixtureSupport, packedReadOpeningFixtureInputs, rewritePackedFixtureSource}
   from './packed-fixture-support.mjs';
@@ -312,28 +312,10 @@ async function fixture(t, {names = ['sdk']} = {}) {
   return {base, repository, shared, destination, pack, reuse};
 }
 
-// Execute the real consumer's package-acquisition statements with the original
-// canonical helper. The npm port is explicit; this is not prepack or runtime
-// acceptance, and the remaining installed smoke assertions are untouched.
+// Exercise the same imported recipe as the actual Run Host consumer. The
+// filesystem and manifest are real; only an absent-artifact npm fallback is a port.
 async function runHostPackageAcquisition(repository, installation, run) {
-  const {parse} = await import('acorn');
-  const source = await readFile(new URL('./test-packed-run-host-core.mjs', import.meta.url), 'utf8');
-  const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
-  const acquiresPackage = node => {
-    if (node === null || typeof node !== 'object') return false;
-    if (node.type === 'CallExpression' && node.callee.type === 'Identifier' &&
-        (node.callee.name === 'packedClientPackage' ||
-          node.callee.name === 'run' && node.arguments[0]?.value === 'npm' &&
-          node.arguments[1]?.elements?.[0]?.value === 'pack')) return true;
-    return Object.values(node).some(value => Array.isArray(value)
-      ? value.some(acquiresPackage) : acquiresPackage(value));
-  };
-  const selected = tree.body.filter(acquiresPackage);
-  assert(selected.length > 0, 'Exercise the actual consumer package acquisition');
-  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
-  return new AsyncFunction('repository', 'installation', 'run', 'packedClientPackage', 'join',
-    selected.map(node => source.slice(node.start, node.end)).join('\n'))(
-    repository, installation, run, packedClientPackage, join);
+  return acquireRunHostClientPackages({repository, destination: installation, run});
 }
 
 test('Run Host packed consumer reuses both original tarballs without another prepack', async t => {
