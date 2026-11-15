@@ -159,12 +159,23 @@ pub fn prepare_captured_source_relation_export(
 /// Identity established by one complete bounded traversal of the captured
 /// Relation. It describes observed input material, not Run admission or a
 /// source authorization grant.
+/// Encoder facts from the same retained canonical preimages. Rows and schema
+/// fields are deliberately not represented as nesting depth.
+pub struct CapturedSourceRelationDependencyUsage {
+  logical_bytes : Int
+  logical_nodes : Int
+  schema_bytes : Int
+  schema_nodes : Int
+}
+
+///|
 pub struct CapturedSourceRelationIdentity {
   origin : CapturedInputSource
   logical_relation_cid : String
   schema_cid : String
   row_count : Int
   mut dependency_bodies : (String, String)?
+  priv mut dependency_usage : CapturedSourceRelationDependencyUsage?
 }
 
 ///|
@@ -211,6 +222,21 @@ pub fn captured_source_relation_dependency_bodies(
     return None
   }
   identity.dependency_bodies
+}
+
+///|
+/// Borrow already measured facts only while this same original Source and its
+/// retained bodies are available. Equal CIDs or equal contents are not custody.
+/// This getter performs no encoding, parsing, hashing or resource acquisition.
+pub fn captured_source_relation_dependency_usage(
+  identity : CapturedSourceRelationIdentity,
+  source : CapturedInputSource,
+) -> CapturedSourceRelationDependencyUsage? {
+  if !captured_source_relation_identity_matches_source(identity, source) ||
+    identity.dependency_bodies is None {
+    return None
+  }
+  identity.dependency_usage
 }
 
 ///|
@@ -285,6 +311,22 @@ pub fn identify_captured_source_relation(
   } else {
     None
   }
+  let dependency_usage = if dependency_bodies is Some(_) {
+    let logical = @execution.logical_relation_usage(
+      @execution.completed_relation_export_identity(receipt),
+    )
+    let schema = @execution.relation_schema_usage(
+      @execution.completed_relation_export_schema_identity(receipt),
+    )
+    Some({
+      logical_bytes: logical.0,
+      logical_nodes: logical.1,
+      schema_bytes: schema.0,
+      schema_nodes: schema.1,
+    })
+  } else {
+    None
+  }
   let identity = {
     origin: source,
     logical_relation_cid: @execution.logical_relation_cid(
@@ -297,6 +339,7 @@ pub fn identify_captured_source_relation(
       @execution.completed_relation_export_content(receipt),
     ).3,
     dependency_bodies,
+    dependency_usage,
   }
   @execution.cancel_completed_relation_export_receipt(receipt)
   Ok(identity)
@@ -494,4 +537,5 @@ pub fn clear_captured_source_relation_dependency_bodies(
   identity : CapturedSourceRelationIdentity,
 ) -> Unit {
   identity.dependency_bodies = None
+  identity.dependency_usage = None
 }

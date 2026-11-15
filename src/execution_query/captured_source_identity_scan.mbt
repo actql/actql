@@ -112,5 +112,6 @@ pub fn finish_captured_source_identity_scan(
     schema_cid: @execution.relation_schema_cid(value.schema),
     row_count: @execution.logical_relation_usage(logical).2,
     dependency_bodies: None,
+    dependency_usage: None,
   })
 }

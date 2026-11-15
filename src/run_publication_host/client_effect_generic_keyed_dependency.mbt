@@ -280,15 +280,21 @@ fn build_client_effect_keyed_generic_dependency_bodies(
       identity.static_request_cid,
       identity.static_request,
     )
-    append(
+    let left_usage = @query.captured_source_relation_dependency_usage(
+      source.identity,
+      captured,
+    )
+    append_measured(
       "relation_value",
       @query.captured_source_relation_logical_cid(source.identity),
       left_body,
+      left_usage.map(usage => (usage.logical_bytes, usage.logical_nodes)),
     )
-    append(
+    append_measured(
       "relation_schema",
       @query.captured_source_relation_schema_cid(source.identity),
       left_schema,
+      left_usage.map(usage => (usage.schema_bytes, usage.schema_nodes)),
     )
     let right_schema = @execution.completed_relation_export_schema_identity(
       right_receipt,

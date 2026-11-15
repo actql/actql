@@ -72,6 +72,7 @@ pub fn CapturedSourceIdentityPreparation::finish(
     ),
     row_count: @execution.logical_relation_usage(logical).2,
     dependency_bodies: None,
+    dependency_usage: None,
   }
   @execution.cancel_completed_relation_export_receipt(receipt)
   Ok(identity)
