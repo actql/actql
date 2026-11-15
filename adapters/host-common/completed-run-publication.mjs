@@ -1137,8 +1137,6 @@ async function recoverCompletedEffectfulPlaintext(store, control, contractLimits
         !Number.isSafeInteger(contractLimits?.maxWireBytes) || contractLimits.maxWireBytes < 1) {
       fail('InvalidCompletedEffectfulCaptureRecord');
     }
-    contractLimits = Object.freeze({maxWireBytes: Math.min(contractLimits.maxWireBytes, bytes),
-      maxNodes: contractLimits.maxNodes, maxDepth: contractLimits.maxDepth});
   }
   let captured, captureRecordWire;
   try {
@@ -1147,6 +1145,16 @@ async function recoverCompletedEffectfulPlaintext(store, control, contractLimits
     fail('InvalidCompletedEffectfulCaptureRecord', error);
   }
   recoveryResources?.reserveDecoded?.(captureRecordWire);
+  if (extent !== undefined) {
+    // This is the SAME authenticated plaintext returned by the acquired Store
+    // read, not inner metadata or a caller-supplied extent. Core funded its
+    // UTF8 selector scan before returning from reserveDecoded. Keep a smaller
+    // original semantic policy, and retain the encrypted envelope separately.
+    const plaintextBytes = Buffer.byteLength(captureRecordWire, 'utf8');
+    if (plaintextBytes > extent.bytes) fail('InvalidCompletedEffectfulCaptureRecord');
+    contractLimits = Object.freeze({maxWireBytes: Math.min(contractLimits.maxWireBytes, plaintextBytes),
+      maxNodes: contractLimits.maxNodes, maxDepth: contractLimits.maxDepth});
+  }
   try {captured = JSON.parse(captureRecordWire);}
   catch (error) {fail('InvalidCompletedEffectfulCaptureRecord', error);}
   if (!exactKeys(captured, [

@@ -113,6 +113,7 @@ fn observe_installed_effect_capture_plaintext_nodes(
   guard owner.transitioning &&
     !owner.closing &&
     owner.material is Some(material) &&
+    owner.material_bytes is Some(bytes) &&
     owner.parent is Some(parent) &&
     owner.prepared is Some(prepared) &&
     owner.request is Some(request) &&
@@ -150,6 +151,33 @@ fn observe_installed_effect_capture_plaintext_nodes(
           return Err(@resources.NodeManagedRunOperationIssue::Control(issue))
         Ok(_) => ()
       }
+      // Common performs its SAME actual UTF8 selection once per read call.
+      // Charge that scan on every invocation, while the immutable owner
+      // geometry below is observed only once for this exact wire.
+      if owner.material_wire == Some(wire) &&
+        owner.material_nodes is Some(nodes) &&
+        owner.material_plaintext_bytes is Some(_) {
+        return Ok(nodes)
+      }
+      // The remaining scans observe exact UTF8 and nested-node geometry.
+      match spend(wire.length()) {
+        Err(issue) =>
+          return Err(@resources.NodeManagedRunOperationIssue::Control(issue))
+        Ok(_) => ()
+      }
+      match spend(wire.length()) {
+        Err(issue) =>
+          return Err(@resources.NodeManagedRunOperationIssue::Control(issue))
+        Ok(_) => ()
+      }
+      let plaintext_bytes = match @scalar.admit_utf8_length(wire, bytes) {
+        Err(_) =>
+          return Err(
+            @resources.NodeManagedRunOperationIssue::Original(Unsupported),
+          )
+        Ok(value) => value
+      }
+      owner.material_plaintext_bytes = Some(plaintext_bytes)
       match effect_capture_wire_nodes(wire) {
         Some(nodes) => Ok(nodes)
         None =>
@@ -164,6 +192,7 @@ pub fn installed_effect_capture_prepared_available(
   owner : ClientInstalledEffectCaptureRecovery,
 ) -> Bool {
   owner.material_staged_envelope &&
+  owner.material_plaintext_bytes is Some(_) &&
   owner.material_ready &&
   !owner.closing &&
   !owner.transitioning &&
@@ -187,7 +216,7 @@ pub fn admit_installed_effect_captured_run(
     owner.material is Some(material) &&
     owner.material_wire is Some(wire) &&
     owner.material_nodes is Some(nodes) &&
-    owner.material_bytes is Some(bytes) &&
+    owner.material_bytes is Some(encrypted_bytes) &&
     owner.parent is Some(parent) &&
     owner.definition is Some(definition) &&
     owner.prepared is Some(prepared) &&
@@ -198,6 +227,7 @@ pub fn admit_installed_effect_captured_run(
     parent.effect_operation_controls is Some(control) else {
     return Err(ForeignOriginal)
   }
+  let bytes = owner.material_plaintext_bytes.unwrap_or(encrypted_bytes)
   owner.transitioning = true
   preparation_module_call(
     () => {

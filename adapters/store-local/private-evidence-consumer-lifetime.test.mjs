@@ -463,11 +463,11 @@ test('same envelope census precedes decryption and plaintext consumer on success
 
 
 for (const selectedMax of [16384, 128]) {
-  test(`actual funded private inverse bounds nested metadata by SAME acquired extent and preserves smaller ${selectedMax} policy`, async t => {
+  test(`actual funded private inverse bounds nested metadata by SAME authenticated UTF8 plaintext and preserves smaller ${selectedMax} policy`, async t => {
     const runWire = 'original run';
     const body = {version:'actql-completed-effectful-capture/0.1',
       store_authority_cid:cid('consumer authority'), run_definition:runWire,
-      invocation:'original invocation', definitions:['original definition'], artifacts:['artifact'],
+      invocation:'original invocation', definitions:['original definition é\u{1F600}'], artifacts:['artifact'],
       derivations:['derivation'], orderings:['ordering'], retentions:['retention'],
       durable_bindings:['binding'], result_schemas:[], manifest:'manifest',
       computation_receipt:'receipt', captured_run:'captured', preview:'preview', authoring_context:'authoring',
@@ -477,7 +477,7 @@ for (const selectedMax of [16384, 128]) {
     let acquired, nested = 0, finished = false;
     const c = captureOptions(f, original, (_name, _wire, limits) => {
       nested++;
-      assert.equal(limits.maxWireBytes, Math.min(selectedMax, acquired));
+      assert.equal(limits.maxWireBytes, Math.min(selectedMax, Buffer.byteLength(JSON.stringify(body), 'utf8')));
       assert.equal(limits.maxNodes, 4096); assert.equal(limits.maxDepth, 64);
       assert(Object.isFrozen(limits));
     });
@@ -492,6 +492,7 @@ for (const selectedMax of [16384, 128]) {
       retainCleanup: assert.fail,
     }), error => error === original);
     assert.equal(nested, 1); assert(finished);
+    assert(acquired > Buffer.byteLength(JSON.stringify(body), 'utf8'));
     assert.equal(c.options.contractLimits.maxWireBytes, selectedMax);
     c.assertReleased();
     assert.notEqual(await f.store.inspectPhysicalHolding(f.holding), undefined);

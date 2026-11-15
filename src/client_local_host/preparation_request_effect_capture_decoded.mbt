@@ -3,6 +3,7 @@
 // Owner, permission or transferable Read is created by this residue.
 priv struct ClientRequestEffectCaptureMaterial {
   mut encrypted_bytes : Int?
+  mut plaintext_bytes : Int?
   mut wire : String?
   staged_envelope : Bool
   mut envelope_wire : String?
@@ -284,7 +285,7 @@ pub fn[I] reserve_request_effect_capture_decoded(
   if material.observed_wire is Some(original) && original != wire {
     return Err(ForeignOriginal)
   }
-  if material.nodes is None {
+  if material.nodes is None || material.staged_envelope {
     guard request_effect_capture_phase_work_bound(
         owner, input, request, definition, wire,
       )
@@ -316,11 +317,23 @@ pub fn[I] reserve_request_effect_capture_decoded(
     }
     let charged = @resources.spend_preparation_phase_work_continuation64(
       work,
-      wire.length().to_int64(),
+      wire.length().to_int64() *
+      (if material.staged_envelope { 3L } else { 1L }),
     )
     let nodes = match charged {
       Err(_) => None
-      Ok(_) => effect_capture_wire_nodes(wire)
+      Ok(_) =>
+        match material.nodes {
+          Some(nodes) => Some(nodes)
+          None => effect_capture_wire_nodes(wire)
+        }
+    }
+    let plaintext_bytes = if material.plaintext_bytes is Some(_) {
+      material.plaintext_bytes
+    } else if material.staged_envelope && charged is Ok(_) {
+      @scalar.admit_utf8_length(wire, bytes).to_option()
+    } else {
+      None
     }
     let returned = @resources.return_preparation_phase_work_continuation64(work)
     match charged {
@@ -331,7 +344,11 @@ pub fn[I] reserve_request_effect_capture_decoded(
       Err(issue) => return Err(Work(issue))
       Ok(_) => ()
     }
-    guard nodes is Some(nodes) else { return Err(Policy) }
+    guard nodes is Some(nodes) &&
+      (!material.staged_envelope || plaintext_bytes is Some(_)) else {
+      return Err(Policy)
+    }
+    material.plaintext_bytes = plaintext_bytes
     material.observed_wire = Some(wire)
     material.nodes = Some(nodes)
   }
@@ -346,6 +363,8 @@ pub fn[I] reserve_request_effect_capture_decoded(
       material.max_depth,
       staged_envelope=material.staged_envelope,
       envelope_nodes=material.envelope_nodes,
+      plaintext_bytes=material.plaintext_bytes,
+      envelope_units=material.envelope_wire.map(String::length).unwrap_or(0),
     )
     is Some(read) &&
     standard_create_sum_capacities([read, decoded], sequential_workspace=false)
@@ -412,9 +431,10 @@ pub fn[I] admit_request_effect_captured_run(
   guard request_effect_capture_material(owner, input, request, definition)
     is Some(material) &&
     material.wire is Some(wire) &&
-    material.encrypted_bytes is Some(bytes) else {
+    material.encrypted_bytes is Some(encrypted_bytes) else {
     return Err(ForeignOriginal)
   }
+  let bytes = material.plaintext_bytes.unwrap_or(encrypted_bytes)
   match
     @resources.check_working_preparation_capacity_current(owner.capacity, input) {
     Err(issue) => return Err(Capacity(issue))

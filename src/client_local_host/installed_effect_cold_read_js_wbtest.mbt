@@ -73,7 +73,11 @@ test "cold installed Read funds encrypted bytes then actual nodes on one origina
     reserve_installed_effect_capture_envelope(read, "{}")
     is Err(ForeignOriginal),
   )
-  reserve_installed_effect_capture_decoded(read, "{}").unwrap()
+  let plaintext = "{\"é\":\"😀\"}"
+  reserve_installed_effect_capture_decoded(read, plaintext).unwrap()
+  assert_eq(read.material_plaintext_bytes, Some(13))
+  assert_eq(read.material_bytes, Some(envelope.length()))
+  assert_true(read.material_envelope_wire == Some(envelope))
   assert_true(installed_effect_capture_prepared_available(read))
   // Availability grants no semantic shortcut: an unrelated captured body
   // still fails exact Definition/captured-wire correspondence.
@@ -238,6 +242,9 @@ test "staged capture Read prices original wide binary and byte-bounded writers o
   reserve_installed_effect_capture_envelope(read, envelope).unwrap()
   let wire = "{\"x\":\"" + "a".repeat(18886464) + "\"}"
   reserve_installed_effect_capture_decoded(read, wire).unwrap()
+  assert_eq(read.material_plaintext_bytes, Some(wire.length()))
+  assert_eq(read.material_bytes, Some(bytes))
+  assert_eq(read.material_envelope_wire, Some(envelope))
   let original = read.material.unwrap()
   let held = @resources.ledger_usage(ledger)
   assert_true(held.reserved_execution_bytes <= 1073741824L)

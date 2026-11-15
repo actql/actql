@@ -16,6 +16,7 @@ struct ClientInstalledEffectCaptureRecovery {
   mut material : @resources.CapacityReservation?
   mut material_bytes : Int?
   mut material_nodes : Int?
+  mut material_plaintext_bytes : Int?
   mut material_staged_envelope : Bool
   mut material_envelope_wire : String?
   mut material_envelope_nodes : Int?
@@ -77,6 +78,7 @@ pub fn prepare_installed_effect_capture_recovery(
     material: None,
     material_bytes: None,
     material_nodes: None,
+    material_plaintext_bytes: None,
     material_staged_envelope: false,
     material_envelope_wire: None,
     material_envelope_nodes: None,
@@ -327,14 +329,14 @@ pub fn reserve_installed_effect_capture_decoded(
   owner.transitioning = true
   preparation_module_call(
     () => {
-      let nodes = if owner.material_wire == Some(wire) &&
-        owner.material_nodes is Some(nodes) {
-        nodes
-      } else if owner.material_staged_envelope {
+      let nodes = if owner.material_staged_envelope {
         match observe_installed_effect_capture_plaintext_nodes(owner, wire) {
           Err(issue) => return Err(issue)
           Ok(nodes) => nodes
         }
+      } else if owner.material_wire == Some(wire) &&
+        owner.material_nodes is Some(nodes) {
+        nodes
       } else {
         match effect_capture_wire_nodes(wire) {
           Some(nodes) => nodes
@@ -488,6 +490,7 @@ fn resize_installed_effect_capture_recovery_material(
     return check_installed_effect_managed_run(parent, prepared, request)
   }
   let nodes = owner.material_nodes.unwrap_or(0)
+  let plaintext_bytes = owner.material_plaintext_bytes
   let original : () -> Result[Unit, ClientInstalledManagedRunIssue] = () => {
     guard !owner.closing &&
       owner.transitioning &&
@@ -506,7 +509,8 @@ fn resize_installed_effect_capture_recovery_material(
       owner.material is Some(m) &&
       physical_equal(m, material) &&
       owner.material_bytes == Some(bytes) &&
-      owner.material_nodes.unwrap_or(0) == nodes else {
+      owner.material_nodes.unwrap_or(0) == nodes &&
+      owner.material_plaintext_bytes == plaintext_bytes else {
       return Err(Retired)
     }
     check_installed_managed_run_original(parent, ledger, preparation).map(_ => {
@@ -525,6 +529,10 @@ fn resize_installed_effect_capture_recovery_material(
       nodes=Some(nodes),
       staged_envelope=owner.material_staged_envelope,
       envelope_nodes=owner.material_envelope_nodes,
+      plaintext_bytes~,
+      envelope_units=owner.material_envelope_wire
+        .map(String::length)
+        .unwrap_or(0),
     )
     is Some(required) &&
     request_effect_capture_recovery_capacity(
@@ -613,6 +621,7 @@ pub fn retire_installed_effect_capture_recovery(
   owner.material_envelope_wire = None
   owner.material_envelope_nodes = None
   owner.material_nodes = None
+  owner.material_plaintext_bytes = None
   owner.material_ready = false
   owner.transitioning = true
   preparation_module_call(

@@ -5,20 +5,28 @@
 // octets, not four opaque canonical-writer allowances. Keep them through the
 // trusted Store return; failure never cuts this prefix.
 //
-// The Core staged inverse uses max_wire_bytes=bytes; the SAME funded Common
-// Read also narrows nested metadata emission to its acquired outer extent.
+// After AEAD the Core staged inverse uses its actual authenticated plaintext
+// UTF8 extent; the SAME Common Read selects that extent for nested emission.
+// Before that original geometry exists the encrypted extent remains the bound.
 // The actual text/hash owners therefore price that bounded constructor here.
 // Existing decoded-text, tree, validation and depth inventories stay separate;
 // the legacy wire-only reader retains its original generic quote.
 fn request_effect_capture_staged_wire_capacity(
   bytes : Int,
+  plaintext_bytes : Int,
   nodes : Int,
   depth : Int,
 ) -> @execution.ExecutionCapacity? {
   guard bytes >= 0 &&
+    plaintext_bytes >= 0 &&
+    plaintext_bytes <= bytes &&
     nodes >= 0 &&
     depth >= 0 &&
-    @encode.text_writer_construction_inventory(bytes, Int::max(1, nodes), depth)
+    @encode.text_writer_construction_inventory(
+      plaintext_bytes,
+      Int::max(1, nodes),
+      depth,
+    )
     is Some(text) &&
     @encode.hash_writer_construction_inventory(nodes, depth) is Some(hash) &&
     request_effect_capture_binary_bytes(bytes, true) is Some(binary) else {
@@ -42,7 +50,11 @@ fn request_effect_capture_staged_wire_capacity(
       owned_wire_bytes: hash.owned_wire_bytes,
     })
     is Some(writer) &&
-    @execution.checked_preparation_add_product(writer, bytes.to_int64(), 1L)
+    @execution.checked_preparation_add_product(
+      writer,
+      plaintext_bytes.to_int64(),
+      1L,
+    )
     is Some(decoded) &&
     @execution.checked_preparation_add_product(control, binary, 1L)
     is Some(retained) &&
@@ -95,6 +107,8 @@ fn request_effect_capture_recovery_capacity(
   definition_nodes? : Int? = None,
   staged_envelope? : Bool = false,
   envelope_nodes? : Int? = None,
+  plaintext_bytes? : Int? = None,
+  envelope_units? : Int = 0,
 ) -> @execution.ExecutionCapacity? {
   let tree_nodes = nodes.unwrap_or(
     if staged_envelope {
@@ -104,7 +118,13 @@ fn request_effect_capture_recovery_capacity(
     },
   )
   let definition_tree_nodes = definition_nodes.unwrap_or(definition_units)
+  let decoded_bytes = plaintext_bytes.unwrap_or(encrypted_bytes)
   if encrypted_bytes < 0 ||
+    decoded_bytes < 0 ||
+    decoded_bytes > encrypted_bytes ||
+    envelope_units < 0 ||
+    envelope_units > encrypted_bytes ||
+    (plaintext_bytes is Some(_) && !staged_envelope) ||
     tree_nodes < 0 ||
     definition_units < 0 ||
     definition_tree_nodes < 0 ||
@@ -165,7 +185,19 @@ fn request_effect_capture_recovery_capacity(
       { unit: ValueNodeSlots, count: node_slots, copies: 1, },
       // Capture wire, decoded record strings, and independently decoded typed
       // strings. A getter alias of an existing wire is not another copy.
-      { unit: DecodedTextBytes, count: bytes, copies: 3, },
+      { unit: DecodedTextBytes, count: decoded_bytes.to_int64(), copies: 3, },
+      // The encrypted envelope String remains an original alias through this
+      // Read. Before plaintext geometry exists its backing is covered by the
+      // old byte-derived text peak; after refinement price it independently.
+      {
+        unit: QuotedBytes,
+        count: if plaintext_bytes is Some(_) {
+          envelope_units.to_int64() * 2L
+        } else {
+          0L
+        },
+        copies: 1,
+      },
       // Encrypted record/ciphertext, plaintext and Store writer or failed-child
       // bytes coexist during construction. Only successful Store return cuts
       // all four buffers; retained Strings have their separate bounds above.
@@ -211,6 +243,7 @@ fn request_effect_capture_recovery_capacity(
   )
   guard base is Some(base) else { return None }
   let work = @resources.preparation_phase_work_continuation64_construction_inventory()
+  let (utf8_h, utf8_r, utf8_w) = @scalar.utf8_length_admission_construction_units()
   guard @execution.preparation_representation_cost({
       // Re-entry adds the constructCaptured closure (state/view captures and
       // its view slot:1H3R), the publications/borrow return-retainer (1H2R),
@@ -225,11 +258,21 @@ fn request_effect_capture_recovery_capacity(
       // The SAME acquired-extent scalar cell and immutable nested limits
       // record add2H/8R/4W: cell1H1W, limits1H3W; eight references cover the
       // original Read/consume async frames and their existing closures.
-      record_headers: work.record_headers + 17L,
-      reference_slots: work.reference_slots + 44L,
+      // Staged geometry uses the scalar owner's allocation-free UTF8
+      // admission controls plus one retained Some(P). Its field is one
+      // reference on the original Read/material record even before admission;
+      // the installed resize current fence also captures that SAME Option.
+      record_headers: work.record_headers +
+      17L +
+      (if staged_envelope { utf8_h + 1L } else { 0L }),
+      reference_slots: work.reference_slots +
+      45L +
+      (if staged_envelope { utf8_r } else { 0L }),
       // The same Read distinguishes its prepared-token retirement from the
       // ordinary admitted capture's alias release with one retained Bool.
-      scalar_words: work.scalar_words + 17L,
+      scalar_words: work.scalar_words +
+      17L +
+      (if staged_envelope { utf8_w + 1L } else { 0L }),
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })
@@ -244,6 +287,7 @@ fn request_effect_capture_recovery_capacity(
   if staged_envelope {
     guard request_effect_capture_staged_wire_capacity(
         encrypted_bytes,
+        decoded_bytes,
         Int::min(tree_nodes, max_nodes),
         Int::min(encrypted_bytes, max_depth),
       )
@@ -428,6 +472,7 @@ fn[I] reserve_request_effect_capture_recovery_owned(
           request,
           definition,
           Some({
+            plaintext_bytes: None,
             encrypted_bytes: if encrypted_bytes > 0 {
               Some(encrypted_bytes)
             } else {
