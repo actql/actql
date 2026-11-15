@@ -162,9 +162,24 @@ export function semanticAuditFixture(artifact, artifactDigest, { supportTargets 
     const overlays = Object.fromEntries(Object.entries({ ...generatedObservers, ...overlay }).map(([p, b]) => [p, hash(b)]));
     const exact = Object.fromEntries(Object.keys(overlays).sort().map(p => [p, overlays[p]]));
     const o = { executionCapacity: 1, before: 1, after: 1, workBefore: 1, workAfter: 1,
-      ...(mode === 'success' ? { heldAtCompletion: 1, unusedRetentionAtCompletion: 0 } : {}) };
+      ...(mode === 'success' ? { beforeFinalization: 1, afterFinalization: 16385,
+        before: 16385, after: 16385, heldAtCompletion: 1, unusedRetentionAtCompletion: 0 } : {}) };
     const step = custodyCleanupStep(mode), after = `ACTQL_CUSTODY_STAGE:after-${mode === 'success' ? 'completion' : 'settlement'}-before-cleanup`;
-    const lines = ['ACTQL_CUSTODY_CHAIN:started', ...(mode === 'success' ? ['ACTQL_CUSTODY_STAGE:before-success-settlement', 'ACTQL_CUSTODY_RETRY:false'] : []),
+    // Explicit synthetic constructor/driver/Task correspondence for the real
+    // custody auditor. These authored numbers are not a runtime capture.
+    const finalization = mode === 'success' ? [
+      'ACTQL_CUSTODY_FINALIZATION:before',
+      `ACTQL_CUSTODY_WORKSPACE:${JSON.stringify({ slotPeak: 15, initialSlots: 10000,
+        logicalPeak: 0, initialLive: 10000, textPeak: 0, retained: 320, extra: 320,
+        funded: 0, ceiling: 134217728, metered: 1, preferred: 16384 })}`,
+      `ACTQL_CUSTODY_DRIVER_GROWTH:${JSON.stringify({ base: 1, workingBefore: 0,
+        working: 16384, metadata: 0, transport: 0, imported: 0, scratch: 16385 })}`,
+      `ACTQL_CUSTODY_TASK_GROWTH:${JSON.stringify({ task: 0, before: 1, after: 16385,
+        extra: 16384, scratchAfter: 16385 })}`,
+      'ACTQL_CUSTODY_FINALIZATION:after',
+      'ACTQL_CUSTODY_STAGE:before-success-settlement', 'ACTQL_CUSTODY_RETRY:false',
+    ] : [];
+    const lines = ['ACTQL_CUSTODY_CHAIN:started', ...finalization,
       after, ...(mode === 'pending' ? ['ACTQL_CUSTODY_RETRY:false'] : []), ...(mode !== 'normal' ? ['ACTQL_CUSTODY_RETRY:error'] : []),
       `ACTQL_CUSTODY_CLEANUP:${step}:before`, `ACTQL_CUSTODY_CLEANUP:${step}:after`, `ACTQL_CUSTODY:${JSON.stringify(o)}`, 'Total tests: 1, passed: 1, failed: 0.'];
     const log = lines.join('\n'), prefix = `.artifacts/synthetic-custody-${target === 'js' ? '' : target + '-'}${mode}`;
