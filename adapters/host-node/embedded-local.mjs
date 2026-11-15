@@ -8124,7 +8124,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
         : assertSourceManagedInstallationCurrent)(manager, originals);
       const run = record.computeRuns?.get(prepared);
       if (run !== undefined && Object.hasOwn(run, 'failure')) throw run.failure;
-      let requestInput;
+      let requestInput, requestIdentity = identity;
       if (run === undefined) {
         requestInput = originalSourceManagedHostRequest(originals, prepared);
       } else {
@@ -8136,15 +8136,22 @@ async function openPreparedInstalledHost(options, initialEntry) {
             !record.computeLiveRuns?.has(run) || run.requestInput === undefined) {
           throw clientOperationError('ForeignInstalledEffectManagedRun');
         }
+        // Journal re-admission creates logical identity DATA, not another
+        // Request owner. Compare every original intent field, then keep the
+        // adopted Run's exact identity for the retained material binding.
         requestInput = run.requestInput;
+        requestIdentity = run.request;
+        if (runtime.clientRequestRelation(identity, requestIdentity) !== 1) {
+          throw clientOperationError('ForeignInstalledEffectManagedRun');
+        }
       }
       const materials = manager.admitEffectMaterials(prepared,
-        requestInput, wire, runDefinitionCid, compilation, identity, features);
+        requestInput, wire, runDefinitionCid, compilation, requestIdentity, features);
       if (run !== undefined && Object.hasOwn(run, 'failure')) throw run.failure;
       if (run !== undefined && (record.computeRuns?.get(prepared) !== run ||
           !record.computeLiveRuns?.has(run) || run.closed || run.runtime !== runtime ||
           run.preparationKind !== 'effect-plan' || run.manager !== manager ||
-          run.prepared !== prepared || run.requestInput !== requestInput)) {
+          run.prepared !== prepared || run.requestInput !== requestInput || run.request !== requestIdentity)) {
         throw clientOperationError('ForeignInstalledEffectManagedRun');
       }
       return materials;
