@@ -12,7 +12,9 @@ fn reserve_installed_effect_keyed_encoding(
   complete_body? : Bool = false,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
   guard effect_unit_publication_capacity(
-      [(name, geometry)], identity, complete_body~,
+      [(name, geometry)],
+      identity,
+      complete_body~,
     )
     is Some(capacity) else {
     return Err(InsufficientCapacity)
