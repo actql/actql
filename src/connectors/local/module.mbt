@@ -55,6 +55,53 @@ pub fn local_module_container_inventory(
 }
 
 ///|
+/// The added immutable recipe reference on each possible standing task
+/// provider. Original task count bounds the selected defaults; installed
+/// family fields and their two receipt closures are fixed Host controls.
+/// Selection may cohold the eleven existing alternative provider records and
+/// two complete capacity/Some pairs while the bounded result is merged.
+/// This is constructor DATA on the same Plan, not another provider allowance.
+pub fn local_module_provider_field_inventory(
+  tasks : Int,
+) -> @execution.ExecutionCapacity? {
+  guard tasks >= 0 &&
+    @execution.preparation_representation_cost({
+      record_headers: 0L,
+      reference_slots: tasks.to_int64(),
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(
+      retained,
+      if tasks > 0 {
+        local_provider_selection_recipe_field_bytes
+      } else {
+        0L
+      },
+      1L,
+    )
+    is Some(execution) else {
+    return None
+  }
+  @execution.execution_capacity(retained, execution)
+}
+
+///|
+// Eleven added provider fields plus the callback/merged capacity results:
+// each result is a two-word capacity record and its Some (2H/1R/2W).
+// Runtime row chains reserve this transient peak once, not once per child.
+let local_provider_selection_recipe_field_bytes : Int64 = @execution.preparation_representation_cost({
+    record_headers: 4L,
+    reference_slots: 13L,
+    scalar_words: 4L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  },
+).unwrap()
+
+///|
 pub(all) enum LocalModuleIssue {
   Candidate(@connector.FixedComputeIssue)
   NotSelected
@@ -122,7 +169,10 @@ pub fn prepare_local_compute_module(
       }
     }
     let capacity = match selected {
-      Some(provider) => managed_provider_capacity(provider, sequence)
+      Some(provider) =>
+        managed_provider_capacity_for_execution(
+          provider, sequence, execution, measurement,
+        )
       None =>
         @execution.generated_sequence_capacity(sequence, execution, measurement)
     }
@@ -309,7 +359,13 @@ pub fn local_module_capacity_for_sequence(
   }
   guard local_module_managed_provider(installed, slot, sequence)
     is Some(provider) &&
-    managed_provider_capacity(provider, sequence) is Some(required) &&
+    managed_provider_capacity_for_execution(
+      provider,
+      sequence,
+      installed.execution,
+      installed.measurement,
+    )
+    is Some(required) &&
     required.retained_bytes <= admitted.retained_bytes &&
     required.execution_bytes <= admitted.execution_bytes else {
     return None
@@ -366,7 +422,13 @@ fn local_module_default_output_start_capacity(
         | @lower.CrossJoinStep(_)
       )
     ) &&
-    relation_chain_reclaimed_prefix(sequence) == count &&
+    relation_chain_reclaimed_prefix(
+      sequence,
+      installed.execution,
+      installed.measurement,
+      installed.managed_providers,
+    ) ==
+    count &&
     local_module_capacity_for_sequence(installed, slot, sequence) is Some(full) else {
     return None
   }
@@ -515,6 +577,7 @@ fn local_module_default_output_start_capacity(
       }
     }
   }
+  let mut bounded_family_chain = false
   let mut metered_retention = true
   for index in 0..<count {
     match @execution.generated_sequence_step_at(sequence, index) {
@@ -826,7 +889,30 @@ fn local_module_default_output_start_capacity(
             }
           }
         }
-      _ => return None
+      _ => {
+        guard @execution.generated_sequence_step_index_at(sequence, index)
+          is Some(step) &&
+          @execution.select_generated_sequence_step(sequence, step)
+          is Some(selected) &&
+          bounded_relation_step_provider(
+            selected,
+            installed.execution,
+            installed.measurement,
+            family=installed.managed_providers,
+          )
+          is Some(provider) &&
+          managed_provider_bounded_relation_capacity(
+            provider,
+            selected,
+            installed.execution,
+            installed.measurement,
+          )
+          is Some(_) else {
+          return None
+        }
+        bounded_family_chain = true
+        metered_retention = false
+      }
     }
     let schema = @execution.generated_sequence_step_index_at(sequence, index).bind(step => {
         @lower.preparation_schema_at(
@@ -894,6 +980,7 @@ fn local_module_default_output_start_capacity(
     )
   }
   let mut fixed = 0L
+  let mut coheld_prefix_peak = 0L
   // Every selected child above is the same bounded before-commit constructor.
   // Its chain retires child scratch before the next child. No legacy generic
   // sequence table is built; keep every child's full scratch and fixed roots,
@@ -905,7 +992,8 @@ fn local_module_default_output_start_capacity(
   let constructor_chain = (count > 1 && metered_retention) ||
     window_chain ||
     required_row_chain ||
-    selected_literal_binding_chain(sequence)
+    selected_literal_binding_chain(sequence) ||
+    bounded_family_chain
   let mut scratch = if constructor_chain {
     0L
   } else {
@@ -920,11 +1008,24 @@ fn local_module_default_output_start_capacity(
         selected,
         installed.execution,
         installed.measurement,
-        family=[],
+        family=installed.managed_providers,
       )
-      is Some(provider) &&
-      managed_provider_capacity(provider, selected) is Some(child) else {
+      is Some(provider) else {
       return None
+    }
+    let bounded = managed_provider_bounded_relation_capacity(
+      provider,
+      selected,
+      installed.execution,
+      installed.measurement,
+    )
+    let child = match bounded {
+      Some(value) => value
+      None =>
+        match managed_provider_capacity(provider, selected) {
+          Some(value) => value
+          None => return None
+        }
     }
     // A literal Values child may already quote less DATA than the general
     // output allowance. Preserve its WHOLE original recipe; subtract no
@@ -945,7 +1046,9 @@ fn local_module_default_output_start_capacity(
           _ => data
         }
       }
-      _ => data
+      // A bounded family receipt retains its whole output holding. It has
+      // no before-commit DATA attachment; do not subtract a policy maximum.
+      _ => if bounded is Some(_) { 0L } else { data }
     }
     guard child.retained_bytes >= deferred_data &&
       child.execution_bytes >= deferred_data &&
@@ -957,8 +1060,25 @@ fn local_module_default_output_start_capacity(
       is Some(next) else {
       return None
     }
+    // Before this child starts, only previous completed outputs exist.
+    // Its complete E already coholds its own full R and private workspace.
+    guard @execution.checked_preparation_add_product(
+        fixed,
+        child.execution_bytes - deferred_data,
+        1L,
+      )
+      is Some(peak) else {
+      return None
+    }
+    coheld_prefix_peak = Int64::max(coheld_prefix_peak, peak)
     fixed = next
     scratch = Int64::max(scratch, child.execution_bytes - deferred_data)
+  }
+  if bounded_family_chain {
+    // Only an actual same-profile receipt and the ACK-qualified whole prefix
+    // select this serial composition. Preserve every accepted output at end.
+    fixed = Int64::max(fixed, coheld_prefix_peak)
+    scratch = 0L
   }
   if constructor_chain {
     // The legacy sequence table is never constructed by this path. Retain
@@ -970,6 +1090,10 @@ fn local_module_default_output_start_capacity(
         512L,
         count.to_int64(),
         256L,
+      )
+      is Some(handles) &&
+      @execution.checked_preparation_add_product(
+        handles, local_provider_selection_recipe_field_bytes, 1L,
       )
       is Some(handles) &&
       @execution.checked_preparation_add_product(fixed, handles, 1L)

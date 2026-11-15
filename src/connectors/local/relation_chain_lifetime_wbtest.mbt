@@ -14,7 +14,12 @@ fn chain_lifetime_child_capacity(
 fn relation_chain_reclaims_completed_scratch(
   sequence : @execution.GeneratedSequence,
 ) -> Bool {
-  relation_chain_reclaimed_prefix(sequence) ==
+  relation_chain_reclaimed_prefix(
+    sequence,
+    chain_lifetime_limits(),
+    chain_lifetime_measurement(),
+    [],
+  ) ==
   @execution.generated_sequence_step_count(sequence)
 }
 
@@ -353,7 +358,17 @@ test "bounded chains execute and charge an unconsumed checked branch" {
     capacity.execution_bytes,
     Int64::max(
       base.retained_bytes,
-      retained + peak + count.to_int64() * 256L + 512L,
+      retained +
+      peak +
+      count.to_int64() * 256L +
+      512L +
+      @execution.preparation_representation_cost({
+        record_headers: 4L,
+        reference_slots: 13L,
+        scalar_words: 4L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      }).unwrap(),
     ),
   )
   let (active, state) = chain_lifetime_start(sequence, read)
@@ -469,7 +484,15 @@ test "built-in chains reclaim each intermediate execution and preserve exact out
         measurement,
         [],
       ).unwrap()
-      let handles = count.to_int64() * 256L + 512L
+      let handles = count.to_int64() * 256L +
+        512L +
+        @execution.preparation_representation_cost({
+          record_headers: 4L,
+          reference_slots: 13L,
+          scalar_words: 4L,
+          owned_utf16_units: 0L,
+          owned_wire_bytes: 0L,
+        }).unwrap()
       assert_eq(
         capacity.execution_bytes,
         Int64::max(base.retained_bytes, retained + peak + handles),
@@ -728,10 +751,26 @@ test "audited prefix releases scratch before conservative child custody" {
   let measure = chain_lifetime_measurement()
   let capacity = bounded_relation_chain_capacity(sequence, limits, measure, []).unwrap()
   let count = @execution.generated_sequence_step_count(sequence)
-  assert_eq(relation_chain_reclaimed_prefix(sequence), 1)
+  assert_eq(
+    relation_chain_reclaimed_prefix(
+      sequence,
+      chain_lifetime_limits(),
+      chain_lifetime_measurement(),
+      [],
+    ),
+    1,
+  )
   // The first SELECT is reclaimed before the unaudited Set starts. Both
   // accepted outputs remain retained; only one execution scratch is live.
-  let mut overlap = count.to_int64() * 256L + 512L
+  let mut overlap = count.to_int64() * 256L +
+    512L +
+    @execution.preparation_representation_cost({
+      record_headers: 4L,
+      reference_slots: 13L,
+      scalar_words: 4L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }).unwrap()
   let mut peak = 0L
   for index in 0..<count {
     let step = @execution.generated_sequence_step_index_at(sequence, index).unwrap()
@@ -822,7 +861,15 @@ test "Values and UNNEST chains reclaim scratch and preserve accepted output gene
     peak = Int64::max(peak, child.execution_bytes)
     conservative += child.execution_bytes
   }
-  let handles = count.to_int64() * 256L + 512L
+  let handles = count.to_int64() * 256L +
+    512L +
+    @execution.preparation_representation_cost({
+      record_headers: 4L,
+      reference_slots: 13L,
+      scalar_words: 4L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }).unwrap()
   let required = bounded_relation_chain_capacity(sequence, limits, measure, []).unwrap()
   assert_eq(
     required.execution_bytes,
@@ -978,11 +1025,27 @@ test "an unaudited first child keeps the complete conservative suffix" {
   let (sequence, read, source) = chain_lifetime_fixture(
     "[{\"from\":\"source\",\"intersect\":{\"with\":\"source\",\"duplicates\":\"all\"},\"as\":\"first\"},{\"from\":\"first\",\"select\":[\"id\"],\"as\":\"out\"}]",
   )
-  assert_eq(relation_chain_reclaimed_prefix(sequence), 0)
+  assert_eq(
+    relation_chain_reclaimed_prefix(
+      sequence,
+      chain_lifetime_limits(),
+      chain_lifetime_measurement(),
+      [],
+    ),
+    0,
+  )
   let limits = chain_lifetime_limits()
   let measure = chain_lifetime_measurement()
   let count = @execution.generated_sequence_step_count(sequence)
-  let mut overlap = count.to_int64() * 256L + 512L
+  let mut overlap = count.to_int64() * 256L +
+    512L +
+    @execution.preparation_representation_cost({
+      record_headers: 4L,
+      reference_slots: 13L,
+      scalar_words: 4L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }).unwrap()
   for index in 0..<count {
     let step = @execution.generated_sequence_step_index_at(sequence, index).unwrap()
     let selected = @execution.select_generated_sequence_step(sequence, step).unwrap()

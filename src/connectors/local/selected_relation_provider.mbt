@@ -448,9 +448,13 @@ fn drain_relation_chain_inputs(
 ///|
 /// These bounded Relation kernels transfer an accepted completion independently
 /// of their execution scratch. Their existing cleanup preserves that output.
-/// Family providers retain their original conservative lifecycle and capacity.
+/// A family joins only with its exact bounded-recipe receipt; other families
+/// retain their original conservative lifecycle and capacity.
 fn relation_chain_reclaimed_prefix(
   sequence : @execution.GeneratedSequence,
+  limits : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+  family : Array[ManagedProvider],
 ) -> Int {
   for index in 0..<@execution.generated_sequence_step_count(sequence) {
     match @execution.generated_sequence_step_at(sequence, index) {
@@ -479,7 +483,20 @@ fn relation_chain_reclaimed_prefix(
           !(@lower.kernel_body(kernel) is @lower.Unnest(_, _, _, _, _)) {
           return index
         }
-      _ => return index
+      _ => {
+        guard @execution.generated_sequence_step_index_at(sequence, index)
+          is Some(step) &&
+          @execution.select_generated_sequence_step(sequence, step)
+          is Some(selected) &&
+          bounded_relation_step_provider(selected, limits, measurement, family~)
+          is Some(provider) &&
+          managed_provider_bounded_relation_capacity(
+            provider, selected, limits, measurement,
+          )
+          is Some(_) else {
+          return index
+        }
+      }
     }
   }
   @execution.generated_sequence_step_count(sequence)
@@ -513,25 +530,45 @@ fn bounded_relation_chain_capacity(
   if count < 2 {
     return Some(base)
   }
-  let reclaimed_prefix = relation_chain_reclaimed_prefix(sequence)
+  let reclaimed_prefix = relation_chain_reclaimed_prefix(
+    sequence, limits, measurement, family,
+  )
   let mut retained_children = 0L
   let mut scratch = 0L
   let mut prefix_peak = 0L
+  let mut coheld_prefix_peak = 0L
+  let mut bounded_prefix = false
   for index in 0..<count {
     guard @execution.generated_sequence_step_index_at(sequence, index)
       is Some(step) &&
       @execution.select_generated_sequence_step(sequence, step)
       is Some(selected) &&
       bounded_relation_step_provider(selected, limits, measurement, family~)
-      is Some(provider) &&
-      managed_provider_capacity(provider, selected) is Some(child) else {
+      is Some(provider) else {
       return None
     }
-    if retained_children > 9223372036854775807L - child.retained_bytes {
-      return None
+    let bounded = managed_provider_bounded_relation_capacity(
+      provider, selected, limits, measurement,
+    )
+    let child = match bounded {
+      Some(value) => value
+      None =>
+        match managed_provider_capacity(provider, selected) {
+          Some(value) => value
+          None => return None
+        }
     }
-    retained_children += child.retained_bytes
     if index < reclaimed_prefix {
+      guard @execution.checked_preparation_add_product(
+          retained_children,
+          child.execution_bytes,
+          1L,
+        )
+        is Some(peak) else {
+        return None
+      }
+      coheld_prefix_peak = Int64::max(coheld_prefix_peak, peak)
+      bounded_prefix = bounded_prefix || bounded is Some(_)
       prefix_peak = Int64::max(prefix_peak, child.execution_bytes)
     } else {
       if scratch > 9223372036854775807L - child.execution_bytes {
@@ -539,20 +576,44 @@ fn bounded_relation_chain_capacity(
       }
       scratch += child.execution_bytes
     }
+    if retained_children > 9223372036854775807L - child.retained_bytes {
+      return None
+    }
+    retained_children += child.retained_bytes
   }
-  // Every audited prefix child confirms cleanup before the next child starts.
-  // Family/unaudited children retain their original conservative overlap from
-  // the first such child onward; accepted outputs remain retained throughout.
-  scratch = Int64::max(prefix_peak, scratch)
-  if retained_children > 9223372036854775807L - scratch {
-    return None
+  // An actual bounded family receipt joins the existing ACK-qualified
+  // serial prefix. Each current child coholds earlier accepted outputs and
+  // its COMPLETE E; future outputs do not exist yet. Unknown suffixes keep
+  // all their old output holding and complete execution overlap.
+  let live_children = if bounded_prefix {
+    guard @execution.checked_preparation_add_product(
+        retained_children, scratch, 1L,
+      )
+      is Some(suffix) else {
+      return None
+    }
+    Int64::max(coheld_prefix_peak, suffix)
+  } else {
+    // Existing unprofiled families and generic chains retain their original
+    // conservative composition, independent of the new optional recipe.
+    scratch = Int64::max(prefix_peak, scratch)
+    guard @execution.checked_preparation_add_product(
+        retained_children, scratch, 1L,
+      )
+      is Some(live) else {
+      return None
+    }
+    live
   }
-  let live_children = retained_children + scratch
   let handles = count.to_int64() * 256L
   // One input-selection cursor and one common read cursor may coexist.
   // Their mapping arrays are the same receiving views retained by the child;
   // reserve two additional fixed metadata-handle envelopes before execution.
-  let preparation = if count > 1 { 512L } else { 0L }
+  let preparation = if count > 1 {
+    512L + local_provider_selection_recipe_field_bytes
+  } else {
+    0L
+  }
   if handles > 9223372036854775807L - preparation ||
     live_children > 9223372036854775807L - handles - preparation {
     return None
@@ -683,7 +744,9 @@ fn bounded_relation_chain_execution_state(
   let terminal = Ref(false)
   let reclaimed = Ref(false)
   let cleanup_index = Ref(-1)
-  let reclaimed_prefix = relation_chain_reclaimed_prefix(sequence)
+  let reclaimed_prefix = relation_chain_reclaimed_prefix(
+    sequence, execution, measurement, family,
+  )
   let start_next = fn(
     next_inputs : Array[ManagedProviderInput],
   ) -> Result[Unit, @connector.FixedComputeIssue] {

@@ -119,8 +119,18 @@ fn[I] request_program_plan_quote(
     return Err(ForeignOriginal)
   }
   if owner.phase == ProgramCompiled {
+    guard owner.compiled_program is Some(program) else {
+      return Err(WrongPhase)
+    }
     let (r, e) = match
-      original_request_plan_construction_quote(capacity, input, data) {
+      original_request_plan_construction_quote(
+        capacity,
+        input,
+        data,
+        tasks=@strategy.graph_task_count(
+          @publication_host.prepared_client_graph(program),
+        ),
+      ) {
       Err(issue) => return Err(issue)
       Ok(value) => value
     }
@@ -1429,10 +1439,12 @@ fn[I, P] original_request_plan_construction_quote(
   capacity : @resources.PreparationCapacity[I, P],
   input : I,
   data : @checked.ParsedCheckDataEstimate,
+  tasks? : Int = 0,
 ) -> Result[(Int64, Int64), ClientRequestPreparationIssue] {
   guard program_check_data_extent_cost(data) is Some(bytes) &&
     client_local_value_node_proof_retained_bytes() is Some(proof_retained) &&
-    client_local_value_node_proof_scratch_bytes() is Some(proof_scratch) else {
+    client_local_value_node_proof_scratch_bytes() is Some(proof_scratch) &&
+    @local.local_module_provider_field_inventory(tasks) is Some(providers) else {
     return Err(Policy)
   }
   let (r, e) = match
@@ -1443,6 +1455,18 @@ fn[I, P] original_request_plan_construction_quote(
   guard @execution.checked_preparation_add_product(bytes, proof_retained, 1L)
     is Some(retained) &&
     @execution.checked_preparation_add_product(retained, proof_scratch, 1L)
+    is Some(execution) &&
+    @execution.checked_preparation_add_product(
+      retained,
+      providers.retained_bytes,
+      1L,
+    )
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(
+      execution,
+      providers.execution_bytes,
+      1L,
+    )
     is Some(execution) &&
     @execution.checked_preparation_add_product(r, retained, 1L) is Some(r) &&
     @execution.checked_preparation_add_product(e, execution, 1L) is Some(e) else {

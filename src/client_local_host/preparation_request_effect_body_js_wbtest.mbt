@@ -269,6 +269,13 @@ test "Effect Request Plan grow keeps the same compiled original and quote at bot
       capacity, input,
     ).unwrap()
     let bytes = program_check_data_extent_cost(parent.program_data.unwrap()).unwrap()
+    let providers = @local.local_module_provider_field_inventory(
+      @strategy.graph_task_count(
+        @strategy.checked_effect_computation_graph(
+          @publication_host.prepared_client_effect_computation_graph(prepared),
+        ),
+      ),
+    ).unwrap()
     let phase = installed_effect_control_phase_quote_capacity()
     // The existing generic Plan constructor also backs its checked-node proof
     // before entry. The previous data-only fixture omitted those live frames.
@@ -292,6 +299,7 @@ test "Effect Request Plan grow keeps the same compiled original and quote at bot
     let receipt = installed_effect_early_publication_receipt_capacity()
     let keyed_field = installed_effect_keyed_plan_field_bytes()
     let retained = bytes +
+      providers.retained_bytes +
       proof_retained +
       direct_selector_field +
       member_retained +
@@ -300,6 +308,7 @@ test "Effect Request Plan grow keeps the same compiled original and quote at bot
       keyed_field +
       @execution.execution_capacity_retained_bytes(phase)
     let execution = bytes +
+      providers.execution_bytes +
       proof_retained +
       proof_scratch +
       direct_selector_field +

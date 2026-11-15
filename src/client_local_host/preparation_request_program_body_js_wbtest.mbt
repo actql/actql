@@ -1572,7 +1572,10 @@ test "source-free adoption preserves loose Plan DATA and rejects foreign input b
 
 ///|
 test "Request Plan quote backs original checked node proof frames before factory" {
-  let (parent, input, _) = request_program_body_fixture()
+  let (parent, input, program) = request_program_body_fixture()
+  let providers = @local.local_module_provider_field_inventory(
+    @strategy.graph_task_count(@publication_host.prepared_client_graph(program)),
+  ).unwrap()
   let original = parent.program_capacity.unwrap()
   let before = @resources.preparation_capacity_working_extents(original, input).unwrap()
   let data = program_check_data_extent_cost(parent.program_data.unwrap()).unwrap()
@@ -1599,13 +1602,18 @@ test "Request Plan quote backs original checked node proof frames before factory
   assert_eq(
     quote,
     (
-      before.0 + data + retained + direct_selector_field,
+      before.0 +
+      data +
+      retained +
+      direct_selector_field +
+      providers.retained_bytes,
       before.1 +
       data +
       retained +
       scratch +
       original_tail_field +
-      direct_selector_field,
+      direct_selector_field +
+      providers.execution_bytes,
     ),
   )
   // The old data-only allowance is deliberately insufficient. The original

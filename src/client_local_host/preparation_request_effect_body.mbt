@@ -74,8 +74,18 @@ fn[I] request_effect_plan_quote(
     return Err(ForeignOriginal)
   }
   if owner.phase == EffectCompiled {
+    guard owner.compiled_effect is Some(effect) else { return Err(WrongPhase) }
     let (r, e) = match
-      original_request_plan_construction_quote(capacity, input, data) {
+      original_request_plan_construction_quote(
+        capacity,
+        input,
+        data,
+        tasks=@strategy.graph_task_count(
+          @strategy.checked_effect_computation_graph(
+            @publication_host.prepared_client_effect_computation_graph(effect),
+          ),
+        ),
+      ) {
       Err(issue) => return Err(issue)
       Ok(value) => value
     }

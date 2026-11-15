@@ -238,18 +238,22 @@ test "fixed Request control envelope preserves original upper bound through the 
     // three growing backings3R each, and one retained key/value2R.
     16L * 3L +
     8L * 16L +
+    8L * 2L +
+    // Nine family fields and two Some/one-scalar quote closure pairs.
+    16L * 4L +
+    8L * 11L +
     8L * 2L,
-    11800L,
+    11968L,
   )
   assert_eq(
     @execution.preparation_representation_cost(
       request_preparation_fixed_control_envelope,
     ),
-    Some(11800L),
+    Some(11968L),
   )
   assert_eq(
     client_request_preparation_control_capacity(client_local_resource_policy()),
-    Some((15896L, 0L)),
+    Some((16064L, 0L)),
   )
   let growth = @resources.preparation_inventory_growth_entry_construction()
   assert_eq(

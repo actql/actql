@@ -13,7 +13,15 @@ test "unpivot chain reclaims scratch without invalidating expanded output" {
   let measure = chain_lifetime_measurement()
   let count = @execution.generated_sequence_step_count(sequence)
   assert_eq(count, 2)
-  assert_eq(relation_chain_reclaimed_prefix(sequence), count)
+  assert_eq(
+    relation_chain_reclaimed_prefix(
+      sequence,
+      chain_lifetime_limits(),
+      chain_lifetime_measurement(),
+      [],
+    ),
+    count,
+  )
   // Both exact children have two output fields and one input occurrence.
   // UNPIVOT borrows its selected cells/prepared label; SELECT forwards those
   // same required cells. Their workspace cursors do not copy an input forest
@@ -73,7 +81,15 @@ test "unpivot chain reclaims scratch without invalidating expanded output" {
     sum += child.execution_bytes
   }
   let base = @execution.generated_sequence_capacity(sequence, limits, measure).unwrap()
-  let handles = count.to_int64() * 256L + 512L
+  let handles = count.to_int64() * 256L +
+    512L +
+    @execution.preparation_representation_cost({
+      record_headers: 4L,
+      reference_slots: 13L,
+      scalar_words: 4L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }).unwrap()
   let capacity = bounded_relation_chain_capacity(sequence, limits, measure, []).unwrap()
   // Accepted child outputs coexist, but the actual cleanup acknowledgement
   // below ends each child's scratch before the next constructor starts. This
