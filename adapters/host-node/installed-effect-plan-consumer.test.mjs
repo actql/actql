@@ -843,7 +843,7 @@ function installedOriginalCompilerFixture({available = true, refusal, forbidProj
     assert.deepEqual(flags, [false, true, true, true, true, false, false]);
     calls.push('same-original'); if (refusal !== undefined) throw refusal; return ok(materials);
   };
-  const ports = {moon, features: [false, true, true, true, true, false, false], checked, fail,
+  const ports = {moon, admitMaterials: undefined, features: [false, true, true, true, true, false, false], checked, fail,
     runUpdateSelectionCid: () => 'original-selection', updateTargetRunOriginalShape: () => true,
     // The actual conversion creates distinct DATA arrays borrowing the SAME
     // opaque selection. Equal wrapper identity must never stand in for it.

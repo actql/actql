@@ -450,3 +450,30 @@ test('marked recovery requires synchronous original custody and exact selection 
   }
   assert.equal(reads, 0);
 });
+
+test('ordinary full Effect materials use the same funded Request for issue and inverse', async t => {
+  const f = await fixture(t), seen = [];
+  f.moon.clientProgramIssuePreparedEffectRunMaterials = () => assert.fail('No unfunded original issuer');
+  f.moon.clientProgramAdmitEffectRunMaterialsWithCompilation = () => assert.fail('No unfunded inverse codec');
+  const originals = installUpdateTargetOriginals({...f, limits,
+    issueMaterials(facts) {
+      assert.strictEqual(facts.prepared, f.prepared); assert.strictEqual(facts.allowed, f.allowed);
+      assert.strictEqual(facts.definition, f.definition); assert.equal(facts.identity, 'request');
+      seen.push('issue'); return f.materialsWire;
+    },
+    admitMaterials(facts) {
+      assert.strictEqual(facts.prepared, f.prepared); assert.strictEqual(facts.compilation, f.compilation);
+      assert.equal(facts.wire, f.materialsWire); assert.equal(facts.runDefinitionCid, f.runDefinition.identity);
+      assert.equal(facts.identity, 'request');
+      seen.push('admit'); f.calls.push('bind-exact-run');
+      return {prepared: f.prepared, compilation: f.compilation, allowed: f.allowed, definition: f.definition};
+    }});
+  const original = originals.captureRun({...f, identity: 'request'});
+  assert.equal(original.materialsWire, f.materialsWire);
+  const restored = originals.restoreRun(original, f.runDefinition, 'request', f.compilation, f.prepared);
+  assert.strictEqual(restored.prepared, f.prepared); assert.strictEqual(restored.compilation, f.compilation);
+  assert.deepEqual(seen, ['issue', 'admit']);
+  assert.throws(() => originals.restoreEffectMaterials(f.materialsWire, f.runDefinition, 'request', f.compilation),
+    {code: 'InstalledEffectOriginalSelectionChanged'});
+  assert.deepEqual(seen, ['issue', 'admit']);
+});

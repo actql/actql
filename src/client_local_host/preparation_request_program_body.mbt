@@ -427,6 +427,7 @@ pub suberror ClientRequestProgramPlanIssue {
   ModelSource(@row_source_host.RowHostIssue)
   ContentQuery(ClientLocalQueryIssue)
   ContentSource(@row_source_host.RowHostIssue)
+  EffectMaterials(@publication_host.ClientEffectRunMaterialsIssue)
 }
 
 ///|

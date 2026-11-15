@@ -751,6 +751,72 @@ pub fn[I, P] reconcile_working_preparation_phase(
 }
 
 ///|
+/// SAME working owner's success-only scratch cut after its synchronous
+/// constructor returned. Unlike cleanup disposal, stopping/closing refuses
+/// this successful handoff. One original current callback precedes the
+/// callback-free admission/custody checks and mutation of this SAME token.
+pub fn[I, P] reconcile_current_working_preparation_phase(
+  owner : PreparationCapacity[I, P],
+  input : I,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[Unit, PreparationCapacityIssue] {
+  if !(owner.input is Some(original) && physical_equal(original, input)) {
+    return Err(ForeignOriginal)
+  }
+  if !preparation_capacity_phase_is_working(owner.phase) ||
+    owner.body is Some(_) ||
+    preparation_capacity_has_executing_work(owner) {
+    return Err(WorkActive)
+  }
+  let token = owner.reservation.reservation
+  if retained_bytes <= 0L ||
+    execution_bytes < 0L ||
+    retained_bytes > token.retention ||
+    execution_bytes > token.execution {
+    return Err(InvalidExtent)
+  }
+  let working_phase = owner.phase
+  owner.phase = Completing
+  let outcome : Result[Unit, PreparationCapacityIssue] = match
+    reservation_check(owner.ledger, token) {
+    Err(issue) => Err(Resource(issue))
+    Ok(_) => {
+      guard owner.phase == Completing &&
+        owner.input is Some(original) &&
+        physical_equal(original, input) &&
+        physical_equal(owner.reservation.reservation, token) &&
+        owner.body is None &&
+        !preparation_capacity_has_executing_work(owner) else {
+        if owner.phase == Completing {
+          owner.phase = working_phase
+        }
+        return Err(WorkActive)
+      }
+      match check_imported_child_admission_current(owner.ledger) {
+        Err(issue) => Err(Resource(issue))
+        Ok(_) =>
+          if owner.ledger.original_inventory is Some(inventory) &&
+            inventory.closing {
+            Err(Resource(ClosedReservation))
+          } else {
+            resize_capacity_reservation_current(
+              owner.ledger,
+              owner.reservation,
+              retained_bytes,
+              execution_bytes,
+            ).map_err(issue => Resource(issue))
+          }
+      }
+    }
+  }
+  if owner.phase == Completing {
+    owner.phase = working_phase
+  }
+  outcome
+}
+
+///|
 // A returned constructor keeps its SAME receipt pending, but has no executing
 // body at a resize boundary. Completion, transfer, continuation and abort still
 // reject any pending receipt through their unchanged presence checks.

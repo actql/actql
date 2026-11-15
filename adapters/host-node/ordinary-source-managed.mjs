@@ -374,6 +374,31 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       throw cause;
     } finally {state.preparing = false;}
   }
+  function constructEffectMaterials(prepared, request, method, args) {
+    current();
+    const producer = producerForRequest(request), state = producer?.preparation;
+    if (state?.preparationFailed) throw state.preparationFailure;
+    if (state === undefined || state.prepared !== prepared || state.compilationKind !== 'effectful' ||
+        state.holder === undefined || state.preparing || state.adopting ||
+        state.effectBorrowMethods?.clientProgramEffectPreparationInputRead(state.holder) !== prepared) {
+      fail('ForeignInstalledSourceProducer');
+    }
+    const moon = state.context.runtime, construct = state.effectBorrowMethods[method];
+    const issue = moon.clientProgramRequestProgramModuleIssueCode;
+    if (typeof construct !== 'function' || typeof issue !== 'function') fail('NodeManagedRunRuntimeUnavailable');
+    return constructRequestDomain(state, () => {
+      const result = checkedRequestProgramPreparation(moon, Reflect.apply(construct, moon,
+        [state.parent, producer.receipt, prepared, ...args,
+          ...(method === 'clientProgramAdmitRequestEffectRunMaterialsWithCompilation'
+            ? [state.context.environment] : [])]), issue);
+      current();
+      if (producer.finished || producer.preparation !== state || state.prepared !== prepared ||
+          state.effectBorrowMethods.clientProgramEffectPreparationInputRead(state.holder) !== prepared) {
+        fail('ForeignInstalledSourceProducer');
+      }
+      return result;
+    });
+  }
   function reserveModelRecovery(producer, state, count, wireAt, containers) {
     if (state.recovery === undefined || producer.finished || state.preparing || state.adopting ||
         typeof wireAt !== 'function') fail('ForeignInstalledSourceProducer');
@@ -1166,7 +1191,9 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
               'clientProgramPrepareRequestEffectModelsReadScopesWithQuantities',
               'clientProgramAdoptRequestEffectModelsPreparation',
               'clientProgramPrepareRequestEffectKeyedPlan',
-              'clientProgramPrepareRequestEffectKeyedOriginal']) {
+              'clientProgramPrepareRequestEffectKeyedOriginal',
+              'clientProgramIssueRequestEffectRunMaterials',
+              'clientProgramAdmitRequestEffectRunMaterialsWithCompilation']) {
               names.push(name);
               methods.push(Object.getOwnPropertyDescriptor(moon, name)?.value);
             }
@@ -1256,6 +1283,14 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       return Object.freeze({kind: state.compilationKind, prepared,
         originalInputs: Object.freeze({environment, parameters: undefined,
           parametersCursor: state.parametersCursor})});
+    },
+    issueEffectMaterials(prepared, request, allowed, definition, identity) {
+      return constructEffectMaterials(prepared, request, 'clientProgramIssueRequestEffectRunMaterials',
+        [allowed, definition, identity ?? null]);
+    },
+    admitEffectMaterials(prepared, request, wire, runDefinitionCid, compilation, identity, features) {
+      return constructEffectMaterials(prepared, request, 'clientProgramAdmitRequestEffectRunMaterialsWithCompilation',
+        [wire, runDefinitionCid, compilation, identity, ...features]);
     },
     reserveEffectOriginal(prepared, request, material, installations) {
       current();

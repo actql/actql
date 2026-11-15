@@ -2721,7 +2721,11 @@ async function openInstalledHost(originalInstallation, preparation) {
   };
   Object.defineProperty(check, 'unavailable', {value: checkSource.unavailable});
   updateTargetOriginals = installUpdateTargetOriginals({moon, control, installedEffect,
-    limits: localContractLimits});
+    limits: localContractLimits,
+    issueMaterials: facts => preparation.issueManagedEffectMaterials(moon, facts.prepared,
+      facts.allowed, facts.definition, facts.identity),
+    admitMaterials: facts => preparation.admitManagedEffectMaterials(moon, facts.prepared,
+      facts.wire, facts.runDefinitionCid, facts.compilation, facts.identity, facts.features)});
   const prepareSubmit = installNodeClientProgramPreparation({moon,
     environment, valuesMaxRows,
     getFundedPreparation: (request, selectedEnvironment, originalVerifier, signal) =>
@@ -4383,7 +4387,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         }
         const original = saved.runAdmissionEvidence?.updateTargetRunOriginal;
         let restored = original === undefined ? {} : updateTargetOriginals.restoreRun(
-          original, saved.runDefinition, requestIdentity, originalCompilation);
+          original, saved.runDefinition, requestIdentity, originalCompilation, managed?.prepared);
         if (original === undefined && managed?.definitionOriginal !== undefined) {
           // The live Request already owns these admitted materials. Ordinary
           // STORE recovery needs the same allowed compilation too, even when
@@ -4411,7 +4415,7 @@ async function openInstalledHost(originalInstallation, preparation) {
               throw new Error('RequestedEffectStopOriginalUnavailable');
             }
             restored = updateTargetOriginals.restoreEffectMaterials(wire,
-              saved.runDefinition, requestIdentity, originalCompilation);
+              saved.runDefinition, requestIdentity, originalCompilation, managed?.prepared);
           }
           if (moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunPrepared(restored.allowed)) !==
                 saved.runAdmissionEvidence.prepared ||
@@ -8130,6 +8134,26 @@ async function openPreparedInstalledHost(options, initialEntry) {
       return manager.prepareContentCompilation(prepared, originalSourceManagedHostRequest(originals, prepared), graph,
         (parent, input, originalGraph, contracts) => control.prepareCheckedClientRequestSerializationCompilation(
           parent, input, originalGraph, contracts));
+    },
+    issueManagedEffectMaterials(runtime, prepared, allowed, definition, identity) {
+      const manager = sourceManaged ?? computeManaged;
+      if (runtime !== moon || manager === undefined || typeof manager.issueEffectMaterials !== 'function') {
+        throw clientOperationError('NodeManagedRunCompilationUnavailable');
+      }
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
+        : assertSourceManagedInstallationCurrent)(manager, originals);
+      return manager.issueEffectMaterials(prepared,
+        originalSourceManagedHostRequest(originals, prepared), allowed, definition, identity);
+    },
+    admitManagedEffectMaterials(runtime, prepared, wire, runDefinitionCid, compilation, identity, features) {
+      const manager = sourceManaged ?? computeManaged;
+      if (runtime !== moon || manager === undefined || typeof manager.admitEffectMaterials !== 'function') {
+        throw clientOperationError('NodeManagedRunCompilationUnavailable');
+      }
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
+        : assertSourceManagedInstallationCurrent)(manager, originals);
+      return manager.admitEffectMaterials(prepared,
+        originalSourceManagedHostRequest(originals, prepared), wire, runDefinitionCid, compilation, identity, features);
     },
     reserveManagedEffectOriginal(runtime, prepared, material, installations) {
       const manager = sourceManaged ?? computeManaged;

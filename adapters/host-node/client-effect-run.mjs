@@ -155,11 +155,11 @@ export function installNodeClientEffectRun({moon,
       let restored;
       if (evidence.updateTargetRunOriginal !== undefined) {
         restored = updateTargetOriginals.restoreRun(evidence.updateTargetRunOriginal,
-          retained.runDefinition, identity, compilation);
+          retained.runDefinition, identity, compilation, prepared);
       } else {
         if (typeof evidence.effectOriginalRunWire !== 'string') throw denied();
         restored = updateTargetOriginals.restoreEffectMaterials(evidence.effectOriginalRunWire,
-          retained.runDefinition, identity, compilation);
+          retained.runDefinition, identity, compilation, prepared);
       }
       if (restored.prepared !== prepared || restored.compilation !== compilation ||
           moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunPrepared(restored.allowed)) !== evidence.prepared ||
@@ -286,7 +286,7 @@ export function installNodeClientEffectRun({moon,
           // Ordinary approval also resumes in another process without an
           // explicit commit stop. Its original must survive that same boundary.
           const effectOriginalRunWire = updateTargetRunOriginal !== undefined
-            ? undefined : updateTargetOriginals?.captureEffectMaterials({allowed, definition, identity});
+            ? undefined : updateTargetOriginals?.captureEffectMaterials({prepared, allowed, definition, identity});
           if (requestedStop && updateTargetRunOriginal === undefined && effectOriginalRunWire === undefined) {
             throw Object.assign(new Error('RequestedEffectStopOriginalUnavailable'),
               {code: 'RequestedEffectStopOriginalUnavailable'});

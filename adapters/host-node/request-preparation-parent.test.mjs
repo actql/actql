@@ -1114,8 +1114,8 @@ test('ordinary Effect Plan adopts the same Request input and typed compiler borr
     {code: 'ForeignInstalledSourceProducer'});
 });
 
-async function originalEffectRequest({completeFailure, adoptFailure, reserveFailure} = {}) {
-  const f = await fixture(), moon = f.context.runtime, sdkRequest = {}, prepared = {}, holder = {}, identity = {}, plan = {}, parent = {};
+async function originalEffectRequest({completeFailure, adoptFailure, reserveFailure, environment} = {}) {
+  const f = await fixture({environment}), moon = f.context.runtime, sdkRequest = {}, prepared = {}, holder = {}, identity = {}, plan = {}, parent = {};
   const receipt = f.view.beforeSourceSnapshot('program', input(), {}, connection);
   const body = f.view.captureSourceSnapshot(receipt, {kind: 'program', input: input()}, snapshotClientRequest);
   f.view.bindSourceSnapshot(receipt, body); f.view.bindSourceRequest(receipt, body, sdkRequest);
@@ -1124,7 +1124,7 @@ async function originalEffectRequest({completeFailure, adoptFailure, reserveFail
   moon.clientProgramPrepareRequestNativeComputation = () => {events.push('check'); return ok(undefined);};
   moon.clientProgramFinishRequestComputation = function(owner, original, selected, publication) {
     assert.equal(this, moon); assert.equal(owner, f.parent); assert.equal(original, receipt);
-    assert.equal(selected, undefined); assert.equal(publication, f.context.preparedEnvironment);
+    assert.equal(selected, environment); assert.equal(publication, f.context.preparedEnvironment);
     events.push('compile'); return ok('effectful');
   };
   moon.clientProgramBorrowRequestEffectPlanInput = function(owner, original) {
@@ -1162,6 +1162,53 @@ async function originalEffectRequest({completeFailure, adoptFailure, reserveFail
   return {...f, moon, sdkRequest, prepared, holder, identity, plan, parent, requestParent: f.parent, receipt, events,
     markRetiring() {retiring = true;}, finishPhysicalRetirement() {return Reflect.apply(abort, moon, [f.parent]);}, async failedCleanup() {f.view.finishSourceProducer(receipt, 'failed'); await f.view.close();}};
 }
+
+test('Effect materials use captured same-Request codec methods for issuance and inverse', async () => {
+  const environment = Object.freeze({body: 'same original environment'});
+  const f = await originalEffectRequest({environment}), allowed = {}, definition = {}, compilation = {}, restored = {};
+  const features = [false, true, true, true, true, false, false];
+  f.moon.clientProgramIssueRequestEffectRunMaterials = function(parent, input, prepared, a, d, identity) {
+    assert.strictEqual(this, f.moon); assert.strictEqual(parent, f.requestParent);
+    assert.strictEqual(input, f.receipt); assert.strictEqual(prepared, f.prepared);
+    assert.strictEqual(a, allowed); assert.strictEqual(d, definition); assert.strictEqual(identity, f.identity);
+    f.events.push('issue-materials'); return ok('complete original');
+  };
+  f.moon.clientProgramAdmitRequestEffectRunMaterialsWithCompilation = function(parent, input, prepared, wire, run, c, identity, ...selected) {
+    assert.strictEqual(this, f.moon); assert.strictEqual(parent, f.requestParent);
+    assert.strictEqual(input, f.receipt); assert.strictEqual(prepared, f.prepared);
+    assert.equal(wire, 'complete original'); assert.equal(run, 'original-run');
+    assert.strictEqual(c, compilation); assert.strictEqual(identity, f.identity); assert.deepEqual(selected.slice(0, -1), features); assert.strictEqual(selected.at(-1), environment);
+    f.events.push('admit-materials'); return ok(restored);
+  };
+  const foreignEnvironment = Object.freeze({body: environment.body});
+  assert.deepEqual(foreignEnvironment, environment);
+  assert.notStrictEqual(foreignEnvironment, environment);
+  await assert.rejects(f.view.fundedPreparation(f.sdkRequest, foreignEnvironment),
+    {code: 'ForeignInstalledSourceProducer'});
+  await f.view.fundedPreparation(f.sdkRequest, environment);
+  f.moon.clientProgramIssueRequestEffectRunMaterials = f.moon.clientProgramAdmitRequestEffectRunMaterialsWithCompilation =
+    () => assert.fail('Do not replace captured original codec methods');
+  assert.throws(() => f.view.issueEffectMaterials(f.prepared, {}, allowed, definition, f.identity),
+    {code: 'ForeignInstalledSourceProducer'});
+  assert.equal(f.view.issueEffectMaterials(f.prepared, f.sdkRequest, allowed, definition, f.identity), 'complete original');
+  assert.strictEqual(f.view.admitEffectMaterials(f.prepared, f.sdkRequest, 'complete original',
+    'original-run', compilation, f.identity, features), restored);
+  assert.deepEqual(f.events, ['check', 'compile', 'borrow', 'issue-materials', 'admit-materials']);
+  await f.failedCleanup();
+});
+
+test('Effect material codec refusal keeps the original cause and forbids another construction', async () => {
+  const f = await originalEffectRequest(), cause = new Error('OriginalMaterialCapacity'); let calls = 0;
+  f.moon.clientProgramRequestProgramModuleIssueCode = () => null;
+  f.moon.clientProgramIssueRequestEffectRunMaterials = function() {calls++; return {$tag: 0, _0: cause};};
+  await f.view.fundedPreparation(f.sdkRequest, undefined);
+  let primary;
+  const issue = () => f.view.issueEffectMaterials(f.prepared, f.sdkRequest, {}, {}, f.identity);
+  assert.throws(issue, error => {primary = error; return error.code === 'MoonBitHostFailure' && error.cause === cause;});
+  assert.throws(issue, error => error === primary);
+  assert.equal(calls, 1);
+  await f.failedCleanup();
+});
 
 test('Effect original projection forwards only the same checked Request and keeps a failed reservation sticky', async () => {
   for (const reserveFailure of [undefined, new Error('OriginalEnvelopeCapacityRefused')]) {

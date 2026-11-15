@@ -323,6 +323,10 @@ pub fn client_request_preparation_control_capacity(
   // Optional Native scalar diagnostics retain only bounded before/after tuples
   // and the SAME light parent, plus parser/lowerer Ref/Some call observations
   // (together under 512 bytes), within this fixed 4096 group.
+  // Original Effect-material codec entry also uses this exclusive group for
+  // its fixed argument tuple/codec closure before the phase grow. Its two
+  // purpose arrays, complete returned bodies and parser/writer scratch are
+  // separately funded by the same Request before their constructors start.
   // The exclusive ResultRead phase retains its bounded budget/control tuple
   // in this same group; variable frames/rows/output reserve separately.
   let growth = @resources.preparation_inventory_growth_entry_construction()
