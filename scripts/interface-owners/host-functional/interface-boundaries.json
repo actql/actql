@@ -78900,10 +78900,6 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/embedded-source-identity-initialization.test.mjs",
-                "anchor": "identity and Host loader reuse one actual service and parent with the original Project and current fences"
-              },
-              {
                 "path": "adapters/host-node/rest-source-initial-material.test.mjs",
                 "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
               },
@@ -91277,10 +91273,6 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/embedded-source-identity-initialization.test.mjs",
-                "anchor": "identity and Host loader reuse one actual service and parent with the original Project and current fences"
-              },
-              {
                 "path": "adapters/host-node/rest-source-initial-material.test.mjs",
                 "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
               }
@@ -97559,10 +97551,6 @@
               }
             ],
             "verification": [
-              {
-                "path": "adapters/host-node/embedded-source-identity-initialization.test.mjs",
-                "anchor": "identity and Host loader reuse one actual service and parent with the original Project and current fences"
-              },
               {
                 "path": "adapters/host-node/rest-source-initial-material.test.mjs",
                 "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
@@ -115332,10 +115320,6 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/embedded-source-identity-initialization.test.mjs",
-                "anchor": "identity and Host loader reuse one actual service and parent with the original Project and current fences"
-              },
-              {
                 "path": "adapters/host-node/rest-source-initial-material.test.mjs",
                 "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
               },
@@ -128878,10 +128862,6 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/embedded-source-identity-initialization.test.mjs",
-                "anchor": "identity and Host loader reuse one actual service and parent with the original Project and current fences"
-              },
-              {
                 "path": "adapters/host-node/rest-source-initial-material.test.mjs",
                 "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
               }
@@ -129832,10 +129812,6 @@
               }
             ],
             "verification": [
-              {
-                "path": "adapters/host-node/embedded-source-identity-initialization.test.mjs",
-                "anchor": "identity and Host loader reuse one actual service and parent with the original Project and current fences"
-              },
               {
                 "path": "adapters/host-node/rest-source-initial-material.test.mjs",
                 "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
@@ -133417,10 +133393,6 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/embedded-source-identity-initialization.test.mjs",
-                "anchor": "identity and Host loader reuse one actual service and parent with the original Project and current fences"
-              },
-              {
                 "path": "adapters/host-node/rest-source-initial-material.test.mjs",
                 "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
               },
@@ -134034,10 +134006,6 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/embedded-source-identity-initialization.test.mjs",
-                "anchor": "identity and Host loader reuse one actual service and parent with the original Project and current fences"
-              },
-              {
                 "path": "adapters/host-node/rest-source-initial-material.test.mjs",
                 "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
               },
@@ -134254,10 +134222,6 @@
               {
                 "path": "adapters/host-node/installed-effect-profile-cleanup.test.mjs",
                 "anchor": "test('invalid async native Source construction remains held until original settlement without retry'"
-              },
-              {
-                "path": "adapters/host-node/embedded-source-identity-initialization.test.mjs",
-                "anchor": "identity and Host loader reuse one actual service and parent with the original Project and current fences"
               },
               {
                 "path": "adapters/host-node/rest-source-initial-material.test.mjs",
