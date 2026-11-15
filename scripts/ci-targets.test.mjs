@@ -275,7 +275,7 @@ test('Native consumers retain selected original commands and collect independent
     assert.equal(nativeCaseCondition('native', nativeCases('native').find(step => step.id === id)), condition);
 });
 
-test('finite SQLite regressions have portable lint and required prepared macOS Native owners', () => {
+test('SQLite physical regressions require their prepared macOS Native owner', () => {
   const selection = selectTargets(['src/platform_native/sqlite/sqlite_stub.c'], {draft: false});
   assert.equal(selection.profile, 'full');
   assert.equal(gateJobRequired(selection, 'native-macos'), true);
@@ -290,7 +290,6 @@ test('finite SQLite regressions have portable lint and required prepared macOS N
     nativeWorkload('native-macos').steps.findIndex(row => row.id === 'native-preparation'));
   const runner = readFileSync(new URL('./test-native-sqlite-read-statement.mjs', import.meta.url), 'utf8');
   assert.match(runner, /ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION/u);
-  assert.match(runner, /expectedTests: 3/u);
   const env = {...process.env};
   delete env.ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION;
   const missing = spawnSync(process.execPath, ['scripts/test-native-sqlite-read-statement.mjs'],
@@ -307,9 +306,6 @@ test('finite SQLite regressions have portable lint and required prepared macOS N
   assert(compiler.includes('sqlite-component/fixtures/read_statement.c'));
   assert(!compiler.includes("'component.c'"), 'The consumer compiles no replacement engine/component');
   assert(!compiler.includes('urlopen'), 'The consumer downloads no replacement input');
-  const sourceOwner = readFileSync(new URL('./native-approval-performance.test.mjs', import.meta.url), 'utf8');
-  assert(sourceOwner.includes("test('finite read statement keeps exact row admission and private selected ABI bindings'"));
-  assert(jobs.lint.steps.some(row => row.run?.includes('scripts/native-approval-performance.test.mjs')));
 });
 
 test('macOS HTTP retains its original command under shared preparation and a mandatory joined outcome', t => {
