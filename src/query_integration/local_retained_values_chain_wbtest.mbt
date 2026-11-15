@@ -113,14 +113,38 @@ test "retained source-free Values chain admits the exact bounded producer" {
     None,
   ).unwrap()
   assert_eq(@local_driver.local_dispatch_rejection(installed, 0), None)
-  assert_true(
-    @local_driver.estimate_local_dispatch_offer(
-      installed,
-      0,
-      [{ work_slots: [0, 1, 2, 3, 4], milliseconds: Some(1L), }],
-      100,
-    )
-    is Ok(_),
+  let full = @local_connector.local_module_capacity(implementation, 0).unwrap()
+  let startup = @local_connector.local_module_metered_output_start_capacity(
+    implementation, 0, generated,
+  ).unwrap()
+  assert_true(startup.retained_bytes < full.retained_bytes)
+  let offer = @local_driver.estimate_local_dispatch_offer(
+    installed,
+    0,
+    [{ work_slots: [0, 1, 2, 3, 4], milliseconds: Some(1L), }],
+    100,
+  ).unwrap()
+  let planned = @local_driver.local_dispatch_preparation_task_capacity(
+    @local_driver.local_dispatch_original_preparation(installed).unwrap(),
+    0,
+  ).unwrap()
+  @strategy.configure_strategy_search(run, {
+    max_offers: 1,
+    max_strategies: 1,
+    max_work: 1000,
+    max_revisions: 1,
+  }).unwrap()
+  @strategy.revise_strategy(run, [offer], registry, None).unwrap() |> ignore
+  let assessed = @strategy.strategy_report_at(run, 0).unwrap()
+  // The managed constructor keeps its original smaller startup proof. The
+  // legacy FixedComputeRequest offer must cover its real full constructor,
+  // including when the unchanged Ledger correctly refuses that envelope.
+  assert_true(planned.retained_bytes < assessed.retained_bytes)
+  assert_true(assessed.retained_bytes >= full.retained_bytes)
+  assert_true(assessed.execution_bytes >= full.execution_bytes)
+  assert_eq(
+    @resources.ledger_usage(@strategy.captured_dag_ledger(run)).attempts,
+    0,
   )
   @strategy.stop_captured_dag(run)
 }
