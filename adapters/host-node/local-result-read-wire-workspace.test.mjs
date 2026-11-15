@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import resources from './ordinary-node-resource-runtime.cjs';
 import {createLocalResultReadWorkspace} from './local-result-read-workspace.mjs';
+import {installedHostShutdown} from './embedded-local-lifecycle.mjs';
 
 // Actual JS workspace/open/cleanup adapter with explicit Core ports. This
 // does not issue a Common original or certify physical reader/FD completion.
@@ -110,4 +111,27 @@ test('READ aggregate work envelope stays wide while row and frame sizes remain b
   assert.deepEqual(await f.workspace.row(f.request, '[]'), {units: 64, window: 64});
   f.workspace.close(f.request);
   assert.deepEqual(await f.workspace.closeAll(), {pending: false});
+});
+
+// Both owners are real imported consumers; Core row/Resource responses remain
+// explicit ports, so this does not establish a physical Result reader ACK.
+test('Host shutdown keeps a yielded READ on its same parent until original row cleanup finishes', async () => {
+  const f = fixture(); let finalizers = 0;
+  f.workspace.row(f.request, 8192);
+  const row = f.workspace.row(f.request, '[]');
+  f.workspace.close(f.request);
+  const shutdown = installedHostShutdown({dispatchOwner: {drain() {}}, retireTerminalEffects() {},
+    journal: {close() {}}, store: {close() {}},
+    initialControl: {close() {return f.workspace.closeAll();}},
+    retireModelRuntime() {finalizers++;}});
+  await assert.rejects(shutdown.close(), {message: 'InstalledHostInitialControlCleanupPending'});
+  assert.equal(f.calls.filter(([name]) => name === 'abort').length, 0);
+  assert.equal(finalizers, 0);
+  await assert.rejects(row, {code: 'ForeignResultReadWorkspace'});
+  await shutdown.close();
+  assert.equal(f.calls.filter(([name]) => name === 'abort').length, 1);
+  assert.equal(finalizers, 1);
+  await shutdown.close();
+  assert.equal(f.calls.filter(([name]) => name === 'abort').length, 1);
+  assert.equal(finalizers, 1);
 });

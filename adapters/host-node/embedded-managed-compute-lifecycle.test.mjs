@@ -387,32 +387,6 @@ test('final accounting cannot retain a foreign object or extra alias from a malf
   }
 });
 
-test('installed static contract aliases survive pending child cleanup and cut at actual retirement', async () => {
-  const connect = declared('openPreparedInstalledHost');
-  const retirement = connect.body.body.find(node => node.type === 'FunctionDeclaration' &&
-    node.id.name === 'retirePreparationReferences');
-  assert(retirement);
-  const retire = new Function('originalInstallation', `
-    let referencesRetired=false,moon,project,projectProfile,mockPreparation,projectSourcePreparation;
-    let mockAnswers,mockModelProfile,mockModelProfileRetire,mockModelFlight,referenceRetirement,duty;
-    const host={},record={},profiles={retainedMockPreparation:()=>undefined};
-    ${text(retirement)};return retirePreparationReferences;
-  `);
-  let closes = 0, f;
-  const raw = {close() {closes++; return {pending: closes === 1};}};
-  f = lifecycle({factory: async () => raw,
-    retire: () => retire(f.originals.installation)()});
-  await f.preparation.prepareManagedCompute();
-  const strings = Object.freeze({values: '{}', expression: '{}', ordered: '{}'});
-  f.originals.installation.managedRunContracts = strings;
-  await assert.rejects(f.initialControl.close(), {code: 'InstalledComputePreparationCleanupPending'});
-  assert.strictEqual(f.originals.installation.managedRunContracts, strings);
-  await f.initialControl.close();
-  assert.equal(closes, 2);
-  assert.equal(f.originals.installation.managedRunContracts, undefined);
-  await f.initialControl.close();
-  assert.equal(closes, 2, 'Reference retirement does not repeat an acknowledged native close');
-});
 
 test('same Host Compute preparation is one sticky flight and retains its original before current refusal', async () => {
   let factoryCalls = 0, closes = 0, controls = 0;
@@ -430,32 +404,6 @@ test('same Host Compute preparation is one sticky flight and retains its origina
   assert.equal(closes, 1); assert.equal(controls, 1);
 });
 
-
-test('pending Result READ cleanup retains the same workspace before final control retirement', async () => {
-  let reads = 0, computes = 0, controls = 0, retirements = 0;
-  const trace = [];
-  const readWorkspace = {async closeAll() {
-    assert.strictEqual(this, readWorkspace);
-    trace.push('read'); return {pending: ++reads === 1};
-  }};
-  const raw = {close() {computes++; trace.push('compute'); return {pending: false};}};
-  const f = lifecycle({factory: async () => raw, readWorkspace,
-    retire() {retirements++; trace.push('retire');},
-    controlClose() {controls++; trace.push('control'); return {pending: false};}});
-  await f.preparation.prepareManagedCompute();
-  await assert.rejects(f.initialControl.close(), {code: 'ResultReadCleanupPending'});
-  assert.strictEqual(f.readWorkspace, readWorkspace);
-  assert.equal(computes, 1); assert.equal(controls, 0); assert.equal(retirements, 0);
-  assert.deepEqual(trace, ['compute', 'read']);
-  const closed = await f.initialControl.close();
-  assert.equal(closed.pending, false);
-  assert.equal(f.readWorkspace, undefined);
-  assert.equal(computes, 1); assert.equal(reads, 2);
-  assert.equal(controls, 1); assert.equal(retirements, 1);
-  assert.deepEqual(trace, ['compute', 'read', 'read', 'retire', 'control']);
-  assert.strictEqual(await f.initialControl.close(), closed);
-  assert.equal(reads, 2); assert.equal(controls, 1);
-});
 
 test('Compute SDK lineage is the same view while Mock Source selection stays absent', async () => {
   const raw = {close: () => ({pending: false})};

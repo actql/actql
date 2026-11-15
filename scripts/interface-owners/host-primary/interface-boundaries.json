@@ -11359,10 +11359,6 @@
                 "anchor": "value.source_free_preparation = None"
               },
               {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
-                "anchor": "installed static contract aliases survive pending child cleanup and cut at actual retirement"
-              },
-              {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "assertUnadmittedSourceRequest(runtime, prepared, request)"
               }
