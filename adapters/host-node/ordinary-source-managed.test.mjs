@@ -14,6 +14,7 @@ async function fixture(source = true, project = false) {
   const dataPath = join(root, 'data.json');
   await writeFile(dataPath, '{"original":1}');
   const originals = {}, prepared = {}, request = {}, body = {}, declarations = [{}, {}], selected = {};
+  const requests = new Map([[prepared, request]]);
   const bundle = Object.freeze({dataPath, sources: declarations.map(declaration => ({declaration}))});
   let current = true;
   const quotes = {pure: 0, effect: 0};
@@ -21,7 +22,7 @@ async function fixture(source = true, project = false) {
     assert.strictEqual(value, originals);
     if (!current) throw new Error('original-current');
   }, async prepare() {}, read: () => bundle, request(value, p) {
-    assert.strictEqual(p, prepared); return request;
+    assert.strictEqual(value, originals); assert(requests.has(p)); return requests.get(p);
   }, intent: () => 'sha256:' + 'a'.repeat(64), requirements: () => {quotes.pure++; return {planningWork: 100,
     attempts: 10, holdings: 10, transferBytes: 10000n, retainedBytes: 10000n, executionBytes: 10000n};},
     effectRequirements: () => {quotes.effect++; return {planningWork: 100,
@@ -37,7 +38,9 @@ async function fixture(source = true, project = false) {
   const receipt = view.beforeSourceSnapshot('aql', 'text', {});
   view.bindSourceSnapshot(receipt, body);
   view.bindSourceRequest(receipt, body, request);
-  return {view, prepared, selected, declarations, dataPath, receipt, quotes, setCurrent(value) {current = value;}};
+  return {view, prepared, selected, declarations, dataPath, receipt, quotes,
+    registerPrepared(actual, request) {assert(!requests.has(actual)); requests.set(actual, request);},
+    setCurrent(value) {current = value;}};
 }
 
 test('ordinary Project Content exposes only its original Request constructor, not another Root', async () => {
@@ -141,6 +144,30 @@ test('ordinary Compute refuses a foreign request and retains a real in-flight pr
   assert.throws(() => f.view.prepareRun({}));
   assert.equal((await f.view.close()).pending, true);
   f.view.finishSourceProducer(f.receipt, 'failed');
+  assert.equal((await f.view.close()).pending, false);
+});
+
+test('ordinary manager keeps distinct original Runs for two Requests and reuses each without another quote', async () => {
+  const f = await fixture(false), second = {}, request = {}, body = {};
+  f.registerPrepared(second, request);
+  const receipt = f.view.beforeSourceSnapshot('aql', 'second original', {});
+  f.view.bindSourceSnapshot(receipt, body); f.view.bindSourceRequest(receipt, body, request);
+  const firstRun = f.view.prepareRun(f.prepared), secondRun = f.view.prepareRun(second);
+  assert.notStrictEqual(firstRun, secondRun);
+  assert.strictEqual(f.view.prepareRun(f.prepared), firstRun);
+  assert.strictEqual(f.view.prepareRun(second), secondRun);
+  assert.equal(f.quotes.pure, 2);
+  assert.throws(() => f.view.prepareRun({}), assert.AssertionError);
+  const ports = [[firstRun, f.prepared], [secondRun, second]].map(([run, prepared]) =>
+    runtime.prepareOriginalManagedRunPorts(run, prepared));
+  for (const original of ports) assert.equal(original.status(0), 0);
+  assert.equal((await f.view.close()).pending, true);
+  f.view.finishSourceProducer(f.receipt, 'returned');
+  f.view.finishSourceProducer(receipt, 'returned');
+  for (const original of ports) {
+    assert.equal(original.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0, 0, 0), 0);
+    assert.equal(original.status(2), 0);
+  }
   assert.equal((await f.view.close()).pending, false);
 });
 

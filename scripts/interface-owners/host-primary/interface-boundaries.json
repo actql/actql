@@ -11313,10 +11313,6 @@
                 "anchor": "} catch (error) {run.failure = error; throw error;}"
               },
               {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
-                "anchor": "failed begin retains the admission and original cleanup through Unknown without reissuing"
-              },
-              {
                 "path": "src/client_local_host/installed_managed_run.mbt",
                 "anchor": "return Err(ForeignOriginal)"
               },
@@ -11426,15 +11422,7 @@
             "verification": [
               {
                 "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
-                "anchor": "actual preparation binds one original Run and closes it before its same Root"
-              },
-              {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
                 "anchor": "actual Host acquires its same Journal before Compute and before publishing the SDK receiver"
-              },
-              {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
-                "anchor": "actual requirements and begin share the retained typed original before Resource admission"
               },
               {
                 "path": "src/client_local_host/managed_source_free_preparation_wbtest.mbt",
@@ -11459,10 +11447,6 @@
               {
                 "path": "adapters/host-node/client-pre-admission-refusal.test.mjs",
                 "anchor": "capacity refusal retains its original submission through reopen"
-              },
-              {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
-                "anchor": "pure preparation refusal belongs only to its original pre-Resource Run holder"
               },
               {
                 "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
