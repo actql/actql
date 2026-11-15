@@ -8,6 +8,7 @@ import {isAbsolute, relative, resolve} from 'node:path';
 import {parse} from 'acorn';
 import {localModuleGraphInputs} from './adapter-module-graph.mjs';
 import {isConnectorTestFixture} from './check-connector-dispatch-boundary.mjs';
+import {hasExecutableTestCase} from './executable-test-cases.mjs';
 
 export const interfaceRoles = Object.freeze([
   'common-semantics', 'connector-semantics', 'physical-io',
@@ -392,17 +393,25 @@ export function packageEntrances(manifest, directory = '.') {
 }
 
 function reference(root, ref, readReference) {
-  assert(ref && Object.keys(ref).sort().join() === 'anchor,path', 'Invalid interface reference');
-  assert(typeof ref.path === 'string' && inside(ref.path) && typeof ref.anchor === 'string' && ref.anchor.length,
+  const keys = ref && Object.keys(ref).sort().join();
+  assert(keys === 'anchor,path' || keys === 'case_id,path', 'Invalid interface reference');
+  const executable = keys === 'case_id,path';
+  assert(typeof ref.path === 'string' && inside(ref.path) &&
+    (executable ? /_(?:wbtest|bbtest|test)\.mbt$/u.test(ref.path) &&
+      typeof ref.case_id === 'string' && /^[a-z][a-z0-9_]*$/u.test(ref.case_id)
+      : typeof ref.anchor === 'string' && ref.anchor.length),
     'Invalid interface reference');
   assert(!ref.path.split('/').includes('..'), 'Invalid interface reference traversal');
+  const present = source => executable
+    ? hasExecutableTestCase(source, ref.case_id) : source.includes(ref.anchor);
+  const label = executable ? `case_id=${ref.case_id}` : ref.anchor;
   if (readReference) {
-    assert(readReference(ref.path).includes(ref.anchor), `Missing interface reference: ${ref.path}#${ref.anchor}`);
+    assert(present(readReference(ref.path)), `Missing interface reference: ${ref.path}#${label}`);
     return;
   }
   const path = realpathSync(resolve(root, ref.path));
   assert(inside(relative(realpathSync(root), path)), 'Interface reference escapes owner');
-  assert(readFileSync(path, 'utf8').includes(ref.anchor), `Missing interface reference: ${ref.path}#${ref.anchor}`);
+  assert(present(readFileSync(path, 'utf8')), `Missing interface reference: ${ref.path}#${label}`);
 }
 
 export function assertInterfaceCoverage({root, modules, declarations, generated = [], readReference}) {

@@ -2,20 +2,13 @@ import path from 'node:path';
 import {sourceAccess} from './local-resource-accounting-sources.mjs';
 import {localResourceApiIssues} from './local-resource-api-guard.mjs';
 import {registeredResourceEnvironmentCase, registeredDirectTraversalHostCase} from './local-resource-environment-fixtures.mjs';
-
-// Stable evidence IDs belong to an executable test declaration, immediately
-// inside its body. Display names may change without changing that test's role.
-// This narrow canonical declaration shape is not a general MoonBit parser.
-function executableBoundaryCaseIds(source) {
-  return [...source.matchAll(/^test "(?:[^"\\\n]|\\.)+" \{\r?\n  \/\/ resource-case-id: ([a-z][a-z0-9_]*)\r?\n/gmu)]
-    .map(match => match[1]);
-}
+import {hasExecutableTestCase} from './executable-test-cases.mjs';
 
 export function executableBoundaryFixturePresent(item, source) {
   return item.case_id === undefined
     ? source.includes(`test "${item.fixture}"`)
     : item.case_id === item.role &&
-      executableBoundaryCaseIds(source).filter(id => id === item.case_id).length === 1;
+      hasExecutableTestCase(source, item.case_id);
 }
 
 // No filesystem, environment, output, or process state is consulted here.

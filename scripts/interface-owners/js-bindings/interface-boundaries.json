@@ -19418,7 +19418,7 @@
               },
               {
                 "path": "src/client_infer_host/original_input_body_wbtest.mbt",
-                "anchor": "test \"original restored input body refuses capacity and cancellation before scanning or Model\""
+                "case_id": "original_restored_input_capacity_cancel"
               }
             ],
             "resources": [
@@ -70352,7 +70352,7 @@
               },
               {
                 "path": "src/client_infer_host/original_input_body_wbtest.mbt",
-                "anchor": "test \"original restored input body refuses capacity and cancellation before scanning or Model\""
+                "case_id": "original_restored_input_capacity_cancel"
               },
               {
                 "path": "docs/design/infer-physical-observation.md",

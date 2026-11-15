@@ -173,6 +173,7 @@ test "original first input scan capacity refusal preserves its read and never ca
 
 ///|
 test "original restored input body refuses import capacity and cancellation before scanning or Model" {
+  // resource-case-id: original_restored_input_capacity_cancel
   for stop in [false, true] {
     let calls = Ref(0)
     let selected = Ref((0L, 0L))
