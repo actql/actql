@@ -104,6 +104,8 @@ pub fn async_strategy_captured_run_fixture_phase(@run_publication.CapturedRunIss
 
 pub fn async_strategy_check_effect_member_receipt_row_partition_evidence(@run_publication.EffectPreviewIdentity, Int, Array[@logical_request_scope.LogicalRequestScope], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Array[@effect_application.EffectLedgerBasis], Array[@effect_application.EffectLedgerEntry?], Array[Bool], Array[String?], String, Int, Int, Int, Int) -> Bool raise AsyncHostFailure
 
+pub fn async_strategy_check_effect_member_receipt_row_partition_evidence_funded(@run_publication.EffectPreviewIdentity, Int, Array[@logical_request_scope.LogicalRequestScope], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Array[@effect_application.EffectLedgerBasis], Array[@effect_application.EffectLedgerEntry?], Array[Bool], Array[String?], String, Int, Int, Int, Int, Int, Int, Int) -> Bool raise AsyncHostFailure
+
 pub fn async_strategy_committed_publication_finalization_action(@run_publication.PublicationContract?) -> Int
 
 pub fn async_strategy_delivery_failure_terminal_action(Bool) -> Int
@@ -537,6 +539,8 @@ pub fn async_strategy_issue_effect_free_captured_run(@run_publication.Publicatio
 pub fn async_strategy_issue_effect_free_run_receipt(@run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[String], Array[String], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], Array[String], Int, Int, Int, Array[@run_publication.BoundContentGeneration]) -> @run_publication.PublicationContract raise AsyncHostFailure
 
 pub fn async_strategy_issue_effect_member_receipt_from_row_partition(@run_publication.EffectPreviewIdentity, Int, Array[@logical_request_scope.LogicalRequestScope], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Array[@effect_application.EffectLedgerBasis], Array[@effect_application.EffectLedgerEntry?], Array[Bool], Array[String?], Int, Int, Int, Int) -> @run_publication.PublicationContract raise AsyncHostFailure
+
+pub fn async_strategy_issue_effect_member_receipt_from_row_partition_funded(@run_publication.EffectPreviewIdentity, Int, Array[@logical_request_scope.LogicalRequestScope], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Array[@effect_application.EffectLedgerBasis], Array[@effect_application.EffectLedgerEntry?], Array[Bool], Array[String?], Int, Int, Int, Int, Int, Int, Int) -> @run_publication.PublicationContract raise AsyncHostFailure
 
 pub fn async_strategy_issue_effect_row_outcome_receipt(@run_publication.EffectPreviewIdentity, Int, Int, String, String, Bytes, Int, String, Int, Int, Int, Int) -> @run_publication.PublicationContract raise AsyncHostFailure
 
@@ -1660,6 +1664,8 @@ pub fn strategy_captured_run_fixture_phase(@run_publication.CapturedRunIssuanceP
 
 pub fn strategy_check_effect_member_receipt_row_partition_evidence(@run_publication.EffectPreviewIdentity, Int, Array[@logical_request_scope.LogicalRequestScope], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Array[@effect_application.EffectLedgerBasis], Array[@effect_application.EffectLedgerEntry?], Array[Bool], Array[String?], String, Int, Int, Int, Int) -> Bool raise NodeHostFailure
 
+pub fn strategy_check_effect_member_receipt_row_partition_evidence_funded(@run_publication.EffectPreviewIdentity, Int, Array[@logical_request_scope.LogicalRequestScope], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Array[@effect_application.EffectLedgerBasis], Array[@effect_application.EffectLedgerEntry?], Array[Bool], Array[String?], String, Int, Int, Int, Int, Int, Int, Int) -> Bool raise NodeHostFailure
+
 pub fn strategy_committed_publication_finalization_action(@run_publication.PublicationContract?) -> Int
 
 pub fn strategy_delivery_failure_terminal_action(Bool) -> Int
@@ -2095,6 +2101,8 @@ pub fn strategy_issue_effect_free_captured_run(@run_publication.PublicationContr
 pub fn strategy_issue_effect_free_run_receipt(@run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[String], Array[String], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], Array[String], Int, Int, Int, Array[@run_publication.BoundContentGeneration]) -> @run_publication.PublicationContract raise NodeHostFailure
 
 pub fn strategy_issue_effect_member_receipt_from_row_partition(@run_publication.EffectPreviewIdentity, Int, Array[@logical_request_scope.LogicalRequestScope], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Array[@effect_application.EffectLedgerBasis], Array[@effect_application.EffectLedgerEntry?], Array[Bool], Array[String?], Int, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
+pub fn strategy_issue_effect_member_receipt_from_row_partition_funded(@run_publication.EffectPreviewIdentity, Int, Array[@logical_request_scope.LogicalRequestScope], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Array[@effect_application.EffectLedgerBasis], Array[@effect_application.EffectLedgerEntry?], Array[Bool], Array[String?], Int, Int, Int, Int, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
 pub fn strategy_issue_effect_row_outcome_receipt(@run_publication.EffectPreviewIdentity, Int, Int, String, String, Bytes, Int, String, Int, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
