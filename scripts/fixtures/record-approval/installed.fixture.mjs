@@ -27,7 +27,7 @@ export async function runInstalledRecordApprovalFixture(t, fixture) {
   t.diagnostic(`Retained ${connectorId} approval original root: ${root}`);
   const phases = [], cleanup = [], parentState = {};
   let tls, declared, services, parentPending = false, parentClosed = false, failed = false, primary;
-  let closeParent = () => {};
+  let closeParent = async () => {};
   const local = new URL('./', import.meta.resolve('@actql/local-node'));
   const load = path => import(new URL(path, local));
   try {
@@ -37,7 +37,7 @@ export async function runInstalledRecordApprovalFixture(t, fixture) {
     const {canonicalJson} = await load('adapters/host-node/local-account-config.mjs');
     const {openHostInitializationPreparation, closeHostInitializationPreparation} =
       await load('adapters/local-node/request-preparation-adapter.mjs');
-    const {createInstalledHostServices, retireInstalledSourceInitialization} =
+    const {createInstalledHostServices, retireInstalledSourceInitialization, closeInstalledAccountConstruction} =
       await load('adapters/host-node/installed-host-services.mjs');
     const credential = generateKeyPairSync('ed25519'), reviewer = generateKeyPairSync('ed25519');
     const host = generateKeyPairSync('ed25519'), principal = userInfo().username;
@@ -71,10 +71,12 @@ export async function runInstalledRecordApprovalFixture(t, fixture) {
     const assertCurrent = () => assert.equal(parentClosed, false);
     const initialPreparation = openHostInitializationPreparation(parentState, common,
       Object.freeze({root, purpose: 'original installed record approval schema bootstrap'}), assertCurrent, () => parentPending);
-    services = createInstalledHostServices({root, principalId: principal, moon: common, initialPreparation, assertCurrent});
+    services = createInstalledHostServices({root, principalId: principal, moon: common, initialPreparation, assertCurrent, accountCurrent: assertCurrent});
     parentPending = true;
-    closeParent = () => {
+    closeParent = async () => {
       if (parentClosed) return;
+      assert.equal(await closeInstalledAccountConstruction(services), true,
+        'Original Account reads must close before Source retirement');
       assert.equal(retireInstalledSourceInitialization(services), true);
       parentPending = false;
       closeHostInitializationPreparation(parentState);
@@ -92,7 +94,7 @@ export async function runInstalledRecordApprovalFixture(t, fixture) {
     assert.equal(tls.seen().length, 0);
     assert.equal(resolutions, 0);
     await declared.close(); declared = undefined;
-    closeParent();
+    await closeParent();
     await writeFile(sourceProfilePath, JSON.stringify({...profile, queryAliases: [{name: alias,
       sourceRef: view.source_ref, sourceViewContractCid: view.source_view_contract_cid,
       schemaContractCid: view.carrier_schema_contract_cid}]}));
@@ -145,7 +147,7 @@ export async function runInstalledRecordApprovalFixture(t, fixture) {
   } catch (error) {failed = true; primary = error;}
   finally {
     if (declared) try {await declared.close();} catch (error) {cleanup.push(error);}
-    if (services && !parentClosed) try {closeParent();} catch (error) {cleanup.push(error);}
+    if (services && !parentClosed) try {await closeParent();} catch (error) {cleanup.push(error);}
     if (tls) try {await tls.close();} catch (error) {cleanup.push(error);}
     const snapshot = provider.snapshot();
     const summary = {qualification: 'Owned TLS functional consumer of the selected installed cohort; no real provider authentication, performance or physical cleanup ACK claim',

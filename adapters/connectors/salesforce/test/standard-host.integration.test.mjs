@@ -26,7 +26,7 @@ import {openInstalledRemoteHttpHost, publishInstalledEffect} from
   '../../../host-node/embedded-local.mjs';
 import {openHostInitializationPreparation, closeHostInitializationPreparation}
   from '../../../local-node/request-preparation-adapter.mjs';
-import {createInstalledHostServices, retireInstalledSourceInitialization}
+import {createInstalledHostServices, retireInstalledSourceInitialization, closeInstalledAccountConstruction}
   from '../../../host-node/installed-host-services.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {splitSourceAliasProfile} from '../../../host-node/source-alias-publication.mjs';
@@ -1361,7 +1361,10 @@ async function installedAdapter(setup, source, runtime = commonMoon) {
       assert.equal(initializationFailure.cleanupHandle.status().pending, false);
     }
     await adapter?.close();
-    if (services !== undefined) assert.equal(retireInstalledSourceInitialization(services), true);
+    if (services !== undefined) {
+      assert.equal(await closeInstalledAccountConstruction(services), true);
+      assert.equal(retireInstalledSourceInitialization(services), true);
+    }
     childrenPending = false;
     closeHostInitializationPreparation(state);
     active = false; closed = true;
@@ -1369,7 +1372,7 @@ async function installedAdapter(setup, source, runtime = commonMoon) {
   const input = Object.freeze({root, purpose: 'original Salesforce adapter component'});
   const parent = openHostInitializationPreparation(state, runtime, input, current, () => childrenPending);
   services = createInstalledHostServices({root, principalId: owner, moon: runtime,
-    initialPreparation: parent, assertCurrent: current});
+    initialPreparation: parent, assertCurrent: current, accountCurrent: current});
   childrenPending = true;
   try {
     adapter = await loadInstalledSource(setup.profilePath, {

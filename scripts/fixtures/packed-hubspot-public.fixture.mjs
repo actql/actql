@@ -17,7 +17,7 @@ const {loadInstalledSource} = await import(new URL('adapters/host-node/installed
 const {canonicalJson} = await import(new URL('adapters/host-node/local-account-config.mjs', local));
 const {openHostInitializationPreparation, closeHostInitializationPreparation} =
   await import(new URL('adapters/local-node/request-preparation-adapter.mjs', local));
-const {createInstalledHostServices, retireInstalledSourceInitialization} =
+const {createInstalledHostServices, retireInstalledSourceInitialization, closeInstalledAccountConstruction} =
   await import(new URL('adapters/host-node/installed-host-services.mjs', local));
 const runtimeUrl = new URL('_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', local);
 const baseEnvironmentWire = await readFile(new URL('spec/local-check-environment.json', local), 'utf8');
@@ -56,9 +56,11 @@ export async function fixture(t, entrance) {
   // Retain its state before opening; never pass a checkout-owned private brand.
   const bootstrapState = {};
   let bootstrapServices, bootstrapPending = false, bootstrapClosed = false;
-  const closeBootstrap = () => {
+  const closeBootstrap = async () => {
     if (bootstrapClosed) return;
     if (bootstrapServices !== undefined) {
+      assert.equal(await closeInstalledAccountConstruction(bootstrapServices), true,
+        'Bootstrap Account reads must close before Source retirement');
       assert.equal(retireInstalledSourceInitialization(bootstrapServices), true,
         'Bootstrap Source children must retire before their original parent');
     }
@@ -128,7 +130,7 @@ export async function fixture(t, entrance) {
     Object.freeze({root, purpose: 'packed Source schema bootstrap'}),
     assertBootstrapCurrent, () => bootstrapPending);
   bootstrapServices = createInstalledHostServices({root, principalId: 'operator', moon: common,
-    initialPreparation, assertCurrent: assertBootstrapCurrent});
+    initialPreparation, assertCurrent: assertBootstrapCurrent, accountCurrent: assertBootstrapCurrent});
   bootstrapPending = true;
   declared = await acquire(() => loadInstalledSource(sourceProfilePath, {root, principalId: 'operator', moon: common,
     runtimeUrl, baseEnvironmentWire, resolveSecret: resolveSourceSecret,
@@ -137,7 +139,7 @@ export async function fixture(t, entrance) {
   const view = environment.schema_snapshots.find(value => value.source_ref === declared.sourceReadAccesses[0].sourceRef);
   assert.ok(view);
   await declared.close(); declared = undefined;
-  closeBootstrap();
+  await closeBootstrap();
   await writeFile(sourceProfilePath, JSON.stringify({...profile, queryAliases: [{
     name: 'hubspot.companies', sourceRef: view.source_ref,
     sourceViewContractCid: view.source_view_contract_cid, schemaContractCid: view.carrier_schema_contract_cid}]}));
