@@ -2743,6 +2743,35 @@ test('16MiB fixture captures once per SQL, refuses a smaller reader, closes then
   assert(files.has('/fresh/collection-large-row16-one-row.sql'), 'Failed original input is retained');
 });
 
+test('16MiB collection capture requires both original successful stopped terminals', async t => {
+  const {root} = await scratch(t), load = await runnerFunctions();
+  const run = load('runCollectionPhase', {readFile, join, assert, process, nodeBenchmarkFailure});
+  const cases = [{id:'one-row',ref:{run:'one'},resultName:'answer',rows:1,wireBytes:16834521,maxRowWireBytes:16834521,complete:true},
+    {id:'many-rows',ref:{run:'many'},resultName:'answer',rows:272,wireBytes:17413654,maxRowWireBytes:64022,complete:true}];
+  const terminals = cases.map(({id}) => ({id, status:'succeeded', resultAvailable:true, physicalStop:'confirmed'}));
+  await writeFile(join(root, 'large-row-original.json'), JSON.stringify({cases}));
+  for (const mode of ['exact','missing','one-only','unknown-stop','failed','no-result','foreign-case','duplicate']) {
+    const actual = {phase:'large-row-capture',pid:123,sourceFreeMaxWork:100000000,
+      requestMemory:{retainedBytes:1073741824,executionBytes:1073741824},submits:2,
+      firstClose:'returned',firstCloseCalls:1,aliveScopedFD:{before:0,after:0},cleanup:[],complete:true,cases,
+      explicitRefusal:'ResultRowWireLimit',sameRunRecovery:true,originalProgramsRemovedAfterFirstClose:2,
+      largeRowTerminals:structuredClone(terminals)};
+    if (mode === 'missing') delete actual.largeRowTerminals;
+    if (mode === 'one-only') actual.largeRowTerminals.pop();
+    if (mode === 'unknown-stop') actual.largeRowTerminals[1].physicalStop = 'unknown';
+    if (mode === 'failed') actual.largeRowTerminals[0].status = 'failed';
+    if (mode === 'no-result') actual.largeRowTerminals[0].resultAvailable = false;
+    if (mode === 'foreign-case') actual.largeRowTerminals[0].id = 'foreign';
+    if (mode === 'duplicate') actual.largeRowTerminals[1] = actual.largeRowTerminals[0];
+    const record = {phase:'large-row-capture'};
+    const checking = run({collection:root,record,async command() {
+      return {pid:123,code:0,signal:null,wallNs:10,stdout:JSON.stringify(actual)};
+    }});
+    if (mode === 'exact') {await checking;assert.equal(record.status,'passed');}
+    else {await assert.rejects(checking);assert.equal(record.status,'failed');}
+  }
+});
+
 test('16MiB collection routing uses SAME staged artifact and separate Saved PID within the existing timeout', async t => {
   const {root, consumer} = await scratch(t), load = await runnerFunctions(), phases = [], cleanup = [];
   const runCollectionPhase = load('runCollectionPhase', {readFile,join,assert,process,nodeBenchmarkFailure});
