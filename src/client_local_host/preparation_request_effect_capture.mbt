@@ -24,28 +24,45 @@ fn request_effect_capture_staged_wire_capacity(
     request_effect_capture_binary_bytes(bytes, true) is Some(binary) else {
     return None
   }
-  @execution.preparation_execution_capacity({
-    retained: {
-      // Dedicated Buffer/backing controls; the native byte domains below
-      // are additional to all three retained decoded String allowances.
+  guard @execution.preparation_representation_cost({
+      // Dedicated Buffer/backing controls remain on the same Read until its
+      // original cleanup. Variable backing lifetime is priced separately.
       record_headers: 8L,
       reference_slots: 8L,
       scalar_words: 8L,
       owned_utf16_units: 0L,
-      owned_wire_bytes: binary,
-    },
-    workspace: {
+      owned_wire_bytes: 0L,
+    })
+    is Some(control) &&
+    @execution.preparation_representation_cost({
       record_headers: text.record_headers + hash.record_headers,
       reference_slots: text.reference_slots + hash.reference_slots,
       scalar_words: text.scalar_words + hash.scalar_words,
       owned_utf16_units: text.owned_utf16_units + hash.owned_utf16_units,
       owned_wire_bytes: hash.owned_wire_bytes,
-    },
-    retained_nodes: 0L,
-    workspace_nodes: 0L,
-    retained_bytes: 0L,
-    workspace_bytes: 0L,
-  })
+    })
+    is Some(writer) &&
+    @execution.checked_preparation_add_product(writer, bytes.to_int64(), 1L)
+    is Some(decoded) &&
+    @execution.checked_preparation_add_product(control, binary, 1L)
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(
+      control,
+      Int64::max(binary, decoded),
+      1L,
+    )
+    is Some(execution) else {
+    return None
+  }
+  // readPrivateEvidenceObject returns only authenticated plaintext. Its
+  // encrypted receive/ciphertext/decipher/final-concat frame has returned
+  // BEFORE releaseBytes and the decoded contract writers are entered.
+  // The synchronous consume callback may still borrow its ONE plaintext
+  // Buffer, so keep B beside the full text/hash constructor. Failure during
+  // physical IO keeps its whole four-backing peak and never enters writers.
+  // R preserves that IO peak; E is MAX(IO, one-buffer+writer), not a credit
+  // for a live buffer or a cut before the original Store/Read cleanup.
+  @execution.execution_capacity(retained, execution)
 }
 
 ///|
