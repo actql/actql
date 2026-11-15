@@ -468,7 +468,13 @@ pub fn generated_bounded_sequence_capacity(
   let borrowed_number_group = match operation {
     @lower.RowStep(kernel) =>
       bounded_number_group_borrows_input(kernel) &&
-      bounded_group_step_supported(generated, kernel)
+      (
+      // Direct COUNT uses the separate bounded global-count constructor.
+      // Its original stepped measure borrows cells with RowWorkspace; the
+      // generic Groups capability predicate does not describe that kernel.
+        @lower.kernel_count_group(kernel) is Some(_) ||
+        bounded_group_step_supported(generated, kernel)
+      )
     _ => false
   }
   if operation is @lower.RowStep(kernel) &&

@@ -244,6 +244,34 @@ test "nullable Text choice LENGTH COUNT and arithmetic retain their original bor
     10000,
   ).unwrap()
   let sequence = chain_lifetime_generated(receiver)
+  let count = @execution.select_generated_sequence_step(sequence, 2).unwrap()
+  let original_limits = chain_lifetime_limits()
+  let quote = fn(limits, measurement) {
+    managed_provider_capacity(
+      local_bounded_relation_provider(limits, measurement, count).unwrap(),
+      count,
+    ).unwrap()
+  }
+  let before = quote(original_limits, chain_lifetime_measurement())
+  // This exact CountGroups constructor charges every cell with its stepped
+  // measuring cursor. Unused input/measurement codec maxima do not allocate
+  // another forest or wire. Actual limits and independent workspace remain.
+  let after = quote(
+    {
+      ..original_limits,
+      rows: {
+        ..original_limits.rows,
+        input_values: {
+          ..original_limits.rows.input_values,
+          max_nodes: 1000000,
+          max_text_bytes: 20000000,
+        },
+      },
+    },
+    { ..chain_lifetime_measurement(), max_nodes: 1000000, max_bytes: 20000000, },
+  )
+  assert_eq(before.retained_bytes, after.retained_bytes)
+  assert_eq(before.execution_bytes, after.execution_bytes)
   let registry = @connector.prepare_capability_registry(
     [{ name: "local", acquisition: false, fixed_compute: true, effect: false, }],
     1,
