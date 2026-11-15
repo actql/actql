@@ -779,11 +779,11 @@ const inferComponentNode = inferSourceNodes.filter(node => node.type === 'Variab
   node.id.name === 'prepareInferComponent');
 assert.equal(inferComponentNode.length, 1);
 
-function sourceOriginalFixture({changedDuringPreparation = false} = {}) {
+function sourceOriginalFixture({changedDuringPreparation = false, sourceOnly = false} = {}) {
   const capture = {}, original = Object.freeze({wire: 'original-source-evidence'}), evidence = [];
   const calls = [], stale = new Error('original-Source-no-longer-current');
   let current = true;
-  const ports = {infer: {}, captured: {capture, checkedSource: {sourceDataPolicyCid: 'original-policy'},
+  const ports = {infer: sourceOnly ? undefined : {}, sourceKeyedPreparation: sourceOnly ? {} : undefined, captured: {capture, checkedSource: {sourceDataPolicyCid: 'original-policy'},
     async prepareSourceEvidenceOriginal(options) {
       assert.deepEqual(options, {authorityScopeCid: 'original-scope', effectiveDataPolicyCid: 'original-policy'});
       calls.push('prepare'); if (changedDuringPreparation) current = false;
@@ -1324,4 +1324,18 @@ test('original Model observation stays bound through final Effect dependency con
   assert.equal(await f.cleanup(),true);
   assert.deepEqual(f.events.slice(4),['stop-model','retire-publication','release-capacity','close-model']);
   assert.equal(f.events.filter(value=>value==='retire-publication').length,1);
+});
+
+
+test('Source-only keyed capture transfers the original evidence without wire readmission', async () => {
+  const f = sourceOriginalFixture({sourceOnly: true}); await f.invoke();
+  assert.deepEqual(f.calls, ['prepare', 'take', 'continuation']);
+  assert.strictEqual(f.evidence[0].sourceEvidence, f.original);
+  assert.equal(f.evidence[0].sourceEvidenceWire, f.original.wire);
+});
+
+test('Source-only keyed evidence refuses lost current before transferring the original', async () => {
+  const f = sourceOriginalFixture({sourceOnly: true, changedDuringPreparation: true});
+  await assert.rejects(f.invoke, cause => cause === f.stale);
+  assert.deepEqual(f.calls, ['prepare']); assert.deepEqual(f.evidence, []);
 });

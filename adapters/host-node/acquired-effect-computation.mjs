@@ -578,7 +578,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
         authorityScopeCid: acquired.authorityScopeCid,
         effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid};
       let sourceEvidence, sourceEvidenceWire;
-      if (infer === undefined) {
+      if (infer === undefined && sourceKeyedPreparation === undefined) {
         sourceEvidenceWire = await captured.issueSourceEvidence(sourceEvidenceOptions);
       } else {
         await captured.prepareSourceEvidenceOriginal(sourceEvidenceOptions);

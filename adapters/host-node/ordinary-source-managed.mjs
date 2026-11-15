@@ -1957,7 +1957,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           liveRuns.size + pendingRunRegistrations.size >= 4096 || operationPlan === null || typeof operationPlan !== 'object') {
         fail('ForeignInstalledSourceProducer');
       }
-      const methods = state.effectBorrowMethods;
+      const moon = state.context.runtime, methods = state.effectBorrowMethods;
       if (methods.clientProgramEffectPreparationInputRead(state.holder) !== prepared) {
         fail('ForeignInstalledSourceProducer');
       }
