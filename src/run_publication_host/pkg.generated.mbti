@@ -605,6 +605,8 @@ pub fn client_effect_imported_scope_json(ClientEffectImportedEvidence) -> String
 
 pub fn client_effect_issued_normalization_materials_wire(ClientEffectIssuedNormalizationMaterials) -> String
 
+pub fn client_effect_keyed_cached_dependency_bodies(ClientEffectKeyedOriginal, ClientKeyedLookupInput, @run_publication.PublicationContract) -> Array[@run_publication.CapturedEffectDependencyBody]?
+
 pub fn client_effect_keyed_capture_start_construction_inventory(ClientEffectKeyedOriginal) -> @execution_relation.PreparationRepresentationUnits?
 
 pub fn client_effect_keyed_lookup_matches_parent(ClientKeyedLookupInput, ClientEffectKeyedOriginal, @physical_resources.Ledger) -> Bool

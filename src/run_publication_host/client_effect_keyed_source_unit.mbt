@@ -403,3 +403,48 @@ pub fn client_effect_keyed_source_unit_metadata_bodies(
     ),
   ]
 }
+
+///|
+/// Borrow only the already-admitted inventory frozen on this SAME completed
+/// Source lookup before its reservation became a holding. Return its existing
+/// Option and Array themselves: no export, admission, wire copy, new container
+/// or durable ACK. Caller publication still binds its checked Run data policy;
+/// these original bodies may only accompany the same custody/time bounds.
+pub fn client_effect_keyed_cached_dependency_bodies(
+  parent : ClientEffectKeyedOriginal,
+  lookup : ClientKeyedLookupInput,
+  retention : @publication.PublicationContract,
+) -> Array[@publication.CapturedEffectDependencyBody]? {
+  // Refuse incomplete/foreign-time metadata before any Source callback. The
+  // one current boundary follows the existing immutable completed inventory.
+  guard !lookup.closed &&
+    !lookup.growing &&
+    !lookup.identifying &&
+    lookup.left.lookup_issue is None &&
+    !@resources.reservation_open(lookup.reservation) &&
+    lookup.completed is Some(_) &&
+    lookup.native_completion is Some(completed) &&
+    lookup.native_sources is Some(state) &&
+    state.dependency_bodies is Some(bodies) &&
+    state.retention_base is Some(original_retention) &&
+    @publication.result_retention_bounds_equal(original_retention, retention) &&
+    @publication.result_retention_bounds_equal(completed.retention, retention) &&
+    client_effect_keyed_source_completed(parent, lookup) else {
+    return None
+  }
+  // The current callback may reenter cleanup. Pure final correspondence only;
+  // never restart an export or another current walk to repair that change.
+  guard !lookup.closed &&
+    lookup.left.lookup_issue is None &&
+    lookup.native_completion is Some(same) &&
+    physical_equal(same, completed) &&
+    lookup.native_sources is Some(same_state) &&
+    physical_equal(same_state, state) &&
+    state.retention_base is Some(same_retention) &&
+    physical_equal(same_retention, original_retention) &&
+    state.dependency_bodies is Some(same_bodies) &&
+    physical_equal(same_bodies, bodies) else {
+    return None
+  }
+  state.dependency_bodies
+}

@@ -304,7 +304,7 @@ test "Source-only original binds the same compiled Effect Request and census onc
 // Real Source Query execution and original supplied rows exercise the Strategy
 // seam. These are explicit mock inputs, not a lookup protocol or durable ACK.
 test "Source-only keyed DAG retains the actual supplied binding and refuses foreign slot owner and cancellation" {
-  let (prepared, keyed, _) = source_effect_keyed_fixture()
+  let (prepared, keyed, profile) = source_effect_keyed_fixture()
   let fragment = Some(product_test_fragment_wire())
   let ordered = Some(compiler_registered_ordered_wire())
   let contracts = @local_query_time.prepare_installed_sequence_contracts(
@@ -447,6 +447,48 @@ test "Source-only keyed DAG retains the actual supplied binding and refuses fore
     retained_bytes: 1000000L,
     execution_bytes: 1000000L,
   }).unwrap()
+  let bootstrap = @resources.reserve_capacity(ledger, 100000L, 100000L).unwrap()
+  let census = @resources.begin_original_ledger_inventory(
+    ledger, bootstrap, 20, 20, 0,
+  ).unwrap()
+  let graph = prepare_client_effect_keyed_plan_graph(
+    prepared,
+    keyed,
+    profile,
+    client_standard_values_sequence_limits(),
+    1000000,
+    100000,
+    100,
+  ).unwrap()
+  let compiled = client_effect_allowed_keyed_run(allowed, graph, definition).unwrap()
+  let request = prepare_client_effect_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "cache-not-ready",
+    source_free_caller_input_intent_cid(),
+  ).unwrap()
+  let source_original = bind_client_effect_keyed_original(
+    prepared, compilation, compiled, definition, request, graph, keyed, ledger, census,
+  ).unwrap()
+  let retention = @publication.issue_result_retention_for_data_policy(
+    product_expiry_original_retention(product_test_originals()),
+    prepared_client_effect_publication_data_policy_cid(prepared).unwrap(),
+    1000000,
+    100000,
+    100,
+  ).unwrap()
+  let left = prepare_client_keyed_capture_left_read(
+    keyed, capture, 10000, 10000,
+  ).unwrap()
+  let lookup = start_client_keyed_lookup_input(left, ledger, 10000, 10000).unwrap()
+  let before_cache = @resources.ledger_usage(ledger)
+  assert_true(
+    client_effect_keyed_cached_dependency_bodies(
+      source_original, lookup, retention,
+    )
+    is None,
+  )
+  assert_eq(@resources.ledger_usage(ledger), before_cache)
   let (_, task, _) = client_keyed_acquisition_coordinates(keyed).unwrap()
   let host = @strategy.open_captured_effect_keyed_source_run_dag(
     prepared_client_effect_run_graph(bound),
@@ -480,6 +522,24 @@ test "Source-only keyed DAG retains the actual supplied binding and refuses fore
     @strategy.captured_effect_keyed_supplied_input_matches(run, task, 1, read),
   )
   assert_true(@strategy.retire_captured_task_outputs(run))
+  stop_client_keyed_lookup_input(lookup)
+  assert_true(
+    client_effect_keyed_cached_dependency_bodies(
+      source_original, lookup, retention,
+    )
+    is None,
+  )
+  assert_true(cleanup_client_keyed_lookup_input(lookup, 10000).unwrap())
+  assert_true(
+    @resources.finish_original_ledger_inventory(ledger, true).unwrap(),
+  )
+  assert_false(client_effect_keyed_original_current(source_original))
+  assert_true(
+    client_effect_keyed_cached_dependency_bodies(
+      source_original, lookup, retention,
+    )
+    is None,
+  )
   let mut retired = @local.cancel_managed_provider(child)
   assert_true(@local.managed_provider_stopped(child))
   // Provider-internal bounded reclamation preserves a pending first cancel;
