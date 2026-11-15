@@ -715,6 +715,8 @@ pub fn installed_table_construction_inventory(Int64, Int64, Int64, Int64) -> Arr
 
 pub fn installed_table_source_body_capacity(@execution_relation.ExecutionCapacity, Int, Int) -> @execution_relation.ExecutionCapacity?
 
+pub fn installed_table_source_completed_capacity(@execution_relation.ExecutionCapacity, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn installed_table_source_reader_capacity(Int, @execution_relation.ExecutionCapacity) -> @execution_relation.ExecutionCapacity?
 
 pub fn installed_table_source_serialization_capacity(@execution_relation.ExecutionCapacity, Int) -> @execution_relation.ExecutionCapacity?

@@ -14,7 +14,7 @@ const nativeThen = Promise.prototype.then;
 // Pure configuration validation precedes admission. The opaque preparation
 // snapshots every value used by spawn and the handshake, including the URL.
 export function prepareManagedExecution({ entry, runtime, run, frames, maxRequests, graceMs, startupMs,
-  hostService, maxHostCalls = 0, accounting, beforeBodyAllocation, bodyReceived }) {
+  hostService, maxHostCalls = 0, accounting, beforeBodyAllocation, bodyReceived, bodySnapshot }) {
   frames = validateFrameLimits(frames);
   const budget = accounting === undefined ? undefined : Object.freeze({
     limits: encodeProcessLimits(accounting.limits), report: accounting.report,
@@ -36,6 +36,8 @@ export function prepareManagedExecution({ entry, runtime, run, frames, maxReques
         utilTypes.isAsyncFunction(beforeBodyAllocation))) ||
       (bodyReceived !== undefined && (typeof bodyReceived !== 'function' ||
         utilTypes.isAsyncFunction(bodyReceived))) ||
+      (bodySnapshot !== undefined && (typeof bodySnapshot !== 'function' ||
+        utilTypes.isAsyncFunction(bodySnapshot))) ||
       (service === undefined ? maxHostCalls !== 0 :
         maxHostCalls < 1 || typeof service.invoke !== 'function' ||
         typeof service.status !== 'function' || typeof service.retry !== 'function')) {
@@ -52,7 +54,7 @@ export function prepareManagedExecution({ entry, runtime, run, frames, maxReques
   const hello = encodeProcessFrame(envelope('hello', 0, budget ? {resourceLimits: budget.limits} : null), frames);
   const prepared = Object.freeze({});
   preparations.set(prepared, { executable, runtimePath, hello, envelope, frames, session, run, maxRequests, graceMs, startupMs,
-    service, maxHostCalls, budget, beforeBodyAllocation, bodyReceived });
+    service, maxHostCalls, budget, beforeBodyAllocation, bodyReceived, bodySnapshot });
   return prepared;
 }
 
@@ -63,7 +65,7 @@ export async function startManagedExecution(configuration, signal, beforeSpawn) 
   signal?.throwIfAborted();
   const prepared = preparations.has(configuration) ? configuration : prepareManagedExecution(configuration);
   const { executable, runtimePath, hello, envelope, frames, session, run, maxRequests, graceMs, startupMs,
-    service, maxHostCalls, budget, beforeBodyAllocation, bodyReceived } = preparations.get(prepared);
+    service, maxHostCalls, budget, beforeBodyAllocation, bodyReceived, bodySnapshot } = preparations.get(prepared);
   preparations.delete(prepared);
   signal?.throwIfAborted();
   // Installed Host accounting records the attempted physical handoff after
@@ -257,7 +259,7 @@ export async function startManagedExecution(configuration, signal, beforeSpawn) 
     } else {
       current.resolve(message.body);
     }
-  }, bodyEntry(beforeBodyAllocation), bodyEntry(bodyReceived));
+  }, bodyEntry(beforeBodyAllocation), bodyEntry(bodyReceived), bodyEntry(bodySnapshot));
   stream.on('data', chunk => {
     receivedBytes += BigInt(chunk.byteLength);
     try { reader.feed(chunk); } catch (error) { broken(error); }

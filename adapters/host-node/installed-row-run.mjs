@@ -216,6 +216,7 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     };
     const grow = moon.clientProgramRowSourceGrowResponseCapacity;
     const growConstruction = moon.clientProgramRowSourceGrowResponseConstructionCapacity;
+    const completeConstruction = moon.clientProgramRowSourceCompleteResponseConstructionCapacity;
     const reserveResponseCapacity = typeof grow !== 'function' ? undefined
       : (capacity, phase) => {
         if (closed || !readerReadPending || readerStopRequested) fail('InstalledSourceClosed');
@@ -224,7 +225,8 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
         // against this SAME original before Buffer/JSON construction; only the
         // existing one-argument path consumes a live page's charged entrance.
         const selected = phase === undefined ? grow
-          : phase === 'announced-body' ? growConstruction : undefined;
+          : phase === 'announced-body' ? growConstruction
+          : phase === 'completed-body' ? completeConstruction : undefined;
         if (typeof selected !== 'function') fail('InstalledSourceResponseConstructionUnavailable');
         checked(Reflect.apply(selected, moon, [borrow, capacity]));
         // The original Resource callback already checked currentness. Reentry

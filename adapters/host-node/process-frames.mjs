@@ -17,15 +17,16 @@ export function validateFrameLimits(limits) {
   return Object.freeze(copy);
 }
 
-function snapshot(value, limits, plainObjects = false) {
+function snapshot(value, limits, plainObjects = false, observed) {
   let nodes = 0;
-  let bytes = 0;
+  let bytes = 0, fields = 0, objects = 0, arrays = 0, utf16Units = 0;
   const parents = new Set();
   const charge = count => {
     if (count > limits.maxBytes - bytes) fail('FrameByteLimit');
     bytes += count;
   };
   const textSize = text => {
+    utf16Units += text.length;
     if (text.length > limits.maxBytes - bytes) fail('FrameByteLimit');
     return Buffer.byteLength(JSON.stringify(text));
   };
@@ -39,6 +40,7 @@ function snapshot(value, limits, plainObjects = false) {
     }
     if (typeof item !== 'object' || parents.has(item)) fail('InvalidFrameValue');
     const array = Array.isArray(item);
+    if (array) arrays++; else objects++;
     const proto = Object.getPrototypeOf(item);
     if (!array && proto !== Object.prototype && proto !== null) fail('InvalidFrameValue');
     parents.add(item);
@@ -56,6 +58,7 @@ function snapshot(value, limits, plainObjects = false) {
       let count = 0;
       for (const key in item) {
         if (!Object.hasOwn(item, key)) fail('InvalidFrameValue');
+        fields++;
         if (count++) charge(1);
         charge(textSize(key) + 1);
         const property = Object.getOwnPropertyDescriptor(item, key);
@@ -69,7 +72,9 @@ function snapshot(value, limits, plainObjects = false) {
     parents.delete(item);
     return result;
   };
-  return read(value, 0);
+  const result = read(value, 0);
+  if (observed !== undefined) observed({nodes, fields, objects, arrays, utf16Units});
+  return result;
 }
 
 // Pure configuration validation can retain the same bounded JSON snapshot
@@ -88,10 +93,11 @@ export function encodeProcessFrame(value, inputLimits) {
   return frame;
 }
 
-export function createProcessFrameReader(inputLimits, accept, beforeBodyAllocation, bodyReceived) {
+export function createProcessFrameReader(inputLimits, accept, beforeBodyAllocation, bodyReceived, bodySnapshot) {
   const limits = validateFrameLimits(inputLimits);
   if (beforeBodyAllocation !== undefined && typeof beforeBodyAllocation !== 'function' ||
-      bodyReceived !== undefined && typeof bodyReceived !== 'function') {
+      bodyReceived !== undefined && typeof bodyReceived !== 'function' ||
+      bodySnapshot !== undefined && typeof bodySnapshot !== 'function') {
     fail('InvalidFrameCapacityHandoff');
   }
   const header = Buffer.alloc(4);
@@ -137,7 +143,7 @@ export function createProcessFrameReader(inputLimits, accept, beforeBodyAllocati
           if (closed) fail('FrameReaderClosed');
         }
         const text = new TextDecoder('utf-8', { fatal: true }).decode(body);
-        const value = snapshot(JSON.parse(text), limits);
+        const value = snapshot(JSON.parse(text), limits, false, bodySnapshot);
         body = undefined; bodyBytes = 0; headerBytes = 0;
         accept(value);
       }

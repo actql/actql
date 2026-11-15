@@ -209,3 +209,33 @@ pub fn client_program_identify_row_capture_effect_source_relation(
   }
   identify_installed_captured_source(source, 16777216, columns~)
 }
+
+///|
+#export_name("clientProgramRowSourceCompleteResponseConstructionCapacity")
+pub fn client_program_row_source_complete_response_construction_capacity(
+  value : @client_row_source_host.RowRunResponseBorrow,
+  capacity : @execution.ExecutionCapacity,
+) -> Result[Unit, @client_row_source_host.RowHostIssue] {
+  @client_row_source_host.complete_row_run_response_construction_capacity(
+    value, capacity,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledTableSourceCompletedCapacity")
+pub fn client_program_installed_table_source_completed_capacity(
+  initial : @execution.ExecutionCapacity,
+  nodes : Int,
+  fields : Int,
+  objects : Int,
+  arrays : Int,
+  utf16_units : Int,
+) -> Result[@execution.ExecutionCapacity, @resources.PreparationCapacityIssue] {
+  match
+    @client_local_host.installed_table_source_completed_capacity(
+      initial, nodes, fields, objects, arrays, utf16_units,
+    ) {
+    Some(value) => Ok(value)
+    None => Err(@resources.InvalidExtent)
+  }
+}

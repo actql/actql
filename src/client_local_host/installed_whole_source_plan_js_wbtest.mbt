@@ -177,6 +177,43 @@ test "one original Request Plan captures whole unfiltered Source and leaves auth
   @row_source_host.bind_row_run_response_borrow_cleanup(responses, () => {
     stopped.val
   }).unwrap()
+  // Real SAME Read/RowRun reservation: completed physical constructor
+  // workspace returns without discarding receiver/Plan remainder or stop duty.
+  let before_reply = @resources.ledger_usage(parent.ledger)
+  let expanded = @execution.add_execution_capacity(
+    provider,
+    @execution.execution_capacity(101L, 203L).unwrap(),
+  ).unwrap()
+  @row_source_host.grow_row_run_response_construction_capacity(
+    responses, expanded,
+  ).unwrap()
+  let during_reply = @resources.ledger_usage(parent.ledger)
+  assert_eq(
+    during_reply.reserved_retention_bytes,
+    before_reply.reserved_retention_bytes + 101L,
+  )
+  assert_eq(
+    during_reply.reserved_execution_bytes,
+    before_reply.reserved_execution_bytes + 203L,
+  )
+  @row_source_host.complete_row_run_response_construction_capacity(
+    responses, provider,
+  ).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger), {
+    ..before_reply,
+    peak_retention_bytes: during_reply.peak_retention_bytes,
+  })
+  assert_false(stopped.val)
+  assert_true(
+    @row_source_host.complete_row_run_response_construction_capacity(
+      responses, expanded,
+    )
+    is Err(@row_source_host.Physical(@resources.InvalidCharge)),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger), {
+    ..before_reply,
+    peak_retention_bytes: during_reply.peak_retention_bytes,
+  })
   let body = @utf8.encode("[{\"id\":2},{\"id\":1}]")
   let charge = @row_source_host.charge_row_run_page(run, body).unwrap()
   @row_source_host.accept_charged_row_run_page(run, charge, body).unwrap()

@@ -2202,6 +2202,8 @@ pub fn client_program_installed_table_construction_inventory(Int64, Int64, Int64
 
 pub fn client_program_installed_table_source_body_capacity(@execution_relation.ExecutionCapacity, Int, Int) -> Result[@execution_relation.ExecutionCapacity, @physical_resources.PreparationCapacityIssue]
 
+pub fn client_program_installed_table_source_completed_capacity(@execution_relation.ExecutionCapacity, Int, Int, Int, Int, Int) -> Result[@execution_relation.ExecutionCapacity, @physical_resources.PreparationCapacityIssue]
+
 pub fn client_program_installed_table_source_reader_capacity(Int, @execution_relation.ExecutionCapacity) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_installed_table_source_serialization_capacity(@execution_relation.ExecutionCapacity, Int) -> Result[@execution_relation.ExecutionCapacity, @physical_resources.PreparationCapacityIssue]
@@ -4065,6 +4067,8 @@ pub fn client_program_row_source_close(@client_row_source_host.RowRun) -> Unit
 pub fn client_program_row_source_close_accounted(@client_row_source_host.RowRun) -> Result[Unit, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_columns(@client_row_source_host.RowAcquisition) -> Array[String]
+
+pub fn client_program_row_source_complete_response_construction_capacity(@client_row_source_host.RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_consume_observation_charge(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge) -> Result[Unit, @client_row_source_host.RowHostIssue]
 

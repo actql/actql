@@ -79284,7 +79284,7 @@
     {
       "module": "adapters/host-node/installed-table-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ea8a3d99acca08d17486a02002bddec6274b2282c3ac3a75ba74472e5347b77e",
+      "sha256": "3c106b265060ecb6aad602fe9bed0c683700980751a2fcfd0f5dcec223439fe9",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -79465,7 +79465,19 @@
           "async": false
         },
         {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/bodySnapshot/bodySnapshot",
+          "parameters": [
+            "geometry"
+          ],
+          "async": false
+        },
+        {
           "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/check/check",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/completeBodies/completeBodies",
           "parameters": [],
           "async": false
         },
@@ -79888,7 +79900,9 @@
             "createInstalledTableSourceReader/factory/init:prepare/init:prepare/preparePayload/preparePayload",
             "createInstalledTableSourceReader/factory/init:prepare/init:prepare/retire/retire",
             "createInstalledTableSourceReader/factory/init:retire/init:retire",
-            "installedTableReadSite/init:referenceCurrent/init:referenceCurrent"
+            "installedTableReadSite/init:referenceCurrent/init:referenceCurrent",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare/bodySnapshot/bodySnapshot",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare/completeBodies/completeBodies"
           ],
           "exports": [],
           "attributes": {
@@ -92424,7 +92438,7 @@
     {
       "module": "adapters/host-node/process-channel.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a2b3d5562843e922aef01a4716b41622341c657f934f6cc96478d4baa24426ee",
+      "sha256": "1d266d814af9292275d29f6d649e07459e703514ed0cf2909b99ddcbc67d40a4",
       "role": "physical-io",
       "owner": "Existing Physical Resource/ExecutionDelegation Owner and managed child transport",
       "exports": [
@@ -92446,7 +92460,8 @@
             "maxHostCalls",
             "accounting",
             "beforeBodyAllocation",
-            "bodyReceived"
+            "bodyReceived",
+            "bodySnapshot"
           ],
           "async": false
         },
@@ -93271,7 +93286,7 @@
     {
       "module": "adapters/host-node/process-frames.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9a06570c6c12e9a509e9bc8068b7adbc89b4c3a747c3522bbcce58facfcc3ca6",
+      "sha256": "330f96765e8bb20b162f2bfe0004f3893716fac86342aada305cddbdac1b13c4",
       "role": "physical-io",
       "owner": "Existing Physical Resource/ExecutionDelegation Owner and managed child transport",
       "exports": [
@@ -93289,7 +93304,8 @@
             "inputLimits",
             "accept",
             "beforeBodyAllocation",
-            "bodyReceived"
+            "bodyReceived",
+            "bodySnapshot"
           ],
           "async": false
         },
@@ -93332,7 +93348,8 @@
           "parameters": [
             "value",
             "limits",
-            "plainObjects"
+            "plainObjects",
+            "observed"
           ],
           "async": false
         },
