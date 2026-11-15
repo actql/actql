@@ -75,6 +75,7 @@ fn client_effect_funded_infer_inventory(
       // The private issued-graph pin is stronger than reconstructing a new
       // graph from mutable copied fields and comparing its wire afterward.
       if !physical_equal(graph, components[index]) ||
+        !client_effect_funded_graph_original_bindings(graph) ||
         client_infer_graph_original_parts(
           graph,
           compilation.compiled.owner,
@@ -126,4 +127,67 @@ fn client_effect_funded_infer_inventory(
   } catch {
     issue => Err(Input(MaterialsEncoding("model_inventory", issue)))
   }
+}
+
+///|
+// Read only the issuer-retained canonical graph nodes. The logical graph pins
+// the Model execution and lookup Source/schema identities; physical profile
+// bodies remain with the private original component, not a new wire selector.
+fn client_effect_funded_graph_original_bindings(
+  graph : ClientInferPlanGraph,
+) -> Bool {
+  let text = (value : @canonical.CanonicalValue, name : String) => {
+    match @canonical.object_field(value, name) {
+      Some(@canonical.String(value)) => Some(value)
+      _ => None
+    }
+  }
+  let mut model = false
+  let mut lookup = false
+  for node in graph.graph_nodes {
+    match text(node, "profile_id") {
+      Some("actql-infer/0.1") => {
+        guard !model &&
+          @canonical.object_field(node, "barrier") is Some(body) &&
+          text(body, "barrier_cid") == Some(graph.barrier_cid) &&
+          text(body, "model_execution_contract_cid") ==
+          Some(@environment.model_execution_cid(graph.execution)) &&
+          text(body, "model_task_contract_cid") ==
+          Some(
+            @environment.model_task_identity(
+              @environment.model_execution_task(graph.execution),
+            ).2,
+          ) else {
+          return false
+        }
+        model = true
+      }
+      Some("actql-lookup/0.1") => {
+        guard !lookup &&
+          graph.keyed is Some(component) &&
+          @canonical.object_field(node, "barrier") is Some(body) &&
+          @publication.file_read_profile_contract_bindings(
+            component.original.profile,
+          )
+          is Some((source, request, response)) &&
+          @planning.keyed_source_evidence_facts(
+            component.original.fragments.acquisition.facts,
+          )
+          is Some(facts) &&
+          source == facts.source_view_contract_cid &&
+          response == facts.carrier_schema_contract_cid &&
+          text(body, "source_view_contract_cid") == Some(source) &&
+          text(body, "request_schema_cid") == Some(request) &&
+          text(body, "output_contract_cid") ==
+          Some(component.original.output_contract_cid) &&
+          text(body, "lookup_execution_cid") ==
+          Some(component.original.lookup_execution_cid) else {
+          return false
+        }
+        lookup = true
+      }
+      _ => ()
+    }
+  }
+  model && lookup == (graph.keyed is Some(_))
 }

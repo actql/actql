@@ -176,3 +176,61 @@ test "funded source-free policy admission keeps the same complete policy and ref
   )
   assert_eq(seen, ["source_free_policy_read"])
 }
+
+///|
+test "funded Model inventory rejects replaced execution against its sealed original barrier" {
+  let (_, allowed, _, _) = plural_effect_infer_fixture()
+  let compilation = allowed.compilation
+  let original = compilation.compiled.infers[0]
+  let execution = original.execution
+  let usage = @environment.model_execution_usage(execution)
+  let out = @encode.writer(usage.0, usage.1, 64)
+  @syntax.emit_admitted_source_value(
+    @environment.model_execution_source(execution),
+    out,
+  )
+  guard @json.parse(@encode.finish(out)) is Object(fields) else {
+    fail("execution fixture")
+  }
+  fields.remove("self_cid")
+  fields["max_total_wire_bytes"] = 1024
+  let (_, cid) = source_extent_json(Json::object(fields))
+  fields["self_cid"] = cid.to_json()
+  let (wire, _) = source_extent_json(Json::object(fields))
+  let foreign = @environment.read_model_execution_contract(
+    @environment.model_execution_task(execution),
+    @utf8.encode(wire),
+    cid,
+    { max_bytes: 10000, max_nodes: 1000, max_depth: 64, max_members: 100, },
+    100000,
+  ).unwrap()
+  assert_true(
+    @environment.model_execution_cid(foreign) !=
+    @environment.model_execution_cid(execution),
+  )
+  let changed = { ..original, execution: foreign, }
+  assert_true(physical_equal(changed.graph, original.original_graph))
+  assert_false(client_effect_funded_graph_original_bindings(changed))
+  let copied = {
+    ..compilation,
+    compiled: {
+      ..compilation.compiled,
+      infers: [changed, compilation.compiled.infers[1]],
+    },
+  }
+  let seen : Array[String] = []
+  assert_true(
+    client_effect_original_infer_inputs(
+      copied,
+      before_body=Some(fn(purpose, _, _, _) {
+        seen.push(purpose)
+        true
+      }),
+    )
+    is Err(Compilation(ForeignInferOwner)),
+  )
+  assert_eq(seen, ["model_inventory"])
+  let (_, _, graphs) = plural_keyed_original_materials_fixture(declared=true)
+  assert_true(client_effect_funded_graph_original_bindings(graphs[0]))
+  assert_true(client_effect_funded_graph_original_bindings(graphs[1]))
+}
