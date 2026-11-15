@@ -108,18 +108,29 @@ fn build_keyed_source_client_effect_local_result_artifact(
     ) {
     return Err(ForeignOwner)
   }
-  if !client_effect_keyed_source_unit_current(acquired) ||
-    !(match custody {
+  // Keep the original check order and availability callbacks. These are
+  // distinct failures: stale Source invocation, another Run's input custody,
+  // and a foreign export receipt must not collapse into one opaque issue.
+  if !client_effect_keyed_source_unit_current(acquired) {
+    return Err(ForeignInvocation)
+  }
+  if !(match custody {
       EffectInputs(inputs) =>
-        @strategy.captured_effect_inputs_match_run(inputs, acquired.host) &&
-        @strategy.captured_effect_local_result_export_matches_receipt(
-          inputs, exported, receipt,
-        )
+        @strategy.captured_effect_inputs_match_run(inputs, acquired.host)
       AcquiredUnit(inputs) =>
         @strategy.captured_effect_local_unit_inputs_match_run(
           inputs,
           acquired.host,
-        ) &&
+        )
+    }) {
+    return Err(ForeignRun)
+  }
+  if !(match custody {
+      EffectInputs(inputs) =>
+        @strategy.captured_effect_local_result_export_matches_receipt(
+          inputs, exported, receipt,
+        )
+      AcquiredUnit(inputs) =>
         @strategy.captured_effect_local_unit_result_export_matches_receipt(
           inputs, exported, receipt,
         )
