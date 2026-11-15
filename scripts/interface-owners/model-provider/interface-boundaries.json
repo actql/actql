@@ -3938,7 +3938,7 @@
     },
     {
       "module": "src/check_environment/public_model_task_normalization.mbt",
-      "sha256": "1178c13bedf4b13f995617d62e7b41737e45cc4fd655524effff30ee61a64fa3",
+      "sha256": "9fd1186cb309f81a3044d3dae7a53bc41da9147fe21e3665d734be030ea5d0db",
       "exports": [],
       "operations": [
         {

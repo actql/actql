@@ -118,7 +118,7 @@
     },
     {
       "module": "src/check_environment/model_task_construction.mbt",
-      "sha256": "acc96e9c45c79b7561bba38db37d79a1f085fc3996cd5bc5ba2b29489f4e53d6",
+      "sha256": "fc42113950029722de2bbeaaabf31442751643e446018682008626f80a32c28b",
       "operations": [
         {
           "name": "empty_model_tasks_construction_extent",
@@ -974,7 +974,7 @@
     },
     {
       "module": "src/check_environment/public_model_task_construction.mbt",
-      "sha256": "2188e16f00baf3d7cfd813882f8db3f2788c7a4fa4a6744d46b77a4421e6d216",
+      "sha256": "01461e83d6c2acb48f20b802913710f1245a439d5dc8b054cb36bf3ce5c1dc90",
       "exports": [],
       "operations": [
         {

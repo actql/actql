@@ -72010,7 +72010,7 @@
     },
     {
       "module": "src/physical_strategy_host/captured_dag.mbt",
-      "sha256": "279a47f6a3182a54845aaddf619825af2b8ac481ba2e8399924fc8ec9d18a7fb",
+      "sha256": "7eb28765226e5bdb17447ca0d8a25e58cc4fe5b66a6070bd8e052912dd55dc2f",
       "exports": [],
       "operations": [
         {
@@ -72068,6 +72068,10 @@
         {
           "name": "captured_effect_keyed_prefix_input_matches",
           "declaration": "captured_effect_keyed_prefix_input_matches ( value : CapturedEffectRunDAG , task : Int , step : Int , port : Int , read : @ execution . ProducerRead , ) - > Bool"
+        },
+        {
+          "name": "captured_effect_keyed_supplied_input_matches",
+          "declaration": "captured_effect_keyed_supplied_input_matches ( run : CapturedDAG , task : Int , input : Int , read : @ execution . SuppliedRelationRead , ) - > Bool"
         },
         {
           "name": "captured_effect_run_dag",
@@ -72270,6 +72274,10 @@
           "declaration": "open_captured_dag ( graph : CheckedDAG , source : @ query . CapturedInputSource , ledger : @ resources . Ledger , supplied ? : Array [ @ execution . CapturedRows ]"
         },
         {
+          "name": "open_captured_effect_keyed_source_run_dag",
+          "declaration": "open_captured_effect_keyed_source_run_dag ( checked : CheckedEffectRunDAG , sources : Array [ ( Int , @ query . CapturedInputSource ) ] , ledger : @ resources . Ledger , task : Int , read : @ execution . SuppliedRelationRead , ) - > Result [ CapturedEffectRunDAG , RunIssue ]"
+        },
+        {
           "name": "open_captured_effect_run_dag",
           "declaration": "open_captured_effect_run_dag ( checked : CheckedEffectRunDAG , source : @ query . CapturedInputSource , ledger : @ resources . Ledger , supplied ? : Array [ @ execution . CapturedRows ]"
         },
@@ -72292,6 +72300,10 @@
         {
           "name": "open_multi_captured_effect_run_keyed_dag",
           "declaration": "open_multi_captured_effect_run_keyed_dag ( checked : CheckedEffectRunDAG , sources : Array [ ( Int , @ query . CapturedInputSource ) ] , ledger : @ resources . Ledger , task : Int , model_step : Int , read : @ execution . SuppliedRelationRead , ) - > Result [ CapturedEffectRunDAG , RunIssue ]"
+        },
+        {
+          "name": "open_original_effect_keyed_read",
+          "declaration": "open_original_effect_keyed_read ( checked : CheckedEffectRunDAG , graph : CheckedDAG , sources : Array [ ( Int , @ query . CapturedInputSource ) ] , ledger : @ resources . Ledger , task : Int , read : @ execution . SuppliedRelationRead , ) - > Result [ CapturedEffectRunDAG , RunIssue ]"
         },
         {
           "name": "open_source_free_dag",
@@ -72653,6 +72665,148 @@
               {
                 "path": "src/client_local_host/installed_effect_publication_binding_js_wbtest.mbt",
                 "anchor": "test \"closed Source publication uses actual captured generation and original issuer before dependency export\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "captured_effect_keyed_supplied_input_matches",
+            "open_captured_effect_keyed_source_run_dag",
+            "open_original_effect_keyed_read"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn open_captured_effect_keyed_source_run_dag("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "fn open_original_effect_keyed_read("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn captured_effect_keyed_supplied_input_matches("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn open_captured_effect_keyed_source_run_dag("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "fn open_original_effect_keyed_read("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn captured_effect_keyed_supplied_input_matches("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn open_captured_effect_keyed_source_run_dag("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "fn open_original_effect_keyed_read("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn captured_effect_keyed_supplied_input_matches("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn open_captured_effect_keyed_source_run_dag("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "fn open_original_effect_keyed_read("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn captured_effect_keyed_supplied_input_matches("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn open_captured_effect_keyed_source_run_dag("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "fn open_original_effect_keyed_read("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn captured_effect_keyed_supplied_input_matches("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn open_captured_effect_keyed_source_run_dag("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "fn open_original_effect_keyed_read("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn captured_effect_keyed_supplied_input_matches("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn open_captured_effect_keyed_source_run_dag("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "fn open_original_effect_keyed_read("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn captured_effect_keyed_supplied_input_matches("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn open_captured_effect_keyed_source_run_dag("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "fn open_original_effect_keyed_read("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn captured_effect_keyed_supplied_input_matches("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn open_captured_effect_keyed_source_run_dag("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "fn open_original_effect_keyed_read("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn captured_effect_keyed_supplied_input_matches("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication_host/client_effect_keyed_original_wbtest.mbt",
+                "anchor": "test \"Source-only keyed DAG retains the actual supplied binding and refuses foreign slot owner and cancellation\""
               }
             ]
           }
@@ -94602,7 +94756,7 @@
     },
     {
       "module": "src/physical_resources/preparation_phase_work.mbt",
-      "sha256": "113cd8ffa6724cb04b1c8255a1e15a99b855b263878abfa5032023c5d1f03111",
+      "sha256": "0e735d5ad9b7ec98d2b6e0b3f33b305fcbb9324f92df696f1af228a7acaf333b",
       "exports": [],
       "operations": [
         {
@@ -95869,7 +96023,7 @@
     },
     {
       "module": "src/canonical_json/source_conversion_extent.mbt",
-      "sha256": "bbb6485ad2535538da6b810c9a3f1cbbefb92245ab4c333af7f665b280cbf2db",
+      "sha256": "af37afc784c67f6443e19c888c94f4768021915b2eb3b5abad7bcf6c083cd2e7",
       "exports": [],
       "operations": [
         {
@@ -96892,7 +97046,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_account_construction.mbt",
-      "sha256": "a6fd69b714d41bdc5fb4ca7e09b9dc304dbf1ed01b271bba80f9257f661d7e9a",
+      "sha256": "291855f5b7d1ceb1032107d8510bb194de3c64d5c63ee508bd08a80873c5c740",
       "exports": [],
       "operations": [
         {
@@ -97106,7 +97260,7 @@
     },
     {
       "module": "src/run_publication_host/client_model_defaults_construction.mbt",
-      "sha256": "c56e8649a9c30bf41e2b36d7e4ff2744228b7567c4ece32ba36b1da24e06a029",
+      "sha256": "5afaa40d0c77e58cfb5ec47a3ce65735b1279d3876da57a5a7e29eb004926bf5",
       "exports": [],
       "operations": [
         {
@@ -97119,7 +97273,7 @@
         },
         {
           "name": "client_model_provider_defaults_resolution_extents",
-          "declaration": "client_model_provider_defaults_resolution_extents ( original : ClientModelProviderDefaults , tokens : Int64 ? , ) - > ( @ environment . RegistryConstructionExtent , @ environment . RegistryConstructionExtent )"
+          "declaration": "client_model_provider_defaults_resolution_extents ( original : ClientModelProviderDefaults , tokens : Int64 ? , ) - > ( @ environment . RegistryConstructionExtent , @ environment . RegistryConstructionExtent , )"
         },
         {
           "name": "client_model_provider_defaults_retained_extent",
@@ -97218,7 +97372,7 @@
     },
     {
       "module": "src/source_value/yaml_construction_extent.mbt",
-      "sha256": "d36818514df69347ce8f417c13debc91ce8c98dab0ae922cf4147301320e7254",
+      "sha256": "3c23982e960990f72b5b2f274a3e952ca8ea994aee2984d6aa21561737b211ea",
       "exports": [],
       "operations": [
         {
