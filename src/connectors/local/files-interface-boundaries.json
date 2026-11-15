@@ -4152,6 +4152,7 @@
         }
       ],
       "imports": [
+        "../../../host-common/compiler-binding.generated.mjs",
         "../../../host-common/runtime-result.mjs",
         "../../../host-node/effect-ledger-implementation-bounds.mjs",
         "../../../host-node/installed-effect-plan.mjs",
