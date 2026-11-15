@@ -382,6 +382,7 @@ pub fn client_program_request_preparation_issue_code(
         EffectRejected(Preparation(issue)),
       )
     Err(Preparation(ProgramCheck(Check(issue))))
+    | Err(Preparation(ProgramCheck(EffectInput(Computation(issue)))))
     | Err(Preparation(ProgramCheck(Catalog(Check(issue)))))
     | Err(
       Preparation(
