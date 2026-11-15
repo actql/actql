@@ -474,9 +474,9 @@ fn local_module_default_output_start_capacity(
   }
   unnest_chain = unnest_chain && has_unnest
   // This built-in window chain constructs no legacy sequence table. Keep
-  // complete child input, measurement and aggregate scratch, plus every
-  // retained completion, while the existing chain confirms cleanup before
-  // its next child. Text/nullable DATA retains its original full envelope.
+  // complete bounded child scratch, while the existing chain confirms cleanup
+  // before its next child. Each accepted completion grows on the same task
+  // before row transfer; carried cells retain their original input owner.
   let mut window_chain = count > 1
   let mut has_window = false
   for index in 0..<count {
@@ -509,10 +509,34 @@ fn local_module_default_output_start_capacity(
   let mut metered_retention = true
   for index in 0..<count {
     match @execution.generated_sequence_step_at(sequence, index) {
-      Some(@lower.WindowStep(_)) if window_chain => metered_retention = false
+      Some(@lower.WindowStep(_)) if window_chain => ()
       Some(@lower.RowStep(kernel)) if window_chain &&
-        @lower.kernel_body(kernel) is @lower.Groups(_) =>
-        metered_retention = false
+        @lower.kernel_body(kernel) is @lower.Groups(_) => {
+        // Only direct window reductions use the bounded borrowed-cell recipe.
+        // Their maps/pending rows remain in operation workspace; persistent
+        // output grows before CommitOutput appends the original checked row.
+        let direct = @lower.kernel_group(kernel)
+          .map(group => {
+            let mut direct = @lower.group_is_window(group)
+            for aggregate in 0..<@lower.group_aggregate_count(group) {
+              let aggregate = @lower.group_aggregate_at(group, aggregate).unwrap()
+              if @lower.group_aggregate_requires_expression_context(aggregate) {
+                direct = false
+              }
+              // A newly built text/collection aggregate needs its own full
+              // construction backing before the row's persistent-output grow.
+              match @lower.group_aggregate_result(aggregate).shape {
+                @contract.Number | @contract.Boolean => ()
+                _ => direct = false
+              }
+            }
+            direct
+          })
+          .unwrap_or(false)
+        if !direct {
+          metered_retention = false
+        }
+      }
       // The bounded Values child retains its original complete literal
       // recipe below. Its same row-charge owner funds accepted output before
       // transfer; a Values seed does not construct a legacy sequence table.
@@ -592,8 +616,8 @@ fn local_module_default_output_start_capacity(
       Some(@lower.RowStep(kernel)) if count == 1 &&
         @lower.kernel_pivot(kernel) is Some(_) => {
         // The existing bounded group/PIVOT child reads original scalar
-        // cells, retaining the text axis and aggregate workspace. Preserve
-        // FULL output backing before any aggregate row is constructed.
+        // cells, retaining the text axis and aggregate workspace. Scalar
+        // pending rows use workspace; complete output grows before transfer.
         let input = @lower.kernel_input_schema(kernel)
         let output = @lower.kernel_output_schema(kernel)
         if !@schema.all_fields_required(input) ||
@@ -612,21 +636,18 @@ fn local_module_default_output_start_capacity(
             _ => return None
           }
         }
-        metered_retention = false
       }
       Some(@lower.RowStep(kernel)) if count == 1 &&
-        @lower.kernel_unpivot_outputs(kernel) is Some(_) => {
+        @lower.kernel_unpivot_outputs(kernel) is Some(_) =>
         // This bounded constructor borrows original admitted cells, including
         // Text/Array/Object backing, and prepared column labels. Its stepped
         // contract recheck returns the SAME immutable value, not a copied
-        // forest. Preserve all input/decode/traversal scratch and the FULL
-        // retained output, while the existing row-charge owner funds transfer.
+        // forest. Preserve all independent traversal scratch, while the same
+        // row-charge owner funds complete output before transfer.
         if !@schema.all_fields_required(@lower.kernel_input_schema(kernel)) ||
           !@schema.all_fields_required(@lower.kernel_output_schema(kernel)) {
           return None
         }
-        metered_retention = false
-      }
       Some(@lower.RowStep(kernel)) if count == 1 &&
         @lower.kernel_analytic(kernel) is Some(analytic) => {
         // The existing bounded analytic child funds its accepted buffer row
@@ -807,7 +828,7 @@ fn local_module_default_output_start_capacity(
   }
   // These default singleton constructors retain the SAME admitted output row,
   // not an input forest, measurement wire body or second output forest. Its
-  // complete original retained envelope pays that row even before transfer.
+  // same before-commit owner pays that row before transfer.
   // Keep the bounded constructor's real maps/row arrays/cursors/frames/depth
   // and every fragment allowance alongside it. The generic provider bound
   // remains unchanged; an injected provider never enters this recipe.
@@ -818,10 +839,10 @@ fn local_module_default_output_start_capacity(
       @lower.kernel_unpivot_outputs(kernel) is Some(_) ||
       @lower.kernel_pivot(kernel) is Some(_)
     ) {
-    // These are separate retained/workspace dimensions. The existing driver
-    // adds retained backing alongside workspace exactly once; do not subtract
-    // retention from the workspace quote. Preserve the common capacity
-    // owner's existing execution >= retention floor as well.
+    // Constructor DATA grows before append; keep fixed output metadata and
+    // all independent workspace. The driver adds those retained metadata
+    // bytes alongside workspace, then the same attachment reserves each
+    // actual complete row in both dimensions before transfer.
     guard base.execution_bytes >= data &&
       full.retained_bytes >= base.retained_bytes &&
       @execution.execution_capacity_inventory_add(
@@ -831,12 +852,13 @@ fn local_module_default_output_start_capacity(
         1,
       )
       is Some(scratch) &&
-      Int64::max(full.retained_bytes, scratch) <= full.execution_bytes else {
+      full.retained_bytes >= data &&
+      Int64::max(full.retained_bytes - data, scratch) <= full.execution_bytes else {
       return None
     }
     return @execution.execution_capacity(
-      full.retained_bytes,
-      Int64::max(full.retained_bytes, scratch),
+      full.retained_bytes - data,
+      Int64::max(full.retained_bytes - data, scratch),
     )
   }
   let mut fixed = 0L

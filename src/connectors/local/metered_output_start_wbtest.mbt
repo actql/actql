@@ -1114,7 +1114,7 @@ test "Count chains retain text recursive and injected provider funding" {
 }
 
 ///|
-test "window chain startup preserves complete retention and injected full capacity" {
+test "window chain startup uses original row funding and preserves injected full capacity" {
   let (sequence, _, _) = chain_lifetime_fixture(
     "[{\"from\":\"source\",\"row_window\":{\"kind\":\"fixed\",\"time\":\"id\",\"size\":10},\"as\":\"windowed\"},{\"from\":\"windowed\",\"select\":[\"id\",\"window_start\",\"window_end\"]}]",
   )
@@ -1137,7 +1137,7 @@ test "window chain startup preserves complete retention and injected full capaci
   let startup = local_module_metered_output_start_capacity(
     original, 0, sequence,
   ).unwrap()
-  assert_eq(startup.retained_bytes, full.retained_bytes)
+  assert_true(startup.retained_bytes < full.retained_bytes)
   assert_true(startup.execution_bytes < full.execution_bytes)
   let starts = Ref(0)
   let replacement = managed_provider(_ => true, _ => Some(full), (_, _, _, _, _) => {
@@ -1164,6 +1164,79 @@ test "window chain startup preserves complete retention and injected full capaci
   )
   assert_eq(starts.val, 0)
   @connector.close_capability_registry(registry)
+}
+
+///|
+test "window reductions retain constructing aggregate backing before row funding" {
+  for
+    (aggregate, borrowed) in [
+      ("{\"fn\":\"count\"}", true),
+      (
+        "{\"fn\":\"array_agg\",\"field\":\"id\",\"max_items\":100,\"order_by\":[{\"id\":\"asc\"}]}",
+        false,
+      ),
+    ] {
+    let checked = @pipeline.check(
+      chain_lifetime_cursor(
+        "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1}]},\"as\":\"seed\"},{\"row_window\":{\"kind\":\"fixed\",\"time\":\"id\",\"size\":10}},{\"window_group\":{\"by\":[],\"aggregates\":{\"n\":" +
+        aggregate +
+        "}}}]",
+      ),
+      [],
+      None,
+      None,
+      {
+        max_steps: 100,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    )
+    let owner = match checked {
+      Ok(value) => chain_lifetime_bind(value)
+      Err(issue) => {
+        debug_inspect(issue.kind, content="checked window aggregate fixture")
+        abort("checked window aggregate fixture refused")
+      }
+    }
+    let whole = chain_lifetime_generated(owner)
+    let sequence = @execution.select_generated_sequence_range(whole, 1, 2).unwrap()
+    let registry = @connector.prepare_capability_registry(
+      [
+        {
+          name: "local",
+          acquisition: false,
+          fixed_compute: true,
+          effect: false,
+        },
+      ],
+      1,
+      100,
+    ).unwrap()
+    let original = prepare_local_compute_module(
+      registry,
+      @connector.capability_registration_at(registry, 0).unwrap(),
+      [sequence],
+      chain_lifetime_limits(),
+      chain_lifetime_measurement(),
+      100000,
+      1,
+    ).unwrap()
+    let full = local_module_capacity_for_sequence(original, 0, sequence).unwrap()
+    let startup = local_module_metered_output_start_capacity(
+      original, 0, sequence,
+    ).unwrap()
+    if borrowed {
+      assert_true(startup.retained_bytes < full.retained_bytes)
+    } else {
+      // This aggregate constructs its own array before the managed row is
+      // committed. Its complete original output backing remains prepaid.
+      assert_eq(startup.retained_bytes, full.retained_bytes)
+    }
+    @connector.close_capability_registry(registry)
+  }
 }
 
 ///|
@@ -1265,7 +1338,7 @@ test "ROW_NUMBER startup keeps nonprimitive other-function and injected provider
 }
 
 ///|
-test "unpivot borrowed cells keep full retention and original injected provider capacities" {
+test "unpivot borrowed cells use original row funding and preserve injected provider capacities" {
   for
     (contract, literal) in [
       ("{\"type\":\"string\",\"nullable\":false}", "\"text\""),
@@ -1317,14 +1390,21 @@ test "unpivot borrowed cells keep full retention and original injected provider 
       chain_lifetime_limits(),
       chain_lifetime_measurement(),
     ).unwrap()
+    let bounded = @execution.generated_bounded_sequence_capacity(
+      sequence,
+      chain_lifetime_limits(),
+      chain_lifetime_measurement(),
+    ).unwrap()
     assert_eq(
       (full.retained_bytes, full.execution_bytes),
-      (generic.retained_bytes, generic.execution_bytes),
+      (bounded.retained_bytes, bounded.execution_bytes),
     )
+    assert_true(full.retained_bytes <= generic.retained_bytes)
+    assert_true(full.execution_bytes < generic.execution_bytes)
     let startup = local_module_metered_output_start_capacity(
       original, 0, sequence,
     ).unwrap()
-    assert_eq(startup.retained_bytes, full.retained_bytes)
+    assert_true(startup.retained_bytes < full.retained_bytes)
     assert_true(startup.execution_bytes < full.execution_bytes)
     let starts = Ref(0)
     let replacement = managed_provider(_ => true, _ => Some(full), (
@@ -1361,7 +1441,7 @@ test "unpivot borrowed cells keep full retention and original injected provider 
 }
 
 ///|
-test "numeric pivot keeps full retention and recursive text output or injected fallback" {
+test "numeric pivot uses original row funding and preserves recursive text or injected fallback" {
   for
     (extra, key, borrowed) in [
       ("", "id", true),
@@ -1410,18 +1490,29 @@ test "numeric pivot keeps full retention and recursive text output or injected f
       chain_lifetime_limits(),
       chain_lifetime_measurement(),
     ).unwrap()
+    let bounded = @execution.generated_bounded_sequence_capacity(
+      sequence,
+      chain_lifetime_limits(),
+      chain_lifetime_measurement(),
+    ).unwrap()
     assert_eq(
       (full.retained_bytes, full.execution_bytes),
-      (generic.retained_bytes, generic.execution_bytes),
+      (bounded.retained_bytes, bounded.execution_bytes),
     )
     let start = local_module_metered_output_start_capacity(
       original, 0, sequence,
     )
     if borrowed {
       let start = start.unwrap()
-      assert_eq(start.retained_bytes, full.retained_bytes)
+      assert_true(full.retained_bytes <= generic.retained_bytes)
+      assert_true(full.execution_bytes < generic.execution_bytes)
+      assert_true(start.retained_bytes < full.retained_bytes)
       assert_true(start.execution_bytes < full.execution_bytes)
     } else {
+      assert_eq(
+        (full.retained_bytes, full.execution_bytes),
+        (generic.retained_bytes, generic.execution_bytes),
+      )
       assert_true(start is None)
     }
     let starts = Ref(0)

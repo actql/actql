@@ -174,6 +174,7 @@ pub fn generated_bounded_sequence_capacity(
     | @lower.SetStep(_)
     | @lower.JoinStep(_)
     | @lower.CrossJoinStep(_)
+    | @lower.WindowStep(_)
     | @lower.RowStep(_) => ()
     _ => return generated_sequence_capacity(generated, limits, measurement)
   }
@@ -346,6 +347,51 @@ pub fn generated_bounded_sequence_capacity(
     @lower.JoinStep(kernel) => bounded_inner_join_borrows_input(kernel)
     _ => false
   }
+  // Direct window reductions read the original required cells. Their existing
+  // bounded evaluator charges maps, aggregate state and pending row containers
+  // to its workspace, while contract recheck retains the same admitted values.
+  // Dynamic aggregate expressions and other group families keep their generic
+  // fragment/input construction recipe.
+  let borrowed_window_group = match operation {
+    @lower.RowStep(kernel) =>
+      @lower.kernel_group(kernel)
+      .map(group => {
+        @lower.group_is_window(group) &&
+        !bounded_group_dynamic(group) &&
+        bounded_group_step_supported(generated, kernel) &&
+        @schema.all_fields_required(@lower.kernel_input_schema(kernel)) &&
+        @schema.all_fields_required(schema)
+      })
+      .unwrap_or(false)
+    _ => false
+  }
+  if operation is @lower.RowStep(kernel) &&
+    (
+      @lower.kernel_group(kernel) is Some(_) ||
+      @lower.kernel_pivot(kernel) is Some(_) ||
+      @lower.kernel_analytic(kernel) is Some(_)
+    ) &&
+    !borrowed_window_group &&
+    !borrowed_pivot {
+    return generated_sequence_capacity(generated, limits, measurement)
+  }
+  // The bounded window constructor charges original input cells with its
+  // workspace-funded stepped cursor. Carried output cells are the same
+  // immutable values; only the two numeric boundaries and row containers are
+  // constructed. Keep their complete retained output and operation workspace,
+  // but do not quote an input forest or a canonical measurement body which
+  // this constructor never builds. Presence-bearing inputs keep the generic
+  // recipe because this direct cell reader requires every checked field.
+  let borrowed_window = operation is @lower.WindowStep(_) &&
+    @lower.node_input_count(node) == 1 &&
+    @schema.all_fields_required(schema) &&
+    @lower.node_input_target(node, 0)
+    .bind(target => @lower.preparation_schema_at(prepared, target))
+    .map(@schema.all_fields_required)
+    .unwrap_or(false)
+  if operation is @lower.WindowStep(_) && !borrowed_window {
+    return generated_sequence_capacity(generated, limits, measurement)
+  }
   let binary = operation is @lower.SetStep(_) || operation is @lower.JoinStep(_)
   let mut borrowed_binary = binary &&
     @lower.node_input_count(node) == 2 &&
@@ -381,14 +427,18 @@ pub fn generated_bounded_sequence_capacity(
       borrowed_row ||
       borrowed_binary ||
       borrowed_cross ||
-      borrowed_join,
+      borrowed_join ||
+      borrowed_window ||
+      borrowed_window_group,
     // Append uses the same workspace-funded binary input scan as CROSS JOIN;
     // its constructor receives no physical measurement forest or wire buffer.
     bounded_measurement=borrowed_values ||
       (borrowed_row && !borrowed_group) ||
       operation is @lower.AppendStep(_) ||
       borrowed_cross ||
-      borrowed_join,
+      borrowed_join ||
+      borrowed_window ||
+      borrowed_window_group,
   )
   guard ordinary is Some(ordinary) else { return None }
   // The Values provider does not pass FixedInputGuardMeasureLimits to its
