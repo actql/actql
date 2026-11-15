@@ -27,11 +27,33 @@ test('installed memory pair is detached once before await and survives equal Sav
   const first = localResourceResultReadLimits(moon, actual);
   assert.deepEqual(localResourceResultReadLimits(moon, {...actual}), first);
   assert.equal(first.maxRetainedValueBytes, 67108864);
-  assert.equal(first.maxRowRetainedValueBytes, 1048576);
+  assert.equal(first.maxRowRetainedValueBytes, actual.retainedBytes);
   assert.equal(first.maxBatchRetainedValueBytes, 10485760);
   assert.equal(localResourceResultReadLimits(moon).maxRetainedValueBytes, 536870912);
   assert.deepEqual(calls, [[67108864n,134217728n], [67108864n,134217728n], [undefined,undefined]]);
   assert.equal((await scope.close()).pending, false);
+});
+
+test('row and batch limits retain the finite Common selection independently of wire framing', () => {
+  const original = {};
+  let retained = 64n * 1024n * 1024n;
+  const moon = {
+    clientLocalResourcePolicyOriginal: () => original,
+    clientLocalPreparationResourceLimits(policy) {
+      assert.strictEqual(policy, original);
+      return [1n, 1n, 1n, 65536n, retained, retained];
+    },
+    clientLocalResourcePolicyRowCeiling: () => 20,
+  };
+  const wide = localResourceResultReadLimits(moon);
+  assert.equal(wide.maxRowRetainedValueBytes, 64 * 1024 * 1024);
+  assert.equal(wide.maxRowWireBytes, 65536);
+  assert.equal(wide.maxBatchRetainedValueBytes, 10 * 1024 * 1024);
+  retained = 512n * 1024n;
+  const tight = localResourceResultReadLimits(moon);
+  assert.equal(tight.maxRowRetainedValueBytes, 512 * 1024);
+  assert.equal(tight.maxRowWireBytes, 65536);
+  assert.equal(tight.maxBatchRetainedValueBytes, 512 * 1024);
 });
 
 test('memory snapshot rejects partial and inexact representation without inventing Core positivity rules', () => {
