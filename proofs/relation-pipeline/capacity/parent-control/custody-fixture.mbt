@@ -74,6 +74,9 @@ test "generated serial capacity custody diagnostic" {
     assert_eq(@local_connector.custody_child_start_count(), 3)
     assert_true((operations.execution_stopped)())
     let available = Ref(true)
+    let before_finalization = @resources.ledger_usage(ledger).reserved_execution_bytes
+    assert_eq(before_finalization, execution_capacity)
+    println("ACTQL_CUSTODY_FINALIZATION:before")
     (operations.prepare_finalization)(1, operations.storage_bytes, fn() {
       available.val
     }).unwrap()
@@ -82,6 +85,8 @@ test "generated serial capacity custody diagnostic" {
       finalization_polls += 1
       assert_true(finalization_polls < 1000)
     }
+    let after_finalization = @resources.ledger_usage(ledger).reserved_execution_bytes
+    println("ACTQL_CUSTODY_FINALIZATION:after")
     println("ACTQL_CUSTODY_STAGE:before-success-settlement")
     (operations.settle)().unwrap()
     let before = @resources.ledger_usage(ledger).reserved_execution_bytes
@@ -102,6 +107,10 @@ test "generated serial capacity custody diagnostic" {
     println(
       "ACTQL_CUSTODY:{\"executionCapacity\":" +
       execution_capacity.to_string() +
+      ",\"beforeFinalization\":" +
+      before_finalization.to_string() +
+      ",\"afterFinalization\":" +
+      after_finalization.to_string() +
       ",\"before\":" +
       before.to_string() +
       ",\"after\":" +
