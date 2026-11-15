@@ -323,6 +323,17 @@ const snapshotFinish=`{
   guard live.val && phase.val == Restored && storage_released() &&
     stored.val is None && stream.val is None && receipt.val is None &&
     restored.val is Some(value) else { return Err(Configuration(InvalidLimits)) }
+  guard live.val && !disposed.val && !import_mutating.val &&
+    phase.val == Restored && importing.val is None &&
+    restored.val.map(original => physical_equal(original, value)).unwrap_or(false) &&
+    import_scalar_reusable.val == 0L else { return Err(Execution(Stopped)) }
+  if setup.metered_retention && reload_scalar_text.val is Some(bytes) {
+    guard reload_capacity.val is Some(quoted) && bytes >= 0L &&
+      bytes <= quoted && bytes <= import_extra.val else {
+      return Err(Configuration(InvalidLimits))
+    }
+    import_scalar_reusable.val = bytes
+  }
   ordinary.val = Some(value)
   restored.val = None
   relation_snapshot_cancel.val = None
@@ -434,7 +445,7 @@ export function checkDriverRetirementSource(read) {
     mutation.indexOf('local_managed_input_writes_open('),
     mutation.indexOf('@strategy.charge_task_execution_transfer('),
     mutation.indexOf('local_managed_import_next_extent('),
-    mutation.indexOf('reserve_import(next)'),
+    mutation.indexOf('reserve_import(next,None)'),
     mutation.indexOf(currentBridge),
     mutation.indexOf('copied_rows.val=rows'),
     mutation.indexOf('@execution.append_managed_producer_bridge_wire('),

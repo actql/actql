@@ -51,11 +51,26 @@ for(const [name,anchors,from,to] of [
   ['snapshot cleanup drops pending material reclamation',[snapshotAnchor,'let cleanup_references = fn(quantum : Int)'],
     '!@execution.advance_retained_output_reference_reclamation(','@execution.advance_retained_output_reference_reclamation('],
   ['snapshot finalization releases callback before guard',[snapshotAnchor,'finish: () =>'],
-    'guard live.val &&','relation_snapshot_cancel.val = None\nguard live.val &&'],
+    'guard live.val && phase.val == Restored',
+    'relation_snapshot_cancel.val = None\nguard live.val && phase.val == Restored'],
   ['snapshot finalization omits restored value readiness',[snapshotAnchor,'finish: () =>'],
     'restored.val is Some(value)','true'],
   ['snapshot finalization fails to transfer original output',[snapshotAnchor,'finish: () =>'],
     'ordinary.val = Some(value)','ignore(value)'],
+  ['snapshot finalization accepts disposed owner',[snapshotAnchor,'finish: () =>'],
+    '!disposed.val &&','true &&'],
+  ['snapshot finalization accepts reentrant import',[snapshotAnchor,'finish: () =>'],
+    '!import_mutating.val &&','true &&'],
+  ['snapshot finalization accepts another restored original',[snapshotAnchor,'finish: () =>'],
+    'physical_equal(original, value)','true'],
+  ['snapshot finalization reuses an already transferred scalar',[snapshotAnchor,'finish: () =>'],
+    'import_scalar_reusable.val == 0L','true'],
+  ['snapshot finalization accepts negative scalar bytes',[snapshotAnchor,'finish: () =>'],
+    'bytes >= 0L &&','true &&'],
+  ['snapshot finalization exceeds its original scalar quote',[snapshotAnchor,'finish: () =>'],
+    'bytes <= quoted &&','true &&'],
+  ['snapshot finalization exceeds the actual retained import',[snapshotAnchor,'finish: () =>'],
+    'bytes <= import_extra.val','true'],
   ['successful cleanup fails to detach callback',['cleanup_refresh: fn()'],
     'relation_snapshot_cancel.val = None','ignore(cancel)'],
 ]) test('source rejects '+name,()=>{
@@ -63,7 +78,8 @@ for(const [name,anchors,from,to] of [
   assert.throws(()=>checkDriverRetirementSource(mutated));
 });
 for(const [name,condition] of [
-  ['live','live.val &&'],['restored phase','phase.val == Restored &&'],
+  ['live','guard live.val && phase.val == Restored &&'],
+  ['restored phase','phase.val == Restored && storage_released() &&'],
   ['physical storage release','storage_released() &&'],['stored material','stored.val is None &&'],
   ['stream','stream.val is None &&'],['receipt','receipt.val is None &&'],
 ]) test('source rejects snapshot finalization without '+name,()=>{
