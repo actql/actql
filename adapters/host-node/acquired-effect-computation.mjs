@@ -252,6 +252,12 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       }
       if (keyedCleanup !== undefined &&
           (await keyedCleanup.cleanup() === false || keyedCleanup.cleanupPending() !== false)) return false;
+      // A failed startup can stop before its local runner returns operations.
+      // Closing only completed outputs does not retire that DAG's input
+      // consumers. All physical and component cleanup above acknowledged;
+      // let the SAME parent confirm retirement before any Source can close.
+      if (execution?.status === 'host-tasks-failed' && checked(
+        moon.clientProgramRetireInstalledEffectCapturedConsumers(managedRun)) !== true) return false;
       while (captures.length > 0) {
         await captures[0].close();
         captures.shift();
