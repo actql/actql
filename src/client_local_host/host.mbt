@@ -730,8 +730,8 @@ fn bind_client_local_configuration(
   // estimator still charges actual search work to the original Ledger;
   // selecting its local bound neither reserves nor replenishes that work.
   let offer_work = @resources.ledger_admission_limits(
-    @strategy.captured_dag_ledger(run),
-  ).planning_work
+      @strategy.captured_dag_ledger(run),
+    ).planning_work
   let driver = @host_driver.open_dispatch_driver(run)
   let binding = match captured_effect {
     None => @local_driver.bind_local_dispatch_plan(driver, original.dispatch)

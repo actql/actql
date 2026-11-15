@@ -124,8 +124,10 @@ fn installed_mock_models_compute_limits(
   let mut scan = 0L
   for task in first..<count {
     guard @local_driver.local_dispatch_preparation_input_scan_work(
-        original.dispatch, task,
-      ) is Some(visits) else {
+        original.dispatch,
+        task,
+      )
+      is Some(visits) else {
       return None
     }
     scan = Int64::max(scan, visits.to_int64())
@@ -135,11 +137,7 @@ fn installed_mock_models_compute_limits(
     // nodes/edges; the Local estimator charges its exact ready-input scan
     // and each offer separately before their walks.
     // A revision-limit refusal may do that preflight once more before latching.
-    let revision = n +
-      d +
-      scan +
-      tasks * offer +
-      search
+    let revision = n + d + scan + tasks * offer + search
     n + (client_local_adaptive_revisions.to_int64() + 1L) * revision
   } else {
     scan + tasks * offer + search

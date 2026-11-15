@@ -217,26 +217,32 @@ fn local_publisher_resources_issue_code(
     Domain(issue) => "Domain(" + local_publisher_domain_issue_code(issue) + ")"
     Sqlite(issue) =>
       match issue {
-        Domain(issue) => "Sqlite.Domain(" + local_publisher_domain_issue_code(issue) + ")"
+        Domain(issue) =>
+          "Sqlite.Domain(" + local_publisher_domain_issue_code(issue) + ")"
         Library(issue) =>
-          "Sqlite.Library(" + local_publisher_sqlite_issue_code(issue, depth + 1) + ")"
+          "Sqlite.Library(" +
+          local_publisher_sqlite_issue_code(issue, depth + 1) +
+          ")"
       }
     Read(issue) =>
       match issue {
-        Domain(issue) => "Read.Domain(" + local_publisher_domain_issue_code(issue) + ")"
+        Domain(issue) =>
+          "Read.Domain(" + local_publisher_domain_issue_code(issue) + ")"
         Child(_) => "Read.Child"
         Buffer(_) => "Read.Buffer"
         Read(issue) =>
           "Read.Read(" +
-          match issue {
+          (match issue {
             InvalidBootstrap => "InvalidBootstrap"
             IncompleteInventory => "IncompleteInventory"
             ForeignOrigin => "ForeignOrigin"
             ChangedOriginalState => "ChangedOriginalState"
             SpentClaim => "SpentClaim"
             CleanupPending => "CleanupPending"
-            Resource(issue) => "Resource(" + local_publisher_ledger_issue_code(issue) + ")"
-          } + ")"
+            Resource(issue) =>
+              "Resource(" + local_publisher_ledger_issue_code(issue) + ")"
+          }) +
+          ")"
       }
   }
 }
@@ -248,18 +254,20 @@ fn local_publisher_domain_issue_code(
   match issue {
     Bootstrap(issue) =>
       "Bootstrap(" +
-      match issue {
+      (match issue {
         Unavailable => "Unavailable"
         ForeignOriginal => "ForeignOriginal"
         AlreadyConsumed => "AlreadyConsumed"
         Closing => "Closing"
         ReadersPending => "ReadersPending"
         Physical(code) => "Physical(" + code.to_string() + ")"
-        Resource(issue) => "Resource(" + local_publisher_ledger_issue_code(issue) + ")"
-      } + ")"
+        Resource(issue) =>
+          "Resource(" + local_publisher_ledger_issue_code(issue) + ")"
+      }) +
+      ")"
     Accounting(issue) =>
       "Accounting(" +
-      match issue {
+      (match issue {
         ForeignOriginal => "ForeignOriginal"
         InvalidExtent => "InvalidExtent"
         ExtentConflict => "ExtentConflict"
@@ -271,8 +279,10 @@ fn local_publisher_domain_issue_code(
         ReadUseAlreadyIssued => "ReadUseAlreadyIssued"
         LiveAccessAlreadyIssued => "LiveAccessAlreadyIssued"
         LiveChildAlreadyAdmitted => "LiveChildAlreadyAdmitted"
-        Resource(issue) => "Resource(" + local_publisher_ledger_issue_code(issue) + ")"
-      } + ")"
+        Resource(issue) =>
+          "Resource(" + local_publisher_ledger_issue_code(issue) + ")"
+      }) +
+      ")"
   }
 }
 
