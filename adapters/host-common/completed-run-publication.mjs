@@ -1046,7 +1046,9 @@ async function withCaptureRecoveryResources(resources, consume) {
     // supplies this constructor bound or changes the selected resource budget.
     const extent = {bytes: undefined};
     const beforeRead = bytes => {
-      Reflect.apply(reserve, resources, [bytes]);
+      // Preserve the Store's synchronous-void reservation contract.
+      const result = Reflect.apply(reserve, resources, [bytes]);
+      if (result !== undefined) return result;
       extent.bytes = bytes;
     };
     if (typeof resources.reserveEnvelope === 'function') {

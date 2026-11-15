@@ -133,6 +133,28 @@ test('actual recovery reservation refusal precedes ciphertext allocation and pre
   }
 });
 
+test('funded private inverse preserves the Store refusal of nonvoid reservation callbacks', async t => {
+  const f = await fixture(t), c = captureOptions(f, new Error('unexpected typed admission'), assert.fail);
+  for (const result of [1, Promise.resolve()]) {
+    let reserves = 0, finished = false, primary;
+    await assert.rejects(recoverCompletedEffectfulComputation(c.options, {
+      begin() {},
+      reserve(bytes) {
+        assert.ok(Number.isSafeInteger(bytes) && bytes > 0);
+        reserves++;
+        return result;
+      },
+      reserveEnvelope() {assert.fail('No ciphertext read before synchronous reservation acceptance');},
+      finish(failed, cause) {assert(failed); finished = true; primary = cause;},
+      retainCleanup() {assert.fail('No typed owner before reservation acceptance');},
+    }), error => error === primary && error.code === 'InvalidCompletedEffectfulCaptureRecord' &&
+      error.cause?.code === 'InvalidPublicationPrivateEvidence');
+    assert.equal(reserves, 1);
+    assert(finished);
+    assert.notEqual(await f.store.inspectPhysicalHolding(f.holding), undefined);
+  }
+});
+
 for (const preparedProjection of [false,true]) {
 test('actual decoded capture retains SAME schema cleanup and reservation through failed release'+
   (preparedProjection?' using prepared Source projection':''), async t => {
