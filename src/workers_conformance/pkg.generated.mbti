@@ -140,6 +140,8 @@ pub fn async_strategy_effect_dispatch_key(@logical_request_scope.LogicalRequestS
 
 pub fn async_strategy_effect_dispatch_key_cid(@effect_application.EffectDispatchKey) -> String
 
+pub fn async_strategy_effect_dispatch_key_correlation_wire(@effect_application.EffectDispatchKey) -> String
+
 pub fn async_strategy_effect_free_chain_check_advance(@run_publication.ComputationEvidenceCheck, Int) -> Int
 
 pub fn async_strategy_effect_free_chain_check_cancel(@run_publication.ComputationEvidenceCheck) -> Unit
@@ -1693,6 +1695,8 @@ pub fn strategy_effect_computation_record_holding_cid(@run_publication.Publicati
 pub fn strategy_effect_dispatch_key(@logical_request_scope.LogicalRequestScope, String, String, Int, Int, Int) -> @effect_application.EffectDispatchKey raise NodeHostFailure
 
 pub fn strategy_effect_dispatch_key_cid(@effect_application.EffectDispatchKey) -> String
+
+pub fn strategy_effect_dispatch_key_correlation_wire(@effect_application.EffectDispatchKey) -> String
 
 pub fn strategy_effect_free_chain_check_advance(@run_publication.ComputationEvidenceCheck, Int) -> Int
 

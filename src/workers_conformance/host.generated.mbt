@@ -9131,6 +9131,14 @@ pub fn strategy_effect_dispatch_key(
 }
 
 ///|
+#export_name("strategyEffectDispatchKeyCorrelationWire")
+pub fn strategy_effect_dispatch_key_correlation_wire(
+  key : @effect.EffectDispatchKey,
+) -> String {
+  @effect.effect_dispatch_key_correlation_wire(key)
+}
+
+///|
 #export_name("strategyEffectDispatchKeyCid")
 pub fn strategy_effect_dispatch_key_cid(
   key : @effect.EffectDispatchKey,
@@ -19385,6 +19393,14 @@ pub fn async_strategy_effect_dispatch_key(
     Ok(value) => value
     Err(issue) => raise EffectIdentity(issue)
   }
+}
+
+///|
+#export_name("asyncStrategyEffectDispatchKeyCorrelationWire")
+pub fn async_strategy_effect_dispatch_key_correlation_wire(
+  key : @effect.EffectDispatchKey,
+) -> String {
+  @effect.effect_dispatch_key_correlation_wire(key)
 }
 
 ///|
