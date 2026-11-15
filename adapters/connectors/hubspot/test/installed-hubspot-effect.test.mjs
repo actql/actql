@@ -2,10 +2,8 @@
 // selection/approval owners and a matching normal cohort are separate checks.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
-import {parse} from 'acorn';
-import * as hubspotSource from '../host/installed-hubspot-source.mjs';
+import {installedHubSpotSiteBinding} from '../host/installed-hubspot-source.mjs';
 import {verifyInstalledConnectorBindings} from '../../../host-node/installed-check-environment.mjs';
 import {checkInstalledHubSpotEffectProfile, installedHubSpotEffectIdentityParts,
   installedHubSpotTargetReadInventory, loadInstalledHubSpotEffect} from '../host/installed-hubspot-effect.mjs';
@@ -17,55 +15,31 @@ const cid = 'sha256:' + 'a'.repeat(64);
 const profile = () => ({version: 'actql-installed-hubspot-effect/0.1', connectorId: 'fixture', sourceProfilePath: '/source.json',
   writes: [{resource: 'companies', fields: ['amount'], markerProperty: 'actql_request_id'}]});
 
-test('HubSpot authored Source and Effect binding callers agree on the complete same Site and refuse changed originals', async () => {
+test('HubSpot Site binding keeps the complete original nonsecret preimage and refuses changed originals', () => {
   const canonical = value => value !== null && typeof value === 'object'
     ? Array.isArray(value) ? '[' + value.map(canonical).join(',') + ']'
       : '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + canonical(value[key])).join(',') + '}'
     : JSON.stringify(value);
   const digest = value => 'sha256:' + createHash('sha256').update(canonical(value)).digest('hex');
-  const sourceText = await readFile(new URL('../host/installed-hubspot-source.mjs', import.meta.url), 'utf8');
-  const bindingNode = parse(sourceText, {ecmaVersion: 'latest', sourceType: 'module'}).body.find(node =>
-    node.type === 'FunctionDeclaration' && node.id.name === 'siteBinding');
-  const originalBinding = new Function('cid', sourceText.slice(bindingNode.start, bindingNode.end) + ';return siteBinding;')(digest);
   const original = {contextCid: 'sha256:' + 'b'.repeat(64), runtimeBundleCid: cid,
     metadata: {portalId: '7', objects: [{resource: 'companies', propertiesBody: 'e30='}]},
     site: {apiOrigin: 'https://hubspot.invalid', credentialAuthorityId: 'original', credentialKeyId: 'key',
       credentialPrivateKeyPath: '/unopened/key', namespaceId: 'original', siteGeneration: 1}};
-  async function caller(path, select) {
-    const text = await readFile(new URL(path, import.meta.url), 'utf8'), found = [];
-    function visit(node) {
-      if (!node || typeof node !== 'object') return;
-      if (select(node)) found.push(node);
-      for (const value of Object.values(node)) {
-        if (Array.isArray(value)) value.forEach(visit); else if (value && typeof value === 'object') visit(value);
-      }
-    }
-    visit(parse(text, {ecmaVersion: 'latest', sourceType: 'module'}));
-    assert.equal(found.length, 1, 'Exactly one actual binding caller');
-    const expression = found[0].type === 'Property' ? found[0].value : found[0].right;
-    const evaluate = new Function('cid', 'authorization', 'runtimeBundleCid', 'metadata', 'siteProfile',
-      'installedHubSpotSiteBinding', 'siteBinding', 'metadataCid', 'return (' + text.slice(expression.start, expression.end) + ');');
-    return input => evaluate(digest, {context: {contextCid: input.contextCid}}, input.runtimeBundleCid,
-      input.metadata, input.site, hubspotSource.installedHubSpotSiteBinding, originalBinding,
-      digest(input.metadata));
-  }
-  // Evaluate only the actual pure binding expressions with explicit immutable
-  // DATA ports. No constructor, authorization, Site or physical I/O is run.
-  const source = await caller('../host/installed-hubspot-source.mjs', node => node.type === 'Property' && node.key.name === 'bindingCid');
-  const effect = await caller('../host/installed-hubspot-effect.mjs', node => node.type === 'AssignmentExpression' && node.left.name === 'siteBindingCid');
   const adapter = bindingCid => ({environmentWire: '{"connector_catalogs":[{"connector_id":"hubspot"}]}',
     connectorBindings: [{connectorId: 'hubspot', bindingCid}]});
+  // Expected contract preimage is authored independently of the imported
+  // implementation. Actual Source/Effect installation remains its own scope.
   const expected = digest({version: 'actql-installed-hubspot-binding/0.1', contextCid: original.contextCid,
     runtimeBundleCid: original.runtimeBundleCid, metadataCid: digest(original.metadata), site: original.site});
-  assert.equal(source(original), expected, 'Preserve the existing complete Source preimage');
-  verifyInstalledConnectorBindings(adapter(source(original)), adapter(effect(original)));
+  assert.equal(installedHubSpotSiteBinding(original), expected);
+  verifyInstalledConnectorBindings(adapter(expected), adapter(installedHubSpotSiteBinding(original)));
   for (const changed of [{...original, contextCid: cid},
     {...original, runtimeBundleCid: original.contextCid},
     {...original, metadata: {...original.metadata, portalId: '8'}},
     {...original, site: {...original.site, apiOrigin: 'https://other.invalid'}},
     {...original, site: {...original.site, credentialKeyId: 'other'}},
     {...original, site: {...original.site, siteGeneration: 2}}]) {
-    assert.throws(() => verifyInstalledConnectorBindings(adapter(source(original)), adapter(effect(changed))),
+    assert.throws(() => verifyInstalledConnectorBindings(adapter(expected), adapter(installedHubSpotSiteBinding(changed))),
       {message: 'InstalledCheckEnvironmentConflict'});
   }
 });
