@@ -29075,7 +29075,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -29238,7 +29238,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -29870,7 +29870,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -67136,9 +67136,73 @@
           "async": false
         },
         {
+          "name": "failureData/failureData",
+          "parameters": [
+            "value",
+            "key"
+          ],
+          "async": false
+        },
+        {
           "name": "finishStatus",
           "parameters": [
             "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "interruptedCompletionFailure",
+          "parameters": [
+            "primary",
+            "completion"
+          ],
+          "async": false
+        },
+        {
+          "name": "interruptedCompletionFailure/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "interruptedCompletionFailure/init:retry/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "interruptedCompletionFailure/init:retry/init:retry/init:retry#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "interruptedCompletionFailure/interruptedCompletionFailure",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "interruptedCompletionFailure/interruptedCompletionFailure#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "interruptedCompletionFailure/record/record",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "interruptedCompletionFailure/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "interruptedCompletionFailure/status/status/status",
+          "parameters": [
+            "owner"
           ],
           "async": false
         },
@@ -67238,7 +67302,17 @@
             "currentRunState",
             "effectUnitId",
             "fail/fail",
+            "failureData/failureData",
             "finishStatus",
+            "interruptedCompletionFailure",
+            "interruptedCompletionFailure/init:retry/init:retry",
+            "interruptedCompletionFailure/init:retry/init:retry/init:retry",
+            "interruptedCompletionFailure/init:retry/init:retry/init:retry#2",
+            "interruptedCompletionFailure/interruptedCompletionFailure",
+            "interruptedCompletionFailure/interruptedCompletionFailure#2",
+            "interruptedCompletionFailure/record/record",
+            "interruptedCompletionFailure/status/status",
+            "interruptedCompletionFailure/status/status/status",
             "noEffectRowWasSent",
             "noEffectRowWasSent/noEffectRowWasSent",
             "noEffectRowWasSent/noEffectRowWasSent/noEffectRowWasSent",
@@ -67381,6 +67455,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "function interruptedCompletionFailure(primary, completion)"
               }
             ],
             "cancellation": [
@@ -67477,6 +67555,10 @@
               {
                 "path": "adapters/host-node/effect-partial-refusal.test.mjs",
                 "anchor": "test('failed reference Effect constructor keeps its real token through same cleanup retry'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site-primary-cause.test.mjs",
+                "anchor": "primaryFailure"
               }
             ]
           }
@@ -129096,7 +129178,7 @@
       "sha256": "0f21a15f4e54ee8d1535938be8ea3e9518bfe52745f976d2aa29cc6d366bcf8c",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -130321,7 +130403,7 @@
       "sha256": "a986599d7066f62edb2f8a22b90f718bce55a0433fddcc98e4100f3b8b6203a6",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "fundedEffectModelGroupCount",
@@ -131623,7 +131705,7 @@
       "sha256": "2e9af9a7b14412e5530980737467614bf9c89f0f256a7560b83709ab8b8454e3",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledPublishedSourceInitialization",
@@ -139072,7 +139154,7 @@
       "unresolvedSyntax": [],
       "role": "common-semantics",
       "responsibilityFacet": "primary",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -139470,7 +139552,7 @@
       "unresolvedSyntax": [],
       "role": "common-semantics",
       "responsibilityFacet": "primary",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -140201,7 +140283,7 @@
       "unresolvedSyntax": [],
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
