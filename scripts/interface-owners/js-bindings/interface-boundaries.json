@@ -23965,6 +23965,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "prepareGenericEffectKeyedLookupSourceMetadata(parent, lookup, captures, sources, selection, limits) {"
+              },
+              {
+                "path": "adapters/host-node/keyed-cached-inventory-option.test.mjs",
+                "anchor": "test('keyed Source borrows the actual boxed Some inventory"
               }
             ],
             "identity": [
@@ -23983,6 +23987,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "prepareGenericEffectKeyedLookupSourceMetadata(parent, lookup, captures, sources, selection, limits) {"
+              },
+              {
+                "path": "adapters/host-node/keyed-cached-inventory-option.test.mjs",
+                "anchor": "test('keyed Source preserves original Core refusal"
               }
             ],
             "ownership": [
@@ -24037,6 +24045,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "prepareGenericEffectKeyedLookupSourceMetadata(parent, lookup, captures, sources, selection, limits) {"
+              },
+              {
+                "path": "adapters/host-node/keyed-cached-inventory-option.test.mjs",
+                "anchor": "test('keyed Source rejects None malformed Some"
               }
             ],
             "cancellation": [
@@ -24109,6 +24121,10 @@
               {
                 "path": "adapters/host-common/keyed-effect-definition-original.test.mjs",
                 "anchor": "test('keyed invocation unwraps the same original checked Definition view and preserves the Core refusal'"
+              },
+              {
+                "path": "adapters/host-node/keyed-cached-inventory-option.test.mjs",
+                "anchor": "test('keyed Source borrows the actual boxed Some inventory"
               }
             ]
           }
@@ -33577,7 +33593,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "eb91674b244ccc4f4a332e197b563fefdc94a52e53ed3024331db7102b4faacb"
+      "sha256": "25b61c2603d8568417369b338638c7a3c0ec8491fa7f8f414dcf830e04a8e34e"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
