@@ -14,7 +14,7 @@ import {createLocalFileStoreDriver,LOCAL_STORE_LIMITS} from './installed-project
 
 const cid=digit=>'sha256:'+digit.repeat(64);
 const wire=value=>canonicalJson(value,{dataKeys:true});
-function fixture(runBounds={},countLimits=LOCAL_STORE_LIMITS){
+function fixture(runBounds={},countLimits=LOCAL_STORE_LIMITS,installation={}){
   const run=Object.freeze({}),binding=Object.freeze({});
   const resource=Object.freeze({$actql_ref:'resource',version:'actql-resource-ref/0.1',
     provider_namespace:'local',resource_kind:'file_collection',provider_identity_cid:cid('a'),
@@ -33,8 +33,8 @@ function fixture(runBounds={},countLimits=LOCAL_STORE_LIMITS){
     .map(name=>[name,()=>{nativeCalls++;assert.fail('No native use before approved send');}])));
   const borrowed=Object.freeze({binding,current:()=>live,wire:()=>wire(content)});
   const contentOwner=Object.freeze({consumeContent(){assert.fail('No byte read before approved send');}});
-  const {driver,site}=createLocalFileStoreDriver({entry:{connection:'local',rootPath:'/original/root',
-    limits:{maxPathBytes:1024}},target:{resourceWire:wire(resource)},command,bindingCid:cid('1'),
+  const {driver,site}=createLocalFileStoreDriver({entry:{connection:'local',rootPath:installation.rootPath??'/original/root',
+    limits:{maxPathBytes:1024}},target:{resourceWire:wire(resource)},command,bindingCid:installation.bindingCid??cid('1'),
     principalId:'reader',authorization:{configurationCid:cid('2')},assertCurrent(){},
     resources:{assertCurrent(original){assert.strictEqual(original,run);},limits(original){
       assert.strictEqual(original,run);return retainedLimits;}},limits,nativeFilesystem});
@@ -60,6 +60,58 @@ test('Local STORE retains original Content borrower and exact input before appro
   assert.equal(await child.release(),true);assert.equal(child.status().pending,false);
   assert.throws(()=>f.driver.requestFacts(prepared.request),{code:'ForeignLocalStoreRequest'});
   await f.site.close();assert.equal(f.nativeCalls(),0);
+});
+
+test('Local STORE proves distinct portable targets from every retained request and preserves recovery footprint',async()=>{
+  const f=fixture(),children=[],entries=[];
+  try{
+    for(let index=0;index<17;index++){
+      const child=f.prepare({value:{...f.value,path:`nested/Member-${String(index).padStart(2,'0')}.jsonl`}});
+      children.push(child);entries.push(child.prepare());
+    }
+    const footprint=f.driver.footprint({member:f.member,entries});
+    assert.equal(footprint.kind,'exact_targets');
+    assert.equal(footprint.provider_namespace,'local');
+    const expected=Array.from({length:17},(_,index)=>'sha256:'+createHash('sha256')
+      .update(`{"basename":"member-${String(index).padStart(2,'0')}.jsonl"}`).digest('hex'));
+    assert.deepEqual(footprint.provider_object_identity_cids,expected);
+    const saved=f.driver.recoveryEntry({entries});
+    const restored=f.driver.recoverRequests({runOriginal:f.run,members:[f.member],
+      body:{effects:[{changes:entries.map(()=>({}))}]},
+      durable:{connectorRecovery:[{memberIndex:0,...saved}]},runInvocationCid:cid('3'),dispatches:[cid('4')]});
+    assert.deepEqual(f.driver.footprint({member:f.member,entries:restored.requests[0].map(request=>({request}))}),footprint);
+    assert.equal(f.nativeCalls(),0);
+  }finally{for(const child of children)await child.release();await f.site.close();}
+});
+
+test('Local STORE conflict domains cannot manufacture independence with root or installation aliases',async()=>{
+  const f=fixture(),other=fixture({},LOCAL_STORE_LIMITS,{rootPath:'/aliased/root',bindingCid:cid('9')});
+  const children=[];
+  try{
+    const capture=(owner,path)=>{
+      const child=owner.prepare({value:{...owner.value,path}});children.push(child);
+      return owner.driver.footprint({member:owner.member,entries:[child.prepare()]});
+    };
+    const upper=capture(f,'dir/OUT.jsonl'),lower=capture(other,'other/out.jsonl');
+    assert.equal(upper.provider_boundary_cid,lower.provider_boundary_cid);
+    assert.equal(upper.resource_identity_scheme_cid,lower.resource_identity_scheme_cid);
+    assert.deepEqual(upper.provider_object_identity_cids,lower.provider_object_identity_cids);
+    for(const name of ['é.jsonl','e\u0301.jsonl','out.','OUT~1.JSON','out:alias','.actql-store-stage']){
+      const opaque=capture(other,name);
+      assert.equal(opaque.kind,'opaque');
+      assert.equal(opaque.provider_boundary_cid,upper.provider_boundary_cid);
+      assert.deepEqual(opaque.provider_object_identity_cids,[]);
+    }
+    const duplicate=[];
+    for(const path of ['one/out.jsonl','two/OUT.jsonl']){
+      const child=f.prepare({value:{...f.value,path}});children.push(child);duplicate.push(child.prepare());
+    }
+    assert.equal(f.driver.footprint({member:f.member,entries:duplicate}).kind,'opaque');
+    assert.throws(()=>other.driver.footprint({member:other.member,entries:duplicate}),{code:'ForeignLocalStoreRequest'});
+    await children[0].release();
+    assert.throws(()=>f.driver.footprint({member:f.member,entries:[{request:{}}]}),{code:'ForeignLocalStoreRequest'});
+    assert.equal(f.nativeCalls()+other.nativeCalls(),0);
+  }finally{for(const child of children)await child.release();await f.site.close();await other.site.close();}
 });
 
 test('Local STORE retained inventory reconstructs 101 rows across 17 definitions before any send',async()=>{

@@ -28,6 +28,13 @@ const synchronous=value=>{
     fail('InvalidLocalStoreCurrentFence');
   }
 };
+// Provider-owned conflict domains, consumed through the ordinary footprint
+// interface. A root spelling or Account binding must not hide an aliased
+// directory. Basenames deliberately overapproximate targets across all roots.
+const fileFootprintBoundary=cid({provider_namespace:'local',resource_kind:'file',
+  boundary:'filesystem-directory-entries'});
+const fileFootprintScheme=cid({provider_namespace:'local',resource_kind:'file',
+  identity:'portable-ascii-basename-casefolded'});
 const declarationLimits=Object.freeze({maxBytes:131072,maxNodes:16384,maxDepth:64});
 export const LOCAL_STORE_LIMITS=Object.freeze({maxRows:100,maxRequestBytes:100000,
   maxResponseBytes:65536,maxEffects:16});
@@ -275,7 +282,32 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
           fail('OriginalEffectContentUnavailable');
       }
     },
-    footprint:()=>({providerNamespace:'local',resourceKind:'file_collection',boundaryCid:bindingCid}),
+    footprint({member,entries}){
+      memberCurrent(member);
+      const targets=[],seen=new Set();
+      let exact=true;
+      for(const {request} of entries){
+        const {record}=own(request),path=record.value.path;
+        const basename=path.slice(path.lastIndexOf('/')+1).toLowerCase();
+        // Without a filesystem equivalence witness, Unicode names, short-name
+        // aliases and the private staging namespace remain opaque. A fallback
+        // keeps the same GLOBAL boundary; it cannot bypass another member.
+        if(!/^[a-z0-9](?:[a-z0-9._-]*[a-z0-9_-])?$/u.test(basename)||
+            /[^\x00-\x7f]/u.test(path.slice(path.lastIndexOf('/')+1))||
+            basename.startsWith('.actql-store-')){
+          exact=false;continue;
+        }
+        const targetCid=cid({basename});
+        // One opaque member was already admitted. Keep that behavior when
+        // this conservative domain cannot distinguish two of its own paths.
+        if(seen.has(targetCid))exact=false;
+        seen.add(targetCid);targets.push(targetCid);
+      }
+      return{kind:exact?'exact_targets':'opaque',provider_namespace:'local',
+        resource_kind:'file_collection',provider_boundary_cid:fileFootprintBoundary,
+        resource_identity_scheme_cid:fileFootprintScheme,
+        provider_object_identity_cids:exact?targets:[]};
+    },
     recoveryEntry({entries}){
       // Preserve admission of every original request before encoding any row.
       // These are the same immutable records, not reconstructed Content grants.
