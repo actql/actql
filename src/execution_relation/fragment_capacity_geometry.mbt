@@ -282,12 +282,26 @@ fn bounded_leaf_fragment_capacity(
   } else {
     None
   }
+  // The bounded COUNT constructor can evaluate a checked scalar NULL argument
+  // without building a value forest. Reuse the SAME Fragment's complete typed
+  // node table, including the CAST child; no result sample establishes this
+  // bound. Logical evaluation, traversal and workspace remain unchanged.
+  let count_nodes = if bounded_number_group_borrows_input(kernel) &&
+    @lower.kernel_group(kernel) is Some(_) {
+    primitive_nodes
+  } else {
+    None
+  }
   let count = match bindings {
     Some(value) => @lower.bindings_count(value)
     None =>
       match predicate_nodes {
         Some(nodes) => nodes
-        None => return None
+        None =>
+          match count_nodes {
+            Some(nodes) => nodes
+            None => return None
+          }
       }
   }
   let ordered = bindings.map(@lower.bindings_ordered).unwrap_or(false)

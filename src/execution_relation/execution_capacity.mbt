@@ -132,7 +132,6 @@ pub fn bounded_number_group_borrows_input(
   }
   guard @lower.kernel_group(kernel) is Some(group) &&
     !@lower.group_is_window(group) &&
-    !bounded_group_dynamic(group) &&
     @lower.group_aggregate_count(group) > 0 else {
     return false
   }
@@ -143,7 +142,8 @@ pub fn bounded_number_group_borrows_input(
   }
   for index in 0..<@lower.group_aggregate_count(group) {
     let aggregate = @lower.group_aggregate_at(group, index).unwrap()
-    guard @lower.group_aggregate_distinct(aggregate) != Some(true) &&
+    guard @lower.group_aggregate_filter(aggregate) is None &&
+      @lower.group_aggregate_distinct(aggregate) != Some(true) &&
       @lower.group_aggregate_order_count(aggregate) == 0 &&
       @lower.group_aggregate_result(aggregate).shape is @contract.Number else {
       return false
@@ -163,6 +163,21 @@ pub fn bounded_number_group_borrows_input(
       // constructing a value forest. COUNT(field) has a distinct NULL rule
       // and keeps its original recipe; no argument is erased by this proof.
       (@relation.Count, @lower.AggregateRows) => ()
+      (@relation.Count, @lower.AggregateExpression(expression)) => {
+        // A typed NULL, including its checked scalar CAST, constructs no
+        // input forest. The actual expression still runs with its original
+        // Fragment context, NULL rule and logical/physical guards.
+        match @lower.expression_contract(expression).shape {
+          @contract.Number | @contract.Boolean => ()
+          _ => return false
+        }
+        match @lower.expression_body(expression) {
+          @lower.TypedNull => ()
+          @lower.Cast(child) if @lower.expression_body(child)
+            is @lower.TypedNull => ()
+          _ => return false
+        }
+      }
       _ => return false
     }
   }

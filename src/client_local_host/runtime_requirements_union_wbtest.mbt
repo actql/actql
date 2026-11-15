@@ -236,3 +236,11 @@ test "ordinary direct Number groups retain empty and NULL aggregate semantics" {
     ])
   }
 }
+
+///|
+test "ordinary COUNT identities retain anonymous UNION and PIVOT rows within the original budget" {
+  runtime_number_group_case(
+    "(SELECT COUNT(*) AS sales, COUNT(CAST(NULL AS FLOAT64)) AS other, 'Q1' AS quarter UNION ALL SELECT COUNT(*), COUNT(CAST(NULL AS FLOAT64)), 'Q2') |> PIVOT(MAX(sales) FOR quarter IN ('Q2' AS second,'Q1' AS first))",
+    [@json.parse("{\"other\":0,\"second\":1,\"first\":1}")],
+  )
+}
