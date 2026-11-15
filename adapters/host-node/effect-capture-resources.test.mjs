@@ -7,7 +7,8 @@ import {prepareEffectCaptureResources} from './effect-capture-resources.mjs';
 // phase results are explicit ports, not a matching Common or quota proof.
 const ok = value => ({$tag:1, _0:value});
 function fixture({live = false, beginFailure, reserveFailure, retireFailure,
-  retirementCurrent = false, complete, begin, decodedFailure, admitFailure} = {}) {
+  retirementCurrent = false, complete, begin, decodedFailure, admitFailure,
+  preparedAvailable = true} = {}) {
   const events = [], request = {}, definition = {}, parent = {}, policy = {}, value = {};
   let view, admission, originalInput, retired = 0, failRetire = retireFailure, stopped = false;
   const stop = () => {
@@ -66,7 +67,7 @@ function fixture({live = false, beginFailure, reserveFailure, retireFailure,
       begin?.(); return ok(undefined);
     },
     clientProgramInstalledEffectCapturePreparedAvailable(actual) {
-      assert.equal(actual, value); return true;
+      assert.equal(actual, value); return preparedAvailable;
     },
     clientProgramReserveInstalledEffectCaptureRecovery(actual, bytes) {
       assert.equal(actual, value); events.push(['live-grow', bytes]);
@@ -95,6 +96,13 @@ function fixture({live = false, beginFailure, reserveFailure, retireFailure,
   const managed = live ? {value:{}, prepared:{}, request, definitionOriginal:{definition:{}}} : undefined;
   const captured = Object.freeze({name:'captured_run', wire:'original captured'});
   const control = {
+    admit(name, wire, selected) {
+      assert.equal(this, control); assert.equal(name, 'captured_run');
+      assert.equal(wire, captured.wire); assert.deepEqual(selected, limits);
+      events.push('ordinary-admit');
+      if (admitFailure !== undefined) throw admitFailure;
+      return captured;
+    },
     admitLiveEffectCapturedRun(actual, wire) {
       assert.equal(actual, value); assert.equal(wire, captured.wire);
       events.push('live-admit'); return captured;
@@ -181,6 +189,39 @@ test('captured inverse re-enters the SAME Read before validation and cuts only a
   assert.equal(await view.close(), true);
   assert.throws(() => view.constructCaptured(f.captured, receiver, () => {}, argument),
     {code:'EffectCaptureResourceUnavailable'});
+});
+
+test('ordinary cold capture admission binds its exact returned original to the SAME Read', async () => {
+  const f = fixture({live:true, preparedAvailable:false}), view = f.open();
+  view.begin(); view.reserve(123); view.reserveDecoded('{"original":true}');
+  const captured = view.admitCapturedRun(f.captured.wire);
+  assert.strictEqual(captured, f.captured);
+  assert.equal(f.events.filter(value => value === 'ordinary-admit').length, 1);
+  assert.equal(f.events.includes('live-admit'), false);
+  view.finish(false);
+  const result = {};
+  assert.strictEqual(view.constructCaptured(captured, undefined, () => {
+    assert.equal(view.status().busy, true); return result;
+  }, {}), result);
+  assert.equal(f.events.filter(value => value === 'ordinary-admit').length, 1);
+  assert.throws(() => view.constructCaptured({...captured}, undefined, () => {}, {}),
+    {code:'EffectCaptureResourceUnavailable'});
+  assert.equal(await view.close(), true);
+  assert.equal(f.events.includes('cold-retire-data'), false);
+  assert.equal(f.events.filter(value => value === 'live-retire').length, 1);
+  assert.equal(await view.close(), true);
+});
+
+test('ordinary cold admission failure keeps its original primary and does not retire a nonexistent prepared token', async () => {
+  const primary = new Error('original ordinary admission failure');
+  const f = fixture({live:true, preparedAvailable:false, admitFailure:primary}), view = f.open();
+  view.begin(); view.reserve(123); view.reserveDecoded('{"original":true}');
+  assert.throws(() => view.admitCapturedRun(f.captured.wire), error => error === primary);
+  view.finish(true, primary);
+  assert.equal(await view.close(), true);
+  assert.equal(f.events.filter(value => value === 'ordinary-admit').length, 1);
+  assert.equal(f.events.includes('cold-retire-data'), false);
+  assert.equal(f.events.filter(value => value === 'live-retire').length, 1);
 });
 
 test('captured inverse failure preserves its original child and does not cut a failed constructor', async () => {

@@ -118,7 +118,9 @@ fn request_effect_capture_recovery_capacity(
       // spare decode workspace for these still-live fixed control cells.
       record_headers: work.record_headers + 12L,
       reference_slots: work.reference_slots + 23L,
-      scalar_words: work.scalar_words + 12L,
+      // The same Read distinguishes its prepared-token retirement from the
+      // ordinary admitted capture's alias release with one retained Bool.
+      scalar_words: work.scalar_words + 13L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })

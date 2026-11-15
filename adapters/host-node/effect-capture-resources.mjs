@@ -80,8 +80,10 @@ function recoveryView(state) {
         state.resultCleanup = undefined;
       }
       if (state.capturedRun !== undefined) {
-        Reflect.apply(state.retireCaptured, state.control, [state.capturedRun]);
-        state.capturedRun = state.retireCaptured = undefined;
+        if (state.capturedPrepared) {
+          Reflect.apply(state.retireCaptured, state.control, [state.capturedRun]);
+        }
+        state.capturedRun = state.capturedPrepared = state.retireCaptured = undefined;
       }
       // Only after actual original child cleanup. Clear the variable aliases
       // before returning capacity: the original return may consume then fail.
@@ -143,18 +145,24 @@ function recoveryView(state) {
       finally {state.preparing = false;}
     },
     admitCapturedRun(wire) {
-      if (state.live && (typeof state.context.runtime.clientProgramInstalledEffectCapturePreparedAvailable !== 'function' ||
-          !state.context.runtime.clientProgramInstalledEffectCapturePreparedAvailable(state.value))) return undefined;
       if (typeof wire !== 'string' || !state.busy || state.closing || state.closed || state.preparing) {
         fail('EffectCaptureResourceUnavailable');
       }
       state.preparing = true;
       try {
-        const captured = state.live ? state.control.admitLiveEffectCapturedRun(state.value, wire)
-          : Reflect.apply(state.admitCaptured, state.control,
-            [state.parent, state.input, state.request, state.runDefinition, wire, state.limits]);
+        const prepared = !state.live ||
+          typeof state.context.runtime.clientProgramInstalledEffectCapturePreparedAvailable === 'function' &&
+          state.context.runtime.clientProgramInstalledEffectCapturePreparedAvailable(state.value);
+        // When this process has no fresh prepared inventory, Common already
+        // selects this ordinary admission. Perform that SAME one admission
+        // here so its returned original stays bound to the funded Read too.
+        const captured = !prepared ? state.control.admit('captured_run', wire, state.limits)
+          : state.live ? state.control.admitLiveEffectCapturedRun(state.value, wire)
+            : Reflect.apply(state.admitCaptured, state.control,
+              [state.parent, state.input, state.request, state.runDefinition, wire, state.limits]);
         if (state.capturedRun !== undefined && state.capturedRun !== captured) fail('EffectCaptureResourceUnavailable');
         state.capturedRun = captured;
+        state.capturedPrepared = prepared;
         if (state.closing || state.closed) fail('EffectCaptureResourceUnavailable');
         return captured;
       } catch (cause) {captureFailure(state, cause); throw cause;}
