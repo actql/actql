@@ -89,14 +89,19 @@ test "original few long Values retain their complete text working demand" {
   assert_eq(plan.execution.rows.output_values.max_text_bytes, text)
   assert_true(plan.measurement.max_bytes >= wire)
   assert_true(plan.imports.wire.max_bytes >= wire)
-  assert_true(plan.imports.row.max_bytes >= Int::min(wire, 16777216))
-  assert_true(plan.imports.row.max_bytes <= 16777216)
+  // The complete logical row uses its selected finite wire/measurement
+  // bounds; the independent physical batch window still stays below16MiB.
+  let actual_row_wire_bytes = 524288 + "{\"id\":0,\"text\":\"\"}".length()
+  assert_true(plan.imports.row.max_bytes >= actual_row_wire_bytes)
+  assert_true(plan.imports.row.max_bytes <= plan.imports.wire.max_bytes)
   assert_true(plan.imports.row.max_text_bytes >= text)
   assert_true(plan.imports.max_batch_bytes >= Int::min(wire, 16777216))
   assert_true(plan.exports.wire.max_bytes >= wire)
   assert_true(plan.exports.max_batch_bytes >= Int::min(wire, 16777216))
   assert_true(plan.exports.max_batch_bytes <= 16777216)
-  assert_eq(plan.max_value_bytes, Int::max(10000, Int::min(wire, 16777216)))
+  assert_true(plan.max_value_bytes >= actual_row_wire_bytes)
+  assert_true(plan.max_value_bytes <= plan.imports.row.max_bytes)
+  assert_true(plan.max_value_bytes <= plan.measurement.max_bytes)
   assert_true(
     client_local_original_values_text_bound(
       plan.sequences,
@@ -190,8 +195,6 @@ test "original few long Values retain their complete text working demand" {
               ControlWorkLimit(_) => "OriginalValuesExecution:ControlWorkLimit"
               Preparation(_) => "OriginalValuesExecution:Preparation"
               Dispatch(_) => "OriginalValuesExecution:Dispatch"
-              ExecutionCapacityRefusal(_, _, _, _) =>
-                "OriginalValuesExecution:ExecutionCapacityRefusal"
               Execution(cause) =>
                 match cause {
                   Compute(_) => "OriginalValuesExecution:Compute"
