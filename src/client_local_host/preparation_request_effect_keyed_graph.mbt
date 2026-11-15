@@ -58,6 +58,7 @@ pub fn[I] prepare_request_effect_keyed_plan(
         @execution.compose_preparation_representation([
           storage,
           @publication_host.client_effect_allowed_keyed_run_construction_inventory(),
+          keyed_initial_definition_view_representation(),
           // Node's compact nominal token (1H1R), its existing WeakMap entry
           // (1H3R1W), and immutable selected tuple (1H5R). Two existing
           // Request/Run fields borrow those exact selected originals. The actual
@@ -232,4 +233,20 @@ fn effect_keyed_graph_construction_cost(
     return None
   }
   @execution.preparation_representation_cost(peak)
+}
+
+///|
+// The selected Node preparation borrows the SAME initial checked Definition
+// through the existing publication-control view before compiled/Plan binding.
+// Four records coexist: admission view H1R1, contract view H1R4, three bound
+// scalars H1W3, return pair H1R2; three existing WeakMap entries each H1R3W1.
+// Wire/name/CID strings remain borrowed; no parser or new admission is funded.
+fn keyed_initial_definition_view_representation() -> @execution.PreparationRepresentationUnits {
+  {
+    record_headers: 7L,
+    reference_slots: 16L,
+    scalar_words: 6L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
 }

@@ -2,6 +2,7 @@
 // admission. A matching numeric quote, restored DATA or another original cannot
 // replace it. This owns no provider work, permission or physical cleanup ACK.
 import {types} from 'node:util';
+import {localContractLimits} from './local-values-plan.mjs';
 import {inferOriginalReadStartupCapacity} from './infer-original-installation.mjs';
 import {prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
 import {selectAcquiredEffectPlanInputs} from './acquired-effect-sources.mjs';
@@ -70,13 +71,22 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
       if (acquisition !== undefined) {
         if (typeof manager.prepareEffectKeyedPlan !== 'function' ||
             typeof publicationControl?.adoptCheckedClientEffectKeyedRun !== 'function' ||
+            typeof publicationControl?.originalCheckedClientEffectPublication !== 'function' ||
             fields.runDefinition?.value === undefined) fail('InstalledEffectKeyedRuntimeUnavailable');
         const graph = manager.prepareEffectKeyedPlan(prepared, requestInput, acquisition,
           sourceProfile?.fileReadDeclarations);
+        // The graph's original Request quote funds this existing view before
+        // construction. Keep the same INITIAL Definition as the captured Run;
+        // the Journal's separately admitted wrapper is full-byte DATA only.
+        const original = publicationControl.originalCheckedClientEffectPublication(
+          facts.allowed, facts.definition, localContractLimits);
+        const definition = original.runDefinition;
+        if (definition.identity !== fields.runDefinition.value.identity ||
+            definition.wire !== fields.runDefinition.value.wire) fail('ForeignInstalledEffectManagedRun');
         const compiled = publicationControl.adoptCheckedClientEffectKeyedRun(
-          facts.allowed, fields.runDefinition.value, graph);
+          facts.allowed, definition, graph);
         run.keyedPreparation = Object.freeze({graph, acquisition, compiled, requestIdentity: request,
-          compilation: facts.compilation, runDefinition: fields.runDefinition.value});
+          compilation: facts.compilation, runDefinition: definition});
       }
     }
     if (model !== undefined) {

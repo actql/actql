@@ -130449,7 +130449,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect-managed-run.mjs",
-      "sha256": "a986599d7066f62edb2f8a22b90f718bce55a0433fddcc98e4100f3b8b6203a6",
+      "sha256": "ecaf8e3fb2a64f2b0cdafefb84d2c9d897b2531757cb475ebc5a31f0ce75189a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -130800,6 +130800,7 @@
         "./infer-operation.mjs",
         "./infer-original-installation.mjs",
         "./installed-effect-plan.mjs",
+        "./local-values-plan.mjs",
         "node:util"
       ],
       "compilerFields": [],
@@ -131066,6 +131067,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_keyed_graph.mbt",
+                "anchor": "fn keyed_initial_definition_view_representation()"
               }
             ],
             "extension": [
@@ -131142,6 +131147,10 @@
               {
                 "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
                 "anchor": "Effect Model publication requests its same original input body read without another preparation"
+              },
+              {
+                "path": "adapters/host-node/keyed-initial-definition.test.mjs",
+                "anchor": "test('initial keyed preparation projects its same checked Definition after the original graph quote'"
               }
             ]
           }
