@@ -1,4 +1,116 @@
 ///|
+// The planned issuer receives already admitted snapshots and dependency DATA.
+// Its canonical material borrows those subtrees, then measures/hashes/emits the
+// complete capture. Only optional plan wires still construct a parsed value.
+// Quantities are taken from this exact plan/Preview/inventory inside the same
+// scoped Work segment; they select no policy and issue no authority.
+fn installed_effect_capture_constructor_capacity(
+  plan : @publication.CapturedRunConstructionPlan,
+  dependencies : Int,
+  sources : Int,
+  local_sources : Int,
+  advances : Int,
+  members : Int,
+  generations : Int,
+  plan_wires : Array[String],
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  work : (Int) -> Bool,
+) -> @execution.ExecutionCapacity? {
+  if dependencies < 0 || sources < 0 || local_sources < 0 || advances < 0 ||
+    members < 0 || generations < 0 {
+    return None
+  }
+  guard @publication.capture_construction_layout_facts(plan)
+    is Some((bytes, all_nodes, depth, nodes, results, fields, max_fields, models)) &&
+    publication_capture_constructor_layout(
+      bytes, nodes, depth, results, fields, max_fields, models,
+      row_key_nodes=all_nodes - nodes,
+      effect_members=members,
+    ) is Some(layout) &&
+    @execution.preparation_execution_capacity({
+      retained: layout.retained,
+      workspace: layout.temporary,
+      retained_nodes: 0L, workspace_nodes: 0L,
+      retained_bytes: 0L, workspace_bytes: 0L,
+    }) is Some(base) else {
+    return None
+  }
+  let d = dependencies.to_int64()
+  let s = sources.to_int64()
+  let l = local_sources.to_int64()
+  let a = advances.to_int64()
+  let m = members.to_int64()
+  let g = generations.to_int64()
+  let p = plan_wires.length().to_int64()
+  guard @shape.collection_construction_extent({
+      // DI entry: Object/Frozen + three field tuples + cid/kind variants;
+      // its body is borrowed. Effect member: empty Object/Frozen + map pair.
+      // Source maps: artifact pair + holding pair/String; local pair only.
+      // Logical plan: pair/String; admitted plan map: one pair.
+      // Content generation: Object/Frozen + five borrowed-child field pairs.
+      records: 7L * d + 5L * m + 3L * s + l + 4L * p + 7L * g + 4L,
+      record_references: 10L * d + 5L * m + 5L * s + 2L * l + 7L * p +
+        12L * g + 8L,
+      record_words: 3L * d + 3L * m + s + p + g + 8L,
+      // DI outer/entry fields, Effect map, logical CID/plan maps,
+      // Source maps and sorted Source copies, advance/generation arrays.
+      reference_arrays: d + g + 12L,
+      reference_items: 4L * d + 2L * m + 3L * s + 2L * l + a + 2L * p + 6L * g,
+      scalar_arrays: 0L, scalar_items: 0L,
+      maps: 0L, map_entries: 0L,
+    }) is Some(metadata) &&
+    @shape.collection_construction_extent({
+      // Actual preview-member and seen-plan maps used while admitting plans.
+      records: 4L, record_references: 8L, record_words: 4L,
+      reference_arrays: 0L, reference_items: 0L,
+      scalar_arrays: 0L, scalar_items: 0L,
+      maps: 2L, map_entries: m + p,
+    }) is Some(index) &&
+    closed_values_sort_scratch_layout(
+      Int::max(1, Int::max(sources, Int::max(local_sources, plan_wires.length()))),
+    ) is Some(sort) &&
+    @execution.preparation_execution_capacity({
+      retained: {
+        record_headers: metadata.record_headers,
+        reference_slots: metadata.reference_slots,
+        scalar_words: metadata.scalar_words,
+        owned_utf16_units: 0L, owned_wire_bytes: 0L,
+      },
+      workspace: {
+        record_headers: index.record_headers + sort.record_headers,
+        reference_slots: index.reference_slots + sort.reference_slots,
+        scalar_words: index.scalar_words + sort.scalar_words,
+        owned_utf16_units: 0L, owned_wire_bytes: 0L,
+      },
+      retained_nodes: 0L, workspace_nodes: 0L,
+      retained_bytes: 0L, workspace_bytes: 0L,
+    }) is Some(wrappers) else {
+    return None
+  }
+  let mut body = base
+  for wire in plan_wires {
+    guard installed_effect_dependency_wire_geometry(
+        wire, max_bytes, max_nodes, max_depth, work,
+      ) is Some(geometry) &&
+      installed_effect_dependency_wire_capacity(
+        geometry, max_bytes, max_nodes, max_depth,
+      ) is Some(parsed) &&
+      standard_create_sum_capacities([body, parsed], sequential_workspace=true)
+      is Some(next) else {
+      return None
+    }
+    // Parsed plan values coexist in the context. Each parser and the later
+    // context/hash/text constructor run sequentially; their workspace is MAX.
+    body = next
+  }
+  // The maps/sort/control workspace is conservatively coheld with that peak.
+  // Existing snapshot/body/wire holdings remain on the original prefix.
+  standard_create_sum_capacities([body, wrappers], sequential_workspace=false)
+}
+
+///|
 // Same original definition/invocation must select the capture before Host
 // maps or copied nominal inventories are constructed. Slots price only actual
 // reference holders; they are neither entry authority nor a byte/count grant.
@@ -136,7 +248,7 @@ pub fn begin_installed_effect_dependency_capture(
     return Err(ForeignOriginal)
   }
   let refused : Ref[@resources.LedgerIssue?] = Ref(None)
-  let capture_plan = match
+  let (capture_plan, capacity) = match
     with_installed_effect_dependency_work(
       control,
       admission,
@@ -176,7 +288,31 @@ pub fn begin_installed_effect_dependency_capture(
             plan_wires, inventory, geometry, content_generations, max_body_bytes,
             max_body_nodes, max_body_depth, work,
           ) {
-          Some(value) => Ok(value)
+          Some(value) => {
+            guard installed_effect_capture_constructor_capacity(
+                value,
+                @publication.captured_effect_dependency_inventory_count(inventory),
+                sources.length(),
+                local_sources.length(),
+                advances.length(),
+                @publication.effect_preview_member_count(preview),
+                content_generations.length(),
+                plan_wires,
+                max_body_bytes,
+                max_body_nodes,
+                max_body_depth,
+                work,
+              )
+              is Some(capacity) else {
+              @publication.cancel_capture_construction_plan(value)
+              return Err(
+                @resources.NodeManagedRunOperationIssue::Original(
+                  InsufficientCapacity,
+                ),
+              )
+            }
+            Ok((value, capacity))
+          }
           None =>
             Err(@resources.NodeManagedRunOperationIssue::Original(Unsupported))
         }
@@ -193,23 +329,6 @@ pub fn begin_installed_effect_dependency_capture(
   }
   // The size plan owns only already funded reference copies. If numeric grow
   // fails, cut those aliases while retaining the original failed prefix.
-  guard @publication.capture_construction_layout_facts(capture_plan)
-    is Some((bytes, nodes, depth, _, _, _, _, _)) &&
-    installed_effect_dependency_body_capacity({
-      bytes,
-      nodes,
-      depth,
-      arrays: nodes,
-      objects: nodes,
-      fields: nodes - 1,
-      largest_object: nodes - 1,
-      strings: nodes,
-      text_units: bytes,
-    })
-    is Some(capacity) else {
-    @publication.cancel_capture_construction_plan(capture_plan)
-    return Err(InsufficientCapacity)
-  }
   match
     retain_installed_effect_dependency_capacity(
       owner, preparation, admission, plan, ledger, control, capacity,

@@ -26,11 +26,11 @@ priv enum EffectContextPhase {
   SectionValue(Int, Int)
   ArrayStart(Int, Int)
   ArrayNext(Int, Int, Int)
+  DependencyEntry(Int)
+  DependencyField(Int, Int)
+  DependencyValue(Int, Int)
   ContentField(Int, Int)
   ContentValue(Int, Int)
-  Parse(@source.JsonParse, Bool)
-  Decode(@decode.Admission, Bool)
-  Canonical(@json.CursorAdmission, Bool)
   Hash(@json.CanonicalEmit)
   Done
 }
@@ -145,27 +145,6 @@ fn EffectContextPreparation::emit(
   let material = self.material.unwrap()
   @json.material_value(material, value)
   self.phase = Value(material)
-}
-
-///|
-fn EffectContextPreparation::parse(
-  self : EffectContextPreparation,
-  wire : String,
-  body : Bool,
-) -> Unit raise @encode.EncodeFailure {
-  guard @source.start_json_parse(
-      wire,
-      {
-        max_input_bytes: self.max_wire_bytes,
-        max_nodes: self.max_nodes,
-        max_depth: self.max_depth,
-      },
-      data_keys=body,
-    )
-    is Ok(parser) else {
-    raise @encode.OutputLimit
-  }
-  self.phase = Parse(parser, body)
 }
 
 ///|
@@ -286,7 +265,13 @@ fn EffectContextPreparation::step(
             inputs.authoring.value,
             Field(if inputs.content_generations.is_empty() { 1 } else { 16 }),
           )
-        1 => self.parse(inputs.dependencies.wire, false)
+        1 => {
+          // The inventory is the SAME admitted immutable DATA, not incoming
+          // text. Preserve aggregate measurement while borrowing each value;
+          // another parse of its canonical wire adds no identity obligation.
+          @json.material_begin_array(self.material.unwrap())
+          self.phase = DependencyEntry(0)
+        }
         8 | 9 | 10 | 16 => self.phase = ArrayStart(kind, 0)
         14 => self.text("actql-run-effect-context/0.1", Field(15))
         _ => {
@@ -384,6 +369,37 @@ fn EffectContextPreparation::step(
         }
       }
     }
+    DependencyEntry(index) =>
+      if index == inputs.dependencies.bodies.length() {
+        @json.material_end_array(self.material.unwrap())
+        self.phase = Field(2)
+      } else {
+        @json.material_begin_object(self.material.unwrap())
+        self.phase = DependencyField(index, 0)
+      }
+    DependencyField(index, field) =>
+      if field == 3 {
+        @json.material_end_object(self.material.unwrap())
+        self.phase = DependencyEntry(index + 1)
+      } else {
+        self.key(
+          match field {
+            0 => "body"
+            1 => "cid"
+            _ => "kind"
+          },
+          DependencyValue(index, field),
+        )
+      }
+    DependencyValue(index, field) => {
+      let body = inputs.dependencies.bodies[index]
+      let next = DependencyField(index, field + 1)
+      match field {
+        0 => self.emit(body.value, next)
+        1 => self.text(body.node.identity, next)
+        _ => self.text(body.node.kind, next)
+      }
+    }
     ContentField(index, field) =>
       if field == 5 {
         @json.material_end_object(self.material.unwrap())
@@ -410,61 +426,6 @@ fn EffectContextPreparation::step(
       }
       self.emit(value, ContentField(index, field + 1))
     }
-    Parse(parser, body) =>
-      match @source.advance_json_parse(parser, 1) {
-        Ok(@source.JsonParseContinue(..)) => ()
-        Ok(@source.JsonParseComplete(parsed, ..)) => {
-          guard @decode.start_admission(parsed.node, {
-              max_nodes: self.max_nodes,
-              max_depth: self.max_depth,
-              max_string_bytes: self.max_wire_bytes,
-              max_total_string_bytes: self.max_wire_bytes,
-            })
-            is Ok(admission) else {
-            raise @encode.OutputLimit
-          }
-          self.phase = Decode(admission, body)
-        }
-        _ => raise @encode.OutputLimit
-      }
-    Decode(admission, body) =>
-      match @decode.advance_admission(admission, 1) {
-        Ok(@decode.AdmissionContinue(..)) => ()
-        Ok(@decode.AdmissionComplete(cursor, ..)) => {
-          guard @json.start_cursor_admission(
-              cursor,
-              self.max_nodes,
-              self.max_depth,
-              self.max_wire_bytes,
-              self.max_wire_bytes,
-              data_keys=body,
-            )
-            is Some(admission) else {
-            raise @encode.OutputLimit
-          }
-          self.phase = Canonical(admission, body)
-        }
-        _ => raise @encode.OutputLimit
-      }
-    Canonical(admission, body) =>
-      match @json.advance_cursor_admission(admission) {
-        @json.CursorAdmissionContinue => ()
-        @json.CursorAdmissionComplete(value, _, _) =>
-          if body {
-            self.value = Some(value)
-            let writer = @encode.hashing_writer(
-              self.max_wire_bytes,
-              self.max_nodes,
-              self.max_depth,
-            )
-            self.writer = Some(writer)
-            self.reserve(1)
-            self.phase = Hash(@json.start_emit(value, writer))
-          } else {
-            self.emit(value, Field(2))
-          }
-        _ => raise @encode.OutputLimit
-      }
     Hash(cursor) => {
       let writer = self.writer.unwrap()
       let before = @json.emit_pending_frames(cursor)
@@ -532,9 +493,6 @@ fn EffectContextPreparation::cancel(self : EffectContextPreparation) -> Unit {
   match self.phase {
     Key(cursor) | Text(cursor) | Value(cursor) => @json.cancel_material(cursor)
     Hash(cursor) => @json.cancel_emit(cursor)
-    Parse(parser, _) => @source.cancel_json_parse(parser)
-    Decode(admission, _) => @decode.cancel_admission(admission)
-    Canonical(admission, _) => @json.cancel_cursor_admission(admission)
     _ => ()
   }
   if self.material is Some(material) {

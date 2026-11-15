@@ -1,5 +1,5 @@
 ///|
-/// Later plain captured-context issuance, AFTER snapshots already own their
+/// Captured-context issuance, AFTER snapshots already own their
 /// canonical row arrays. This component does not price snapshot parse/admission
 /// or Store re-admission. Flat rows have at most max_fields keys; recursive
 /// rows supply their original retained node envelope for nested writer keys.
@@ -20,6 +20,7 @@ fn publication_capture_constructor_layout(
   max_fields : Int,
   models : Int,
   row_key_nodes? : Int = 0,
+  effect_members? : Int = 0,
 ) -> PublicationCaptureConstructorLayout? {
   if wire_bytes < 1 ||
     metadata_nodes < 1 ||
@@ -28,6 +29,7 @@ fn publication_capture_constructor_layout(
     total_fields < 0 ||
     max_fields < 0 ||
     models < 0 ||
+    effect_members < 0 ||
     row_key_nodes < 0 ||
     (
       results == 0 &&
@@ -44,7 +46,8 @@ fn publication_capture_constructor_layout(
     row_key_nodes.to_int64() +
     24L
   if live_keys > 2147483647L ||
-    results > 2147483647 - models ||
+    results.to_int64() + models.to_int64() + effect_members.to_int64() >
+    2147483647L ||
     depth > 2147483645 {
     return None
   }
@@ -53,12 +56,13 @@ fn publication_capture_constructor_layout(
     closed_values_append_capacity(results) is Some(rc) &&
     closed_values_append_capacity(metadata_nodes) is Some(mc) &&
     closed_values_append_capacity(depth + 2) is Some(dc) &&
-    closed_values_append_capacity(results + models) is Some(ic) else {
+    closed_values_append_capacity(results + models + effect_members) is Some(ic) else {
     return None
   }
   let c = results.to_int64()
   let f = total_fields.to_int64()
   let m = models.to_int64()
+  let inventory_items = c + m + effect_members.to_int64()
   // Fixed root family majorant128H/256R/128W: context/envelope pre/post identity
   // root field tuples44H/88R; four root variants/frozen/array/backings16H/12R/8W;
   // nine empty metadata containers36H/27R/18W; material/inputs/phases6H/30R/8W;
@@ -125,14 +129,14 @@ fn publication_capture_constructor_layout(
     owned_utf16_units: 4L * wire_bytes.to_int64(),
     owned_wire_bytes: 0L,
   }
-  // Capture inventories sort Result/model occurrences before materialization.
+  // Capture inventories sort Result/model/Effect occurrences before materialization.
   // Two preparation/Sort records, key arrays with singleton String tuples,
   // detached selected arrays, and both integer merge backings are explicit.
   // Input values and names remain borrowed; no row traversal is repeated.
   let inventory : @execution.PreparationRepresentationUnits = {
-    record_headers: 32L + 2L * (c + m),
-    reference_slots: 64L + 2L * (c + m) + 4L * ic,
-    scalar_words: 64L + 2L * (c + m) + 6L * ic,
+    record_headers: 32L + 2L * inventory_items,
+    reference_slots: 64L + 2L * inventory_items + 4L * ic,
+    scalar_words: 64L + 2L * inventory_items + 6L * ic,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
