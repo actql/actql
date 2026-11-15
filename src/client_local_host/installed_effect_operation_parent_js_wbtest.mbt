@@ -1229,6 +1229,7 @@ test "planned Effect callback current loss retains original DAG cleanup and star
   let available = Ref(true)
   let selected : Ref[ClientInstalledManagedRun?] = Ref(None)
   let armed = Ref(false)
+  let post_dag_current_calls = Ref(0)
   let (input, initial, _, capacity) = effect_parent_test_preparation(
     plan,
     prepared_installed_effect_managed_requirements(plan),
@@ -1236,6 +1237,7 @@ test "planned Effect callback current loss retains original DAG cleanup and star
       if armed.val &&
         selected.val is Some(owner) &&
         owner.source_free_captured is Some(_) {
+        post_dag_current_calls.val += 1
         available.val = false
       }
       effect_parent_test_require_current(available.val)
@@ -1249,7 +1251,11 @@ test "planned Effect callback current loss retains original DAG cleanup and star
   armed.val = true
   let outcome = open_installed_effect_managed_host(owner, bound, [])
   assert_false(available.val)
-  assert_true(outcome is Err(Resource(Unavailable)))
+  // Source-free configuration no longer performs a speculative strategy
+  // search. This first actual admission-current loss closes its original
+  // reservation; Unavailable would describe a later already-stopping check.
+  assert_true(outcome is Err(Resource(Resource(ClosedReservation))))
+  assert_eq(post_dag_current_calls.val, 1)
   assert_false(owner.source_free_opening)
   guard owner.source_free_captured is Some(dag) else {
     fail("failed configuration must retain its original cleanup DAG")
