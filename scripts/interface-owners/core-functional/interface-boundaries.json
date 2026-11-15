@@ -56442,7 +56442,7 @@
               },
               {
                 "path": "src/execution_relation/execution_capacity.mbt",
-                "anchor": "fn bounded_inner_join_borrows_input("
+                "anchor": "pub fn generated_bounded_sequence_capacity("
               },
               {
                 "path": "src/execution_relation/bounded_join_pairs.mbt",
@@ -56778,7 +56778,7 @@
               },
               {
                 "path": "src/connectors/local/metered_output_start_wbtest.mbt",
-                "anchor": "test \"numeric pivot uses original row funding and preserves recursive text or injected fallback\""
+                "case_id": "numeric_pivot_start_capacity"
               },
               {
                 "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",

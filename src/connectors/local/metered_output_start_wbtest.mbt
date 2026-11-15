@@ -1447,6 +1447,7 @@ test "unpivot borrowed cells use original row funding and preserve injected prov
 
 ///|
 test "numeric pivot borrows Text index keys and preserves recursive aggregate or injected fallback" {
+  // resource-case-id: numeric_pivot_start_capacity
   for
     (extra, key, value, aggregate, borrowed) in [
       ("", "id", "amount", "count", true),
