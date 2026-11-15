@@ -70,6 +70,14 @@ fn prepare_installed_compute_preparation(
       }
       // The same Source policy also bounds its receiving Compute. Preserve
       // that original input envelope before quoting and configuring this Plan.
+      for capture in captures {
+        if capture.acquisition is Some(original) {
+          max_rows = Int::max(
+            max_rows,
+            @row_source_host.row_acquisition_max_rows(original),
+          )
+        }
+      }
       for source in whole_capacities {
         max_rows = Int::max(
           max_rows,
