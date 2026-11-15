@@ -4,7 +4,6 @@
 // funding supplier, a journal start claim or an authorization callback.
 fn local_effect_dispatch_fixture(
   empty? : Bool = false,
-  short_execution? : Bool = false,
 ) -> (
   @publication_host.PreparedClientEffectRun,
   @strategy.CapturedEffectRunDAG,
@@ -68,11 +67,6 @@ fn local_effect_dispatch_fixture(
     fragment,
     None,
   ).unwrap()
-  let capacity = if short_execution {
-    { ..capacity, execution_bytes: capacity.execution_bytes - 1L, }
-  } else {
-    capacity
-  }
   let run = @publication_host.open_prepared_source_free_client_effect_run(
     bound, capacity,
   ).unwrap()
@@ -177,11 +171,9 @@ test "source-free Effect Local configuration rejects another original Run owner 
 }
 
 ///|
-test "source-free Effect refuses one-short original capacity and invalid installation before physical start" {
+test "source-free Effect refuses exhausted original capacity and invalid installation before physical start" {
   for short in [false, true] {
-    let (bound, captured, registry, values, fragment) = local_effect_dispatch_fixture(
-      short_execution=short,
-    )
+    let (bound, captured, registry, values, fragment) = local_effect_dispatch_fixture()
     assert_true(
       @client_local_host.prepare_installed_sequence_contracts(
         "{}",
@@ -191,33 +183,73 @@ test "source-free Effect refuses one-short original capacity and invalid install
       )
       is Err(_),
     )
-    assert_true(
-      @client_local_host.configure_source_free_effect_local_retained_host(
+    let dag = @strategy.captured_effect_run_dag(captured)
+    let ledger = @strategy.captured_dag_ledger(dag)
+    if short {
+      let setup = @client_local_host.configure_source_free_effect_local_retained_host(
         bound,
         captured,
         registry,
-        if short {
-          values
-        } else {
-          "{}"
-        },
+        values,
         fragment,
         None,
+      ).unwrap()
+      let installed = @builtin.configured_local_module(
+        @builtin.configured_host_modules(setup),
+      ).unwrap()
+      let empty : Array[@execution.ManagedCompletedOutput[Int]] = []
+      let candidate = @local_driver.prepare_local_managed_dispatch(
+          installed,
+          empty,
+          @execution.process_managed_obligations(
+            @strategy.graph_task_owner(@strategy.captured_dag_graph(dag), 0).unwrap(),
+          ),
+          0L,
+        )
+        .unwrap()
+        .unwrap()
+      let limits = @resources.ledger_limits(ledger)
+      // Reserve actual execution capacity on this SAME finite Root. The
+      // selected maximum is not the smaller metered startup requirement.
+      let occupied = @resources.reserve_capacity(
+        ledger,
+        0L,
+        limits.execution_bytes,
+      ).unwrap()
+      let before = @resources.ledger_usage(ledger)
+      assert_true(
+        @local_driver.start_local_managed_dispatch_node(candidate)
+        is Err(Execution(Physical(@resources.ExecutionLimit))),
       )
-      is None,
-    )
-    let dag = @strategy.captured_effect_run_dag(captured)
-    let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(dag))
+      assert_eq(@resources.ledger_usage(ledger), before)
+      assert_false(@strategy.captured_task_completed(dag, 0))
+      local_effect_dispatch_stop(captured)
+      @resources.settle_capacity(ledger, occupied).unwrap()
+    } else {
+      assert_true(
+        @client_local_host.configure_source_free_effect_local_retained_host(
+          bound,
+          captured,
+          registry,
+          "{}",
+          fragment,
+          None,
+        )
+        is None,
+      )
+      assert_eq(@strategy.next_captured_task(dag), Some(0))
+      local_effect_dispatch_stop(captured)
+    }
+    let usage = @resources.ledger_usage(ledger)
     assert_eq(usage.attempts, 0)
+    assert_eq(usage.held_bytes, 0L)
+    assert_eq(usage.reserved_retention_bytes, 0L)
     assert_eq(usage.reserved_execution_bytes, 0L)
-    assert_true(@strategy.captured_dag_strategy(dag) is None)
-    assert_eq(@strategy.next_captured_task(dag), Some(0))
-    local_effect_dispatch_stop(captured)
   }
 }
 
 ///|
-test "source-free Effect keeps one configured owner and honors the original managed current fence" {
+test "source-free Effect configurations share one Run and honor its original managed current fence" {
   let (bound, captured, registry, values, fragment) = local_effect_dispatch_fixture()
   let setup = @client_local_host.configure_source_free_effect_local_retained_host(
     bound,
@@ -228,21 +260,27 @@ test "source-free Effect keeps one configured owner and honors the original mana
     None,
   ).unwrap()
   let dag = @strategy.captured_effect_run_dag(captured)
-  let revision = @strategy.captured_dag_strategy(dag).unwrap()
+  assert_true(@strategy.captured_dag_strategy(dag) is None)
+  // Configuration may create another wrapper before the actual task starts;
+  // both must keep the exact original Run and finite Ledger, not a new owner.
+  let ledger = @strategy.captured_dag_ledger(dag)
+  let before = @resources.ledger_usage(ledger)
+  let second = @client_local_host.configure_source_free_effect_local_retained_host(
+    bound,
+    captured,
+    registry,
+    values,
+    fragment,
+    None,
+  ).unwrap()
   assert_true(
-    @client_local_host.configure_source_free_effect_local_retained_host(
-      bound,
-      captured,
-      registry,
-      values,
-      fragment,
-      None,
-    )
-    is None,
+    physical_equal(
+      @host_driver.dispatch_driver_run(@builtin.configured_host_driver(second)),
+      dag,
+    ),
   )
-  assert_true(
-    physical_equal(@strategy.captured_dag_strategy(dag).unwrap(), revision),
-  )
+  assert_true(physical_equal(@strategy.captured_dag_ledger(dag), ledger))
+  assert_eq(@resources.ledger_usage(ledger), before)
   // This controlled fixture denies physical execution; it is not an authority
   // supplier and cannot authorize Compute/Effect/Provider work.
   let failed = @client_local_host.execute_source_free_values_guarded(
@@ -258,6 +296,17 @@ test "source-free Effect keeps one configured owner and honors the original mana
   )
   assert_true(
     @client_local_host.retry_local_values_execution_failure_cleanup(failure),
+  )
+  // Fencing the original Run through one wrapper also fences the other.
+  let replay = @client_local_host.execute_source_free_values_guarded(
+    second,
+    64,
+    1000,
+    () => true,
+  )
+  guard replay is Err(refused) else { fail("stopped Run was replayed") }
+  assert_true(
+    @client_local_host.retry_local_values_execution_failure_cleanup(refused),
   )
   let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(dag))
   assert_eq(usage.attempts, 0)

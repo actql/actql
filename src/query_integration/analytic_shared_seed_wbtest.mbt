@@ -200,7 +200,8 @@ fn run_analytic_shared_seed(
   let ledger = @strategy.captured_dag_ledger(run)
   assert_eq(@strategy.graph_task_count(@strategy.captured_dag_graph(run)), 8)
   assert_eq(@resources.ledger_limits(ledger).execution_bytes, 536870912L)
-  assert_true(@strategy.captured_dag_strategy(run) is Some(_))
+  // Actual tasks select on the same Run when their live inputs are ready.
+  assert_true(@strategy.captured_dag_strategy(run) is None)
   // The selected analytic task owns the unchanged declared policy envelope.
   for task in 0..<8 {
     assert_eq(

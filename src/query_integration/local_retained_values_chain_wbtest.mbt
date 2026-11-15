@@ -300,7 +300,7 @@ fn retained_values_client_preparation(
 }
 
 ///|
-test "product source-free retained factory installs exact bounded chain offers" {
+test "product source-free retained factory executes its exact bounded chain" {
   let prepared = retained_values_client_preparation(false)
   let setup = @client_local_host.open_source_free_local_retained_host(
     prepared,
@@ -319,7 +319,8 @@ test "product source-free retained factory installs exact bounded chain offers" 
   )
   assert_eq(@strategy.captured_compute_first_task(run), 0)
   assert_eq(@strategy.graph_task_count(@strategy.captured_dag_graph(run)), 1)
-  assert_true(@strategy.captured_dag_strategy(run) is Some(_))
+  // Source-free configuration binds the original module without future offers.
+  assert_true(@strategy.captured_dag_strategy(run) is None)
   assert_eq(
     @local_driver.local_dispatch_rejection(
       @builtin.configured_local_module(@builtin.configured_host_modules(setup)).unwrap(),
@@ -328,11 +329,22 @@ test "product source-free retained factory installs exact bounded chain offers" 
     None,
   )
   assert_false(@strategy.captured_task_completed(run, 0))
-  @strategy.stop_captured_dag(run)
-  @strategy.refresh_captured_retention(run)
-  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
-  assert_eq(usage.attempts, 0)
+  let ledger = @strategy.captured_dag_ledger(run)
+  let execution = @client_local_host.execute_source_free_values_guarded(
+    setup,
+    16,
+    10000,
+    () => true,
+  ).unwrap()
+  assert_true(physical_equal(@strategy.captured_dag_ledger(run), ledger))
+  assert_true(@strategy.captured_task_completed(run, 0))
+  assert_eq(execution.rows().unwrap(), ["{\"id\":3}", "{\"id\":2}"])
+  assert_eq(@resources.ledger_usage(ledger).attempts, 1)
+  assert_true(execution.close())
+  let usage = @resources.ledger_usage(ledger)
+  assert_eq(usage.attempts, 1)
   assert_eq(usage.held_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.reserved_execution_bytes, 0L)
 }
 
@@ -363,11 +375,24 @@ test "product retained factory admits the exact earlier Values producer of a che
     None,
   )
   assert_false(@strategy.captured_task_completed(run, 0))
-  @strategy.stop_captured_dag(run)
-  @strategy.refresh_captured_retention(run)
-  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
-  assert_eq(usage.attempts, 0)
+  let ledger = @strategy.captured_dag_ledger(run)
+  let execution = @client_local_host.execute_source_free_values_guarded(
+    setup,
+    16,
+    10000,
+    () => true,
+  ).unwrap()
+  assert_true(physical_equal(@strategy.captured_dag_ledger(run), ledger))
+  assert_true(@strategy.captured_task_completed(run, 0))
+  assert_eq(execution.rows().unwrap(), [
+    "{\"id\":3}", "{\"id\":1}", "{\"id\":2}",
+  ])
+  assert_eq(@resources.ledger_usage(ledger).attempts, 1)
+  assert_true(execution.close())
+  let usage = @resources.ledger_usage(ledger)
+  assert_eq(usage.attempts, 1)
   assert_eq(usage.held_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.reserved_execution_bytes, 0L)
 }
 
