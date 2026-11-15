@@ -237,3 +237,145 @@ test "dependency successful cut refuses current cancellation and preserves its o
   retire_installed_managed_run(owner).unwrap()
   assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
 }
+
+///|
+test "original canonical Relation packet uses exact export bytes and refuses an equal CID with changed wire" {
+  let text = StringBuilder()
+  text.write_string("{\"sort\":\"relation\",\"value\":[")
+  let document = StringBuilder()
+  for _ in 0..<49152 {
+    document.write_string("x")
+  }
+  for row in 0..<16 {
+    if row > 0 {
+      text.write_string(",")
+    }
+    text.write_string("{\"document\":\"")
+    text.write_string(document.to_string())
+    text.write_string("\",\"id\":")
+    text.write_string(row.to_string())
+    text.write_string("}")
+  }
+  text.write_string("]}")
+  let wire = text.to_string()
+  let bytes = wire.length() // This independent fixture is entirely ASCII.
+  let cid = "sha256:" + @sha.text_hex(wire).unwrap()
+  let observed = installed_effect_dependency_wire_geometry(
+    wire,
+    2000000,
+    1000,
+    10,
+    _ => true,
+  ).unwrap()
+  let geometry = installed_effect_dependency_original_relation_geometry(
+    wire,
+    cid,
+    bytes,
+    51,
+    3,
+    observed,
+    _ => true,
+  ).unwrap()
+  assert_eq(geometry.bytes, bytes)
+  assert_eq(geometry.nodes, 51)
+  assert_eq(geometry.depth, 3)
+  let exact = installed_effect_dependency_body_capacity(geometry).unwrap()
+  let raw = installed_effect_dependency_wire_capacity(
+    observed, 1000000000, 1000, 10,
+  ).unwrap()
+  assert_true(
+    @execution.execution_capacity_retained_bytes(exact) <
+    @execution.execution_capacity_retained_bytes(raw),
+  )
+  // The complete original packet is paid before strict parsing/canonical CID
+  // admission. This is a constructor/quote test, not an Artifact authority.
+  let body = @publication.admit_captured_effect_dependency_body(
+    "relation_value",
+    Some(cid),
+    wire,
+    bytes,
+    51,
+    3,
+  ).unwrap()
+  assert_eq(@publication.captured_effect_dependency_body_json(body), wire)
+  assert_eq(@publication.captured_effect_dependency_body_cid(body), cid)
+  let changed = wire.replace(old="\"id\":0", new="\"id\":9")
+  let changed_geometry = installed_effect_dependency_wire_geometry(
+    changed,
+    2000000,
+    1000,
+    10,
+    _ => true,
+  ).unwrap()
+  assert_true(
+    installed_effect_dependency_original_relation_geometry(
+      changed,
+      cid,
+      bytes,
+      51,
+      3,
+      changed_geometry,
+      _ => true,
+    )
+    is None,
+  )
+  assert_true(
+    installed_effect_dependency_original_relation_geometry(
+      wire,
+      cid,
+      bytes,
+      51,
+      3,
+      observed,
+      _ => false,
+    )
+    is None,
+  )
+}
+
+///|
+test "original Relation packet real one-byte-short parent refuses before constructor and cleans up" {
+  let (_, _, plan, owner, ledger, _, execution) = dependency_original_fixture()
+  let control = owner.effect_operation_controls.unwrap()
+  let preparation = owner.preparation.unwrap()
+  guard preparation is PlannedEffectManaged(admission, _) else {
+    fail("expected original Effect admission")
+  }
+  let geometry : @encode.EncodingConstructionGeometry = {
+    bytes: 100000,
+    nodes: 6,
+    depth: 3,
+    arrays: 1,
+    objects: 2,
+    fields: 3,
+    largest_object: 2,
+    strings: 2,
+    text_units: 99900,
+  }
+  let packet = installed_effect_dependency_body_capacity(geometry).unwrap()
+  let (capacity, _) = installed_effect_control_capacity(
+    Some(control),
+    plan,
+    dependency_capacity=Some(packet),
+  ).unwrap()
+  let required = @execution.execution_capacity_execution_bytes(capacity)
+  let before = @resources.ledger_usage(ledger)
+  let (_, idle) = installed_effect_control_capacity(Some(control), plan).unwrap()
+  let delta = required - idle
+  let remaining = @resources.ledger_limits(ledger).execution_bytes -
+    before.reserved_execution_bytes
+  let pressure = @resources.reserve_capacity(ledger, 0L, remaining - delta + 1L).unwrap()
+  let pressured = @resources.ledger_usage(ledger)
+  assert_true(
+    retain_installed_effect_dependency_capacity(
+      owner, preparation, admission, plan, ledger, control, packet,
+    )
+    is Err(Ledger(ExecutionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), pressured)
+  @resources.settle_capacity(ledger, pressure).unwrap()
+  assert_true(execution.close())
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+}

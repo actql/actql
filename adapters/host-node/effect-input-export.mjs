@@ -37,7 +37,7 @@ export function preparePinnedEffectDependencyInventory({
       original.prepared,original.request,original.plan,candidates,sources.members.length));
     original.current();
   }
-  const bodies = [];
+  const bodies = [], originalArtifacts = [];
   const append = body => {
     if (construction === undefined && bodies.length >= 4096) throw new RangeError('EffectDependencyEntryLimit');
     bodies.push(body);
@@ -54,6 +54,7 @@ export function preparePinnedEffectDependencyInventory({
     }
   }
   for (const {payload} of sources.dependencies) {
+    originalArtifacts.push(payload.localResultArtifact);
     for (const body of payload.dependencyBodies) append(body);
     const table = preparedEffectSourceOwners.get(payload)?.tableInput === true;
     for (const [kind, wire] of [
@@ -70,7 +71,8 @@ export function preparePinnedEffectDependencyInventory({
   for (const body of dependencies) append(body);
   return control.prepareLocalEffectDependencyInventory(
     sources.members.map(({payload}) => payload.localResultArtifact),
-    bodies, contractLimits, construction);
+    bodies, contractLimits, construction,
+    originalArtifacts);
 }
 
 // Only this export set can transfer its payload owners. Public Result names

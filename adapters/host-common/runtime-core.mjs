@@ -6420,7 +6420,7 @@ function publicationControl(moon) {
       original?.current();
       return value;
     },
-    prepareLocalEffectDependencyInventory(artifacts, bodies, limits, construction) {
+    prepareLocalEffectDependencyInventory(artifacts, bodies, limits, construction, originalArtifacts = []) {
       issuanceLimits(limits, 'Effect dependency inventory');
       if (!Array.isArray(artifacts) || construction === undefined && artifacts.length > 4096 ||
           !Array.isArray(bodies) || construction === undefined && bodies.length > 4096) {
@@ -6428,11 +6428,17 @@ function publicationControl(moon) {
       }
       if (construction !== undefined) {
         const original=installedEffectDependencyOriginal(construction,moon);
-        const kinds=[], identities=[], wires=[], roots=[];
+        const kinds=[], identities=[], wires=[], roots=[], originals=[];
         for (const artifact of artifacts) {
           const owned=localEffectArtifactTokens.get(artifact);
           if(owned===undefined)throw new TypeError('Foreign Effect dependency root');
           roots.push(owned);
+        }
+        if (!Array.isArray(originalArtifacts)) throw new TypeError('Invalid Effect dependency originals');
+        for (const artifact of originalArtifacts) {
+          const owned=localEffectArtifactTokens.get(artifact);
+          if(owned===undefined)throw new TypeError('Foreign Effect dependency original');
+          originals.push(owned);
         }
         for(const body of bodies){
           if(body===null||typeof body!=='object')throw new TypeError('Invalid Effect dependency body');
@@ -6446,7 +6452,7 @@ function publicationControl(moon) {
         }
         const value=checked(moon.clientProgramInstalledEffectDependencyInventoryPrepare(
           original.parent,original.prepared,original.request,original.plan,kinds,identities,wires,roots,
-          limits.maxWireBytes,limits.maxNodes,limits.maxDepth));
+          limits.maxWireBytes,limits.maxNodes,limits.maxDepth,originals));
         original.current();
         return value;
       }

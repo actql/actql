@@ -1,6 +1,7 @@
 ///|
 priv enum ClientEffectDependencyWireShape {
   Emitted(@encode.EncodingConstructionGeometry)
+  OriginalRelation(@encode.EncodingConstructionGeometry)
   Observed(@source.JsonSourceGeometry)
 }
 
@@ -52,6 +53,7 @@ fn prepare_funded_effect_dependency_inventory(
       ClientInstalledManagedRunIssue,
     ],
   ) -> Result[ClientEffectDependencyGroupStep, ClientInstalledManagedRunIssue],
+  original_artifacts? : Array[@publication_host.ClientEffectLocalResultArtifact]? = None,
   catalog_original? : (@checked.CheckedProgram, ClientEffectOperationControls)? = None,
 ) -> Result[
   (
@@ -96,6 +98,16 @@ fn prepare_funded_effect_dependency_inventory(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  if original_artifacts is Some(artifacts) && !artifacts.is_empty() {
+    guard installed_effect_dependency_original_hash_capacity(artifacts.length())
+      is Some(capacity) else {
+      return Err(InsufficientCapacity)
+    }
+    match grow(capacity) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
   let inputs = match
     segment(work => {
       let values : Array[ClientEffectDependencyWireInput] = []
@@ -116,7 +128,7 @@ fn prepare_funded_effect_dependency_inventory(
           }
           _ => None
         }
-        let shape = match existing {
+        let mut shape = match existing {
           Some((body, geometry)) => {
             if !work(wire.length()) {
               return Err(InsufficientCapacity)
@@ -148,6 +160,43 @@ fn prepare_funded_effect_dependency_inventory(
             Observed(geometry)
           }
         }
+        if kind == "relation_value" &&
+          original_artifacts is Some(artifacts) &&
+          shape is Observed(observed) &&
+          identity is Some(cid) {
+          for artifact in artifacts {
+            if !work(1) {
+              return Err(InsufficientCapacity)
+            }
+            let receipt = @publication_host.client_effect_local_relation_export_receipt(
+              artifact,
+            )
+            let relation = @execution.completed_relation_export_identity(
+              receipt,
+            )
+            if @execution.logical_relation_cid(relation) != cid {
+              continue
+            }
+            let (bytes, nodes, _) = @execution.logical_relation_usage(relation)
+            let (_, _, _, depth, _) = @execution.completed_relation_export_scalar_geometry(
+              receipt,
+            )
+            guard installed_effect_dependency_original_relation_geometry(
+                wire,
+                cid,
+                bytes,
+                nodes,
+                depth + 1,
+                observed,
+                work,
+              )
+              is Some(geometry) else {
+              return Err(ForeignOriginal)
+            }
+            shape = OriginalRelation(geometry)
+            break
+          }
+        }
         values.push({ kind, identity, wire, shape, })
       }
       Ok(Shape(values))
@@ -167,12 +216,17 @@ fn prepare_funded_effect_dependency_inventory(
           // The SAME controller already retained its raw/canonical/parser quota
           // before producing this exact emitted wire. Do not buy it twice.
           Emitted(_) => None
+          // Unlike static emitted bodies, the exported Relation has only its
+          // original text prefix so far. Buy the complete parser/body packet
+          // on this same controller before admission; never treat it as prepaid.
+          OriginalRelation(geometry) =>
+            installed_effect_dependency_body_capacity(geometry)
           Observed(geometry) =>
             installed_effect_dependency_wire_capacity(
               geometry, max_bytes, max_nodes, max_depth,
             )
         }
-        if input.shape is Observed(_) && added is None {
+        if !(input.shape is Emitted(_)) && added is None {
           return Err(InsufficientCapacity)
         }
         if added is Some(added) {
@@ -234,7 +288,7 @@ fn prepare_funded_effect_dependency_inventory(
           }
         }
         let nodes = match input.shape {
-          Emitted(g) => g.nodes
+          Emitted(g) | OriginalRelation(g) => g.nodes
           Observed(g) => Int::min(g.node_upper, max_nodes)
         }
         if !work(nodes) {

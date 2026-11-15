@@ -106,3 +106,81 @@ fn installed_effect_dependency_wire_capacity(
   }
   Some(required)
 }
+
+///|
+// The receipt has already been bound to this captured Run by the caller.
+// Hash the COMPLETE borrowed UTF8 preimage before using its canonical encoder
+// quantities. Equal claimed CIDs alone never select this smaller constructor.
+// Strict body admission below still checks grammar, canonical bytes, CID and
+// all semantic references; this projection issues no body or authority.
+fn installed_effect_dependency_original_relation_geometry(
+  wire : String,
+  cid : String,
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+  observed : @source.JsonSourceGeometry,
+  work : (Int) -> Bool,
+) -> @encode.EncodingConstructionGeometry? {
+  if bytes != observed.input_bytes ||
+    nodes < 1 ||
+    depth < 1 ||
+    nodes > observed.node_upper ||
+    depth > observed.depth_upper ||
+    !work(wire.length()) {
+    return None
+  }
+  guard @sha.text_hex(wire) is Ok(hash) && "sha256:" + hash == cid else {
+    return None
+  }
+  Some({
+    bytes,
+    nodes,
+    depth,
+    arrays: Int::min(observed.arrays, nodes),
+    objects: Int::min(observed.objects, nodes),
+    fields: Int::min(observed.fields, nodes - 1),
+    largest_object: Int::min(observed.fields, nodes - 1),
+    strings: Int::min(observed.quoted_tokens, nodes),
+    // The exact original canonical preimage cannot expand under NFC/LF or
+    // canonical escaping. Raw quoted spelling still conservatively bounds
+    // decoded text; no untrusted/raw body gets this conclusion.
+    text_units: observed.quoted_raw_utf16_units,
+  })
+}
+
+///|
+// One sequential raw hash plus borrowed receipt/scalar/variant controls.
+// Use the existing hashing owner's complete constructor/finish recipe, not a
+// hand-picked byte allowance. No data-sized buffer is made by text_hex.
+fn installed_effect_dependency_original_hash_capacity(
+  originals : Int,
+) -> @execution.ExecutionCapacity? {
+  if originals < 0 {
+    return None
+  }
+  guard @encode.hash_writer_construction_inventory(0, 0) is Some(hash) else {
+    return None
+  }
+  @execution.preparation_execution_capacity({
+    retained: {
+      record_headers: 0L,
+      reference_slots: 0L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+    workspace: {
+      // Two usage tuples + the selected geometry/variant/result alternatives.
+      record_headers: hash.record_headers + 8L,
+      reference_slots: hash.reference_slots + 12L,
+      scalar_words: hash.scalar_words + 24L,
+      owned_utf16_units: hash.owned_utf16_units + 71L,
+      owned_wire_bytes: hash.owned_wire_bytes,
+    },
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  })
+}

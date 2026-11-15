@@ -74,10 +74,21 @@ pub fn prepare_installed_effect_dependency_inventory(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  original_artifacts? : Array[@publication_host.ClientEffectLocalResultArtifact] = [],
 ) -> Result[String, ClientInstalledManagedRunIssue] {
   let result = prepare_installed_effect_dependency_inventory_original(
-    owner, prepared, request, expected_plan, kinds, identities, wires, artifacts,
-    max_bytes, max_nodes, max_depth,
+    owner,
+    prepared,
+    request,
+    expected_plan,
+    kinds,
+    identities,
+    wires,
+    artifacts,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    original_artifacts~,
   )
   match result {
     Err(issue) => Err(issue)
@@ -105,6 +116,7 @@ fn prepare_installed_effect_dependency_inventory_original(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  original_artifacts? : Array[@publication_host.ClientEffectLocalResultArtifact] = [],
 ) -> Result[String, ClientInstalledManagedRunIssue] {
   guard owner.original is Some(original) && physical_equal(original, owner) else {
     return Err(ForeignOriginal)
@@ -133,7 +145,9 @@ fn prepare_installed_effect_dependency_inventory_original(
   if !physical_equal(plan, expected_plan) ||
     !(match control.dependency_group {
       Some((entries, roots)) =>
-        wires.length() <= entries && artifacts.length() == roots
+        wires.length() <= entries &&
+        artifacts.length() == roots &&
+        original_artifacts.length() <= entries
       None => false
     }) ||
     control.dependency_inventory is Some(_) ||
@@ -212,6 +226,26 @@ fn prepare_installed_effect_dependency_inventory_original(
   // parsing gets a separate measured extent before the existing classifier.
   let roots_capacity = match
     segment(work => {
+      // Upstream exports are not final roots. Their nominal custody binds a
+      // canonical Relation emission to this SAME captured Run before its wire can
+      // use the original encoder's size instead of the untrusted spelling bound.
+      for artifact in original_artifacts {
+        if !work(1) {
+          return Err(InsufficientCapacity)
+        }
+        if !@publication_host.client_effect_local_artifact_matches_inputs(
+            artifact, inputs,
+          ) ||
+          !@publication_host.client_effect_local_artifact_matches_computation(
+            artifact, prepared,
+          ) ||
+          @publication_host.client_effect_local_artifact_run_definition_cid(
+            artifact,
+          ) !=
+          Some(@publication.publication_contract_identity(definition)) {
+          return Err(ForeignOriginal)
+        }
+      }
       // The later catalog_original argument owns tuple1H2R + Some1H1R1W.
       // Include it in this existing pre-entry grow, even with no Artifact
       // roots; the Catalog helper's own fixed-control grow occurs too late.
@@ -330,6 +364,7 @@ fn prepare_installed_effect_dependency_inventory_original(
       max_depth,
       grow,
       segment,
+      original_artifacts=Some(original_artifacts),
       catalog_original=Some(
         (
           @checked.effect_program_static_checked_computation(

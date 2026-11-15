@@ -1074,6 +1074,7 @@ fn dependency_boundary_complete_inventory(
     max_bytes,
     max_nodes,
     depth,
+    original_artifacts=[producer, consumer],
   )
   let inventory = match inventory_result {
     Ok(value) => value

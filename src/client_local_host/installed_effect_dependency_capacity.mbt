@@ -163,8 +163,10 @@ fn installed_effect_dependency_fixed_capacity(
       records: 5L * n,
       record_references: 11L * n,
       record_words: 12L * n,
-      reference_arrays: 3L,
-      reference_items: 3L * n,
+      // Source payload original vector plus its Core token projection are
+      // built after group reserve, before shape/admission construction.
+      reference_arrays: 5L,
+      reference_items: 5L * n,
       scalar_arrays: 1L,
       scalar_items: units.to_int64(),
       maps: 0L,

@@ -620,10 +620,21 @@ pub fn client_program_installed_effect_dependency_inventory_prepare(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  original_artifacts : Array[@publication_host.ClientEffectLocalResultArtifact],
 ) -> Result[String, @client_local_host.ClientInstalledManagedRunIssue] {
   @client_local_host.prepare_installed_effect_dependency_inventory(
-    owner, prepared, request, plan, kinds, identities, wires, artifacts, max_bytes,
-    max_nodes, max_depth,
+    owner,
+    prepared,
+    request,
+    plan,
+    kinds,
+    identities,
+    wires,
+    artifacts,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    original_artifacts~,
   )
 }
 

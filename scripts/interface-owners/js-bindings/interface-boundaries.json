@@ -29872,7 +29872,8 @@
             "artifacts",
             "bodies",
             "limits",
-            "construction"
+            "construction",
+            "originalArtifacts"
           ],
           "async": false
         },
