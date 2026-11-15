@@ -602,6 +602,9 @@ test('Native SQL row-policy fixture declares the exact result before adoption wi
   assert.equal(environment.host_policy_profile.capacity.max_relation_output_rows, 1);
   assert.equal(environment.host_policy_profile.capacity.max_artifact_rows, 1);
   const account = JSON.parse(await readFile(join(project, 'account.json'), 'utf8'));
+  assert.deepEqual(account.entries.map(entry => entry.entry_id),
+    ['numeric-result', 'numeric-run', 'numeric-sql-result'],
+    'The actual Account wire requires canonical entry-id order before adoption');
   assert.deepEqual(account.entries.filter(entry => entry.operation.any_of.includes('read') &&
     entry.resource.any_of.some(resource => resource.startsWith('result/')))
     .map(entry => [entry.resource.any_of, entry.operation.any_of]),

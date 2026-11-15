@@ -74,3 +74,51 @@ test "Native original material fixture keeps noncanonical entry order refused an
     )
   }
 }
+
+///|
+test "Native low-row operator admits both Result selections only in canonical Account order" {
+  let old_order : String =
+    #|{"version":"actql-execution-account-config/0.1","account_id":"numeric-operator","entries":[{"entry_id":"numeric-result","outcome":"allow","principal":{"any_of":["numeric-operator"]},"connection":{"any_of":["cli"]},"resource":{"any_of":["result/answer0"]},"operation":{"any_of":["read"]},"exclusions":[]},{"entry_id":"numeric-sql-result","outcome":"allow","principal":{"any_of":["numeric-operator"]},"connection":{"any_of":["cli"]},"resource":{"any_of":["result/answer"]},"operation":{"any_of":["read"]},"exclusions":[]},{"entry_id":"numeric-run","outcome":"allow","principal":{"any_of":["numeric-operator"]},"connection":{"any_of":["cli"]},"resource":{"any_of":["run"]},"operation":{"any_of":["cancel","publish","read","submit"]},"exclusions":[]}]}
+  let original : String =
+    #|{"version":"actql-execution-account-config/0.1","account_id":"numeric-operator","entries":[{"entry_id":"numeric-result","outcome":"allow","principal":{"any_of":["numeric-operator"]},"connection":{"any_of":["cli"]},"resource":{"any_of":["result/answer0"]},"operation":{"any_of":["read"]},"exclusions":[]},{"entry_id":"numeric-run","outcome":"allow","principal":{"any_of":["numeric-operator"]},"connection":{"any_of":["cli"]},"resource":{"any_of":["run"]},"operation":{"any_of":["cancel","publish","read","submit"]},"exclusions":[]},{"entry_id":"numeric-sql-result","outcome":"allow","principal":{"any_of":["numeric-operator"]},"connection":{"any_of":["cli"]},"resource":{"any_of":["result/answer"]},"operation":{"any_of":["read"]},"exclusions":[]}]}
+  assert_eq(
+    admit_account_configuration_json(old_order).map(_ => ()),
+    Err(NonCanonicalOrder("$.entries[2].entry_id")),
+  )
+  let configuration = admit_account_configuration_json(original).unwrap()
+  for
+    (resource, operation) in [
+      ("result/answer0", "read"),
+      ("result/answer", "read"),
+      ("run", "cancel"),
+      ("run", "publish"),
+      ("run", "read"),
+      ("run", "submit"),
+    ] {
+    assert_true(
+      evaluate_account(configuration, {
+        principal: "numeric-operator",
+        connection: "cli",
+        resource,
+        operation,
+      })
+      is Allow(_),
+    )
+  }
+  for
+    (principal, resource, operation) in [
+      ("foreign-operator", "result/answer", "read"),
+      ("numeric-operator", "result/unselected", "read"),
+      ("numeric-operator", "result/answer", "publish"),
+    ] {
+    assert_false(
+      evaluate_account(configuration, {
+        principal,
+        connection: "cli",
+        resource,
+        operation,
+      })
+      is Allow(_),
+    )
+  }
+}
