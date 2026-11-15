@@ -8123,6 +8123,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
       (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
         : assertSourceManagedInstallationCurrent)(manager, originals);
       const run = record.computeRuns?.get(prepared);
+      if (run !== undefined && Object.hasOwn(run, 'failure')) throw run.failure;
       let requestInput;
       if (run === undefined) {
         requestInput = originalSourceManagedHostRequest(originals, prepared);
@@ -8139,6 +8140,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
       }
       const materials = manager.admitEffectMaterials(prepared,
         requestInput, wire, runDefinitionCid, compilation, identity, features);
+      if (run !== undefined && Object.hasOwn(run, 'failure')) throw run.failure;
       if (run !== undefined && (record.computeRuns?.get(prepared) !== run ||
           !record.computeLiveRuns?.has(run) || run.closed || run.runtime !== runtime ||
           run.preparationKind !== 'effect-plan' || run.manager !== manager ||
