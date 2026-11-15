@@ -6,6 +6,7 @@ import {join} from 'node:path';
 import {DatabaseSync, StatementSync} from 'node:sqlite';
 import test from 'node:test';
 import {openClientRequestJournal} from './client-request-journal.mjs';
+import {stageLegacySubmissionUsageCounters} from './fixtures/journal-legacy-usage.fixture.mjs';
 import {installNodeClientSubmission} from './client-submission.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {canonicalJson} from './local-account-config.mjs';
@@ -353,6 +354,7 @@ test('prior request quota adoption preserves original issued counts and commits 
   f.journal.close();
   const database=new DatabaseSync(join(f.root,'client-requests.sqlite3'));
   try {
+    stageLegacySubmissionUsageCounters(database);
     for(const table of ['client_request_row_usage','client_cancellation_row_usage']) {
       for(const suffix of ['insert','delete']) database.exec(`DROP TRIGGER ${table}_${suffix}`);
       database.exec(`DROP TABLE ${table}`);
