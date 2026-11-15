@@ -225,7 +225,6 @@ fn managed_import_data_chain(
   let count = @strategy.graph_task_count(plan.graph)
   let tasks : Array[LocalValuesTaskExecution?] = Array::make(count, None)
   let output_live = Ref(true)
-  let coexistence_fits = Ref(true)
   let refused_import : Ref[@resources.CapacityReservation?] = Ref(None)
   let mut control_observed = false
   let mut failure : @local_driver.LocalDispatchIssue? = None
@@ -330,10 +329,6 @@ fn managed_import_data_chain(
         "managed DISTINCT task=\{task} execution=\{@local_driver.local_managed_dispatch_site_capacity(dispatch).unwrap().1} prior=\{observed_prior_execution}",
       )
     }
-    coexistence_fits.val = coexistence_fits.val &&
-      @local_driver.local_managed_dispatch_site_capacity(dispatch).unwrap().1 +
-      observed_prior_execution <=
-      client_local_execution_byte_ceiling()
     let operations = match
       @local_driver.start_local_managed_dispatch_node(dispatch) {
       Ok(value) => value
@@ -342,6 +337,14 @@ fn managed_import_data_chain(
         break
       }
     }
+    // Actual started Task reservations coexist with every retained parent.
+    // A provider's maximum future envelope is not an upfront reservation.
+    let started_usage = @resources.ledger_usage(ledger)
+    assert_true(started_usage.reserved_execution_bytes <= limits.execution_bytes)
+    assert_true(
+      started_usage.reserved_retention_bytes + started_usage.held_bytes <=
+      limits.retained_bytes,
+    )
     let current : LocalValuesTaskExecution = {
       operations,
       settled: false,
@@ -371,10 +374,13 @@ fn managed_import_data_chain(
           ).unwrap(),
         )
         let before = @resources.ledger_usage(ledger).reserved_execution_bytes
-        assert_true(
-          (operations.inputs[0].append)("{")
-          is Err(@local_driver.Execution(Physical(ExecutionLimit))),
-        )
+        guard (operations.inputs[0].append)("{")
+          is Err(@local_driver.ExecutionCapacityRefusal(ExecutionLimit, needed, available, ceiling)) else {
+          fail("the original import must refuse funding before malformed row decode")
+        }
+        assert_true(needed > 0L)
+        assert_eq(available, 0L)
+        assert_eq(ceiling, @resources.ledger_limits(ledger).execution_bytes)
         assert_eq(
           @resources.ledger_usage(ledger).reserved_execution_bytes,
           before,
@@ -492,10 +498,8 @@ fn managed_import_data_chain(
         @local_driver.Execution(@strategy.Physical(@resources.ExecutionLimit))
       ),
     )
-    assert_false(coexistence_fits.val)
   } else {
     assert_true(failure is None)
-    assert_true(coexistence_fits.val)
   }
   assert_false(selection_missing)
   // Every route retains its SAME admitted original policy through import,

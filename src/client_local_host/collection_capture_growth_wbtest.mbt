@@ -211,6 +211,7 @@ test "collection finalization keeps exact rows at the installed Node quantum" {
 fn collection_cross_text_proof_case(
   sql : String,
   expected : Bool,
+  fallback_text? : Int = 500000,
 ) -> Unit raise {
   let prepared = collection_capacity_selected_prepared(sql, 100)
   let assets = @publication_host.client_local_product_assets()
@@ -228,19 +229,24 @@ fn collection_cross_text_proof_case(
     assets.ordered,
   ).unwrap()
   assert_eq(client_local_text_free_scalar_sequences(sequences), expected)
+  // A complete leaf proof may use the caller's finite work-derived Text
+  // envelope. Nested/unproved values retain the independent general policy;
+  // a text-free output alone cannot narrow its input or children.
+  let selected_work = 765432
   let plan = client_local_capacity_plan(
     sequences,
     @publication_host.prepared_client_values_max_rows(prepared),
     scalar_values=true,
     graph=Some(@publication_host.prepared_client_graph(prepared)),
+    source_free_max_work=Some(selected_work),
   )
   if expected {
     let names = plan.scalar_demand.unwrap().name_bytes
     assert_eq(plan.execution.rows.input_values.max_text_bytes, names)
     assert_eq(plan.execution.rows.output_values.max_text_bytes, names)
   } else {
-    assert_eq(plan.execution.rows.input_values.max_text_bytes, 500000)
-    assert_eq(plan.execution.rows.output_values.max_text_bytes, 500000)
+    assert_eq(plan.execution.rows.input_values.max_text_bytes, fallback_text)
+    assert_eq(plan.execution.rows.output_values.max_text_bytes, fallback_text)
   }
   assert_false(client_local_text_free_scalar_sequences(sequences, max_work=0))
   assert_false(client_local_text_free_scalar_sequences(sequences, max_slots=0))
@@ -257,11 +263,11 @@ test "collection CrossJoin keeps checked scalar copy names on its original deman
 ///|
 test "collection CrossJoin retains text input and nested value fallback" {
   for
-    sql in [
-      "SELECT LENGTH(a.text) AS n FROM (SELECT 'text' AS text) a CROSS JOIN (SELECT 1 AS n) b",
-      "SELECT a.items AS items FROM (SELECT [1,2] AS items) a CROSS JOIN (SELECT 1 AS n) b",
+    (sql, fallback_text) in [
+      ("SELECT LENGTH(a.text) AS n FROM (SELECT 'text' AS text) a CROSS JOIN (SELECT 1 AS n) b", 765432),
+      ("SELECT a.items AS items FROM (SELECT [1,2] AS items) a CROSS JOIN (SELECT 1 AS n) b", 500000),
     ] {
-    collection_cross_text_proof_case(sql, false)
+    collection_cross_text_proof_case(sql, false, fallback_text~)
   }
 }
 
