@@ -85,6 +85,129 @@ pub fn admit_client_effect_serialization_captured_input(
 }
 
 ///|
+/// Borrow a completed whole Source through its original checked acquisition.
+/// Whole input has no Query requirement or residual; the same captured-input
+/// record and observation constructor retain its existing custody and policy.
+pub fn admit_client_serialization_whole_captured_input(
+  owner : PreparedClientProgram,
+  component : ClientSerializationPlanGraph,
+  source : @query.CapturedInputSource,
+  identity : @query.CapturedSourceRelationIdentity,
+  capacity : @acquisition.SourceAcquisition,
+  logical : @publication.RunEvidenceValue,
+  source_evidence : @publication.RunEvidenceValue,
+  authority_scope_cid : String,
+  started_at : String,
+  completed_at : String,
+) -> Result[
+  ClientSerializationCapturedInput,
+  @publication.RunEvidenceValueIssue,
+] {
+  guard physical_equal(component.owner, owner) &&
+    prepared_client_acquisition_count(owner) == 1 &&
+    client_serialization_single_capture_shape(owner, component.task) &&
+    client_single_direct_observation_covers_sources(owner) &&
+    client_serialization_whole_source_task(owner, capacity) is Some(task) &&
+    @strategy.graph_task_owner(owner.graph, task) is Some(preparation) &&
+    @query.captured_source_matches(
+      source,
+      @checked.source_identity(@strategy.graph_program(owner.graph)),
+      preparation,
+    ) &&
+    @query.captured_source_matches_input_acquisition(source, capacity) &&
+    @query.captured_source_relation_identity_matches_source(identity, source) &&
+    @planning.source_acquisition_evidence_facts(capacity) is Some(facts) else {
+    return Err(
+      @publication.RunEvidenceReferenceMismatch("content_whole_source_owner"),
+    )
+  }
+  let name = @acquisition.declaration(
+      @acquisition.mode_input(@acquisition.source_acquisition_mode(capacity)),
+    ).input_name
+  admit_client_serialization_source_observation(
+    owner,
+    component,
+    source,
+    identity,
+    name,
+    facts,
+    logical,
+    source_evidence,
+    authority_scope_cid,
+    started_at,
+    completed_at,
+    None,
+    [],
+  )
+}
+
+///|
+// Read the existing checked occurrence without rebuilding its route or its
+// inventory. The original whole-capture port already binds the acquisition,
+// parameters and supplied input to this same prepared task.
+fn client_serialization_whole_source_task(
+  owner : PreparedClientProgram,
+  capacity : @acquisition.SourceAcquisition,
+) -> Int? {
+  let checked = @strategy.graph_program(owner.graph)
+  for index in 0..<@checked.source_execution_count(checked) {
+    let check = @checked.source_execution_at(checked, index).unwrap()
+    let subject = @checked.source_execution_subject(check)
+    if @checked.source_execution_kind(check) is @checked.CarrierResponse &&
+      subject.request is @acquisition.Direct(mode, _) &&
+      physical_equal(mode, @acquisition.source_acquisition_mode(capacity)) &&
+      client_source_acquisition_matches_program(
+        owner,
+        subject.stage,
+        subject.input,
+        capacity,
+      ) {
+      return @strategy.graph_stage_operation_task(owner.graph, subject.stage, 0)
+    }
+  }
+  None
+}
+
+///|
+/// Use the retained serialization view of this exact Effect compilation. No
+/// replacement Program, Source acquisition or Model authority is constructed.
+pub fn admit_client_effect_serialization_whole_captured_input(
+  run : ClientCompiledRun,
+  owner : PreparedClientEffectComputation,
+  source : @query.CapturedInputSource,
+  identity : @query.CapturedSourceRelationIdentity,
+  capacity : @acquisition.SourceAcquisition,
+  logical : @publication.RunEvidenceValue,
+  source_evidence : @publication.RunEvidenceValue,
+  authority_scope_cid : String,
+  started_at : String,
+  completed_at : String,
+) -> Result[
+  ClientSerializationCapturedInput,
+  @publication.RunEvidenceValueIssue,
+] {
+  guard run.compilation is Effects(allowed) &&
+    physical_equal(allowed.compilation.owner, owner) &&
+    client_compiled_run_serialization(run) is Some(component) else {
+    return Err(
+      @publication.RunEvidenceReferenceMismatch("content_effect_owner"),
+    )
+  }
+  admit_client_serialization_whole_captured_input(
+    run.owner,
+    component,
+    source,
+    identity,
+    capacity,
+    logical,
+    source_evidence,
+    authority_scope_cid,
+    started_at,
+    completed_at,
+  )
+}
+
+///|
 /// Retain both original Source obligations. The opaque lookup observation is
 /// bound to this exact left capture, key-set and Program; equal evidence JSON
 /// from another lookup cannot replace it or authorize further provider I/O.
@@ -219,6 +342,42 @@ fn admit_client_serialization_captured_input_owned(
       keyed_sources.push((name, observation))
     }
   }
+  admit_client_serialization_source_observation(
+    owner,
+    component,
+    source,
+    identity,
+    @planning.query_requirement_site(requirement).1,
+    facts,
+    logical,
+    source_evidence,
+    authority_scope_cid,
+    started_at,
+    completed_at,
+    keyed,
+    keyed_sources,
+  )
+}
+
+///|
+fn admit_client_serialization_source_observation(
+  owner : PreparedClientProgram,
+  component : ClientSerializationPlanGraph,
+  source : @query.CapturedInputSource,
+  identity : @query.CapturedSourceRelationIdentity,
+  name : String,
+  facts : @planning.QuerySourceEvidenceFacts,
+  logical : @publication.RunEvidenceValue,
+  source_evidence : @publication.RunEvidenceValue,
+  authority_scope_cid : String,
+  started_at : String,
+  completed_at : String,
+  keyed : ClientKeyedLookupObservation?,
+  keyed_sources : Array[(String, @publication.ModelSourceObservation)],
+) -> Result[
+  ClientSerializationCapturedInput,
+  @publication.RunEvidenceValueIssue,
+] {
   let values = @planning.query_source_evidence_fact_values(facts)
   if @publication.admit_completed_source_input_logical(
       logical,
@@ -249,13 +408,20 @@ fn admit_client_serialization_captured_input_owned(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let named_sources = [
-    (@planning.query_requirement_site(requirement).1, observation),
-  ]
+  let named_sources = [(name, observation)]
   for item in keyed_sources {
     named_sources.push(item)
   }
-  Ok({ owner, task, step, source, identity, observation, keyed, named_sources, })
+  Ok({
+    owner,
+    task: component.task,
+    step: component.step,
+    source,
+    identity,
+    observation,
+    keyed,
+    named_sources,
+  })
 }
 
 ///|
