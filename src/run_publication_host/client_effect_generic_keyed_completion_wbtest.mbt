@@ -179,6 +179,75 @@ test "generic Whole lookup freezes its genuine empty response closure before hol
     1000000,
     source_sequence=Some(generated),
   ).unwrap()
+  assert_true(client_keyed_left_source_matches(lookup.left, source))
+  assert_true(client_effect_keyed_lookup_matches_parent(lookup, parent, ledger))
+  guard lookup.left.composed is Some(composed) else {
+    fail("same Source-only composed original")
+  }
+  // A genuine other capture is not this listing, even while both originals
+  // are live. No File IO or replacement Source is performed by the matcher.
+  let (_, _, foreign_selected) = whole_row_selection()
+  let foreign_settled = Ref(true)
+  let foreign_stopped = Ref(false)
+  let (foreign_run, foreign_ledger) = whole_row_run(
+    foreign_selected, foreign_settled, foreign_stopped,
+  )
+  let foreign_bytes = @utf8.encode("[]")
+  let foreign_charge = @row_host.charge_row_run_page(foreign_run, foreign_bytes).unwrap()
+  @row_host.accept_charged_row_run_page(
+    foreign_run, foreign_charge, foreign_bytes,
+  ).unwrap()
+  |> ignore
+  @row_host.finish_row_run(foreign_run).unwrap()
+  assert_true(whole_row_validate(foreign_run))
+  let foreign_capture = @row_host.capture_row_run(foreign_run).unwrap()
+  let foreign_source = @row_host.row_capture_source(foreign_capture).unwrap()
+  assert_false(client_keyed_left_source_matches(lookup.left, foreign_source))
+  assert_false(
+    client_keyed_left_source_matches({ ..lookup.left, source: None, }, source),
+  )
+  assert_false(
+    client_keyed_left_source_matches(
+      { ..lookup.left, source: Some(foreign_source), },
+      source,
+    ),
+  )
+  assert_false(
+    client_keyed_left_source_matches(
+      { ..lookup.left, acquisition: { ..keyed, }, },
+      source,
+    ),
+  )
+  assert_false(
+    client_keyed_left_source_matches(
+      {
+        ..lookup.left,
+        composed: Some({ ..composed, sources: [source, source], }),
+      },
+      source,
+    ),
+  )
+  let (model_scope, model_compiled, model_definition, model_plan) = model_read_frame_scope_fixture()
+  assert_false(
+    client_keyed_left_source_matches(
+      {
+        ..lookup.left,
+        composed: Some({
+          ..composed,
+          origin: ModelOrigin(model_scope, model_plan),
+        }),
+      },
+      source,
+    ),
+  )
+  assert_true(
+    finish_client_model_read_scope(
+      model_scope, model_compiled, model_definition, model_plan, true,
+    ).unwrap(),
+  )
+  foreign_stopped.val = true
+  @row_host.close_accounted_row_run(foreign_run).unwrap()
+  assert_eq(@resources.ledger_usage(foreign_ledger).held_bytes, 0L)
   let retention = match
     prepare_client_effect_keyed_generic_source_metadata(
       parent,
@@ -294,6 +363,7 @@ test "generic Whole lookup freezes its genuine empty response closure before hol
   assert_false(@execution.supplied_relation_read_available(read))
   stopped.val = true
   @row_host.close_accounted_row_run(run).unwrap()
+  assert_false(client_keyed_left_source_matches(lookup.left, source))
   assert_true(
     @resources.finish_original_ledger_inventory(ledger, true).unwrap(),
   )

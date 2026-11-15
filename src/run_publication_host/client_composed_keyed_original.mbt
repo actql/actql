@@ -406,6 +406,19 @@ fn client_keyed_left_source_matches(
   if client_keyed_left_single_source_matches(left, source) {
     return true
   }
+  if left.composed is Some(original) &&
+    original.origin is SourceEffectOrigin(parent) {
+    // A Source-only Effect retains both the captured listing and its same
+    // composed Effect binding. Neither a Model prefix nor another listing
+    // can replace the original Source/keyed tuple used by this file locator.
+    return left.source is Some(bound) &&
+      physical_equal(bound, source) &&
+      original.sources is [same] &&
+      physical_equal(same, source) &&
+      physical_equal(original.keyed, left.acquisition) &&
+      physical_equal(parent.keyed, left.acquisition) &&
+      client_keyed_left_available(left)
+  }
   left.source is None &&
   left.composed is Some(original) &&
   original.sources.any(value => physical_equal(value, source)) &&
