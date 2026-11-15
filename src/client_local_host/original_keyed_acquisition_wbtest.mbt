@@ -558,6 +558,9 @@ test "original keyed empty listing keeps Direct custody through assembly cleanup
   let captured_usage = @resources.ledger_usage(ledger)
   assert_eq(captured_usage.attempts, 1)
   assert_eq(captured_usage.holdings, 1)
+  let (_, _, quoted_retained, quoted_execution) = @publication_host.client_keyed_lookup_capacity(
+    keyed, 64, 64,
+  ).unwrap()
   let lookup = start_client_original_keyed_lookup(
     scope, compiled, definition, plan, prepared, keyed, capture, 100, 4096, 64, 64,
   ).unwrap()
@@ -567,18 +570,17 @@ test "original keyed empty listing keeps Direct custody through assembly cleanup
     assembled_usage.reserved_attempts,
     captured_usage.reserved_attempts + 1,
   )
-  // Same constructor retains left receipt/identity, Source cache, start time,
-  // issuer and completion references plus one consumed-work word: 6*8 + 8.
-  // The central tariff is unchanged; later payloads are funded only on use.
-  // Preserve this capture's independently supplied retained3/execution2.
-  let original_identity_fields = 6L * 8L + 8L
+  // The caller must admit the selected lookup's complete initial quote,
+  // including its empty ordered key index. Payloads are still funded on use.
+  // Preserve this capture's independently supplied retained3/execution2;
+  // construction must neither replace nor duplicate that physical prefix.
   assert_eq(
     assembled_usage.reserved_retention_bytes,
-    4096L + original_identity_fields + 3L,
+    captured_usage.reserved_retention_bytes + quoted_retained,
   )
   assert_eq(
     assembled_usage.reserved_execution_bytes,
-    4096L + original_identity_fields + 2L,
+    captured_usage.reserved_execution_bytes + quoted_execution,
   )
   assert_eq(assembled_usage.holdings, 1)
   // Zero progress is neither cleanup acknowledgment nor permission to return

@@ -857,12 +857,15 @@ fn original_keyed_version_history(
         // accounting Some, history and capture/Some add5H11R6W. The history
         // retains request/capture plus its activation and native-page slots.
         // Both optional slots are real fields even for non-Native capture.
+        // The history also retains two measured wire facts (2W). Inserting
+        // this one actual key adds three scalar slots for the ordered index's
+        // old/new Array backing overlap (3W), without copying its Request.
         // Request payloads
         // and the physical RowRun/retention remain borrowed once.
         let expected = @execution.preparation_representation_cost({
           record_headers: 19L,
           reference_slots: 33L + 29L + 11L,
-          scalar_words: 15L,
+          scalar_words: 15L + 2L + 3L,
           owned_utf16_units: wire.length().to_int64(),
           owned_wire_bytes: 0L,
         }).unwrap()
