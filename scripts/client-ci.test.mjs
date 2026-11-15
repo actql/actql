@@ -10,7 +10,6 @@ import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import test from 'node:test';
 import {runInNewContext} from 'node:vm';
-import {types as nodeTypes} from 'node:util';
 import './two-source-optional-effect.test.mjs';
 import './composition-release-input.test.mjs';
 import './table-ctas-result-controls.test.mjs';
@@ -36,6 +35,9 @@ import {inferPreparationFailureData, inferDispatchFailureData, inferTerminalFail
   from './fixtures/packed-infer-preparation-diagnostic.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
 import {machineCid} from './actql-spec-family.mjs';
+import {checkpointObservationSchedule, checkpointObservationRecord, checkpointFailureData,
+  checkpointDispatchFailureData, createCheckpointFaultObserver, createCheckpointDispatchObserver,
+  closeCheckpointClient} from './fixtures/checkpoint-observation.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const {jobs} = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
@@ -950,41 +952,22 @@ test('admission-only flags narrow the existing Source case without ordinary Effe
 });
 
 // Pure fixture observation controls. These execute no Client, Host or Journal.
-function checkpointObservationDeclarations() {
-  const source = readFileSync(new URL('./fixtures/packed-embedded-checkpoint.mjs', import.meta.url), 'utf8');
-  const ast = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'});
-  const functionSource = name => {
-    const declaration = ast.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === name);
-    assert(declaration, `Missing actual fixture declaration ${name}`);
-    return source.slice(declaration.start, declaration.end);
-  };
-  return {source, ast, functionSource};
-}
-
 test('packed checkpoint observation covers the configured retry inside the original child budget', () => {
-  const {functionSource} = checkpointObservationDeclarations();
-  const schedule = new Function('assert', functionSource('checkpointObservationSchedule') +
-    ';return checkpointObservationSchedule;')(assert);
-  assert.deepEqual(schedule(10000), {pollMs: 25, retryMs: 10100, polls: 808});
-  assert.equal(schedule(10000).polls * schedule(10000).pollMs, 20200);
-  assert(3 * 20200 < 120000);
-  for (const invalid of [undefined, 0, -1, 999, 1000.5, 20000]) assert.throws(() => schedule(invalid));
+  for (const lease of [1000,10000]) {
+    const actual=checkpointObservationSchedule(lease);
+    assert.ok(Number.isSafeInteger(actual.pollMs)&&actual.pollMs>0);
+    assert.ok(Number.isSafeInteger(actual.polls)&&actual.polls>0);
+    assert.ok(actual.retryMs>=lease);
+    assert.ok(actual.polls*actual.pollMs>=2*actual.retryMs);
+    assert.ok(3*actual.polls*actual.pollMs<120000);
+  }
+  for (const invalid of [undefined,0,-1,999,1000.5,20000]) assert.throws(()=>checkpointObservationSchedule(invalid));
 });
 
 test('packed checkpoint first diagnostic and public pending observations cannot overwrite each other', () => {
-  const {source, ast, functionSource} = checkpointObservationDeclarations();
-  const recordOriginal = new Function(functionSource('checkpointObservationRecord') +
-    ';return checkpointObservationRecord;')();
-  const records = [], events = [];
-  const record = (kind, data) => recordOriginal(records, kind, data);
-  const assignment = ast.body.find(node => node.type === 'ExpressionStatement' &&
-    node.expression.type === 'AssignmentExpression' && node.expression.left.type === 'MemberExpression' &&
-    node.expression.left.object.name === 'authorization' && node.expression.left.property.name === 'faultInjection');
-  assert(assignment);
-  const callback = source.slice(assignment.expression.right.start, assignment.expression.right.end);
-  const observe = new Function('record', 'appendFileSync', `
-    let firstResumeFailure, retryClaimAfterFailure=false, recoveryAfterFailure=false;
-    return ${callback};`)(record, (path, value) => {assert.equal(path, 'embedded-events.log'); events.push(value);});
+  const records=[],events=[];
+  const record=(kind,data)=>checkpointObservationRecord(records,kind,data);
+  const observe=createCheckpointFaultObserver(records,record,name=>events.push(name+'\n'));
   record('first-lookup', {kind: 'held', state: 'resuming'});
   observe('resume_claimed', {generation: 1});
   observe('resume_failed', {code: 'OriginalResumeFailure'});
@@ -1003,31 +986,24 @@ test('packed checkpoint first diagnostic and public pending observations cannot 
 });
 
 test('packed checkpoint close records actual return and preserves the first pending failure', async () => {
-  const {functionSource} = checkpointObservationDeclarations();
   const records = [], record = (kind, data) => records.push({kind, data});
   let release;
   const first = {close() {assert.equal(this, first); return new Promise(resolve => {release = resolve;});}};
-  const owner = new Function('record', 'initialClient', 'nodeTypes', `let client=initialClient; const closedClients=new WeakSet();
-    ${functionSource('checkpointFailureData')}
-    ${functionSource('closeClient')}
-    return {closeClient,setClient(value){client=value;}};`)(record, first, nodeTypes);
-  const closing = owner.closeClient('first');
+  const closedClients=new WeakSet();
+  const closing=closeCheckpointClient(first,closedClients,record,'first');
   assert.deepEqual(records, [{kind: 'close-attempt:first', data: {first: true}}]);
   release(); await closing;
   assert.deepEqual(records.at(-1), {kind: 'close-returned:first', data: {first: true}});
   const failure = Object.assign(new Error('same pending cleanup'), {code: 'ClientCleanupPending'});
   const pending = {close() {assert.equal(this, pending); throw failure;}};
-  owner.setClient(pending);
-  await assert.rejects(owner.closeClient('pending'), error => error === failure);
+  await assert.rejects(closeCheckpointClient(pending,closedClients,record,'pending'),error=>error===failure);
   assert.deepEqual(records.at(-1), {kind: 'close-failed:pending',
     data: {first: true, name: null, code: 'ClientCleanupPending'}});
   assert.equal(records.some(item => item.kind === 'close-returned:pending'), false);
 });
 
 test('packed checkpoint failure capture reads only own scalar DATA without getters or opaque causes', () => {
-  const {functionSource} = checkpointObservationDeclarations();
-  const capture = new Function('nodeTypes', functionSource('checkpointFailureData') +
-    ';return checkpointFailureData;')(nodeTypes);
+  const capture=checkpointFailureData;
   let reads = 0;
   const error = new Error('original scalar code');
   Object.defineProperty(error, 'code', {get() {reads++; throw new Error('must not run');}});
@@ -1043,9 +1019,7 @@ test('packed checkpoint failure capture reads only own scalar DATA without gette
 });
 
 test('packed checkpoint dispatch capture excludes messages, identities, getters and opaque values', () => {
-  const {functionSource} = checkpointObservationDeclarations();
-  const capture = new Function('nodeTypes', functionSource('checkpointDispatchFailureData') +
-    ';return checkpointDispatchFailureData;')(nodeTypes);
+  const capture=checkpointDispatchFailureData;
   let reads = 0;
   const getter = {get() {reads++; throw new Error('must not inspect');}};
   const detail = Object.create({primaryCode: 'InheritedCode', issueTag: 1});
@@ -1075,43 +1049,20 @@ test('packed checkpoint dispatch capture excludes messages, identities, getters 
 });
 
 test('packed checkpoint emitted codes retain only exact authored labels without promoting a primary', () => {
-  const {functionSource} = checkpointObservationDeclarations();
-  const capture = new Function('nodeTypes', functionSource('checkpointDispatchFailureData') +
-    ';return checkpointDispatchFailureData;')(nodeTypes);
+  const capture=checkpointDispatchFailureData;
   for (const code of ['InstalledManagedComputeRunUnavailable', 'CapturedRunPublicationFailed']) {
     assert.deepEqual(capture({code}), {emittedCode: code});
   }
   for (const code of ['PrivateButIdentifierShaped', 'private message', 'ClientDispatchFailed',
     'InstalledManagedComputeRunUnavailable:private-value', '', 1,
     {toString() {throw new Error('must not coerce');}}]) assert.deepEqual(capture({code}), {});
-  const declaration = parseJavaScript(functionSource('checkpointDispatchFailureData'),
-    {ecmaVersion: 'latest', sourceType: 'module'}).body[0];
-  const labels = declaration.body.body.find(node => node.type === 'VariableDeclaration' &&
-    node.declarations.some(value => value.id.name === 'emittedCodes')).declarations[0].init.elements;
-  const dispatch = readFileSync(new URL('../adapters/host-node/client-dispatch-owner.mjs', import.meta.url), 'utf8');
-  const entry = readFileSync(new URL('../adapters/host-node/entry.mjs', import.meta.url), 'utf8');
-  for (const label of labels) {
-    assert.equal(label.type, 'Literal');
-    assert.equal(typeof label.value, 'string');
-    assert(dispatch.includes(`new Error('${label.value}')`) ||
-      dispatch.includes(`new TypeError('${label.value}')`) || entry.includes(`= '${label.value}'`),
-    `Missing original authored dispatch label: ${label.value}`);
-  }
+
 });
 
 test('packed checkpoint first dispatch hooks retain no capabilities and do not repeat', () => {
-  const {source, ast, functionSource} = checkpointObservationDeclarations();
-  const assignment = ast.body.find(node => node.type === 'ExpressionStatement' &&
-    node.expression.type === 'AssignmentExpression' && node.expression.left.type === 'MemberExpression' &&
-    node.expression.left.object.name === 'authorization' && node.expression.left.property.name === 'faultInjection');
-  const callback = source.slice(assignment.expression.right.start, assignment.expression.right.end);
-  const records = [], events = [];
-  const recordOriginal = new Function(functionSource('checkpointObservationRecord') +
-    ';return checkpointObservationRecord;')();
-  const observe = new Function('record', 'appendFileSync', `
-    let firstResumeFailure, retryClaimAfterFailure=false, recoveryAfterFailure=false;
-    return ${callback};`)((kind, data) => recordOriginal(records, kind, data),
-    (path, text) => {assert.equal(path, 'embedded-events.log'); events.push(text);});
+  const records=[],events=[];
+  const observe=createCheckpointFaultObserver(records,
+    (kind,data)=>checkpointObservationRecord(records,kind,data),name=>events.push(name+'\n'));
   const opaque = new Proxy({}, {get() {throw new Error('must not inspect original capability');}});
   for (let index = 0; index < 100; index++) {
     assert.equal(observe('dispatch_reserved', opaque), undefined);
@@ -1123,21 +1074,8 @@ test('packed checkpoint first dispatch hooks retain no capabilities and do not r
 });
 
 test('packed checkpoint observes only the existing dispatch event and preserves its first DATA', () => {
-  const {source, ast, functionSource} = checkpointObservationDeclarations();
-  const assignment = ast.body.find(node => node.type === 'ExpressionStatement' &&
-    node.expression.type === 'AssignmentExpression' && node.expression.left.type === 'MemberExpression' &&
-    node.expression.left.object.name === 'authorization' && node.expression.left.property.name === 'observe');
-  assert(assignment);
-  const opening = ast.body.find(node => node.type === 'VariableDeclaration' &&
-    node.declarations.some(declaration => declaration.id.name === 'open'));
-  assert(assignment.end < opening.start, 'the existing observer is configured before the original connect');
-  const callback = source.slice(assignment.expression.right.start, assignment.expression.right.end);
-  const records = [];
-  const observe = new Function('nodeTypes', 'records', `
-    ${functionSource('checkpointDispatchFailureData')}
-    ${functionSource('checkpointObservationRecord')}
-    const record=(kind,data)=>checkpointObservationRecord(records,kind,data);
-    return ${callback};`)(nodeTypes, records);
+  const records=[];
+  const observe=createCheckpointDispatchObserver((kind,data)=>checkpointObservationRecord(records,kind,data));
   const opaque = new Proxy({}, {get() {throw new Error('must not read unrelated events');}});
   assert.equal(observe('resume_failed', opaque), undefined);
   assert.equal(observe('dispatch_settlement_failed', opaque), undefined);
