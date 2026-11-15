@@ -83,6 +83,10 @@ Its aggregate output bounds follow the closed CID/state/index grammar at the
 actual row count. The same managed Effect control funds the fixed quote carrier,
 then grows aggregate writer/parser workspace before the issuer or checker.
 The original per-row retained controls continue to back returned receipts.
+The Receipt-specific entrance selects the existing Ledger frame on that same
+control, retaining aggregate scratch beside the nested normalizing Ledger
+codec before the writer. Generic native Fixed frames still reject nesting;
+the original prepared Program, Request, Plan and current checks remain required.
 A changed or Proxy row-owner Array or a changed row count refuses that extent
 before constructing evidence; original
 row identities, durable heads, current authority and terminal outcomes remain

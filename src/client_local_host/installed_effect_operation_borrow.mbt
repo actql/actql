@@ -142,7 +142,9 @@ fn installed_effect_operation_control_capacity(
     // (3H2R5W) through the body constructor. Its private argument vector keeps
     // that quote, original row count and row-owner Array (3R1W). The body
     // refuses changed/Proxy Arrays before constructing evidence; no caller-
-    // owned vector is mutated.
+    // owned vector is mutated. The same control captures one Receipt-specific
+    // Begin method and carries one private role flag (1R1W); no new callback
+    // context or Resource owner is constructed.
     // The private original association owns a frozen6-reference record,
     // its temporary spread record and one WeakMap entry before registration.
     // Its current function is borrowed from the existing control.
@@ -173,7 +175,7 @@ fn installed_effect_operation_control_capacity(
     17L * count +
     269L +
     4L +
-    7L +
+    8L +
     recovery.reference_slots,
     // The active codec retains its separately charged original output bound.
     scalar_words: dependency_cache.scalar_words +
@@ -185,7 +187,7 @@ fn installed_effect_operation_control_capacity(
     shared.scalar_words +
     29L * count +
     4L +
-    8L +
+    9L +
     recovery.scalar_words,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
@@ -1438,6 +1440,27 @@ pub fn begin_installed_effect_operation_control_construction(
 }
 
 ///|
+/// The original member Receipt caller reads a durable Ledger snapshot before
+/// its closed aggregate codec. Keep that same scratch while its original
+/// normalizing Ledger codec runs; neither path supplies physical permission.
+pub fn begin_installed_effect_operation_member_receipt_construction(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledEffectManagedPlan,
+  scratch : @execution.ExecutionCapacity,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  resize_installed_effect_operation_control_construction(
+    owner,
+    prepared,
+    request,
+    plan,
+    true,
+    member_receipt_construction=Some(scratch),
+  )
+}
+
+///|
 /// The existing Site issuer still validates the original decision and signs
 /// the Grant. Only its constructor scratch is selected here, on the SAME
 /// current Run/control token; no Receipt or provider callback enters this port.
@@ -1691,6 +1714,7 @@ fn resize_installed_effect_operation_control_construction(
   ledger_family? : (Array[Int], Int, Int, Int, Int)? = None,
   ledger_codec? : (Bool, String?, Int, Int)? = None,
   native_construction? : @execution.ExecutionCapacity? = None,
+  member_receipt_construction? : @execution.ExecutionCapacity? = None,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
   guard owner.original is Some(original) && physical_equal(original, owner) else {
     return Err(ForeignOriginal)
@@ -1800,6 +1824,7 @@ fn resize_installed_effect_operation_control_construction(
       request_projection is Some(_) ||
       footprint_construction is Some(_) ||
       ledger_codec is Some(_) ||
+      member_receipt_construction is Some(_) ||
       (ledger_open is Some(_) && ledger_family is Some(_))
     ) {
     return Err(Unsupported)
@@ -1817,11 +1842,30 @@ fn resize_installed_effect_operation_control_construction(
       footprint_construction is Some(_) ||
       ledger_open is Some(_) ||
       ledger_family is Some(_) ||
-      ledger_codec is Some(_)
+      ledger_codec is Some(_) ||
+      member_receipt_construction is Some(_)
     ) {
     return Err(Unsupported)
   }
-  let constructor_frame = if native_construction is Some(native) {
+  if member_receipt_construction is Some(scratch) &&
+    (
+      !active ||
+      @execution.execution_capacity_retained_bytes(scratch) != 0L ||
+      input_wire is Some(_) ||
+      grant_construction ||
+      request_projection is Some(_) ||
+      footprint_construction is Some(_) ||
+      ledger_open is Some(_) ||
+      ledger_family is Some(_) ||
+      ledger_codec is Some(_) ||
+      native_construction is Some(_)
+    ) {
+    return Err(Unsupported)
+  }
+  let constructor_frame : ClientEffectControlConstructorFrame? = if member_receipt_construction
+    is Some(scratch) {
+    Some(Ledger(@execution.execution_capacity_execution_bytes(scratch)))
+  } else if native_construction is Some(native) {
     Some(Fixed(@execution.execution_capacity_execution_bytes(native), None))
   } else if request_projection is Some((member_index, operation, row)) {
     if !active ||

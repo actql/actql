@@ -1114,6 +1114,7 @@ export function prepareInstalledEffectControlConstruction(run) {
   const {runtime, value: parent, prepared, request, operationPlan: plan, readPlan} = run ?? {};
   const begin = runtime?.clientProgramInstalledEffectOperationControlConstructionBegin;
   const nativeBegin = runtime?.clientProgramInstalledEffectOperationNativeConstructionBegin;
+  const receiptBegin = runtime?.clientProgramInstalledEffectOperationMemberReceiptConstructionBegin;
   const complete = runtime?.clientProgramInstalledEffectOperationControlConstructionComplete;
   const grantBegin = runtime?.clientProgramInstalledEffectOperationGrantConstructionBegin;
   const requestProjectionBegin = runtime?.clientProgramInstalledEffectOperationRequestProjectionBegin;
@@ -1158,7 +1159,7 @@ export function prepareInstalledEffectControlConstruction(run) {
     Reflect.apply(nativePromiseThen, joined, [settled, settled]);
     fail('InvalidInstalledEffectControlConstruction');
   };
-  const invoke = (receiver, method, args, inputWire, grant = false, requestProjection, footprintProjection, ledgerRoot, ledgerFamily, nativeConstruction) => {
+  const invoke = (receiver, method, args, inputWire, grant = false, requestProjection, footprintProjection, ledgerRoot, ledgerFamily, nativeConstruction, memberReceipt = false) => {
     if (retired) fail('InstalledEffectControlConstructionRetired');
     if (failed) throw primary;
     if (working || run.selecting) fail('InstalledEffectControlConstructionPending');
@@ -1166,7 +1167,8 @@ export function prepareInstalledEffectControlConstruction(run) {
     if (nativeConstruction !== undefined && (nativeConstruction === null || typeof nativeConstruction !== 'object' || nodeTypes.isProxy(nativeConstruction))) {
       fail('InvalidInstalledEffectControlConstruction');
     }
-    if (nativeConstruction !== undefined && typeof nativeBegin !== 'function') fail('InstalledEffectControlRuntimeUnavailable');
+    if (typeof memberReceipt !== 'boolean' || memberReceipt && nativeConstruction === undefined) fail('InvalidInstalledEffectControlConstruction');
+    if (nativeConstruction !== undefined && typeof (memberReceipt ? receiptBegin : nativeBegin) !== 'function') fail('InstalledEffectControlRuntimeUnavailable');
     // These exact installing Core entrances own their Resource cut: the
     // borrowed Plan getter, or a key constructor that grows this SAME parent
     // before allocation. No arbitrary callback or Host count selects it.
@@ -1194,7 +1196,7 @@ export function prepareInstalledEffectControlConstruction(run) {
     try {
       originalRecord();
       if (metadata) observePlan();
-      else checked(Reflect.apply(nativeConstruction !== undefined ? nativeBegin :
+      else checked(Reflect.apply(nativeConstruction !== undefined ? memberReceipt ? receiptBegin : nativeBegin :
         ledgerFamily !== undefined && ledgerFamilyBegin !== undefined ? ledgerFamilyBegin :
         ledgerRoot !== undefined && ledgerOpenBegin !== undefined ? ledgerOpenBegin :
         footprintProjection !== undefined && footprintBegin !== undefined ? footprintBegin :
@@ -1258,8 +1260,8 @@ export function prepareInstalledEffectControlConstruction(run) {
   };
   // The installing constructor owns this optional opaque Common quote. No
   // Host scalar pricing or provider-runtime opaque value crosses the seam.
-  work = (receiver, method, args, nativeConstruction) =>
-    invoke(receiver, method, args, undefined, false, undefined, undefined, undefined, undefined, nativeConstruction);
+  work = (receiver, method, args, nativeConstruction, memberReceipt = false) =>
+    invoke(receiver, method, args, undefined, false, undefined, undefined, undefined, undefined, nativeConstruction, memberReceipt);
   // Installing Site issuers alone use this fixed Core constructor family.
   // Legacy runtimes keep the complete generic frame; JS quotes no quantities.
   const grant = (receiver, method, args) => invoke(receiver, method, args, undefined, true);

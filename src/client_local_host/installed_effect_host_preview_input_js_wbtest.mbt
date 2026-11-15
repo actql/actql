@@ -786,3 +786,157 @@ test "standard Ledger family real pressure refuses nested codec without returnin
   retire_installed_managed_run(owner).unwrap()
   assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
 }
+
+///|
+test "member Receipt keeps its same opaque scratch while original Ledger normalization nests and Fixed remains closed" {
+  let (prepared, request, plan, owner, ledger) = effect_host_preview_input_fixture(
+    wide_controls=true,
+  )
+  let (scratch, _, _, _) = installed_effect_member_receipt_construction(
+    8, 1510, 512, 16,
+  ).unwrap()
+  let control = owner.effect_operation_controls.unwrap()
+  let token = control.reservation
+  let before = @resources.ledger_usage(ledger)
+  begin_installed_effect_operation_control_construction(
+    owner,
+    prepared,
+    request,
+    plan,
+    native=Some(scratch),
+  ).unwrap()
+  assert_true(
+    begin_installed_effect_operation_ledger_codec(
+      owner,
+      prepared,
+      request,
+      plan,
+      None,
+      64,
+      4,
+    )
+    is Err(AlreadyBound),
+  )
+  assert_true(control.constructor_frame is Some(Fixed(_, _)))
+  complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  assert_true(
+    begin_installed_effect_operation_member_receipt_construction(
+      { ..owner, },
+      prepared,
+      request,
+      plan,
+      scratch,
+    )
+    is Err(ForeignOriginal),
+  )
+  let (other_prepared, _, _, other, other_ledger) = effect_host_preview_input_fixture(
+    wide_controls=true,
+  )
+  assert_true(
+    begin_installed_effect_operation_member_receipt_construction(
+      owner, other_prepared, request, plan, scratch,
+    )
+    is Err(ForeignOriginal),
+  )
+  begin_installed_effect_operation_member_receipt_construction(
+    owner, prepared, request, plan, scratch,
+  ).unwrap()
+  assert_true(physical_equal(control.reservation, token))
+  assert_true(
+    control.constructor_frame is Some(Ledger(workspace)) &&
+    workspace == @execution.execution_capacity_execution_bytes(scratch),
+  )
+  let outer = @resources.ledger_usage(ledger)
+  let pressure = @resources.reserve_capacity(
+    ledger,
+    0L,
+    @resources.ledger_limits(ledger).execution_bytes -
+    outer.reserved_execution_bytes,
+  ).unwrap()
+  assert_true(
+    begin_installed_effect_operation_ledger_codec(
+      owner,
+      prepared,
+      request,
+      plan,
+      None,
+      64,
+      4,
+    )
+    is Err(Ledger(ExecutionLimit)),
+  )
+  assert_true(!control.ledger_codec_active)
+  assert_true(control.constructor_frame is Some(Ledger(_)))
+  @resources.settle_capacity(ledger, pressure).unwrap()
+  begin_installed_effect_operation_ledger_codec(
+    owner,
+    prepared,
+    request,
+    plan,
+    None,
+    64,
+    4,
+  ).unwrap()
+  assert_true(control.ledger_codec_active)
+  assert_true(control.ledger_codec_workspace > 0L)
+  assert_true(
+    begin_installed_effect_operation_member_receipt_construction(
+      owner, prepared, request, plan, scratch,
+    )
+    is Err(AlreadyBound),
+  )
+  complete_installed_effect_operation_ledger_codec(
+    owner, prepared, request, plan,
+  ).unwrap()
+  assert_true(control.constructor_frame is Some(Ledger(_)))
+  complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_retention_bytes,
+    before.reserved_retention_bytes,
+  )
+  retire_installed_managed_run(owner).unwrap()
+  retire_installed_managed_run(other).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+  assert_eq(@resources.ledger_usage(other_ledger).live_reservations, 0)
+}
+
+///|
+test "member Receipt original current failure refuses before selecting a constructor or changing its reservation" {
+  let armed = Ref(false)
+  let (prepared, request, plan, owner, ledger) = effect_host_preview_input_fixture(
+    wide_controls=true,
+    current=() => if armed.val { capture_recovery_current_refusal() },
+  )
+  let (scratch, _, _, _) = installed_effect_member_receipt_construction(
+    8, 1510, 512, 16,
+  ).unwrap()
+  let control = owner.effect_operation_controls.unwrap()
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    begin_installed_effect_operation_member_receipt_construction(
+      owner,
+      prepared,
+      request,
+      plan,
+      @execution.execution_capacity(1L, 2L).unwrap(),
+    )
+    is Err(Unsupported),
+  )
+  armed.val = true
+  assert_true(
+    begin_installed_effect_operation_member_receipt_construction(
+      owner, prepared, request, plan, scratch,
+    )
+    is Err(_),
+  )
+  assert_true(!control.construction_active)
+  assert_true(control.constructor_frame is None)
+  assert_eq(@resources.ledger_usage(ledger), before)
+  armed.val = false
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}

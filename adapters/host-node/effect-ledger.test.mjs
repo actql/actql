@@ -1263,10 +1263,11 @@ for (const outcome of ['funded', 'refused', 'changed', 'proxy', 'replaced']) {
         bodyCalls++;
         return moon.strategyIssueEffectMemberReceiptFromRowPartitionFunded(...args);
       }};
-    const construction = (receiver, method, args, capacity) => {
+    const construction = (receiver, method, args, capacity, memberReceipt = false) => {
       if (capacity !== undefined) {
         grows++;
         assert.strictEqual(capacity, runtimeField(quote, 0));
+        assert.equal(memberReceipt, true);
         if (outcome === 'refused') throw original;
         if (outcome === 'changed') rowOwners.push(rowOwners[0]);
         if (outcome === 'proxy') rowOwners = new Proxy(rowOwners, {});

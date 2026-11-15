@@ -21960,7 +21960,8 @@
             "footprintProjection",
             "ledgerRoot",
             "ledgerFamily",
-            "nativeConstruction"
+            "nativeConstruction",
+            "memberReceipt"
           ],
           "async": false
         },
@@ -22031,7 +22032,8 @@
             "receiver",
             "method",
             "args",
-            "nativeConstruction"
+            "nativeConstruction",
+            "memberReceipt"
           ],
           "async": false
         },

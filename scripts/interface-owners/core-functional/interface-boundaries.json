@@ -37376,6 +37376,10 @@
           "declaration": "begin_installed_effect_operation_ledger_open ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , root : String , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "begin_installed_effect_operation_member_receipt_construction",
+          "declaration": "begin_installed_effect_operation_member_receipt_construction ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , scratch : @ execution . ExecutionCapacity , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "begin_installed_effect_operation_request_projection",
           "declaration": "begin_installed_effect_operation_request_projection ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , member_index : Int , operation_index : Int , row_index : Int , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
@@ -37635,6 +37639,7 @@
             "begin_installed_effect_operation_input",
             "begin_installed_effect_operation_ledger_family",
             "begin_installed_effect_operation_ledger_open",
+            "begin_installed_effect_operation_member_receipt_construction",
             "begin_installed_effect_operation_request_projection",
             "check_installed_effect_construction_original",
             "check_installed_effect_operation_backing_original",
@@ -58313,6 +58318,7 @@
             "client_program_installed_effect_operation_input_grow",
             "client_program_installed_effect_operation_ledger_family_begin",
             "client_program_installed_effect_operation_ledger_open_begin",
+            "client_program_installed_effect_operation_member_receipt_construction_begin",
             "client_program_installed_effect_operation_native_construction_begin",
             "client_program_installed_effect_operation_request_projection_begin",
             "client_program_installed_effect_operation_response_headers_require",
@@ -58818,6 +58824,10 @@
         {
           "name": "client_program_installed_effect_operation_ledger_open_begin",
           "declaration": "client_program_installed_effect_operation_ledger_open_begin ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , root : String , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_operation_member_receipt_construction_begin",
+          "declaration": "client_program_installed_effect_operation_member_receipt_construction_begin ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , scratch : @ execution . ExecutionCapacity , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "client_program_installed_effect_operation_native_construction_begin",

@@ -64,7 +64,7 @@ function bindEffectLedgerConstruction(ledger, construction, policy) {
           // This is the existing private Ledger receiver. Public callers cannot
           // inject a quote: their second argument is replaced at this boundary.
           args[1] = prepared;
-          return construction(ledger, method, args, prepared === undefined ? undefined : runtimeField(prepared, 0));
+          return construction(ledger, method, args, prepared === undefined ? undefined : runtimeField(prepared, 0), prepared !== undefined);
         }
         // These family selections read only frozen DATA lengths. Mutable or
         // nonstandard callers keep their exact original generic path.
