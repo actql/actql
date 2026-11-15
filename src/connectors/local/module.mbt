@@ -491,21 +491,19 @@ fn local_module_default_output_start_capacity(
     }
   }
   window_chain = window_chain && has_window
-  // The same bounded INNER JOIN chain can merge its original branch outputs
-  // with Append. Every child detaches accepted output and confirms scratch
-  // cleanup before its successor; no legacy sequence table is constructed.
-  let mut join_chain = count > 1
-  let mut has_join = false
+  // Append borrows both original inputs in this reclaimed bounded chain.
+  // A JOIN is not a prerequisite; if present, retain its original carried-
+  // value constructor proof as well. Every child confirms scratch cleanup
+  // before its successor; no legacy sequence table is constructed.
+  let mut append_chain = count > 1
   for index in 0..<count {
     if @execution.generated_sequence_step_at(sequence, index)
       is Some(@lower.JoinStep(kernel)) {
-      has_join = true
       if !selected_join_borrows_carried_values(kernel) {
-        join_chain = false
+        append_chain = false
       }
     }
   }
-  join_chain = join_chain && has_join
   let mut metered_retention = true
   for index in 0..<count {
     match @execution.generated_sequence_step_at(sequence, index) {
@@ -542,7 +540,7 @@ fn local_module_default_output_start_capacity(
       // transfer; a Values seed does not construct a legacy sequence table.
       Some(@lower.ValuesStep(_)) => ()
       Some(@lower.CrossJoinStep(_)) => ()
-      Some(@lower.AppendStep(_)) if count == 1 || join_chain =>
+      Some(@lower.AppendStep(_)) if count == 1 || append_chain =>
         if count > 1 {
           let prepared = @lower.bound_preparation(
             @execution.generated_sequence_owner(sequence),
