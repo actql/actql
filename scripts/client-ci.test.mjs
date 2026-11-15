@@ -31,7 +31,9 @@ import {selectInstalledHostEnvironment, selectInstalledLocalMaterializationEnvir
 import {composeInstalledCheckEnvironment} from '../adapters/host-node/installed-check-environment.mjs';
 import {contentCid} from '../adapters/host-node/local-account-config.mjs';
 import {clientCheckSourceEnvironment} from '../adapters/host-node/fixtures/client-check-source-environment.mjs';
-import {inferPreparationFailureData} from './fixtures/packed-infer-preparation-diagnostic.mjs';
+import {inferPreparationFailureData, inferDispatchFailureData, inferTerminalFailureData,
+  createInferFailureObserver, withEffectFixturePreparationDiagnostic, waitForPackedCompositionCheckpoint}
+  from './fixtures/packed-infer-preparation-diagnostic.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
 import {machineCid} from './actql-spec-family.mjs';
 
@@ -76,13 +78,7 @@ test('packed INFER original preparation evidence excludes opaque values getters 
 });
 
 test('packed INFER dispatch evidence retains only original code and tags without observing opaque fields', () => {
-  const script = readFileSync(new URL('./fixtures/packed-single-infer.mjs', import.meta.url), 'utf8');
-  const tree = parseJavaScript(script, {ecmaVersion: 'latest', sourceType: 'module'});
-  const definition = tree.body.find(node => node.type === 'FunctionDeclaration' &&
-    node.id.name === 'inferDispatchFailureData');
-  assert(definition);
-  const project = new Function('nodeTypes', script.slice(definition.start, definition.end) +
-    ';return inferDispatchFailureData;')(nodeTypes);
+  const project = inferDispatchFailureData;
   let reads = 0;
   const detail = {code: 'MoonBitHostFailure', primaryCode: 'NodeManagedRunRuntimeUnavailable',
     issueTag: 7, nestedIssueTag: 2, ref: {private: true}, input: 'never disclose'};
@@ -104,13 +100,7 @@ test('packed INFER dispatch evidence retains only original code and tags without
 });
 
 test('packed INFER terminal failure context excludes Run references rows and opaque values', () => {
-  const script = readFileSync(new URL('./fixtures/packed-single-infer.mjs', import.meta.url), 'utf8');
-  const tree = parseJavaScript(script, {ecmaVersion: 'latest', sourceType: 'module'});
-  const definition = tree.body.find(node => node.type === 'FunctionDeclaration' &&
-    node.id.name === 'inferTerminalFailureData');
-  assert(definition);
-  const project = new Function('nodeTypes', script.slice(definition.start, definition.end) +
-    ';return inferTerminalFailureData;')(nodeTypes);
+  const project = inferTerminalFailureData;
   let reads = 0;
   const terminal = {status: 'failed', next_action: {kind: 'none'},
     terminal_error: {code: 'ACTQL_E_UNPUBLISHED_RUN'}, run_id: 'never disclose',
@@ -131,16 +121,6 @@ test('packed INFER terminal failure context excludes Run references rows and opa
 });
 
 test('Effect fixture diagnostics preserve original throws and avoid opaque values', () => {
-  const script = readFileSync(new URL('../adapters/host-node/fixtures/installed-row-effect.fixture.mjs', import.meta.url), 'utf8');
-  const tree = parseJavaScript(script, {ecmaVersion: 'latest', sourceType: 'module'});
-  const host = tree.body.find(node => node.type === 'ExportNamedDeclaration' && node.declaration?.id?.name === 'effectHost');
-  const definition = host.declaration.body.body.find(node => node.type === 'VariableDeclaration' &&
-    node.declarations.some(value => value.id.name === 'prepareDefinition'));
-  assert(definition);
-  const instantiate = new Function('prepareInstalledEffectManagedPlanRun', 't', 'nodeTypes',
-    'const funded={manager:{}}, managedRuns={}, liveManagedRuns={}, moon={}, requests=new Map(),' +
-    'installed={}, registry={}, values={}, installedContracts={}, assertCurrent=()=>{}, checked=x=>x;' +
-    script.slice(definition.start, definition.end) + ';return prepareDefinition;');
   let reads = 0;
   const original = Object.assign(new Error('private'), {code: 'MoonBitHostFailure', cause: {$tag: 7}});
   for (const name of ['message', 'stack']) Object.defineProperty(original, name,
@@ -150,10 +130,10 @@ test('Effect fixture diagnostics preserve original throws and avoid opaque value
     for (const diagnosticThrows of [false, true]) {
       let calls = 0;
       const diagnostics = [];
-      const prepare = instantiate(() => {calls++; throw cause;}, {diagnostic(value) {
+      const prepare = withEffectFixturePreparationDiagnostic(() => {calls++; throw cause;}, value => {
         diagnostics.push(JSON.parse(value));
         if (diagnosticThrows) throw new Error('authored diagnostic failure');
-      }}, nodeTypes);
+      });
       let rejected = false;
       try {prepare({prepared: {}, identity: {}});} catch (observed) {
         rejected = true;
@@ -170,103 +150,50 @@ test('Effect fixture diagnostics preserve original throws and avoid opaque value
 });
 
 test('packed INFER keeps at most its first original admission event in existing stderr evidence', () => {
-  const script = readFileSync(new URL('./fixtures/packed-single-infer.mjs', import.meta.url), 'utf8');
-  const tree = parseJavaScript(script, {ecmaVersion: 'latest', sourceType: 'module'});
-  const assignment = tree.body.find(node => node.type === 'ExpressionStatement' &&
-    node.expression.type === 'AssignmentExpression' &&
-    node.expression.left.object?.name === 'authorization' &&
-    node.expression.left.property?.name === 'observe');
-  assert(assignment);
-  const lines = [], detail = Object.freeze({boundary: 'model_provider'});
-  const observe = new Function('authorization', 'inferPreparationFailureData', 'inferDispatchFailureData', 'console',
-    'let inferFailureObserved=false,dispatchFailureObserved=false;const calls=0,inferFailureObservations=[];' + script.slice(assignment.start, assignment.end) +
-    ';return authorization.observe;')({}, value => {
-    assert.equal(value, detail); return value;
-  }, value => ({code: value.code, issueTag: value.issueTag}), {error: line => lines.push(line)});
-  observe('other_event', detail);
-  observe('infer_preparation_rejected', detail);
-  observe('infer_preparation_rejected', detail);
-  observe('dispatch_failed', {code: 'MoonBitHostFailure', issueTag: 7});
-  observe('dispatch_failed', {code: 'second', issueTag: 8});
-  assert.deepEqual(lines.map(line => JSON.parse(line)),
-    [{event: 'infer_preparation_rejected', boundary: 'model_provider'},
-      {event: 'dispatch_failed', code: 'MoonBitHostFailure', issueTag: 7, calls: 0}]);
+  const lines = [], detail = Object.freeze({boundary:'model_provider'});
+  const observe = createInferFailureObserver({emit:value=>lines.push(JSON.stringify(value)),readCalls:()=>0});
+  observe('other_event',detail);
+  observe('infer_preparation_rejected',detail);
+  observe('infer_preparation_rejected',detail);
+  observe('dispatch_failed',{code:'MoonBitHostFailure',issueTag:7});
+  observe('dispatch_failed',{code:'second',issueTag:8});
+  assert.deepEqual(lines.map(line=>JSON.parse(line)),[
+    {event:'infer_preparation_rejected',boundary:'model_provider'},
+    {event:'dispatch_failed',code:'MoonBitHostFailure',issueTag:7,calls:0},
+  ]);
 });
 
-function packedEffectDriverSource() {
-  const source = readFileSync(new URL('./test-packed-salesforce-source.mjs', import.meta.url), 'utf8');
-  let template;
-  const visit = node => {
-    if (!node || typeof node !== 'object') return;
-    if (node.type === 'CallExpression' && node.callee.name === 'writeFile' &&
-        node.arguments[0]?.type === 'CallExpression' &&
-        node.arguments[0].arguments.some(value => value.value === 'effect-run.mjs')) {
-      assert.equal(template, undefined); template = node.arguments[1];
-    }
-    for (const value of Object.values(node)) if (Array.isArray(value)) value.forEach(visit);
-    else if (value && typeof value === 'object') visit(value);
-  };
-  visit(parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}));
-  assert.equal(template.expressions.length, 0);
-  return template.quasis[0].value.cooked;
-}
-
-test('packed pending composition reports its last original status without hiding the wait failure', async () => {
-  const driver = packedEffectDriverSource();
-  let branch;
-  const visit = node => {
-    if (!node || typeof node !== 'object') return;
-    if (node.type === 'IfStatement' && node.test.type === 'Identifier' &&
-        node.test.name === 'pendingScratch') {assert.equal(branch, undefined); branch = node;}
-    for (const value of Object.values(node)) if (Array.isArray(value)) value.forEach(visit);
-    else if (value && typeof value === 'object') visit(value);
-  };
-  visit(parseJavaScript(driver, {ecmaVersion: 'latest', sourceType: 'module'}));
-  assert(branch);
-  const run = new Function('execution', 'waitFor', 'console',
-    'return (async()=> ' + driver.slice(branch.consequent.start, branch.consequent.end) + ')();');
-  for (const status of ['running', 'failed', 'needs_reconciliation']) {
-    for (const primary of [new Error('original wait failure'), undefined]) {
-      const lines = []; let reads = 0, rejected = false;
-      try {
-        await run({async status() {reads++; return {status, privateInput: 'never disclose'};}},
-          async check => {assert.equal(await check(), false); throw primary;},
-          {error: line => lines.push(line)});
-      } catch (error) {rejected = true; assert.strictEqual(error, primary);}
-      assert(rejected); assert.equal(reads, 1);
-      assert.equal(lines.length, 1);
-      assert.deepEqual(JSON.parse(lines[0].slice('packed composition wait '.length)), {
-        boundary: 'pending-composition-wait', status, expectedStatus: 'waiting_checkpoint',
-      });
-      assert(!lines[0].includes('never disclose'));
+test('pending packed composition reports its original Run status before preserving the actual wait failure', async () => {
+  for (const status of ['running','failed','needs_reconciliation']) {
+    for (const primary of [new Error('original wait failure'),undefined]) {
+      for (const diagnosticThrows of [false,true]) {
+        const lines = [];let reads=0,rejected=false;
+        try {
+          await waitForPackedCompositionCheckpoint({async status(){reads++;return {status,privateInput:'never disclose'};}},
+            async check=>{assert.equal(await check(),false);throw primary;},value=>{
+              lines.push(value);if(diagnosticThrows)throw new Error('diagnostic failure');
+            });
+        } catch(error){rejected=true;assert.strictEqual(error,primary);}
+        assert.equal(rejected,true);assert.equal(reads,1);
+        assert.deepEqual(lines,[{boundary:'pending-composition-wait',status,expectedStatus:'waiting_checkpoint'}]);
+        assert.equal(JSON.stringify(lines).includes('never disclose'),false);
+      }
     }
   }
-  await run({async status() {return {status: 'waiting_checkpoint'};}},
-    async check => assert.equal(await check(), true),
-    {error() {assert.fail('successful waiting must not report a failure');}});
+  await waitForPackedCompositionCheckpoint({async status(){return {status:'waiting_checkpoint'};}},
+    async check=>assert.equal(await check(),true),()=>assert.fail('successful waiting must not report failure'));
 });
 
 test('packed composition retains the first original Model admission event in command stderr', () => {
-  const driver = packedEffectDriverSource();
-  const tree = parseJavaScript(driver, {ecmaVersion: 'latest', sourceType: 'module'});
-  const assignment = tree.body.find(node => node.type === 'ExpressionStatement' &&
-    node.expression.type === 'AssignmentExpression' &&
-    node.expression.left.object?.name === 'authorization' &&
-    node.expression.left.property?.name === 'observe');
-  assert(assignment);
-  const lines = [];
-  const observe = new Function('authorization', 'inferPreparationFailureData', 'console', 'appendFileSync',
-    'let inferPreparationFailureObserved=false;const resumeFailures=[];const optionalKind=undefined;' +
-    driver.slice(assignment.start, assignment.end) + ';return authorization.observe;')(
-      {}, inferPreparationFailureData, {error: line => lines.push(line)},
-      () => assert.fail('Model preparation diagnostics must not write custody or business files'));
-  observe('unrelated', {});
-  observe('infer_preparation_rejected', {boundary: 'private-input'});
-  observe('infer_preparation_rejected', {boundary: 'model_execution', code: 'MoonBitHostFailure',
-    typedCause: 'missing_body', cause: {$tag: 3}, ref: 'private', input: ['private']});
-  observe('infer_preparation_rejected', {boundary: 'model_dependencies', code: 'later'});
-  assert.deepEqual(lines.map(line => JSON.parse(line)), [{event: 'infer_preparation_rejected',
-    boundary: 'model_execution', code: 'MoonBitHostFailure', typedCause: 'missing_body', issueTag: 3}]);
+  const lines=[];
+  const observe=createInferFailureObserver({emit:value=>lines.push(JSON.stringify(value))});
+  observe('unrelated',{});
+  observe('infer_preparation_rejected',{boundary:'private-input'});
+  observe('infer_preparation_rejected',{boundary:'model_execution',code:'MoonBitHostFailure',
+    typedCause:'missing_body',cause:{$tag:3},ref:'private',input:['private']});
+  observe('infer_preparation_rejected',{boundary:'model_dependencies',code:'later'});
+  assert.deepEqual(lines.map(line=>JSON.parse(line)),[{event:'infer_preparation_rejected',
+    boundary:'model_execution',code:'MoonBitHostFailure',typedCause:'missing_body',issueTag:3}]);
 });
 
 test('both packed Model consumers copy their shared diagnostic without a checkout fallback', async () => {

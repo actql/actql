@@ -70,3 +70,92 @@ export function effectCheckpointTerminalData(state) {
   if (typeof code === 'string' && effectTerminalCodes.has(code)) data.terminalCode = code;
   return Object.freeze(data);
 }
+
+// Reuse the existing dispatch observer without serializing its original Error,
+// Run reference, input, message or stack. Diagnostics never change execution.
+export function inferDispatchFailureData(detail) {
+  const own = (record, key) => {
+    if (record === null || typeof record !== 'object' || nodeTypes.isProxy(record)) return undefined;
+    const field = Object.getOwnPropertyDescriptor(record, key);
+    return field && Object.hasOwn(field, 'value') ? field.value : undefined;
+  };
+  const data = {};
+  for (const key of ['code', 'primaryCode']) {
+    const value = own(detail, key);
+    if (typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_.:-]{0,127}$/u.test(value)) data[key] = value;
+  }
+  for (const key of ['issueTag', 'nestedIssueTag']) {
+    const value = own(detail, key);
+    if (Number.isSafeInteger(value) && value >= 0 && value <= 65535) data[key] = value;
+  }
+  return Object.keys(data).length === 0 ? undefined : Object.freeze(data);
+}
+
+export function inferTerminalFailureData(terminal) {
+  const own = (record, key) => {
+    if (record === null || typeof record !== 'object' || nodeTypes.isProxy(record)) return undefined;
+    const field = Object.getOwnPropertyDescriptor(record, key);
+    return field && Object.hasOwn(field, 'value') ? field.value : undefined;
+  };
+  const data = {};
+  for (const [key, value] of [['status', own(terminal, 'status')],
+    ['nextAction', own(own(terminal, 'next_action'), 'kind')],
+    ['terminalCode', own(own(terminal, 'terminal_error'), 'code')]]) {
+    if (typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_.:-]{0,127}$/u.test(value)) data[key] = value;
+  }
+  return Object.freeze(data);
+}
+
+// Test-only command observation. No caller-supplied value becomes a Run,
+// authority, currentness decision or acceptance receipt through this helper.
+export function createInferFailureObserver({emit, record = () => {}, readCalls}) {
+  let inferObserved = false, dispatchObserved = false;
+  return (name, detail) => {
+    if (name === 'dispatch_failed' && readCalls !== undefined && !dispatchObserved) {
+      const data = inferDispatchFailureData(detail);
+      if (data === undefined) return;
+      dispatchObserved = true;
+      const observed = Object.freeze({event:name,...data,calls:readCalls()});
+      record(observed);emit(observed);return;
+    }
+    if (name !== 'infer_preparation_rejected' || inferObserved) return;
+    const data = inferPreparationFailureData(detail);
+    if (data === undefined) return;
+    inferObserved = true;
+    const observed = Object.freeze({event:name,...data});record(observed);emit(observed);
+  };
+}
+
+export function withEffectFixturePreparationDiagnostic(prepare, diagnostic) {
+  return facts => {
+    try {return prepare(facts);}
+    catch (cause) {
+      try {
+        const own = (value, name) => {
+          if (value === null || !['object','function'].includes(typeof value) || nodeTypes.isProxy(value)) return undefined;
+          const field = Object.getOwnPropertyDescriptor(value, name);
+          return field && Object.hasOwn(field,'value') ? field.value : undefined;
+        };
+        const issue = own(cause,'cause'), tag = Number.isSafeInteger(issue) ? issue : own(issue,'$tag');
+        const code = own(cause,'code');
+        diagnostic(JSON.stringify({phase:'effect_definition_preparation',
+          code:typeof code === 'string' && /^[A-Za-z0-9_]{1,96}$/u.test(code) ? code : undefined,
+          issueTag:Number.isSafeInteger(tag) && tag >= 0 && tag <= 65535 ? tag : undefined,
+          limitsObserved:false}));
+      } catch { /* Diagnostic failure cannot replace the original throw. */ }
+      throw cause;
+    }
+  };
+}
+
+export async function waitForPackedCompositionCheckpoint(execution, waitFor, diagnostic) {
+  let status;
+  try {await waitFor(async () => {
+    status = (await execution.status()).status;return status === 'waiting_checkpoint';
+  });}
+  catch (cause) {
+    try {diagnostic({boundary:'pending-composition-wait',status,expectedStatus:'waiting_checkpoint'});}
+    catch { /* Preserve the actual bounded wait's original failure. */ }
+    throw cause;
+  }
+}
