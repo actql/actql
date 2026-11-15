@@ -118,7 +118,7 @@ fn bounded_number_group_scalar_schema(schema : @schema.Schema) -> Bool {
 }
 
 ///|
-/// The direct Number SUM/AVG group borrows its original scalar input cells.
+/// Direct Number SUM/AVG and row COUNT borrow the original scalar input cells.
 /// Key cells are returned from the representative input row; aggregate Number
 /// cells and pending row arrays are funded by the complete group workspace.
 /// Constructed/dynamic/recursive/presence-bearing families keep the full path.
@@ -138,18 +138,27 @@ pub fn bounded_number_group_borrows_input(
   }
   for index in 0..<@lower.group_aggregate_count(group) {
     let aggregate = @lower.group_aggregate_at(group, index).unwrap()
-    let number_fold = match @lower.group_aggregate_function(aggregate) {
-      @relation.Sum | @relation.Avg => true
-      _ => false
-    }
-    guard number_fold &&
-      @lower.group_aggregate_distinct(aggregate) != Some(true) &&
+    guard @lower.group_aggregate_distinct(aggregate) != Some(true) &&
       @lower.group_aggregate_order_count(aggregate) == 0 &&
-      @lower.group_aggregate_result(aggregate).shape is @contract.Number &&
-      @lower.group_aggregate_argument(aggregate) is @lower.AggregateField(field) &&
-      @schema.lookup(input, field) is Some(contract) &&
-      contract.shape is @contract.Number else {
+      @lower.group_aggregate_result(aggregate).shape is @contract.Number else {
       return false
+    }
+    match
+      (
+        @lower.group_aggregate_function(aggregate),
+        @lower.group_aggregate_argument(aggregate),
+      ) {
+      (@relation.Sum | @relation.Avg, @lower.AggregateField(field)) => {
+        guard @schema.lookup(input, field) is Some(contract) &&
+          contract.shape is @contract.Number else {
+          return false
+        }
+      }
+      // COUNT(*) counts row occurrences without reading an argument or
+      // constructing a value forest. COUNT(field) has a distinct NULL rule
+      // and keeps its original recipe; no argument is erased by this proof.
+      (@relation.Count, @lower.AggregateRows) => ()
+      _ => return false
     }
   }
   true
