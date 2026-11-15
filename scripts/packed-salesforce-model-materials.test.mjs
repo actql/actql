@@ -36,6 +36,14 @@ test('Effect baseline failure evidence retains only bounded original callback la
     code: 'sha256:' + 'a'.repeat(64), primaryCode: 'x'.repeat(97),
     issueTag: -1, nestedIssueTag: 65536, cause: proxy,
   }), {event: 'effect_settlement_failed'});
+  assert.deepEqual(effectBoundaryFailureData('effect_start_failed', {
+    code: 'CustomerRecord42', primaryCode: 'PrivateWorkspaceToken42', cause: {$tag: 3},
+  }), {event: 'effect_start_failed', causeTags: [3]},
+  'Plausible private code labels are omitted while original enum tags remain');
+  assert.deepEqual(effectBoundaryFailureData('effect_start_failed', {
+    code: 'ForeignInstalledSourceProducer', primaryCode: 'InvalidHostRuntimeResult',
+  }), {event: 'effect_start_failed', code: 'ForeignInstalledSourceProducer',
+    primaryCode: 'InvalidHostRuntimeResult'});
   assert.equal(effectBoundaryFailureData('unrelated', proxy), undefined);
   let chain;
   for (let tag = 15; tag >= 0; tag--) chain = {$tag: tag, _0: chain};
@@ -60,6 +68,9 @@ test('Effect capture terminal evidence preserves public failure without waiting 
   let reads = 0;
   const state = {status: 'failed', get terminal_error() {reads++; throw new Error('private');}};
   assert.deepEqual(effectCheckpointTerminalData(state), {status: 'failed'});
+  assert.deepEqual(effectCheckpointTerminalData({status: 'failed',
+    terminal_error: {code: 'PrivateWorkspaceToken42'}}), {status: 'failed'},
+  'A plausible caller-selected terminal code is not diagnostic evidence');
   const proxy = new Proxy({}, {getOwnPropertyDescriptor() {reads++; throw new Error('private');}});
   assert.equal(effectCheckpointTerminalData(proxy), undefined);
   assert.equal(reads, 0);

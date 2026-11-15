@@ -26,6 +26,13 @@ export function inferPreparationFailureData(detail) {
   return Object.freeze(data);
 }
 
+// Reviewed labels from runtime-result/ordinary-source-managed and the public
+// unpublished terminal state. A new or caller-selected label is omitted.
+const effectBoundaryCodes = new Set([
+  'MoonBitHostFailure', 'InvalidHostRuntimeResult', 'ForeignInstalledSourceProducer',
+]);
+const effectTerminalCodes = new Set(['ACTQL_E_UNPUBLISHED_RUN']);
+
 // The original Host callback already owns this failure. Preserve only finite
 // labels and enum tags before FIRST close; never inspect messages or bodies.
 export function effectBoundaryFailureData(event, detail) {
@@ -34,7 +41,7 @@ export function effectBoundaryFailureData(event, detail) {
   const data = {event};
   for (const key of ['code', 'primaryCode']) {
     const value = ownData(detail, key);
-    if (typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,95}$/u.test(value)) data[key] = value;
+    if (typeof value === 'string' && effectBoundaryCodes.has(value)) data[key] = value;
   }
   for (const key of ['issueTag', 'nestedIssueTag']) {
     const value = ownData(detail, key);
@@ -60,6 +67,6 @@ export function effectCheckpointTerminalData(state) {
   if (!['failed', 'cancelled', 'needs_reconciliation', 'succeeded'].includes(status)) return undefined;
   const data = {status};
   const code = ownData(ownData(state, 'terminal_error'), 'code');
-  if (typeof code === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,95}$/u.test(code)) data.terminalCode = code;
+  if (typeof code === 'string' && effectTerminalCodes.has(code)) data.terminalCode = code;
   return Object.freeze(data);
 }
