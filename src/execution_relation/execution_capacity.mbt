@@ -248,10 +248,12 @@ pub fn generated_bounded_sequence_capacity(
   let mut primitive_values = operation is @lower.ValuesStep(_)
   let mut borrowed_values = primitive_values &&
     @schema.all_fields_required(schema)
+  let mut literal_required = true
   if primitive_values {
     for index in 0..<@schema.field_count(schema) {
       guard @schema.field_at(schema, index) is Some(field) else { return None }
       let contract = @schema.field_contract(field)
+      literal_required = literal_required && !contract.nullable
       primitive_values = primitive_values &&
         (match contract.shape {
           @contract.Number | @contract.Boolean => true
@@ -259,6 +261,35 @@ pub fn generated_bounded_sequence_capacity(
         })
       borrowed_values = borrowed_values &&
         json_leaf_representation_contract(contract)
+    }
+  }
+  // Flat literal cells already belong to this exact immutable preparation.
+  // The bounded Values reader measures/rechecks those same cells, so its
+  // possible DATA is bounded by the original rows and cached literal charge,
+  // not every unused node/Text slot in the enclosing runtime policy. Keep
+  // both policies as caps; parameters and recursive/presence shapes retain
+  // their original general recipe. This changes only physical quotation.
+  let mut literal_nodes = -1L
+  let mut literal_text = -1L
+  if borrowed_values && literal_required {
+    match
+      (
+        @lower.node_values_row_count(node),
+        @lower.node_values_literal_text_bytes(node),
+      ) {
+      (Some(count), Some(text)) if count >= 0 && text >= 0 => {
+        guard checked_preparation_add_product(
+            0L,
+            count.to_int64(),
+            @schema.field_count(schema).to_int64() + 1L,
+          )
+          is Some(nodes) else {
+          return None
+        }
+        literal_nodes = nodes
+        literal_text = text.to_int64()
+      }
+      _ => ()
     }
   }
   let borrowed_group = match operation {
@@ -495,6 +526,8 @@ pub fn generated_bounded_sequence_capacity(
       borrowed_number_group,
     // Append uses the same workspace-funded binary input scan as CROSS JOIN;
     // its constructor receives no physical measurement forest or wire buffer.
+    literal_output_nodes=literal_nodes,
+    literal_output_text=literal_text,
     bounded_measurement=borrowed_values ||
       (borrowed_row && !borrowed_group) ||
       operation is @lower.AppendStep(_) ||
@@ -586,6 +619,8 @@ fn generated_sequence_capacity_with_roots(
   bounded_single : Bool,
   borrowed_input_values? : Bool = false,
   bounded_measurement? : Bool = false,
+  literal_output_nodes? : Int64 = -1L,
+  literal_output_text? : Int64 = -1L,
 ) -> ExecutionCapacity? {
   let rows = limits.rows
   if rows.retained_entries < 0 ||
@@ -600,12 +635,26 @@ fn generated_sequence_capacity_with_roots(
       { unit: CursorRootSlots, count: retained_roots, copies: 1, },
       {
         unit: ValueNodeSlots,
-        count: rows.output_values.max_nodes.to_int64(),
+        count: if literal_output_nodes < 0L {
+          rows.output_values.max_nodes.to_int64()
+        } else {
+          Int64::min(
+            rows.output_values.max_nodes.to_int64(),
+            literal_output_nodes,
+          )
+        },
         copies: 1,
       },
       {
         unit: DecodedTextBytes,
-        count: rows.output_values.max_text_bytes.to_int64(),
+        count: if literal_output_text < 0L {
+          rows.output_values.max_text_bytes.to_int64()
+        } else {
+          Int64::min(
+            rows.output_values.max_text_bytes.to_int64(),
+            literal_output_text,
+          )
+        },
         copies: 1,
       },
     ])
@@ -633,7 +682,14 @@ fn generated_sequence_capacity_with_roots(
       },
       {
         unit: ValueNodeSlots,
-        count: rows.output_values.max_nodes.to_int64(),
+        count: if literal_output_nodes < 0L {
+          rows.output_values.max_nodes.to_int64()
+        } else {
+          Int64::min(
+            rows.output_values.max_nodes.to_int64(),
+            literal_output_nodes,
+          )
+        },
         copies: 1,
       },
       {
@@ -665,7 +721,14 @@ fn generated_sequence_capacity_with_roots(
       },
       {
         unit: DecodedTextBytes,
-        count: rows.output_values.max_text_bytes.to_int64(),
+        count: if literal_output_text < 0L {
+          rows.output_values.max_text_bytes.to_int64()
+        } else {
+          Int64::min(
+            rows.output_values.max_text_bytes.to_int64(),
+            literal_output_text,
+          )
+        },
         copies: 1,
       },
       {

@@ -329,8 +329,10 @@ test "one original primitive Values constructor keeps logical budgets without ph
     },
     measure,
   ).unwrap()
-  assert_true(text_output.retained_bytes > text_small.retained_bytes)
-  assert_true(text_output.execution_bytes > text_small.execution_bytes)
+  // The SAME frozen literal is the physical DATA bound. Increasing an unused
+  // logical ceiling neither creates a Text copy nor changes that original.
+  assert_eq(text_output.retained_bytes, text_small.retained_bytes)
+  assert_eq(text_output.execution_bytes, text_small.execution_bytes)
   assert_true(
     generated_sequence_capacity(text, limits, unused_measurement).unwrap().execution_bytes >
     text_large.execution_bytes,
