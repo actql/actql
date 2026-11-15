@@ -45,80 +45,6 @@ function opening() {
     ';return {journal, originalRequestPreparation};');
 }
 
-function preparedEnvironmentLifetime({missing = false, retire = () => {},
-  consumerRetire = () => {}, install = true, preparation} = {}) {
-  const opening = declared('openInstalledHost');
-  assert.deepEqual(opening.params.map(node => node.name), ['originalInstallation', 'preparation']);
-  const functions = new Map(opening.body.body.filter(node => node.type === 'FunctionDeclaration')
-    .map(node => [node.id.name,node]));
-  const retirement = functions.get('retireModelPreparationReferences');
-  assert(retirement);
-  let capture, installation, retain, consumerCapture;
-  visit(opening.body,node => {
-    if (node.type === 'VariableDeclaration' && node.declarations.length === 1) {
-      if (node.declarations[0].id.name === 'sourceEnvironmentOriginal') capture = node;
-      if (node.declarations[0].id.name === 'prepareSubmit') installation = node;
-    }
-    if (node.type === 'IfStatement' && text(node.test) === 'sourceEnvironmentOriginal !== undefined') retain = node;
-    if (node.type === 'ExpressionStatement' && node.expression.type === 'AssignmentExpression' &&
-        node.expression.left.name === 'clientProgramPreparationReferences' &&
-        node.expression.right.type === 'CallExpression') consumerCapture = node;
-  });
-  assert(capture && retain && installation);
-  const original = {host:{},moon:{},environment:{},publication:{},preparedEnvironment:{}};
-  let reads = 0, retirements = 0;
-  const sourceAliasPublicationOriginal = (moon,environment,publication) => {
-    assert.strictEqual(moon,original.moon);assert.strictEqual(environment,original.environment);
-    assert.strictEqual(publication,original.publication);reads++;
-    return missing ? undefined : Object.freeze({wire:'{}',preparedEnvironment:original.preparedEnvironment});
-  };
-  const retireSourceAliasPublicationOriginal = (moon,environment,publication) => {
-    assert.strictEqual(moon,original.moon);assert.strictEqual(environment,original.environment);
-    assert.strictEqual(publication,original.publication);retirements++;retire();
-  };
-  const consumer = {calls:0,retained:true,retire:consumerRetire};
-  const create = new Function('original','sourceAliasPublicationOriginal','retireSourceAliasPublicationOriginal','consumer','preparation',`
-    const host=original.host,moon=original.moon;
-    let environment=original.environment,sourcePublication=original.publication;
-    let preparedSourceEnvironment,clientProgramPreparationReferences,modelRuntimeClosing=false;
-    let modelSdkStaticOriginals,originalInstallation={},registerModelProviders,modelProviders;
-    const installationServices={},environmentWire='{}';
-    const completeInstalledSourceInitialization=(services,installation,prepared,wire)=>{
-      if(services!==installationServices||installation!==originalInstallation||
-          prepared!==original.preparedEnvironment||wire!==environmentWire)throw Error('ForeignSourceInitialization');
-    };
-    let projectTasks,projectProfile,projectRuntime,project;
-    const mockEffectRuns=new Map(),localFileEffectRuns=new Map();
-    let mockEffectOriginals,localFileEffectOriginals,localFileEffectInstallation;
-    let mockEffectObservation,mockEffectObservationMethods,localSigningMetadata,localCheckpointAnswer;
-    let mockAccount,standardAccountPreparation;
-    const retireInstalledProjectConfiguration=()=>{throw new Error('UnexpectedProject');};
-    const clientOperationError=code=>Object.assign(new Error(code),{code});
-    const valuesMaxRows=undefined,retainedRelationOutput=false,check=()=>{},verifyRequestValuePolicy=()=>{};
-    const updateTargetOriginals={restorePrepared:()=>{}},control={},calendarArtifact=undefined;
-    const effectInstallation=undefined;
-    const installNodeClientProgramPreparation=options=>{
-      const holder=Object.assign(function(){},options);
-      holder.retireReferences=function(){
-        if(this!==holder)throw new Error('ForeignPreparationReceiver');
-        consumer.calls++;consumer.retire();consumer.retained=false;
-      };
-      return holder;
-    };
-    ${text(retirement)}
-    ${text(capture)}
-    ${text(retain)}
-    let selectedPreparation;
-    ${install ? `{${text(installation)}\n${consumerCapture === undefined ? '' : text(consumerCapture)}\nselectedPreparation=prepareSubmit;}` : ''}
-    return {retire:retireModelPreparationReferences,
-      get slot(){return preparedSourceEnvironment;},options:selectedPreparation,
-      stop(){modelRuntimeClosing=true;},replaceEnvironment(value){environment=value;},
-      replacePublication(value){sourcePublication=value;}};
-  `);
-  return {fixture:create(original,sourceAliasPublicationOriginal,retireSourceAliasPublicationOriginal,consumer,preparation),original,consumer,
-    get reads(){return reads;},get retirements(){return retirements;}};
-}
-
 test('actual Host acquires its same Journal before Compute and before publishing the SDK receiver', async () => {
   const journal = {}, receiver = {}, options = {}, log = [];
   const preparation = {
@@ -314,26 +240,6 @@ test('funded policy Host keeps its original context before snapshot instead of s
   assert.throws(() => read({installation}), {code: 'NodeLocalPreparationAdmissionUnavailable'});
   installation.closedValuesPreparationContext = Object.freeze({...original, runtime: {}});
   assert.equal(read({installation}), undefined, 'A foreign runtime cannot acquire the original context');
-});
-
-test('funded policy installer forwards the exact verifier to its original preparation', async () => {
-  const request = {}, environment = {}, result = {}, signal = new AbortController().signal;
-  let calls = 0, expectedVerifier;
-  const preparation = {fundedPreparation(actual, selected, verifier, actualSignal) {
-    assert.strictEqual(this, preparation);
-    assert.strictEqual(actual, request);
-    assert.strictEqual(selected, environment);
-    assert.strictEqual(verifier, expectedVerifier);
-    assert.strictEqual(actualSignal, signal);
-    calls++;
-    return Promise.resolve(result);
-  }};
-  const f = preparedEnvironmentLifetime({preparation});
-  expectedVerifier = f.fixture.options.verifyRequestValuePolicy;
-  assert.equal(typeof expectedVerifier, 'function');
-  assert.strictEqual(await f.fixture.options.getFundedPreparation(request, environment, expectedVerifier, signal), result);
-  assert.equal(calls, 1);
-  f.fixture.retire();
 });
 
 test('funded policy manager forwarding preserves the same callback and original request mapping', async () => {

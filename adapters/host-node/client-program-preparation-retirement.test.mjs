@@ -71,6 +71,27 @@ test('fixed funded original awaits the same owner and retains its original metad
  assert.equal(prepare.originalInputs(original).parametersCursor,parametersCursor);
  prepare.retireOriginal(original);assert.throws(()=>prepare.assertOwned(original));
 });
+
+test('funded preparation forwards its original Request Environment verifier and signal once', async () => {
+  const environment = {}, prepared = {}, controller = new AbortController();
+  const request = {kind: 'program', input: {}, signal: controller.signal};
+  const verifier = () => assert.fail('The selected Request owner decides when to verify');
+  let calls = 0;
+  const prepare = installNodeClientProgramPreparation({moon: {}, environment,
+    verifyRequestValuePolicy: verifier,
+    async getFundedPreparation(actual, selected, verify, signal) {
+      assert.strictEqual(actual, request); assert.strictEqual(selected, environment);
+      assert.strictEqual(verify, verifier); assert.strictEqual(signal, controller.signal);
+      calls++;
+      return {kind: 'effect_free', prepared, originalInputs: {environment}};
+    }});
+  assert.strictEqual(await prepare(request), prepared);
+  assert.equal(calls, 1);
+  prepare.retireReferences();
+  await assert.rejects(prepare(request), {code: 'ClientProgramPreparationFailure'});
+  assert.equal(calls, 1, 'Retired preparation cannot call the original owner again');
+});
+
 test('selected funded original refuses missing or old results without entering the legacy serializer',async()=>{
  let serialized=0;
  const request={kind:'program',input:{toJSON(){serialized++;return {}; }},parameters:null};
