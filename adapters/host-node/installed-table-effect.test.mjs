@@ -49,7 +49,7 @@ for (const kind of ['frozen', 'nested', 'primitive']) {
           inspect() { assert.fail('Preparation failure cannot inspect'); },
           reconcileOperation() { assert.fail('Preparation failure cannot reconcile'); },
         };
-        const factory = await createInstalledTableEffect({moon, environmentWire: '{}',
+        const options = {moon, environmentWire: '{}',
           connectorId: 'table', connectorRegistration: 'table', connectorRevision: 'table/0.1',
           connection: 'table', runtimeBundleCid: cid('8'), bindingCid: cid('9'), catalogCid: cid('3'),
           targets: ['first', 'second'].map((effectId, index) => ({effectId,
@@ -60,7 +60,8 @@ for (const kind of ['frozen', 'nested', 'primitive']) {
           authorization: {authorize() { assert.fail('Preparation cannot authorize a provider read'); }},
           ledgerRoot: join(f.directory, 'installed-table-failure-ledger'),
           limits: {maxMembers: 2, maxInputBytes: 100000,
-            material: f.tableLimits, reservation: {bytes: 1048576, files: 16}}});
+            material: f.tableLimits, reservation: {bytes: 1048576, files: 16}}};
+        const factory = await createInstalledTableEffect(options);
         const identity = moon.clientProgramEffectRequestIdentity(f.prepared, cid('e'), 'table-bind', cid('b'));
         const plan = tableFixturePublicationPlan(f), program = JSON.parse(f.fixture.document);
         const facts = {moon, control, store: f.physicalStore,
@@ -77,6 +78,18 @@ for (const kind of ['frozen', 'nested', 'primitive']) {
             managedEffect: {controlConstruction() { assert.fail('Unregistered constructor cannot run'); }}}),
           /ForeignInstalledEffectDependencyOriginal/);
           assert.equal(preparations, 0, 'Original rejection precedes any physical input preparation');
+          assert.equal(cleanupCalls, 0);
+          const limited = await createInstalledTableEffect({...options,
+            ledgerRoot: join(f.directory, 'installed-table-small-work-ledger'),
+            limits: {...options.limits, maxWork: 1}});
+          await assert.rejects(limited.prepareCaptured(facts), error => {
+            const primary = error.primaryFailure ?? error;
+            assert(primary instanceof RangeError);
+            assert.equal(primary.message, 'EffectSourceGroupingLimit');
+            assert.notEqual(error.cleanupPending, true);
+            return true;
+          });
+          assert.equal(preparations, 0, 'A true small work policy refuses before physical input preparation');
           assert.equal(cleanupCalls, 0);
         }
         let failure;

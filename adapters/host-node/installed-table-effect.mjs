@@ -385,7 +385,9 @@ export async function createInstalledTableEffect({moon, environmentWire, sourceI
       sources = await preparePinnedEffectSourceSet({moon, checkedOwner: prepared,
         dependencyConstruction,
         execution, inputs, maxMembers: descriptors.length,
-        maxGroupingWork: (descriptors.length + limits.maxPinnedResults)*2,
+        // Counts bound inventories; the existing Host work policy bounds
+        // grouping and checked dependency-import correspondence across Units.
+        maxGroupingWork: limits.maxWork,
         limits: moon.clientProgramEffectInputExportLimits(...exportLimits(plan.outputLimits)),
         store, control, maxBytes: limits.maxInputBytes, invocation: plan.invocation,
         retention: plan.effectInputRetention, contractLimits: plan.contractLimits,
