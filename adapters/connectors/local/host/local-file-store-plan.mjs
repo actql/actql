@@ -3,17 +3,25 @@
 // every variable bound; no permission, Resource admission or send is issued.
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {runtimeUnboxedReferenceOption} from '../../../host-common/compiler-binding.generated.mjs';
+import {sourceJsonWireGeometry} from '../../../host-node/installed-source-construction-geometry.mjs';
 import {captureInstalledEffectPlanRecipe} from '../../../host-node/installed-effect-plan.mjs';
 import {effectLedgerImplementationBounds} from '../../../host-node/effect-ledger-implementation-bounds.mjs';
 import {physicalContentReadWindowBytes} from '../../../store-local/publication-store.mjs';
 import {localFileWriteMaxComponents} from '../site/root-file-writer.mjs';
 
 export function prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writerProfile, requestHeaderUnits}) {
+  // recoveryEntry can retain the accepted prefix and the next already-admitted
+  // record before its aggregate guard. The joined frame exists only after
+  // that guard succeeds. Both peaks use this SAME original member extent.
+  const recoveryConstructionBytes = inputLimits.preview.maxWireBytes + limits.maxRequestBytes;
+  if (!Number.isSafeInteger(recoveryConstructionBytes) || recoveryConstructionBytes > 2147483647) {
+    throw new TypeError('InvalidLocalFileStoreConstructionGeometry');
+  }
   const controlEntryBytes = moon.clientProgramInstalledLocalFileStoreControlWireBound();
   const quote = controlWireBytes => checked(moon.clientProgramInstalledLocalFileStoreRecipeCapacities(
     inputLimits.body.maxBytes, inputLimits.body.maxNodes, inputLimits.body.maxDepth,
     inputLimits.preview.maxWireBytes, inputLimits.preview.maxNodes, inputLimits.preview.maxDepth,
-    limits.maxRequestBytes, limits.maxRequestBytes, limits.maxResponseBytes,
+    limits.maxRequestBytes, inputLimits.preview.maxWireBytes + limits.maxRequestBytes, limits.maxResponseBytes,
     Math.max(effectLedgerImplementationBounds.maxEntryBytes, effectLedgerImplementationBounds.maxResponseBytes),
     effectLedgerImplementationBounds.maxOutcomeNodes, effectLedgerImplementationBounds.maxOutcomeDepth,
     BigInt(writerProfile.nativeOriginalBytes), writerProfile.maxRootBytes, writerProfile.maxNameBytes,
@@ -52,7 +60,8 @@ export function prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writ
     warmRequest = checked(moon.clientProgramInstalledEffectOperationStagedExtentPrepare(requestInitial, request));
     const observe = proposals => {
       if (!Array.isArray(proposals)) throw new TypeError('InvalidLocalFileStoreConstructionGeometry');
-      let units = 0, requestBytes = 0, recoveryBytes = 3 * (requestHeaderUnits + 2);
+      let units = 0, nodes = 0, requestNodes = 0, requestBytes = 0,
+        recoveryBytes = 3 * (requestHeaderUnits + 2);
       for (const proposal of proposals) {
         const field = Object.getOwnPropertyDescriptor(proposal, 'changesWire');
         if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'string') {
@@ -65,18 +74,31 @@ export function prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writ
         const count = field.value.length + (selector?.value.length ?? 0);
         if (count < 1 || count > inputLimits.body.maxBytes) throw new TypeError('InvalidLocalFileStoreConstructionGeometry');
         units = Math.max(units, count);
-        // Every output JSON code unit has at most six escaped units, each
-        // requiring at most three UTF8 bytes. Include the original fixed
-        // binding/Command/target envelope before requestFrom serializes it.
-        const bytes = 18 * (count + requestHeaderUnits);
-        requestBytes = Math.max(requestBytes, bytes); recoveryBytes += bytes + 1;
-        if (![requestBytes, recoveryBytes].every(value => Number.isSafeInteger(value) && value <= 2147483647)) {
+        // These checked original Strings are parsed once into Host values;
+        // CID/path text is not one value node per code unit. The existing
+        // syntax observer neither parses nor copies either original wire.
+        const rowNodes = Number(sourceJsonWireGeometry(field.value).retained.nodes +
+          (selector === undefined ? 0n : sourceJsonWireGeometry(selector.value).retained.nodes));
+        nodes = Math.max(nodes, rowNodes);
+        // The request adds the closed binding/command/target/value object.
+        // Its four fields, root and values need at most ten syntax credits;
+        // retaining both complete original subtrees is conservative.
+        requestNodes = Math.max(requestNodes, rowNodes + 10);
+        // JSON escaping emits at most six ASCII BYTES per input UTF16 unit;
+        // unescaped Unicode needs at most three. These maxima do not multiply.
+        // Original proposal/selector subtrees are inserted as values, never
+        // quoted whole-wire Strings. The same bound covers finite canonical
+        // number spelling and the original binding/Command/target envelope.
+        const bytes = 6 * (count + requestHeaderUnits);
+        requestBytes = Math.max(requestBytes, bytes);
+        recoveryBytes = Math.min(inputLimits.preview.maxWireBytes + limits.maxRequestBytes, recoveryBytes + bytes + 1);
+        if (![rowNodes, requestNodes, requestBytes, recoveryBytes].every(value => Number.isSafeInteger(value) && value <= 2147483647)) {
           throw new TypeError('InvalidLocalFileStoreConstructionGeometry');
         }
       }
       return checked(moon.clientProgramInstalledLocalFileStoreObservedConstructorCapacities(
-        Math.min(3 * units, inputLimits.body.maxBytes), Math.min(units, inputLimits.body.maxNodes),
-        inputLimits.body.maxDepth, requestBytes, proposals.length === 0 ? 0 : units + requestHeaderUnits, recoveryBytes));
+        Math.min(3 * units, inputLimits.body.maxBytes), Math.min(nodes, inputLimits.body.maxNodes),
+        inputLimits.body.maxDepth, requestBytes, requestNodes, recoveryBytes));
     };
     captureInput = proposals => {
       const actual = observe(proposals);
@@ -102,14 +124,16 @@ export function prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writ
         }
         wire = body.value;
       }
-      if (wire === undefined || wire.length < 1 || wire.length > limits.maxRequestBytes) {
+      if (wire === undefined || wire.length < 1 || Buffer.byteLength(wire) > inputLimits.preview.maxWireBytes) {
         throw new TypeError('InvalidLocalFileStoreRecoveryGeometry');
       }
-      // Existing recover checks the actual byte ceiling before JSON.parse.
-      // A tree cannot have more nodes than code units of this original wire.
-      const bytes = Math.min(3 * wire.length, limits.maxRequestBytes);
+      // Existing recover checks this same aggregate byte policy before parse.
+      // One saved envelope and the whole cloned request forest coexist; the
+      // structural observer does not parse or copy either original body.
+      const bytes = Buffer.byteLength(wire);
+      const nodes = Number(sourceJsonWireGeometry(wire).retained.nodes);
       const actual = checked(moon.clientProgramInstalledLocalFileStoreObservedRecoveryCapacities(
-        bytes, wire.length, inputLimits.preview.maxDepth));
+        bytes, nodes, inputLimits.preview.maxDepth));
       return checked(moon.clientProgramInstalledEffectCaptureRecipeExtentPrepare('files.write.capture',
         [actual[0], actual[1], quantities[2], quantities[3], quantities[4], quantities[5]]));
     };

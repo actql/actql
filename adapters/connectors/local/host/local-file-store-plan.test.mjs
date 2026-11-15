@@ -29,7 +29,7 @@ test('Local STORE recipe consumes actual constructor bounds in distinct original
   const recipe = prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writerProfile});
   const expected = [inputLimits.body.maxBytes, inputLimits.body.maxNodes, inputLimits.body.maxDepth,
     inputLimits.preview.maxWireBytes, inputLimits.preview.maxNodes, inputLimits.preview.maxDepth,
-    limits.maxRequestBytes, limits.maxRequestBytes, limits.maxResponseBytes,
+    limits.maxRequestBytes, inputLimits.preview.maxWireBytes + limits.maxRequestBytes, limits.maxResponseBytes,
     Math.max(effectLedgerImplementationBounds.maxEntryBytes, effectLedgerImplementationBounds.maxResponseBytes),
     effectLedgerImplementationBounds.maxOutcomeNodes, effectLedgerImplementationBounds.maxOutcomeDepth,
     4321n, 4096, 1024, localFileWriteMaxComponents, 130, physicalContentReadWindowBytes];
@@ -122,8 +122,8 @@ test('warm File recipe selects owned wire geometry while keeping cold and physic
   const units = proposal.changesWire.length + proposal.selectorWire.length;
   const selected = recipe.captureConstruction.inputExtent([proposal]);
   assert.strictEqual(selected.capacities[0], actual[0]);
-  assert.deepEqual(observations[0], [3 * units, units, inputLimits.body.maxDepth,
-    18 * (units + 173), units + 173, 3 * 175 + 18 * (units + 173) + 1]);
+  assert.deepEqual(observations[0], [3 * units, 11, inputLimits.body.maxDepth,
+    6 * (units + 173), 21, 3 * 175 + 6 * (units + 173) + 1]);
   assert.strictEqual(recipe.requestConstruction.inputExtent(proposal).capacity, actual[2]);
   let reads = 0;
   const foreign = Object.defineProperty({}, 'changesWire', {get() {reads++; return '{}';}});
@@ -158,7 +158,7 @@ test('cold File recovery selects its same original member wire before parsing an
   assert.strictEqual(extent.capacities[0], actual[0]);
   assert.strictEqual(extent.capacities[1], actual[1]);
   const n = recovery[0].wire.length;
-  assert.deepEqual(quotes, [[3 * n, n, inputLimits.preview.maxDepth]]);
+  assert.deepEqual(quotes, [[n, 8, inputLimits.preview.maxDepth]]);
   assert.throws(() => select('', [...recovery, recovery[0]], 0), TypeError);
   assert.throws(() => select('', recovery, 2), TypeError);
   let reads = 0;
@@ -188,4 +188,51 @@ test('empty warm File capture quotes only its original recovery envelope', () =>
     writerProfile: {nativeOriginalBytes: 4321, maxRootBytes: 4096, maxNameBytes: 1024, maxDepth: 130}});
   recipe.captureConstruction.inputExtent([]);
   assert.deepEqual(observations, [[0, 0, inputLimits.body.maxDepth, 0, 0, 525]]);
+});
+
+test('File quantities keep long scalar text separate from nodes and bound canonical UTF8 and a failed aggregate tail', () => {
+  const full = Array.from({length: 6}, () => ({})), observations = [];
+  const moon = {
+    clientProgramInstalledOpaqueBoundaryFootprintCapacity: () => ({}),
+    clientProgramInstalledLocalFileStoreControlWireBound: () => 1510,
+    clientProgramInstalledLocalFileStoreRecipeCapacities: () => ({$tag: 1, _0: full}),
+    clientProgramInstalledLocalFileStoreInitialConstructorCapacities: () => [{}, {}, {}],
+    clientProgramInstalledLocalFileStoreObservedConstructorCapacities(...args) {
+      observations.push(args); return {$tag: 1, _0: [{}, {}, {}]};
+    },
+    clientProgramInstalledEffectCaptureRecipeExtentPrepare: (operation, capacities) => ({$tag: 1, _0: {operation, capacities}}),
+    clientProgramInstalledEffectOperationExtentFromCapacityPrepare: () => ({$tag: 1, _0: {}}),
+    clientProgramInstalledEffectOperationStagedExtentPrepare: () => ({$tag: 1, _0: {}}),
+  };
+  const inputLimits = installedRowEffectConstructionLimits(), limits = {...LOCAL_STORE_LIMITS, maxFileBytes: 123456};
+  const recipe = prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, requestHeaderUnits: 683,
+    writerProfile: {nativeOriginalBytes: 4321, maxRootBytes: 4096, maxNameBytes: 1024, maxDepth: 130}});
+  const valueNodes = value => value === null || typeof value !== 'object' ? 1
+    : 1 + Object.values(value).reduce((sum, item) => sum + valueNodes(item), 0);
+  const selector = {$actql_ref: 'resource', identity_cid: 'sha256:' + 'a'.repeat(64)};
+  const samples = ['x'.repeat(2048), '\\"\n\u0000日本語😀{}[],:', 1e20, -9e20, 1e-6, 5e-324];
+  for (const sample of samples) {
+    const changes = {value: {path: 'one.jsonl', content: {sample}}};
+    const proposal = {changesWire: JSON.stringify(changes), selectorWire: JSON.stringify(selector)};
+    // Quantity observation must remain before either parser/materializer.
+    const parse = JSON.parse;
+    JSON.parse = () => assert.fail('Quantity observation parsed an original wire');
+    try { recipe.captureConstruction.inputExtent([proposal]); } finally { JSON.parse = parse; }
+    const [bytes, nodes, , requestBytes, requestNodes, recoveryBytes] = observations.at(-1);
+    assert(nodes >= valueNodes(changes) + valueNodes(selector));
+    assert(requestNodes >= valueNodes({binding: 'b', command: 'c', target: selector, value: changes.value}));
+    const record = {binding: 'sha256:' + 'b'.repeat(64), command: 'sha256:' + 'c'.repeat(64),
+      target: selector, value: changes.value};
+    assert(requestBytes >= Buffer.byteLength(JSON.stringify(record)));
+    assert(recoveryBytes >= Buffer.byteLength(JSON.stringify({binding: record.binding, requests: [record]})));
+    assert(bytes >= Buffer.byteLength(proposal.changesWire) + Buffer.byteLength(proposal.selectorWire));
+    if (typeof sample === 'string' && sample.length > 1000) assert(nodes < 32);
+  }
+  const proposal = {changesWire: JSON.stringify({value: {path: 'long.jsonl', content: {text: 'x'.repeat(2048)}}}),
+    selectorWire: JSON.stringify(selector)};
+  recipe.captureConstruction.inputExtent(Array.from({length: 101}, () => proposal));
+  const selected = observations.at(-1);
+  assert(selected[1] < 32, 'One long scalar is not thousands of value nodes');
+  assert.equal(selected[5], inputLimits.preview.maxWireBytes + limits.maxRequestBytes,
+    'The same member quote keeps an accepted aggregate and the next admitted record, not just the accepted frame');
 });

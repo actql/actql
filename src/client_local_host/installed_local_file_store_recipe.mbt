@@ -221,19 +221,24 @@ pub fn installed_local_file_store_observed_constructor_capacities(
 // already-admitted whole Preview remains borrowed from the original control
 // owner. Keep this tree and each immutable request clone as separate live
 // quantities; request cloning never releases the saved tree's backing.
-// The initial original member callbacks remain live alongside both.
+// The initial original member callbacks remain live alongside both. The sum
+// of all cloned record trees is bounded by the SAME complete saved envelope;
+// it is not another complete envelope for each row. Per-row handles remain
+// separately additive after the actual checked row multiplicity is known.
 pub fn installed_local_file_store_observed_recovery_capacities(
   bytes : Int,
   nodes : Int,
   depth : Int,
 ) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
   guard local_file_store_json_capacity(bytes, nodes, depth) is Some(saved) &&
+    local_file_store_json_capacity(bytes, nodes, depth) is Some(clone) &&
+    standard_create_sum_capacities([saved, clone], sequential_workspace=true)
+    is Some(forests) &&
     @execution.add_execution_capacity(
       installed_local_file_store_initial_constructor_capacities()[0],
-      saved,
+      forests,
     )
-    is Some(saved) &&
-    local_file_store_json_capacity(bytes, nodes, depth) is Some(clone) &&
+    is Some(fixed) &&
     @execution.preparation_representation_cost({
       // Empty request handle, original WeakMap record, transient requestFacts
       // and returned row entry. Include three spare reference slots.
@@ -244,11 +249,10 @@ pub fn installed_local_file_store_observed_recovery_capacities(
       owned_wire_bytes: 0L,
     })
     is Some(control) &&
-    @execution.execution_capacity(control, control) is Some(control) &&
-    @execution.add_execution_capacity(clone, control) is Some(row) else {
+    @execution.execution_capacity(control, control) is Some(row) else {
     return Err(Unsupported)
   }
-  Ok([saved, row])
+  Ok([fixed, row])
 }
 
 ///|

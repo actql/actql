@@ -321,20 +321,55 @@ test "cold File capacities retain saved tree beside every immutable request clon
   assert_eq(actual.length(), 2)
   assert_eq(
     @execution.execution_capacity_retained_bytes(actual[0]),
-    @execution.execution_capacity_retained_bytes(tree) +
+    2L * @execution.execution_capacity_retained_bytes(tree) +
     @execution.execution_capacity_retained_bytes(
       installed_local_file_store_initial_constructor_capacities()[0],
     ),
   )
-  assert_true(
-    @execution.execution_capacity_retained_bytes(actual[1]) >
-    @execution.execution_capacity_retained_bytes(tree),
-  )
-  // Selected component vector only: all seventeen saved trees AND all
-  // seventeen immutable clones coexist. No sum-to-max substitution.
+  let handles = @execution.preparation_representation_cost({
+    record_headers: 4L,
+    reference_slots: 16L,
+    scalar_words: 1L,
+    owned_utf16_units: 71L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  assert_eq(@execution.execution_capacity_retained_bytes(actual[1]), handles)
+  // Seventeen distinct member envelopes keep seventeen complete saved and
+  // cloned forests. A101-row member keeps ONE saved/clone forest plus101
+  // original handle records; it does not hold101 complete envelopes.
   let retained = @execution.execution_capacity_retained_bytes(actual[0]) +
     @execution.execution_capacity_retained_bytes(actual[1])
   assert_true(17L * retained < 536870912L)
+  let extent = prepare_installed_effect_capture_extent(
+    "files.write.capture",
+    actual[0],
+    actual[1],
+  ).unwrap()
+  let resolved = resolve_installed_effect_capture_extent(extent, 101).unwrap()
+  let r = @execution.execution_capacity_retained_bytes(resolved.capacity)
+  let e = @execution.execution_capacity_execution_bytes(resolved.capacity)
+  assert_eq(
+    r,
+    @execution.execution_capacity_retained_bytes(actual[0]) + 101L * handles,
+  )
+  let ledger = @resources.create_ledger({
+    planning_work: 1,
+    attempts: 0,
+    holdings: 1,
+    transfer_bytes: 0L,
+    retained_bytes: r,
+    execution_bytes: e,
+  }).unwrap()
+  let pressure = @resources.reserve_capacity(ledger, 1L, 1L).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  assert_true(@resources.reserve_capacity(ledger, r, e) is Err(RetentionLimit))
+  assert_eq(@resources.ledger_usage(ledger), before)
+  @resources.settle_capacity(ledger, pressure).unwrap()
+  let owned = @resources.reserve_capacity(ledger, r, e).unwrap()
+  @resources.settle_capacity(ledger, owned).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
 }
 
 ///|

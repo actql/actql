@@ -9,6 +9,8 @@ import {authorizationDispatchFacts,assertAuthorizationAccountCurrent}
 import {createInstalledRowEffect,retainInstalledRowEffectAdapter,
   installedRowEffectOwnerBinding,installedRowEffectConstructionLimits} from '../../../host-node/installed-row-effect.mjs';
 import {composeInstalledEffects} from '../../../host-node/installed-effect-inventory.mjs';
+import {installedSourceConfigurationReader} from '../../../host-node/installed-host-services.mjs';
+import {checked} from '../../../host-common/runtime-result.mjs';
 import {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
 import {retainInstalledHostInitializationFailure} from '../../../host-node/installed-host-cleanup.mjs';
 import {prepareLocalFileStoreTarget} from './local-file-store-target.mjs';
@@ -78,17 +80,24 @@ export async function installPreparedProjectLocalFileEffects({moon,preparation,s
       const declared=JSON.parse(target.declarationWire),command=JSON.parse(target.commandWire),
         mapping=JSON.parse(target.mappingWire);
       const environment=rowSourceCheckEnvironment(baseEnvironmentWire,declared,[target.mappingWire]);
+      const inputLimits=installedRowEffectConstructionLimits();
       // Counts come from the same managed Plan. The incidental legacy count
       // defaults are not an installation policy; explicit driver limits below
       // remain a narrowing of that original inventory.
       const limits=Object.freeze({maxRequestBytes:LOCAL_STORE_LIMITS.maxRequestBytes,
         maxResponseBytes:LOCAL_STORE_LIMITS.maxResponseBytes,maxFileBytes:entry.limits.maxFileBytes});
-      const {driver,site}=createLocalFileStoreDriver({entry,target,command,bindingCid,principalId,
-        authorization,assertCurrent:current,resources,limits,nativeFilesystem,writerProfile});
+      // The new aggregate bound remains with recover and recoveryEntry. Quote
+      // both scalar occurrences on the SAME installation material before
+      // constructing either closure; no Request pays for standing profile DATA.
+      // Two native value slots conservatively cover those two scalar words.
+      const {driver,site}=installedSourceConfigurationReader(installationServices).prepareNativeInput({
+        capacity:()=>checked(moon.clientProgramInstalledSourceConstructionCapacity(2n,0n,0n,0n,0n,0n)),
+        project:()=>createLocalFileStoreDriver({entry,target,command,bindingCid,principalId,
+          authorization,assertCurrent:current,resources,limits,nativeFilesystem,writerProfile,
+          maxRecoveryBytes:inputLimits.preview.maxWireBytes})});
       // Counts come from the same checked managed Plan and retained input
       // inventory. These defaults still size the legacy recipe's byte limits;
       // they are not an operator-selected row/member policy.
-      const inputLimits=installedRowEffectConstructionLimits();
       let effect;
       try{
         // Original immutable installation Strings, not a traversal of an
@@ -131,7 +140,10 @@ export async function installPreparedProjectLocalFileEffects({moon,preparation,s
 // request DATA cannot construct either. The native child performs no I/O until
 // send, after the existing dispatch claim and any required Preview approval.
 export function createLocalFileStoreDriver({entry,target,command,bindingCid,principalId,
-  authorization,assertCurrent,resources,limits,nativeFilesystem,writerProfile}) {
+  authorization,assertCurrent,resources,limits,nativeFilesystem,writerProfile,
+  maxRecoveryBytes=limits.maxRequestBytes}) {
+  if(!Number.isSafeInteger(maxRecoveryBytes)||maxRecoveryBytes<1||maxRecoveryBytes>2147483647)
+    fail('InvalidLocalStoreRecoveryLimits');
   const requests=new WeakMap(),descriptions=new WeakMap(),grants=new WeakMap(),children=new Set();
   let closing=false;
   const current=()=>{if(closing)fail('LocalStoreInstallationClosing');synchronous(assertCurrent());};
@@ -215,7 +227,7 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
       previous=index;
       const matches=durable.connectorRecovery.filter(value=>value.memberIndex===index);
       if(matches.length!==1||matches[0].kind!=='local-file-store'||
-          typeof matches[0].wire!=='string'||Buffer.byteLength(matches[0].wire)>limits.maxRequestBytes)
+          typeof matches[0].wire!=='string'||Buffer.byteLength(matches[0].wire)>maxRecoveryBytes)
         fail('InvalidLocalStoreRecovery');
       const saved=JSON.parse(matches[0].wire);
       if(!closed(saved,['binding','requests'])||saved.binding!==bindingCid||
@@ -318,10 +330,10 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
       for(const record of records){
         const row=wire(record),separator=rows.length===0?0:1;
         const size=Buffer.byteLength(row);
-        if(size>limits.maxRequestBytes-bytes-separator)fail('LocalStoreRecoveryLimit');
+        if(size>maxRecoveryBytes-bytes-separator)fail('LocalStoreRecoveryLimit');
         bytes+=size+separator;rows.push(row);
       }
-      if(bytes>limits.maxRequestBytes)fail('LocalStoreRecoveryLimit');
+      if(bytes>maxRecoveryBytes)fail('LocalStoreRecoveryLimit');
       // The closed envelope has the same canonical key order. Join only after
       // the original total-byte guard, and hash that SAME completed wire once.
       const body=prefix+rows.join(',')+']}';
