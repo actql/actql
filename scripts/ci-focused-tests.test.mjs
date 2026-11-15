@@ -9,6 +9,7 @@ import {focusedPattern, focusedFixtureObjects, stableFocusedFiles, focusedPlan,
 import {readChanges, selectTargets, validateSelection, verifyGate, gateJobs, gateJobRequired} from './ci-targets.mjs';
 import {testExecutionResult} from './test-execution.mjs';
 import {fullCheckpointJobs, policyPaths, resolveMainBaseline} from './ci-main-base.mjs';
+import {nativeCoreCiPartitions} from './ci-core-partitions.mjs';
 
 const old = '1'.repeat(40), head = '2'.repeat(40), fresh = '3'.repeat(40), zero = '0'.repeat(40);
 const current = stableFocusedFiles[0], added = 'src/query_integration/fixed_compute_zero_ports_wbtest.mbt';
@@ -275,7 +276,7 @@ test('focused runner installs only Node and MoonBit while preserving upstream ar
 test('full success checkpoint accepts focused-only job skipped but requires every full family', async () => {
   const fullJobs = fullCheckpointJobs(gateJobs.filter(name => name !== 'focused-tests'));
   assert(!fullJobs.includes('focused-tests'));
-  for (const name of ['core (js)', 'core (wasm)', 'core (native 1/2)', 'core (native 2/2)', 'core (native source)', 'core (native scoped)', 'host', 'client', 'native',
+  for (const name of ['core (js)', 'core (wasm)', ...nativeCoreCiPartitions.map(partition => `core (native ${partition})`), 'host', 'client', 'native',
     'session-evidence', 'session-controls', 'pipeline-evidence', 'native-macos', 'workers', 'duckdb-node']) assert(fullJobs.includes(name));
   const run = {id: 101, run_attempt: 1, workflow_id: 7, path: '.github/workflows/ci.yml',
     event: 'push', head_branch: 'main', repository: {id: 12, full_name: 'actql/actql'},
@@ -298,8 +299,14 @@ test('full success checkpoint accepts focused-only job skipped but requires ever
   const focused = selection([change()], {event: 'push', mainIntegration: false});
   assert.equal(validateSelection(focused).profile, 'full', 'normal main selection never reuses a prior run to narrow coverage');
   verifyGate({selection: focused, sourceRevision: head}, results(focused), {event: 'push', sourceRevision: head});
-  jobs.find(job => job.name === 'core (native scoped)').conclusion = 'skipped';
-  assert.equal((await resolveMainBaseline(options)).baseSha, null);
+  // Scheduling may split a profile, but every selected partition remains a
+  // mandatory member of a reusable full checkpoint.
+  for (const partition of nativeCoreCiPartitions) {
+    const job = jobs.find(job => job.name === `core (native ${partition})`);
+    job.conclusion = 'skipped';
+    assert.equal((await resolveMainBaseline(options)).baseSha, null, partition);
+    job.conclusion = 'success';
+  }
 });
 
 test('Draft reuses only the existing reviewed owning JS family and never earns a merge pass', () => {
