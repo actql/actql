@@ -339,13 +339,22 @@ test('Native CI observes an early Effect failure once and preserves Site-only fa
   const effect = steps.findIndex(step => step.id === 'native-effect');
   const site = steps.findIndex(step => step.id === 'native-runtime-test');
   const setup = steps.findIndex(step => step.id === 'failure-debugger');
-  assert.equal(setup, effect + 2, 'retain the original summary before the fresh probe and long Site group');
-  const early = steps.slice(setup, setup + 3);
-  assert.equal(steps.indexOf(early[2]) + 1, site);
+  const original = steps.findIndex(step => step.with?.name?.startsWith('native-effect-original-linux-'));
+  const diagnosticSteps = start => {
+    const probe = steps.findIndex((step, index) => index > start &&
+      step.run?.includes('node scripts/diagnose-native-resident-functions.mjs'));
+    const upload = steps.findIndex((step, index) => index > probe &&
+      step.with?.name?.startsWith('native-effect-functions-'));
+    assert(start >= 0 && probe > start && upload > probe);
+    return [steps[start], steps[probe], steps[upload]];
+  };
+  const early = diagnosticSteps(setup);
+  assert(effect >= 0 && original > effect && setup > original &&
+    steps.indexOf(early[2]) < site,
+  'Retain the original failure before diagnosis; finish diagnosis before the long Site group');
   const fallbackStart = steps.findIndex(step => step.id === 'site-failure-debugger');
   assert(fallbackStart > steps.findIndex(step => step.id === 'native-background'));
-  const fallback = steps.slice(fallbackStart, fallbackStart + 3);
-  assert(fallback.every(step => step.name.endsWith(' (Site fallback)')));
+  const fallback = diagnosticSteps(fallbackStart);
   const body = ({name, id, if: condition, ...value}) => value;
   for (let index = 0; index < early.length; index++) {
     assert.deepEqual(body(early[index]), body(fallback[index]),
