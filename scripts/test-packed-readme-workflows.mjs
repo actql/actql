@@ -480,9 +480,9 @@ export async function runPackedReadmeWorkflows(root) {
     await runReadmeCases({prepared, root, repository, command, report, failures, cases: report.compositions});
     await runMockEffectControls({prepared, root, repository, command, records: report.controls, failures});
     report.complete = failures.length === 0 && report.account.completed &&
-      report.fileInventory.cases.length === 4 &&
+      report.fileInventory.cases.length === 6 &&
       report.fileInventory.cases.every((row, index) => row.completed && row.status === 'passed' &&
-        row.case === (index < 2 ? 'rows101' : 'members17') && row.phase === (index % 2 === 0 ? 'capture' : 'saved')) &&
+        row.case === (index < 3 ? 'rows101' : 'members17') && row.phase === ['capture', 'approve', 'saved'][index % 3]) &&
       report.model.every(row => row.completed && row.status === 'passed') && report.collection.every(row => row.completed) &&
       report.projectFiles.every(row => row.completed) &&
       report.cases.every(row => row.completed) && report.compositions.every(row => row.completed) && report.controls.every(row => row.completed);

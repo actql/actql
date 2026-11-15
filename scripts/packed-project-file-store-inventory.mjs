@@ -15,7 +15,62 @@ const fixtureMembers = [
   'scripts/fixtures/project-file-store-inventory-cases.mjs',
   'scripts/fixtures/project-file-store-ledger-observation.mjs',
   'scripts/fixtures/record-approval/scoped-fds.fixture.mjs',
+  'adapters/host-node/fixtures/work-observation.fixture.mjs',
 ];
+
+export function assertPackedProjectFileStorePhase({selected, phase, actual, pid, original, previous}) {
+  assert.equal(actual.case, selected.case); assert.equal(actual.phase, phase);
+  assert(Number.isSafeInteger(pid) && pid > 0); assert.equal(actual.pid, pid);
+  assert.equal(actual.complete, true);
+  assert.deepEqual(previous.map(row => row.phase), phase === 'capture' ? [] :
+    phase === 'approve' ? ['capture'] : ['capture', 'approve']);
+  for (const earlier of previous) {
+    assert.notEqual(actual.pid, earlier.pid, 'Each original phase requires a distinct process');
+    assert.deepEqual(actual.ref, earlier.ref);
+    assert.equal(actual.runId, earlier.runId); assert.equal(actual.checkpointId, earlier.checkpointId);
+    assert.equal(actual.checkpointCid, earlier.checkpointCid);
+  }
+  assert.equal(actual.submits, phase === 'capture' ? 1 : 0);
+  assert.equal(actual.approvals, phase === 'approve' ? 1 : 0);
+  assert.equal(actual.successfulStores, phase === 'capture' ? 0 : selected.writes);
+  assert.equal(actual.memberPreviews, phase === 'capture' ? 0 : selected.definitions);
+  assert.equal(actual.newEffectCommits, phase === 'approve' ? selected.writes : 0);
+  assert.equal(actual.modelAttempts, 0);
+  assert.equal(actual.workObservation.complete, true);
+  assert.equal(actual.workObservation.modelCallStarts, 0);
+  assert.equal(actual.workObservation.totals.modelCallStarts, 0);
+  assert.equal(actual.sourceStarts, actual.workObservation.sourceAcquisitionStarts);
+  assert.equal(actual.sourceStarts, actual.workObservation.totals.sourceAcquisitionStarts);
+  if (phase === 'capture' && selected.case === 'rows101') {
+    assert(actual.sourceStarts > 0); assert(actual.newSourceAttempts > 0);
+  } else {
+    assert.equal(actual.sourceStarts, 0); assert.equal(actual.newSourceAttempts, 0);
+  }
+  assert.equal(actual.rows.length, phase === 'capture' ? 0 : selected.rows);
+  assert.equal(actual.targets.length, phase === 'capture' ? 0 : selected.writes);
+  assert.deepEqual(actual.requestMemory, {retainedBytes: 536870912, executionBytes: 536870912});
+  assert.equal(actual.firstClose, 'returned'); assert.equal(actual.firstCloseCalls, 1);
+  assert.deepEqual(actual.aliveScopedFD, {before: 0, after: 0});
+  assert.deepEqual(actual.cleanup, []); assert.equal(actual.originalInputsAndProgramAbsent, true);
+  assert.equal(original.captureComplete, true); assert.deepEqual(original.ref, actual.ref);
+  assert.equal(original.capturePid, previous[0]?.pid ?? actual.pid);
+  assert.equal(original.checkpointId, actual.checkpointId); assert.equal(original.runId, actual.runId);
+  assert.equal(original.checkpoint.checkpointCid, actual.checkpointCid);
+  if (phase === 'capture') {
+    assert.equal(actual.zeroWritesBeforeApproval, true); assert.equal(original.approveComplete, false);
+    assert.equal(actual.captureState.status, 'waiting_checkpoint');
+  } else {
+    assert.equal(original.approveComplete, true);
+    assert.equal(original.approvePid, phase === 'approve' ? actual.pid : previous[1].pid);
+    assert.deepEqual(original.rows, actual.rows); assert.deepEqual(original.targets, actual.targets);
+    assert.equal(original.ledger.receipts.length, selected.writes);
+    if (phase === 'approve') assert.equal(actual.zeroWritesBeforeApproval, true);
+    else {
+      assert.deepEqual(actual.rows, previous[1].rows); assert.deepEqual(actual.targets, previous[1].targets);
+      assert.equal(actual.sourceAttempts, previous[0].sourceAttempts);
+    }
+  }
+}
 
 export async function runPackedProjectFileStoreInventory({prepared, root, repository, command,
   report = {cases: []}, cleanup = []}) {
@@ -39,9 +94,10 @@ export async function runPackedProjectFileStoreInventory({prepared, root, reposi
     delete env.ACTQL_PACKED_CLIENT_PACKAGES;
     const alias = join(application, 'node_modules'), handoff = join(application, 'original.json');
     await symlink(software, alias, 'dir');
-    let capture, primary;
+    const previous = [];
+    let primary;
     try {
-      for (const phase of ['capture', 'saved']) {
+      for (const phase of ['capture', 'approve', 'saved']) {
         const record = {case: selected.case, phase, status: 'running', completed: false,
           startedAt: new Date().toISOString()};
         report.cases.push(record);
@@ -54,30 +110,9 @@ export async function runPackedProjectFileStoreInventory({prepared, root, reposi
           assert.equal(observed.code, 0); assert.equal(observed.signal ?? null, null);
           const actual = JSON.parse(observed.stdout.trim().split('\n').at(-1));
           record.observation = actual;
-          assert.equal(actual.case, selected.case); assert.equal(actual.phase, phase);
-          assert.equal(actual.pid, observed.pid); assert.equal(actual.complete, true);
-          assert.equal(actual.submits, phase === 'capture' ? 1 : 0);
-          assert.equal(actual.approvals, phase === 'capture' ? 1 : 0);
-          assert.equal(actual.successfulStores, selected.writes);
-          assert.equal(actual.memberPreviews, selected.definitions);
-          assert.equal(actual.modelAttempts, 0);
-          assert.equal(actual.rows.length, selected.rows);
-          assert.deepEqual(actual.requestMemory, {retainedBytes: 536870912, executionBytes: 536870912});
-          assert.equal(actual.firstClose, 'returned'); assert.equal(actual.firstCloseCalls, 1);
-          assert.deepEqual(actual.aliveScopedFD, {before: 0, after: 0});
-          assert.deepEqual(actual.cleanup, []); assert.equal(actual.originalInputsAndProgramAbsent, true);
           const original = JSON.parse(await readFile(handoff, 'utf8'));
-          assert.equal(original.complete, true); assert.deepEqual(original.ref, actual.ref);
-          assert.deepEqual(original.rows, actual.rows); assert.deepEqual(original.targets, actual.targets);
-          assert.equal(original.ledger.receipts.length, selected.writes);
-          if (phase === 'capture') {
-            assert.equal(actual.zeroWritesBeforeApproval, true); capture = actual;
-          } else {
-            assert.notEqual(actual.pid, capture.pid); assert.deepEqual(actual.ref, capture.ref);
-            assert.deepEqual(actual.rows, capture.rows); assert.deepEqual(actual.targets, capture.targets);
-            assert.equal(actual.sourceAttempts, capture.sourceAttempts);
-            assert.equal(actual.newEffectCommits, 0);
-          }
+          assertPackedProjectFileStorePhase({selected, phase, actual, pid: observed.pid, original, previous});
+          previous.push(actual);
           await verifyNodeBenchmarkPackages(prepared.manifest, prepared.manifestPath, prepared.consumer);
           record.status = 'passed'; record.completed = true;
         } catch (error) {

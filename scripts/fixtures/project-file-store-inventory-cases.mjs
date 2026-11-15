@@ -7,8 +7,12 @@ const store={target_ref:`connector://${connection}/files`,
   mapping_ref:`mapping:${connection}.local.files.store.v1`};
 
 export function projectFileStoreRows101() {
-  const inputs=Array.from({length:101},(_,index)=>({
-    path:`input-${String(index).padStart(3,'0')}.jsonl`,body:JSON.stringify({id:index})+'\n'}));
+  const expected=Array.from({length:101},(_,index)=>({
+    path:`input-${String(index).padStart(3,'0')}.jsonl`,
+    body:JSON.stringify({id:index,token:`payload-${(index*37)%101}`})+'\n'}));
+  // Creation order deliberately differs from key order. Every key also owns
+  // distinct literal bytes, so zipping independently ordered inventories fails.
+  const inputs=Array.from({length:101},(_,index)=>expected[(index*57)%101]);
   return Object.freeze({name:'project-file-store-101rows-one-definition',format:'sql',
     source:'SELECT f.path AS path, f.size_bytes AS size_bytes, c.content AS content '+
       'FROM LIST_FILES(source) AS f '+
@@ -17,17 +21,17 @@ export function projectFileStoreRows101() {
       '|> EFFECT STORE destination.files SET (path = path, content = content)',
     inputs:Object.freeze(inputs.map(Object.freeze)),
     expectedWrites:101,expectedDefinitions:1,resultName:'answer',
-    expectedProjection:Object.freeze(inputs.map(({path,body})=>Object.freeze({path,size_bytes:Buffer.byteLength(body)}))),
-    expectedFiles:Object.freeze(inputs.map(Object.freeze))});
+    expectedProjection:Object.freeze(expected.map(({path,body})=>Object.freeze({path,size_bytes:Buffer.byteLength(body)}))),
+    expectedFiles:Object.freeze(expected.map(Object.freeze))});
 }
 
 export function projectFileStoreMembers17() {
   const body='{"id":1}\n';
   const files=Array.from({length:17},(_,index)=>({path:`member-${String(index).padStart(2,'0')}.jsonl`,body}));
-  const effects=Object.fromEntries(files.map(({path},index)=>[
+  const effects=Object.fromEntries(files.map((_,index)=>[
     `save${String(index).padStart(2,'0')}`,{command:{from:{result:'content'},
       target:{published_store:{...store}},contract:`command:${connection}.local.files.store.v1`,
-      input:{path:{literal:path},content:{field:'content'}}}}]));
+      input:{path:{literal:files[(index*5)%17].path},content:{field:'content'}}}}]));
   const program={version:'actql/0.1',id:'project-file-store-17definitions-one-row',
     stages:[{id:'source',inputs:{},steps:[
       {values:{schema:{id:{type:'number',nullable:false}},rows:[{id:1}]},as:'seed'},
@@ -47,7 +51,11 @@ export const projectFileStoreInventoryAcceptance=Object.freeze({
   // destination.files is one installed Local STORE owner in both cases.
   installation:'ordinary Project Local files/contents and required STORE approval',
   budgetBytes:512*1024**2,
-  capture:['one fresh Run per case','actual public checkpoint review and signed approval',
+  capture:['one fresh Run per case','actual public checkpoint and sealed review; no writes',
+    'FIRST close returns before original Program and Source suppliers are removed'],
+  approve:['different process; cold attach SAME original Run and Checkpoint',
+    'original Program and Source suppliers absent before signed approval',
+    'zero Source or Model starts; exact original Effect commit count',
     'all expected files equal independent literal bytes','all row receipts typed success; exact expected commit count',
     'full named Result retained before FIRST close','FIRST close returns and original scoped descriptors drain'],
   saved:['separate process; same installed package cohort, Account and original Run ref',

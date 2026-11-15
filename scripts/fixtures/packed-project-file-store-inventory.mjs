@@ -13,9 +13,10 @@ import {projectFileStoreRows101, projectFileStoreMembers17,
 import {observeProjectFileStoreLedger, observeProjectFileStoreAttempts}
   from './project-file-store-ledger-observation.mjs';
 import {observeRecordApprovalDescriptors} from './record-approval/scoped-fds.fixture.mjs';
+import {workflowWorkObservation} from '../../adapters/host-node/fixtures/work-observation.fixture.mjs';
 
 const [phase, caseId, handoffPath] = process.argv.slice(2);
-assert(['capture', 'saved'].includes(phase)); assert(['rows101', 'members17'].includes(caseId));
+assert(['capture', 'approve', 'saved'].includes(phase)); assert(['rows101', 'members17'].includes(caseId));
 assert.equal(typeof handoffPath, 'string');
 const directory = process.cwd(), stateDir = join(directory, 'state');
 const sourceRoot = join(directory, 'source-data'), destinationRoot = join(directory, 'destination-data');
@@ -32,7 +33,7 @@ const diagnosticData = (value, depth = 12, budget = {nodes: 128}) => {
   if (depth === 0 || typeof value !== 'object') return undefined;
   const result = {};
   if (nodeTypes.isNativeError(value) && typeof value.stack === 'string') result.stack = value.stack.slice(0, 4096);
-  for (const key of ['code', 'primaryCode', 'issueTag', 'nestedIssueTag', 'phase',
+  for (const key of ['name', 'code', 'primaryCode', 'issueTag', 'nestedIssueTag', 'phase',
     'kind', 'message', 'primaryDiagnostic', 'cause', '$tag', '_0', '_1']) {
     let property;
     for (let original = value, count = 0; original && count < 3; count++, original = Object.getPrototypeOf(original)) {
@@ -49,40 +50,44 @@ const generation = async path => {
   const value = await stat(path, {bigint: true});
   return Object.fromEntries(['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs'].map(key => [key, String(value[key])]));
 };
-const targets = async expected => {
+export async function assertProjectFileStoreTargets(expected, destinationRoot) {
   assert.deepEqual((await readdir(destinationRoot)).sort(), expected.map(file => file.path).sort());
   return Promise.all(expected.map(async file => {
     const path = join(destinationRoot, file.path), bytes = await readFile(path);
     assert.deepEqual(bytes, Buffer.from(file.body));
     return {path: file.path, contentCid: digest(bytes), generation: await generation(path)};
   }));
-};
-const validateRows = (rows, original) => {
+}
+export function assertProjectFileStoreRows(rows, original, caseId) {
   assert.equal(rows.length, original.expectedProjection.length);
   // Listing metadata does not declare a path candidate key or a total order.
   // Compare all literal rows by path without adding an authored sort or
   // changing the actual full Result sequence retained for cold Saved.
   const compared = caseId === 'rows101'
     ? rows.toSorted((left, right) => left.path.localeCompare(right.path)) : rows;
+  const filesByPath = new Map(original.expectedFiles.map(file => [file.path, file]));
   for (let index = 0; index < compared.length; index++) {
     const {content, ...fields} = compared[index];
     const expected = original.expectedProjection[index];
     assert.deepEqual(fields, caseId === 'members17'
       ? {...expected, media_type: 'application/x-ndjson'} : expected);
-    const file = original.expectedFiles[caseId === 'members17' ? 0 : index];
+    const file = caseId === 'members17' ? original.expectedFiles[0] : filesByPath.get(fields.path);
+    assert(file, 'Every completed Result key has its independent authored destination');
     assert.equal(content.metadata.content_cid, digest(Buffer.from(file.body)));
   }
-};
+}
+const targets = expected => assertProjectFileStoreTargets(expected, destinationRoot);
 const inputsAbsent = async original => {
   await absent(programPath);
   for (const path of original.inputPaths) await absent(join(sourceRoot, path));
   assert.deepEqual(await readdir(sourceRoot), []);
 };
-let original, client, primary;
+const selected = caseId === 'rows101' ? projectFileStoreRows101() : projectFileStoreMembers17();
+const work = workflowWorkObservation({trackOriginal: true});
+let original, client, primary, attemptsBefore, ledgerBefore;
 const cleanup = [];
 try {
   if (phase === 'capture') {
-    const selected = caseId === 'rows101' ? projectFileStoreRows101() : projectFileStoreMembers17();
     await mkdir(sourceRoot); await mkdir(destinationRoot);
     for (const input of selected.inputs) await writeFile(join(sourceRoot, input.path), input.body, {flag: 'wx'});
     await writeFile(programPath, selected.source, {flag: 'wx'});
@@ -92,7 +97,7 @@ try {
       connections: {source: {connector: 'local', root: './source-data', tables: {}},
         destination: {connector: 'local', root: './destination-data', tables: {}}}}), {flag: 'wx'});
     const keys = generateKeyPairSync('ed25519');
-    original = {case: caseId, complete: false, resultName: selected.resultName,
+    original = {case: caseId, captureComplete: false, approveComplete: false, resultName: selected.resultName,
       expectedFiles: selected.expectedFiles, expectedProjection: selected.expectedProjection,
       expectedWrites: selected.expectedWrites, expectedDefinitions: selected.expectedDefinitions,
       inputPaths: selected.inputs.map(input => input.path), format: selected.format,
@@ -108,15 +113,31 @@ try {
     await save(handoffPath, original);
   } else {
     original = JSON.parse(await readFile(handoffPath, 'utf8'));
-    assert.equal(original.complete, true); assert.equal(original.case, caseId);
+    assert.equal(original.case, caseId); assert.equal(original.captureComplete, true);
+    assert.notEqual(process.pid, original.capturePid, 'Approval and Saved require a cold process');
+    if (phase === 'saved') {
+      assert.equal(original.approveComplete, true);
+      assert.notEqual(process.pid, original.approvePid, 'Saved requires a third process');
+    } else assert.equal(original.approveComplete, false, 'Approve the original Checkpoint only once');
     await inputsAbsent(original);
-    assert.deepEqual(await targets(original.expectedFiles), original.targets);
-    assert.deepEqual(await observeProjectFileStoreLedger(stateDir, original.expectedFiles), original.ledger);
-    assert.deepEqual(observeProjectFileStoreAttempts(stateDir, original.ref), original.attempts);
+    if (phase === 'approve') {
+      assert.deepEqual(await readdir(destinationRoot), []);
+      ledgerBefore = await observeProjectFileStoreLedger(stateDir, selected.expectedFiles, {beforeApproval: true});
+    } else {
+      assert.deepEqual(await targets(selected.expectedFiles), original.targets);
+      ledgerBefore = await observeProjectFileStoreLedger(stateDir, selected.expectedFiles);
+      assert.deepEqual(ledgerBefore, original.ledger);
+    }
+    attemptsBefore = observeProjectFileStoreAttempts(stateDir, original.ref);
+    assert.deepEqual(attemptsBefore, original.attempts);
   }
+  // Each process reloads authored expectations, independently of the handoff or
+  // any produced Result, file, receipt or previous observation.
+  assert.deepEqual(original.expectedFiles, selected.expectedFiles);
+  assert.deepEqual(original.expectedProjection, selected.expectedProjection);
   const budget = projectFileStoreInventoryAcceptance.budgetBytes;
   report.requestMemory = {retainedBytes: budget, executionBytes: budget};
-  client = await open({stateDir, installation: {authorization: {...original.authorization,
+  client = await open({stateDir, installation: {observation: work.connection, authorization: {...original.authorization,
     observe(name, detail) {
       if (['dispatch_failed', 'effect_preflight_failed', 'effect_start_failed', 'local_compute_failed'].includes(name)
           && report.diagnostics.length < 8) report.diagnostics.push({name, detail: diagnosticData(detail)});
@@ -145,32 +166,51 @@ try {
     await writeFile(join(directory, 'checkpoint-review.json'), review.bytes, {flag: 'wx', mode: 0o600});
     report.review = {checkpointCid: review.checkpointCid, artifactCid: review.artifactCid,
       bytes: review.bytes.byteLength, physicalDigest: digest(review.bytes)};
-    report.approvals++;
-    const resolution = await client.resolveCheckpoints([{checkpoint, decision: 'approved'}], {
-      signer: {keyId: 'reviewer', reviewerId: 'reviewer', authorityScopeCid: run.ref.authorityScopeCid,
-        sign: bytes => sign(null, bytes, original.authorization.hostKey.privateKey)}});
-    await save(join(directory, 'approval.json'), resolution);
-    assert.equal(resolution.results.length, 1); assert.equal(resolution.results[0].status, 'committed');
-    const signal = AbortSignal.timeout(15_000);
-    let state;
-    do {
-      state = await run.status({signal});
-      if (!['waiting_checkpoint', 'resuming', 'running'].includes(state.status)) break;
-      await delay(20, undefined, {signal});
-    } while (true);
-    assert.equal(state.status, 'succeeded');
+    original.checkpoint = snapshot(checkpoint); original.checkpointId = waiting.checkpoint.id;
+    original.runId = waiting.run_id; original.reviewBase64 = Buffer.from(review.bytes).toString('base64');
+    await save(handoffPath, original);
   } else {
     run = await client.attach(original.ref); assert.deepEqual(run.ref, original.ref);
-    assert.equal((await run.status()).status, 'succeeded');
+    const state = await run.status();
+    assert.equal(state.run_id, original.runId);
+    if (phase === 'approve') {
+      assert.equal(state.status, 'waiting_checkpoint');
+      assert.equal(state.checkpoint.id, original.checkpointId);
+      const review = await client.reviewCheckpoint(original.checkpoint, {maxBytes: 1024 * 1024});
+      assert.equal(Buffer.from(review.bytes).toString('base64'), original.reviewBase64,
+        'The cold process must recover the identical sealed original review');
+      assert.deepEqual(await readdir(destinationRoot), []);
+      await observeProjectFileStoreLedger(stateDir, selected.expectedFiles, {beforeApproval: true});
+      report.zeroWritesBeforeApproval = true;
+      report.approvals++;
+      const resolution = await client.resolveCheckpoints([{checkpoint: original.checkpoint, decision: 'approved'}], {
+        signer: {keyId: 'reviewer', reviewerId: 'reviewer', authorityScopeCid: run.ref.authorityScopeCid,
+          sign: bytes => sign(null, bytes, original.authorization.hostKey.privateKey)}});
+      await save(join(directory, 'approval.json'), resolution);
+      assert.equal(resolution.results.length, 1); assert.equal(resolution.results[0].status, 'committed');
+      const signal = AbortSignal.timeout(15_000);
+      let state;
+      do {
+        state = await run.status({signal});
+        if (!['waiting_checkpoint', 'resuming', 'running'].includes(state.status)) break;
+        await delay(20, undefined, {signal});
+      } while (true);
+      assert.equal(state.status, 'succeeded'); assert.equal(state.run_id, original.runId);
+    } else assert.equal(state.status, 'succeeded');
   }
-  const rows = await run.result(original.resultName).all();
-  validateRows(rows, original); report.rows = snapshot(rows);
-  if (phase === 'capture') {original.rows = report.rows; await save(handoffPath, original);}
-  else assert.deepEqual(report.rows, original.rows);
+  if (phase !== 'capture') {
+    const rows = await run.result(original.resultName).all();
+    assertProjectFileStoreRows(rows, selected, caseId); report.rows = snapshot(rows);
+    if (phase === 'approve') original.rows = report.rows;
+    else assert.deepEqual(report.rows, original.rows);
+  }
   report.ref = run.ref; report.resultName = original.resultName;
+  report.runId = original.runId; report.checkpointId = original.checkpointId;
+  report.checkpointCid = original.checkpoint.checkpointCid;
 } catch (error) {
-  primary = error; report.primary = {name: error?.name, code: error?.code, message: error?.message};
+  primary = error; report.primary = diagnosticData(error);
 } finally {
+  report.ref ??= original?.ref; report.workObservation = original?.ref ? work.forOriginal(original.ref) : work.snapshot();
   report.firstClose = client === undefined ? 'not-attempted' : 'pending';
   try {await save(join(dirname(handoffPath), `${caseId}-${phase}.pending.json`), report);}
   catch (error) {cleanup.push(error);}
@@ -185,27 +225,50 @@ try {
     assert.deepEqual(report.aliveScopedFD, {before: 0, after: 0});
   } catch (error) {cleanup.push(error);}
   if (primary === undefined && cleanup.length === 0) try {
-    report.targets = await targets(original.expectedFiles);
-    const ledger = await observeProjectFileStoreLedger(stateDir, original.expectedFiles);
+    report.workObservation = work.forOriginal(original.ref);
+    assert.equal(report.workObservation.complete, true);
+    assert.equal(report.workObservation.modelCallStarts, 0);
+    assert.equal(report.workObservation.totals.modelCallStarts, 0);
+    report.sourceStarts = report.workObservation.sourceAcquisitionStarts;
+    assert.equal(report.workObservation.totals.sourceAcquisitionStarts, report.sourceStarts);
+    if (phase === 'capture' && caseId === 'rows101') assert(report.sourceStarts > 0);
+    else assert.equal(report.sourceStarts, 0, 'Cold approval and Saved never reacquire completed Sources');
     const attempts = observeProjectFileStoreAttempts(stateDir, original.ref);
-    report.sourceAttempts = attempts.sources.length; report.modelAttempts = attempts.model.resume_model_attempts;
-    if (caseId === 'rows101') assert(report.sourceAttempts > 0,
+    report.sourceAttempts = attempts.sources.length;
+    report.newSourceAttempts = attempts.sources.length - (attemptsBefore?.sources.length ?? 0);
+    report.modelAttempts = attempts.model.resume_model_attempts;
+    if (phase !== 'capture') {
+      assert.deepEqual(attempts, attemptsBefore, 'Cold phases preserve the SAME original acquisitions');
+      assert.equal(report.newSourceAttempts, 0);
+    } else if (caseId === 'rows101') assert(report.sourceAttempts > 0,
       'The physical File Source must have actual recorded original attempt evidence');
-    assert.equal(ledger.successfulStores, original.expectedWrites);
-    assert.equal(ledger.memberPreviews, original.expectedDefinitions);
-    report.successfulStores = ledger.successfulStores; report.memberPreviews = ledger.memberPreviews;
+    const ledger = await observeProjectFileStoreLedger(stateDir, selected.expectedFiles,
+      {beforeApproval: phase === 'capture'});
+    report.successfulStores = ledger.successfulStores;
+    report.memberPreviews = ledger.memberPreviews ?? 0;
+    report.newEffectCommits = ledger.successfulStores - (ledgerBefore?.successfulStores ?? 0);
+    assert.equal(report.newEffectCommits, phase === 'approve' ? selected.expectedWrites : 0);
     if (phase === 'capture') {
-      original.targets = report.targets; original.ledger = ledger; original.attempts = attempts;
+      assert.deepEqual(await readdir(destinationRoot), []);
+      report.targets = []; report.rows = [];
+      original.attempts = attempts; original.capturePid = process.pid;
       for (const path of original.inputPaths) await unlink(join(sourceRoot, path));
       await unlink(programPath);
+      original.captureComplete = true;
     } else {
-      assert.deepEqual(report.targets, original.targets);
-      assert.deepEqual(ledger, original.ledger, 'Saved adds no Effect dispatch, receipt or commit');
-      assert.deepEqual(attempts, original.attempts, 'Saved adds no Source or Model attempt');
-      report.newEffectCommits = 0;
+      assert.equal(ledger.successfulStores, selected.expectedWrites);
+      assert.equal(ledger.memberPreviews, selected.expectedDefinitions);
+      report.targets = await targets(selected.expectedFiles);
+      if (phase === 'approve') {
+        original.targets = report.targets; original.ledger = ledger;
+        original.approvePid = process.pid; original.approveComplete = true;
+      } else {
+        assert.deepEqual(report.targets, original.targets);
+        assert.deepEqual(ledger, ledgerBefore, 'Saved adds no dispatch, receipt or commit');
+      }
     }
     await inputsAbsent(original); report.originalInputsAndProgramAbsent = true;
-    if (phase === 'capture') await save(handoffPath, {...original, complete: true});
+    await save(handoffPath, original);
     report.complete = true;
   } catch (error) {cleanup.push(error);}
   report.cleanup = cleanup.map(error => ({name: error?.name, code: error?.code, message: error?.message}));

@@ -18,6 +18,7 @@ import {twoModelDealReviewFiles, twoModelWholeDealReviewFiles, twoModelJoinedWho
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 import {createCommandEvidence, checkCommandEvidenceUpload} from './packed-query-evidence.mjs';
 import {nativeCoreScopedTestEnvironment} from './native-core-test-selection.mjs';
+import {projectFileStoreRows101, projectFileStoreMembers17} from './fixtures/project-file-store-inventory-cases.mjs';
 
 const workflow = parse(await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const name = 'client-readme-packed', job = workflow.jobs[name];
@@ -997,7 +998,7 @@ test('independent normal consumers continue after collection and variant failure
     URL, checkoutState: () => before, execFileSync: () => 'b'.repeat(40), mkdir, join, writeFile,
     packedReadmeCases, packedCompositionCases, packedEffectControlCases,
     runPackedAccountControls: async ({report}) => {report.account.completed = true; report.account.status = 'passed';},
-    runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 4}, (_, index) => ({case: index < 2 ? 'rows101' : 'members17', phase: index % 2 === 0 ? 'capture' : 'saved', completed: true, status: 'passed'})));},
+    runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 6}, (_, index) => ({case: index < 3 ? 'rows101' : 'members17', phase: ['capture', 'approve', 'saved'][index % 3], completed: true, status: 'passed'})));},
     packedModelControlPhases, runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
     runMockEffectControls: async ({records}) => records.forEach(record => {record.completed = true; record.status = 'passed';}),
     nodeBenchmarkFailure, execute: async () => assert.fail('No product command'),
@@ -1053,7 +1054,7 @@ test('each required Model composition is distinct from README three and cannot p
       URL, checkoutState: () => before, execFileSync: () => 'b'.repeat(40), mkdir, join, writeFile,
       packedReadmeCases, packedCompositionCases, packedEffectControlCases,
       runPackedAccountControls: async ({report}) => {report.account.completed = true; report.account.status = 'passed';},
-    runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 4}, (_, index) => ({case: index < 2 ? 'rows101' : 'members17', phase: index % 2 === 0 ? 'capture' : 'saved', completed: true, status: 'passed'})));},
+    runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 6}, (_, index) => ({case: index < 3 ? 'rows101' : 'members17', phase: ['capture', 'approve', 'saved'][index % 3], completed: true, status: 'passed'})));},
     packedModelControlPhases, runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
       runMockEffectControls: async ({records}) => records.forEach(record => {record.completed = true; record.status = 'passed';}),
       nodeBenchmarkFailure,
@@ -1125,7 +1126,7 @@ test('failed shared package preparation records every dependent as unexecuted an
     checkoutState: () => before, execFileSync: () => 'b'.repeat(40), mkdir, join, writeFile,
     packedReadmeCases, packedCompositionCases, packedEffectControlCases,
     runPackedAccountControls: async ({report}) => {report.account.completed = true; report.account.status = 'passed';},
-    runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 4}, (_, index) => ({case: index < 2 ? 'rows101' : 'members17', phase: index % 2 === 0 ? 'capture' : 'saved', completed: true, status: 'passed'})));},
+    runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 6}, (_, index) => ({case: index < 3 ? 'rows101' : 'members17', phase: ['capture', 'approve', 'saved'][index % 3], completed: true, status: 'passed'})));},
     packedModelControlPhases, runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
     runMockEffectControls: async ({records}) => records.forEach(record => {record.completed = true; record.status = 'passed';}),
     nodeBenchmarkFailure, execute: async () => assert.fail('No product command'),
@@ -1566,7 +1567,7 @@ test('required normal controls preserve original errors and cannot pass an unexe
     runProjectFileJoinConsumer: async ({report}) => report.projectFiles.forEach(row => row.completed = true),
     runReadmeCases: async ({report, cases = report.cases}) => cases.forEach(row => row.completed = true),
     runPackedAccountControls: async ({report}) => {report.account.completed = true; report.account.status = 'passed';},
-    runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 4}, (_, index) => ({case: index < 2 ? 'rows101' : 'members17', phase: index % 2 === 0 ? 'capture' : 'saved', completed: true, status: 'passed'})));},
+    runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 6}, (_, index) => ({case: index < 3 ? 'rows101' : 'members17', phase: ['capture', 'approve', 'saved'][index % 3], completed: true, status: 'passed'})));},
     packedModelControlPhases, runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
     runMockEffectControls: async ({records}) => records.filter(row => row.mode !== 'publication-io-failure')
       .forEach(row => {row.completed = true; row.status = 'passed';}), verifyNodeBenchmarkPackages: async () => {}});
@@ -2520,7 +2521,7 @@ test('normal Project file JOIN cannot pass with an unexecuted capture or Saved',
         .forEach(row => {row.completed = true; row.status = 'passed';}),
       runReadmeCases: async ({report, cases = report.cases}) => cases.forEach(row => row.completed = true),
       runPackedAccountControls: async ({report}) => {report.account.completed = true; report.account.status = 'passed';},
-    runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 4}, (_, index) => ({case: index < 2 ? 'rows101' : 'members17', phase: index % 2 === 0 ? 'capture' : 'saved', completed: true, status: 'passed'})));},
+    runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 6}, (_, index) => ({case: index < 3 ? 'rows101' : 'members17', phase: ['capture', 'approve', 'saved'][index % 3], completed: true, status: 'passed'})));},
     packedModelControlPhases, runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
       runMockEffectControls: async ({records}) => records.forEach(row => row.completed = true),
       verifyNodeBenchmarkPackages: async () => {}});
@@ -2820,7 +2821,7 @@ test('required Account control uses SAME prepared artifact once and cannot pass 
       fileURLToPath:()=>repository,URL,checkoutState:()=>before,execFileSync:()=>'b'.repeat(40),mkdir,join,writeFile,
       packedReadmeCases,packedCompositionCases,packedEffectControlCases,nodeBenchmarkFailure,
       execute:async()=>assert.fail('No product command'),prepareHealthPackages:async()=>prepared,
-      runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 4}, (_, index) => ({case: index < 2 ? 'rows101' : 'members17', phase: index % 2 === 0 ? 'capture' : 'saved', completed: true, status: 'passed'})));},
+      runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 6}, (_, index) => ({case: index < 3 ? 'rows101' : 'members17', phase: ['capture', 'approve', 'saved'][index % 3], completed: true, status: 'passed'})));},
     packedModelControlPhases, runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
       async runPackedAccountControls(options) {
         calls++; assert.strictEqual(options.prepared,prepared); assert.equal(options.repository,repository);
@@ -2853,7 +2854,7 @@ test('required Model controls use the same artifact and every phase must complet
       packedModelControlPhases, nodeBenchmarkFailure, execute: async () => assert.fail('No product command'),
       prepareHealthPackages: async () => prepared,
       runPackedAccountControls: async ({report}) => {report.account.completed = true;},
-      runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 4}, (_, index) => ({case: index < 2 ? 'rows101' : 'members17', phase: index % 2 === 0 ? 'capture' : 'saved', completed: true, status: 'passed'})));},
+      runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 6}, (_, index) => ({case: index < 3 ? 'rows101' : 'members17', phase: ['capture', 'approve', 'saved'][index % 3], completed: true, status: 'passed'})));},
       async runPackedModelControls(options) {
         calls++; assert.strictEqual(options.prepared, prepared); assert.equal(options.repository, repository);
         assert.equal(options.root, output); assert.equal(typeof options.command, 'function');
@@ -2879,7 +2880,7 @@ test('required Model controls use the same artifact and every phase must complet
 
 
 test('required packed File boundaries reject missing, failed or duplicate phases on the same artifact', async t => {
-  for (const mode of ['passed', 'failed', 'unexecuted', 'partial', 'duplicate']) {
+  for (const mode of ['passed', 'failed', 'unexecuted', 'partial', 'duplicate', 'missing-approve']) {
     const {root, consumer} = await scratch(t), output = join(root, 'out'), load = await runnerFunctions();
     const before = {clean: true, revision: 'a'.repeat(40)}, prepared = {consumer, manifest: {}, manifestPath: '/same-normal'};
     const primary = new Error('OriginalFileControlFailure'); let calls = 0;
@@ -2897,9 +2898,9 @@ test('required packed File boundaries reject missing, failed or duplicate phases
         assert(Array.isArray(options.cleanup));
         if (mode === 'failed') throw primary;
         if (mode === 'unexecuted') return;
-        options.report.cases.push(...Array.from({length: mode === 'partial' ? 3 : 4}, (_, index) => ({
-          case: mode === 'duplicate' || index < 2 ? 'rows101' : 'members17',
-          phase: index % 2 === 0 ? 'capture' : 'saved', completed: true, status: 'passed'})));
+        options.report.cases.push(...Array.from({length: mode === 'partial' ? 5 : 6}, (_, index) => ({
+          case: mode === 'duplicate' || index < 3 ? 'rows101' : 'members17',
+          phase: mode === 'missing-approve' && index % 3 === 1 ? 'capture' : ['capture', 'approve', 'saved'][index % 3], completed: true, status: 'passed'})));
       },
       runCollectionConsumer: async ({report}) => report.collection.forEach(row => {row.completed = true;}),
       runProjectFileJoinConsumer: async ({report}) => report.projectFiles.forEach(row => {row.completed = true;}),
@@ -2911,4 +2912,79 @@ test('required packed File boundaries reject missing, failed or duplicate phases
     assert.equal(calls, 1);
     assert.equal(JSON.parse(await readFile(join(output, 'summary.json'), 'utf8')).complete, mode === 'passed');
   }
+});
+
+
+test('File inventory phase oracle requires three cold processes and no completed work replay', async () => {
+  const load = await runnerFunctions('./packed-project-file-store-inventory.mjs');
+  const check = load('assertPackedProjectFileStorePhase', {assert});
+  const selected = {case: 'rows101', writes: 101, definitions: 1, rows: 101};
+  const phase = 'approve', ref = {runDefinitionCid: 'same-original'};
+  const before = {case: selected.case, phase: 'capture', pid: 101, ref, runId: 'run',
+    checkpointId: 'checkpoint', checkpointCid: 'sealed-checkpoint', sourceAttempts: 2};
+  const actual = {case: selected.case, phase, pid: 202, ref, runId: 'run',
+    checkpointId: 'checkpoint', checkpointCid: 'sealed-checkpoint', complete: true,
+    submits: 0, approvals: 1, successfulStores: 101, memberPreviews: 1, newEffectCommits: 101,
+    modelAttempts: 0, workObservation: {complete: true, modelCallStarts: 0,
+      sourceAcquisitionStarts: 0, totals: {modelCallStarts: 0, sourceAcquisitionStarts: 0}}, sourceStarts: 0, newSourceAttempts: 0,
+    rows: Array.from({length: 101}, (_, key) => ({key})), targets: Array.from({length: 101}, (_, key) => ({key})),
+    requestMemory: {retainedBytes: 536870912, executionBytes: 536870912},
+    firstClose: 'returned', firstCloseCalls: 1, aliveScopedFD: {before: 0, after: 0}, cleanup: [],
+    originalInputsAndProgramAbsent: true, zeroWritesBeforeApproval: true};
+  const original = {captureComplete: true, approveComplete: true, capturePid: 101, approvePid: 202,
+    ref, checkpointId: 'checkpoint', runId: 'run', checkpoint: {checkpointCid: 'sealed-checkpoint'},
+    rows: actual.rows, targets: actual.targets, ledger: {receipts: Array(101).fill({})}};
+  const run = (row = actual, prior = [before]) => check({selected, phase, actual: row,
+    pid: row.pid, original, previous: prior});
+  run();
+  const mutations = [row => row.pid = 101, row => row.submits++, row => row.approvals = 0,
+    row => row.newEffectCommits++, row => row.sourceStarts = 1,
+    row => row.workObservation.sourceAcquisitionStarts = 1,
+    row => row.workObservation.complete = false, row => row.workObservation.modelCallStarts++,
+    row => row.workObservation.totals.sourceAcquisitionStarts++,
+    row => row.modelAttempts++, row => row.newSourceAttempts++, row => row.firstCloseCalls++,
+    row => row.firstClose = 'pending', row => row.aliveScopedFD.after++, row => row.ref = {},
+    row => row.checkpointCid = 'foreign', row => row.rows.pop(), row => row.targets.pop(),
+    row => row.originalInputsAndProgramAbsent = false];
+  for (const mutate of mutations) {
+    const row = structuredClone(actual); mutate(row); assert.throws(() => run(row));
+  }
+  assert.throws(() => run(actual, []), 'Missing capture cannot become successful approval');
+  const saved = {...structuredClone(actual), phase: 'saved', pid: 303, approvals: 0,
+    newEffectCommits: 0, sourceAttempts: 2};
+  const savedCheck = (row = saved, prior = [before, actual]) => check({selected, phase: 'saved',
+    actual: row, pid: row.pid, original, previous: prior});
+  savedCheck();
+  assert.throws(() => savedCheck({...saved, pid: 202}));
+  assert.throws(() => savedCheck(saved, [before]));
+  assert.throws(() => savedCheck({...saved, targets: saved.targets.toReversed()}));
+});
+
+test('File inventory uses independent per-key bytes across shuffled inputs and member definitions', async t => {
+  const authored = projectFileStoreRows101();
+  assert.equal(authored.inputs.length, 101);
+  assert.notDeepEqual(authored.inputs.map(row => row.path), authored.expectedFiles.map(row => row.path));
+  assert.equal(new Set(authored.expectedFiles.map(row => row.body)).size, 101);
+  const members = projectFileStoreMembers17(), program = JSON.parse(members.source);
+  const destinations = Object.values(program.stages[0].effects).map(value => value.command.input.path.literal);
+  assert.notDeepEqual(destinations, members.expectedFiles.map(row => row.path));
+  assert.deepEqual(destinations.toSorted(), members.expectedFiles.map(row => row.path).toSorted());
+  const load = await runnerFunctions('./fixtures/packed-project-file-store-inventory.mjs');
+  const digest = bytes => 'sha256:' + createHash('sha256').update(bytes).digest('hex');
+  const checkRows = load('assertProjectFileStoreRows', {assert, Buffer, digest});
+  const rows = authored.expectedFiles.toReversed().map(file => ({path: file.path,
+    size_bytes: Buffer.byteLength(file.body), content: {metadata: {content_cid: digest(Buffer.from(file.body))}}}));
+  checkRows(rows, authored, 'rows101');
+  const swapped = structuredClone(rows); [swapped[0].content, swapped[1].content] = [swapped[1].content, swapped[0].content];
+  assert.throws(() => checkRows(swapped, authored, 'rows101'));
+  const duplicate = structuredClone(rows); duplicate[0] = duplicate[1];
+  assert.throws(() => checkRows(duplicate, authored, 'rows101'));
+  const {root} = await scratch(t), destination = join(root, 'destination'); await mkdir(destination);
+  const expected = authored.expectedFiles.slice(0, 2);
+  for (const file of expected) await writeFile(join(destination, file.path), file.body);
+  const checkTargets = load('assertProjectFileStoreTargets', {assert, Buffer, readdir, readFile, join, digest,
+    generation: async path => ({testPath: path})});
+  assert.equal((await checkTargets(expected, destination)).length, 2);
+  await writeFile(join(destination, expected[0].path), expected[1].body);
+  await assert.rejects(checkTargets(expected, destination));
 });
