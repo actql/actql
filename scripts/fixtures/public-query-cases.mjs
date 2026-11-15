@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+import {encodeRetainedFixture} from './retained-fixture-values.mjs';
 
 // Shared controls appear in more than one independently authored corpus.
 // A case name is also its request identity: equivalent controls run once;
@@ -107,3 +109,12 @@ export function partitionPublicQueryProfiles(profiles, part, inventoryKeys) {
         [kind, selected.flatMap(entry => entry.cohort[kind] ?? [])]))};
   }).filter(profile => profile.cohorts.length > 0);
 }
+
+// Actual transport inventory for both acceptance and its partition controls.
+export const publicQueryInventoryKeys = (profile, inputs, offsets = {}) => ['successes', 'executionFailures', 'refusals']
+  .flatMap(kind => {
+    const offset = offsets[kind] ?? 0, values = inputs[kind] ?? [];
+    offsets[kind] = offset + values.length;
+    return values.map((item, index) => JSON.stringify([profile, kind, offset + index, item.name,
+      createHash('sha256').update(encodeRetainedFixture(item)).digest('hex')]));
+  });

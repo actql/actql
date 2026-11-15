@@ -183,7 +183,7 @@ import {computedObjectPropertySuccesses, computedObjectPropertyRefusals, compute
   from './computed-object-property-source-input.mjs';
 import {groupPropertySuccesses, groupPropertyRefusals, groupHavingImplicitAliasSuccesses, groupHavingImplicitAliasRefusals, orderGroupedSubexpressionSuccesses, orderGroupedSubexpressionRefusals, groupedImplicitPropertyNameSuccesses, groupedImplicitPropertyNameRefusals, havingGroupedSubexpressionSuccesses, havingGroupedSubexpressionRefusals, sqlGroupedSubexpressionSuccesses, sqlGroupedSubexpressionRefusals, pipeAggregateOrderSuccesses, pipeAggregateOrderRefusals, pipeAggregateExpressionSuccesses, pipeAggregateExpressionRefusals}
   from './group-property-source-input.mjs';
-import {uniquePublicQueryCases, publicQueryCohorts, partitionPublicQueryProfiles} from './public-query-cases.mjs';
+import {uniquePublicQueryCases, publicQueryCohorts, partitionPublicQueryProfiles, publicQueryInventoryKeys as inventoryKeys} from './public-query-cases.mjs';
 import {publicQueryProfiles} from './public-query-profiles.mjs';
 import {quotedIdentifierSuccesses, quotedIdentifierRefusals}
   from './quoted-identifier-source-input.mjs';
@@ -891,13 +891,6 @@ const fromUnpivotReceipts = createVerifiedCaseReceipts(transport ?? 'both', writ
 });
 let expectedRetainedCohorts = 0;
 const expectedInventory = [], completedInventory = [];
-const inventoryKeys = (profile, inputs, offsets = {}) => ['successes', 'executionFailures', 'refusals']
-  .flatMap(kind => {
-    const offset = offsets[kind] ?? 0, values = inputs[kind] ?? [];
-    offsets[kind] = offset + values.length;
-    return values.map((item, index) => JSON.stringify([profile, kind, offset + index, item.name,
-      createHash('sha256').update(encodeRetainedFixture(item)).digest('hex')]));
-  });
 // Host profiles are immutable within an installation. Keep each fixture's
 // declared analytic envelope, including when the full corpus combines profiles.
 const profileCohorts = publicQueryProfiles(scopeInputs).map(profile => ({...profile,
