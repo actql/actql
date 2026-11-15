@@ -4,7 +4,8 @@ import {acquiredKeyedEffectPublicationPlan} from './local-values-plan.mjs';
 
 function fixture() {
   const prepared = {}, compilation = {}, admission = {}, definition = {}, request = {};
-  const parent = {}, plan = {runDefinition: {sameCheckedPlan: true}}, host = {}, original = {}, lookup = {}, unit = {};
+  const parent = {}, plan = {}, host = {}, original = {}, lookup = {}, unit = {};
+  const keyedDefinition = {sameCheckedPreparation: true};
   const left = {wire: 'left source'}, right = {wire: 'right source'};
   const invocation = {}, invocationOwner = {}, observation = {wire: JSON.stringify({data_policy_cid: 'policy'})};
   const events = [];
@@ -21,7 +22,7 @@ function fixture() {
     control: {seal, sealRunEvidence: seal,
       issueCheckedInstalledEffectKeyedInvocation(...args) {
         assert.deepEqual(args.slice(0, 9), [parent, prepared, request, plan, host, compilation,
-          admission, plan.runDefinition, lookup]); events.push('invoke');
+          admission, keyedDefinition, lookup]); events.push('invoke');
         return {observation, invocation, owner: invocationOwner};
       },
       prepareInstalledEffectKeyedSourceUnit(...args) {
@@ -31,7 +32,7 @@ function fixture() {
       }},
   };
   const identity = {};
-  return {events, unit, left, right, invocationOwner,
+  return {events, unit, left, right, invocationOwner, keyedDefinition,
     options: {acquired, sources: [{captured: {identity}, sourceEvidence: left}],
       keyedFamily: {sourceOriginal: original, lookup, evidence: {source: right, logicalRelationCid: 'right-relation'}},
       captureStartedAt: '2026-11-15T00:00:00Z', captureCompletedAt: '2026-11-15T00:00:01Z',
@@ -39,7 +40,7 @@ function fixture() {
 }
 
 test('Source-only keyed publication retains both original Sources and one combined Unit', () => {
-  const f = fixture(), result = acquiredKeyedEffectPublicationPlan(f.options);
+  const f = fixture(), result = acquiredKeyedEffectPublicationPlan(f.options, f.keyedDefinition);
   assert.deepEqual(f.events, ['invoke', 'unit']);
   assert.deepEqual(result.receiptEvidence.sourceEvidence, [f.left, f.right]);
   assert.deepEqual(result.results[0].evidenceContext.inputRelationCids, ['left-relation', 'right-relation']);
@@ -51,10 +52,12 @@ test('Source-only keyed publication retains both original Sources and one combin
 test('Source-only publication refuses missing original lookup and preserves actual Unit failure', () => {
   const f = fixture();
   assert.throws(() => acquiredKeyedEffectPublicationPlan({...f.options,
-    keyedFamily: {...f.options.keyedFamily, sourceOriginal: undefined}}), /InvalidOriginalEffectKeyedPublication/);
+    keyedFamily: {...f.options.keyedFamily, sourceOriginal: undefined}}, f.keyedDefinition), /InvalidOriginalEffectKeyedPublication/);
+  assert.deepEqual(f.events, []);
+  assert.throws(() => acquiredKeyedEffectPublicationPlan(f.options), /InvalidOriginalEffectKeyedPublication/);
   assert.deepEqual(f.events, []);
   const failure = new Error('OriginalUnitCurrentLost');
   f.options.acquired.control.prepareInstalledEffectKeyedSourceUnit = () => {throw failure;};
-  assert.throws(() => acquiredKeyedEffectPublicationPlan(f.options), cause => cause === failure);
+  assert.throws(() => acquiredKeyedEffectPublicationPlan(f.options, f.keyedDefinition), cause => cause === failure);
   assert.deepEqual(f.events, ['invoke']);
 });

@@ -34203,7 +34203,7 @@
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "cd9e1f8b9d32df197d3eee3423fe4f009ca32e91437cc55b34a5323fa2081a67",
+      "sha256": "4f5e79c6fd61a8b3e1b264c7127c267b2a9329d359126a248599064a53fbdbc1",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -101161,7 +101161,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "2fcf34ba07642db7c2be824b69dbc5951864c62cbb6db62a78a6e15de414f793",
+      "sha256": "db999330f1eee5b554ee9fa8650c8b8dacb32db65dafc5a14880bb3655325311",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -101327,7 +101327,8 @@
             "sourcePlan",
             "managedRun",
             "sourceHost",
-            "deferCatalogs"
+            "deferCatalogs",
+            "keyedDefinition"
           ],
           "async": false
         },

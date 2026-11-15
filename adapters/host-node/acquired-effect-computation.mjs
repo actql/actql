@@ -746,7 +746,8 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
         ? acquiredKeyedEffectPublicationPlan({acquired, sources: evidence, keyedFamily,
           captureStartedAt, captureCompletedAt, sourcePlan: operationPlan,
           managedRun, sourceHost: checkedHost,
-          deferCatalogs: managedRun !== undefined && operationPlan !== undefined})
+          deferCatalogs: managedRun !== undefined && operationPlan !== undefined},
+          sourceKeyedPreparation.runDefinition)
         : multiple
         ? acquiredMultiEffectPublicationPlan({acquired, sources: evidence,
           captureStartedAt, captureCompletedAt, sourcePlan: operationPlan,

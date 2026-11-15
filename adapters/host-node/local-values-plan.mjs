@@ -458,18 +458,18 @@ export function sourceFreeInferEffectPublicationPlan({acquired,
 // checked Unit. Neither side is relabeled as Model or a single-Source result.
 export function acquiredKeyedEffectPublicationPlan({acquired, sources, keyedFamily,
   captureStartedAt, captureCompletedAt, sourcePlan, managedRun, sourceHost,
-  deferCatalogs = false}) {
+  deferCatalogs = false}, keyedDefinition) {
   const {moon, control, prepared, compilation, admission,
     runDefinition, compiledPlan, authorityScopeCid, namespaceId, storeAuthorityCid, now} = acquired;
   if (sources.length !== 1 || keyedFamily?.sourceOriginal === undefined ||
-      keyedFamily.lookup === undefined || managedRun === undefined || sourcePlan?.runDefinition === undefined) {
+      keyedFamily.lookup === undefined || managedRun === undefined || keyedDefinition === undefined) {
     throw new TypeError('InvalidOriginalEffectKeyedPublication');
   }
-  // The checked keyed Plan already retains this exact Definition view. The
-  // acquired Run's separately admitted equal body is not its nominal original.
+  // The caller borrows this exact Definition view from its existing keyed
+  // preparation. The Core operation Plan is opaque and supplies no JS fields.
   const {observation, invocation, owner: invocationOwner} =
     control.issueCheckedInstalledEffectKeyedInvocation(managedRun, prepared,
-      acquired.requestIdentity, sourcePlan, sourceHost, compilation, admission, sourcePlan.runDefinition,
+      acquired.requestIdentity, sourcePlan, sourceHost, compilation, admission, keyedDefinition,
       keyedFamily.lookup, captureStartedAt, captureCompletedAt, limits);
   const run = JSON.parse(runDefinition.wire);
   const {plan, retention, retentionDependencies} = buildLocalPublicationPlan({
