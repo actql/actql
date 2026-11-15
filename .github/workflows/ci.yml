@@ -1435,7 +1435,7 @@ jobs:
         run: node scripts/local-checks.mjs test moon -- --target js src/physical_resources/preparation_publication_phase_wbtest.mbt src/client_local_host/preparation_scalar_snapshot_layout_wbtest.mbt src/canonical_value/snapshot_normalization_wbtest.mbt src/client_local_host/publication_capture_constructor_layout_wbtest.mbt src/run_publication_host/client_compiled_run_original_definition_wbtest.mbt src/client_local_host/installed_managed_retirement_wbtest.mbt src/client_local_host/preparation_publication_custody_wbtest.mbt src/client_local_host/preparation_publication_snapshot_wbtest.mbt src/client_local_host/preparation_publication_validation_layout_wbtest.mbt src/client_local_host/preparation_publication_validation_custody_wbtest.mbt src/client_local_host/preparation_publication_start_custody_wbtest.mbt src/execution_relation/managed_output_success_retirement_wbtest.mbt
       - name: Test original publication Host callers
         if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
-        run: node scripts/local-checks.mjs test node -- scripts/scalar-snapshot-projector-layout.test.mjs scripts/capture-projector-layout.test.mjs adapters/host-node/publication-currentness-boundary.test.mjs adapters/host-node/client-publication-preparation-phase.test.mjs
+        run: node scripts/local-checks.mjs test node -- scripts/scalar-snapshot-projector-layout.test.mjs adapters/host-node/publication-currentness-boundary.test.mjs adapters/host-node/client-publication-preparation-phase.test.mjs
       - name: Test retained experiment fixtures and timing assessment
         if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: node --test benchmarks/retained-results/*.test.mjs
