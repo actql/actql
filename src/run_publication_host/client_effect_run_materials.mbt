@@ -203,6 +203,7 @@ pub fn admit_client_effect_run_materials(
     Unit,
     ClientEffectRunMaterialsIssue,
   ])? = None,
+  before_body? : ((String, Int, Int, Int) -> Bool)? = None,
 ) -> Result[ClientEffectRunMaterials, ClientEffectRunMaterialsIssue] {
   let body = match
     read_client_run_materials_body(
@@ -210,6 +211,7 @@ pub fn admit_client_effect_run_materials(
       expressions,
       operations,
       numeric_profile_cid~,
+      before_body~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Input(issue))
@@ -367,6 +369,11 @@ pub fn admit_client_effect_run_materials(
             }
         }
       }
+      if !client_effect_material_read_funded(
+          "normalization_read", wire, 32, 8, before_body,
+        ) {
+        return Err(Input(MaterialsConstructionRefused("normalization_read")))
+      }
       let journal = match
         admit_completion_free_material_journal(wire, inventory) {
         Ok(value) => value
@@ -433,6 +440,20 @@ pub fn admit_client_effect_run_materials(
       }
   }
   let evidence = fn(name : String, wire : String) {
+    let purpose = name + "_read"
+    if !client_effect_material_read_funded(
+        purpose,
+        wire,
+        limits.max_evidence_nodes,
+        limits.max_evidence_depth,
+        before_body,
+      ) {
+      return Err(
+        ClientEffectRunMaterialsIssue::Input(
+          MaterialsConstructionRefused(purpose),
+        ),
+      )
+    }
     @publication.admit_run_evidence_value(
       name,
       wire,
@@ -478,6 +499,11 @@ pub fn admit_client_effect_run_materials(
   let request = match body.request_wire {
     None => None
     Some(wire) => {
+      if !client_effect_material_read_funded(
+          "request_read", wire, 32, 2, before_body,
+        ) {
+        return Err(Input(MaterialsConstructionRefused("request_read")))
+      }
       let value = match admit_client_request_identity_record_wire(wire) {
         Ok(value) => value
         Err(issue) => return Err(Request(issue))
@@ -527,6 +553,7 @@ pub fn admit_client_effect_run_materials(
         run_definition,
         body.request_wire,
         body.normalization_wire,
+        before_body~,
       ) {
       Ok(value) => value
       Err(issue) => return Err(issue)

@@ -20,9 +20,12 @@ fn source_extent_members(bodies : Array[String]) -> Array[Json] raise {
 }
 
 ///|
-fn source_extent_environment(malformed : Bool) -> (String, String) raise {
+fn source_extent_environment(
+  malformed : Bool,
+  count? : Int = 65,
+) -> (String, String) raise {
   let views : Array[Json] = []
-  for index in 0..<65 {
+  for index in 0..<count {
     views.push({
       "resource": ("records_" + index.to_string()).to_json(),
       "resource_kind": "record",
