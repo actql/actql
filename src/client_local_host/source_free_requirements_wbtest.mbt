@@ -285,6 +285,25 @@ test "source-free SQL chain quotes its installed provider and rejects one byte s
     assets.ordered,
     requirements=Some(quote),
   ).unwrap()
+  let run = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(setup),
+  )
+  let installed = @builtin.configured_local_module(
+    @builtin.configured_host_modules(setup),
+  ).unwrap()
+  let available : Array[@local_driver.LocalManagedAvailableOutput[Int]] = []
+  let dispatch = @local_driver.prepare_local_managed_dispatch_with_outputs(
+      installed,
+      available,
+      @strategy.captured_next_managed_obligations(run, 100000).unwrap(),
+      0L,
+    )
+    .unwrap()
+    .unwrap()
+  let (_, startup) = @local_driver.local_managed_dispatch_site_capacity(
+    dispatch,
+  ).unwrap()
+  assert_true(startup > 0L && startup <= required.execution_bytes)
   let execution = match
     execute_source_free_local_tasks_guarded(setup, 64, 100000, () => true) {
     Ok(value) => value
@@ -298,20 +317,34 @@ test "source-free SQL chain quotes its installed provider and rejects one byte s
   assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
   let short = @resources.create_ledger({
     ..required,
-    execution_bytes: required.execution_bytes - 1L,
+    // The whole-Run quote is a conservative sufficient bound, not a minimum.
+    // Refuse one byte below the SAME selected task's actual startup quote.
+    execution_bytes: startup - 1L,
   }).unwrap()
+  let short_setup = open_source_free_local_retained_host_on_ledger(
+    prepared,
+    short,
+    asset_contracts,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+    requirements=Some(quote),
+  ).unwrap()
+  let failure = match
+    execute_source_free_local_tasks_guarded(short_setup, 64, 100000, () => true) {
+    Err(original) => original
+    Ok(unexpected) => {
+      unexpected.close() |> ignore
+      fail("one-byte-short original task unexpectedly started")
+    }
+  }
   assert_true(
-    open_source_free_local_retained_host_on_ledger(
-      prepared,
-      short,
-      asset_contracts,
-      assets.values,
-      Some(assets.fragment),
-      assets.ordered,
-      requirements=Some(quote),
-    )
-    is None,
+    local_values_execution_failure_issue(failure)
+    is Driver(
+      @local_driver.Execution(@strategy.Physical(@resources.ExecutionLimit))
+    ),
   )
+  assert_true(retry_local_values_execution_failure_cleanup(failure))
   assert_eq(@resources.ledger_usage(short).attempts, 0)
   assert_eq(@resources.ledger_usage(short).reserved_execution_bytes, 0L)
 }
