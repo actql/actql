@@ -2061,7 +2061,6 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           state.parent, identity, plural ? retainedRun.modelScopes : retainedRun.modelScope));
         const run = {prepared, request, producer, purpose: 'source-compute', model: retainedRun,
           effectful: true, content: undefined, operationPlan, original: state.original,
-          ...(keyedPreparation === undefined ? {} : {keyedPreparation}),
           children: [], fileIdentity: undefined, value};
         producer.liveRuns++;
         runs.set(prepared, run); liveRuns.add(run);
