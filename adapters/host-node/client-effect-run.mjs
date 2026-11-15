@@ -20,6 +20,29 @@ const expired = ref => Object.assign(new Error('ClientEffectRunExpired'),
 const unsupported = () => Object.assign(new Error('ClientProgramUnsupported'),
   {code: 'ClientProgramUnsupported'});
 
+// Optional checked preparation DATA on this exact per-handle compiler thunk.
+// The selected Request already funded its one borrowed slot before returning
+// this tuple. It is never an Account decision, current proof or dispatch grant.
+function retainInitialEffectPreparation(compiled, value, facts) {
+  if (value === undefined || value === null || typeof value !== 'object' || value.prepared === undefined) return;
+  if (!Object.isFrozen(value) || value.prepared !== facts.prepared || value.identity !== facts.identity ||
+      value.compilation !== facts.compilation || value.allowed !== facts.allowed || value.definition !== facts.definition ||
+      value.queryTimePreparation !== facts.queryTimePreparation || value.modelCompiled !== facts.modelCompiled) throw denied();
+  if (compiled.initialOriginal !== undefined && compiled.initialOriginal !== value) throw denied();
+  compiled.initialOriginal = value;
+}
+
+function checkInitialEffectPreparation(value, prepared, identity, compilation, retained, moon) {
+  const evidence = retained.runAdmissionEvidence;
+  if (!Object.isFrozen(value) || value.prepared !== prepared || value.identity !== identity ||
+      value.compilation !== compilation || evidence === undefined ||
+      retained.runDefinition.identity !== retained.ref.runDefinitionCid ||
+      moon.strategyPublicationContractIdentity(value.definition) !== retained.ref.runDefinitionCid ||
+      moon.strategyPublicationContractJson(value.definition) !== retained.runDefinition.wire ||
+      moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunPrepared(value.allowed)) !== evidence.prepared ||
+      moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunAuthorization(value.allowed)) !== evidence.authorization) throw denied();
+}
+
 export function installNodeClientEffectRun({moon,
   publicationControl: control = runtimeCore(moon).publicationControl,
   journal, authorizeRequest, authorizeRunStart, prepareExecution, execute,
@@ -67,11 +90,13 @@ export function installNodeClientEffectRun({moon,
     if (typeof required !== 'boolean') throw denied();
     return required;
   };
-  const restoreQueryTime = (required, prepared, allowed, definition, identity) => {
+  const restoreQueryTime = (required, prepared, allowed, definition, identity, retainedPreparation) => {
     if (!required) return {};
-    const queryTimePreparation = checked(queryTimeCall(4,
+    const queryTimePreparation = retainedPreparation ?? checked(queryTimeCall(4,
       [prepared, allowed, definition, identity]));
-    const queryTime = queryTimeCall(5, [queryTimePreparation]);
+    const queryTime = retainedPreparation === undefined
+      ? queryTimeCall(5, [queryTimePreparation])
+      : checked(queryTimeCall(3, [queryTimePreparation, prepared, allowed, definition, identity]));
     if (queryTime === undefined) throw denied();
     return {queryTimePreparation, queryTime};
   };
@@ -299,9 +324,10 @@ export function installNodeClientEffectRun({moon,
           // before the Journal publishes this business Run. A failure remains
           // with that original preparation; no second definition or admission
           // is issued by this callback, and it grants no Effect approval.
-          const originalPreparation = prepareDefinition?.(Object.freeze({prepared,
+          const definitionFacts = Object.freeze({prepared,
             compilation: compiled(), allowed, definition, identity, runDefinition,
-            modelCompiled, resultPolicyOriginal, queryTimePreparation}));
+            modelCompiled, resultPolicyOriginal, queryTimePreparation});
+          const originalPreparation = prepareDefinition?.(definitionFacts);
           const preparationThen = originalPreparation?.then;
           if (typeof preparationThen === 'function') {
             // The actual Journal already awaits this SAME issuer. Invalid
@@ -316,6 +342,7 @@ export function installNodeClientEffectRun({moon,
             }
             throw new TypeError('AsyncClientEffectDefinitionPreparation');
           }
+          retainInitialEffectPreparation(compiled, originalPreparation, definitionFacts);
           return {
             resultNames: moon.clientProgramEffectCompilationResultNames(
               compiled()),
@@ -372,11 +399,18 @@ export function installNodeClientEffectRun({moon,
       const compilation = compile();
       const original = updateTargetOriginals?.validateRun({prepared, compilation,
         evidence, runDefinition: retained.runDefinition, identity}) ?? {};
-      const allowed = checked(moon.clientProgramAdmitAllowedEffectRun(compilation,
-        admitEvidence('prepared_invocation', evidence.prepared),
-        admitEvidence('run_authorization', evidence.authorization)));
-      const definition = definitionToken(retained.runDefinition);
-      const queryTime = restoreQueryTime(requiresQueryTime, prepared, allowed, definition, identity);
+      if (compile.initialOriginal !== undefined) {
+        checkInitialEffectPreparation(compile.initialOriginal, prepared, identity, compilation, retained, moon);
+      }
+      const allowed = compile.initialOriginal === undefined
+        ? checked(moon.clientProgramAdmitAllowedEffectRun(compilation,
+          admitEvidence('prepared_invocation', evidence.prepared),
+          admitEvidence('run_authorization', evidence.authorization)))
+        : compile.initialOriginal.allowed;
+      const definition = compile.initialOriginal === undefined
+        ? definitionToken(retained.runDefinition) : compile.initialOriginal.definition;
+      const queryTime = restoreQueryTime(requiresQueryTime, prepared, allowed, definition, identity,
+        compile.initialOriginal?.queryTimePreparation);
       const owner = checked(moon.clientProgramBindCompiledEffectRun(
         prepared, allowed, definition));
       // Recheck current start authority immediately before the atomic physical
@@ -448,6 +482,9 @@ export function installNodeClientEffectRun({moon,
         currentAuthorization: authorized === true}, moon, control)) {
         return Object.freeze({kind: 'reconcile', ref: start.ref});
       }
+      // The actual winning claim transfers these originals to the existing
+      // bound execution facts. A refused/ambiguous claim retains the same slot.
+      delete compile.initialOriginal;
       started?.();
       // Only the claim winner receives the bound owner. The callback owns all
       // capture/apply/publication and cleanup, including after a thrown error.

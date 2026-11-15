@@ -24589,7 +24589,7 @@
     {
       "module": "adapters/host-node/client-effect-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0ed5980fa2c0a5384b46396d4d09fcd266f3edfc56972d144afe6223087f1d35",
+      "sha256": "f839d793d6d091eec9f8b666c5c63468132b5a6714b9516af0bf62e65d446a2d",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -24597,6 +24597,18 @@
         "openClientRequestJournal"
       ],
       "operations": [
+        {
+          "name": "checkInitialEffectPreparation",
+          "parameters": [
+            "value",
+            "prepared",
+            "identity",
+            "compilation",
+            "retained",
+            "moon"
+          ],
+          "async": false
+        },
         {
           "name": "denied/denied",
           "parameters": [],
@@ -24830,7 +24842,17 @@
             "prepared",
             "allowed",
             "definition",
-            "identity"
+            "identity",
+            "retainedPreparation"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainInitialEffectPreparation",
+          "parameters": [
+            "compiled",
+            "value",
+            "facts"
           ],
           "async": false
         },
@@ -24863,7 +24885,9 @@
             "installNodeClientEffectRun/init:start/init:start",
             "installNodeClientEffectRun/init:start/init:start/init:start",
             "installNodeClientEffectRun/installNodeClientEffectRun",
-            "unsupported/unsupported"
+            "unsupported/unsupported",
+            "checkInitialEffectPreparation",
+            "retainInitialEffectPreparation"
           ],
           "exports": [
             "installNodeClientEffectRun",
@@ -25168,6 +25192,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "A held-submission caller supplies its complete saved prepared original"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_keyed_graph.mbt",
+                "anchor": "fn keyed_initial_definition_view_representation()"
               }
             ],
             "extension": [
@@ -25248,6 +25276,18 @@
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
                 "anchor": "target material inverse is admitted once before the original Request is adopted"
+              },
+              {
+                "path": "adapters/host-node/client-effect-query-time.test.mjs",
+                "anchor": "test('keyed initial tuple reaches the winning start without readmitting its immutable evidence'"
+              },
+              {
+                "path": "adapters/host-node/client-effect-query-time.test.mjs",
+                "anchor": "test('keyed initial tuple refuses a different Journal winner before the physical claim'"
+              },
+              {
+                "path": "adapters/host-node/client-effect-query-time.test.mjs",
+                "anchor": "test('keyed initial tuple does not bypass fresh current authorization'"
               }
             ]
           }

@@ -4713,11 +4713,12 @@ async function openInstalledHost(originalInstallation, preparation) {
         preparation.admitEffectResultPublicationRun(facts.prepared);
         const selected = selectedInstalledEffect(facts);
         selected.assertPrepared?.({moon, prepared: facts.prepared, compilation: facts.compilation});
-        preparation.prepareManagedEffectPlanRun(moon, facts, selected,
+        const original = preparation.prepareManagedEffectPlanRun(moon, facts, selected,
           {registry, values, fragment, ordered, sourceProfile}, inferSelections.get(facts.prepared),
           moon.clientProgramEffectSerializationOccurrences(facts.prepared).length === 0 ? undefined
             : retainCleanup => runContent.prepareEffectFamily({facts, store, principalId, retainCleanup}));
         if (mockEffectObservation !== undefined) retainMockEffectRunOriginal(facts);
+        return original;
       },
       updateTargetOriginals,
       validateInstallation(facts) {
@@ -7460,7 +7461,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
           compiled: facts.modelCompiled, definition: facts.definition, graph: modelSelection.graph,
           components: Object.freeze(modelSelection.components.map(modelFor))}));
       const hasSources = runtime.clientProgramEffectAcquisitionCount(facts.prepared) !== 0;
-      return prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, manager,
+      const parent = prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, manager,
         prepared: facts.prepared, request: facts.identity,
         requestInput: originalSourceManagedHostRequest(originals, facts.prepared),
         selection, facts, inputs: Object.freeze({...inputs,
@@ -7469,6 +7470,11 @@ async function openPreparedInstalledHost(options, initialEntry) {
           installedContracts: prepareInstalledSequenceContractOriginal(originals).admission}),
         sourceProfile: inputs.sourceProfile, model, modelSelection,
         publicationControl: runtimeCore(runtime).publicationControl, prepareContent, assertCurrent: current, checked});
+      const original = record.computeRuns.get(facts.prepared);
+      if (original?.value !== parent) throw clientOperationError('ForeignInstalledEffectManagedRun');
+      // Return only an already-owned checked tuple for the selected keyed
+      // path. Other preparations retain their former opaque parent result.
+      return original.keyedPreparation === undefined ? parent : original.definitionOriginal;
     },
     prepareEffectCaptureRecovery(runtime, request, definition, limits, managed, originalCurrent, retain) {
       return prepareEffectCaptureFrame(runtime, request, definition, limits, managed,

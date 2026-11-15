@@ -58377,7 +58377,6 @@
         },
         {
           "operations": [
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun/effectRun",
             "openPreparedInstalledHost/preparation/init:prepareEffectCaptureRetirement/init:prepareEffectCaptureRetirement",
             "openPreparedInstalledHost/prepareEffectCaptureFrame",
             "openPreparedInstalledHost/prepareEffectCaptureFrame/current/current",
@@ -62143,7 +62142,8 @@
         {
           "operations": [
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun",
-            "openPreparedInstalledHost/preparation/init:reserveManagedEffectOriginal/init:reserveManagedEffectOriginal"
+            "openPreparedInstalledHost/preparation/init:reserveManagedEffectOriginal/init:reserveManagedEffectOriginal",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun/original/original"
           ],
           "exports": [],
           "attributes": {
@@ -63216,7 +63216,7 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun/effectRun",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun/original/original",
           "parameters": [
             "retainCleanup"
           ],
@@ -67103,7 +67103,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "cd589270fd289b9f6f7d00d79451fb2d95da457cafed6ad01077e3b25a8f7d28"
+      "sha256": "f049cc66d25a7efb69fa515605d78287d42d6eae20a15b331cd9dc0ce0e55415"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",

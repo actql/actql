@@ -240,11 +240,13 @@ fn effect_keyed_graph_construction_cost(
 // through the existing publication-control view before compiled/Plan binding.
 // Four records coexist: admission view H1R1, contract view H1R4, three bound
 // scalars H1W3, return pair H1R2; three existing WeakMap entries each H1R3W1.
+// One more existing per-handle compiler-thunk reference carries that checked
+// tuple from admission to the winning start claim; it is deleted on transfer.
 // Wire/name/CID strings remain borrowed; no parser or new admission is funded.
 fn keyed_initial_definition_view_representation() -> @execution.PreparationRepresentationUnits {
   {
     record_headers: 7L,
-    reference_slots: 16L,
+    reference_slots: 17L,
     scalar_words: 6L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
