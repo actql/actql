@@ -197,6 +197,44 @@ pub fn prepare_result_publication_export(
 }
 
 ///|
+/// Read the effective row restriction from this exact checked Unit Result.
+/// A physical output envelope is allocation policy, not permission to exceed
+/// the Host/Program publication limit retained by the checked occurrence.
+fn captured_result_publication_row_ceiling(
+  graph : @strategy.CheckedDAG,
+  result : Int,
+  occurrence : @execution.ManagedResultOccurrence,
+) -> Int64 {
+  guard @strategy.graph_result_task(graph, result) is Some(task) &&
+    @strategy.graph_task_unit_index(graph, task) is Some(unit) &&
+    @strategy.graph_task_owner(graph, task) is Some(owner) &&
+    physical_equal(
+      @execution.managed_result_occurrence_owner(occurrence),
+      owner,
+    ) else {
+    return -1L
+  }
+  let program = @strategy.graph_program(graph)
+  guard @checked.unit_publication_count(program, unit) is Some(count) else {
+    return -1L
+  }
+  let port = @execution.managed_result_occurrence_port(occurrence)
+  let mut maximum = -1L
+  for index in 0..<count {
+    let publication = @checked.unit_publication_at(program, unit, index).unwrap()
+    let selected = @checked.publication_selection(publication)
+    let resolution = @context.publication_row_limit_result(selected)
+    if resolution.stage == unit && physical_equal(resolution.port, port) {
+      if maximum >= 0L {
+        return -1L
+      }
+      maximum = @context.publication_row_limit_maximum(selected)
+    }
+  }
+  maximum
+}
+
+///|
 /// Prepare the exact checked Named Result occurrence from a captured Run.
 /// Result lookup, projection, and ordering are fixed before any bytes escape.
 pub fn prepare_captured_result_publication_export(
@@ -214,6 +252,12 @@ pub fn prepare_captured_result_publication_export(
     return Err(UnknownResult)
   }
   guard @strategy.graph_result_name(graph, result) is Some(result_name) else {
+    return Err(UnknownResult)
+  }
+  let row_ceiling = captured_result_publication_row_ceiling(
+    graph, result, occurrence,
+  )
+  if row_ceiling < 0L {
     return Err(UnknownResult)
   }
   let definition = match
@@ -244,6 +288,14 @@ pub fn prepare_captured_result_publication_export(
       ) {
       Ok(value) => value
       Err(issue) => return Err(Retain(issue))
+    }
+    guard @strategy.captured_any_result_borrow_row_count(borrow) is Some(rows) else {
+      @strategy.release_captured_any_result_borrow(borrow) |> ignore
+      return Err(Output(Unavailable))
+    }
+    if rows.to_int64() > row_ceiling {
+      @strategy.release_captured_any_result_borrow(borrow) |> ignore
+      return Err(Output(Admission(CaptureLimit)))
     }
     let preparation = match
       @strategy.start_captured_any_result_borrow_export(
@@ -320,6 +372,10 @@ pub fn prepare_captured_result_publication_export(
     Err(issue) => return Err(Retain(issue))
   }
   let materialized = @strategy.captured_result_borrow_output(borrow)
+  if @execution.completed_row_count(materialized).to_int64() > row_ceiling {
+    @strategy.release_captured_result_borrow(borrow) |> ignore
+    return Err(Output(Admission(CaptureLimit)))
+  }
   let selected = match converted_output {
     None => materialized
     Some(converted) => {

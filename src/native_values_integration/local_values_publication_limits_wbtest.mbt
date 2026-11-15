@@ -116,3 +116,153 @@ test "CLI supported SELECT text reaches the original Local Values Owner without 
     assert_true(execution.close())
   }
 }
+
+///|
+fn publication_row_policy_prepared(
+  artifact_rows : Int,
+  relation_rows? : Int = 1000,
+) -> @publication_host.PreparedClientProgram raise {
+  let assets = @publication_host.client_local_product_assets()
+  guard @json.parse(assets.environment) is Object(body) &&
+    body["host_policy_profile"] is Object(profile) &&
+    profile["capacity"] is Object(capacity) else {
+    fail("fixture original Host capacity")
+  }
+  body.remove("evidence_bundle_cid")
+  capacity["max_artifact_rows"] = Json::number(artifact_rows.to_double())
+  capacity["max_relation_output_rows"] = Json::number(relation_rows.to_double())
+  let evidence = @identity.from_json(Json::object(body), 10000, 100, 100000)
+  let cid = @identity.cid_value(evidence, 100000, 10000, 100)
+  body["evidence_bundle_cid"] = cid.to_json()
+  let wire = @identity.stringify_value(
+    @identity.from_json(Json::object(body), 10000, 100, 100000),
+    100000,
+    10000,
+    100,
+  )
+  let environment = @publication_host.admit_client_check_environment(
+    wire,
+    cid,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let context = @frontend.bind_query_context(
+    [],
+    @program_check.checking_environment_cid(environment),
+  ).unwrap()
+  let lowered = @frontend.lower(
+    "SELECT 0 AS n UNION ALL SELECT 1 AS n",
+    @frontend.Sql,
+    Some(context),
+  ).unwrap()
+  let parsed = lowered.program.unwrap()
+  @publication_host.prepare_parsed_effect_free_client_program(
+    parsed,
+    environment,
+    None,
+    @publication_host.client_standard_program_preparation_limits(),
+  ).unwrap()
+}
+
+///|
+test "checked artifact row policy refuses the complete UNION before publication and releases its pin" {
+  for artifact_rows in [1, 2] {
+    let prepared = publication_row_policy_prepared(artifact_rows)
+    let setup = @client_local_host.open_source_free_local_retained_host(
+      prepared,
+      native_values_installed_contracts(),
+      @identity.stringify_value(registered_values(), 100000, 10000, 100),
+      1L,
+      0L,
+      0L,
+      0L,
+      fragment_body=Some(
+        @identity.stringify_value(registered_fragment(), 100000, 10000, 100),
+      ),
+    ).unwrap()
+    let run = @host_driver.dispatch_driver_run(
+      @builtin.configured_host_driver(setup),
+    )
+    let execution = @client_local_host.execute_source_free_local_tasks_guarded(
+      setup,
+      64,
+      10000,
+      () => true,
+    ).unwrap()
+    assert_eq(execution.rows().unwrap(), ["{\"n\":0}", "{\"n\":1}"])
+    let requirements = publication_requirements(prepared)
+    let (row, limits) = requirements
+      .publication_limits(prepared, 1000000)
+      .unwrap()
+    // The independent checked publication restriction must still apply when
+    // the physical Plan and caller's export envelope admit both actual rows.
+    assert_true(limits.max_rows >= 2)
+    let exported = execution.prepare_captured_result_export(
+      run, 0, row, 10000, 10000, limits,
+    )
+    if artifact_rows == 1 {
+      assert_true(
+        exported
+        is Err(
+          @client_local_host.Export(
+            @publication_host.Output(
+              @execution.Admission(@execution.CaptureLimit)
+            )
+          )
+        ),
+      )
+    } else {
+      let retained = exported.unwrap()
+      let stream = retained.output_export()
+      let output = StringBuilder()
+      while stream.next().unwrap() is Some(chunk) {
+        output.write_string(chunk)
+      }
+      output.write_string(stream.finish().unwrap())
+      assert_eq(output.to_string(), "[{\"n\":0},{\"n\":1}]")
+      retained.close()
+    }
+    assert_true(execution.close())
+    assert_eq(
+      @resources.ledger_usage(@strategy.captured_dag_ledger(run)).live_reservations,
+      0,
+    )
+  }
+}
+
+///|
+test "checked Append relation row policy refuses UNION independently of artifact capacity" {
+  let prepared = publication_row_policy_prepared(1000, relation_rows=1)
+  let setup = @client_local_host.open_source_free_local_retained_host(
+    prepared,
+    native_values_installed_contracts(),
+    @identity.stringify_value(registered_values(), 100000, 10000, 100),
+    1L,
+    0L,
+    0L,
+    0L,
+    fragment_body=Some(
+      @identity.stringify_value(registered_fragment(), 100000, 10000, 100),
+    ),
+  ).unwrap()
+  let run = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(setup),
+  )
+  let failure = @client_local_host.execute_source_free_local_tasks_guarded(
+    setup,
+    64,
+    10000,
+    () => true,
+  ).unwrap_err()
+  assert_true(
+    @client_local_host.local_values_execution_failure_issue(failure)
+    is @client_local_host.Driver(Configuration(Execution(Rows(_, RowLimit)))),
+  )
+  assert_true(
+    @client_local_host.retry_local_values_execution_failure_cleanup(failure),
+  )
+  assert_eq(
+    @resources.ledger_usage(@strategy.captured_dag_ledger(run)).live_reservations,
+    0,
+  )
+}

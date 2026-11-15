@@ -637,7 +637,11 @@ fn run_sequence_invocation(
           kernel,
           left,
           right,
-          invocation.limits.max_rows,
+          selected_expansion_row_limit(
+            expansion_ceilings,
+            @lower.append_kernel_step(kernel),
+            invocation.limits.max_rows,
+          ),
           invocation.control,
           invocation.output_budget,
           workspace,

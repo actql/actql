@@ -591,16 +591,39 @@ test('Native numeric operator retains low defaults and authors an explicit finit
   assert.equal(JSON.parse(await readFile(join(project, 'environment.json'), 'utf8')).evidence_bundle_cid, identity);
 });
 
+test('Native SQL row-policy fixture declares the exact result before adoption without changing defaults', async t => {
+  const parent = await mkdtemp(join(tmpdir(), 'actql-numeric-sql-policy-test-'));
+  t.after(() => rm(parent, {recursive: true, force: true}));
+  const project = join(parent, 'operator'), inputs = numericOperatorInputs();
+  const before = structuredClone(inputs);
+  await prepareNativeNumericOperator({project, ...inputs, maxRows: 1, includeSqlResult: true});
+  assert.deepEqual(inputs, before);
+  const environment = JSON.parse(await readFile(join(project, 'environment.json'), 'utf8'));
+  assert.equal(environment.host_policy_profile.capacity.max_relation_output_rows, 1);
+  assert.equal(environment.host_policy_profile.capacity.max_artifact_rows, 1);
+  const account = JSON.parse(await readFile(join(project, 'account.json'), 'utf8'));
+  assert.deepEqual(account.entries.filter(entry => entry.operation.any_of.includes('read') &&
+    entry.resource.any_of.some(resource => resource.startsWith('result/')))
+    .map(entry => [entry.resource.any_of, entry.operation.any_of]),
+  [[['result/answer0'], ['read']], [['result/answer'], ['read']]]);
+  for (const file of ['read.json', 'file-read.json']) {
+    const selected = JSON.parse(await readFile(join(project, file), 'utf8')).native.result_read;
+    assert.deepEqual(selected.result_names, ['answer0', 'answer']);
+  }
+  assert.equal(existsSync(join(project, 'host')), false, 'All selections precede ordinary adoption');
+});
+
 test('Native numeric operator harness uses one selected install and preserves distinct low-policy refusal', async t => {
   const parent = await mkdtemp(join(tmpdir(), 'actql-numeric-operator-harness-'));
   t.after(() => rm(parent, {recursive: true, force: true}));
-  const project = join(parent, 'operator'), calls = [];
+  const project = join(parent, 'operator');
+  let unionAttempts = 0;
   const original = {version: 'actql-run-state/0.1', run_id: 'one-original', status: 'succeeded'};
   const report = await observeNativeNumericOperatorScale({project, ...numericOperatorInputs(),
     cli: async (all, cwd, expected = 0) => {
       assert.deepEqual(all.slice(0, 3), ['--mode', 'local', '--config-root']);
       assert.equal(all[3], cwd); assert.deepEqual(all.slice(4, 6), ['--config-file', 'operator.json']);
-      const args = all.slice(6), low = cwd !== project; calls.push({operation: args[0], low});
+      const args = all.slice(6), low = cwd !== project;
       const environment = JSON.parse(await readFile(join(cwd, 'environment.json'), 'utf8'));
       assert.equal(environment.host_policy_profile.capacity.max_relation_output_rows, low ? 1 : 100000);
       if (args[0] === 'adopt') {
@@ -608,18 +631,33 @@ test('Native numeric operator harness uses one selected install and preserves di
         return {code: 0, signal: null, stdout: JSON.stringify({kind: 'local_host_adopted'})};
       }
       if (low) {
+        if (args[0] === 'check') {
+          return {stdout: JSON.stringify({outcome: 'completed', report: {
+            verdict: 'verified', runnable: {verdict: 'yes'}}})};
+        }
+        if (args[0] === 'result') {
+          assert.deepEqual(args, ['result', 'prior-one-row', '--format', 'jsonl']);
+          return {stdout: '{"n":79}\n'};
+        }
         if (args[0] === 'run') {
+          if (args[1] === 'union-before.sql') {
+            assert.equal(expected, 0);
+            return {stdout: JSON.stringify({status: 'succeeded', run_id: 'prior-one-row'})};
+          }
           assert.equal(expected, 1);
           if (args[1] === 'low.json') {
             assert.deepEqual(args, ['run', 'low.json', '--format', 'json', '--json']);
             const small = JSON.parse(await readFile(join(cwd, 'low.json'), 'utf8'));
             assert.deepEqual(small.stages[0].steps[0].values.rows, [{v0: 0}, {v0: 1}]);
           } else {
+            unionAttempts += 1;
             assert.deepEqual(args, ['run', 'union-low.sql', '--format', 'sql', '--json']);
             assert.equal(await readFile(join(cwd, 'union-low.sql'), 'utf8'),
               'SELECT 0 AS n UNION ALL SELECT 1 AS n');
           }
-          return {code: 1, signal: null, stdout: '', stderr: JSON.stringify({code: 'ACTQL_E_PROGRAM_INVALID'})};
+          return {code: 1, signal: null, stdout: '', stderr: JSON.stringify(args[1] === 'low.json'
+            ? {code: 'ACTQL_E_PROGRAM_INVALID'}
+            : {code: 'ACTQL_E_EXECUTION_LIMIT', message: 'Local row execution exceeded its admitted row or workspace limit.'})};
         }
         assert.deepEqual(args, ['sql', 'SELECT 83 AS n', '--format', 'jsonl']);
         assert.equal(expected, 0);
@@ -636,14 +674,13 @@ test('Native numeric operator harness uses one selected install and preserves di
       } else assert.equal(args[0], 'run');
       return {code: 0, signal: null, stdout: JSON.stringify(original)};
     }});
-  assert.deepEqual(calls, ['adopt', 'run', 'result', 'status', 'result'].map(operation => ({operation, low: false}))
-    .concat([{operation: 'adopt', low: true}, {operation: 'run', low: true},
-      {operation: 'run', low: true}, {operation: 'sql', low: true}]));
+  assert.equal(unionAttempts, 1, 'The original refused UNION is never resubmitted');
   assert.equal(report.first.rows, 100000); assert.equal(report.saved.rows, 100000);
   assert.equal(report.operator.lowPolicyRefused, true);
   assert.equal(report.operator.maxRows, 100000);
   assert.deepEqual(report.operator.lowUnionRowPolicy, {explicitRowPolicy: 1, originalRejectedRows: 2,
-    recoveryRows: [{n: 83}], classification: 'static-row-policy-input-invalid',
+    recoveryRows: [{n: 83}], classification: 'runtime-row-or-workspace-limit',
+    checkRunnable: true, publicFailureOutputEmpty: true, priorSavedAfterRefusal: true,
     sameParentBudgetRefusal: 'not-tested', recoveryFirstCloseObserved: false,
     physicalAckIndependentlyObserved: false});
 });

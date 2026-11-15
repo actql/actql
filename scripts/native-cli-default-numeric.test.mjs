@@ -87,26 +87,49 @@ for (const fault of ['late-row', 'duplicate', 'schema', 'close', 'cold', 'csv-nu
   });
 }
 
-for (const generic of [false, true]) {
-  test(`UNION row-policy oracle ${generic ? 'refuses generic failure' : 'retains typed failure and recovery'}`, async t => {
+for (const fault of [null, 'generic', 'static', 'partial', 'saved', 'recovery', 'check']) {
+  test(`UNION row-policy oracle ${fault ? `refuses ${fault}` : 'retains typed runtime failure and prior Saved'}`, async t => {
     const project = await mkdtemp(join(tmpdir(), 'native-union-row-policy-oracle-'));
     t.after(() => rm(project, {recursive: true, force: true}));
+    let unionAttempts = 0, priorReads = 0;
     const cli = async (args, cwd, code = 0) => {
       assert.equal(cwd, project);
       if (args[0] === 'run') {
+        if (args[1] === 'union-before.sql') {
+          assert.equal(code, 0);
+          assert.equal(await readFile(join(project, args[1]), 'utf8'), 'SELECT 79 AS n');
+          return {stdout: JSON.stringify({status: 'succeeded', run_id: 'original-one-row'})};
+        }
+        unionAttempts += 1;
         assert.equal(code, 1);
         assert.equal(await readFile(join(project, args[1]), 'utf8'), 'SELECT 0 AS n UNION ALL SELECT 1 AS n');
-        return {stdout: '', signal: null, stderr: JSON.stringify({code:
-          generic ? 'ACTQL_E_COMMAND_FAILED' : 'ACTQL_E_PROGRAM_INVALID'})};
+        return {stdout: fault === 'partial' ? '{"n":0}\n' : '', signal: null,
+          stderr: JSON.stringify({code: fault === 'generic' ? 'ACTQL_E_COMMAND_FAILED' :
+            fault === 'static' ? 'ACTQL_E_PROGRAM_INVALID' : 'ACTQL_E_EXECUTION_LIMIT',
+          message: 'Local row execution exceeded its admitted row or workspace limit.'})};
+      }
+      if (args[0] === 'check') {
+        assert.equal(code, 0);
+        return {stdout: JSON.stringify({outcome: 'completed', report: {
+          verdict: 'verified', runnable: {verdict: fault === 'check' ? 'no' : 'yes'}}})};
+      }
+      if (args[0] === 'result') {
+        assert.deepEqual(args, ['result', 'original-one-row', '--format', 'jsonl']);
+        priorReads += 1;
+        if (priorReads === 2) await assert.rejects(readFile(join(project, 'union-before.sql')), {code: 'ENOENT'});
+        return {stdout: fault === 'saved' && priorReads === 2 ? '{"n":78}\n' : '{"n":79}\n'};
       }
       assert.deepEqual(args, ['sql', 'SELECT 83 AS n', '--format', 'jsonl']);
-      return {stdout: '{"n":83}\n'};
+      return {stdout: fault === 'recovery' ? '{"n":84}\n' : '{"n":83}\n'};
     };
-    if (generic) await assert.rejects(observeNativeUnionRowPolicy({project, cli}));
+    if (fault) await assert.rejects(observeNativeUnionRowPolicy({project, cli}));
     else {
       const observed = await observeNativeUnionRowPolicy({project, cli});
       assert.deepEqual(observed.recoveryRows, [{n: 83}]);
-      assert.equal(observed.classification, 'static-row-policy-input-invalid');
+      assert.equal(observed.classification, 'runtime-row-or-workspace-limit');
+      assert.equal(observed.priorSavedAfterRefusal, true);
+      assert.equal(observed.publicFailureOutputEmpty, true);
+      assert.equal(unionAttempts, 1);
       assert.equal(observed.sameParentBudgetRefusal, 'not-tested');
       assert.equal(observed.recoveryFirstCloseObserved, false);
       assert.equal(observed.physicalAckIndependentlyObserved, false);

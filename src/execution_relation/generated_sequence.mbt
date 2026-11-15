@@ -298,7 +298,7 @@ pub fn generated_join_output_ceiling(
 }
 
 ///|
-/// Narrow one exact unpivot or unnest output to the selected Host policy.
+/// Narrow one exact append, unpivot or unnest output to the selected Host policy.
 /// Reapplying a ceiling cannot widen a previously selected bound.
 pub fn constrain_generated_expansion_output(
   generated : GeneratedSequence,
@@ -308,13 +308,15 @@ pub fn constrain_generated_expansion_output(
   if ceiling < 0L {
     return Err(InvalidLimits)
   }
-  guard @lower.sequence_step(generated.sequence, step)
-    is Some(@lower.RowStep(kernel)) &&
-    (
-      @lower.kernel_body(kernel) is @lower.Unpivot(_, _, _, _) ||
-      @lower.kernel_body(kernel) is @lower.Unnest(_, _, _, _, _)
-    ) else {
+  guard @lower.sequence_step(generated.sequence, step) is Some(selected) else {
     return Err(InputSet)
+  }
+  match selected {
+    @lower.AppendStep(_) => ()
+    @lower.RowStep(kernel) if @lower.kernel_body(kernel)
+      is @lower.Unpivot(_, _, _, _) ||
+      @lower.kernel_body(kernel) is @lower.Unnest(_, _, _, _, _) => ()
+    _ => return Err(InputSet)
   }
   let ceilings = generated.expansion_ceilings.copy()
   for index, (prior_step, prior) in ceilings {

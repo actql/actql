@@ -105,6 +105,9 @@ fn local_execute_publish_values(
     ) {
     Ok(value) => value
     Err(failure) => {
+      local_values_command_diagnostic(
+        @local_host.native_client_values_work_failure_issue(failure),
+      )
       local_values_failure_tags(
         @local_host.native_client_values_work_failure_issue(failure),
         native_timing_amount,

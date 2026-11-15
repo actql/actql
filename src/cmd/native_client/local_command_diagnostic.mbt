@@ -25,6 +25,7 @@ priv enum LocalCommandDiagnosticKind {
   RuntimeRequirementsInventory
   RuntimeRequirementsPorts
   RuntimeRequirementsCapacity
+  RuntimeRowExecutionLimit
 }
 
 ///|
@@ -265,6 +266,10 @@ fn local_command_primary_diagnostic(message : String) -> (String, String) {
     RuntimeRequirementsCapacity =>
       (
         "ACTQL_E_PREPARATION_FAILED", "Runtime demand capacity quoting is unavailable; no budget dimension was established.",
+      )
+    RuntimeRowExecutionLimit =>
+      (
+        "ACTQL_E_EXECUTION_LIMIT", "Local row execution exceeded its admitted row or workspace limit.",
       )
   }
 }

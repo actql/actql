@@ -428,6 +428,11 @@ pub fn start_bounded_append(
     is Some(output_schema) else {
     return Err(InvalidExecution)
   }
+  let max_rows = selected_expansion_row_limit(
+    generated.expansion_ceilings,
+    step,
+    max_rows,
+  )
   let left_count = producer_read_row_count(left)
   let right_count = producer_read_row_count(right)
   if left_count > max_rows || right_count > max_rows - left_count {

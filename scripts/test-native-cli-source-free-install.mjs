@@ -451,8 +451,9 @@ export async function observeNativeNumericScale({project, cli, outputDirectory =
 // same installed assets/libraries remain originals; no product default changes
 // and no accepted Host is reconfigured. The actual Owners still decide admission.
 export async function prepareNativeNumericOperator({project, assets, libraries, runtimeWire, maxRows,
-  journalRecordLimit = 8}) {
+  journalRecordLimit = 8, includeSqlResult = false}) {
   assert(Number.isSafeInteger(maxRows) && maxRows > 0 && maxRows <= 100000);
+  assert.equal(typeof includeSqlResult, 'boolean');
   // These are the explicit finite acceptance fixtures, not a product limit.
   assert([1, 2, 8].includes(journalRecordLimit));
   assert(isAbsolute(project) && isAbsolute(libraries.sqlite) && isAbsolute(libraries.crypto));
@@ -497,6 +498,7 @@ export async function prepareNativeNumericOperator({project, assets, libraries, 
   const files = {
     'account.json': {version: 'actql-execution-account-config/0.1', account_id: principal,
       entries: [permission('numeric-result', 'result/answer0', ['read']),
+        ...(includeSqlResult ? [permission('numeric-sql-result', 'result/answer', ['read'])] : []),
         permission('numeric-run', 'run', ['cancel', 'publish', 'read', 'submit'])]},
     'environment.json': environment,
     'run.json': {version: 'actql-config/0.1', native: {run: {
@@ -507,7 +509,7 @@ export async function prepareNativeNumericOperator({project, assets, libraries, 
         ordered: assets.ordered, result_policy_cid: policyCid, result_policy_wire: assets['result-policy']},
     }}},
     'read.json': {version: 'actql-config/0.1', native: {result_read: {
-      enabled: true, principal, connection, result_names: ['answer0'], formats: ['jsonl'],
+      enabled: true, principal, connection, result_names: includeSqlResult ? ['answer0', 'answer'] : ['answer0'], formats: ['jsonl'],
       purpose: 'cli-read', sink: 'stdout', data_policy_cids: [policyCid], max_bytes: 16777216,
       max_uses: 1, run_policy_profile_cid: cid(profile),
       run_file: 'run.json', retention_file: 'retention.json', store_file: 'store.json',
@@ -652,7 +654,8 @@ export async function observeNativeNumericOperatorScale({project, cli, assets, l
   // A distinct fresh operator deliberately selects a lower finite row policy.
   // Its original refusal is neither retried nor a reason to weaken enforcement.
   const lowProject = project + '-low-policy';
-  const low = await prepareNativeNumericOperator({project: lowProject, assets, libraries, runtimeWire, maxRows: 1});
+  const low = await prepareNativeNumericOperator({project: lowProject, assets, libraries, runtimeWire,
+    maxRows: 1, includeSqlResult: true});
   const lowCli = (args, code = 0) => cli([...low.configuration, ...args], lowProject, code);
   await lowCli(['adopt', '--initialize-signing', '--json']);
   const small = {version: 'actql/0.1', id: 'numeric-low-policy', stages: [{id: 'main', inputs: {},

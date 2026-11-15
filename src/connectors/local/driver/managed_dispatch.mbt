@@ -1877,6 +1877,15 @@ pub fn[T] start_local_managed_dispatch(
                 return Err(Configuration(issue))
               }
             }
+            guard local_task_constrain_expansion(
+                setup.run,
+                setup.task,
+                constrained,
+              )
+              is Some(constrained) else {
+              execution_finished.val = true
+              return Err(Configuration(InvalidLimits))
+            }
             guard local_task_constrain_traversal(
                 setup.run,
                 setup.task,

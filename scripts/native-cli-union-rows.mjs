@@ -88,16 +88,32 @@ export async function observeNativeUnionRows({root, cli}) {
 }
 
 // The caller supplies its already-admitted, explicitly smaller row policy.
-// This is static RowsExceeded/InputInvalid, not a same-parent memory/work
-// shortage or evidence of its dimension. The ordinary project stays unchanged.
+// A UNION's one-row inlets can pass checking while its actual combined output
+// exceeds the selected runtime policy. Require the real typed refusal, not a
+// generic failure or an authorization mismatch. The ordinary project is unchanged.
 export async function observeNativeUnionRowPolicy({project, cli}) {
+  await writeFile(join(project, 'union-before.sql'), 'SELECT 79 AS n', {flag: 'wx', mode: 0o600});
+  const prior = JSON.parse((await cli(['run', 'union-before.sql', '--format', 'sql', '--json'], project)).stdout);
+  assert.equal(prior.status, 'succeeded');
+  assert.equal(typeof prior.run_id, 'string'); assert(prior.run_id.length > 0);
+  completeRows((await cli(['result', prior.run_id, '--format', 'jsonl'], project)).stdout, [{n: 79}]);
+  await unlink(join(project, 'union-before.sql'));
   await writeFile(join(project, 'union-low.sql'), 'SELECT 0 AS n UNION ALL SELECT 1 AS n', {flag: 'wx', mode: 0o600});
+  const checked = JSON.parse((await cli(['check', 'union-low.sql', '--format', 'sql', '--json'], project)).stdout);
+  assert.equal(checked.outcome, 'completed');
+  assert.equal(checked.report.verdict, 'verified');
+  assert.equal(checked.report.runnable.verdict, 'yes');
   const refused = await cli(['run', 'union-low.sql', '--format', 'sql', '--json'], project, 1);
   assert.equal(refused.stdout, ''); assert.equal(refused.signal, null);
-  assert.equal(JSON.parse(refused.stderr).code, 'ACTQL_E_PROGRAM_INVALID');
+  assert.deepEqual(JSON.parse(refused.stderr), {code: 'ACTQL_E_EXECUTION_LIMIT',
+    message: 'Local row execution exceeded its admitted row or workspace limit.'});
+  await unlink(join(project, 'union-low.sql'));
+  completeRows((await cli(['result', prior.run_id, '--format', 'jsonl'], project)).stdout, [{n: 79}]);
   const recovered = await cli(['sql', 'SELECT 83 AS n', '--format', 'jsonl'], project);
   completeRows(recovered.stdout, [{n: 83}]);
   return {explicitRowPolicy: 1, originalRejectedRows: 2, recoveryRows: [{n: 83}],
-    classification: 'static-row-policy-input-invalid', sameParentBudgetRefusal: 'not-tested',
+    classification: 'runtime-row-or-workspace-limit', checkRunnable: true,
+    publicFailureOutputEmpty: true, priorSavedAfterRefusal: true,
+    sameParentBudgetRefusal: 'not-tested',
     recoveryFirstCloseObserved: false, physicalAckIndependentlyObserved: false};
 }
