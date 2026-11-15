@@ -359,7 +359,7 @@ pub fn generated_bounded_sequence_capacity(
   // the immutable text axis. It keeps aggregate/order scratch and the full
   // retained output; it constructs no copied input or measurement forest.
   let borrowed_pivot = match operation {
-    @lower.RowStep(kernel) if @lower.kernel_pivot(kernel) is Some(_) => {
+    @lower.RowStep(kernel) if @lower.kernel_pivot(kernel) is Some(pivot) => {
       let input = @lower.kernel_input_schema(kernel)
       let mut borrowed = @schema.all_fields_required(input) &&
         @schema.all_fields_required(schema)
@@ -372,6 +372,20 @@ pub fn generated_bounded_sequence_capacity(
       for field in 0..<@schema.field_count(schema) {
         match @schema.field_at(schema, field).unwrap().contract.shape {
           @contract.Number | @contract.Boolean => ()
+          // Match the checked index identity: canonical schema order is
+          // independent of PIVOT index order. Text aggregates stay excluded.
+          @contract.Text(_) => {
+            let name = @schema.field_at(schema, field).unwrap().name
+            let mut index_key = false
+            for index in 0..<@lower.pivot_index_count(pivot) {
+              if @lower.pivot_index_at(pivot, index) == Some(name) {
+                index_key = true
+              }
+            }
+            if !index_key {
+              borrowed = false
+            }
+          }
           _ => borrowed = false
         }
       }

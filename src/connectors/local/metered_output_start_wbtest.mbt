@@ -1443,22 +1443,27 @@ test "unpivot borrowed cells use original row funding and preserve injected prov
 }
 
 ///|
-test "numeric pivot uses original row funding and preserves recursive text or injected fallback" {
+test "numeric pivot borrows Text index keys and preserves recursive aggregate or injected fallback" {
   for
-    (extra, key, borrowed) in [
-      ("", "id", true),
+    (extra, key, value, aggregate, borrowed) in [
+      ("", "id", "amount", "count", true),
       (
         ",\"extra\":{\"type\":\"array\",\"nullable\":true,\"items\":{\"type\":\"number\",\"nullable\":false}}",
-        "id", false,
+        "id", "amount", "count", false,
       ),
-      ("", "status", false),
+      ("", "status", "amount", "count", true),
+      ("", "id", "status", "max", false),
     ] {
     let (whole, _, _) = chain_lifetime_fixture(
       "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"status\":{\"type\":\"string\",\"nullable\":false},\"amount\":{\"type\":\"number\",\"nullable\":true}" +
       extra +
       "},\"rows\":[]},\"as\":\"value\"},{\"from\":\"value\",\"pivot\":{\"index\":[\"" +
       key +
-      "\"],\"column\":\"status\",\"values\":[\"open\"],\"value\":\"amount\",\"aggregate\":\"count\"}}]",
+      "\"],\"column\":\"status\",\"values\":[\"open\"],\"value\":\"" +
+      value +
+      "\",\"aggregate\":\"" +
+      aggregate +
+      "\"}}]",
     )
     let sequence = @execution.select_generated_sequence_step(
       whole,

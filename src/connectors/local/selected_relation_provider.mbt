@@ -408,8 +408,9 @@ fn relation_chain_reclaimed_prefix(
           !(@lower.kernel_body(kernel) is @lower.Groups(_)) &&
           !(@lower.kernel_body(kernel) is @lower.CountGroups(_)) &&
           !(@lower.kernel_body(kernel) is @lower.AnalyticRows(_)) &&
-          !(@execution.generated_sequence_step_count(sequence) == 1 &&
-          @lower.kernel_pivot(kernel) is Some(_)) &&
+          // PIVOT uses the same accepted bounded-group output buffer. Its
+          // cleanup releases private scratch without revoking that output.
+          !(@lower.kernel_pivot(kernel) is Some(_)) &&
           !(@lower.kernel_body(kernel) is @lower.Unpivot(_, _, _, _)) &&
           !(@lower.kernel_body(kernel) is @lower.Unnest(_, _, _, _, _)) {
           return index

@@ -630,11 +630,12 @@ fn local_module_default_output_start_capacity(
       Some(@lower.RowStep(kernel)) if @execution.bounded_number_group_borrows_input(
           kernel,
         ) => ()
-      Some(@lower.RowStep(kernel)) if count == 1 &&
-        @lower.kernel_pivot(kernel) is Some(_) => {
+      Some(@lower.RowStep(kernel)) if @lower.kernel_pivot(kernel) is Some(pivot) => {
         // The existing bounded group/PIVOT child reads original scalar
         // cells, retaining the text axis and aggregate workspace. Scalar
         // pending rows use workspace; complete output grows before transfer.
+        // Reclaimed chains stop and clean this same child before its
+        // successor; they construct no legacy sequence table.
         let input = @lower.kernel_input_schema(kernel)
         let output = @lower.kernel_output_schema(kernel)
         if !@schema.all_fields_required(input) ||
@@ -650,6 +651,20 @@ fn local_module_default_output_start_capacity(
         for field in 0..<@schema.field_count(output) {
           match @schema.field_at(output, field).unwrap().contract.shape {
             @contract.Number | @contract.Boolean => ()
+            // Canonical schema order need not put index keys first. Match
+            // the checked field identity, not its position in that schema.
+            @contract.Text(_) => {
+              let name = @schema.field_at(output, field).unwrap().name
+              let mut index_key = false
+              for index in 0..<@lower.pivot_index_count(pivot) {
+                if @lower.pivot_index_at(pivot, index) == Some(name) {
+                  index_key = true
+                }
+              }
+              if !index_key {
+                return None
+              }
+            }
             _ => return None
           }
         }

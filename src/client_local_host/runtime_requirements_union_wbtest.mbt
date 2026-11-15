@@ -1,6 +1,7 @@
 ///|
 fn runtime_requirements_union_prepared(
   sql? : String? = None,
+  source_json? : String? = None,
 ) -> @publication_host.PreparedClientProgram raise {
   let assets = @publication_host.client_local_product_assets()
   guard @json.parse(assets.environment) is Object(fields) &&
@@ -21,6 +22,15 @@ fn runtime_requirements_union_prepared(
     let original = @frontend.lower(text, @frontend.Sql, Some(context)).unwrap()
     return @publication_host.prepare_parsed_effect_free_client_program(
       original.program.unwrap(),
+      environment,
+      None,
+      @publication_host.client_standard_program_preparation_limits(),
+    ).unwrap()
+  }
+  if source_json is Some(source) {
+    return @publication_host.prepare_effect_free_client_program(
+      source,
+      Json,
       environment,
       None,
       @publication_host.client_standard_program_preparation_limits(),
@@ -242,5 +252,16 @@ test "ordinary COUNT identities retain anonymous UNION and PIVOT rows within the
   runtime_number_group_case(
     "(SELECT COUNT(*) AS sales, COUNT(CAST(NULL AS FLOAT64)) AS other, 'Q1' AS quarter UNION ALL SELECT COUNT(*), COUNT(CAST(NULL AS FLOAT64)), 'Q2') |> PIVOT(MAX(sales) FOR quarter IN ('Q2' AS second,'Q1' AS first))",
     [@json.parse("{\"other\":0,\"second\":1,\"first\":1}")],
+  )
+}
+
+///|
+test "ordinary PIVOT preserves unbounded-schema text keys duplicates and NULL values" {
+  let source =
+    #|{"version":"actql/0.1","id":"fixture.pipe_pivot","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"product":{"type":"string","nullable":false},"sales":{"type":"number","nullable":true},"quarter":{"type":"string","nullable":false}},"rows":[{"product":"kale","sales":51,"quarter":"Q1"},{"product":"kale","sales":51,"quarter":"Q1"},{"product":"kale","sales":null,"quarter":"Q2"}]},"as":"sales"},{"from":"sales","pivot":{"index":["product"],"column":"quarter","value":"sales","values":["Q2","Q1"],"aggregate":"count"}},{"select":["product",{"second":"Q2"},{"first":"Q1"}],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["product","second","first"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+  runtime_number_group_execute(
+    runtime_requirements_union_prepared(source_json=Some(source)),
+    [@json.parse("{\"product\":\"kale\",\"second\":0,\"first\":2}")],
+    "original duplicate-null JSON PIVOT",
   )
 }
