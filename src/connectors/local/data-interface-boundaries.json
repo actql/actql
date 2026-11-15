@@ -597,7 +597,7 @@
   {
     "module": "adapters/connectors/local/host/iceberg-process.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "2bc78028f9505cb7a83215e53d2815867410da2468cccee2066bd0160d036c73",
+    "sha256": "d8ab3299c303151c61105131c0d599ed63dfe6427c529b9429da6f654231dc17",
     "exports": [
       "admitIcebergStorageMapping",
       "createIcebergPhysicalBridge",
@@ -733,7 +733,8 @@
           "mapping",
           "signal",
           "beforeBodyAllocation",
-          "bodyReceived"
+          "bodyReceived",
+          "bodySnapshot"
         ],
         "async": true
       },
@@ -751,7 +752,8 @@
           "selector",
           "signal",
           "beforeBodyAllocation",
-          "bodyReceived"
+          "bodyReceived",
+          "bodySnapshot"
         ],
         "async": true
       },
@@ -782,7 +784,8 @@
           "signal",
           "stopped",
           "beforeBodyAllocation",
-          "bodyReceived"
+          "bodyReceived",
+          "bodySnapshot"
         ],
         "async": true
       },
