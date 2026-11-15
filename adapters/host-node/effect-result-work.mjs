@@ -1,6 +1,7 @@
 // The SAME adopted Effect Run owns Result preparation and later dependency
 // publication work. This adapter creates no Ledger, grant or cleanup owner.
 import {checked} from '../host-common/runtime-result.mjs';
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 
 const fail = code => {throw Object.assign(new Error(code), {code});};
 
@@ -51,11 +52,12 @@ export function prepareInstalledEffectResultProgress(run, source) {
         [parent, prepared, request, plan, source, transformation, quantum]));
       // Core has already charged actual progress, including a failed prefix.
       // An invalid result never falls back to the unmetered generic advance.
-      if (!Array.isArray(progress) || progress.length !== 2 ||
-          typeof progress[0] !== 'boolean' || !Number.isSafeInteger(progress[1]) ||
-          progress[1] < 0 || progress[1] > quantum) {
+      if (progress === null || typeof progress !== 'object') {
         fail('InvalidInstalledEffectResultProgress');
       }
+      const ready = runtimeField(progress, 0), work = runtimeField(progress, 1);
+      if (typeof ready !== 'boolean' || !Number.isSafeInteger(work) ||
+          work < 0 || work > quantum) fail('InvalidInstalledEffectResultProgress');
       if (Object.hasOwn(run, 'failure')) throw run.failure;
       if (run.closed || run.runtime !== runtime || run.value !== parent ||
           run.prepared !== prepared || run.request !== request ||
@@ -64,7 +66,7 @@ export function prepareInstalledEffectResultProgress(run, source) {
           runtime.clientProgramInstalledEffectResultAdvance !== advance) {
         fail('ForeignInstalledEffectManagedRun');
       }
-      return progress[0];
+      return ready;
     } catch (cause) {
       failed = true;
       primary = cause;

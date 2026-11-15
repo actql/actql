@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {prepareInstalledEffectResultProgress} from './effect-result-work.mjs';
+import {runtimePair} from '../host-common/compiler-binding.generated.mjs';
 
 const ok = value => ({$tag: 1, _0: value});
 function fixture({prepare, advance} = {}) {
@@ -17,7 +18,7 @@ function fixture({prepare, advance} = {}) {
       calls.advance++;
       assert.deepEqual(args, [parent, prepared, request, plan, source, transformation, 7]);
       assert.equal(run.selecting, true);
-      return advance?.(run, calls.advance) ?? ok([calls.advance === 2, 7]);
+      return advance?.(run, calls.advance) ?? ok(runtimePair(calls.advance === 2, 7));
     },
   };
   const run = {runtime, value: parent, prepared, request, operationPlan: plan,
@@ -59,7 +60,7 @@ for (const field of ['runtime', 'value', 'prepared', 'request', 'operationPlan',
 }
 
 test('a tuple changed during native progress is refused after actual consumed work', () => {
-  const f = fixture({advance: run => {run.request = {}; return ok([true, 7]);}});
+  const f = fixture({advance: run => {run.request = {}; return ok(runtimePair(true, 7));}});
   const progress = prepareInstalledEffectResultProgress(f.run, f.source);
   assert.throws(() => progress(f.transformation, 7), {code: 'ForeignInstalledEffectManagedRun'});
   assert.equal(f.calls.advance, 1);
@@ -70,7 +71,7 @@ test('reentry is refused while the same physical Run retirement latch is held', 
   let progress;
   const f = fixture({advance: () => {
     assert.throws(() => progress(f.transformation, 7), {code: 'InstalledEffectResultWorkPending'});
-    return ok([true, 7]);
+    return ok(runtimePair(true, 7));
   }});
   progress = prepareInstalledEffectResultProgress(f.run, f.source);
   assert.equal(progress(f.transformation, 7), true);
@@ -79,11 +80,18 @@ test('reentry is refused while the same physical Run retirement latch is held', 
 });
 
 test('malformed progress cannot fall back to generic work or obtain another preparation', () => {
-  const f = fixture({advance: () => ok([true, 8])});
+  const f = fixture({advance: () => ok(runtimePair(true, 8))});
   const progress = prepareInstalledEffectResultProgress(f.run, f.source);
   assert.throws(() => progress(f.transformation, 7), {code: 'InvalidInstalledEffectResultProgress'});
   assert.throws(() => progress(f.transformation, 7), {code: 'InvalidInstalledEffectResultProgress'});
   assert.deepEqual(f.calls, {prepare: 1, advance: 1});
+});
+
+test('an Array cannot replace the pinned compiler scalar tuple ABI', () => {
+  const f = fixture({advance: () => ok([true, 7])});
+  const progress = prepareInstalledEffectResultProgress(f.run, f.source);
+  assert.throws(() => progress(f.transformation, 7), {code: 'InvalidInstalledEffectResultProgress'});
+  assert.equal(f.run.selecting, false);
 });
 
 test('closed owner and invalid quanta refuse before native progress', () => {
