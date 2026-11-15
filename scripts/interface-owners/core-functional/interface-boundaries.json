@@ -56674,7 +56674,7 @@
               },
               {
                 "path": "src/connectors/local/metered_output_start_wbtest.mbt",
-                "anchor": "test \"Count chains retain text recursive and injected provider funding\""
+                "anchor": "test \"Count chains borrow Text but retain recursive and injected provider funding\""
               },
               {
                 "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
