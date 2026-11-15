@@ -24394,6 +24394,16 @@
           "async": false
         },
         {
+          "name": "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/warmCaptureInputExtent/warmCaptureInputExtent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/warmRequestInputExtent/warmRequestInputExtent",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "fail/fail",
           "parameters": [],
           "async": false
@@ -24441,7 +24451,9 @@
             "originalMethod",
             "originalMethod/originalMethod",
             "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/inputExtent/inputExtent/entry/entry",
-            "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/inputExtent/inputExtent/inputExtent"
+            "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/inputExtent/inputExtent/inputExtent",
+            "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/warmCaptureInputExtent/warmCaptureInputExtent",
+            "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/warmRequestInputExtent/warmRequestInputExtent"
           ],
           "exports": [
             "captureSalesforceEffectPlanRecipeBuilder"
