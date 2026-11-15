@@ -109,3 +109,20 @@ pub fn local_predecessor_is_carrier(
   }
   @local_driver.local_dispatch_predecessor_is_carrier(installed, producer)
 }
+
+///|
+// Installed Relation retention uses the same managed attempt and snapshot
+// owner; no caller-supplied output or separate execution allowance is created.
+#export_name("strategyModule_local_ManagedStartRetained")
+pub fn local_managed_start_retained(
+  setup : @local_driver.LocalManagedDispatchConfiguration[Int],
+) -> @local_driver.LocalManagedDispatchOperations[Int] raise NodeHostFailure {
+  match
+    @local_driver.start_local_managed_dispatch_node(
+      setup,
+      retained_relation=true,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise LocalManagedStart(issue)
+  }
+}

@@ -165,8 +165,9 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
       }
     },
     async prepareNext(outputs) {
-      // Row-only output uses the configured Store. A typed Carrier path keeps
-      // its exact managed generations, including formal Relation views.
+      // A typed Carrier path keeps its exact managed generations. Ordinary
+      // Relations require the installed snapshot start and complete reload
+      // bridges before replacing the materializing row-Store route.
       const carrierPath = createLease != null &&
         moon.strategyModule_local_NextCarrierPath?.(setup) === true;
       const task = moon.strategyHostNextTask(setup);
@@ -201,7 +202,12 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         }) : undefined;
       });
       if (inputs.some(input => input == null)) return undefined;
-      if (createLease && !carrierPath) {
+      if (createLease && !carrierPath && (createSnapshotLease == null ||
+          typeof moon.strategyModule_local_ManagedStartRetained !== 'function' ||
+          typeof moon.strategyPrepareDurableResultRowFrames !== 'function' ||
+          typeof moon.strategyFeedDurableResultRowFrames !== 'function' ||
+          typeof moon.strategyFinishDurableResultRowFrames !== 'function' ||
+          typeof moon.strategyCancelDurableResultRowFrames !== 'function')) {
         return undefined;
       }
       const relationInputs = inputs.filter(input =>
@@ -250,7 +256,8 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         ),
       );
       if (managedConfiguration == null) return undefined;
-      if (inputs.some(input => input.capturedRelation === true) &&
+      if (((createLease != null && !carrierPath) ||
+           inputs.some(input => input.capturedRelation === true)) &&
           (typeof moon.strategyModule_local_ManagedUsesProvider !==
             'function' ||
            moon.strategyModule_local_ManagedUsesProvider(
@@ -301,7 +308,10 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         throw new Error('UnsupportedManagedRowRepresentation');
       }
       const operations = checked(
-        moon.strategyModule_local_ManagedStart(prepared.configuration),
+        (createLease != null &&
+          typeof moon.strategyModule_local_ManagedStartRetained === 'function'
+          ? moon.strategyModule_local_ManagedStartRetained
+          : moon.strategyModule_local_ManagedStart)(prepared.configuration),
       );
       const failureProgress = beginManagedFailureProgress(
         moon,
@@ -406,12 +416,19 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
               // These snapshot Results retain the SAME LocalDispatchIssue
               // error family. The existing projector reads only Err; success
               // payloads remain checked by their original snapshot consumer.
+              // Reload replaces the revoked output on this SAME Task. Later
+              // consumers/publication borrow that restored generation, not the
+              // original memory or an unused temporary file.
               snapshot = prepareLocalRelationSnapshot(
                 operations, createSnapshotLease,
                 result => checkedLocalManagedAdvance(moon, result, checked, prepared.task),
                 signal, moon,
               );
               relationSnapshotDiagnostic = await snapshot.roundtrip();
+            }
+            if (carrierMaterial == null && createLease != null &&
+                relationSnapshotDiagnostic == null) {
+              throw new Error('LocalRelationSnapshotRequired');
             }
             const payload = nextMaterial++;
             const boundedFinalization =

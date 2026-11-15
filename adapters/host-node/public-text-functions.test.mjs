@@ -6,6 +6,7 @@ import {join} from 'node:path';
 import test from 'node:test';
 import {connectEmbeddedLocal} from './embedded-local.mjs';
 import {canonicalJson} from './local-account-config.mjs';
+import {assertRetainedRelationSnapshots} from './fixtures/retained-relation-snapshot.mjs';
 
 // Independent JSON Programs also provide controls for Frontend REPLACE and
 // LENGTH spelling acceptance. No prepared handle or internal state is forged.
@@ -78,8 +79,7 @@ test('public retained REPLACE and LENGTH publish independent Unicode and NULL ro
         [{name: 'id', contract: {type: 'number', nullable: false}},
           {name: 'replaced', contract: {type: 'string', nullable: true}},
           {name: 'length', contract: {type: 'number', nullable: true}}]);
-      assert.ok(computed.outputRepresentations.some(entry =>
-        entry.representation === 'retained-file'));
+      assertRetainedRelationSnapshots(computed.relationSnapshots, expected);
       assert.ok(advances > priorAdvances, 'ordinary Program used bounded Local dispatch');
       const before = dispatches;
       assert.deepEqual((await client.startSource(source, options)).ref, run.ref);

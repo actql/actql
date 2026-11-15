@@ -7,6 +7,7 @@ import test from 'node:test';
 import {inspect} from 'node:util';
 import {connectEmbeddedLocal} from './embedded-local.mjs';
 import {canonicalJson} from './local-account-config.mjs';
+import {assertRetainedRelationSnapshots} from './fixtures/retained-relation-snapshot.mjs';
 
 test('public retained sequence orders long identities and compound Text keys',
   {timeout: 60_000}, async t => {
@@ -20,7 +21,7 @@ test('public retained sequence orders long identities and compound Text keys',
     const keys = generateKeyPairSync('ed25519');
     let advances = 0;
     let completions = 0;
-    let outputRepresentations;
+    let relationSnapshots;
     const authorization = {
       accountConfiguration: canonicalJson({
         version: 'actql-execution-account-config/0.1', account_id: 'public-sequence',
@@ -42,7 +43,7 @@ test('public retained sequence orders long identities and compound Text keys',
       observe(step, detail) {
         if (step === 'computed') {
           completions++;
-          outputRepresentations = detail.outputRepresentations;
+          relationSnapshots = detail.relationSnapshots;
         }
       },
     };
@@ -108,8 +109,7 @@ test('public retained sequence orders long identities and compound Text keys',
       for (const name of ['published', 'consumed_a', 'consumed_b']) {
         assert.deepEqual(await execution.result(name).all(), expected, name);
       }
-      assert.ok(outputRepresentations?.some(value =>
-        value.representation === 'retained-file'));
+      assertRetainedRelationSnapshots(relationSnapshots, expected, 3);
       assert.ok(advances > 0);
       assert.equal(completions, empty ? 2 : 1);
       const savedAdvances = advances;

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {generateKeyPairSync} from 'node:crypto';
+import {createHash, generateKeyPairSync} from 'node:crypto';
 import {mkdtemp, readdir, rm} from 'node:fs/promises';
 import {tmpdir, userInfo} from 'node:os';
 import {join} from 'node:path';
@@ -49,7 +49,7 @@ test('public retained expression comparison publishes and stops inside its Text 
     let advances = 0;
     let dispatches = 0;
     let completions = 0;
-    let representations;
+    let snapshots;
     const trace = [];
     const keys = generateKeyPairSync('ed25519');
     const authorization = {
@@ -98,7 +98,7 @@ test('public retained expression comparison publishes and stops inside its Text 
       observe(step, detail) {
         if (step !== 'computed') return;
         completions++;
-        representations = detail.outputRepresentations;
+        snapshots = detail.relationSnapshots;
         if (cancelling) barrier.reject(new Error(
           `filter completed before comparison barrier: ${inspect(trace)}`));
       },
@@ -112,7 +112,19 @@ test('public retained expression comparison publishes and stops inside its Text 
     assert.equal(state.status, 'succeeded', inspect(state, {depth: 6}));
     for (const name of names) assert.deepEqual(await execution.result(name).all(), [{id: 1}]);
     assert.equal(completions, 1);
-    assert.ok(representations?.some(item => item.representation === 'retained-file'));
+    const expectedWire = '[{"id":1}]';
+    const expectedSnapshot = {
+      cid: `sha256:${createHash('sha256').update(expectedWire).digest('hex')}`,
+      bytes: Buffer.byteLength(expectedWire),
+      verifiedReadBytes: Buffer.byteLength(expectedWire), rows: 1,
+      sourceReleased: true, sourceReadRejected: true, restored: true,
+      temporaryBodyReclaimed: true,
+    };
+    assert.equal(snapshots?.length, 3);
+    for (const {task, ...snapshot} of snapshots) {
+      assert.deepEqual(snapshot, expectedSnapshot,
+        `task ${task} preserves its original rows through the physical Store`);
+    }
     const successfulAdvances = advances;
     const repeat = await client.startSource(source, options);
     assert.deepEqual(repeat.ref, execution.ref);
@@ -120,6 +132,15 @@ test('public retained expression comparison publishes and stops inside its Text 
     assert.equal(advances, successfulAdvances);
     assert.equal(dispatches, 1);
     assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
+
+    const ref = execution.ref;
+    await client.close();
+    client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
+      installation: {directory, retainedRelationOutput: true, authorization}});
+    const attached = await client.attach(ref);
+    for (const name of names) assert.deepEqual(await attached.result(name).all(), [{id: 1}]);
+    assert.equal(advances, successfulAdvances);
+    assert.equal(dispatches, 1);
 
     cancelling = true;
     const cancelSource = JSON.stringify(program('public-expression-comparison-cancel'));

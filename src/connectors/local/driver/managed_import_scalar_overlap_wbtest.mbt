@@ -20,7 +20,7 @@ test "closed scalar parser overlap composes observed prefixes without raising th
   assert_eq(complete, existing + needed)
   assert_true(complete >= existing && complete <= 1073741824L)
   let controls = local_managed_scalar_overlap_control_capacity().unwrap()
-  assert_eq(controls, 240L)
+  assert_eq(controls, 248L)
   assert_true(complete + controls <= 1073741824L)
   // No second credit: later growth pays its complete new delta.
   assert_eq(
@@ -44,12 +44,12 @@ test "scalar overlap fixed controls cover initial and every nullable constructio
   let standing : @execution.PreparationRepresentationUnits = {
     record_headers: 2L,
     reference_slots: 7L,
-    scalar_words: 1L,
+    scalar_words: 2L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
   let quote = local_managed_scalar_overlap_control_capacity().unwrap()
-  assert_eq(@execution.preparation_representation_cost(standing), Some(96L))
+  assert_eq(@execution.preparation_representation_cost(standing), Some(104L))
   for
     phase in [
       (0L, 0L, 0L), // Initial None, before any import is constructed.

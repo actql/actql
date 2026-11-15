@@ -987,6 +987,7 @@ test('configured row Store selects typed Carrier paths',
       strategyHostRegistrationSelectionKey: () => 'local-carrier',
       strategyHostNextTask: () => 1,
       strategyModule_local_NextCarrierPath: () => carrierPath,
+      strategyModule_local_ManagedStartRetained: undefined,
       strategyHostManagedProducers: () => [],
       strategyHostManagedInputCount: () => 0,
       strategyHostReleasableManagedProducers: () => [],
@@ -1134,4 +1135,75 @@ test('standard Host retains an exact Carrier across task dispatch', async () => 
   assert.equal(outputClosed, false);
   await result.close();
   assert.equal(outputClosed, true);
+});
+
+
+test('configured row Store requires the complete managed Relation snapshot route', async () => {
+  const configuration = {};
+  const store = installLocalRetainedStore(() => assert.fail('planning cannot acquire a Store'));
+  const moon = {
+    ...portableRuntime,
+    strategyModule_local_Registration: () => ({}),
+    strategyHostRegistrationSelectionKey: () => 'local-retained-relation',
+    strategyHostNextTask: () => 0,
+    strategyModule_local_NextCarrierPath: () => false,
+    strategyHostManagedProducers: () => [],
+    strategyHostManagedInputCount: () => 0,
+    strategyHostReleasableManagedProducers: () => [],
+    strategyModule_local_ManagedCarrierDispatch: () => ok(configuration),
+    strategyModule_local_ManagedUsesProvider: () => true,
+    strategyModule_local_ManagedDuration: () => 0n,
+    strategyModule_local_ManagedCapacity: () => [32n, 16n],
+    strategyModule_local_ManagedStartRetained: () => assert.fail('planning cannot start'),
+  };
+  assert.equal((await localStrategyContribution(moon, {}, checked, store)
+    .prepareNext(new Map())).task, 0);
+  for (const port of ['strategyModule_local_ManagedStartRetained',
+    'strategyPrepareDurableResultRowFrames', 'strategyFeedDurableResultRowFrames',
+    'strategyFinishDurableResultRowFrames', 'strategyCancelDurableResultRowFrames']) {
+    assert.equal(await localStrategyContribution({...moon, [port]: undefined}, {}, checked, store)
+      .prepareNext(new Map()), undefined);
+  }
+  assert.equal(await localStrategyContribution({...moon,
+    strategyModule_local_ManagedUsesProvider: () => false}, {}, checked, store)
+    .prepareNext(new Map()), undefined);
+});
+
+test('configured managed Relation cannot complete without its original physical snapshot', async () => {
+  const store = installLocalRetainedStore(() => assert.fail('missing operation cannot acquire a Store'));
+  const configuration = {};
+  let starts = 0, closed = 0, completed = 0;
+  const moon = {
+    ...portableRuntime,
+    strategyModule_local_Registration: () => ({}),
+    strategyHostRegistrationSelectionKey: () => 'local-retained-relation',
+    strategyHostNextTask: () => 0,
+    strategyModule_local_NextCarrierPath: () => false,
+    strategyHostManagedProducers: () => [],
+    strategyHostManagedInputCount: () => 0,
+    strategyHostReleasableManagedProducers: () => [],
+    strategyModule_local_ManagedCarrierDispatch: () => ok(configuration),
+    strategyModule_local_ManagedUsesProvider: () => true,
+    strategyModule_local_ManagedDuration: () => 0n,
+    strategyModule_local_ManagedCapacity: () => [32n, 16n],
+    strategyModule_local_ManagedStart: () => assert.fail('retained mode used the legacy start'),
+    strategyModule_local_ManagedStartRetained: original => {
+      assert.equal(original, configuration); starts++;
+      return ok({inputs: [],
+        advance: () => ok({complete: true, progress: 1n, work: 1n}),
+        prepare_relation_snapshot: () => ok(undefined),
+        request_cancel: () => false, execution_stopped: () => true,
+        close() {closed++;}, cleanup_refresh: () => true,
+        complete() {completed++; return ok({});},
+      });
+    },
+  };
+  const local = localStrategyContribution(moon, {}, checked, store);
+  const prepared = await local.prepareNext(new Map());
+  await assert.rejects(local.runPrepared(prepared), error =>
+    error.message === 'LocalRelationSnapshotRequired' ||
+    error.primaryFailure?.message === 'LocalRelationSnapshotRequired');
+  assert.equal(starts, 1);
+  assert.equal(completed, 0);
+  assert.equal(closed, 1);
 });

@@ -575,3 +575,48 @@ for (const boundary of ['acknowledged seal', 'failed seal', 'abort after seal'])
     assert.equal(store.status().reservedBytes,0);assert.deepEqual(await readdir(directory),[]);
   });
 }
+
+
+for (const boundary of ['append', 'seal']) {
+  test(`Relation lost ${boundary} acknowledgement preserves the source and exact Store cleanup owner`, async () => {
+    const {directory, store} = await fileFixture();
+    const f = relationFixture();
+    const primary = new Error('RelationWriteAcknowledgementLost');
+    const cleanupFailure = new Error('RelationPhysicalCleanupPending');
+    let factories = 0, writes = 0, cleanups = 0;
+    const lease = {...store, reserve(bytes) {
+      const writer = store.reserve(bytes);
+      return {...writer,
+        async [boundary](...args) {
+          writes++;
+          await writer[boundary](...args);
+          throw primary;
+        },
+      };
+    }, async cleanup() {
+      if (++cleanups === 1) throw cleanupFailure;
+      return store.cleanup();
+    }};
+    const owner = prepareLocalRelationSnapshot(f.operations, () => {
+      factories++;
+      return lease;
+    }, checked, undefined, moon);
+    await assert.rejects(owner.roundtrip(), error => error === primary);
+    assert.equal(f.operation.source_available(), true);
+    assert.deepEqual(f.operations.output_row(0), f.rows[0]);
+    assert.equal(f.events.includes('reload'), false);
+    assert.equal(f.events.includes('finish'), false);
+    assert.equal(owner.cleanupHandle.status().pending, true);
+    await assert.rejects(owner.cleanupHandle.retry(), error => error === cleanupFailure);
+    assert.equal(owner.cleanupHandle.status().pending, true);
+    assert.ok(store.status().reservedBytes > 0);
+    assert.deepEqual(await owner.cleanupHandle.retry(), {pending: false});
+    assert.deepEqual(await owner.cleanupHandle.retry(), {pending: false});
+    assert.equal(factories, 1);
+    assert.equal(writes, 1);
+    assert.equal(cleanups, 2);
+    assert.equal(store.status().reservedBytes, 0);
+    assert.equal(store.status().cleanupPending, false);
+    assert.deepEqual(await readdir(directory), []);
+  });
+}

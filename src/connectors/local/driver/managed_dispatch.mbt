@@ -417,11 +417,13 @@ fn local_managed_import_working_overlap(
 // Some plus Some(tuple3) is only 3H/1R/6W; each post-current map/Some fence is
 // at most 3H/1R/4W. These phases do not overlap. Prepay standing + reload
 // (7H/8R/8W) before construction on this SAME task, independently of parser
-// Text. This is the logical representation tariff, not a backend heap claim.
+// Text. One further standing word retains the installed Relation snapshot
+// mode in the existing snapshot closure. This is the logical representation
+// tariff, not a backend heap claim.
 let local_managed_scalar_overlap_controls : @execution.PreparationRepresentationUnits = {
   record_headers: 7L,
   reference_slots: 8L,
-  scalar_words: 8L,
+  scalar_words: 9L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }
@@ -963,6 +965,7 @@ pub fn[T] local_managed_dispatch_site_capacity(
 ///|
 pub fn[T] start_local_managed_dispatch(
   setup : LocalManagedDispatchConfiguration[T],
+  retained_relation? : Bool = false,
 ) -> Result[LocalManagedDispatchOperations[T], LocalDispatchIssue] {
   let live = Ref(true)
   let settled = Ref(false)
@@ -3018,7 +3021,7 @@ pub fn[T] start_local_managed_dispatch(
           }
         }
       }
-      if !graph_rows {
+      if !retained_relation && !graph_rows {
         return Ok(None)
       }
       guard live.val &&
@@ -3984,6 +3987,7 @@ pub fn[T] start_local_managed_dispatch(
 ///|
 pub fn start_local_managed_dispatch_node(
   setup : LocalManagedDispatchConfiguration[Int],
+  retained_relation? : Bool = false,
 ) -> Result[LocalManagedDispatchOperations[Int], LocalDispatchIssue] {
-  start_local_managed_dispatch(setup)
+  start_local_managed_dispatch(setup, retained_relation~)
 }
