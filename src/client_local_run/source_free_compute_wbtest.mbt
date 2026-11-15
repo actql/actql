@@ -26,6 +26,24 @@ fn source_free_shared_host(
 }
 
 ///|
+// The installed estimator snapshots one output fraction per physical task and
+// one closed Local registration. This is actual setup planning, not a future
+// offer, task attempt or physical reservation. Every other Ledger dimension
+// must remain identical to the caller's original held budget.
+fn source_free_setup_usage(
+  root : @resources.Ledger,
+  run : @strategy.CapturedDAG,
+  before : @resources.LedgerUsage,
+) -> @resources.LedgerUsage raise {
+  let configured = @resources.ledger_usage(root)
+  let fractions = @strategy.graph_task_count(@strategy.captured_dag_graph(run)) -
+    @strategy.captured_compute_first_task(run)
+  assert_eq(configured.planning_work, before.planning_work + fractions + 1)
+  assert_eq({ ..configured, planning_work: before.planning_work, }, before)
+  configured
+}
+
+///|
 test "source-free shared root retains the original ledger and requires activation" {
   let original = plan(prepared(@input.Aql("SELECT 1 AS n")), "source-free-root")
   let root = source_free_root()
@@ -39,7 +57,7 @@ test "source-free shared root retains the original ledger and requires activatio
   // A source-free Host binds its already checked Local module without
   // constructing future offers or running a strategy search. Each actual
   // task still reserves its own simultaneous capacity at its start boundary.
-  assert_eq(@resources.ledger_usage(root), before)
+  source_free_setup_usage(root, run, before) |> ignore
   assert_true(@strategy.captured_task_activation_required(run))
   assert_false(@strategy.captured_task_completed(run, 0))
   assert_eq(@host.prepared_client_acquisition_count(original.prepared), 0)
@@ -137,6 +155,11 @@ test "source-free shared root cannot bypass an exhausted original execution budg
   assert_true(
     physical_equal(@strategy.captured_dag_ledger(local_compute_run(host)), root),
   )
+  let configured = source_free_setup_usage(
+    root,
+    local_compute_run(host),
+    before,
+  )
   let current = account(Allow)
   assert_true(
     start_local_compute_task(
@@ -152,7 +175,7 @@ test "source-free shared root cannot bypass an exhausted original execution budg
       Managed(@managed.Execution(@strategy.Physical(@resources.ExecutionLimit)))
     ),
   )
-  assert_eq(@resources.ledger_usage(root), before)
+  assert_eq(@resources.ledger_usage(root), configured)
   assert_false(@strategy.captured_task_completed(local_compute_run(host), 0))
   @strategy.stop_captured_dag(local_compute_run(host))
   @strategy.refresh_captured_retention(local_compute_run(host))

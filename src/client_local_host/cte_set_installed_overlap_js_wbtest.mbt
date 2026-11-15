@@ -87,7 +87,8 @@ test "set expression keeps original tasks beside measured installed execution ov
     1L,
     1L,
   ).unwrap()
-  @host_driver.refresh_compute_host(@builtin.configured_host_runtime(host)).unwrap()
+  // The managed task below selects its exact installed registration.
+  // Legacy materializing estimates are invoked only by legacy dispatch.
   let installed = @builtin.configured_local_module(
     @builtin.configured_host_modules(host),
   ).unwrap()
@@ -306,7 +307,8 @@ test "nested set startup keeps full parents and original Ledger through final cl
     1L,
     1L,
   ).unwrap()
-  @host_driver.refresh_compute_host(@builtin.configured_host_runtime(host)).unwrap()
+  // The managed task below selects its exact installed registration.
+  // Legacy materializing estimates are invoked only by legacy dispatch.
   let installed = @builtin.configured_local_module(
     @builtin.configured_host_modules(host),
   ).unwrap()

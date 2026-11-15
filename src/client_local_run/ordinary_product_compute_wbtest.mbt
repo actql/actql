@@ -104,6 +104,7 @@ test "ordinary Python insufficient original root refuses without a replacement o
   ).unwrap()
   let run = local_compute_run(host)
   assert_true(physical_equal(@strategy.captured_dag_ledger(run), root))
+  let configured = source_free_setup_usage(root, run, before)
   // Binding the packaged module starts no attempt and reserves no future
   // task. The actual authorized start must refuse the exhausted original.
   let current = account(Allow)
@@ -121,7 +122,7 @@ test "ordinary Python insufficient original root refuses without a replacement o
       Managed(@managed.Execution(@strategy.Physical(@resources.ExecutionLimit)))
     ),
   )
-  assert_eq(@resources.ledger_usage(root), before)
+  assert_eq(@resources.ledger_usage(root), configured)
   assert_false(@strategy.captured_task_completed(run, 0))
   @strategy.stop_captured_dag(run)
   @strategy.refresh_captured_retention(run)

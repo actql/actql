@@ -86,7 +86,8 @@ test "set expression starts its first task beside the original whole Source" {
     1L,
     1L,
   ).unwrap()
-  @host_driver.refresh_compute_host(@builtin.configured_host_runtime(host)).unwrap()
+  // The managed task below selects its exact installed registration.
+  // Legacy materializing estimates are invoked only by legacy dispatch.
   let installed = @builtin.configured_local_module(
     @builtin.configured_host_modules(host),
   ).unwrap()

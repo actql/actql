@@ -804,8 +804,11 @@ fn bind_client_local_configuration(
       1,
     ) {
     Ok(value) => {
-      if first_compute == 0 || first_compute == 1 {
-        // Install the same lazy estimator for an explicit row-file fallback.
+      if first_compute == 1 ||
+        (first_compute == 0 && !@strategy.graph_program_has_effects(graph)) {
+        // Plain query dispatch can use its legacy row-file fallback. A typed
+        // Source-free Effect entry keeps its existing managed-only setup;
+        // installing an unused fallback would claim this same Run's search.
         // Managed preparation selects its actual candidate without refreshing
         // this policy; the legacy next-task boundary performs the search.
         let fractions = Array::make(
