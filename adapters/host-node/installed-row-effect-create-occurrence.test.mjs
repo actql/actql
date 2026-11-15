@@ -7,6 +7,7 @@ import {parse} from 'acorn';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 import {prepareInstalledRowCaptureChild, retainInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
+import {installedEffectDependencyOriginal, registerInstalledEffectDependencyOriginal, retireInstalledEffectDependencyOriginal} from '../host-common/installed-effect-dependency-original.mjs';
 import {prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectRequestChild, prepareInstalledEffectCredentialChild, captureInstalledEffectPlanRecipe, selectInstalledEffectCredentialOperation, prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
 
 // Actual enclosing row-stage loop/callees. Core inventory, checked Preview,
@@ -571,6 +572,10 @@ function prefixFixture({failBorrowAt, exportFailure}={}) {
   const events=[],children=[],input=Object.freeze({}),nativePlan={},parent={},prepared={},identity={};
   let releaseInputs,finish,borrowCount=0,exportCalls=0;
   const moon={clientProgramPinEffectSources(){events.push('pin');return {ok:input};},
+    clientProgramInstalledEffectDependencySourcesPin(owner,p,r,plan){
+      assert.equal(owner,parent);assert.equal(p,prepared);assert.equal(r,identity);assert.equal(plan,nativePlan);
+      return moon.clientProgramPinEffectSources();
+    },
     clientProgramReleaseEffectInputs(value){assert.equal(value,input);events.push('unpin');},
     clientProgramEffectInputExportLimits(){return {};},
     clientProgramInstalledEffectManagedOperationPlan(){return {$tag:1,_0:nativePlan};},
@@ -592,12 +597,16 @@ function prefixFixture({failBorrowAt, exportFailure}={}) {
     owned:Object.freeze({recoveryEntry(){assert.fail('No recovery work before Source finishes');}})});
   const managedEffect={controlConstruction:(receiver,method,args)=>Reflect.apply(method,receiver,args),runtime:moon,value:parent,prepared,request:identity,operationPlan:nativePlan,
     readPlan:moon.clientProgramInstalledEffectManagedOperationPlan};
+  // The same explicit test owners also bind the new dependency-original
+  // consumer. This fixture supplies no ordinary Core/physical authority.
+  registerInstalledEffectDependencyOriginal(managedEffect.controlConstruction,
+    {runtime:moon,parent,prepared,request:identity,plan:nativePlan,current(){}});
   const control={publicationPreparedReleaseAction(index,_count,checked,pending,attempted){
     return index<0?'finished':!checked?'inspect':pending&&!attempted?'release':'advance';},
     publicationCleanupOwnerAction(index,count,checked,pending,available,attempted){
       return index>=count?'finished':!checked?'inspect':pending&&available&&!attempted?'retry':'advance';
     }};
-  const ports={...readPorts(()=>owned),moon,prepared,identity,managedEffect,members,checkedHost:{},checked,fail,
+  const ports={...readPorts(()=>owned),moon,prepared,identity,managedEffect,members,checkedHost:{},checked,fail,installedEffectDependencyOriginal,
     runLimits:()=>ports.limits,
     limits:{maxPinnedResults:2,maxRows:2,maxRowsPerMember:2,maxWork:100,maxFields:4,body:{maxBytes:100,maxNodes:20,maxDepth:5}},
     ownerOf:()=>owned,assertCurrent(){},own(){},ownChildren(value){assert.equal(children.length,0);children.push(value);},
@@ -628,6 +637,7 @@ function prefixFixture({failBorrowAt, exportFailure}={}) {
     const marker=Object.freeze(new Error('same original prefix cleanup'));
     try{await releaseInstalledRowCapture({children:children[0],releaseInputs,control},marker);}
     catch(cause){if(cause!==marker)throw cause;}
+    retireInstalledEffectDependencyOriginal(managedEffect.controlConstruction);
   }};
 }
 
