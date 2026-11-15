@@ -470,10 +470,13 @@ test('ordinary full Effect materials use the same funded Request for issue and i
     }});
   const original = originals.captureRun({...f, identity: 'request'});
   assert.equal(original.materialsWire, f.materialsWire);
+  assert.deepEqual(seen, ['issue', 'admit'], 'the inverse enters its original Request before adoption');
   const restored = originals.restoreRun(original, f.runDefinition, 'request', f.compilation, f.prepared);
   assert.strictEqual(restored.prepared, f.prepared); assert.strictEqual(restored.compilation, f.compilation);
-  assert.deepEqual(seen, ['issue', 'admit']);
+  // This fixture counts managed port calls. The manager's independent tests
+  // require this second lookup to borrow its same typed result, with no codec.
+  assert.deepEqual(seen, ['issue', 'admit', 'admit']);
   assert.throws(() => originals.restoreEffectMaterials(f.materialsWire, f.runDefinition, 'request', f.compilation),
     {code: 'InstalledEffectOriginalSelectionChanged'});
-  assert.deepEqual(seen, ['issue', 'admit']);
+  assert.deepEqual(seen, ['issue', 'admit', 'admit']);
 });
