@@ -56642,7 +56642,7 @@
               },
               {
                 "path": "src/connectors/local/metered_output_start_wbtest.mbt",
-                "anchor": "test \"window chain startup preserves complete retention and injected full capacity\""
+                "anchor": "test \"window chain startup uses original row funding and preserves injected full capacity\""
               },
               {
                 "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
