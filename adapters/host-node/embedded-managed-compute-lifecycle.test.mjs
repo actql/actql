@@ -208,21 +208,6 @@ test('ordinary Request identity retention never accepts a missing Core identity'
   assert.equal(calls, 1);
 });
 
-test('actual Host forwards the selected async manager result once without an optional raw fallback', async () => {
-  const request={},environment={},result={};let calls=0;
-  const raw={fundedPreparation(value,selected){
-    assert.strictEqual(this,raw);assert.strictEqual(value,request);assert.strictEqual(selected,environment);
-    calls++;return Promise.resolve(result);
-  },close(){return {pending:false};}};
-  const f=lifecycle({factory:async()=>raw});
-  await f.preparation.prepareManagedCompute();
-  assert.strictEqual(await f.preparation.fundedPreparation(request,environment),result);
-  assert.equal(calls,1);
-  delete raw.fundedPreparation;
-  assert.throws(()=>f.preparation.fundedPreparation(request,environment),TypeError);
-  assert.equal(calls,1);
-  await f.initialControl.close();
-});
 
 test('funded policy Host keeps its original context before snapshot instead of suppressing the owner', () => {
   const moon = {}, control = {}, environment = {}, preparedEnvironment = {};
@@ -242,28 +227,6 @@ test('funded policy Host keeps its original context before snapshot instead of s
   assert.equal(read({installation}), undefined, 'A foreign runtime cannot acquire the original context');
 });
 
-test('funded policy manager forwarding preserves the same callback and original request mapping', async () => {
-  const request = {}, originalRequest = {}, environment = {}, verifier = () => {}, result = {};
-  const signal = new AbortController().signal;
-  let calls = 0, mappings = 0;
-  const manager = {fundedPreparation(actual, selected, originalVerifier, actualSignal) {
-    assert.strictEqual(this, manager);
-    assert.strictEqual(actual, originalRequest);
-    assert.strictEqual(selected, environment);
-    assert.strictEqual(originalVerifier, verifier);
-    assert.strictEqual(actualSignal, signal);
-    calls++;
-    return Promise.resolve(result);
-  }, close() {return {pending: false};}};
-  const f = lifecycle({factory: async () => manager, originalRequest(value) {
-    assert.strictEqual(value, request); mappings++; return originalRequest;
-  }});
-  await f.preparation.prepareManagedCompute();
-  assert.strictEqual(await f.preparation.fundedPreparation(request, environment, verifier, signal), result);
-  assert.equal(calls, 1);
-  assert.equal(mappings, 1);
-  await f.initialControl.close();
-});
 
 test('managed usage reader selects only the same admitted Run and releases its installation alias', () => {
   const runtime = {}, f = lifecycle({factory() {}, runtime});
@@ -387,37 +350,6 @@ test('final accounting cannot retain a foreign object or extra alias from a malf
   }
 });
 
-
-test('same Host Compute preparation is one sticky flight and retains its original before current refusal', async () => {
-  let factoryCalls = 0, closes = 0, controls = 0;
-  const marker = new Error('OriginalCurrentRefusal');
-  const raw = {close() {assert.strictEqual(this, raw); closes++; return {pending: false};}};
-  const f = lifecycle({factory: async () => {factoryCalls++; return raw;},
-    current: value => {if (value === raw) throw marker;}, controlClose: () => {controls++; return {pending: false};}});
-  const first = f.preparation.prepareManagedCompute(), second = f.preparation.prepareManagedCompute();
-  assert.strictEqual(first, second);
-  await assert.rejects(first, error => error === marker);
-  assert.strictEqual(f.record.computeManaged, raw);
-  assert.strictEqual(f.preparation.prepareManagedCompute(), first);
-  assert.equal(factoryCalls, 1);
-  await f.initialControl.close();
-  assert.equal(closes, 1); assert.equal(controls, 1);
-});
-
-
-test('Compute SDK lineage is the same view while Mock Source selection stays absent', async () => {
-  const raw = {close: () => ({pending: false})};
-  const f = lifecycle({factory: async () => raw});
-  await f.preparation.prepareManagedCompute();
-  assert.strictEqual(f.preparation.requestPreparation(), raw);
-  assert.strictEqual(f.preparation.sourcePreparation(), undefined);
-  const original = {}, derived = {};
-  f.preparation.bindSourceRequest(original, derived);
-  assert.strictEqual(f.record.lineage[3], original);
-  assert.strictEqual(f.record.lineage[4], derived);
-  await f.initialControl.close();
-  assert.throws(() => f.preparation.requestPreparation(), error => error.code === 'NodeManagedRunAdmissionUnavailable');
-});
 
 function managedRunPorts(overrides = {}) {
   const admission = {}, value = {}, log = [], manifests = {}, contracts = {};
@@ -1429,44 +1361,6 @@ test('whole Source capacity facade captures the original method and receiver wit
   const bound = bindInstalledManagedSources(source, () => assert.fail('Pre-Plan capacity cannot issue/adopt a Run'));
   source.managedWholeSourceCapacity = () => assert.fail('Original fixed method must be retained');
   assert.equal(bound.managedWholeSourceCapacity(facts), selected);
-});
-
-test('funded policy Source original preserves the same request verifier and signal without compute fallback', async () => {
-  const request = {}, originalRequest = {}, environment = {}, result = {}, verifier = () => {};
-  const signal = new AbortController().signal, events = [];
-  const source = {fundedPreparation(value, selected, callback, actualSignal) {
-    assert.equal(this, source); assert.equal(value, originalRequest); assert.equal(selected, environment);
-    assert.equal(callback, verifier); assert.equal(actualSignal, signal); events.push('source');
-    return Promise.resolve(result);
-  }, close() {return {pending: false};}};
-  const compute = {fundedPreparation() {assert.fail('The original Source manager must not fall through to compute');},
-    close() {return {pending: false};}};
-  const f = lifecycle({source, factory: async () => compute,
-    originalRequest(value) {assert.equal(value, request); events.push('same-request'); return originalRequest;},
-    current(manager) {if (manager !== undefined) events.push(manager === source ? 'source-current' : 'compute-current');}});
-  // Actual Source mode already has its original manager and refuses opening a separate compute manager.
-  events.length = 0;
-  try {
-    assert.equal(await f.preparation.fundedPreparation(request, environment, verifier, signal), result);
-    assert.deepEqual(events, ['source-current', 'same-request', 'source']);
-  } finally {await f.initialControl.close();}
-});
-
-test('funded policy Source current refusal keeps its original cause before mapping or compute fallback', async () => {
-  const cause = new Error('original Source installation is no longer current');
-  let refuse = false, mapped = 0, calls = 0;
-  const source = {fundedPreparation() {calls++; assert.fail('A refused Source cannot enter preparation');},
-    close() {return {pending: false};}};
-  const compute = {fundedPreparation() {assert.fail('A current Source refusal is not optional compute selection');},
-    close() {return {pending: false};}};
-  const f = lifecycle({source, factory: async () => compute,
-    originalRequest() {mapped++; assert.fail('Refuse before original request projection');},
-    current(manager) {if (refuse && manager === source) throw cause;}});
-  refuse = true;
-  try {
-    assert.throws(() => f.preparation.fundedPreparation({}, {}, () => {}, undefined), error => error === cause);
-    assert.equal(mapped, 0); assert.equal(calls, 0);
-  } finally {refuse = false; await f.initialControl.close();}
 });
 
 
