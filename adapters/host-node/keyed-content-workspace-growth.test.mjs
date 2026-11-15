@@ -6,6 +6,7 @@ import {installRunKeyedContentCapture} from './installed-keyed-content-capture.m
 // These counters are not an ordinary admission, byte loan or physical ACK.
 function fixture({grow} = {}) {
   const program = {}, acquisition = {}, ledger = {}, reservation = {}, events = [];
+  const candidate = {}, wire = '{"reference":"one"}';
   const constructorFailure = new Error('original candidate constructor');
   let execution, frame, available = true;
   const definition = {identity: 'same original Run', wire: '{"valid_until":"2099-01-01T00:00:00.000Z"}'};
@@ -14,14 +15,18 @@ function fixture({grow} = {}) {
       assert.equal(original, ledger); assert.equal(maximum, 4096); assert.equal(count, 0);
       events.push('reserve'); return reservation;
     },
-    growWorkspace(original, value, maximum, count) {
+    growWorkspace(original, value, maximum, count, units) {
       assert.equal(original, ledger); assert.equal(value, reservation); assert.equal(maximum, 4096);
-      events.push(['grow', count]); grow?.({frame, count, revoke() {available = false;}});
+      assert.equal(typeof units, 'bigint');
+      events.push(['grow', count, units]); grow?.({frame, count, units, revoke() {available = false;}});
     },
     releaseWorkspace(original, value) {
       assert.equal(original, ledger); assert.equal(value, reservation); events.push('release');
     },
-    candidateForRun() {events.push('candidate'); throw constructorFailure;},
+    candidateForRun() {events.push('candidate'); return candidate;},
+    inspect(value) {assert.equal(value, candidate);return {wire, storeCid:'store', workspaceScopeCid:'scope',
+      effectiveDataPolicyCid:'policy', sizeBytes:4, mediaType:'text/plain'};},
+    holdingCid() {return 'holding';},
     recoveryCandidateForRun() {events.push('restore candidate'); throw constructorFailure;},
     reissuer(resolve) {assert.equal(typeof resolve, 'function'); return {};},
   };
@@ -31,7 +36,8 @@ function fixture({grow} = {}) {
       clientProgramKeyedLookupCapacity: () => assert.fail('static count is not required')},
     publications: {checkClientCompiledRunOwner() {}, checkClientCompiledRunDefinition() {}},
     control, preparedProgram: program, plan: {compiled: {}, runDefinition: definition}, acquisition,
-    ledger, maxBytes: 4096, store: {storeAuthorityCid: 'store', status: () => ({closed: false})},
+    ledger, maxBytes: 4096, store: {storeAuthorityCid: 'store', status: () => ({closed: false}),
+      createPreparedObjectWriter() {events.push('writer');throw constructorFailure;}},
     namespaceId: 'namespace', authorityScopeCid: 'scope', storeAuthorityCid: 'store',
     principalId: 'principal', ownerPrincipal: 'principal', now: () => '2026-11-04T00:00:00.000Z',
     authorize: () => true, inputAvailable: () => available,
@@ -44,22 +50,22 @@ function fixture({grow} = {}) {
       verifyRead: async () => {}, inventory})};
 }
 
-test('captured inventory grows before a candidate constructor and keeps the same cleanup', async () => {
+test('captured inventory grows actual persistent extent after its prepaid frame and before Store construction', async () => {
   const f = fixture();
   await assert.rejects(f.capture(), error => error === f.constructorFailure);
-  assert.deepEqual(f.events, ['reserve', ['grow', 1], 'candidate']);
+  assert.deepEqual(f.events, ['reserve', 'candidate', ['grow', 1, 19n], 'writer']);
   assert.equal(await f.execution.cleanup(), true);
   assert.equal(await f.execution.cleanup(), true);
-  assert.deepEqual(f.events, ['reserve', ['grow', 1], 'candidate', 'release']);
+  assert.deepEqual(f.events, ['reserve', 'candidate', ['grow', 1, 19n], 'writer', 'release']);
 });
 
-test('captured inventory refuses growth before candidate or Store construction', async () => {
+test('captured inventory refuses persistent growth before Store or issued Ref construction', async () => {
   const failure = new Error('original Resource refusal');
   const f = fixture({grow() {throw failure;}});
   await assert.rejects(f.capture(), error => error === failure);
-  assert.deepEqual(f.events, ['reserve', ['grow', 1]]);
+  assert.deepEqual(f.events, ['reserve', 'candidate', ['grow', 1, 19n]]);
   assert.equal(await f.execution.cleanup(), true);
-  assert.deepEqual(f.events, ['reserve', ['grow', 1], 'release']);
+  assert.deepEqual(f.events, ['reserve', 'candidate', ['grow', 1, 19n], 'release']);
 });
 
 test('captured inventory fences current loss and reentry during the original growth', async () => {
@@ -68,7 +74,7 @@ test('captured inventory fences current loss and reentry during the original gro
     revoke();
   }});
   await assert.rejects(f.capture(), /InstalledContentAuthorityUnavailable/);
-  assert.deepEqual(f.events, ['reserve', ['grow', 1]]);
+  assert.deepEqual(f.events, ['reserve', 'candidate', ['grow', 1, 19n]]);
   assert.equal(await f.execution.cleanup(), true);
 });
 
@@ -80,6 +86,26 @@ test('restored inventory funds its actual copy and refuses replacement during cu
     ]};
   const f = fixture({grow() {original.entries.push({referenceWire: 'three', captureAuthorityCid: 'read three'});}});
   assert.throws(() => f.restore(original), /InstalledKeyedContentInventoryMismatch/);
-  assert.deepEqual(f.events, ['reserve', ['grow', 2]]);
+  assert.deepEqual(f.events, ['reserve', ['grow', 4, 12n]]);
+  assert.equal(await f.execution.cleanup(), true);
+});
+
+test('restored inventory keeps its measured count when a borrowed getter appends during copying', async () => {
+  const original = {version: 'actql-installed-captured-content-inventory/0.1',
+    runDefinitionCid: 'same original Run', entries: [
+      {referenceWire: 'one', captureAuthorityCid: 'read one'},
+      {referenceWire: 'two', captureAuthorityCid: 'read two'},
+    ]};
+  let reads = 0;
+  const f = fixture({grow() {
+    Object.defineProperty(original.entries[0], 'referenceWire', {enumerable: true, get() {
+      reads++;
+      original.entries.push({referenceWire: '', captureAuthorityCid: 'unexpected'});
+      return 'one';
+    }});
+  }});
+  assert.throws(() => f.restore(original), /InstalledKeyedContentInventoryMismatch/);
+  assert.equal(reads, 1);
+  assert.deepEqual(f.events, ['reserve', ['grow', 4, 12n]]);
   assert.equal(await f.execution.cleanup(), true);
 });

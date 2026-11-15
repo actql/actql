@@ -64,6 +64,28 @@ pub fn client_program_grow_captured_content_workspace(
 }
 
 ///|
+#export_name("clientProgramGrowCapturedContentInventoryWorkspace")
+pub fn client_program_grow_captured_content_inventory_workspace(
+  ledger : @resources.Ledger,
+  reservation : @resources.Reservation,
+  max_bytes : Int,
+  inventory_count : Int,
+  inventory_wire_units : Int64,
+) -> Result[Unit, @resources.LedgerIssue] {
+  guard @publication_host.client_captured_content_workspace_capacity(
+      max_bytes,
+      inventory_count~,
+      inventory_wire_units=Some(inventory_wire_units),
+    )
+    is Some((retained, execution)) else {
+    return Err(@resources.InvalidLimits)
+  }
+  @resources.grow_execution_reservation_capacity(
+    ledger, reservation, retained, execution,
+  )
+}
+
+///|
 #export_name("clientProgramReleaseCapturedContentWorkspace")
 pub fn client_program_release_captured_content_workspace(
   ledger : @resources.Ledger,

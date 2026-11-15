@@ -1458,6 +1458,8 @@ pub fn client_program_generated_content_storage(@run_publication.GeneratedConten
 
 pub fn client_program_generated_infer_local_provider(@run_publication_host.ClientInferOccurrence, (Array[@local.ManagedProviderInput]) -> @client_infer_host.Execution?, (@client_infer_host.Issue) -> Unit, (@client_infer_host.Execution) -> Bool, (@client_infer_host.Execution) -> Bool) -> @local.ManagedProvider
 
+pub fn client_program_grow_captured_content_inventory_workspace(@physical_resources.Ledger, @physical_resources.Reservation, Int, Int, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
+
 pub fn client_program_grow_captured_content_workspace(@physical_resources.Ledger, @physical_resources.Reservation, Int, Int) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn client_program_grow_original_infer_publication_capacity(@client_infer_host.Execution, @model_execution.OriginalModelPublicationCapacity, Int64, Int64) -> Result[Unit, @client_infer_host.Issue]

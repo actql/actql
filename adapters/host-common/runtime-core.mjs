@@ -8395,8 +8395,12 @@ export function contentCaptureControl(moon, publications) {
     reserveWorkspace(ledger, maxBytes, inventoryCount = 0) {
       return checked(moon.clientProgramReserveCapturedContentWorkspace(ledger, maxBytes, inventoryCount));
     },
-    growWorkspace(ledger, reservation, maxBytes, inventoryCount) {
-      return checked(moon.clientProgramGrowCapturedContentWorkspace(ledger, reservation, maxBytes, inventoryCount));
+    growWorkspace(ledger, reservation, maxBytes, inventoryCount, inventoryWireUnits) {
+      if (inventoryWireUnits === undefined) {
+        return checked(moon.clientProgramGrowCapturedContentWorkspace(ledger, reservation, maxBytes, inventoryCount));
+      }
+      return checked(moon.clientProgramGrowCapturedContentInventoryWorkspace(
+        ledger, reservation, maxBytes, inventoryCount, inventoryWireUnits));
     },
     releaseWorkspace(ledger, reservation) {
       return checked(moon.clientProgramReleaseCapturedContentWorkspace(ledger, reservation));
