@@ -56678,7 +56678,7 @@
               },
               {
                 "path": "src/connectors/local/metered_output_start_wbtest.mbt",
-                "anchor": "test \"unpivot borrowed cells keep full retention and original injected provider capacities\""
+                "anchor": "test \"unpivot borrowed cells use original row funding and preserve injected provider capacities\""
               },
               {
                 "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
@@ -56722,7 +56722,7 @@
               },
               {
                 "path": "src/connectors/local/metered_output_start_wbtest.mbt",
-                "anchor": "test \"numeric pivot keeps full retention and recursive text output or injected fallback\""
+                "anchor": "test \"numeric pivot uses original row funding and preserves recursive text or injected fallback\""
               },
               {
                 "path": "src/client_local_host/managed_import_data_chain_wbtest.mbt",
