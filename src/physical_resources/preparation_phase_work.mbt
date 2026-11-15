@@ -123,6 +123,7 @@ struct PreparationPhaseWorkContinuation64 {
   finish_original : () -> Result[Int64, PreparationWorkIssue]
   return_original : () -> Result[Unit, PreparationWorkIssue]
   resume_original : () -> Result[Unit, PreparationWorkIssue]
+  remaining_original : () -> Result[Int64, PreparationWorkIssue]
 }
 
 ///|
@@ -448,13 +449,13 @@ pub fn resume_preparation_phase_work_continuation64(
 }
 
 ///|
-/// Staged receipt adds two original closures2H2R and two receipt fields2R.
+/// Staged receipt adds three original closures3H3R and three receipt fields3R.
 /// The same state/status cell remains one scalar word. Ordinary narrow/wide
 /// receipts retain their exact original fields and constructor inventory.
 pub fn preparation_phase_work_continuation64_construction_inventory() -> PreparationWorkConstructionInventory {
   {
-    record_headers: preparation_work_construction.record_headers + 2L,
-    reference_slots: preparation_work_construction.reference_slots + 5L,
+    record_headers: preparation_work_construction.record_headers + 3L,
+    reference_slots: preparation_work_construction.reference_slots + 7L,
     scalar_words: preparation_work_construction.scalar_words,
   }
 }
@@ -479,6 +480,9 @@ pub fn[I, P] begin_preparation_phase_work_continuation64(
     finish_original: () => finish_preparation_work_state(state),
     return_original: () => return_preparation_work_state(state),
     resume_original: () => resume_preparation_work_state(state),
+    remaining_original: () => {
+      spend_preparation_work_state(state, 0L).map(_ => state.remaining)
+    },
   })
 }
 
@@ -491,6 +495,16 @@ pub fn spend_preparation_phase_work_continuation64(
 }
 
 ///|
+/// Borrow the SAME executing phase's remaining amount without consuming or
+/// refilling it. Returned, closed, stopping and wrong-phase receipts retain
+/// their existing refusal, before another bounded constructor can advance.
+pub fn remaining_preparation_phase_work_continuation64(
+  receipt : PreparationPhaseWorkContinuation64,
+) -> Result[Int64, PreparationWorkIssue] {
+  (receipt.remaining_original)()
+}
+
+///|
 /// Finish the SAME total once, including cleanup of a returned constructor.
 pub fn finish_preparation_phase_work_continuation64(
   receipt : PreparationPhaseWorkContinuation64,
@@ -500,11 +514,11 @@ pub fn finish_preparation_phase_work_continuation64(
 
 ///|
 /// Live portion of the SAME staged receipt: state1H2R2W, live Ref1H1W,
-/// four original state closures4H4R, receipt1H4R and active Some1H1R1W.
+/// five original state closures5H5R, receipt1H6R and active Some1H1R1W.
 /// Construction-return/argument carriers have unwound before reconciliation.
 /// The caller's own receipt Some stays with that caller's control inventory.
 pub fn preparation_phase_work_continuation64_retained_inventory() -> PreparationWorkConstructionInventory {
-  { record_headers: 8L, reference_slots: 12L, scalar_words: 5L, }
+  { record_headers: 9L, reference_slots: 14L, scalar_words: 5L, }
 }
 
 ///|
@@ -557,6 +571,9 @@ fn[I, P] begin_run_publication_work_continuation64(
     finish_original: () => finish_preparation_work_state(state),
     return_original: () => return_preparation_work_state(state),
     resume_original: () => resume_preparation_work_state(state),
+    remaining_original: () => {
+      spend_preparation_work_state(state, 0L).map(_ => state.remaining)
+    },
   })
 }
 

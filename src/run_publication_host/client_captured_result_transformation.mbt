@@ -307,6 +307,45 @@ pub fn CapturedClientResultTransformation::advance(
 }
 
 ///|
+/// Preserve work consumed by a failed poll. The original transport meters
+/// this delta before interpreting the semantic refusal or cancelling custody.
+pub fn CapturedClientResultTransformation::advance_progress(
+  self : CapturedClientResultTransformation,
+  quantum : Int,
+) -> (Bool, Int, CapturedClientResultTransformationIssue?) {
+  if self.borrow is None {
+    return (false, 0, Some(InvalidState))
+  }
+  let (ready, work, issue) = self.preparation.advance_progress(quantum)
+  (ready, work, issue.map(value => Transform(value)))
+}
+
+///|
+/// Existing live Result pins carry the exact captured Run. No new identity,
+/// producer read, body admission or retention owner is constructed here.
+pub fn captured_client_result_transformation_matches_run(
+  value : CapturedClientResultTransformation,
+  run : @strategy.CapturedDAG,
+) -> Bool {
+  match value.borrow {
+    Some(Cells(borrow)) =>
+      @strategy.captured_result_borrow_matches_run(borrow, run)
+    Some(Any(borrow)) =>
+      @strategy.captured_any_result_borrow_matches_run(borrow, run)
+    None => false
+  }
+}
+
+///|
+/// Callback-free custody fence for a synchronous original work view. Immutable
+/// Run correspondence is checked at the fresh outer boundary above.
+pub fn captured_client_result_transformation_retained(
+  value : CapturedClientResultTransformation,
+) -> Bool {
+  value.borrow is Some(_)
+}
+
+///|
 pub fn CapturedClientResultTransformation::finish(
   self : CapturedClientResultTransformation,
 ) -> Result[PublicationOutputExport, CapturedClientResultTransformationIssue] {

@@ -184,7 +184,9 @@ fn installed_effect_dependency_fixed_capacity(
       // Contract emission adds <=6 fixed vocabulary member pairs per depth;
       // its borrowed Fields vector never grows with output field width.
       // Three Host DATA-property descriptors coexist during alias checking.
-      records: 19L + 24L * d,
+      // Price the shared phase receipt explicitly, alongside the existing
+      // Resource/caller/codec frames, so a prepaid receipt is reused exactly.
+      records: phase.record_headers + 19L + 24L * d,
       record_references: phase.reference_slots + 5L + 37L + 64L * d,
       record_words: phase.scalar_words + 5L + 44L + 32L * d,
       reference_arrays: 6L,

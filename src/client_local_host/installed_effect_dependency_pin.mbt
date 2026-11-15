@@ -79,6 +79,24 @@ fn pin_installed_effect_sources_original(
   guard installed_effect_dependency_fixed_capacity(0, units, 64) is Some(fixed) else {
     return Err(InsufficientCapacity)
   }
+  let fixed = if control.dependency_work is Some(_) {
+    // Result publication or authenticated recovery already backed this SAME
+    // phase receipt. Keep all pin/census construction, subtract only that
+    // exact retained phase inventory instead of paying for another receipt.
+    guard installed_effect_publication_work_receipt_bytes() is Some(prepaid) &&
+      fixed.retained_bytes >= prepaid &&
+      fixed.execution_bytes >= prepaid &&
+      @execution.execution_capacity(
+        fixed.retained_bytes - prepaid,
+        fixed.execution_bytes - prepaid,
+      )
+      is Some(remaining) else {
+      return Err(InsufficientCapacity)
+    }
+    remaining
+  } else {
+    fixed
+  }
   match
     retain_installed_effect_dependency_capacity(
       owner, preparation, admission, plan, ledger, control, fixed,
@@ -86,10 +104,12 @@ fn pin_installed_effect_sources_original(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  match
-    begin_installed_effect_dependency_work(admission, plan, ledger, control) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
+  if control.dependency_work is None {
+    match
+      begin_installed_effect_dependency_work(admission, plan, ledger, control) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
   }
   control.dependency_started = true
   let refused : Ref[@resources.LedgerIssue?] = Ref(None)

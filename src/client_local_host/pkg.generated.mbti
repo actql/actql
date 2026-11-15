@@ -75,6 +75,8 @@ pub fn advance_client_serialization_prefix(ClientSerializationPrefix, Int) -> Re
 
 pub fn advance_installed_effect_dependency_capture(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, @run_publication.CapturedRunIssuancePreparation, Int) -> Result[Bool, ClientInstalledManagedRunIssue]
 
+pub fn advance_installed_effect_result_publication(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, @physical_strategy_host.CapturedEffectRunDAG, @run_publication_host.CapturedClientResultTransformation, Int) -> Result[(Bool, Int), ClientInstalledEffectResultPublicationIssue]
+
 pub fn advance_program_capture(ClientProgramCapture, Int) -> Result[(Bool, Int), ClientClosedValuesPreparationIssue]
 
 pub fn[I, P] advance_program_check_source_topology(ClientProgramCheckPreparation[I, P]) -> Result[@stage_results.LocalProgramReadPhase, ClientProgramCheckPreparationIssue]
@@ -911,6 +913,8 @@ pub fn prepare_installed_effect_operation_demand_with_controls(@run_publication_
 
 pub fn prepare_installed_effect_operation_extent(String, @execution_relation.ExecutionCapacity, Int64, Bool) -> Result[ClientInstalledEffectOperationExtent, ClientInstalledManagedRunIssue]
 
+pub fn prepare_installed_effect_result_publication_work(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, @physical_strategy_host.CapturedEffectRunDAG) -> Result[Unit, ClientInstalledManagedRunIssue]
+
 pub fn prepare_installed_effect_row_source_input(@client_row_source_host.RowDeclaration, @execution_relation.ExecutionCapacity?, input_limits? : @client_row_source_host.RowInputLimits?) -> Result[ClientInstalledEffectSourceInput, ClientInstalledManagedRunIssue]
 
 pub fn prepare_installed_effect_staged_extent(ClientInstalledEffectOperationExtent, ClientInstalledEffectOperationExtent) -> Result[ClientInstalledEffectOperationExtent, ClientInstalledManagedRunIssue]
@@ -1722,6 +1726,11 @@ pub struct ClientInstalledEffectOperationBorrow {
 type ClientInstalledEffectOperationDemand
 
 type ClientInstalledEffectOperationExtent
+
+pub(all) enum ClientInstalledEffectResultPublicationIssue {
+  Operation(ClientInstalledManagedRunIssue)
+  Transform(@run_publication_host.CapturedClientResultTransformationIssue)
+}
 
 type ClientInstalledEffectSourceInput
 

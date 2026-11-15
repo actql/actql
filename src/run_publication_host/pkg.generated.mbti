@@ -329,6 +329,10 @@ pub fn capture_client_effect_run_observation_originals(PreparedClientEffectCompu
 
 pub fn capture_client_run_observation_originals(ClientCompiledRun, @run_publication.PublicationContract) -> Result[ClientRunObservationOriginals, ClientRunObservationOriginalsIssue]
 
+pub fn captured_client_result_transformation_matches_run(CapturedClientResultTransformation, @physical_strategy_host.CapturedDAG) -> Bool
+
+pub fn captured_client_result_transformation_retained(CapturedClientResultTransformation) -> Bool
+
 pub fn charge_client_keyed_lookup_verification(ClientKeyedLookupInput, ClientKeyedRequest, Int) -> Result[Unit, ClientKeyedRequestIssue]
 
 pub fn check_client_compiled_run_definition(ClientCompiledRun, @run_publication.PublicationContract) -> Result[Unit, ClientCompiledRunIssue]
@@ -2833,6 +2837,7 @@ pub struct CapturedClientResultTransformation {
   mut borrow : PublicationResultRetention?
 }
 pub fn CapturedClientResultTransformation::advance(Self, Int) -> Result[(Bool, Int), CapturedClientResultTransformationIssue]
+pub fn CapturedClientResultTransformation::advance_progress(Self, Int) -> (Bool, Int, CapturedClientResultTransformationIssue?)
 pub fn CapturedClientResultTransformation::cancel(Self) -> Unit
 pub fn CapturedClientResultTransformation::finish(Self) -> Result[PublicationOutputExport, CapturedClientResultTransformationIssue]
 

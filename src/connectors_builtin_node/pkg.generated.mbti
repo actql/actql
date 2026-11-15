@@ -1996,6 +1996,10 @@ pub fn client_program_installed_effect_recovered_preview_keys(@client_local_host
 
 pub fn client_program_installed_effect_response_buffer_construction_capacity(Int) -> @execution_relation.ExecutionCapacity?
 
+pub fn client_program_installed_effect_result_advance(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledEffectManagedPlan, ClientLocalEffectHost, StrategyHostResultTransformation, Int) -> Result[(Bool, Int), @client_local_host.ClientInstalledEffectResultPublicationIssue]
+
+pub fn client_program_installed_effect_result_work_prepare(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledEffectManagedPlan, ClientLocalEffectHost) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_effect_row_input_policy(Int, Int, Int, Int, Int, Int) -> Result[@client_row_source_host.RowInputLimits, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_row_source_input_prepare(@client_row_source_host.RowDeclaration, @execution_relation.ExecutionCapacity?, @client_row_source_host.RowInputLimits?) -> Result[@client_local_host.ClientInstalledEffectSourceInput, @client_local_host.ClientInstalledManagedRunIssue]
