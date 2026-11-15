@@ -392,7 +392,74 @@ export function packageEntrances(manifest, directory = '.') {
   }).sort();
 }
 
-function reference(root, ref, readReference) {
+// A verification reference identifies a real test entry, not its presentation
+// label. Registration presence does not prove execution, assertions or coverage;
+// the existing runtime/nonzero-test gates remain responsible for those claims.
+function hasNodeTestRegistration(source) {
+  let tree;
+  try {tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module', allowHashBang: true});}
+  catch {return false;}
+  const imports = new Map();
+  for (const node of tree.body) if (node.type === 'ImportDeclaration' && node.source.value === 'node:test') {
+    for (const item of node.specifiers) {
+      if (item.type === 'ImportDefaultSpecifier' ||
+          item.type === 'ImportSpecifier' && ['test', 'it'].includes(item.imported.name)) {
+        imports.set(item.local.name, 'test');
+      } else if (item.type === 'ImportNamespaceSpecifier') imports.set(item.local.name, 'namespace');
+    }
+  }
+  const bindings = (pattern, names) => {
+    if (!pattern) return;
+    if (pattern.type === 'Identifier') names.add(pattern.name);
+    else if (pattern.type === 'RestElement') bindings(pattern.argument, names);
+    else if (pattern.type === 'AssignmentPattern') bindings(pattern.left, names);
+    else if (pattern.type === 'ArrayPattern') pattern.elements.forEach(item => bindings(item, names));
+    else if (pattern.type === 'ObjectPattern') pattern.properties.forEach(item =>
+      bindings(item.type === 'RestElement' ? item.argument : item.value, names));
+  };
+  const locals = nodes => {
+    const names = new Set();
+    for (const node of nodes) {
+      if (node?.type === 'VariableDeclaration') node.declarations.forEach(item => bindings(item.id, names));
+      else if (['FunctionDeclaration', 'ClassDeclaration'].includes(node?.type) && node.id) names.add(node.id.name);
+    }
+    return names;
+  };
+  const visit = (node, shadowed = new Set()) => {
+    if (!node || typeof node !== 'object') return false;
+    if (/^(?:Function|ArrowFunction)/u.test(node.type)) return false;
+    let scope = shadowed;
+    if (node.type === 'Program' || node.type === 'BlockStatement') {
+      scope = new Set([...shadowed, ...locals(node.body)]);
+    } else if (['ForStatement', 'ForInStatement', 'ForOfStatement'].includes(node.type)) {
+      scope = new Set([...shadowed, ...locals([node.init ?? node.left])]);
+    } else if (node.type === 'CatchClause') {
+      scope = new Set(shadowed);bindings(node.param, scope);
+    }
+    if (node.type === 'CallExpression') {
+      const callee = node.callee;
+      const binding = callee.type === 'Identifier' ? callee.name
+        : callee.type === 'MemberExpression' && callee.object.type === 'Identifier' ? callee.object.name : undefined;
+      const registered = !scope.has(binding) && (callee.type === 'Identifier' && imports.get(binding) === 'test' ||
+        callee.type === 'MemberExpression' && imports.get(binding) === 'namespace' &&
+        ['test', 'it'].includes(propertyName(callee)));
+      if (registered) {
+        const callback = node.arguments.at(-1);
+        const skipped = node.arguments.some(argument => argument.type === 'ObjectExpression' &&
+          argument.properties.some(item => item.type === 'Property' &&
+            ['skip', 'todo'].includes(item.computed ? item.key.value : item.key.name ?? item.key.value) &&
+            item.value.type === 'Literal' && item.value.value === true));
+        if (!skipped && callback && (['FunctionExpression', 'ArrowFunctionExpression'].includes(callback.type) ||
+            callback.type === 'Identifier' && node.arguments.length > 1)) return true;
+      }
+    }
+    return Object.values(node).some(value => Array.isArray(value)
+      ? value.some(item => visit(item, scope)) : value && typeof value === 'object' && visit(value, scope));
+  };
+  return visit(tree);
+}
+
+function reference(root, ref, readReference, verification = false, registeredTest = hasNodeTestRegistration) {
   const keys = ref && Object.keys(ref).sort().join();
   assert(keys === 'anchor,path' || keys === 'case_id,path', 'Invalid interface reference');
   const executable = keys === 'case_id,path';
@@ -402,8 +469,9 @@ function reference(root, ref, readReference) {
       : typeof ref.anchor === 'string' && ref.anchor.length),
     'Invalid interface reference');
   assert(!ref.path.split('/').includes('..'), 'Invalid interface reference traversal');
-  const present = source => executable
-    ? hasExecutableTestCase(source, ref.case_id) : source.includes(ref.anchor);
+  const testEntry = verification && /\.test\.[cm]?js$/u.test(ref.path);
+  const present = source => executable ? hasExecutableTestCase(source, ref.case_id)
+    : testEntry ? registeredTest(source) : source.includes(ref.anchor);
   const label = executable ? `case_id=${ref.case_id}` : ref.anchor;
   if (readReference) {
     assert(present(readReference(ref.path)), `Missing interface reference: ${ref.path}#${label}`);
@@ -415,7 +483,11 @@ function reference(root, ref, readReference) {
 }
 
 export function assertInterfaceCoverage({root, modules, declarations, generated = [], readReference}) {
-  const references = new Map();
+  const references = new Map(), registrations = new Map();
+  const registeredTest = source => {
+    if (!registrations.has(source)) registrations.set(source, hasNodeTestRegistration(source));
+    return registrations.get(source);
+  };
   const read = path => {
     if (!references.has(path)) references.set(path, readReference
       ? readReference(path) : (() => {
@@ -439,7 +511,7 @@ export function assertInterfaceCoverage({root, modules, declarations, generated 
       for (const [name, value] of Object.entries(contract.attributes)) {
       if (Array.isArray(value)) {
         assert(value.length, `Empty interface attribute: ${declaration.module}:${name}`);
-        value.forEach(ref => reference(root, ref, read));
+        value.forEach(ref => reference(root, ref, read, name === 'verification', registeredTest));
       } else assert(value && Object.keys(value).join() === 'notApplicable' &&
         typeof value.notApplicable === 'string' && value.notApplicable.trim().length > 0,
       `Unexplained interface attribute: ${declaration.module}:${name}`);
