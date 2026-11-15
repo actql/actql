@@ -188,13 +188,15 @@ pub fn bounded_number_group_borrows_input(
 // The bounded INNER JOIN compares only its checked immediate key columns.
 // Other required columns are carried as original immutable cells: neither
 // binary input scan nor projected output constructs their value forest.
-// Text keys use the existing charged UTF-16 comparison cursor, retaining the
-// original strings without a comparison wire or copied spelling.
-fn bounded_inner_join_borrows_input(kernel : @lower.PreparedJoinKernel) -> Bool {
+// Text keys use the existing charged UTF-16 comparison cursor. Flat LEFT JOIN
+// with Number/Bool keys carries the same cells or the admitted null singleton;
+// it constructs no input forest. Full recursive/presence/other outer recipes stay.
+fn bounded_join_borrows_input(kernel : @lower.PreparedJoinKernel) -> Bool {
   let owner = @lower.bound_preparation(@lower.join_kernel_owner(kernel))
   let step = @lower.join_kernel_step(kernel)
   let profile = @lower.join_kernel_profile(kernel)
-  guard @lower.inner_join_kind(profile) == @join.Inner &&
+  let flat_left = @lower.inner_join_kind(profile) == @join.Left
+  guard (@lower.inner_join_kind(profile) == @join.Inner || flat_left) &&
     @lower.inner_join_key_count(profile) > 0 &&
     @lower.node_at(owner, step) is Some(node) &&
     @lower.node_input_count(node) == 2 &&
@@ -204,6 +206,15 @@ fn bounded_inner_join_borrows_input(kernel : @lower.PreparedJoinKernel) -> Bool 
     Some(true) else {
     return false
   }
+  if flat_left {
+    let output = @lower.preparation_schema_at(owner, @pipeline.Step(step)).unwrap()
+    for field in 0..<@schema.field_count(output) {
+      match @schema.field_at(output, field).unwrap().contract.shape {
+        @contract.Number | @contract.Boolean | @contract.Text(_) => ()
+        _ => return false
+      }
+    }
+  }
   for port in 0..<2 {
     guard @lower.node_input_target(node, port).bind(target => {
         @lower.preparation_schema_at(owner, target)
@@ -211,6 +222,14 @@ fn bounded_inner_join_borrows_input(kernel : @lower.PreparedJoinKernel) -> Bool 
       is Some(schema) &&
       @schema.all_fields_required(schema) else {
       return false
+    }
+    if flat_left {
+      for field in 0..<@schema.field_count(schema) {
+        match @schema.field_at(schema, field).unwrap().contract.shape {
+          @contract.Number | @contract.Boolean | @contract.Text(_) => ()
+          _ => return false
+        }
+      }
     }
     for index in 0..<@lower.inner_join_key_count(profile) {
       guard @lower.inner_join_key_at(profile, index) is Some((left, right)) &&
@@ -220,7 +239,7 @@ fn bounded_inner_join_borrows_input(kernel : @lower.PreparedJoinKernel) -> Bool 
       }
       match contract.shape {
         @contract.Number | @contract.Boolean => ()
-        @contract.Text(_) => if contract.nullable { return false }
+        @contract.Text(_) => if flat_left || contract.nullable { return false }
         _ => return false
       }
     }
@@ -480,7 +499,7 @@ pub fn generated_bounded_sequence_capacity(
     return generated_sequence_capacity(generated, limits, measurement)
   }
   let borrowed_join = match operation {
-    @lower.JoinStep(kernel) => bounded_inner_join_borrows_input(kernel)
+    @lower.JoinStep(kernel) => bounded_join_borrows_input(kernel)
     _ => false
   }
   // Direct window reductions read the original required cells. Their existing

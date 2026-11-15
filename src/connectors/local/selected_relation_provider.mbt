@@ -1146,15 +1146,17 @@ fn selected_relation_provider(
 }
 
 ///|
-// Mirror the selected INNER JOIN constructor boundary, not a whole-schema
-// permission: carried DATA is borrowed, comparisons use only immediate keys.
+// Mirror the selected INNER and flat numeric-key LEFT JOIN constructors.
+// The latter borrows checked cells or null-padding; recursive/presence and
+// other outer recipes keep their full construction envelope.
 fn selected_join_borrows_carried_values(
   kernel : @lower.PreparedJoinKernel,
 ) -> Bool {
   let owner = @lower.bound_preparation(@lower.join_kernel_owner(kernel))
   let step = @lower.join_kernel_step(kernel)
   let profile = @lower.join_kernel_profile(kernel)
-  guard @lower.inner_join_kind(profile) == @join.Inner &&
+  let flat_left = @lower.inner_join_kind(profile) == @join.Left
+  guard (@lower.inner_join_kind(profile) == @join.Inner || flat_left) &&
     @lower.inner_join_key_count(profile) > 0 &&
     @lower.node_at(owner, step) is Some(node) &&
     @lower.node_input_count(node) == 2 &&
@@ -1164,6 +1166,15 @@ fn selected_join_borrows_carried_values(
     Some(true) else {
     return false
   }
+  if flat_left {
+    let output = @lower.preparation_schema_at(owner, @pipeline.Step(step)).unwrap()
+    for field in 0..<@schema.field_count(output) {
+      match @schema.field_at(output, field).unwrap().contract.shape {
+        @contract.Number | @contract.Boolean | @contract.Text(_) => ()
+        _ => return false
+      }
+    }
+  }
   for port in 0..<2 {
     guard @lower.node_input_target(node, port).bind(target => {
         @lower.preparation_schema_at(owner, target)
@@ -1171,6 +1182,14 @@ fn selected_join_borrows_carried_values(
       is Some(schema) &&
       @schema.all_fields_required(schema) else {
       return false
+    }
+    if flat_left {
+      for field in 0..<@schema.field_count(schema) {
+        match @schema.field_at(schema, field).unwrap().contract.shape {
+          @contract.Number | @contract.Boolean | @contract.Text(_) => ()
+          _ => return false
+        }
+      }
     }
     for index in 0..<@lower.inner_join_key_count(profile) {
       guard @lower.inner_join_key_at(profile, index) is Some((left, right)) &&
@@ -1180,7 +1199,7 @@ fn selected_join_borrows_carried_values(
       }
       match contract.shape {
         @contract.Number | @contract.Boolean => ()
-        @contract.Text(_) => if contract.nullable { return false }
+        @contract.Text(_) => if flat_left || contract.nullable { return false }
         _ => return false
       }
     }

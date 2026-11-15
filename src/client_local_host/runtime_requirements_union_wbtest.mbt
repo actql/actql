@@ -265,3 +265,14 @@ test "ordinary PIVOT preserves unbounded-schema text keys duplicates and NULL va
     "original duplicate-null JSON PIVOT",
   )
 }
+
+///|
+test "ordinary filtered subquery LEFT JOIN preserves missing-side NULL under the original budget" {
+  let source =
+    #|{"id":"fixture.filtered_subquery_join","results":{"answer":{"from":{"result":"rows","stage":"main"}}},"stages":[{"id":"main","inputs":{},"results":{"rows":{"fields":["a","d"],"from":"aql_join_output_7"}},"steps":[{"as":"aql_script_seed_3","values":{"rows":[{"a":1,"b":"x"},{"a":1,"b":"x"},{"a":2,"b":"y"},{"a":null,"b":"n"}],"schema":{"a":{"nullable":true,"type":"number"},"b":{"nullable":false,"type":"string"}}}},{"as":"aql_script_cte_2","from":"aql_script_seed_3","select":["a","b"]},{"as":"aql_script_seed_5","values":{"rows":[{"c":1,"d":"x"},{"c":3,"d":"z"},{"c":null,"d":"n"}],"schema":{"c":{"nullable":true,"type":"number"},"d":{"nullable":false,"type":"string"}}}},{"as":"aql_script_cte_4","from":"aql_script_seed_5","select":["c","d"]},{"as":"aql_join_prefiltered_6","filter":{"gt":[{"field":"a"},{"literal":1}]},"from":"aql_script_cte_2"},{"as":"aql_join_output_7","from":"aql_join_prefiltered_6","join":{"kind":"left","max_output_rows":1000,"on":[{"left":"a","right":"c"}],"select":{"a":"left.a","d":"right.d"},"with":"aql_script_cte_4"}}]}],"version":"actql/0.1"}
+  runtime_number_group_execute(
+    runtime_requirements_union_prepared(source_json=Some(source)),
+    [@json.parse("{\"a\":2,\"d\":null}")],
+    "original filtered subquery LEFT JOIN",
+  )
+}

@@ -322,25 +322,28 @@ test "singleton Set startup keeps recursive and injected providers fully prepaid
 ///|
 test "singleton Join borrows carried values with immediate keys and preserves injected fallback" {
   for
-    (contract, literal) in [
-      ("{\"type\":\"number\",\"nullable\":false}", "1"),
-      ("{\"type\":\"boolean\",\"nullable\":false}", "true"),
-      ("{\"type\":\"string\",\"nullable\":false}", "\"text\""),
+    (kind, contract, literal) in [
+      ("inner", "{\"type\":\"number\",\"nullable\":false}", "1"),
+      ("inner", "{\"type\":\"boolean\",\"nullable\":false}", "true"),
+      ("inner", "{\"type\":\"string\",\"nullable\":false}", "\"text\""),
       (
-        "{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}",
+        "inner", "{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}",
         "[1,2]",
       ),
       (
-        "{\"type\":\"object\",\"nullable\":false,\"fields\":{\"x\":{\"type\":\"number\",\"nullable\":false}}}",
+        "inner", "{\"type\":\"object\",\"nullable\":false,\"fields\":{\"x\":{\"type\":\"number\",\"nullable\":false}}}",
         "{\"x\":1}",
       ),
+      ("left", "{\"type\":\"string\",\"nullable\":false}", "\"text\""),
     ] {
     let (chain, _, _) = chain_lifetime_fixture(
       "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"payload\":" +
       contract +
       "},\"rows\":[{\"id\":1,\"payload\":" +
       literal +
-      "}]},\"as\":\"value\"},{\"from\":\"value\",\"join\":{\"with\":\"value\",\"kind\":\"inner\",\"on\":[{\"left\":\"id\",\"right\":\"id\"}],\"select\":{\"id\":\"left.id\",\"payload\":\"right.payload\"}}}]",
+      "}]},\"as\":\"value\"},{\"from\":\"value\",\"join\":{\"with\":\"value\",\"kind\":\"" +
+      kind +
+      "\",\"on\":[{\"left\":\"id\",\"right\":\"id\"}],\"select\":{\"id\":\"left.id\",\"payload\":\"right.payload\"}}}]",
     )
     let selected = @execution.select_generated_sequence_step(
       chain,
