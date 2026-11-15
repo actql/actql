@@ -4717,10 +4717,10 @@ function publicationControl(moon) {
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
       // Borrow exactly the completed inventory. Core performs current and
       // retention-bound checks; this never exports or admits lookup DATA again.
-      const inventory = moon.clientProgramEffectKeyedCachedDependencyBodies(original, lookup, token(retention));
+      let cached = moon.clientProgramEffectKeyedCachedDependencyBodies(original, lookup, token(retention));
       // This actual compiled export returns boxed Option<Array<Body>>. Borrow
       // its SAME payload through the pinned binding; None never means empty.
-      const cached = runtimeIsBoxedSome(inventory) ? runtimeField(inventory, 0) : undefined;
+      cached = runtimeIsBoxedSome(cached) ? runtimeField(cached, 0) : undefined;
       if (!Array.isArray(cached)) throw new TypeError('OriginalEffectKeyedInventoryUnavailable');
       const bodies = cached.map(body => Object.freeze({
         kind: moon.clientProgramEffectDependencyBodyKind(body),
