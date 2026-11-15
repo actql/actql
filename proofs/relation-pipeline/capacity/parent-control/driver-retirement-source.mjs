@@ -1,10 +1,19 @@
 import assert from 'node:assert/strict';
+import {reviewedFunction} from './provider-construction-source-review.mjs';
 export const driverPath='src/connectors/local/driver/managed_dispatch.mbt';
 export const scratchRetirementPath='src/connectors/local/driver/scratch_retirement.mbt';
 export const inputStopPath='src/connectors/local/driver/input_stop.mbt';
 export const bridgeReclamationPath='src/execution_relation/managed_producer_bridge.mbt';
 export const importReclamationPath='src/execution_relation/completed_output_import.mbt';
 export const strategyPath='src/physical_strategy_host/task_execution.mbt';
+export function checkBindingRowsCleanupSource(source) {
+  const execution=clean(reviewedFunction(source,'selected_binding_rows_execution'));
+  const guard=clean(`if !terminated.val { return Ok(false) }
+    if reclaimed.val { return Ok(true) }
+    match @execution.cleanup_bounded_binding_rows(active)`);
+  assert.equal(execution.split(guard).length,2,
+    'Changed row cleanup stop/ACK boundary');
+}
 const clean=s=>s.replace(/\/\/[^\n]*/g,'').replace(/\s+/g,'').replace(/,\)/g,')');
 export function blockAfter(source,anchor) {
   assert.equal(source.split(anchor).length,2,`Changed unique owner boundary ${anchor}`);
@@ -375,6 +384,7 @@ const cancelFinalization=`{
   }
 }`;
 export function checkDriverRetirementSource(read) {
+  checkBindingRowsCleanupSource(read('src/connectors/local/selected_relation_provider.mbt').toString());
   const driver=read(driverPath).toString(),strategy=read(strategyPath).toString();
   const roots=read(scratchRetirementPath).toString();
   const inputs=read(inputStopPath).toString();

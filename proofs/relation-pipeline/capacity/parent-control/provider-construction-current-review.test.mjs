@@ -5,6 +5,7 @@ import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {hash} from '../../inventory.mjs';
 import {providerConstructionBound} from './provider-construction.mjs';
+import {checkParentCensus} from './bounds.mjs';
 import {checkConstructionSourceReview} from './provider-construction-source-review.mjs';
 import {currentConstructionReview, historicalConstructionSource}
   from './provider-construction-current-review.mjs';
@@ -73,8 +74,11 @@ for (const [name, path, before, after] of [
     assert(original.includes(before), `Missing independent negative target ${name}`);
     const changed = original.replace(before, after);
     assert.notEqual(changed, original);
-    assert.throws(() => providerConstructionBound(file => file === path ? changed : read(file)),
-      /Unreviewed current constructor source/);
+    const runtimeOnly=['prefix substituted by full count','missing cleanup ACK'].includes(name);
+    const inspect=runtimeOnly?checkParentCensus:providerConstructionBound;
+    assert.throws(() => inspect(file => file === path ? changed : read(file)),
+      runtimeOnly?/Unreviewed .* source captures|Changed row cleanup stop\/ACK boundary/:
+        /Unreviewed current constructor source|Unreviewed provider candidate inventory/);
   });
 }
 

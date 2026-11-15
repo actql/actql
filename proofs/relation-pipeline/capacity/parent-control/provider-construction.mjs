@@ -5,6 +5,14 @@ import { fieldLayout } from '../backing/native-extent.mjs';
 import {reviewedFunction, checkConstructionSourceReview} from './provider-construction-source-review.mjs';
 const profileBytes = readFileSync(new URL('./provider-construction-current.json', import.meta.url));
 const profile = JSON.parse(profileBytes);
+// Canonical MoonBit top-level declarations end with an unindented brace.
+// Exclude trailing module comments and subsequent helpers from this boundary.
+export function currentFactoryDeclaration(source, name) {
+  const declaration = reviewedFunction(source, name);
+  const end = declaration.indexOf('\n}');
+  assert(end >= 0, `Missing complete factory ${name}`);
+  return declaration.slice(0, end + 2);
+}
 export function providerConstructionBound(read) {
   return constructionBound(read, false);
 }
@@ -38,14 +46,18 @@ function constructionBound(read, retained) {
 
   for (const p of sourceProfile.providers) {
     const source = read(p.path).toString();
-    assert.equal(hash(source), p.sourceDigest, `Unreviewed provider constructor ${p.name}`);
-    const constructor = source.slice(source.indexOf(`fn ${p.name}(`));
+    const constructor = retained ? reviewedFunction(source, p.name)
+      : currentFactoryDeclaration(source, p.name);
+    assert.equal(hash(retained ? source : constructor),
+      retained ? p.sourceDigest : p.constructorDigest,
+      `Unreviewed provider constructor ${p.name}`);
     assert(constructor.includes(`${p.binding}(`), `Changed provider binding ${p.name}`);
   }
   const source = read('src/connectors/local/selected_relation_provider.mbt').toString();
   const list = source.match(/for\s+provider in \[([\s\S]*?)\]\s*\{/);
   assert(list);
-  assert.deepEqual([...list[1].matchAll(/\b(\w+_provider)\(/g)].map(m => m[1]), profile.providers.map(p => p.name));
+  assert.deepEqual([...list[1].matchAll(/\b(\w+_provider)\(/g)].map(m => m[1]), profile.providers.map(p => p.name),
+    'Unreviewed provider candidate inventory');
   assert.deepEqual(profile.bounds, { providerRecords: 11, callbacksPerProvider: 4,
     callbackReferenceCaptures: 3, defaultFamilyArrays: 1, candidateArraySlots: 11 });
   const record = 8 + fieldLayout(Array(retained ? 4 : 5).fill('ref')).payloadBytes;
@@ -79,8 +91,21 @@ function constructionBound(read, retained) {
 function checkCurrentConstructionSources(read) {
   const recipe = read('proofs/relation-pipeline/capacity/parent-control/provider-construction-current.json');
   assert.equal(recipe.toString(), profileBytes.toString(), 'Changed current constructor recipe');
-  const sources = {...Object.fromEntries(profile.providers.map(p => [p.path, p.sourceDigest])),
-    ...profile.sourcePremises};
+  // Runtime-only private helpers do not construct these eleven candidates.
+  // Pin each complete factory (including its callback/capture declarations),
+  // while the existing wrapper/layout premises retain their own boundaries.
+  // Whole-source provenance is still returned from the bytes actually read
+  // and authenticated by the separate compiled-input/execution checks.
+  const sources = profile.sourcePremises;
+  assert.equal(profile.selectionFactory.name, 'bounded_relation_step_provider');
+  assert.equal(profile.selectionFactory.path, 'src/connectors/local/selected_relation_provider.mbt');
+  assert.equal(hash(currentFactoryDeclaration(read(profile.selectionFactory.path).toString(),
+    profile.selectionFactory.name)), profile.selectionFactory.constructorDigest,
+  `Unreviewed current constructor source ${profile.selectionFactory.path}`);
+  for (const provider of profile.providers) {
+    assert.equal(hash(currentFactoryDeclaration(read(provider.path).toString(), provider.name)),
+      provider.constructorDigest, `Unreviewed current constructor source ${provider.path}`);
+  }
   for (const [path, digest] of Object.entries(sources)) {
     assert.equal(hash(read(path)), digest, `Unreviewed current constructor source ${path}`);
   }
@@ -92,7 +117,7 @@ function checkCurrentConstructionSources(read) {
       `Changed current candidate construction wrapper ${name}`);
   }
   return {recipeDigest: hash(recipe),
-    selectedDigest: sources['src/connectors/local/selected_relation_provider.mbt'],
+    selectedDigest: hash(read('src/connectors/local/selected_relation_provider.mbt')),
     managedDigest: sources['src/connectors/local/managed_provider.mbt'],
     generatedDigest: sources['src/execution_relation/generated_sequence.mbt'],
     scope: profile.scope,
