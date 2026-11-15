@@ -8550,10 +8550,6 @@
                 "anchor": "preparedSourceEnvironment = Object.freeze({host, moon, environment, publication:sourcePublication,"
               },
               {
-                "path": "adapters/host-node/embedded-source-environment-scope.test.mjs",
-                "anchor": "// Keep the complete original enclosing function before/after its acquisition"
-              },
-              {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "observation; they retain no current Account decision or physical cleanup ACK."
               },
@@ -8782,10 +8778,6 @@
                 "anchor": "throw new TypeError('InstalledRequestPreparationUnavailable');"
               },
               {
-                "path": "adapters/host-node/embedded-source-environment-scope.test.mjs",
-                "anchor": "assert.equal(outerTry.block.body.some(node=>node.type==='FunctionDeclaration'&&node.id.name==='getPreparedSourceEnvironment'),false);"
-              },
-              {
                 "path": "adapters/host-node/client-run-state-revision.test.mjs",
                 "anchor": "A changed payload without a revision increment cannot reuse the frame"
               },
@@ -8886,10 +8878,6 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "retireSourceAliasPublicationOriginal(original.moon, original.environment, original.publication);"
-              },
-              {
-                "path": "adapters/host-node/embedded-source-environment-scope.test.mjs",
-                "anchor": "host.stop();assert.strictEqual(host.slot.preparedEnvironment,original.preparedEnvironment);"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -9280,14 +9268,6 @@
               {
                 "path": "adapters/host-node/client-run-wait-notification.test.mjs",
                 "anchor": "test('settlement during the asynchronous pending observation is latched'"
-              },
-              {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
-                "anchor": "test('Host prepared Environment waits for the original child shutdown before cutting its aliases', async () => {"
-              },
-              {
-                "path": "adapters/host-node/embedded-source-environment-scope.test.mjs",
-                "anchor": "test('actual Host enclosing scopes retain original Source material without a legacy execution getter',async()=>{"
               },
               {
                 "path": "adapters/host-node/client-run-observation-reuse.test.mjs",
@@ -15539,10 +15519,6 @@
                 "anchor": "preparedSourceEnvironment = Object.freeze({host, moon, environment, publication:sourcePublication,"
               },
               {
-                "path": "adapters/host-node/embedded-source-environment-scope.test.mjs",
-                "anchor": "// Keep the complete original enclosing function before/after its acquisition"
-              },
-              {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "observation; they retain no current Account decision or physical cleanup ACK."
               },
@@ -15715,10 +15691,6 @@
                 "anchor": "throw new TypeError('InstalledRequestPreparationUnavailable');"
               },
               {
-                "path": "adapters/host-node/embedded-source-environment-scope.test.mjs",
-                "anchor": "assert.equal(outerTry.block.body.some(node=>node.type==='FunctionDeclaration'&&node.id.name==='getPreparedSourceEnvironment'),false);"
-              },
-              {
                 "path": "adapters/host-node/client-run-state-revision.test.mjs",
                 "anchor": "A changed payload without a revision increment cannot reuse the frame"
               },
@@ -15791,10 +15763,6 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "retireSourceAliasPublicationOriginal(original.moon, original.environment, original.publication);"
-              },
-              {
-                "path": "adapters/host-node/embedded-source-environment-scope.test.mjs",
-                "anchor": "host.stop();assert.strictEqual(host.slot.preparedEnvironment,original.preparedEnvironment);"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -16105,14 +16073,6 @@
               {
                 "path": "adapters/host-node/client-run-wait-notification.test.mjs",
                 "anchor": "test('settlement during the asynchronous pending observation is latched'"
-              },
-              {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
-                "anchor": "test('Host prepared Environment waits for the original child shutdown before cutting its aliases', async () => {"
-              },
-              {
-                "path": "adapters/host-node/embedded-source-environment-scope.test.mjs",
-                "anchor": "test('actual Host enclosing scopes retain original Source material without a legacy execution getter',async()=>{"
               },
               {
                 "path": "adapters/host-node/client-run-observation-reuse.test.mjs",
@@ -16956,10 +16916,6 @@
                 "anchor": "test('throwing initialization cleanup getters retain the already acquired control holding'"
               },
               {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
-                "anchor": "test('Host consumer preparation retains its original release retry and handles earlier initialization', () => {"
-              },
-              {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
               },
@@ -17098,10 +17054,6 @@
               {
                 "path": "adapters/host-node/host-journal-selected-constructor.test.mjs",
                 "anchor": "test('actual root-format choice awaits the selected original and preserves the unprepared path'"
-              },
-              {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
-                "anchor": "test('Host consumer preparation retains aliases until original shutdown and releases the captured receiver', async () => {"
               },
               {
                 "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
@@ -18300,10 +18252,6 @@
                 "path": "adapters/host-node/embedded-local.mjs"
               },
               {
-                "anchor": "// Keep the complete original enclosing function before/after its acquisition",
-                "path": "adapters/host-node/embedded-source-environment-scope.test.mjs"
-              },
-              {
                 "anchor": "observation; they retain no current Account decision or physical cleanup ACK.",
                 "path": "docs/design/interactive-run-control.md"
               },
@@ -18548,10 +18496,6 @@
                 "anchor": "throw new TypeError('InstalledRequestPreparationUnavailable');"
               },
               {
-                "path": "adapters/host-node/embedded-source-environment-scope.test.mjs",
-                "anchor": "assert.equal(outerTry.block.body.some(node=>node.type==='FunctionDeclaration'&&node.id.name==='getPreparedSourceEnvironment'),false);"
-              },
-              {
                 "path": "adapters/host-node/client-run-state-revision.test.mjs",
                 "anchor": "A changed payload without a revision increment cannot reuse the frame"
               },
@@ -18660,10 +18604,6 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "retireSourceAliasPublicationOriginal(original.moon, original.environment, original.publication);"
-              },
-              {
-                "path": "adapters/host-node/embedded-source-environment-scope.test.mjs",
-                "anchor": "host.stop();assert.strictEqual(host.slot.preparedEnvironment,original.preparedEnvironment);"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -19078,14 +19018,6 @@
               {
                 "anchor": "test('settlement during the asynchronous pending observation is latched'",
                 "path": "adapters/host-node/client-run-wait-notification.test.mjs"
-              },
-              {
-                "anchor": "test('Host prepared Environment waits for the original child shutdown before cutting its aliases', async () => {",
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs"
-              },
-              {
-                "anchor": "test('actual Host enclosing scopes retain original Source material without a legacy execution getter',async()=>{",
-                "path": "adapters/host-node/embedded-source-environment-scope.test.mjs"
               },
               {
                 "anchor": "Local Run observation retries changed control and final publication conflicts",

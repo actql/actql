@@ -7,7 +7,7 @@ import {parse} from 'acorn';
 import {beginInitialControlInstallation, assertInitialControlInstallationCurrent,
   readInitialControlInstallationInput} from './node-initial-control-installation.mjs';
 import {retainInstalledHostInitializationFailure, retainInstalledHostRuntimeFailure} from './installed-host-cleanup.mjs';
-import {createEmbeddedHostRegistry} from './embedded-local-lifecycle.mjs';
+import {createEmbeddedHostRegistry, installedHostShutdown} from './embedded-local-lifecycle.mjs';
 import {installLocalPreparationRegistry} from './local-preparation-registry.mjs';
 import {sourcePreparationPort} from '../../packages/sdk/internal/private-source-preparation.mjs';
 import {checkedLocalOutputLimits, localOutputLimits} from './local-values-plan.mjs';
@@ -27,6 +27,48 @@ const deferred = () => {
   const promise = new Promise(done => { resolve = done; });
   return {promise, resolve};
 };
+
+// Real shutdown implementation with explicit child/finalizer ports. These
+// checks establish callback custody, not Core admission or a physical ACK.
+test('Host reference retirement retains its captured callback behind pending child cleanup', async () => {
+  const original = {}, calls = [];
+  let retained = original, ready = false, retired = 0, replaced = 0;
+  const host = {dispatchOwner: {drain() {}}, retireTerminalEffects() {},
+    journal: {close() {calls.push('journal'); if (!ready) throw new Error('OriginalJournalPending');}},
+    store: {close() {calls.push('store');}},
+    retireModelRuntime() {retired++; retained = undefined;}};
+  const shutdown = installedHostShutdown(host);
+  host.retireModelRuntime = () => {replaced++;};
+  await assert.rejects(shutdown.close(), {code: 'InstalledHostCleanupPending'});
+  assert.strictEqual(retained, original); assert.equal(retired, 0); assert.equal(replaced, 0);
+  ready = true;
+  await shutdown.close();
+  assert.equal(retained, undefined); assert.equal(retired, 1); assert.equal(replaced, 0);
+  assert.deepEqual(calls, ['journal', 'store', 'journal']);
+  await shutdown.close(); assert.equal(retired, 1);
+});
+
+test('Host reference retirement retries its original failed callback without repeating completed children', async () => {
+  for (const primary of [undefined, new Error('OriginalReferenceRetirement')]) {
+    const original = {}, calls = [];
+    let retained = original, attempts = 0, replaced = 0;
+    const host = {dispatchOwner: {drain() {}}, retireTerminalEffects() {},
+      journal: {close() {calls.push('journal');}}, store: {close() {calls.push('store');}},
+      retireModelRuntime() {if (++attempts === 1) throw primary; retained = undefined;}};
+    const shutdown = installedHostShutdown(host);
+    await assert.rejects(shutdown.close(), error => {
+      assert.equal(error.code, 'InstalledHostCleanupPending');
+      assert(Object.hasOwn(error, 'primaryFailure')); assert.strictEqual(error.primaryFailure, primary);
+      return true;
+    });
+    assert.strictEqual(retained, original); assert.equal(attempts, 1);
+    host.retireModelRuntime = () => {replaced++;};
+    await shutdown.close();
+    assert.equal(retained, undefined); assert.equal(attempts, 2); assert.equal(replaced, 0);
+    assert.deepEqual(calls, ['journal', 'store']);
+    await shutdown.close(); assert.equal(attempts, 2);
+  }
+});
 
 test('selected Local lifecycle cannot omit its same own preparation receiver before connect', async () => {
   // Explicit shutdown ports observe refusal/cleanup order only. No Source
