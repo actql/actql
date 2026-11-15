@@ -19222,6 +19222,10 @@
               {
                 "path": "adapters/host-node/client-effect-checkpoints.test.mjs",
                 "anchor": "test('Host first close joins the original pre-dispatch Effect resume Store reader'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "test('ordinary material inverse receives the same installed text-time and calendar selections'"
               }
             ]
           }
@@ -24715,7 +24719,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "b2b2d5dfbd21a402187f170d7410d4dece6e2ab010ddb67f2255d15280cf1749"
+      "sha256": "5a12a0d5db8dd26a1d5e77655375e1adff2e415997435843339c9a743e35ba67"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
