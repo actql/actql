@@ -41,7 +41,7 @@ test "READ actual long Text geometry retains the same one GiB parent before pars
     owner, input, 16834523, 65536, 64, 2147483646, 65536,
   ).unwrap()
   |> ignore
-  begin_request_result_read_wire(owner, input, 16834525, 1).unwrap()
+  begin_request_result_read_wire(owner, input, 16834525L, 1).unwrap()
   // Independent old quote: byte-as-node demand206*8MiB+32 exceeds one GiB.
   assert_true(206L * 8388608L + 32L > 1073741824L)
   assert_eq(
@@ -80,7 +80,7 @@ test "READ scans actual same-size altered geometry and preserves node and work r
   ).unwrap()
   reserve_request_result_read(owner, input, 512, 64, 8, 4, 64).unwrap()
   |> ignore
-  begin_request_result_read_wire(owner, input, 1024, 2).unwrap()
+  begin_request_result_read_wire(owner, input, 1024L, 2).unwrap()
   grow_request_result_read_frame(owner, input, 256).unwrap() |> ignore
   read_wire_test_scan(owner, input, "\"" + "x".repeat(63) + "\"").unwrap()
   |> ignore
@@ -99,7 +99,7 @@ test "READ scans actual same-size altered geometry and preserves node and work r
   ).unwrap()
   reserve_request_result_read(exhausted, second, 64, 64, 8, 64, 64).unwrap()
   |> ignore
-  begin_request_result_read_wire(exhausted, second, 1, 1).unwrap()
+  begin_request_result_read_wire(exhausted, second, 1L, 1).unwrap()
   grow_request_result_read_frame(exhausted, second, 64).unwrap() |> ignore
   assert_true(
     read_wire_test_scan(exhausted, second, "{\"a\":1}")
@@ -123,7 +123,7 @@ test "READ pending scan retains its original input and current gate through clea
   ).unwrap()
   reserve_request_result_read(owner, input, 8192, 64, 8, 8192, 64).unwrap()
   |> ignore
-  begin_request_result_read_wire(owner, input, 8192, 1).unwrap()
+  begin_request_result_read_wire(owner, input, 8192L, 1).unwrap()
   grow_request_result_read_frame(owner, input, 8192).unwrap() |> ignore
   assert_true(
     begin_request_result_read_wire_row(owner, [4], "[]") is Err(ForeignOriginal),
@@ -187,7 +187,7 @@ test "READ actual structural demand still refuses one-byte-short before parse" {
   ).unwrap()
   reserve_request_result_read(owner, input, 2048, 64, 8, 2048, 64).unwrap()
   |> ignore
-  begin_request_result_read_wire(owner, input, 2048, 1).unwrap()
+  begin_request_result_read_wire(owner, input, 2048L, 1).unwrap()
   grow_request_result_read_frame(owner, input, 2048).unwrap() |> ignore
   let before = @resources.ledger_usage(owner.ledger)
   // 512 scalar items plus the array need513 actual nodes. Old raw buffers
@@ -212,10 +212,33 @@ test "READ raw Unicode failure spends the same scan receipt and retires its curs
   ).unwrap()
   reserve_request_result_read(owner, input, 64, 64, 8, 64, 64).unwrap()
   |> ignore
-  begin_request_result_read_wire(owner, input, 64, 1).unwrap()
+  begin_request_result_read_wire(owner, input, 64L, 1).unwrap()
   grow_request_result_read_frame(owner, input, 64).unwrap() |> ignore
   let malformed = "\"" + String::from_array([(0xd800).unsafe_to_char()]) + "\""
   assert_true(read_wire_test_scan(owner, input, malformed) is Err(Policy))
+  abort_request_preparation_after_cleanup(owner).unwrap()
+  assert_eq(@resources.ledger_usage(owner.ledger).live_reservations, 0)
+}
+
+///|
+test "READ aggregate work is wide independently of its bounded row frame" {
+  let input = [7]
+  let owner = begin_request_preparation(
+    request_parent_fixture(input),
+    input,
+    client_local_resource_policy(),
+  ).unwrap()
+  reserve_request_result_read(owner, input, 64, 64, 8, 64, 64).unwrap()
+  |> ignore
+  let before = @resources.ledger_usage(owner.ledger)
+  assert_true(
+    begin_request_result_read_wire(owner, input, 9223372036854775807L, 1)
+    is Err(Policy),
+  )
+  assert_eq(@resources.ledger_usage(owner.ledger), before)
+  begin_request_result_read_wire(owner, input, 2147483648L, 1).unwrap()
+  grow_request_result_read_frame(owner, input, 64).unwrap() |> ignore
+  read_wire_test_scan(owner, input, "[]").unwrap() |> ignore
   abort_request_preparation_after_cleanup(owner).unwrap()
   assert_eq(@resources.ledger_usage(owner.ledger).live_reservations, 0)
 }

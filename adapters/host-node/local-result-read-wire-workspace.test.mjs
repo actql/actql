@@ -6,7 +6,7 @@ import {createLocalResultReadWorkspace} from './local-result-read-workspace.mjs'
 // Actual JS workspace/open/cleanup adapter with explicit Core ports. This
 // does not issue a Common original or certify physical reader/FD completion.
 const ok = value => ({$tag: 1, _0: value});
-function fixture({polls = 2, refuse, current = () => {}} = {}) {
+function fixture({polls = 2, refuse, current = () => {}, payloadBytes = 8192} = {}) {
   const calls = [], request = {}, parent = {}, runtime = {};
   let ports, high = 0, count = 0;
   const method = (name, body) => runtime[name] = function(...args) {
@@ -32,7 +32,7 @@ function fixture({polls = 2, refuse, current = () => {}} = {}) {
   method('clientProgramReserveRequestResultRead', () => ok(64));
   method('clientProgramBeginRequestResultReadWire', (p, r, bytes, rows) => {
     assert.equal(p, parent); assert.equal(r, request);
-    assert.equal(bytes, 8192); assert.equal(rows, 1);
+    assert.equal(bytes, BigInt(payloadBytes)); assert.equal(rows, 1);
     return ok(undefined);
   });
   method('clientProgramGrowRequestResultReadFrame', (p, r, units) => {
@@ -55,7 +55,7 @@ function fixture({polls = 2, refuse, current = () => {}} = {}) {
   }
   const workspace = createLocalResultReadWorkspace({runtime, assertCurrent: current});
   workspace.begin(request);
-  workspace.prepare(request, {payloadBytes: 8192, rowCount: 1, resultSchemaWire: '{}', resultFields: []},
+  workspace.prepare(request, {payloadBytes, rowCount: 1, resultSchemaWire: '{}', resultFields: []},
     {maxNodes: 8192, maxWireBytes: 8192}, {maxRowBytes: 8192, maxFrameBytes: 64});
   return {workspace, request, runtime, calls};
 }
@@ -102,4 +102,12 @@ test('READ close cannot retire the same parent while a yielded original row call
   await assert.rejects(row, {code: 'ForeignResultReadWorkspace'});
   assert.deepEqual(await f.workspace.closeAll(), {pending: false});
   assert.equal(f.calls.filter(([name]) => name === 'abort').length, 1);
+});
+
+test('READ aggregate work envelope stays wide while row and frame sizes remain bounded', async () => {
+  const f = fixture({polls: 1, payloadBytes: 2147483648});
+  f.workspace.row(f.request, 64);
+  assert.deepEqual(await f.workspace.row(f.request, '[]'), {units: 64, window: 64});
+  f.workspace.close(f.request);
+  assert.deepEqual(await f.workspace.closeAll(), {pending: false});
 });

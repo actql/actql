@@ -118,7 +118,7 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
       assertCurrent();
       const payload = metadata.payloadBytes;
       const rows = metadata.rowCount;
-      if (!Number.isSafeInteger(payload) || payload < 0 || payload > 2147483647 ||
+      if (!Number.isSafeInteger(payload) || payload < 0 ||
           !Number.isSafeInteger(rows) || rows < 0 || rows > 2147483647) unavailable();
       const maxRow = Math.max(1, Math.min(frames.maxRowBytes, payload));
       const frame = Math.max(1, Math.min(frames.maxFrameBytes, payload));
@@ -130,7 +130,7 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
       const window = checked(Reflect.apply(reserve, runtime,
         [entry.state.parent, request, maxRow, frame, schemaUnits, limits.maxNodes, desired]));
       if (!Number.isSafeInteger(window) || window < 1 || window > desired) unavailable();
-      checked(Reflect.apply(beginWire, runtime, [entry.state.parent, request, payload, rows]));
+      checked(Reflect.apply(beginWire, runtime, [entry.state.parent, request, BigInt(payload), rows]));
       entry.prepared = true;
       entry.window = window;
       return window;

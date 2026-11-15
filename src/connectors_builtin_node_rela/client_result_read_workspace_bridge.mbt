@@ -118,7 +118,7 @@ pub fn client_program_begin_request_result_read_wire(
     ClientLocalPreparationInputOriginal,
   ],
   input : ClientLocalPreparationInputOriginal,
-  payload_bytes : Int,
+  payload_bytes : Int64,
   row_count : Int,
 ) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
   @client_local_host.begin_request_result_read_wire(

@@ -1130,7 +1130,8 @@ Some carriers (2H/2R/2W) and operation/result roots (2H/6R/6W). The combined
 35H/64R/85W demand is 1752 logical bytes under the shared representation tariff.
 The existing JS prepared-state slot also denotes an active scan; it does not
 add a separately allocated reader or cleanup owner. Source work is bounded by
-the selected payload bytes plus row count. Each poll spends at most 4096 units
+the selected Int64 payload bytes plus row count, using checked addition. An
+aggregate payload is not restricted to the separate Int row/frame extent. Each poll spends at most 4096 units
 and returns that SAME work receipt; the Host yields and rechecks currentness
 before continuing. Returning never refills work or acknowledges cleanup. The
 physical-frame phase may shrink its already flushed output window; the complete

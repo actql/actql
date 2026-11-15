@@ -21,7 +21,7 @@ fn result_read_wire_controls() -> Int64? {
 pub fn[I] begin_request_result_read_wire(
   owner : ClientRequestPreparation[I],
   input : I,
-  payload_bytes : Int,
+  payload_bytes : Int64,
   row_count : Int,
 ) -> Result[Unit, ClientRequestPreparationIssue] {
   guard owner.phase == ResultRead &&
@@ -33,7 +33,15 @@ pub fn[I] begin_request_result_read_wire(
   guard owner.input is Some(original) && physical_equal(original, input) else {
     return Err(ForeignOriginal)
   }
-  if payload_bytes < 0 || row_count < 0 {
+  if payload_bytes < 0L || row_count < 0 {
+    return Err(Policy)
+  }
+  guard @execution.checked_preparation_add_product(
+      payload_bytes,
+      row_count.to_int64(),
+      1L,
+    )
+    is Some(maximum) else {
     return Err(Policy)
   }
   let controls = result_read_wire_controls().unwrap()
@@ -61,7 +69,7 @@ pub fn[I] begin_request_result_read_wire(
       owner.capacity,
       input,
       @resources.ShapeInspection,
-      payload_bytes.to_int64() + row_count.to_int64(),
+      maximum,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Work(issue))
