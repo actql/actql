@@ -28,10 +28,18 @@ fn pure_provider_declaration() -> @row_source_host.RowDeclaration {
 fn pure_provider_environment(
   declaration : @row_source_host.RowDeclaration,
   numeric_profile_cid? : String? = None,
+  artifact_bytes? : Int? = None,
 ) -> @checked.CheckEnvironment raise {
   let parsed = @json.parse(source_query_original_environment)
   guard parsed is Object(base) else { fail("fixture Environment") }
   base.remove("evidence_bundle_cid")
+  if artifact_bytes is Some(bytes) {
+    guard base["host_policy_profile"] is Object(profile) &&
+      profile["capacity"] is Object(capacity) else {
+      fail("fixture selected Host capacity")
+    }
+    capacity["max_artifact_bytes"] = Json::number(bytes.to_double())
+  }
   let (schemas, capabilities) = @row_source_host.row_declaration_evidence_members(
     declaration,
   )

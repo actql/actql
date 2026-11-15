@@ -143,6 +143,39 @@ pub fn installed_row_input_policy(
 }
 
 ///|
+/// Select cumulative capture and canonical row bytes from this Program's
+/// retained Host policy. Page limits remain physical transport bounds; actual
+/// capture construction grows the original Request reservation before use.
+/// Explicit RowInputLimits callers keep their independently selected bounds.
+pub fn installed_prepared_row_input_policy(
+  prepared : @publication_host.PreparedClientProgram,
+  max_rows : Int,
+  max_page_bytes : Int,
+  max_page_nodes : Int,
+  max_page_depth : Int,
+  max_page_rows : Int,
+) -> Result[@row_source_host.RowInputLimits, ClientInstalledManagedRunIssue] {
+  let policy = installed_source_listing_policy(
+    @publication_host.prepared_client_graph(prepared),
+  )
+  guard @capacity.ceiling(policy, "max_artifact_bytes") is Some(ceiling) else {
+    return Err(Unsupported)
+  }
+  let bytes = @capacity.ceiling_value(ceiling)
+  if bytes < 0L || bytes > 2147483647L {
+    return Err(Unsupported)
+  }
+  let original = installed_row_input_policy(
+    max_rows, max_page_bytes, max_page_nodes, max_page_depth, max_page_rows,
+  )
+  Ok({
+    ..original,
+    retention: { ..original.retention, max_text_bytes: bytes.to_int(), },
+    wire: { ..original.wire, max_bytes: bytes.to_int(), },
+  })
+}
+
+///|
 /// Derive this actual input inside the Request's already admitted Plan phase.
 /// The same installed contracts and bound sequence are consumed, not emitted
 /// and readmitted. Source declaration lifetime stays with initial material.

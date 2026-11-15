@@ -53,15 +53,15 @@ pub fn client_program_prepare_whole_source_capacity(
   guard selection is @acquisition.WholeInputRoute(original) else {
     return Err(@client_local_host.Unsupported)
   }
+  let limits = match
+    @client_local_host.installed_prepared_row_input_policy(
+      prepared, max_rows, max_page_bytes, max_page_nodes, max_page_depth, max_page_rows,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   @client_local_host.prepare_installed_whole_source_capacity(
-    prepared,
-    original,
-    declaration,
-    contracts,
-    @client_local_host.installed_row_input_policy(
-      max_rows, max_page_bytes, max_page_nodes, max_page_depth, max_page_rows,
-    ),
-    provider,
+    prepared, original, declaration, contracts, limits, provider,
   )
 }
 
