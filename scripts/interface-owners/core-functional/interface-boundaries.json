@@ -7923,7 +7923,8 @@
             "ledger",
             "reservation",
             "maxBytes",
-            "inventoryCount"
+            "inventoryCount",
+            "inventoryWireUnits"
           ],
           "async": false
         },

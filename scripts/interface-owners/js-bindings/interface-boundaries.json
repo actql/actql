@@ -24396,7 +24396,8 @@
             "ledger",
             "reservation",
             "maxBytes",
-            "inventoryCount"
+            "inventoryCount",
+            "inventoryWireUnits"
           ],
           "async": false
         },
@@ -77270,7 +77271,8 @@
         {
           "name": "installRunKeyedContentCapture/ensureInventoryCapacity/ensureInventoryCapacity",
           "parameters": [
-            "count"
+            "count",
+            "wireUnits"
           ],
           "async": false
         },
@@ -77374,13 +77376,6 @@
           "async": false
         },
         {
-          "name": "installRunKeyedContentCapture/recoverInventory/recoverInventory/entries/entries",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
           "name": "installRunKeyedContentCapture/recoverInventory/recoverInventory/recoverInventory",
           "parameters": [],
           "async": true
@@ -77470,7 +77465,6 @@
             "installRunKeyedContentCapture/recover/recover/recover/value/value",
             "installRunKeyedContentCapture/recoverInventory/recoverInventory",
             "installRunKeyedContentCapture/recoverInventory/recoverInventory/closed/closed",
-            "installRunKeyedContentCapture/recoverInventory/recoverInventory/entries/entries",
             "installRunKeyedContentCapture/recoverInventory/recoverInventory/recoverInventory",
             "installRunKeyedContentCapture/recoverInventory/recoverInventory/recoverInventory#2",
             "installRunKeyedContentCapture/referenceIssuer/referenceIssuer",
