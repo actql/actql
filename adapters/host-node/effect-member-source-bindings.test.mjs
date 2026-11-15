@@ -58,6 +58,7 @@ function fixture({views = [0, 0], extraResults = [], capacity = 20, failAppend, 
     clientProgramEffectInputExportFields: () => [],
     clientProgramEffectInputExportLogicalCid: () => 'logical',
     clientProgramEffectInputExportSchemaCid: () => 'schema',
+    clientProgramEffectInputExportSchemaWire: () => '{}',
     clientProgramEffectInputExportRowCount: () => 0,
     clientProgramEffectInputExportReleaseReceipt() {},
     clientProgramEffectInputExportCancel() {},
@@ -117,8 +118,8 @@ function fixture({views = [0, 0], extraResults = [], capacity = 20, failAppend, 
       return Object.freeze({identity: `result-${definition.view}`, wire: '{}'});
     },
     issueLocalEffectResultManifest(_, invocation, artifacts) {
-      assert.equal(new Set(artifacts.map(value => value.identity)).size, artifacts.length);
-      assert.deepEqual(artifacts.map(value => value.identity).sort(),
+      assert.equal(new Set(artifacts).size, artifacts.length, 'Keep each distinct original once');
+      assert.deepEqual([...new Set(artifacts.map(value => value.identity))].sort(),
         localResults.map(value => `result-${value.view}`).sort(),
         'A Unit Manifest includes declared Results that no Effect consumes');
       events.manifests.push(artifacts);
@@ -165,7 +166,12 @@ test('same live Result and different original bindings retain separate prepared 
   assert.notEqual(sources.members[0].payload.prepared, sources.members[1].payload.prepared);
   assert.deepEqual(events.bindings, [cidA, cidB]);
   assert.deepEqual(events.writers.map(value => value.maxBytes), [100, 100]);
-  assert.equal(events.manifests[0].length, 1);
+  assert.deepEqual(events.manifests[0], sources.payloads.map(payload => payload.localResultArtifact));
+  assert.notEqual(events.manifests[0][0], events.manifests[0][1]);
+  for (const {payload} of sources.members) {
+    assert.ok(events.manifests[0].includes(payload.localResultArtifact));
+  }
+  assert.deepEqual([...new Set(events.manifests[0].map(artifact => artifact.identity))], ['result-0']);
   await sources.members[0].payload.prepared.release();
   assert.deepEqual(events.writers.map(value => value.pending), [false, true]);
   await sources.members[1].payload.prepared.release();
@@ -190,7 +196,12 @@ test('nonadjacent original members keep positional bindings and only two physica
   assert.equal(sources.members[0].payload, sources.members[2].payload);
   assert.notEqual(sources.members[0].payload, sources.members[1].payload);
   assert.deepEqual(events.bindings, [cidA, cidB]);
-  assert.equal(events.manifests[0].length, 1);
+  assert.deepEqual(events.manifests[0], sources.payloads.map(payload => payload.localResultArtifact));
+  assert.notEqual(events.manifests[0][0], events.manifests[0][1]);
+  for (const {payload} of sources.members) {
+    assert.ok(events.manifests[0].includes(payload.localResultArtifact));
+  }
+  assert.deepEqual([...new Set(events.manifests[0].map(artifact => artifact.identity))], ['result-0']);
   for (const payload of sources.payloads) await payload.prepared.release();
 });
 
@@ -416,7 +427,12 @@ test('dependent same-view members retain separate original key phases and one lo
   assert.equal(sources.members[0].payload.localManifest, sources.members[1].payload.localManifest);
   assert.equal(sources.dependencies.length, 1);
   assert.equal(events.manifests.length, 1);
-  assert.equal(events.manifests[0].length, 1);
+  assert.deepEqual(events.manifests[0], sources.payloads.map(payload => payload.localResultArtifact));
+  assert.notEqual(events.manifests[0][0], events.manifests[0][1]);
+  for (const {payload} of sources.members) {
+    assert.ok(events.manifests[0].includes(payload.localResultArtifact));
+  }
+  assert.deepEqual([...new Set(events.manifests[0].map(artifact => artifact.identity))], ['result-0']);
   for (const payload of sources.payloads) await payload.prepared.release();
   assert(events.writers.every(value => !value.pending));
 });
@@ -446,7 +462,12 @@ test('original target occurrences stay separate across one shared Result and Man
       maxNodes: 100, maxDepth: 10, maxUtf16Units: 100}});
   assert.deepEqual(proposed, [0, 1]);
   assert.notEqual(sources.members[0].payload, sources.members[1].payload);
-  assert.equal(events.manifests[0].length, 1);
+  assert.deepEqual(events.manifests[0], sources.payloads.map(payload => payload.localResultArtifact));
+  assert.notEqual(events.manifests[0][0], events.manifests[0][1]);
+  for (const {payload} of sources.members) {
+    assert.ok(events.manifests[0].includes(payload.localResultArtifact));
+  }
+  assert.deepEqual([...new Set(events.manifests[0].map(artifact => artifact.identity))], ['result-0']);
   for (const payload of sources.payloads) await payload.prepared.release();
 });
 
@@ -523,7 +544,12 @@ test('dependent target and key originals reach the same member before proposal w
   assert.equal(sources.members[0].payload.localManifest, sources.members[1].payload.localManifest);
   assert.equal(sources.dependencies.length, 1);
   assert.equal(events.manifests.length, 1);
-  assert.equal(events.manifests[0].length, 1);
+  assert.deepEqual(events.manifests[0], sources.payloads.map(payload => payload.localResultArtifact));
+  assert.notEqual(events.manifests[0][0], events.manifests[0][1]);
+  for (const {payload} of sources.members) {
+    assert.ok(events.manifests[0].includes(payload.localResultArtifact));
+  }
+  assert.deepEqual([...new Set(events.manifests[0].map(artifact => artifact.identity))], ['result-0']);
   for (const payload of sources.payloads) await payload.prepared.release();
   assert(events.writers.every(value => !value.pending));
 });
