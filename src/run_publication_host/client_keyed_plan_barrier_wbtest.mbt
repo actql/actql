@@ -1,16 +1,8 @@
 ///|
-// Fresh authored compiler input; no Source IO, rows, physical authority or
-// expected output is supplied by declaration generation.
-fn client_keyed_plan_test_inputs(
+fn client_keyed_plan_test_environment(
   plural? : Bool = false,
   declared? : Bool = false,
-  imported_left? : Bool = false,
-  joined_producer? : Bool = false,
-) -> (
-  ClientInferOccurrence,
-  ClientKeyedAcquisition,
-  @publication.PublicationContract,
-) raise {
+) -> (@checked.CheckEnvironment, @publication.PublicationContract) raise {
   let schema = "{\"id\":{\"nullable\":false,\"type\":\"string\"},\"mime\":{\"nullable\":false,\"type\":\"string\"},\"text\":{\"nullable\":false,\"type\":\"string\"},\"version\":{\"nullable\":false,\"type\":\"string\"}}"
   let declaration = @row_host.generate_relation_row_declaration(
     "lookup-fixture",
@@ -160,6 +152,26 @@ fn client_keyed_plan_test_inputs(
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
+  (environment, profile)
+}
+
+///|
+// Fresh authored compiler input; no Source IO, rows, physical authority or
+// expected output is supplied by declaration generation.
+fn client_keyed_plan_test_inputs(
+  plural? : Bool = false,
+  declared? : Bool = false,
+  imported_left? : Bool = false,
+  joined_producer? : Bool = false,
+) -> (
+  ClientInferOccurrence,
+  ClientKeyedAcquisition,
+  @publication.PublicationContract,
+) raise {
+  let (environment, profile) = client_keyed_plan_test_environment(
+    plural~,
+    declared~,
+  )
   let document =
     #|{"version":"actql/0.1","id":"keyed-first-plan","stages":[{"id":"capture","inputs":{"files":{"connector":"lookup-fixture","resource":"files"}},"steps":[{"from":"files","filter":"id <> ''"},{"select":["id","text","mime","version"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["id","text","mime","version"]}}},{"id":"main","inputs":{"remote":{"connector":"lookup-fixture","resource":"contents","request":{"tenant":"original"}},"left_rows":{"result":{"stage":"capture","result":"rows"}}},"steps":[{"from":"left_rows","filter":"id <> ''","as":"left"},{"from":"left","join":{"with":"remote","kind":"inner","on":[{"left":"id","right":"id"}],"select":{"id":"left.id","text":"right.text"}},"as":"joined"},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
   let document = if joined_producer {

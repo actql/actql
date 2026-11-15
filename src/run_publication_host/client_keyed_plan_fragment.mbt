@@ -2,7 +2,9 @@
 // Pure compiler inputs belonging to one original checked keyed join. Retained
 // sequences and port indices are not completed rows, access or an IO grant.
 priv struct ClientKeyedPlanFragmentInputs {
-  occurrence : ClientInferOccurrence
+  program : PreparedClientProgram
+  preparation : @lower.BoundPrepared
+  task : Int
   acquisition : ClientKeyedAcquisition
   left : ClientTaskPipelineInput
   joined : ClientTaskPipelineInput
@@ -25,6 +27,25 @@ fn client_keyed_plan_acquisition_matches(
       client_infer_occurrence_matches_effect(occurrence, original)
   }) &&
   physical_equal(acquisition.owner, occurrence.preparation)
+}
+
+///|
+// Common immutable compiler binding, after the Model or Source-only caller
+// has selected its actual checked occurrence. This is no execution original,
+// physical input, Model stand-in or authority to open a Source.
+fn client_keyed_plan_program_matches(
+  acquisition : ClientKeyedAcquisition,
+  program : PreparedClientProgram,
+) -> Bool {
+  match acquisition.program {
+    KeyedPure(original) => physical_equal(original, program)
+    KeyedEffect(original) =>
+      physical_equal(
+        @strategy.checked_effect_computation_graph(original.graph),
+        program.graph,
+      ) &&
+      physical_equal(original.source, program.source)
+  }
 }
 
 ///|
@@ -91,10 +112,37 @@ fn prepare_client_keyed_plan_fragment_inputs(
     acquisition.binding.stage == occurrence.stage else {
     return Err(UnsupportedProgram)
   }
+  prepare_client_keyed_plan_fragment_inputs_original(
+    occurrence.owner,
+    occurrence.preparation,
+    occurrence.task,
+    occurrence.step - 1,
+    acquisition,
+    sequence_limits,
+    max_nodes,
+  )
+}
+
+///|
+fn prepare_client_keyed_plan_fragment_inputs_original(
+  program : PreparedClientProgram,
+  preparation : @lower.BoundPrepared,
+  task : Int,
+  final_step : Int,
+  acquisition : ClientKeyedAcquisition,
+  sequence_limits : @lower.SequenceLimits,
+  max_nodes : Int,
+) -> Result[ClientKeyedPlanFragmentInputs, ClientInferPlanGraphIssue] {
+  guard client_keyed_plan_program_matches(acquisition, program) &&
+    physical_equal(acquisition.owner, preparation) &&
+    client_keyed_acquisition_coordinates(acquisition)
+    is Some((_, original_task, _)) &&
+    original_task == task else {
+    return Err(UnsupportedProgram)
+  }
   let left_target = @acquisition.keyed_join_left(acquisition.binding.join)
   let join_step = @acquisition.keyed_join_step(acquisition.binding.join)
-  let final_step = occurrence.step - 1
-  let prepared = @lower.bound_preparation(occurrence.preparation)
+  let prepared = @lower.bound_preparation(preparation)
   guard join_step <= final_step &&
     @lower.node_at(prepared, final_step) is Some(final_node) else {
     return Err(UnsupportedProgram)
@@ -120,7 +168,7 @@ fn prepare_client_keyed_plan_fragment_inputs(
   }
   let left = match
     prepare_client_task_pipeline_input(
-      occurrence.preparation,
+      preparation,
       left_step,
       left_output,
       None,
@@ -137,7 +185,7 @@ fn prepare_client_keyed_plan_fragment_inputs(
   }
   let joined = match
     prepare_client_task_pipeline_input(
-      occurrence.preparation,
+      preparation,
       final_step,
       @lower.node_id(final_node),
       Some(join_step),
@@ -156,12 +204,11 @@ fn prepare_client_keyed_plan_fragment_inputs(
         Err(issue) => return Err(Input(issue))
       }
   }
-  let prefix = "task_" +
-    occurrence.task.to_string() +
-    "_lookup_" +
-    join_step.to_string()
+  let prefix = "task_" + task.to_string() + "_lookup_" + join_step.to_string()
   Ok({
-    occurrence,
+    program,
+    preparation,
+    task,
     acquisition,
     left,
     joined,
@@ -189,7 +236,7 @@ fn measure_client_keyed_plan_fragments(
 ] {
   let before = match
     measure_client_task_fragment_construction(
-      original.occurrence.preparation,
+      original.preparation,
       original.left_target,
       None,
       original.left_node_id,
@@ -204,7 +251,7 @@ fn measure_client_keyed_plan_fragments(
   }
   let joined = match
     measure_client_task_fragment_construction(
-      original.occurrence.preparation,
+      original.preparation,
       @pipeline.Step(original.final_step),
       Some(original.join_step),
       original.joined_node_id,
@@ -252,7 +299,7 @@ fn issue_client_keyed_plan_fragments(
   }
   let before = match
     issue_client_task_fragment_body(
-      original.occurrence.preparation,
+      original.preparation,
       original.left_target,
       None,
       original.left_node_id,
@@ -267,7 +314,7 @@ fn issue_client_keyed_plan_fragments(
   }
   let joined = match
     issue_client_task_fragment_body(
-      original.occurrence.preparation,
+      original.preparation,
       @pipeline.Step(original.final_step),
       Some(original.join_step),
       original.joined_node_id,

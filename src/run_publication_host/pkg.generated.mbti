@@ -221,6 +221,8 @@ pub fn bind_client_acquired_serialization_input_identity(ClientCompiledRun, Clie
 
 pub fn bind_client_effect_compiled_run(PreparedClientEffectComputation, ClientEffectAllowedRun, @run_publication.PublicationContract) -> Result[PreparedClientEffectRun, ClientEffectCompiledRunIssue]
 
+pub fn bind_client_effect_keyed_original(PreparedClientEffectComputation, ClientEffectCompilation, ClientCompiledRun, @run_publication.PublicationContract, ClientRequestIdentity, ClientEffectKeyedPlanGraph, ClientKeyedAcquisition, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity) -> Result[ClientEffectKeyedOriginal, ClientKeyedRequestIssue]
+
 pub fn bind_client_effect_model_read_scopes(ClientEffectCompilation, ClientCompiledRun, @run_publication.PublicationContract, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, Array[Int64], Array[Int64]) -> Result[Array[ClientModelReadScope], ClientModelReadPreparationIssue]
 
 pub fn bind_client_effect_producer_artifact(PreparedClientEffectRun, @physical_strategy_host.CapturedEffectRunDAG, ClientEffectLocalResultArtifact) -> Result[ClientEffectProducerArtifact, ClientEffectTransferredArtifactIssue]
@@ -479,6 +481,8 @@ pub fn client_composed_keyed_lookup_sources(ClientKeyedLookupInput, ClientInferO
 
 pub fn client_composed_keyed_lookup_sources_match(ClientKeyedLookupInput, ClientInferOccurrence, Array[@execution_query.CapturedInputSource]) -> Bool
 
+pub fn client_composed_keyed_model_origin_construction_inventory() -> @execution_relation.PreparationRepresentationUnits
+
 pub fn client_composed_keyed_request_matches_model_parent(ClientKeyedRequest, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @physical_resources.Ledger) -> Bool
 
 pub fn client_composed_keyed_request_model_rows(ClientKeyedRequest, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @physical_resources.Ledger) -> Int?
@@ -518,6 +522,10 @@ pub fn client_effect_acquired_request_cid(ClientEffectAcquiredEvidence) -> Strin
 pub fn client_effect_allowed_infer_run(ClientEffectAllowedRun) -> Result[ClientCompiledRun, ClientCompiledRunIssue]
 
 pub fn client_effect_allowed_infer_run_with_policy_body(ClientEffectAllowedRun, String?, String?, Int, Int, Int) -> Result[ClientCompiledRun, ClientCompiledRunIssue]
+
+pub fn client_effect_allowed_keyed_run(ClientEffectAllowedRun, ClientEffectKeyedPlanGraph, @run_publication.PublicationContract) -> Result[ClientCompiledRun, ClientCompiledRunIssue]
+
+pub fn client_effect_allowed_keyed_run_construction_inventory() -> @execution_relation.PreparationRepresentationUnits
 
 pub fn client_effect_allowed_run_admission(ClientEffectAllowedRun) -> @run_publication.RunPublicationAdmission
 
@@ -596,6 +604,44 @@ pub fn client_effect_imported_result_evidence_refs(ClientEffectRunMaterials, @ph
 pub fn client_effect_imported_scope_json(ClientEffectImportedEvidence) -> String
 
 pub fn client_effect_issued_normalization_materials_wire(ClientEffectIssuedNormalizationMaterials) -> String
+
+pub fn client_effect_keyed_capture_start_construction_inventory(ClientEffectKeyedOriginal) -> @execution_relation.PreparationRepresentationUnits?
+
+pub fn client_effect_keyed_lookup_matches_parent(ClientKeyedLookupInput, ClientEffectKeyedOriginal, @physical_resources.Ledger) -> Bool
+
+pub fn client_effect_keyed_lookup_sources_match(ClientKeyedLookupInput, ClientEffectKeyedOriginal, Array[@execution_query.CapturedInputSource]) -> Bool
+
+pub fn client_effect_keyed_native_activation_matches(ClientKeyedNativeActivation, ClientRequestIdentity, ClientEffectKeyedOriginal) -> Bool
+
+pub fn client_effect_keyed_native_captured_page_matches(ClientKeyedNativeCapturedPage, ClientKeyedRequest, ClientRequestIdentity, ClientEffectKeyedOriginal) -> Bool
+
+pub fn client_effect_keyed_original_construction_inventory() -> @execution_relation.PreparationRepresentationUnits
+
+pub fn client_effect_keyed_original_current(ClientEffectKeyedOriginal) -> Bool
+
+pub fn client_effect_keyed_original_matches(ClientEffectKeyedOriginal, PreparedClientEffectComputation, ClientCompiledRun, @run_publication.PublicationContract, ClientRequestIdentity, ClientEffectKeyedPlanGraph, ClientKeyedAcquisition, @physical_resources.Ledger) -> Bool
+
+pub fn client_effect_keyed_plan_graph_coordinates(ClientEffectKeyedPlanGraph) -> (Int, Int, Int)
+
+pub fn client_effect_keyed_plan_graph_matches(ClientEffectKeyedPlanGraph, PreparedClientEffectComputation, ClientKeyedAcquisition) -> Bool
+
+pub fn client_effect_keyed_request_matches_parent(ClientKeyedRequest, ClientEffectKeyedOriginal, @physical_resources.Ledger) -> Bool
+
+pub fn client_effect_keyed_request_retained_parent(ClientKeyedRequest, ClientEffectKeyedOriginal, @physical_resources.Ledger) -> Bool
+
+pub fn client_effect_keyed_request_rows(ClientKeyedRequest, ClientEffectKeyedOriginal, @physical_resources.Ledger) -> Int?
+
+pub fn client_effect_keyed_source_public_result_evidence_refs(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, ClientEffectKeyedSourceUnit, ClientEffectLocalResultArtifact, Int, @run_publication.PublicationContract, @run_publication.RunEvidenceValue) -> Result[(String, Array[String], String, String, String), ClientEffectLocalResultArtifactIssue]
+
+pub fn client_effect_keyed_source_unit_artifact_construction_geometry(PreparedClientEffectComputation, ClientEffectKeyedSourceUnit, String, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, Int, Int, Int) -> Result[Array[(String, @encode_core.EncodingConstructionGeometry)], ClientEffectLocalResultArtifactIssue]
+
+pub fn client_effect_keyed_source_unit_construction_inventory() -> @execution_relation.PreparationRepresentationUnits
+
+pub fn client_effect_keyed_source_unit_invocation(ClientEffectKeyedSourceUnit) -> ClientEffectLocalInvocation
+
+pub fn client_effect_keyed_source_unit_metadata_bodies(ClientEffectKeyedSourceUnit) -> Array[(String, String, String)]
+
+pub fn client_effect_keyed_source_unit_scope_json(ClientEffectKeyedSourceUnit) -> String
 
 pub fn client_effect_local_artifact_definition_cid(ClientEffectLocalResultArtifact) -> String
 
@@ -948,6 +994,8 @@ pub fn client_keyed_lookup_dag_matches(ClientKeyedLookupInput, @physical_strateg
 pub fn client_keyed_lookup_input_identity(ClientKeyedLookupInput) -> String?
 
 pub fn client_keyed_lookup_input_work(ClientKeyedLookupInput) -> Int64
+
+pub fn client_keyed_lookup_left(ClientKeyedLookupInput) -> ClientKeyedLeftRead
 
 pub fn client_keyed_lookup_native_completion(ClientKeyedLookupInput) -> ClientKeyedNativeCompletion?
 
@@ -1819,6 +1867,10 @@ pub fn issue_client_effect_direct_sources_invocation(PreparedClientEffectComputa
 
 pub fn issue_client_effect_imported_evidence(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, Array[ClientEffectResultImportObservation], Int, Int, Int) -> Result[ClientEffectImportedEvidence, ClientEffectImportedEvidenceIssue]
 
+pub fn issue_client_effect_keyed_captured_invocation(ClientEffectKeyedOriginal, ClientKeyedLookupInput, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, String, String, Int, Int, Int, before_body? : ((String, @encode_core.EncodingConstructionGeometry) -> Bool)?) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
+
+pub fn issue_client_effect_keyed_plan_graph(ClientEffectKeyedPlanConstruction, Int, Int, Int) -> Result[ClientEffectKeyedPlanGraph, ClientInferPlanGraphIssue]
+
 pub fn issue_client_effect_local_manifest(PreparedClientEffectComputation, ClientEffectLocalInvocation, Array[ClientEffectLocalResultArtifact], Int, Int, Int) -> Result[ClientEffectLocalManifest, ClientEffectLocalManifestIssue]
 
 pub fn issue_client_effect_local_result_definition(PreparedClientEffectComputation, Int, String, Int, Int, Int) -> Result[ClientEffectLocalResultDefinition, ClientEffectLocalResultDefinitionIssue]
@@ -1906,6 +1958,10 @@ pub fn issue_imported_client_effect_local_table_artifact(PreparedClientEffectCom
 pub fn issue_installed_client_composed_infer_plan_graph(ClientInferOccurrence, @check_environment.ModelExecutionContract, @lowering_relation.SequenceLimits, Int, Int, Int, construction? : ClientInferGraphConstruction?, keyed_native_read? : (ClientKeyedAcquisition, @run_publication.PublicationContract)?) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue]
 
 pub fn issue_installed_client_infer_plan_graph(PreparedClientProgram, Int, @check_environment.ModelExecutionContract, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue]
+
+pub fn issue_keyed_source_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectKeyedSourceUnit, ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
+
+pub fn issue_keyed_source_client_effect_unit_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectLocalUnitInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectKeyedSourceUnit, ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
 
 pub fn issue_model_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectModelAcquiredEvidence, @execution_relation.CompletedOutput, ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
 
@@ -2037,6 +2093,8 @@ pub fn lower_client_source_input_query(ClientSourceInput, @client_source_publica
 
 pub fn measure_client_compiled_run_static_plan_view(ClientCompiledRun, PreparedClientProgram, Int, Int, Int, inspect_installed? : Bool, before_carrier_measurement? : ((@carrier_contract.Carrier) -> Bool)?) -> Result[ClientStaticPlanViewConstruction, ClientCompiledRunPlanIssue]
 
+pub fn measure_client_effect_keyed_plan_construction(PreparedClientEffectComputation, ClientKeyedAcquisition, @run_publication.PublicationContract, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientEffectKeyedPlanConstruction, ClientInferPlanGraphIssue]
+
 pub fn measure_client_local_normalization_construction(ClientLocalNormalizationPreparation) -> Result[ClientLocalNormalizationConstruction, ClientLocalNormalizationIssue]
 
 pub fn measure_client_model_provider_binding_construction(String) -> (Int, Int, Int)?
@@ -2156,6 +2214,14 @@ pub fn prepare_client_effect_computation(String, @stage_syntax.Format, @program_
 pub fn prepare_client_effect_direct_sources_publication(PreparedClientEffectComputation, ClientEffectCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, ClientDirectAcquisitionOccurrences, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[ClientDirectSourceOriginal], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], String, String, String, String, Int, Int, Int) -> Result[ClientEffectDirectSourcesPublication, @run_publication.RunEvidenceValueIssue]
 
 pub fn prepare_client_effect_keyed_acquisition(PreparedClientEffectComputation, Int, Int, Int, join_step? : Int?) -> Result[ClientKeyedAcquisition, ClientKeyedAcquisitionIssue]
+
+pub fn prepare_client_effect_keyed_declared_file_activation_record(ClientKeyedNativeActivation, ClientRequestIdentity, ClientEffectKeyedOriginal, Int) -> Result[String, ClientKeyedRequestIssue]
+
+pub fn prepare_client_effect_keyed_declared_file_page_record(ClientKeyedNativeCapturedPage, ClientKeyedRequest, ClientRequestIdentity, ClientEffectKeyedOriginal, Int) -> Result[String, ClientKeyedRequestIssue]
+
+pub fn prepare_client_effect_keyed_plan_graph(PreparedClientEffectComputation, ClientKeyedAcquisition, @run_publication.PublicationContract, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientEffectKeyedPlanGraph, ClientInferPlanGraphIssue]
+
+pub fn prepare_client_effect_keyed_source_unit(ClientEffectKeyedOriginal, ClientKeyedLookupInput, @physical_strategy_host.CapturedEffectRunDAG, @run_publication.PublicationContract, Int, Int, Int, before_body? : ((String, @encode_core.EncodingConstructionGeometry) -> Bool)?) -> Result[ClientEffectKeyedSourceUnit, ClientEffectAcquiredEvidenceIssue]
 
 pub fn prepare_client_effect_publication_inventory(ClientEffectCompilation) -> Result[@run_publication.CheckedPublicationInventory, @run_publication.PublicationInventoryIssue]
 
@@ -2393,6 +2459,8 @@ pub fn prepared_client_effect_infer_occurrence(PreparedClientEffectComputation) 
 
 pub fn prepared_client_effect_infer_occurrences(PreparedClientEffectComputation) -> Array[ClientInferOccurrence]?
 
+pub fn prepared_client_effect_keyed_plan_measurement_storage(PreparedClientEffectComputation, ClientKeyedAcquisition) -> @execution_relation.PreparationRepresentationUnits?
+
 pub fn prepared_client_effect_measurement_storage(ClientEffectCompilationConstructionInput, ClientPureCompilationLimits) -> Result[@execution_relation.PreparationRepresentationUnits, ClientValuesExecutablePlanIssue]
 
 pub fn prepared_client_effect_normalization_evidence(PreparedClientEffectComputation, ClientEffectNormalization) -> Result[@run_publication.RunEvidenceValue, ClientEffectNormalizationIssue]
@@ -2623,6 +2691,8 @@ pub fn select_client_effect_direct_acquisition_occurrences(PreparedClientEffectC
 
 pub fn select_client_effect_model_keyed_acquisition(PreparedClientEffectComputation, ClientInferOccurrence) -> Result[ClientKeyedAcquisition?, ClientKeyedAcquisitionIssue]
 
+pub fn select_client_effect_single_keyed_acquisition(PreparedClientEffectComputation) -> Result[ClientKeyedAcquisition?, ClientKeyedAcquisitionIssue]
+
 pub fn select_client_project_model_task(ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration, Int) -> Result[ClientProjectModelTaskSelection, ClientProjectModelTaskSelectionIssue]
 
 pub fn select_client_project_profile(ClientProjectConfiguration?, String?, Int) -> Result[ClientProjectProfileSelection, ClientProjectProfileIssue]
@@ -2648,6 +2718,8 @@ pub fn[T] start_captured_managed_result_transformation(ClientResultTransformatio
 pub fn start_captured_result_publication_export(@physical_strategy_host.CapturedDAG, Int, PublicationOutputExportLimits, converted_output? : @execution_relation.CompletedOutput, max_pins? : Int) -> Result[CapturedClientResultTransformation, CapturedClientResultTransformationIssue]
 
 pub fn start_client_composed_keyed_file_locator(ClientKeyedLookupInput, ClientKeyedRequest, Array[@execution_query.CapturedInputSource], Array[@execution_relation.SuppliedRelationRead?]) -> Result[ClientKeyedFileLocator, ClientKeyedRequestIssue]
+
+pub fn start_client_effect_keyed_capture_lookup_input(ClientEffectKeyedOriginal, Array[@client_row_source_host.RowCapturedInput], Int, Int, Int, Int) -> Result[ClientKeyedLookupInput, ClientKeyedRequestIssue]
 
 pub fn start_client_keyed_declared_file_request_plan(ClientKeyedLookupInput, String, Int64, String) -> Result[Unit, ClientKeyedRequestIssue]
 
@@ -3115,6 +3187,21 @@ pub(all) enum ClientEffectImportedEvidenceIssue {
 } derive(Eq, @debug.Debug)
 
 type ClientEffectIssuedNormalizationMaterials
+
+type ClientEffectKeyedOriginal
+
+pub struct ClientEffectKeyedPlanConstruction {
+  fragments : Array[ClientTaskFragmentConstruction]
+  barrier : (Int, Int, Int)
+  node : (Int, Int, Int)
+  // private fields
+}
+
+pub struct ClientEffectKeyedPlanGraph {
+  // private fields
+}
+
+type ClientEffectKeyedSourceUnit
 
 type ClientEffectLocalIdentity
 

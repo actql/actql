@@ -73,7 +73,7 @@ fn keyed_lookup_native_dependency_bodies_from_original(
     lookup.native_completion is Some(same_completion) &&
     physical_equal(same_completion, completed) &&
     lookup.left.composed is Some(original) &&
-    original.plan.keyed is Some(component) &&
+    client_composed_keyed_original_component(original) is Some(component) &&
     original.keyed.program is KeyedEffect(prepared) &&
     lookup.native_sources is Some(native) &&
     native.relation is Some(left) &&
@@ -302,7 +302,7 @@ fn keyed_lookup_native_dependency_bodies_from_original(
       @execution.relation_schema_cid(right_schema),
       right_bodies.1,
     )
-    guard original.plan.graph_nodes
+    guard client_composed_keyed_original_graph_nodes(original)
       .iter()
       .find_first(node => {
         @canonical.object_field(node, "node_id")
@@ -456,7 +456,7 @@ fn keyed_lookup_native_dependency_bodies_from_original(
           let body = require_native_lookup_dependency(
             @checked.checked_local_catalog_dependency_body(
               program,
-              original.plan.stage,
+              client_composed_keyed_original_stage(original),
               kind,
               cid,
               remaining,

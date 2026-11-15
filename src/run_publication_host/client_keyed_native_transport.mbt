@@ -5,7 +5,7 @@ fn check_client_keyed_native_read_profile(
   profile : @publication.PublicationContract,
 ) -> Result[Unit, ClientKeyedRequestIssue] {
   if lookup.left.composed is Some(original) &&
-    original.plan.keyed is Some(component) {
+    client_composed_keyed_original_component(original) is Some(component) {
     guard physical_equal(original.keyed, lookup.left.acquisition) &&
       physical_equal(component.original.fragments.acquisition, original.keyed) &&
       physical_equal(component.original.profile, profile) else {

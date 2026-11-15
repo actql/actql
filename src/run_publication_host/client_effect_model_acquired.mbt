@@ -76,7 +76,9 @@ pub fn issue_single_model_client_effect_acquired_evidence(
       }
       guard lookup.left.composed is Some(original) &&
         physical_equal(original.compiled, compiled) &&
-        client_infer_occurrence_matches_plan(sources.occurrence, original.plan) else {
+        client_composed_keyed_original_model_plan(original)
+        is Some(original_plan) &&
+        client_infer_occurrence_matches_plan(sources.occurrence, original_plan) else {
         return Err(Invocation(ForeignCapturedInput))
       }
       guard call_scope.named_sources.any(entry => {
@@ -88,7 +90,7 @@ pub fn issue_single_model_client_effect_acquired_evidence(
       }
       if client_infer_occurrence_coordinates(sources.occurrence) ==
         client_infer_occurrence_coordinates(call_scope.plan.occurrence) {
-        guard physical_equal(original.plan, call_scope.plan) else {
+        guard physical_equal(original_plan, call_scope.plan) else {
           return Err(Invocation(ForeignCapturedInput))
         }
       } else {

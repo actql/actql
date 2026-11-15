@@ -73,7 +73,7 @@ fn prepare_client_keyed_native_left_identity_owned(
 ) -> Result[ClientKeyedNativeLeftIdentity, ClientKeyedRequestIssue] {
   guard native_left_identity_preplanning(lookup) &&
     lookup.left.composed is Some(original) &&
-    original.plan.keyed is Some(component) &&
+    client_composed_keyed_original_component(original) is Some(component) &&
     client_keyed_left_available(lookup.left) &&
     client_composed_keyed_original_output(original) is Some(output) else {
     return Err(Assembly("foreign_or_started_native_left_identity"))
@@ -288,7 +288,7 @@ pub fn prepare_client_keyed_captured_left_identity(
   max_work : Int,
 ) -> Result[ClientKeyedNativeLeftIdentity, ClientKeyedRequestIssue] {
   guard lookup.left.composed is Some(original) &&
-    original.plan.keyed is Some(component) else {
+    client_composed_keyed_original_component(original) is Some(component) else {
     return Err(Assembly("foreign_captured_left_identity"))
   }
   let width = component.original.left_fields.length()

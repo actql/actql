@@ -67,7 +67,7 @@ fn prepare_native_keyed_lookup_completion(
     lookup.completed_responses == order.length() &&
     order.length() == lookup.known.length() &&
     lookup.left.composed is Some(original) &&
-    original.plan.keyed is Some(component) &&
+    client_composed_keyed_original_component(original) is Some(component) &&
     @environment.lookup_execution_policy(
       @acquisition.lookup_bounds_policy(lookup.left.acquisition.binding.bounds),
     )
@@ -199,7 +199,6 @@ fn build_native_keyed_lookup_completion(
       physical_equal(activation.original, lookup) &&
       physical_equal(activation.request, history.request) &&
       physical_equal(activation.definition, original.definition) &&
-      physical_equal(activation.graph, original.plan) &&
       physical_equal(activation.batch, batch) &&
       client_request_identity_relation(activation.client_request, request)
       is SameRequest &&

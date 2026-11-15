@@ -155,7 +155,7 @@ fn prepare_client_keyed_captured_page_owned(
     @publication.file_read_profile_contract_bindings(profile)
     is Some((_, _, response_schema)) &&
     state.left.composed is Some(original) &&
-    original.plan.keyed is Some(component) &&
+    client_composed_keyed_original_component(original) is Some(component) &&
     @row_host.keyed_row_capture_matches_request(capture, request.request) &&
     client_keyed_left_available(state.left) else {
     return Err(Assembly("foreign_native_captured_page"))
@@ -541,13 +541,13 @@ fn build_client_keyed_native_captured_page(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if !client_keyed_native_captured_page_matches(
+  if !client_keyed_native_captured_page_matches_original(
       result,
       request,
       activation.client_request,
       original.compiled,
       original.definition,
-      original.plan,
+      original,
     ) {
     return Err(Assembly("retired_native_captured_page"))
   }
@@ -565,12 +565,32 @@ pub fn client_keyed_native_captured_page_matches(
   graph : ClientInferPlanGraph,
 ) -> Bool {
   guard request.assembly_accounting is Some(state) &&
+    state.left.composed is Some(original) &&
+    client_composed_keyed_original_model_plan(original) is Some(plan) &&
+    physical_equal(plan, graph) else {
+    return false
+  }
+  client_keyed_native_captured_page_matches_original(
+    page, request, client_request, compiled, definition, original,
+  )
+}
+
+///|
+fn client_keyed_native_captured_page_matches_original(
+  page : ClientKeyedNativeCapturedPage,
+  request : ClientKeyedRequest,
+  client_request : ClientRequestIdentity,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  expected : ClientComposedKeyedOriginal,
+) -> Bool {
+  guard request.assembly_accounting is Some(state) &&
     !state.closed &&
     state.left.lookup_issue is None &&
     state.left.composed is Some(original) &&
     physical_equal(original.compiled, compiled) &&
     physical_equal(original.definition, definition) &&
-    physical_equal(original.plan, graph) &&
+    physical_equal(original, expected) &&
     state.planned_requests is Some(requests) &&
     requests.get(request.row) is Some((same, slot)) &&
     physical_equal(same, request) &&
@@ -585,4 +605,29 @@ pub fn client_keyed_native_captured_page_matches(
   physical_equal(same_page, page) &&
   request.io_complete &&
   activation.usage.usage_final
+}
+
+///|
+pub fn client_effect_keyed_native_captured_page_matches(
+  page : ClientKeyedNativeCapturedPage,
+  request : ClientKeyedRequest,
+  client_request : ClientRequestIdentity,
+  parent : ClientEffectKeyedOriginal,
+) -> Bool {
+  guard request.assembly_accounting is Some(state) &&
+    state.left.composed is Some(original) &&
+    original.origin is SourceEffectOrigin(bound) &&
+    physical_equal(bound, parent) &&
+    client_request_identity_relation(parent.request, client_request)
+    is SameRequest else {
+    return false
+  }
+  client_keyed_native_captured_page_matches_original(
+    page,
+    request,
+    client_request,
+    parent.compiled,
+    parent.definition,
+    original,
+  )
 }

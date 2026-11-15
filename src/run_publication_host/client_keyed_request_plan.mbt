@@ -360,7 +360,7 @@ pub fn prepare_client_keyed_native_batch_plan(
     state.native_batch_plan is None &&
     state.left.lookup_issue is None &&
     state.left.composed is Some(original) &&
-    original.plan.keyed is Some(component) &&
+    client_composed_keyed_original_component(original) is Some(component) &&
     physical_equal(original.keyed, state.left.acquisition) &&
     physical_equal(component.original.fragments.acquisition, original.keyed) else {
     return Err(Assembly("unavailable_native_batch_plan"))

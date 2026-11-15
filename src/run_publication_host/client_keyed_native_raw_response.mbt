@@ -47,7 +47,7 @@ pub fn prepare_client_keyed_native_raw_response(
     state.left.composed is Some(original) &&
     physical_equal(original.compiled, compiled) &&
     physical_equal(original.definition, definition) &&
-    original.plan.keyed is Some(component) else {
+    client_composed_keyed_original_component(original) is Some(component) else {
     return Err(Assembly("foreign_native_raw_response"))
   }
   if captured_epoch <

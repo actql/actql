@@ -88,7 +88,7 @@ fn bind_client_keyed_captured_source_metadata(
     lookup.left.composed is Some(composed) &&
     composed.keyed.program is KeyedEffect(prepared) &&
     prepared_client_effect_request_scope(prepared, request) is Ok(_) &&
-    composed.plan.keyed is Some(component) &&
+    client_composed_keyed_original_component(composed) is Some(component) &&
     @publication.publication_contract_name(component.original.profile) ==
     "declared_file_content_read" &&
     composed.sources.get(index) is Some(source) &&
@@ -96,7 +96,7 @@ fn bind_client_keyed_captured_source_metadata(
     is Some(same_source) &&
     physical_equal(source, same_source) &&
     client_infer_source_tuple_matches(
-      composed.plan.owner,
+      client_composed_keyed_original_program(composed),
       source,
       identity,
       original,
