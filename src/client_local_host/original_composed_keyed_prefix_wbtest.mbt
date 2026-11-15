@@ -4022,11 +4022,16 @@ fn original_composed_keyed_consumer(
     let opened = open_installed_effect_managed_keyed_host(
       owner, bound, sources, lookup,
     ).unwrap()
-    // This fixture deliberately offers no physical Model/UPDATE provider.
-    // Configuration refuses while the actual parent retains the opened DAG;
-    // that refusal must not discard or replay its imported Root completions.
-    assert_true(opened is None)
+    // Opening retains a configured host without executing Model or UPDATE.
+    // The returned DAG is the SAME parent-owned DAG with imported completions;
+    // construction must neither discard those roots nor replay their reads.
+    guard opened is Some((_, opened_dag, _)) else {
+      fail("the original imported Source DAG opens without provider execution")
+    }
     let dag = owner.source_free_captured.unwrap()
+    assert_true(
+      physical_equal(@strategy.captured_effect_run_dag(opened_dag), dag),
+    )
     let (task, _, _) = @publication_host.client_infer_occurrence_coordinates(
       model._occurrence,
     )

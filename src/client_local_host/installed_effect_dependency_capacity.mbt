@@ -146,9 +146,14 @@ fn installed_effect_dependency_fixed_capacity(
   units : Int,
   depth : Int,
 ) -> @execution.ExecutionCapacity? {
-  if entries < 0 || units < 0 || depth < 0 || depth > 64 {
+  if entries < 0 || units < 0 || depth < 0 {
     return None
   }
+  // This numeric inventory also funds Definition recovery under its existing
+  // selected parser depth. Dependency readers retain their own depth policy;
+  // no independent depth policy belongs to a quote before construction.
+  // Int inputs widen before products; the collection and byte recipes below
+  // check all aggregate extents before the SAME parent reserves any vectors.
   let n = entries.to_int64()
   let d = depth.to_int64() + 1L
   let preflight = @source.json_source_preflight_control_extent()
