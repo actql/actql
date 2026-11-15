@@ -9,6 +9,7 @@ import {validateResourceAccounting, executableBoundaryFixturePresent} from './va
 import {deepFreeze, loadResourceAccountingSources} from './local-resource-accounting-sources.mjs';
 import {boundedSorterAliases, isProductionMoonSource, localResourceApiIssues} from './local-resource-api-guard.mjs';
 import {registeredResourceEnvironmentCase, registeredDirectTraversalHostCase} from './local-resource-environment-fixtures.mjs';
+import {localModuleGraphInputs} from './adapter-module-graph.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const script = join(root, 'scripts/check-local-resource-accounting.mjs');
@@ -4890,10 +4891,14 @@ test('synthetic typed refusals retain successful CLI summary-write and cleanup c
       mkdirSync(dirname(target), {recursive: true});
       writeFileSync(target, record.text);
     }
-    for (const name of ['check-local-resource-accounting.mjs',
-      'validate-local-resource-accounting.mjs', 'local-resource-accounting-sources.mjs',
-      'local-resource-api-guard.mjs', 'local-resource-environment-fixtures.mjs']) {
-      writeFileSync(join(directory, 'scripts', name), readFileSync(join(root, 'scripts', name)));
+    // Copy the actual local import closure. Adding a shared validator helper
+    // must not silently leave this isolated executable on an older source set.
+    for (const local of localModuleGraphInputs(root, ['scripts/check-local-resource-accounting.mjs'])) {
+      assert(!local.startsWith('/') && !local.split(/[\\/]/u).includes('..'));
+      const target = join(directory, local);
+      mkdirSync(dirname(target), {recursive: true});
+      const snapshot = fixture.sources[join(root, local)];
+      writeFileSync(target, snapshot?.text ?? readFileSync(join(root, local)));
     }
     const manifest = join(directory, relative(root, source));
     const routes = join(directory, manifestTemplate.production_routes);

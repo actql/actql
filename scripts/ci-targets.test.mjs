@@ -1461,42 +1461,26 @@ test('fast health monitor harness runs in PR and Draft lint without enabling the
   assert.deepEqual(jobs.lint.needs, ['select-targets']);
   assert(!jobs.lint.steps.some(step => step.run?.includes('npm run health:quick')));
 });
-test('Draft cheap command inventory excludes compiler API generation and compound suites', () => {
-  const commands = name => jobs[name].steps.filter(step => step.run && draftStepEnabled(step, 'draft')).map(step => step.run);
-  const preflight = commands('preflight');
-  // The pinned standalone workflow checker is also mandatory during Draft preparation.
-  // Its exact version, digest and all-workflow/fatal contract are checked by ci-preflight.test.mjs.
-  const workflowLint = jobs.preflight.steps.find(step => step.name === 'Check all workflows with pinned actionlint');
-  assert(workflowLint);
-  assert.equal(workflowLint.if, undefined);
-  assert.equal(workflowLint['continue-on-error'], undefined);
-  assert.deepEqual(preflight.filter(command => !command.includes('setup-moonbit')), [
-    workflowLint.run,
-    'node --test scripts/pure-operation-inventory.test.mjs',
-    'python3 scripts/test_native_timings.py CommandCounterMap', 'npm ci',
-    `node --input-type=module -e 'import {runFocusedTests} from "./scripts/test-execution.mjs"; process.exitCode=runFocusedTests("node",["--test-name-pattern","^check:.* retains its exact registered commands", "scripts/build-runtime-packages.test.mjs"],{cwd:process.cwd()});'`,
-    'node --test proofs/relation-pipeline/ci-artifacts.test.mjs', 'npm run check:contract-versions',
-    'npm run check:metadata', 'moon fmt --check', 'git diff --exit-code', 'node scripts/ci-preflight.mjs']);
-  assert.deepEqual(commands('lint'), ['npm ci', 'npm run check:client-types',
-    'node --test scripts/source-read-current-control.test.mjs',
-    'node --test scripts/ci-preflight.test.mjs', 'node --test scripts/ci-focused-tests.test.mjs',
-    'node --test scripts/ci-targets.test.mjs scripts/ci-main-base.test.mjs',
-    'node --test adapters/host-node/local-result-read-policy.test.mjs adapters/host-node/client-result-collection-policy.test.mjs adapters/host-node/request-memory-policy.test.mjs adapters/local-node/managed-advance-diagnostic.test.mjs scripts/packed-readme-ci.test.mjs scripts/packed-model-controls.test.mjs scripts/project-file-store-ledger-observation.test.mjs',
-    'node --test adapters/host-node/infer-model-effect-control.test.mjs adapters/host-node/acquired-effect-unknown-primary.test.mjs adapters/host-node/mock-project-effect-public.test.mjs adapters/host-common/observation.test.mjs adapters/host-common/sqlite-transaction.test.mjs scripts/owner-fault-mutations.test.mjs',
-    'node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- scripts/health-monitor.test.mjs',
-    'node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- adapters/connectors/gcs/test/gcs-file-listing.test.mjs adapters/connectors/gcs/test/gcs-prefix-profile.test.mjs adapters/connectors/gcs/test/gcs-site-profile-bounds.test.mjs adapters/connectors/snowflake/test/snowflake-key-pair.test.mjs adapters/connectors/snowflake/test/snowflake-public-fixture.test.mjs adapters/connectors/kintone/test/installed-kintone-managed-loader.test.mjs adapters/connectors/kintone/test/kintone-managed-sequence.test.mjs',
-    'node --test scripts/operation-performance.test.mjs scripts/operation-performance-policy.test.mjs scripts/native-approval-performance.test.mjs scripts/native-approval-cpu-diagnostic.test.mjs scripts/node-wait-cpu-diagnostic.test.mjs',
-    'node --test scripts/native-cli-default-numeric.test.mjs',
-    'node --test scripts/native-preparation-originals.test.mjs scripts/native-runtime-bundle-fixture.test.mjs scripts/native-preparation-lanes.test.mjs scripts/native-remote-runtime-isolation.test.mjs scripts/native-core-linux-common.test.mjs scripts/native-http-phases.test.mjs']);
-  assert.deepEqual(commands('spec'), ['npm ci', 'npm run check:links',
-    'npm run check:local-resource-completion', 'npm run check:execution-authorization-vectors', 'git diff --exit-code']);
+test('Draft excludes compiler API and full specification work while Ready runs both', () => {
+  // Check scheduling obligations, not a second copy of every lint command.
+  // Cheap tests may be added, reordered or regrouped without changing this contract.
+  for (const [name, command] of [
+    ['preflight', 'node scripts/check-moonbit-api.mjs'],
+    ['spec', 'npm run check:spec-after-preflight'],
+  ]) {
+    const selected = jobs[name].steps.filter(step => step.run === command);
+    assert.equal(selected.length, 1, `${name}: required check is missing or duplicated`);
+    assert.notEqual(selected[0]['continue-on-error'], true);
+    for (const profile of ['draft', 'draft-focused']) {
+      assert.equal(draftStepEnabled(selected[0], profile), false, `${name}/${profile}`);
+    }
+    for (const profile of ['full', 'maintenance', 'focused-tests']) {
+      assert.equal(draftStepEnabled(selected[0], profile), true, `${name}/${profile}`);
+    }
+  }
   for (const name of ['lint', 'spec']) {
     assert(!jobs[name].steps.some(step => draftStepEnabled(step, 'draft') &&
       (step.uses === './.github/actions/setup-toolchain' || step.uses?.startsWith('actions/setup-python@'))));
-  }
-  for (const profile of ['full', 'maintenance', 'focused-tests']) {
-    assert(jobs.preflight.steps.filter(step => step.run === 'node scripts/check-moonbit-api.mjs').every(step => draftStepEnabled(step, profile)));
-    assert(jobs.spec.steps.filter(step => step.run === 'npm run check:spec-after-preflight').every(step => draftStepEnabled(step, profile)));
   }
 });
 
