@@ -1171,6 +1171,7 @@ async function ownedClaimsStageFixture() {
   const opaque=[],events=[];let family=0,generic=0,constructors=0,refusal,frame;
   const effect={
     logicalItemLocator(scope,program,stage,id,wire){assert.equal(scope,requestScope);assert.equal(program,'program');assert.equal(stage,'stage');assert.equal(id,'owned-effect');return {wire};},
+    dispatchKeyCorrelationWire(key){const index=keys[0].indexOf(key);assert(index>=0);return JSON.stringify(body.effects[0].changes[index].row_preview_cid);},
     dispatchKeyCid(key){assert(keys[0].includes(key));return 'dispatch-key';},
     ledgerBasis(scope,locator,key,unit,member,row,request){assert.equal(scope,requestScope);assert(keys[0].includes(key));assert.equal(unit,cid('7'));const value={locator,key,row,request};opaque.push(value);return value;},
     admitPreviewIdentity(){return applyPreview;},
@@ -1179,7 +1180,7 @@ async function ownedClaimsStageFixture() {
   const orderedSourceIndexes=expression('orderedSourceIndexes',{fail});
   const claimsOf=expression('claimsOf',{effect,orderedSourceIndexes,
     recoveryCid:expression('recoveryCid',{ownerOf:()=>owner,cid:()=>cid('e')}),
-    canonicalValueJson:JSON.stringify,limits:{locator:{maxBytes:256},key:{maxBytes:256,maxNodes:64,maxDepth:4}},ownerOf:()=>owner});
+    canonicalValueJson(){assert.fail('locator must borrow issued key correlation');},limits:{locator:{maxBytes:256},key:{maxBytes:256,maxNodes:64,maxDepth:4}},ownerOf:()=>owner});
   const original={
     prepareSetIntents(preview,selected,maxWork){assert.equal(this,original);assert.equal(preview,admittedPreview);assert.equal(maxWork,100);
       assert(['family','generic'].includes(frame));constructors++;events.push('constructor');return result;},
@@ -1233,6 +1234,7 @@ test('owned claims actual captureStage output selects original Ledger family bef
   assert.equal(members[0].claims[0].canonicalRequestCid,f.entries[0][1].requestCid);
   assert.equal(members[0].claims[0].basis,f.opaque[0]);
   assert.equal(f.stage.receipt.members[0].rowOwners[0].claim,members[0].claims[0]);
+  assert.deepEqual(members[0].claims.map(c=>c.locator.wire),[JSON.stringify(cid('4')),JSON.stringify(cid('3'))]);
   assert.equal(Object.isFrozen(f.opaque[0]),false,'opaque original remains borrowed');
   for(const input of [f.body,f.body.effects,f.body.effects[0],f.body.effects[0].changes,f.entries,f.members])
     assert.equal(Object.isFrozen(input),false,'do not freeze caller-owned input');

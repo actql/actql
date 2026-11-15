@@ -99,6 +99,7 @@ function effectApplicationControl(moon) {
     dispatchKey: (...args) =>
       checked(moon.strategyEffectDispatchKey(...args)),
     dispatchKeyCid: moon.strategyEffectDispatchKeyCid,
+    dispatchKeyCorrelationWire: moon.strategyEffectDispatchKeyCorrelationWire,
     recoveredPreviewKeys: (...args) => checked(
       moon.strategyEffectRecoveredPreviewKeys(...args)),
     batchRowsShareMember: moon.strategyEffectBatchRowsShareMember,
@@ -6088,6 +6089,16 @@ function publicationControl(moon) {
       if (admitted === undefined) throw new TypeError('Foreign Effect computation Preview');
       return checked(moon.clientProgramInstalledEffectRecoveredInputInventoryRetain(
         run, prepared, request, plan, allowed, definition, token(invocation), admitted));
+    },
+    recoverInstalledEffectPreviewKeys(run, prepared, request, plan,
+      allowed, definition, invocation, preview, scope, maxMembers, maxRows, maxWork,
+      maxKeyBytes, maxKeyNodes, maxKeyDepth, construction) {
+      const admitted = computationPreviewTokens.get(preview);
+      if (admitted === undefined) throw new TypeError('Foreign Effect computation Preview');
+      if (typeof construction !== 'function') throw new TypeError('Missing original Effect construction');
+      return checked(construction(moon, moon.clientProgramInstalledEffectRecoveredPreviewKeys, [
+        run, prepared, request, plan, allowed, definition, token(invocation), admitted, scope,
+        maxMembers, maxRows, maxWork, maxKeyBytes, maxKeyNodes, maxKeyDepth]));
     },
     effectComputationPreviewSemanticCid(preview) {
       const admitted = computationPreviewTokens.get(preview);

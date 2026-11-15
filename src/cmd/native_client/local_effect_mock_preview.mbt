@@ -417,16 +417,8 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_preview(
       let row_cids = []
       for
         row in 0..<@publication.effect_preview_row_count(identity, index).unwrap() {
-        let correlation = @publication.effect_preview_row_correlation_wire(
-          identity, index, row,
-        ).unwrap()
-        let key = @effect.prepare_effect_dispatch_key(
-            scope,
-            @publication.effect_preview_semantic_identity(identity),
-            correlation,
-            key_bytes,
-            key_nodes,
-            key_depth,
+        let key = @effect.prepare_effect_preview_row_dispatch_key(
+            identity, scope, index, row, key_bytes, key_nodes, key_depth,
           )
           .map_err(issue => {
             LocalNativeMockEffectProposalIssue::PreviewDispatch(issue)

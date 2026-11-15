@@ -2005,3 +2005,58 @@ test('installing capture task preserves a failed original task until real alias 
   assert.equal(child.release(), false); assert.equal(f.settlements(), 0);
   f.retireAliases(); assert.equal(child.release(), true); assert.equal(f.settlements(), 1);
 });
+
+
+test('original funded key constructors retain the same flight and captured methods without a second generic frame', () => {
+  for (const [name, count] of [['clientProgramAuthorInstalledEffectPreview',19], ['clientProgramInstalledEffectRecoveredPreviewKeys',15]]) {
+    let f; const value = {$tag:1,_0:{}};
+    const method = function (...args) {
+      assert.strictEqual(this, f.runtime);
+      assert.deepEqual(args.slice(0,4), [f.run.value,f.run.prepared,f.run.request,f.run.operationPlan]);
+      assert.equal(f.run.selecting, true);
+      assert.equal(f.work.retire(), false);
+      assert.throws(() => f.work(this, method, args), {code:'InstalledEffectControlConstructionPending'});
+      f.events.push('keys'); return value;
+    };
+    f = controlWorkFixture({[name]:method,
+      clientProgramInstalledEffectOperationControlConstructionBegin(){assert.fail('constructor funds itself on original Core');}});
+    const args = [f.run.value,f.run.prepared,f.run.request,f.run.operationPlan,...Array(count-4).fill(undefined)];
+    f.runtime[name] = () => assert.fail('replaced original');
+    assert.strictEqual(f.work(f.runtime, method, args), value);
+    assert.deepEqual(f.events, ['keys']); assert.equal(f.run.selecting,false);
+  }
+});
+
+test('funded key constructors do not exempt foreign substituted extra or executable arguments', () => {
+  for (const mode of ['receiver','method','parent','prepared','request','plan','extra','getter','proxy','replaced']) {
+    const blocked = new Error('original generic frame refused'); let reads=0;
+    const original = () => assert.fail('unfunded key method');
+    const f = controlWorkFixture({clientProgramAuthorInstalledEffectPreview:original,
+      clientProgramInstalledEffectOperationControlConstructionBegin(){throw blocked;}});
+    let receiver=f.runtime,method=original;
+    let args=[f.run.value,f.run.prepared,f.run.request,f.run.operationPlan,...Array(15).fill(undefined)];
+    if(mode==='receiver')receiver={};
+    if(mode==='method')method=(...values)=>Reflect.apply(original,receiver,values);
+    for(const [index,label] of ['parent','prepared','request','plan'].entries())if(mode===label)args[index]={};
+    if(mode==='extra')args.push(undefined);
+    if(mode==='getter')Object.defineProperty(args,'0',{get(){reads++;throw new Error('getter');}});
+    if(mode==='proxy')args=new Proxy(args,{get(){reads++;throw new Error('trap');},getOwnPropertyDescriptor(){reads++;throw new Error('trap');}});
+    if(mode==='replaced')f.runtime.clientProgramAuthorInstalledEffectPreview=method=()=>assert.fail('replacement');
+    assert.throws(()=>f.work(receiver,method,args),error=>error===blocked);
+    assert.equal(reads,0);
+  }
+});
+
+test('funded key current or owner replacement keeps the original refusal and cannot retry construction', () => {
+  for (const mode of ['current','replace','result']) {
+    const primary=new Error('original current');let f,reads=0,keys=0;
+    const method=()=>{keys++;if(mode==='replace')f.run.value={};return mode==='result'?{$tag:0,_0:primary}:{$tag:1,_0:{}};};
+    f=controlWorkFixture({clientProgramInstalledEffectRecoveredPreviewKeys:method,
+      clientProgramInstalledEffectManagedOperationPlan(){reads++;if(mode==='current')throw primary;return {$tag:1,_0:f.run.operationPlan};}});
+    const args=[f.run.value,f.run.prepared,f.run.request,f.run.operationPlan,...Array(11).fill(undefined)];
+    let refusal;
+    assert.throws(()=>f.work(f.runtime,method,args),error=>{refusal=error;return mode==='current'?error===primary:mode==='result'?error.code==='MoonBitHostFailure'&&error.cause===primary:error.code==='ForeignInstalledEffectManagedRun';});
+    assert.throws(()=>f.work(f.runtime,method,args),error=>error===refusal);
+    assert.equal(keys,mode==='current'?0:1);assert.equal(f.run.selecting,false);
+  }
+});

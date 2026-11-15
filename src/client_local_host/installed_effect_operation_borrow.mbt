@@ -150,7 +150,10 @@ fn installed_effect_operation_control_capacity(
     69L +
     4L +
     recovery.record_headers,
+    // Two captured original Core key methods extend the same JS control
+    // closure. Mutable runtime properties cannot replace those constructors.
     reference_slots: dependency_cache.reference_slots +
+    2L +
     1L +
     4L +
     32L +

@@ -2319,7 +2319,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   // The Preview of the Effect Unit: the common draft with each member's rows
   // (create rows already in canonical order) stated as their exact values,
   // and each update row's observed target, version and before value.
-  function authorPreview({control, prepared, inputs, context, requestScope, limits,
+  function authorPreview({control, prepared, inputs, context, requestScope, limits, managedEffect,
     members, rowsOf, capabilities, footprints, payloads}) {
     const {maxWireBytes, maxNodes, maxDepth} = limits.preview;
     const requestAuthority = moon.clientProgramEffectRequestAuthority(
@@ -2428,10 +2428,17 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const canonical = checked(moon.clientProgramCanonicalEffectPreviewDraft(
       draftWire, maxWireBytes, maxNodes, maxDepth));
     const authoringCid = draft.authoring_context.authoring_context_cid;
-    const authored = checked(moon.clientProgramAuthorEffectPreview(
-      canonical, draft.run_identity_cid, authoringCid, requestScope,
-      maxWireBytes, maxNodes, maxDepth, members.length, rowCount,
-      limits.key.maxBytes, limits.key.maxNodes, limits.key.maxDepth));
+    const authored = managedEffect === undefined
+      ? checked(moon.clientProgramAuthorEffectPreview(
+        canonical, draft.run_identity_cid, authoringCid, requestScope,
+        maxWireBytes, maxNodes, maxDepth, members.length, rowCount,
+        limits.key.maxBytes, limits.key.maxNodes, limits.key.maxDepth))
+      : checked(managedEffect.controlConstruction(moon, moon.clientProgramAuthorInstalledEffectPreview, [
+        managedEffect.value, prepared, managedEffect.request, managedEffect.operationPlan,
+        managedEffect.definitionOriginal.allowed, context.runDefinition, context.runInvocation,
+        canonical, draft.run_identity_cid, authoringCid, requestScope,
+        maxWireBytes, maxNodes, maxDepth, members.length, rowCount,
+        limits.key.maxBytes, limits.key.maxNodes, limits.key.maxDepth]));
     control.checkSourceFreeLocalEffectPreviewIdentities(prepared, inputs,
       runtimeField(authored, 0), draft.run_identity_cid, authoringCid, identities,
       {maxWireBytes, maxNodes, maxDepth});
@@ -2463,7 +2470,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       const key = keys[memberIndex][rowIndex];
       const locator = effect.logicalItemLocator(requestScope,
         unit.programId, unit.stageId, member.effect_id,
-        canonicalValueJson(change.target_row_identity), limits.locator.maxBytes,
+        effect.dispatchKeyCorrelationWire(key), limits.locator.maxBytes,
         limits.key.maxBytes, limits.key.maxNodes, limits.key.maxDepth);
       const canonicalRequestCid = entries[memberIndex][rowIndex].requestCid;
       ownerOf(members[memberIndex]).owned.assertRequestFinalized?.(
@@ -2828,7 +2835,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         store, storedResults, control, runDefinition: plan.runDefinition});
     }
     const payloads = sourceSet.members.map(member => member.payload);
-    const preview = authorPreview({control, prepared, inputs, limits,
+    const preview = authorPreview({control, prepared, inputs, limits, managedEffect,
       context: {runDefinition: previewContext.runDefinition,
         runInvocation: previewContext.runInvocation,
         compiledPlan: previewContext.compiledPlan,
@@ -3356,10 +3363,37 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       dispatch !== provider.members[index].dispatch_request_cid)) {
       fail('InstalledEffectContinuationMismatch');
     }
+    const controlConstruction = managedEffect?.controlConstruction;
+    if (managedEffect !== undefined && typeof controlConstruction !== 'function') fail('InstalledEffectControlRuntimeUnavailable');
+    const managedPrepared = managedEffect?.prepared, managedRequest = managedEffect?.request;
+    if (managedEffect !== undefined) {
+      if (typeof retainRecoveryOwner !== 'function') fail('InstalledEffectRecoveryCustodyRequired');
+      if (managedEffect.runtime !== moon || managedEffect.closed || managedPrepared === undefined ||
+          typeof moon.clientRequestRelation !== 'function' ||
+          moon.clientRequestRelation(managedRequest, requestIdentity) !== 1 ||
+          managedEffect.definitionOriginal?.definition === undefined || recovered.runDefinition === undefined ||
+          typeof moon.strategyPublicationContractIdentity !== 'function' ||
+          moon.strategyPublicationContractIdentity(managedEffect.definitionOriginal.definition) !== recovered.runDefinition.identity) {
+        fail('ForeignInstalledEffectManagedRun');
+      }
+      if (Object.hasOwn(managedEffect, 'failure')) throw managedEffect.failure;
+      // The original admitted Preview, compiled Run and Request supply the
+      // cold row inventory before recovered member request construction.
+      // The existing synchronous control frame owns current/reentry/failure.
+      controlConstruction.retainRecoveredInputs(control,
+        managedEffect.definitionOriginal.allowed, managedEffect.definitionOriginal.definition,
+        durable.invocation, preview);
+    }
     const admitted = control.effectComputationPreviewLedgerIdentity(preview);
-    const keys = effect.recoveredPreviewKeys(admitted, requestScope,
-      members.length, limits.maxRows, limits.maxWork, limits.key.maxBytes,
-      limits.key.maxNodes, limits.key.maxDepth);
+    const keys = managedEffect === undefined
+      ? effect.recoveredPreviewKeys(admitted, requestScope,
+        members.length, limits.maxRows, limits.maxWork, limits.key.maxBytes,
+        limits.key.maxNodes, limits.key.maxDepth)
+      : control.recoverInstalledEffectPreviewKeys(managedEffect.value, managedEffect.prepared,
+        managedEffect.request, managedEffect.operationPlan, managedEffect.definitionOriginal.allowed,
+        managedEffect.definitionOriginal.definition, durable.invocation, preview, requestScope,
+        members.length, limits.maxRows, limits.maxWork, limits.key.maxBytes,
+        limits.key.maxNodes, limits.key.maxDepth, controlConstruction);
     let recoveredRows = 0;
     for (const member of body.effects) {
       if (!Array.isArray(member.changes)) fail('InstalledEffectContinuationMismatch');
@@ -3388,27 +3422,6 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       submitted?.assertCurrent();
       assertCurrent?.();
     };
-    const controlConstruction = managedEffect?.controlConstruction;
-    if (managedEffect !== undefined && typeof controlConstruction !== 'function') fail('InstalledEffectControlRuntimeUnavailable');
-    const managedPrepared = managedEffect?.prepared, managedRequest = managedEffect?.request;
-    if (managedEffect !== undefined) {
-      if (typeof retainRecoveryOwner !== 'function') fail('InstalledEffectRecoveryCustodyRequired');
-      if (managedEffect.runtime !== moon || managedEffect.closed || managedPrepared === undefined ||
-          typeof moon.clientRequestRelation !== 'function' ||
-          moon.clientRequestRelation(managedRequest, requestIdentity) !== 1 ||
-          managedEffect.definitionOriginal?.definition === undefined || recovered.runDefinition === undefined ||
-          typeof moon.strategyPublicationContractIdentity !== 'function' ||
-          moon.strategyPublicationContractIdentity(managedEffect.definitionOriginal.definition) !== recovered.runDefinition.identity) {
-        fail('ForeignInstalledEffectManagedRun');
-      }
-      if (Object.hasOwn(managedEffect, 'failure')) throw managedEffect.failure;
-      // The original admitted Preview, compiled Run and Request supply the
-      // cold row inventory before recovered member request construction.
-      // The existing synchronous control frame owns current/reentry/failure.
-      controlConstruction.retainRecoveredInputs(control,
-        managedEffect.definitionOriginal.allowed, managedEffect.definitionOriginal.definition,
-        durable.invocation, preview);
-    }
     const ledger = openLedger(requestIdentity, controlConstruction);
     // The handle is released exactly once: it is marked released only after
     // its close succeeds, so a failed close stays this owner's pending

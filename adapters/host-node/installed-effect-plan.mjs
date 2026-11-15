@@ -1126,6 +1126,8 @@ export function prepareInstalledEffectControlConstruction(run) {
   const hasHostInput = runtime?.clientProgramInstalledEffectManagedPlanHasHostInput;
   const retainInventory = runtime?.clientProgramInstalledEffectCapturedInputInventoryRetain;
   const shape = runtime?.clientProgramInstalledEffectManagedPlanShape;
+  const keyAuthor = runtime?.clientProgramAuthorInstalledEffectPreview;
+  const keyRecovery = runtime?.clientProgramInstalledEffectRecoveredPreviewKeys;
   const parseJson = JSON.parse;
   const jsonReceiver = JSON;
   if (![begin, complete, readPlan].every(method => typeof method === 'function') || parent === undefined || plan === undefined) {
@@ -1165,12 +1167,19 @@ export function prepareInstalledEffectControlConstruction(run) {
       fail('InvalidInstalledEffectControlConstruction');
     }
     if (nativeConstruction !== undefined && typeof nativeBegin !== 'function') fail('InstalledEffectControlRuntimeUnavailable');
-    // Only the captured Core getter and its exact immutable Plan are metadata.
-    // Inspect DATA descriptors without executing argument getters or Proxy traps.
-    const metadata = nativeConstruction === undefined && ledgerFamily === undefined && ledgerRoot === undefined && !grant && requestProjection === undefined && footprintProjection === undefined && inputWire === undefined && receiver === runtime && method === shape &&
+    // These exact installing Core entrances own their Resource cut: the
+    // borrowed Plan getter, or a key constructor that grows this SAME parent
+    // before allocation. No arbitrary callback or Host count selects it.
+    const metadata = nativeConstruction === undefined && ledgerFamily === undefined && ledgerRoot === undefined && !grant && requestProjection === undefined && footprintProjection === undefined && inputWire === undefined && receiver === runtime &&
       !nodeTypes.isProxy(method) && !nodeTypes.isProxy(args) &&
-      Object.getOwnPropertyDescriptor(args, 'length')?.value === 1 &&
-      Object.getOwnPropertyDescriptor(args, '0')?.value === plan;
+      (method === shape && Object.getOwnPropertyDescriptor(args, 'length')?.value === 1 &&
+        Object.getOwnPropertyDescriptor(args, '0')?.value === plan ||
+       (method === keyAuthor && Object.getOwnPropertyDescriptor(args, 'length')?.value === 19 ||
+        method === keyRecovery && Object.getOwnPropertyDescriptor(args, 'length')?.value === 15) &&
+        Object.getOwnPropertyDescriptor(args, '0')?.value === parent &&
+        Object.getOwnPropertyDescriptor(args, '1')?.value === prepared &&
+        Object.getOwnPropertyDescriptor(args, '2')?.value === request &&
+        Object.getOwnPropertyDescriptor(args, '3')?.value === plan);
     const observePlan = () => {
       const current = Reflect.apply(readPlan, runtime, [parent, prepared, request]);
       retainInvalid(current);
@@ -1200,10 +1209,14 @@ export function prepareInstalledEffectControlConstruction(run) {
           ...(nativeConstruction === undefined ? [] : [nativeConstruction])]));
       originalRecord();
       invoking = true;
-      const value = Reflect.apply(method, receiver, metadata ? [plan] : args);
+      const value = Reflect.apply(method, receiver, metadata && method === shape ? [plan] : args);
       invoking = false;
       if (failed) throw primary;
       retainInvalid(value);
+      // These closed key entrances return Core Results. Preserve an actual
+      // resource/semantic refusal before another current callback can replace
+      // its cause; a later call cannot reconstruct the failed key cohort.
+      if (metadata && method !== shape) checked(value);
       originalRecord();
       if (metadata) observePlan();
       else checked(Reflect.apply(complete, runtime, [parent, prepared, request, plan]));

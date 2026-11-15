@@ -706,7 +706,9 @@ pub fn client_program_installed_effect_dependency_capture_advance(
   issuer : @publication.CapturedRunIssuancePreparation,
   quantum : Int,
 ) -> Result[Bool, @client_local_host.ClientInstalledManagedRunIssue] {
-  @client_local_host.advance_installed_effect_dependency_capture(owner, prepared, request, plan, issuer, quantum)
+  @client_local_host.advance_installed_effect_dependency_capture(
+    owner, prepared, request, plan, issuer, quantum,
+  )
 }
 
 ///|
@@ -717,8 +719,13 @@ pub fn client_program_finish_installed_effect_dependency_capture(
   request : @publication_host.ClientRequestIdentity,
   plan : @client_local_host.ClientInstalledEffectManagedPlan,
   issuer : @publication.CapturedRunIssuancePreparation,
-) -> Result[@publication.PreparedCapturedEffectRun, @client_local_host.ClientInstalledManagedRunIssue] {
-  @client_local_host.finish_installed_effect_dependency_capture(owner, prepared, request, plan, issuer)
+) -> Result[
+  @publication.PreparedCapturedEffectRun,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.finish_installed_effect_dependency_capture(
+    owner, prepared, request, plan, issuer,
+  )
 }
 
 ///|

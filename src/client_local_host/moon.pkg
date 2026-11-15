@@ -38,6 +38,7 @@ import {
   "actql/actql/connector_sdk" @connector,
   "actql/actql/run_publication_host" @publication_host,
   "actql/actql/run_publication" @publication,
+  "actql/actql/effect_application" @effect,
   "actql/actql/connectors/local/driver" @local_driver,
   "actql/actql/connectors/local",
   "actql/actql/physical_cost" @cost,
@@ -58,7 +59,6 @@ import {
 
 import {
   "actql/actql/client_infer_host" @infer_host,
-  "actql/actql/effect_application" @effect,
   "actql/actql/capacity_host_witness" @binding_host,
   "actql/actql/capacity_witness" @binding_wire,
   "actql/actql/local_veca_provider" @nearest_provider,
