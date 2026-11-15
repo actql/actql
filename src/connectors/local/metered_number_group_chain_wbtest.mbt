@@ -190,6 +190,138 @@ test "original LENGTH and mixed Number group chain select the same metered const
 }
 
 ///|
+test "nullable Text choice LENGTH COUNT and arithmetic retain their original borrowed cells" {
+  let check_limits : @pipeline.Limits = {
+    max_steps: 100,
+    max_work: 10000,
+    max_text_bytes: 10000,
+    max_nodes: 1000,
+    max_tokens: 1000,
+    max_depth: 100,
+  }
+  let source_owner = chain_lifetime_bind(
+    @pipeline.check(
+      chain_lifetime_cursor(
+        (
+          #|[{"values":{"schema":{"id":{"type":"number","nullable":false},"amount":{"type":"number","nullable":true}},"rows":[{"id":3,"amount":30},{"id":1,"amount":null},{"id":2,"amount":20},{"id":3,"amount":30}]},"as":"seed"}]
+        ),
+      ),
+      [],
+      None,
+      None,
+      check_limits,
+    ).unwrap(),
+  )
+  let source = @execution.completed_output(
+    @execution.execute_generated_sequence(
+      chain_lifetime_generated(source_owner),
+      [],
+      chain_lifetime_limits(),
+    ).unwrap(),
+    @pipeline.Step(0),
+  ).unwrap()
+  let producer = @pipeline.produced_input(
+    @lower.pipeline(@lower.bound_preparation(source_owner)),
+    @pipeline.Step(0),
+  ).unwrap()
+  let receiver = chain_lifetime_bind(
+    @pipeline.check_with_evidence(
+      chain_lifetime_cursor(
+        (
+          #|[{"from":"source","derive":{"name":{"if":[{"eq":[{"field":"id"},{"literal":1}]},{"literal":null},{"if":[{"eq":[{"field":"id"},{"literal":2}]},{"literal":"e\u0301"},{"literal":"😀"}]}]}}},{"derive":{"key":{"len":{"field":"name"}}}},{"group":{"by":["key"],"aggregates":{"n":{"fn":"count"}}}},{"derive":{"total":{"add":[{"field":"n"},{"field":"key"}]}}},{"select":[{"width":"key"},"total"]},{"sort":[{"field":"width","dir":"asc","nulls":"last"}],"as":"ordered"}]
+        ),
+      ),
+      [("source", @pipeline.ProducedInput(producer))],
+      None,
+      None,
+      check_limits,
+    ).unwrap(),
+  )
+  let read = @execution.prepare_producer_read(
+    receiver,
+    @execution.bind_completed_input(receiver, 0, source_owner, source).unwrap(),
+    1000,
+    10000,
+  ).unwrap()
+  let sequence = chain_lifetime_generated(receiver)
+  let registry = @connector.prepare_capability_registry(
+    [{ name: "local", acquisition: false, fixed_compute: true, effect: false, }],
+    1,
+    100,
+  ).unwrap()
+  let installed = prepare_local_compute_module(
+    registry,
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    [sequence],
+    chain_lifetime_limits(),
+    chain_lifetime_measurement(),
+    100000,
+    1,
+  ).unwrap()
+  let full = local_module_capacity_for_sequence(installed, 0, sequence).unwrap()
+  let startup = local_module_metered_output_start_capacity(
+    installed, 0, sequence,
+  ).unwrap()
+  assert_true(startup.execution_bytes < full.execution_bytes)
+  let (active, state) = bounded_relation_chain_execution_state(
+    sequence,
+    [managed_provider_relation_input(read)],
+    chain_lifetime_limits(),
+    chain_lifetime_measurement(),
+    10000,
+    None,
+    [],
+  ).unwrap()
+  let mut result : @execution.CompletedOutput? = None
+  for _ in 0..<100000 {
+    match advance_managed_provider(active, 1).unwrap() {
+      Continue(..) => ()
+      Complete(output, ..) => {
+        result = Some(output)
+        break
+      }
+      _ => fail("the same nullable scalar chain must finish")
+    }
+  }
+  let output = result.unwrap()
+  assert_eq(@execution.completed_row_count(output), 3)
+  assert_eq(@execution.completed_column_count(output), 2)
+  for column in 0..<2 {
+    let name = @execution.completed_column_name(output, column).unwrap()
+    assert_true(name == "width" || name == "total")
+    for row in 0..<3 {
+      if row == 2 {
+        assert_true(
+          @execution.completed_cell(output, row, column)
+          is Some(@execution.Null),
+        )
+      } else {
+        let expected = if name == "total" {
+          3.0
+        } else if row == 0 {
+          1.0
+        } else {
+          2.0
+        }
+        assert_true(
+          @execution.completed_cell(output, row, column)
+          is Some(@execution.Number(actual)) &&
+          actual == expected,
+        )
+      }
+    }
+  }
+  assert_true(@execution.producer_read_available(read))
+  assert_true(@execution.completed_output_available(source))
+  assert_true(cleanup_managed_provider(active).unwrap())
+  assert_true(state.current is None)
+  assert_true(state.children.is_empty())
+  assert_true(state.completed.is_empty())
+  assert_true(@execution.completed_output_available(output))
+  @connector.close_capability_registry(registry)
+}
+
+///|
 test "mixed Number chain preserves field COUNT fallback and cancellation between children" {
   let (unsupported, _, _, _) = metered_text_number_group_chain_fixture(
     count_field=true,

@@ -110,6 +110,7 @@ fn managed_import_data_chain(
     execution_bytes: client_local_execution_byte_ceiling(),
   }
   let ledger = ledger_factory(prepared, limits)
+  let source_baseline = @resources.ledger_usage(ledger)
   let rows = @row_source_host.start_accounted_row_input_acquisition(
     source.acquisition,
     source.provider,
@@ -146,9 +147,14 @@ fn managed_import_data_chain(
     assert_true(failed.held_bytes > before_capture.held_bytes)
     if refusal_after_workspace {
       assert_eq(
-        before_capture.reserved_execution_bytes -
         failed.reserved_execution_bytes,
-        239908928L,
+        source_baseline.reserved_execution_bytes +
+        failed.held_bytes -
+        before_capture.held_bytes,
+      )
+      assert_true(
+        before_capture.reserved_execution_bytes >
+        failed.reserved_execution_bytes,
       )
     } else {
       assert_eq(
@@ -169,8 +175,13 @@ fn managed_import_data_chain(
   if check_capture_workspace {
     let after = @resources.ledger_usage(ledger)
     assert_eq(
-      before_capture.reserved_execution_bytes - after.reserved_execution_bytes,
-      239908928L,
+      after.reserved_execution_bytes,
+      source_baseline.reserved_execution_bytes +
+      after.held_bytes -
+      before_capture.held_bytes,
+    )
+    assert_true(
+      before_capture.reserved_execution_bytes > after.reserved_execution_bytes,
     )
     assert_eq(after.attempts, before_capture.attempts)
     assert_eq(after.transferred_bytes, before_capture.transferred_bytes)
@@ -651,7 +662,10 @@ test "post-return current refusal cannot restore workspace or recapture the orig
   managed_import_data_chain(
     RefuseCapture,
     source_current=ledger => {
-      @resources.ledger_usage(ledger).reserved_execution_bytes >= 239908928L
+      let usage = @resources.ledger_usage(ledger)
+      // This isolated Source owns the captured holding and its execution
+      // overlap. Revoke current exactly when only that DATA remains funded.
+      usage.reserved_execution_bytes > usage.held_bytes
     },
     refusal_after_workspace=true,
   )

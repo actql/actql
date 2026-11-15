@@ -35,6 +35,9 @@ fn selected_binding_rows_supported(kernel : @lower.PreparedKernel) -> Bool {
 // Keep the complete fragment/traversal workspace and fund persistent output on
 // the original bounded row budget before CommitOutputRow transfers it.
 fn selected_binding_outputs_borrowed(kernel : @lower.PreparedKernel) -> Bool {
+  if @execution.bounded_binding_alias_node_count(kernel) is Some(_) {
+    return true
+  }
   guard (
       @lower.kernel_body(kernel) is @lower.SnapshotMap(_) ||
       @lower.kernel_body(kernel) is @lower.OrderedBindings(_)

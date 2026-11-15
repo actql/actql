@@ -88,16 +88,16 @@ fn bounded_immediate_binding_schema(schema : @schema.Schema) -> Bool {
 }
 
 ///|
-// The bounded direct COUNT/COUNT_IF reader borrows required immediate cells,
-// including nullable scalars. Its sorter/group/aggregate cursors are charged
-// to operation_entries; it does not construct a separate input value forest.
+// The bounded direct COUNT/COUNT_IF reader borrows required scalar cells,
+// including nullable Number/Bool and immutable Text. Its sorter/group/aggregate
+// cursors are charged to operation_entries; it constructs no input value forest.
 // Resolving a direct field and testing NULL/Bool use the same bounded cursor.
-// Keep recursive/text/presence and expression aggregates on the full recipe.
+// Keep recursive/presence and expression aggregates on the full recipe.
 fn bounded_count_group_borrows_input(kernel : @lower.PreparedKernel) -> Bool {
   guard @lower.kernel_count_group(kernel) is Some(group) &&
     @lower.count_group_aggregate_count(group) > 0 &&
-    bounded_immediate_binding_schema(@lower.kernel_input_schema(kernel)) &&
-    bounded_immediate_binding_schema(@lower.kernel_output_schema(kernel)) else {
+    bounded_number_group_scalar_schema(@lower.kernel_input_schema(kernel)) &&
+    bounded_number_group_scalar_schema(@lower.kernel_output_schema(kernel)) else {
     return false
   }
   true
@@ -125,6 +125,11 @@ fn bounded_number_group_scalar_schema(schema : @schema.Schema) -> Bool {
 pub fn bounded_number_group_borrows_input(
   kernel : @lower.PreparedKernel,
 ) -> Bool {
+  // The specialized direct COUNT kernel uses the same borrowed scalar
+  // constructor; retain its checked argument and NULL semantics unchanged.
+  if @lower.kernel_count_group(kernel) is Some(_) {
+    return bounded_count_group_borrows_input(kernel)
+  }
   guard @lower.kernel_group(kernel) is Some(group) &&
     !@lower.group_is_window(group) &&
     !bounded_group_dynamic(group) &&

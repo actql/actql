@@ -116,8 +116,12 @@ test "bounded immediate leaf keeps guards without unused physical forests and ge
 }
 
 ///|
-test "bounded nonleaf callsite retains full logical live value premium" {
-  let sequence = prepared_sequence(row_owner(",{\"derive\":{\"c\":\"a + 1\"}}"))
+test "bounded Text CAST callsite retains full logical live value premium" {
+  let sequence = prepared_sequence(
+    row_owner(
+      ",{\"derive\":{\"c\":{\"cast\":{\"value\":{\"literal\":\"1\"},\"target\":{\"type\":\"number\"}}}}}",
+    ),
+  )
   let context = sequence_fragment_context(sequence, 1, 2L)
   let generated = prepare_generated_sequence(
     registered_relation_contracts(),
@@ -215,8 +219,12 @@ test "bounded leaf geometry uses same kernel and preserves row root occurrences"
 }
 
 ///|
-test "bounded leaf geometry rejects constructing expressions" {
-  let sequence = prepared_sequence(row_owner(",{\"derive\":{\"c\":\"a + 1\"}}"))
+test "bounded leaf geometry rejects constructing Text expressions" {
+  let sequence = prepared_sequence(
+    row_owner(
+      ",{\"derive\":{\"c\":{\"concat\":[{\"literal\":\"a\"},{\"literal\":\"b\"}]}}}",
+    ),
+  )
   let context = sequence_fragment_context(sequence, 1, 2L)
   let generated = prepare_generated_sequence(
     registered_relation_contracts(),
@@ -565,6 +573,60 @@ test "bounded immediate leaf unused codec ceilings preserve real workspace and o
       execute(short, row_workspace(observed.peak))
       is Err(LogicalRows(InputRowLimit)),
     )
+  }
+}
+
+///|
+test "borrowed conditional Text keeps exact workspace and all dormant constructor guards" {
+  let conditional = "{\"if\":[{\"eq\":[{\"field\":\"a\"},{\"literal\":1}]},{\"literal\":null},{\"if\":[{\"eq\":[{\"field\":\"b\"},{\"literal\":1}]},{\"literal\":\"e\\u0301\"},{\"literal\":\"😀\"}]}]}"
+  let owner = row_owner(",{\"derive\":{\"c\":" + conditional + "}}")
+  let sequence = prepared_sequence(owner)
+  let context = sequence_fragment_context(sequence, 1, 2L)
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    sequence,
+    [context],
+    ["derive_1"],
+    100000,
+    10000,
+  ).unwrap()
+  let selected = select_generated_sequence_step(generated, 1).unwrap()
+  assert_true(bounded_binding_alias_node_count(context.kernel) is Some(_))
+  assert_true(
+    bounded_leaf_fragment_capacity(selected, context, leaf_geometry_limits(2))
+    is Some(_),
+  )
+  let input = row_capture(owner)
+  let execute = fn(workspace) {
+    evaluate_rows_with_workspace(
+      context.kernel,
+      input,
+      2,
+      { remaining: 100000, max_frames: 100, },
+      row_output(),
+      workspace,
+      ordered_budget=Some(
+        fragment_runtime_for_kernel(context, context.kernel).unwrap(),
+      ),
+    )
+  }
+  let workspace = row_workspace(100000)
+  let output = execute(workspace).unwrap()
+  assert_true(output.rows[0][2] is Null)
+  assert_true(output.rows[1][2] is Text(text) && text == "e\u0301")
+  assert_eq(execute(row_workspace(workspace.peak)).unwrap().rows.length(), 2)
+  assert_true(execute(row_workspace(workspace.peak - 1)) is Err(RowLimit))
+  for
+    expression in [
+      "{\"if\":[{\"literal\":true},{\"literal\":\"borrowed\"},{\"concat\":[{\"literal\":\"new\"},{\"literal\":\"Text\"}]}]}",
+      "{\"if\":[{\"eq\":[{\"cast\":{\"value\":{\"literal\":\"1\"},\"target\":{\"type\":\"number\"}}},{\"literal\":1}]},{\"literal\":\"x\"},{\"literal\":null}]}",
+      "{\"if\":[{\"literal\":true},{\"array\":[{\"literal\":1}]},{\"array\":[{\"literal\":2}]}]}",
+    ] {
+    let original = prepared_sequence(
+      row_owner(",{\"derive\":{\"c\":" + expression + "}}"),
+    )
+    let original = sequence_fragment_context(original, 1, 2L)
+    assert_true(bounded_binding_alias_node_count(original.kernel) is None)
   }
 }
 

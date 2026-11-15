@@ -44,6 +44,132 @@ fn bounded_primitive_fragment_nodes(context : FragmentRuntimeContext) -> Int? {
 }
 
 ///|
+fn bounded_alias_node_sum(left : Int?, right : Int?, extra : Int) -> Int? {
+  guard left is Some(left) &&
+    right is Some(right) &&
+    left <= 2147483647 - right &&
+    left + right <= 2147483647 - extra else {
+    return None
+  }
+  Some(left + right + extra)
+}
+
+///|
+// These scalar operations have only immediate Number/Bool/Null descendants.
+// In particular, a numeric result cannot hide a Text CAST or a dormant builder.
+fn bounded_inline_condition_nodes(
+  expression : @lower.Expression,
+  ordered : Bool,
+  index : Int,
+) -> Int? {
+  match @lower.expression_contract(expression).shape {
+    @contract.Number | @contract.Boolean => ()
+    _ => return None
+  }
+  if @lower.expression_view_entries(expression) != 0 {
+    return None
+  }
+  match @lower.expression_body(expression) {
+    @lower.Field(_, @relation.InputField(_))
+    | @lower.Literal(_)
+    | @lower.TypedNull => Some(1)
+    @lower.Field(_, @relation.PriorSlot(slot)) =>
+      if bounded_leaf_prior_slot_supported(ordered, index, slot) {
+        Some(1)
+      } else {
+        None
+      }
+    @lower.Unary(_, child) =>
+      bounded_alias_node_sum(
+        bounded_inline_condition_nodes(child, ordered, index),
+        Some(0),
+        1,
+      )
+    @lower.Binary(_, left, right) =>
+      bounded_alias_node_sum(
+        bounded_inline_condition_nodes(left, ordered, index),
+        bounded_inline_condition_nodes(right, ordered, index),
+        1,
+      )
+    _ => None
+  }
+}
+
+///|
+fn bounded_output_alias_nodes(
+  expression : @lower.Expression,
+  ordered : Bool,
+  index : Int,
+) -> Int? {
+  match @lower.expression_contract(expression).shape {
+    @contract.Number | @contract.Boolean | @contract.Text(_) => ()
+    _ => return None
+  }
+  if @lower.expression_view_entries(expression) != 0 {
+    return None
+  }
+  match @lower.expression_body(expression) {
+    @lower.Field(_, @relation.InputField(_))
+    | @lower.Literal(_)
+    | @lower.TypedNull => Some(1)
+    @lower.Field(_, @relation.PriorSlot(slot)) =>
+      if bounded_leaf_prior_slot_supported(ordered, index, slot) {
+        Some(1)
+      } else {
+        None
+      }
+    @lower.Conditional(condition, yes, no) => {
+      guard @lower.expression_contract(condition).shape is @contract.Boolean else {
+        return None
+      }
+      bounded_alias_node_sum(
+        bounded_inline_condition_nodes(condition, ordered, index),
+        bounded_alias_node_sum(
+          bounded_output_alias_nodes(yes, ordered, index),
+          bounded_output_alias_nodes(no, ordered, index),
+          0,
+        ),
+        1,
+      )
+    }
+    _ => None
+  }
+}
+
+///|
+/// Count the SAME checked binding's immutable aliases and inline conditions.
+/// Parameter leaves are already bound to their admitted original values;
+/// IF chooses one of those values, without making a Text or value-tree copy.
+/// Every branch is checked, including unselected branches. This is a physical
+/// constructor fact, not a new execution, permission or liveness capability.
+pub fn bounded_binding_alias_node_count(kernel : @lower.PreparedKernel) -> Int? {
+  guard (
+      @lower.kernel_body(kernel) is @lower.SnapshotMap(_) ||
+      @lower.kernel_body(kernel) is @lower.OrderedBindings(_)
+    ) &&
+    @lower.kernel_bindings(kernel) is Some(bindings) &&
+    @lower.bindings_count(bindings) > 0 else {
+    return None
+  }
+  let ordered = @lower.bindings_ordered(bindings)
+  let mut nodes = Some(0)
+  for index in 0..<@lower.bindings_count(bindings) {
+    guard @lower.binding_at(bindings, index) is Some((_, expression)) else {
+      return None
+    }
+    nodes = bounded_alias_node_sum(
+      nodes,
+      bounded_output_alias_nodes(expression, ordered, index),
+      0,
+    )
+    if nodes is None {
+      return None
+    }
+  }
+  nodes
+}
+
+///|
 // Constructor proof for the bounded, selected, single binding-row provider.
 // This is not a bound inferred from an AST's encoded size. The accepted
 // evaluator paths (expression.mbt) return an input/prior-slot alias, capture an
@@ -76,8 +202,9 @@ fn bounded_leaf_fragment_capacity(
     return None
   }
   let bindings = @lower.kernel_bindings(kernel)
+  let primitive_nodes = bounded_primitive_fragment_nodes(context)
   let predicate_nodes = if @lower.kernel_body(kernel) is @lower.Filter(_) {
-    bounded_primitive_fragment_nodes(context)
+    primitive_nodes
   } else {
     None
   }
@@ -90,6 +217,7 @@ fn bounded_leaf_fragment_capacity(
       }
   }
   let ordered = bindings.map(@lower.bindings_ordered).unwrap_or(false)
+  let alias_nodes = bounded_binding_alias_node_count(context.kernel)
   let mut text_number = false
   let mut text_length = false
   let mut properties = 0L
@@ -133,6 +261,7 @@ fn bounded_leaf_fragment_capacity(
         if !bounded_leaf_prior_slot_supported(ordered, index, slot) {
           return None
         }
+      @lower.Conditional(_, _, _) if alias_nodes is Some(_) => ()
       @lower.Unary(@lower.Length, child) => {
         // Length walks the SAME admitted Text and returns an inline Number
         // (or Null); it has no output Text root or builder. Constructed and
@@ -162,6 +291,7 @@ fn bounded_leaf_fragment_capacity(
         }
         text_number = true
       }
+      _ if primitive_nodes is Some(_) => ()
       _ => return None
     }
   }
@@ -171,13 +301,23 @@ fn bounded_leaf_fragment_capacity(
   // full sides, every binding occurrence (including repeated prior-slot reads),
   // plus the active result and output-before-input-release transition. This
   // also covers any failed prefix; no cleanup/release credit is assumed.
+  // A conditional retains Choose/primitive operand continuations in addition
+  // to the selected binding result. Keep every branch's node inventory, not
+  // just the branch selected by this row. The existing per-root inventory
+  // covers each frame, inline scalar/tag and its logical-root transition.
+  let constructed_nodes = match alias_nodes {
+    Some(nodes) => nodes
+    None => primitive_nodes.unwrap_or(count)
+  }
+  let alias_extra = (constructed_nodes - count).to_int64()
   let roots = 2L * limits.rows.max_rows.to_int64() +
     count.to_int64() +
     2L +
-    2L * properties
+    2L * properties +
+    alias_extra
   // Current-row snapshot, binding values, and output aliases are separate
   // occurrences. Their immutable backing remains with its original owner.
-  let aliases = inputs + outputs + count.to_int64() + properties
+  let aliases = inputs + outputs + count.to_int64() + properties + alias_extra
   let aliases_bytes = preparation_representation_cost({
     // Per root: LogicalRoot, measurement+Some, lease, scope Some, value/tag
     // carriers, plus conservative spare headers. References include both
