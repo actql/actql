@@ -5,6 +5,7 @@ priv struct ClientInstalledEffectKeyedInventory {
   identity : @resources.OriginalLedgerIdentity
   mut reservations : Int
   mut holdings : Int
+  mut operation_children : Int
   mut started : Bool
 }
 
@@ -56,13 +57,31 @@ pub fn[I] prepare_request_effect_keyed_original(
   }
   let initial = request_preparation_inventory_slots
   let original = @publication_host.client_effect_keyed_original_construction_inventory()
+  let growth = @resources.preparation_inventory_growth_entry_construction()
   // The Plan's optional reference keeps the checked binding through failed
   // completion/adoption. The Plan field itself is funded before construction.
   let bytes = match
     @execution.preparation_representation_cost({
-      record_headers: original.record_headers + 3L + selected.0 - initial.0,
-      reference_slots: original.reference_slots + 3L + selected.1 - initial.1,
-      scalar_words: original.scalar_words + 5L + selected.2 - initial.2,
+      // Keep one synchronous growth entry and its own extent/slot/cost
+      // observation carriers funded before any later actual child allocation.
+      record_headers: original.record_headers +
+      3L +
+      selected.0 -
+      initial.0 +
+      growth.record_headers +
+      8L,
+      reference_slots: original.reference_slots +
+      3L +
+      selected.1 -
+      initial.1 +
+      growth.reference_slots +
+      3L,
+      scalar_words: original.scalar_words +
+      6L +
+      selected.2 -
+      initial.2 +
+      growth.scalar_words +
+      17L,
       owned_utf16_units: original.owned_utf16_units,
       owned_wire_bytes: original.owned_wire_bytes,
     }) {
@@ -139,6 +158,7 @@ pub fn[I] prepare_request_effect_keyed_original(
                 identity,
                 reservations: rslots,
                 holdings: hslots,
+                operation_children: 0,
                 started: false,
               })
               Ok(())
@@ -175,8 +195,9 @@ fn installed_effect_keyed_plan_field_bytes() -> Int64 {
 fn installed_effect_keyed_base_inventory(
   plan : ClientInstalledEffectManagedPlan,
 ) -> (Int, Int)? {
-  let children = plan.held_children.to_int64() +
-    plan.captures.length().to_int64() +
+  // held_children is a checked operation-coordinate CEILING, not allocated token
+  // Map storage. Actual operation entries grow this same inventory below.
+  let children = plan.captures.length().to_int64() +
     @strategy.graph_task_count(plan.graph).to_int64() +
     2L
   if children < 0L ||
@@ -186,4 +207,93 @@ fn installed_effect_keyed_base_inventory(
   Some(
     (request_preparation_borrow_limit + children.to_int(), children.to_int()),
   )
+}
+
+///|
+// Called after the exact operation coordinate/current checks and BEFORE its
+// Resource/control entry is constructed. Every spent occurrence stays in the
+// original Run vector; no closed token returns work or permits replay.
+fn grow_installed_effect_keyed_operation_inventory(
+  owner : ClientInstalledManagedRun,
+  plan : ClientInstalledEffectManagedPlan,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  let inventory = match plan.keyed_inventory {
+    None => return Ok(())
+    Some(value) => value
+  }
+  let count = owner.effect_operations.length()
+  if count >= plan.held_children || count == 2147483647 {
+    return Err(InsufficientCapacity)
+  }
+  let needed = count + 1
+  if needed <= inventory.operation_children {
+    return Ok(())
+  }
+  let extra = needed - inventory.operation_children
+  guard inventory.reservations <= 2147483647 - extra &&
+    inventory.holdings <= 2147483647 - extra &&
+    owner.preparation is Some(PlannedEffectManaged(_, selected)) &&
+    physical_equal(selected, plan) &&
+    owner.preparation_retirement is Some(EffectPlanPreparation(retirement)) &&
+    retirement.holder is Some(holder) &&
+    @resources.preparation_body_borrow_value(holder) is Some(body) &&
+    physical_equal(body, plan) else {
+    return Err(ForeignOriginal)
+  }
+  let reservations = inventory.reservations + extra
+  let holdings = inventory.holdings + extra
+  guard @resources.preparation_inventory_initial_control_slots(
+      inventory.reservations,
+      inventory.holdings,
+      0,
+    )
+    is Some(before) &&
+    @resources.preparation_inventory_initial_control_slots(
+      reservations, holdings, 0,
+    )
+    is Some(after) &&
+    @execution.preparation_representation_cost({
+      record_headers: after.0 - before.0,
+      reference_slots: after.1 - before.1,
+      scalar_words: after.2 - before.2,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(bytes) else {
+    return Err(InsufficientCapacity)
+  }
+  let (r, e) = match
+    @resources.preparation_body_borrow_reserved_extents(holder) {
+    Err(issue) => return Err(Preparation(issue))
+    Ok(value) => value
+  }
+  guard @execution.checked_preparation_add_product(r, bytes, 1L) is Some(r) &&
+    @execution.checked_preparation_add_product(e, bytes, 1L) is Some(e) else {
+    return Err(InsufficientCapacity)
+  }
+  match
+    @resources.grow_preparation_body_inventory(
+      holder,
+      plan,
+      inventory.identity,
+      r,
+      e,
+      reservations,
+      holdings,
+      0,
+    ) {
+    Err(issue) => return Err(Preparation(issue))
+    Ok(_) => ()
+  }
+  guard owner.preparation is Some(PlannedEffectManaged(_, current)) &&
+    physical_equal(current, plan) &&
+    plan.keyed_inventory is Some(current_inventory) &&
+    physical_equal(current_inventory, inventory) &&
+    !@resources.preparation_body_retirement_started(holder) else {
+    return Err(Retired)
+  }
+  inventory.reservations = reservations
+  inventory.holdings = holdings
+  inventory.operation_children = needed
+  Ok(())
 }

@@ -243,3 +243,170 @@ test "generic Source-only Effect Request refuses a foreign acquisition before co
   abort_request_preparation_after_cleanup(parent).unwrap() |> ignore
   abort_request_preparation_after_cleanup(other).unwrap() |> ignore
 }
+
+///|
+// Actual Request, generic Graph, selected Plan and original compiled binding.
+// Empty physical ports are explicit; this is not File/STORE IO acceptance.
+fn request_generic_keyed_bound_parent_fixture() -> (
+  ClientRequestPreparation[Array[Int]],
+  ClientInstalledManagedRun,
+  ClientInstalledEffectManagedPlan,
+) raise {
+  let (parent, input, prepared, keyed, contracts, declaration) = request_source_keyed_graph_fixture(
+    generic=true,
+  )
+  let graph = prepare_request_effect_keyed_plan(
+    parent,
+    input,
+    keyed,
+    contracts,
+    [],
+  ).unwrap()
+  let request = @publication_host.prepare_client_effect_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "keyed-parent-counter",
+    "sha256:" + "b".repeat(64),
+  ).unwrap()
+  let extent = prepare_installed_effect_operation_extent(
+    "operation",
+    @execution.execution_capacity(3L, 5L).unwrap(),
+    7L,
+    true,
+  ).unwrap()
+  let demand = prepare_installed_effect_operation_demand(
+    prepared,
+    0,
+    "save",
+    [extent],
+    [extent],
+  ).unwrap()
+  let plan = prepare_installed_effect_managed_plan(
+    prepared,
+    request,
+    [declaration],
+    original_row_query_contract_fixture,
+    original_row_evidence_contract_fixture,
+    [65536L],
+    [65536L],
+    contracts,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+    [demand],
+    provider_factory=_ => [],
+  ).unwrap()
+  let manifests = @publication_host.admit_client_compilation_manifests(
+    @environment.compiler_grammar_manifest_wire(),
+    @environment.compiler_barrier_contract_manifest_wire(),
+    100000,
+    10000,
+    100,
+  ).unwrap()
+  let compilation = @publication_host.issue_prepared_client_effect_compilation(
+    prepared,
+    manifests,
+    @publication_host.client_standard_values_sequence_limits(),
+    1000,
+    10000,
+    1000000,
+    100000,
+    100,
+  ).unwrap()
+  let allowed = @publication_host.issue_client_effect_allowed_run(
+    compilation,
+    "sha256:" + "c".repeat(64),
+    "sha256:" + "d".repeat(64),
+    "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let definition = @publication_host.issue_client_effect_run_definition(
+    allowed, "keyed-counter-scope", "keyed-counter-original", "2026-11-15T00:00:00.000Z",
+    "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let compiled = @publication_host.client_effect_allowed_keyed_run(
+    allowed, graph, definition,
+  ).unwrap()
+  let before = @resources.preparation_capacity_working_extents(
+    parent.effect_capacity.unwrap(),
+    input,
+  ).unwrap()
+  let limit = @resources.ledger_limits(parent.ledger)
+  println(
+    "keyed-binder-original-working-retention=" +
+    before.0.to_string() +
+    ",execution=" +
+    before.1.to_string() +
+    ",limit=" +
+    limit.retained_bytes.to_string(),
+  )
+  let bound = prepare_request_effect_keyed_original(
+    parent, input, plan, compilation, compiled, definition, graph, keyed,
+  )
+  match bound {
+    Err(Preparation(@resources.Resource(issue))) =>
+      fail("actual binder Resource " + @debug.to_string(issue))
+    Err(_) => fail("actual binder original refused")
+    Ok(_) => ()
+  }
+  complete_request_effect_preparation(parent, input, plan).unwrap() |> ignore
+  let owner = begin_request_effect_managed_run(parent, request).unwrap()
+  (parent, owner, plan)
+}
+
+///|
+#cfg(target="js")
+test "generic keyed Request binder keeps its original capacity through Plan adoption" {
+  let (parent, owner, plan) = request_generic_keyed_bound_parent_fixture()
+  let inventory = plan.keyed_inventory.unwrap()
+  assert_eq(inventory.operation_children, 0)
+  assert_true(inventory.holdings < plan.held_children)
+  retire_installed_managed_run(owner).unwrap() |> ignore
+  assert_eq(@resources.ledger_usage(parent.ledger).reserved_retention_bytes, 0L)
+  assert_eq(@resources.ledger_usage(parent.ledger).reserved_execution_bytes, 0L)
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+#cfg(target="js")
+test "generic keyed actual census growth refuses low capacity without constructing an operation" {
+  let (parent, owner, plan) = request_generic_keyed_bound_parent_fixture()
+  let inventory = plan.keyed_inventory.unwrap()
+  let counts = (inventory.reservations, inventory.holdings)
+  let usage = @resources.ledger_usage(parent.ledger)
+  let limits = @resources.ledger_limits(parent.ledger)
+  // A real coheld pure reservation exhausts unchanged available retention.
+  // No Host count, business row, permission or physical stop is supplied.
+  let other = @resources.reserve_capacity(
+    parent.ledger,
+    limits.retained_bytes - usage.reserved_retention_bytes - usage.held_bytes,
+    0L,
+  ).unwrap()
+  assert_true(
+    grow_installed_effect_keyed_operation_inventory(owner, plan)
+    is Err(Preparation(@resources.Resource(@resources.RetentionLimit))),
+  )
+  assert_eq(inventory.operation_children, 0)
+  assert_eq((inventory.reservations, inventory.holdings), counts)
+  assert_eq(owner.effect_operations.length(), 0)
+  @resources.settle_capacity(parent.ledger, other).unwrap() |> ignore
+  // The actual independent reservation has now returned: same inventory,
+  // no new Root, replenished work or fabricated allocation acknowledgement.
+  grow_installed_effect_keyed_operation_inventory(owner, plan).unwrap()
+  |> ignore
+  assert_eq(inventory.operation_children, 1)
+  assert_eq(
+    (inventory.reservations, inventory.holdings),
+    (counts.0 + 1, counts.1 + 1),
+  )
+  assert_eq(owner.effect_operations.length(), 0)
+  let retained = @resources.ledger_usage(parent.ledger).reserved_retention_bytes
+  grow_installed_effect_keyed_operation_inventory(owner, plan).unwrap()
+  |> ignore
+  assert_eq(
+    @resources.ledger_usage(parent.ledger).reserved_retention_bytes,
+    retained,
+  )
+  retire_installed_managed_run(owner).unwrap() |> ignore
+  assert_eq(@resources.ledger_usage(parent.ledger).reserved_retention_bytes, 0L)
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}

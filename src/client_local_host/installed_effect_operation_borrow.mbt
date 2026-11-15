@@ -419,6 +419,10 @@ fn borrow_installed_effect_operation_original(
     is Some((control_capacity, control_idle)) else {
     return Err(Unsupported)
   }
+  match grow_installed_effect_keyed_operation_inventory(owner, plan) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   let reserved = @resources.reserve_prepared_run_operation(
     admission,
     plan,
