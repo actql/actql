@@ -2735,7 +2735,7 @@ pub fn start_captured_result_publication_export(@physical_strategy_host.Captured
 
 pub fn start_client_composed_keyed_file_locator(ClientKeyedLookupInput, ClientKeyedRequest, Array[@execution_query.CapturedInputSource], Array[@execution_relation.SuppliedRelationRead?]) -> Result[ClientKeyedFileLocator, ClientKeyedRequestIssue]
 
-pub fn start_client_effect_keyed_capture_lookup_input(ClientEffectKeyedOriginal, Array[@client_row_source_host.RowCapturedInput], Int, Int, Int, Int, source_sequence? : @execution_relation.GeneratedSequence?) -> Result[ClientKeyedLookupInput, ClientKeyedRequestIssue]
+pub fn start_client_effect_keyed_capture_lookup_input(ClientEffectKeyedOriginal, Array[@client_row_source_host.RowCapturedInput], Int, Int, Int, Int, source_sequence? : @execution_relation.GeneratedSequence?, max_nodes? : Int) -> Result[ClientKeyedLookupInput, ClientKeyedRequestIssue]
 
 pub fn start_client_keyed_declared_file_request_plan(ClientKeyedLookupInput, String, Int64, String) -> Result[Unit, ClientKeyedRequestIssue]
 

@@ -1832,6 +1832,8 @@ pub fn client_program_installed_effect_host_input_capture_recipe_extent_prepare(
 
 pub fn client_program_installed_effect_http_response_construction_capacity(Int, Int) -> @execution_relation.ExecutionCapacity?
 
+pub fn client_program_installed_effect_keyed_input_work_limit(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity) -> Result[Int, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_effect_keyed_lookup_original(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientKeyedLookupInput) -> Result[@run_publication_host.ClientKeyedLookupInput, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_keyed_original(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity) -> Result[@run_publication_host.ClientEffectKeyedOriginal, @client_local_host.ClientInstalledManagedRunIssue]

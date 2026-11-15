@@ -24,6 +24,28 @@ pub fn installed_effect_keyed_original(
 }
 
 ///|
+/// Project the ValueBudget policy retained by this exact installed Effect
+/// Plan. This is neither the Ledger planning-work budget nor compiler work;
+/// the lookup's row admission and external dependency charges share it.
+pub fn installed_effect_keyed_input_work_limit(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+) -> Result[Int, ClientInstalledManagedRunIssue] {
+  let (plan, _) = match
+    require_installed_effect_operation_plan(owner, prepared, request) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  guard plan.model is None &&
+    plan.keyed_original is Some(original) &&
+    @publication_host.client_effect_keyed_original_current(original) else {
+    return Err(ForeignOriginal)
+  }
+  Ok(plan.capacity_plan.values.max_work)
+}
+
+///|
 /// Borrow the already-started lookup only through its same managed parent.
 /// This is an original-reference projection, not permission to start a read.
 pub fn installed_effect_keyed_lookup_original(
@@ -80,7 +102,9 @@ pub fn start_installed_effect_keyed_capture_input(
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
-  guard plan.model is None &&
+  guard max_work > 0 &&
+    max_work <= plan.capacity_plan.values.max_work &&
+    plan.model is None &&
     plan.keyed_original is Some(original) &&
     plan.keyed_inventory is Some(inventory) &&
     !inventory.started &&
@@ -230,5 +254,8 @@ pub fn start_installed_effect_keyed_capture_input(
     max_bytes,
     max_work,
     source_sequence=Some(plan.sequences[task]),
+    // Preserve this adapter's existing node ceiling independently of the
+    // original ValueWork policy. A tighter work cap remains tighter here.
+    max_nodes=Int::min(max_work, 1000000),
   ).map_err(_ => ForeignOriginal)
 }

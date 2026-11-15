@@ -551,6 +551,8 @@ pub fn installed_effect_funded_model_selection_count(ClientInstalledManagedRun, 
 
 pub fn installed_effect_http_response_construction_capacity(Int, Int, response_read_quantum? : Int) -> @execution_relation.ExecutionCapacity?
 
+pub fn installed_effect_keyed_input_work_limit(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity) -> Result[Int, ClientInstalledManagedRunIssue]
+
 pub fn installed_effect_keyed_lookup_original(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientKeyedLookupInput) -> Result[@run_publication_host.ClientKeyedLookupInput, ClientInstalledManagedRunIssue]
 
 pub fn installed_effect_keyed_original(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity) -> Result[@run_publication_host.ClientEffectKeyedOriginal, ClientInstalledManagedRunIssue]

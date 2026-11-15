@@ -2512,10 +2512,11 @@ export async function createInstalledRowSource({moon, declaration, commands,
   async function openKeyedLookup({preparedProgram, preparedEffect,
     keyedAcquisition, left, ledger, signal, preparedKeyed, originalCapture, originalCaptures, managedRun,
     keyedContent, publication, sourceLookup,
-    sourceAccess: access = sourceAccess, maxWork = 1000000, quantum = 64}) {
+    sourceAccess: access = sourceAccess, maxWork = 1000000, maxNodes = maxWork, quantum = 64}) {
     if (originalReader !== undefined) fail('InstalledProviderSourceUnavailable');
     keyedContent = selectedKeyedContent(keyedContent);
     if (!Number.isSafeInteger(maxWork) || maxWork < 1 || maxWork > 2147483647 ||
+        !Number.isSafeInteger(maxNodes) || maxNodes < 1 || maxNodes > 2147483647 ||
         !Number.isSafeInteger(quantum) || quantum < 1 || quantum > 1024) {
       fail('InstalledKeyedLookupLimits');
     }
@@ -2690,7 +2691,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
         }
         if (nativePublication && phase === 0) {
           checked(moon.clientProgramKeyedLookupRequestPlanFinish(lookup,
-            limits.maxPageBytes, maxWork, publicationDepth));
+            limits.maxPageBytes, maxNodes, publicationDepth));
         }
       }
       for (const child of children) {
@@ -2702,7 +2703,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
         ? publication.finishInput(lookup)
         : checked(publicationInput
           ? moon.clientProgramKeyedLookupPublicationInput(lookup,
-            limits.maxPageBytes, maxWork, publicationDepth)
+            limits.maxPageBytes, maxNodes, publicationDepth)
           : moon.clientProgramKeyedLookupRead(lookup));
       return Object.freeze({capture: Object.freeze({
         read: () => closed ? fail('InstalledSourceClosed')
@@ -3222,11 +3223,19 @@ export async function createInstalledRowSource({moon, declaration, commands,
         executionBytes: BigInt(limits.maxPageBytes),
       });
     },
-    keyedLedgerCapacity(keyedAcquisition, {maxWork = 1000000} = {}) {
+    keyedLedgerCapacity(keyedAcquisition, {maxWork, originalWork} = {}) {
       if (originalReader !== undefined) fail('InstalledProviderSourceUnavailable');
-      if (!Number.isSafeInteger(maxWork) || maxWork < 1 || maxWork > 2147483647) {
-        fail('InstalledKeyedLookupLimits');
+      for (const value of [maxWork, originalWork]) {
+        if (value !== undefined && (!Number.isSafeInteger(value) || value < 1 || value > 2147483647)) {
+          fail('InstalledKeyedLookupLimits');
+        }
       }
+      // The original installed Plan supplies work, not a parser-node grant.
+      // An explicit tighter selection remains binding; standalone callers keep
+      // the existing default and node ceiling.
+      const maxNodes = maxWork ?? 1000000;
+      maxWork = originalWork === undefined ? maxNodes
+        : Math.min(maxWork ?? originalWork, originalWork);
       const facts = checked(moon.clientProgramKeyedAcquisitionSourceEvidenceFacts(keyedAcquisition));
       if (!Array.isArray(facts) || facts.length !== 6 ||
           !facts.every(text) || !sourceRefs.has(facts[0])) {
@@ -3235,7 +3244,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
       const capacity = checked(moon.clientProgramKeyedRowPrepareCapacity(keyedAcquisition,
         declaration, limits.maxPageBytes, limits.maxPageBytes, maxWork));
       return Object.freeze({capacity, transferBytes: keyedTransferBytes,
-        executionBytes: keyedExecutionBytes, maxBytes: limits.maxPageBytes, maxWork});
+        executionBytes: keyedExecutionBytes, maxBytes: limits.maxPageBytes, maxWork, maxNodes});
     },
     prepare, prepareKeyed, verifyKeyedRead, keyedRecoveryBinding, open, openCapture, openKeyed, openKeyedLookup,
     close() {

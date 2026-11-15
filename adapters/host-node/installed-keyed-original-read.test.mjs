@@ -7,7 +7,7 @@ import {runtimeTupleFromFields} from '../host-common/compiler-binding.generated.
 // Explicit Core/physical ports exercise the actual installed adapter. They do
 // not supply a nominal Common admission or qualify an installed filesystem Run.
 const ok = value => ({$tag: 1, _0: value});
-async function fixture({failCurrent = false, failReader = false, transport, effect = false, generic = false, failGenericFinish = false, failPlan = false, selectedRows} = {}) {
+async function fixture({failCurrent = false, failReader = false, transport, effect = false, generic = false, failGenericFinish = false, failPlan = false, selectedRows, capacityObserved, publicationBounds} = {}) {
   const preparedProgram = effect ? undefined : {}, preparedEffect = effect ? {} : undefined;
   const keyedAcquisition = {}, request = {}, declaration = {}, ledger = {}, managedRun = {};
   const duplicate = {}, originalRequests = [request, duplicate], lookup = {};
@@ -28,7 +28,9 @@ async function fixture({failCurrent = false, failReader = false, transport, effe
     clientProgramEffectRequestScope: () => ({}),
     clientProgramKeyedAcquisitionMatchesEffectProgram: () => true,
     clientProgramKeyedAcquisitionMatchesProgram: () => true,
-    clientProgramKeyedRowPrepareCapacity: () => ok({}),
+    clientProgramKeyedRowPrepareCapacity: (...args) => {
+      capacityObserved?.(args.at(-1)); return ok({});
+    },
     clientProgramKeyedAcquisitionSourceEvidenceFacts: () => ok(facts),
     clientProgramKeyedAcquisitionInputCoordinates: () => ok([0, 0, 0, 1]),
     clientProgramKeyedAcquisitionCoordinates: () => [0, 0, 1],
@@ -91,7 +93,8 @@ async function fixture({failCurrent = false, failReader = false, transport, effe
       assert.strictEqual(value, lookup); assert.strictEqual(original, originalRequests[planned++]);
       calls.push('plan-retain'); return ok(undefined);
     },
-    clientProgramKeyedLookupRequestPlanFinish(value) {
+    clientProgramKeyedLookupRequestPlanFinish(value, _bytes, nodes) {
+      publicationBounds?.(nodes);
       assert.strictEqual(value, lookup); assert.equal(planned, 2);
       calls.push('plan-finish'); if (failPlan) throw planFailure;
       planReady = true; return ok(undefined);
@@ -195,10 +198,10 @@ async function fixture({failCurrent = false, failReader = false, transport, effe
   };
   return {calls, publication, currentFailure, readerFailure, planFailure, get finished() {return finished;},
     acknowledgePhysical() {physicalAcknowledged = true;},
-    capacity: () => adapter.keyedLedgerCapacity(keyedAcquisition),
+    capacity: options => adapter.keyedLedgerCapacity(keyedAcquisition, options),
     open: () => adapter.openKeyed({preparedProgram, keyedAcquisition, request, ledger, preparedKeyed: selected.prepared}),
-    openLookup: () => adapter.openKeyedLookup({preparedEffect, managedRun, publication, keyedAcquisition, left: {}, ledger,
-      preparedKeyed: selected.prepared})};
+    openLookup: (limits = {}) => adapter.openKeyedLookup({preparedEffect, managedRun, publication, keyedAcquisition, left: {}, ledger,
+      preparedKeyed: selected.prepared, ...limits})};
 }
 
 test('installed keyed native transport keeps its full captured workspace beside page limits', async () => {
@@ -321,4 +324,29 @@ test('generic Effect keyed completion failure keeps its original error and close
   assert(f.calls.includes('row-close'));
   assert(f.calls.includes('lookup-cleanup'));
   assert.equal(f.calls.includes('journal-activation'), false);
+});
+
+
+test('Source work selector preserves standalone and explicit tighter work and node limits', async () => {
+  const observed = [], nodes = [], f = await fixture({effect: true,
+    capacityObserved: value => observed.push(value), publicationBounds: value => nodes.push(value)});
+  for (const [options, work, nodes] of [
+    [undefined, 1000000, 1000000],
+    [{originalWork: 2718281}, 2718281, 1000000],
+    [{originalWork: 2718281, maxWork: 7}, 7, 7],
+    [{originalWork: 19, maxWork: 23}, 19, 23],
+  ]) {
+    const capacity = f.capacity(options);
+    assert.equal(capacity.maxWork, work); assert.equal(capacity.maxNodes, nodes);
+    assert.equal(observed.at(-1), work);
+  }
+  const count = observed.length;
+  for (const value of [0, -1, 1.5, 2147483648, NaN]) {
+    assert.throws(() => f.capacity({originalWork: value}), {code: 'InstalledKeyedLookupLimits'});
+    assert.throws(() => f.capacity({maxWork: value}), {code: 'InstalledKeyedLookupLimits'});
+  }
+  assert.equal(observed.length, count);
+  const lookup = await f.openLookup({maxWork: 2718281, maxNodes: 7});
+  assert.deepEqual(nodes, [7]);
+  await lookup.close();
 });

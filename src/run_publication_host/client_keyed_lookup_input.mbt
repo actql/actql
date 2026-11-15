@@ -157,9 +157,11 @@ fn start_client_keyed_lookup_input_owned(
   max_work : Int,
   original : @resources.OriginalLedgerIdentity?,
   prefix? : @resources.Reservation? = None,
+  max_nodes? : Int = max_work,
 ) -> Result[ClientKeyedLookupInput, ClientKeyedRequestIssue] {
   if max_bytes < 1 ||
     max_work < 1 ||
+    max_nodes < 1 ||
     left.assembly_started ||
     left.lookup_issue is Some(_) ||
     !client_keyed_left_available(left) {
@@ -210,7 +212,7 @@ fn start_client_keyed_lookup_input_owned(
   let input = match
     @execution.prepare_bounded_admitted_input(owner, index, rows, {
       max_work,
-      max_nodes: max_work,
+      max_nodes,
       max_depth: 100,
       max_text_bytes: max_bytes,
     }) {
@@ -327,8 +329,12 @@ fn keyed_lookup_request_wire(
       @acquisition.WireContinue => ()
       @acquisition.WireFragment(fragment) => wire += fragment
       @acquisition.WireComplete(bytes, nodes, _) => {
-        if state.closed || state.left.lookup_issue is Some(_) ||
-          !client_keyed_request_matches_acquisition(request, state.left.acquisition) {
+        if state.closed ||
+          state.left.lookup_issue is Some(_) ||
+          !client_keyed_request_matches_acquisition(
+            request,
+            state.left.acquisition,
+          ) {
           return Err(Assembly("wire_unavailable"))
         }
         // The SAME original wire cursor measured this completed preimage.

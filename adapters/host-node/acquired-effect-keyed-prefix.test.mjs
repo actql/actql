@@ -127,6 +127,11 @@ function fixture({rawProtocol = false, sourceOnly = false, generic = false, fail
   }, keyedLookupPublicationEvidence(value) {assert.equal(value, observation); return evidence;}};
   const moon = {
     clientProgramEffectKeyedPlanGraphIsGeneric(value) {assert.strictEqual(value, graph); return generic;},
+    clientProgramInstalledEffectKeyedInputWorkLimit(parent, owner, identity) {
+      assert(sourceOnly); assert.strictEqual(parent, managedRun);
+      assert.strictEqual(owner, prepared); assert.strictEqual(identity, request);
+      return ok(2718281);
+    },
     clientProgramInstalledEffectKeyedOriginal(parent, owner, identity) {
       assert(sourceOnly); assert.strictEqual(parent, managedRun);
       assert.strictEqual(owner, prepared); assert.strictEqual(identity, request);
@@ -524,4 +529,38 @@ test('generic Source-only metadata refusal retains its original cleanup and neve
   assert.deepEqual(f.events, ['source-start', 'generic-metadata']);
   // An unclassified thrown port result supplies no physical-stop evidence.
   assert.equal(await f.duty().cleanup(), false);
+});
+
+
+test('Source work selector reaches the first capacity quote and the same start/open', async () => {
+  const f = fixture({sourceOnly: true, generic: true});
+  const oldOpen = f.adapter.openKeyedLookup;
+  const originalLimit = f.moon.clientProgramInstalledEffectKeyedInputWorkLimit;
+  f.moon.clientProgramInstalledEffectKeyedInputWorkLimit = (...args) => {
+    f.events.push('original-work'); return originalLimit(...args);
+  };
+  let quoted = false;
+  f.adapter.keyedLedgerCapacity = (acquisition, options) => {
+    assert.equal(f.events.at(-1), 'original-work');
+    assert.deepEqual(options, {originalWork: 2718281});
+    quoted = true; return {maxBytes: 17, maxWork: options.originalWork, maxNodes: 1000000};
+  };
+  const oldStart = f.options.acquired.control.startInstalledEffectKeyedCaptureInput;
+  f.options.acquired.control.startInstalledEffectKeyedCaptureInput = (...args) => {
+    assert(quoted); assert.equal(args.at(-1).maxWork, 2718281); return oldStart(...args);
+  };
+  f.adapter.openKeyedLookup = options => {
+    assert.equal(options.maxWork, 2718281); assert.equal(options.maxNodes, 1000000);
+    return oldOpen(options);
+  };
+  assert.strictEqual((await prepareAcquiredEffectKeyedCapture(f.options)).lookup, f.original);
+  assert.equal(await f.duty().cleanup(), true);
+});
+
+test('Source work selector refusal opens no lookup and retains the original cleanup', async () => {
+  const f = fixture({sourceOnly: true, generic: true}), failure = new Error('original-current');
+  f.moon.clientProgramInstalledEffectKeyedInputWorkLimit = () => {throw failure;};
+  f.adapter.keyedLedgerCapacity = () => {throw new Error('quote after refusal');};
+  await assert.rejects(prepareAcquiredEffectKeyedCapture(f.options), error => error === failure);
+  assert.equal(f.counts().acquired, 0); assert.equal(await f.duty().cleanup(), true);
 });

@@ -94,6 +94,7 @@ pub fn start_client_effect_keyed_capture_lookup_input(
   max_bytes : Int,
   max_work : Int,
   source_sequence? : @execution.GeneratedSequence? = None,
+  max_nodes? : Int = max_work,
 ) -> Result[ClientKeyedLookupInput, ClientKeyedRequestIssue] {
   guard client_effect_keyed_original_available(original) && !original.started else {
     return Err(ForeignLeft)
@@ -175,6 +176,7 @@ pub fn start_client_effect_keyed_capture_lookup_input(
     max_bytes,
     max_work,
     None,
+    max_nodes~,
   )
 }
 

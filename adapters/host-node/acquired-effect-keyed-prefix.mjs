@@ -80,7 +80,14 @@ async function prepareOriginalEffectKeyedInput({moon, acquired, managedRun,
   const facts = checked(moon.clientProgramKeyedAcquisitionSourceEvidenceFacts(acquisition));
   const adapter = installedSourceFor(sourceProfile, facts[0]);
   const access = adapter.sourceAccess;
-  const capacity = adapter.keyedLedgerCapacity(acquisition);
+  // Resolve the same installed Plan's ValueBudget policy before the first
+  // capacity quote. Model/prefix and standalone adapters keep their own limits.
+  const originalWork = sourcePreparation === undefined ? undefined
+    : checked(moon.clientProgramInstalledEffectKeyedInputWorkLimit(
+      managedRun, acquired.prepared, acquired.requestIdentity));
+  current();
+  const capacity = adapter.keyedLedgerCapacity(acquisition,
+    originalWork === undefined ? undefined : {originalWork});
   let left;
   if (sourcePreparation !== undefined) {
     sourceOriginal = checked(moon.clientProgramInstalledEffectKeyedOriginal(
@@ -150,7 +157,7 @@ async function prepareOriginalEffectKeyedInput({moon, acquired, managedRun,
       ...(sourcePreparation === undefined
         ? {originalCaptures: captures.map(value => value.capture)}
         : {originalCapture: captures[0].capture}),
-      keyedContent: keyedContent?.frame, maxWork: capacity.maxWork});
+      keyedContent: keyedContent?.frame, maxWork: capacity.maxWork, maxNodes: capacity.maxNodes});
   } catch (cause) {
     const end = acquisitionEndHandoff().outcome(cause);
     if (end.outcome === 'unknown') {
