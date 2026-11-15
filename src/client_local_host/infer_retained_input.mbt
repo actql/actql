@@ -500,11 +500,29 @@ fn restore_client_retained_completion(
   let available = fn() { live.val && custody_available() }
   let held = @execution.retain_admitted_output_stream(receipt, (), available)
   let material = @execution.retained_output_material(held)
+  // Rows and metadata are separate inventories. A single retained row can
+  // carry several checked columns or original input ports. Select the latter
+  // from this SAME admitted preparation, never from a descriptor's self-claim.
+  let metadata_entries = if original_read is Some(_) {
+    let prepared = @lower.bound_preparation(
+      @execution.completion_preparation_owner(preparation),
+    )
+    guard @lower.preparation_schema_at(prepared, @pipeline.Step(output_step))
+      is Some(schema) else {
+      return Err(Readmission(@execution.InvalidTarget))
+    }
+    Int::max(
+      @lower.preparation_input_count(prepared),
+      @schema.field_count(schema),
+    )
+  } else {
+    max_rows
+  }
   let port = match
     @execution.prepare_trusted_retained_readmission(
       preparation,
       descriptor,
-      max_rows,
+      metadata_entries,
       10000,
       fn(proof : @execution.AdmittedOutputStreamReceipt) {
         if available() &&
