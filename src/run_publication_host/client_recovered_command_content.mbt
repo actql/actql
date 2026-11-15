@@ -67,15 +67,17 @@ pub fn readmit_client_effect_command_content(
     prepared_client_effect_computation_environment_cid(owner) {
     return Err(ForeignInput)
   }
+  // These limits belong to the SAME admitted capture, not one Command body.
+  // The Read owner re-enters its original funded constructor before this
+  // inverse. Keep the caller's row/reference bounds for the later row parse.
   let headers = @checked.effect_program_static_headers(owner.candidate)
   guard @syntax.effect_header_at(headers, member_index) is Some(header) &&
     @publication.effect_preview_member_effect_id(preview, member_index) ==
     Some(@syntax.effect_header_id(header)) &&
     @publication.effect_preview_member_kind(preview, member_index) ==
     Some("command") &&
-    @publication.captured_effect_source_result_from_capture(
-      preview, member_index, invocation, source, captured, store_authority_cid, max_bytes,
-      max_nodes, max_depth,
+    @publication.captured_effect_source_result_from_original_capture(
+      preview, member_index, invocation, source, captured, store_authority_cid,
     )
     is Ok(_) else {
     return Err(ForeignInput)

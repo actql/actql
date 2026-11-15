@@ -8,7 +8,7 @@ export function prepareRecoveredCommandContent({moon, publications, control,
   prepared, compiled, definition, captured, preview, invocation, source, store,
   principalId, ownerPrincipal, storeAuthorityCid, authorityScopeCid, now, authorize,
   installedBinding, referenceLimits, memberIndex, row, inputName, referenceWire,
-  assertCurrent, signal, limits}) {
+  assertCurrent, signal, limits, recoveryResources}) {
   if (principalId !== ownerPrincipal || store.storeAuthorityCid !== storeAuthorityCid ||
       typeof assertCurrent !== 'function' || typeof referenceWire !== 'string') {
     throw new TypeError('InvalidRecoveredCommandContent');
@@ -82,9 +82,22 @@ export function prepareRecoveredCommandContent({moon, publications, control,
           limits: referenceLimits, readers, signal,
           retainOriginal(value) { original = value; }});
         current();
-        borrow = publications.recoverEffectCommandContent({compiled, prepared, definition,
+        const argument = {compiled, prepared, definition,
           captured, preview, invocation, source, storeAuthorityCid, generationIndex,
-          memberIndex, row, inputName, candidate, issued, limits});
+          memberIndex, row, inputName, candidate, issued, limits};
+        // The decoded Read cut its temporary workspace after Store return.
+        // Re-enter that SAME original for this inverse, then cut only after
+        // the synchronous validator returns. Legacy explicit ports keep their
+        // original bounded path; an installed recovery always supplies it.
+        const recoverOriginal = value => {
+          // Retain the returned view BEFORE the Read's success/current cut.
+          // A failed cut still leaves its original release on this child.
+          borrow = publications.recoverEffectCommandContent(value);
+          return borrow;
+        };
+        if (recoveryResources === undefined) recoverOriginal(argument);
+        else recoveryResources.constructCaptured(captured, undefined,
+          recoverOriginal, argument);
         current();
         selected(borrow.binding);
         return Object.freeze({borrow, contentOwner});

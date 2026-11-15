@@ -100,7 +100,20 @@ pub fn begin_installed_effect_capture_recovery(
   }
   owner.transitioning = true
   preparation_module_call(
-    () => resize_installed_effect_capture_recovery_definition(owner, false),
+    () => {
+      match resize_installed_effect_capture_recovery_definition(owner, false) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      // A later inverse borrows this SAME captured original. Re-enter its
+      // complete material constructor before allocating validation scratch;
+      // successful prior output retained only its returned trees and wires.
+      if owner.material is Some(_) {
+        resize_installed_effect_capture_recovery_material(owner, false)
+      } else {
+        Ok(())
+      }
+    },
     () => owner.transitioning = false,
   )
 }

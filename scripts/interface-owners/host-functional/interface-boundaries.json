@@ -124257,7 +124257,8 @@
             "referenceWire",
             "assertCurrent",
             "signal",
-            "limits"
+            "limits",
+            "recoveryResources"
           ],
           "async": false
         },
@@ -124291,6 +124292,13 @@
         {
           "name": "prepareRecoveredCommandContent/child/init:prepare/init:prepare/operation/operation/issued/issued",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareRecoveredCommandContent/child/init:prepare/init:prepare/operation/operation/recoverOriginal/recoverOriginal",
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
@@ -124352,6 +124360,7 @@
             "prepareRecoveredCommandContent/child/init:prepare/init:prepare/operation/operation",
             "prepareRecoveredCommandContent/child/init:prepare/init:prepare/operation/operation/issued/init:retainOriginal/init:retainOriginal",
             "prepareRecoveredCommandContent/child/init:prepare/init:prepare/operation/operation/issued/issued",
+            "prepareRecoveredCommandContent/child/init:prepare/init:prepare/operation/operation/recoverOriginal/recoverOriginal",
             "prepareRecoveredCommandContent/child/init:release/init:release",
             "prepareRecoveredCommandContent/contentOwner/contentOwner",
             "prepareRecoveredCommandContent/contentOwner/init:consumeContent/init:consumeContent",
@@ -137737,6 +137746,16 @@
           "async": false
         },
         {
+          "name": "recoveryView/init:constructCaptured/init:constructCaptured",
+          "parameters": [
+            "captured",
+            "receiver",
+            "method",
+            "argument"
+          ],
+          "async": false
+        },
+        {
           "name": "recoveryView/init:finish/init:finish",
           "parameters": [
             "failed",
@@ -137800,11 +137819,12 @@
             "recoveryView/close/close/flight/flight",
             "recoveryView/close/close/flight/flight#2",
             "recoveryView/init:begin/init:begin",
+            "recoveryView/init:constructCaptured/init:constructCaptured",
             "recoveryView/init:finish/init:finish",
+            "recoveryView/init:reserveDecoded/init:reserveDecoded",
             "recoveryView/init:retainCleanup/init:retainCleanup",
             "recoveryView/recoveryView",
-            "recoveryView/reserve/reserve",
-            "recoveryView/init:reserveDecoded/init:reserveDecoded"
+            "recoveryView/reserve/reserve"
           ],
           "exports": [
             "prepareEffectCaptureResources"

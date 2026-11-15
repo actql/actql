@@ -160,6 +160,21 @@ function recoveryView(state) {
       } catch (cause) {captureFailure(state, cause); throw cause;}
       finally {state.preparing = false;}
     },
+    constructCaptured(captured, receiver, method, argument) {
+      if (captured !== state.capturedRun || captured === undefined ||
+          typeof method !== 'function') fail('EffectCaptureResourceUnavailable');
+      view.begin();
+      let failed = true, cause;
+      try {
+        const value = Reflect.apply(method, receiver, [argument]);
+        if (captured !== state.capturedRun || state.closing || state.closed) {
+          fail('EffectCaptureResourceUnavailable');
+        }
+        failed = false;
+        return value;
+      } catch (error) {cause = error; throw error;}
+      finally {view.finish(failed, cause);}
+    },
     retainCleanup(operation) {
       if (state.closed || state.resultCleanup !== undefined || typeof operation !== 'function') {
         fail('EffectCaptureResourceUnavailable');

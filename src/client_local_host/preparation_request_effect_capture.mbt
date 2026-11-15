@@ -111,8 +111,13 @@ fn request_effect_capture_recovery_capacity(
   guard base is Some(base) else { return None }
   let work = @resources.preparation_phase_work_continuation64_construction_inventory()
   guard @execution.preparation_representation_cost({
-      record_headers: work.record_headers + 8L,
-      reference_slots: work.reference_slots + 16L,
+      // Re-entry adds the constructCaptured closure (state/view captures and
+      // its view slot:1H3R), the publications/borrow return-retainer (1H2R),
+      // and one Reflect.apply Array/backing (2H2R).
+      // Fund these before the Read view escapes; no later callback borrows
+      // spare decode workspace for these still-live fixed control cells.
+      record_headers: work.record_headers + 12L,
+      reference_slots: work.reference_slots + 23L,
       scalar_words: work.scalar_words + 12L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,

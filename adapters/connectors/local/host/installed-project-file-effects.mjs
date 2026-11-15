@@ -334,6 +334,7 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
                 memberIndex:members[index].memberIndex,
                 row:entries[index].findIndex(entry=>requests.get(entry.request)===state),
                 inputName:'content',referenceWire:wire(state.record.value.content),signal,
+                recoveryResources:recovered.recoveryResources,
                 limits:{maxFields:inputLimits.maxFields,maxWork:inputLimits.maxWork,
                   maxWireBytes:inputLimits.body.maxBytes,maxNodes:inputLimits.body.maxNodes,
                   maxDepth:inputLimits.body.maxDepth},

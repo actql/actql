@@ -65,6 +65,9 @@ function fixture({live = false, beginFailure, reserveFailure, retireFailure,
       assert.equal(view.status().busy, true); events.push('live-begin');
       begin?.(); return ok(undefined);
     },
+    clientProgramInstalledEffectCapturePreparedAvailable(actual) {
+      assert.equal(actual, value); return true;
+    },
     clientProgramReserveInstalledEffectCaptureRecovery(actual, bytes) {
       assert.equal(actual, value); events.push(['live-grow', bytes]);
       if (reserveFailure !== undefined) throw reserveFailure;
@@ -92,6 +95,10 @@ function fixture({live = false, beginFailure, reserveFailure, retireFailure,
   const managed = live ? {value:{}, prepared:{}, request, definitionOriginal:{definition:{}}} : undefined;
   const captured = Object.freeze({name:'captured_run', wire:'original captured'});
   const control = {
+    admitLiveEffectCapturedRun(actual, wire) {
+      assert.equal(actual, value); assert.equal(wire, captured.wire);
+      events.push('live-admit'); return captured;
+    },
     reserveEffectCaptureEncrypted(...args) {return Reflect.apply(control.reserveEffectCaptureRecovery, control, args);},
     reserveEffectCaptureEnvelope(owner,input,identity,runDefinition,wire) {
       assert.equal(this,control);assert.equal(owner,parent);assert.equal(input,originalInput);
@@ -118,7 +125,7 @@ function fixture({live = false, beginFailure, reserveFailure, retireFailure,
       if (reserveFailure !== undefined) throw reserveFailure;
     },
   };
-  return {events, request, definition, control, moon,
+  return {events, request, definition, control, moon, captured,
     open(options = {}) {
       return prepareEffectCaptureResources({moon, control, request, runDefinition:definition,
         contractLimits:limits, managed, assertCurrent() {events.push('current');},
@@ -148,6 +155,51 @@ test('live capture uses SAME adopted Run and never opens a second Request Resour
   assert.deepEqual(f.events.filter(Array.isArray), [['live-grow',123], ['live-decoded','{"original":true}']]);
   assert.equal(f.events.filter(value => value === 'live-complete').length, 1);
   assert.equal(f.events.filter(value => value === 'live-retire').length, 1);
+});
+
+test('captured inverse re-enters the SAME Read before validation and cuts only after return', async () => {
+  const f = fixture({live:true}), view = f.open();
+  view.begin(); view.reserve(123); view.reserveDecoded('{"original":true}');
+  assert.strictEqual(view.admitCapturedRun(f.captured.wire), f.captured);
+  view.finish(false);
+  const receiver = {}, argument = {}, result = {};
+  const before = f.events.length;
+  assert.strictEqual(view.constructCaptured(f.captured, receiver, function (value) {
+    assert.strictEqual(this, receiver); assert.strictEqual(value, argument);
+    assert.equal(view.status().busy, true);
+    assert.equal(f.events.at(-1), 'live-begin');
+    assert.throws(() => view.constructCaptured(f.captured, receiver, () => {}, argument),
+      {code:'EffectCaptureResourceUnavailable'});
+    return result;
+  }, argument), result);
+  assert.deepEqual(f.events.slice(before), ['live-begin','live-complete']);
+  assert.equal(view.status().busy, false);
+  const events = f.events.length;
+  assert.throws(() => view.constructCaptured({...f.captured}, receiver, () => {}, argument),
+    {code:'EffectCaptureResourceUnavailable'});
+  assert.equal(f.events.length, events);
+  assert.equal(await view.close(), true);
+  assert.throws(() => view.constructCaptured(f.captured, receiver, () => {}, argument),
+    {code:'EffectCaptureResourceUnavailable'});
+});
+
+test('captured inverse failure preserves its original child and does not cut a failed constructor', async () => {
+  const f = fixture({live:true}), view = f.open();
+  view.begin(); view.reserve(123); view.reserveDecoded('{"original":true}');
+  view.admitCapturedRun(f.captured.wire); view.finish(false);
+  let pending = true;
+  const child = {status:() => ({pending}), async retry() {}};
+  const primary = Object.assign(new Error('original inverse failure'),
+    {cleanupPending:true, cleanupHandle:child});
+  const completed = f.events.filter(value => value === 'live-complete').length;
+  assert.throws(() => view.constructCaptured(f.captured, {}, () => {throw primary;}, {}),
+    error => error === primary);
+  assert.equal(view.status().busy, false);
+  assert.equal(f.events.filter(value => value === 'live-complete').length, completed);
+  assert.equal(await view.close(), false);
+  assert.equal(f.events.includes('live-retire'), false);
+  pending = false;
+  assert.equal(await view.close(), true);
 });
 
 test('failed parent construction retains the original initial cleanup instead of inventing a Run', async () => {

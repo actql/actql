@@ -441,6 +441,31 @@ pub fn captured_effect_source_result_from_capture(
 }
 
 ///|
+/// A funded inverse of one already admitted capture uses that original's
+/// measured complete extent. Command-row or Content-reference limits do not
+/// describe this whole context. The caller must re-enter the SAME Read's
+/// constructor before entry; this function grants no Resource or Store access.
+pub fn captured_effect_source_result_from_original_capture(
+  preview : EffectPreviewIdentity,
+  member_index : Int,
+  invocation : PublicationContract,
+  source : CapturedEffectSourceArtifact,
+  captured : PublicationContract,
+  store_authority_cid : String,
+) -> Result[PublicationContract, CapturedRunIssuanceIssue] {
+  guard captured.wire_usage is Some((bytes, nodes, depth)) &&
+    bytes > 0 &&
+    nodes > 0 &&
+    depth > 0 else {
+    return Err(CaptureIssuanceReferenceMismatch("effect_source_capture"))
+  }
+  captured_effect_source_result_from_capture(
+    preview, member_index, invocation, source, captured, store_authority_cid, bytes,
+    nodes, depth,
+  )
+}
+
+///|
 /// Restore the private semantic Artifact only for its exact Table member.
 /// This projection is not an ordinary Result and does not restore live custody.
 pub fn captured_effect_source_table_input_from_capture(

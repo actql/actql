@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {prepareRecoveredCommandContent} from './recovered-command-content.mjs';
 
-function fixture() {
+function fixture({funded = false, cutFailure} = {}) {
   const candidate={},issued={},compiled={},prepared={},captured={},preview={},invocation={},source={};
   const definition={wire:'{"valid_until":"2099-01-01T00:00:00.000Z"}'};
   const events=[],proofs=['input','derivation','generation'].map(name=>({name}));
@@ -39,15 +39,43 @@ function fixture() {
     issue(value,issuer){assert.strictEqual(value,candidate);
       assert.equal(issuer.available(undefined,'original wire'),true);
       assert.equal(issuer.authorize('original wire'),true);events.push('issue');return issued;}};
+  const recoveryResources = funded ? {constructCaptured(original, receiver, method, argument) {
+    assert.strictEqual(original,captured); assert.strictEqual(receiver,undefined);
+    events.push('begin original Read inverse');
+    const result=Reflect.apply(method,receiver,[argument]);
+    events.push('complete original Read inverse');
+    if(cutFailure!==undefined)throw cutFailure;
+    return result;
+  }} : undefined;
   const child=prepareRecoveredCommandContent({publications,control,prepared,compiled,definition,
     captured,preview,invocation,source,store,principalId:'actor',ownerPrincipal:'actor',
     storeAuthorityCid:'Store',authorityScopeCid:'scope',now:()=>'2026-10-21T00:00:00.000Z',
     authorize:()=>live,installedBinding:()=>({graphPolicy:{cid:'policy'},binding:{original:true}}),
     referenceLimits:{},memberIndex:0,row:0,inputName:'content',referenceWire:'original wire',
-    assertCurrent(){if(!live)throw new Error('OriginalRunRetired');},limits:{}});
+    assertCurrent(){if(!live)throw new Error('OriginalRunRetired');},limits:{},recoveryResources});
   return{child,events,nominal,retire(){live=false;},
     confirm(value){confirm=value;},consume(value){consume=value;}};
 }
+
+test('installed recovered Command validates its original only inside the retained Read constructor',async()=>{
+  const f=fixture({funded:true}),restored=await f.child.prepare();
+  assert.strictEqual(restored.borrow,f.nominal);
+  const entered=f.events.indexOf('begin original Read inverse');
+  assert(entered>f.events.indexOf('issue'));
+  assert.deepEqual(f.events.slice(entered,entered+3),
+    ['begin original Read inverse','bind original Command','complete original Read inverse']);
+  assert.equal(await f.child.release(),true);
+  assert.equal(f.events.filter(value=>value==='bind original Command').length,1);
+});
+
+test('recovered Command retains the returned view when the SAME Read success cut refuses',async()=>{
+  const primary=new Error('original current cut refusal'),f=fixture({funded:true,cutFailure:primary});
+  await assert.rejects(f.child.prepare(),error=>error===primary);
+  assert.equal(f.events.filter(value=>value==='bind original Command').length,1);
+  assert.equal(f.events.includes('release binding'),false);
+  assert.equal(await f.child.release(),true);
+  assert.equal(f.events.filter(value=>value==='release binding').length,1);
+});
 
 test('recovered Command retains the same Store original and typed input before byte consumption',async()=>{
   const f=fixture();assert.deepEqual(f.events,[]);
