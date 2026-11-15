@@ -29,6 +29,70 @@ fn selected_binding_rows_supported(kernel : @lower.PreparedKernel) -> Bool {
 }
 
 ///|
+// A literal seed and these existing bounded row children never construct a
+// legacy sequence table. Nullable scalar bindings use the same charged presence
+// path; their complete child workspace remains prepaid. This is only a scratch
+// lifetime proof, not borrowed-output DATA or permission to defer final retention.
+fn selected_literal_binding_chain(
+  sequence : @execution.GeneratedSequence,
+) -> Bool {
+  let count = @execution.generated_sequence_step_count(sequence)
+  guard count > 1 &&
+    @execution.generated_sequence_step_at(sequence, 0)
+    is Some(@lower.ValuesStep(_)) else {
+    return false
+  }
+  let prepared = @lower.bound_preparation(
+    @execution.generated_sequence_owner(sequence),
+  )
+  guard @execution.generated_sequence_step_index_at(sequence, 0).bind(step => {
+      @lower.node_at(prepared, step)
+    })
+    is Some(seed) &&
+    @lower.node_input_count(seed) == 0 &&
+    @lower.node_values_literal_text_bytes(seed) is Some(_) else {
+    return false
+  }
+  let mut bindings = false
+  for index in 0..<count {
+    guard @execution.generated_sequence_step_index_at(sequence, index).bind(step => {
+        @lower.preparation_schema_at(prepared, @pipeline.Step(step))
+      })
+      is Some(output) else {
+      return false
+    }
+    for field in 0..<@schema.field_count(output) {
+      match @schema.field_at(output, field).unwrap().contract.shape {
+        @contract.Number | @contract.Boolean | @contract.Text(_) => ()
+        _ => return false
+      }
+    }
+    if index == 0 {
+      continue
+    }
+    guard @execution.generated_sequence_step_at(sequence, index)
+      is Some(@lower.RowStep(kernel)) &&
+      (
+        @lower.kernel_bindings(kernel) is Some(_) ||
+        @lower.kernel_is_projection(kernel)
+      ) else {
+      return false
+    }
+    if @lower.kernel_bindings(kernel) is Some(_) {
+      bindings = true
+    }
+    let input = @lower.kernel_input_schema(kernel)
+    for field in 0..<@schema.field_count(input) {
+      match @schema.field_at(input, field).unwrap().contract.shape {
+        @contract.Number | @contract.Boolean | @contract.Text(_) => ()
+        _ => return false
+      }
+    }
+  }
+  bindings
+}
+
+///|
 // These evaluator leaves borrow an input/prior value or admitted literal,
 // including checked property selection rooted in an input/prior slot. Inline
 // Number/Boolean results likewise build no persistent text/container forest.

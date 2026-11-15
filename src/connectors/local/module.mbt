@@ -904,7 +904,8 @@ fn local_module_default_output_start_capacity(
   // while the shared attachment still funds all live intermediate DATA in E.
   let constructor_chain = (count > 1 && metered_retention) ||
     window_chain ||
-    required_row_chain
+    required_row_chain ||
+    selected_literal_binding_chain(sequence)
   let mut scratch = if constructor_chain {
     0L
   } else {
