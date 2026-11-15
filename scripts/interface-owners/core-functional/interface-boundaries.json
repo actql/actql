@@ -72650,7 +72650,7 @@
               },
               {
                 "path": "src/physical_strategy_host/captured_dag.mbt",
-                "anchor": "physical_equal(original, read)"
+                "anchor": "@execution.supplied_relation_read_same_binding(original, read)"
               }
             ],
             "inputsOutputs": [
@@ -72660,7 +72660,7 @@
               },
               {
                 "path": "src/physical_strategy_host/captured_dag.mbt",
-                "anchor": "physical_equal(original, read)"
+                "anchor": "@execution.supplied_relation_read_same_binding(original, read)"
               }
             ],
             "identity": [
@@ -72670,7 +72670,7 @@
               },
               {
                 "path": "src/physical_strategy_host/captured_dag.mbt",
-                "anchor": "physical_equal(original, read)"
+                "anchor": "@execution.supplied_relation_read_same_binding(original, read)"
               }
             ],
             "ownership": [
@@ -72680,7 +72680,7 @@
               },
               {
                 "path": "src/physical_strategy_host/captured_dag.mbt",
-                "anchor": "physical_equal(original, read)"
+                "anchor": "@execution.supplied_relation_read_same_binding(original, read)"
               }
             ],
             "synchronization": [
@@ -72690,7 +72690,7 @@
               },
               {
                 "path": "src/physical_strategy_host/captured_dag.mbt",
-                "anchor": "physical_equal(original, read)"
+                "anchor": "@execution.supplied_relation_read_same_binding(original, read)"
               }
             ],
             "failure": [
@@ -72700,7 +72700,7 @@
               },
               {
                 "path": "src/physical_strategy_host/captured_dag.mbt",
-                "anchor": "physical_equal(original, read)"
+                "anchor": "@execution.supplied_relation_read_same_binding(original, read)"
               }
             ],
             "cancellation": [
@@ -72710,7 +72710,7 @@
               },
               {
                 "path": "src/physical_strategy_host/captured_dag.mbt",
-                "anchor": "physical_equal(original, read)"
+                "anchor": "@execution.supplied_relation_read_same_binding(original, read)"
               }
             ],
             "resources": [
@@ -72720,7 +72720,7 @@
               },
               {
                 "path": "src/physical_strategy_host/captured_dag.mbt",
-                "anchor": "physical_equal(original, read)"
+                "anchor": "@execution.supplied_relation_read_same_binding(original, read)"
               }
             ],
             "extension": [
@@ -72730,7 +72730,7 @@
               },
               {
                 "path": "src/physical_strategy_host/captured_dag.mbt",
-                "anchor": "physical_equal(original, read)"
+                "anchor": "@execution.supplied_relation_read_same_binding(original, read)"
               }
             ],
             "verification": [
