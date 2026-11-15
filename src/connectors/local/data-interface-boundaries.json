@@ -643,11 +643,6 @@
         "async": false
       },
       {
-        "name": "createIcebergPhysicalBridge/assertImplementation/assertImplementation",
-        "parameters": [],
-        "async": false
-      },
-      {
         "name": "createIcebergPhysicalBridge/bridge/init:admitStorageMapping/init:admitStorageMapping",
         "parameters": [
           "values"
@@ -772,60 +767,12 @@
         "async": false
       },
       {
-        "name": "createIcebergPhysicalBridge/configuration/configuration",
-        "parameters": [],
-        "async": false
-      },
-      {
-        "name": "createIcebergPhysicalBridge/invoke/invoke",
-        "parameters": [
-          "command",
-          "payload",
-          "signal",
-          "stopped",
-          "beforeBodyAllocation",
-          "bodyReceived",
-          "bodySnapshot"
-        ],
-        "async": true
-      },
-      {
-        "name": "createIcebergPhysicalBridge/own/own",
-        "parameters": [
-          "prepared"
-        ],
-        "async": false
-      },
-      {
-        "name": "createIcebergPhysicalBridge/preflight/preflight",
-        "parameters": [
-          "command",
-          "payload"
-        ],
-        "async": false
-      },
-      {
         "name": "createIcebergPhysicalBridge/reconcileOperation/reconcileOperation",
         "parameters": [
           "operation",
           "signal",
           "beforeBodyAllocation",
           "bodyReceived"
-        ],
-        "async": false
-      },
-      {
-        "name": "createIcebergPhysicalBridge/requestFrame/requestFrame",
-        "parameters": [
-          "command",
-          "payload"
-        ],
-        "async": false
-      },
-      {
-        "name": "fail/fail",
-        "parameters": [
-          "code"
         ],
         "async": false
       },
@@ -853,13 +800,6 @@
           "responseWire",
           "statusCode",
           "limits"
-        ],
-        "async": false
-      },
-      {
-        "name": "snapshot/snapshot",
-        "parameters": [
-          "value"
         ],
         "async": false
       },
@@ -928,7 +868,6 @@
           "admitIcebergStorageMapping",
           "cid/cid",
           "createIcebergPhysicalBridge",
-          "createIcebergPhysicalBridge/assertImplementation/assertImplementation",
           "createIcebergPhysicalBridge/bridge/init:admitStorageMapping/init:admitStorageMapping",
           "createIcebergPhysicalBridge/bridge/init:checkReadSelector/init:checkReadSelector",
           "createIcebergPhysicalBridge/bridge/init:cleanup/init:cleanup",
@@ -944,17 +883,10 @@
           "createIcebergPhysicalBridge/bridge/init:resolveGeneration/init:resolveGeneration",
           "createIcebergPhysicalBridge/bridge/init:status/init:status",
           "createIcebergPhysicalBridge/bridge/init:supportsOperation/init:supportsOperation",
-          "createIcebergPhysicalBridge/configuration/configuration",
-          "createIcebergPhysicalBridge/invoke/invoke",
-          "createIcebergPhysicalBridge/own/own",
-          "createIcebergPhysicalBridge/preflight/preflight",
           "createIcebergPhysicalBridge/reconcileOperation/reconcileOperation",
-          "createIcebergPhysicalBridge/requestFrame/requestFrame",
-          "fail/fail",
           "issueIcebergStorageMapping",
           "keys/keys",
           "projectIcebergCommitResponse",
-          "snapshot/snapshot",
           "supportsIcebergTableOperation",
           "validateIcebergPhysicalConfiguration",
           "validateIcebergPhysicalConfiguration/validateIcebergPhysicalConfiguration",

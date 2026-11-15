@@ -76,21 +76,6 @@
           "async": false
         },
         {
-          "name": "finiteWireNumber",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "valid",
-          "parameters": [
-            "value",
-            "schema"
-          ],
-          "async": false
-        },
-        {
           "name": "valid/valid",
           "parameters": [
             "rule"
@@ -492,9 +477,7 @@
       "owner": "E / existing registered Client-Host, protocol and publication wire Owners",
       "contracts": [
         {
-          "operations": [
-            "finiteWireNumber"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -609,7 +592,6 @@
         },
         {
           "operations": [
-            "valid",
             "valid/valid",
             "valid/valid#2",
             "valid/valid#3",
@@ -1902,21 +1884,6 @@
       ],
       "operations": [
         {
-          "name": "finiteWireNumber",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "valid",
-          "parameters": [
-            "value",
-            "schema"
-          ],
-          "async": false
-        },
-        {
           "name": "valid/valid",
           "parameters": [
             "rule"
@@ -2241,9 +2208,7 @@
       "owner": "E / existing registered Client-Host, protocol and publication wire Owners",
       "contracts": [
         {
-          "operations": [
-            "finiteWireNumber"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -2342,7 +2307,6 @@
         },
         {
           "operations": [
-            "valid",
             "valid/valid",
             "valid/valid#2",
             "valid/valid#3",
@@ -2745,21 +2709,6 @@
       ],
       "operations": [
         {
-          "name": "finiteWireNumber",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "valid",
-          "parameters": [
-            "value",
-            "schema"
-          ],
-          "async": false
-        },
-        {
           "name": "valid/valid",
           "parameters": [
             "rule"
@@ -2846,9 +2795,7 @@
       "owner": "E / existing registered Client-Host, protocol and publication wire Owners",
       "contracts": [
         {
-          "operations": [
-            "finiteWireNumber"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -2947,7 +2894,6 @@
         },
         {
           "operations": [
-            "valid",
             "valid/valid",
             "valid/valid#2",
             "valid/valid#3",

@@ -8,13 +8,6 @@
       ],
       "operations": [
         {
-          "name": "json/json",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "projectTemplateFiles",
           "parameters": [
             "template"
@@ -32,7 +25,6 @@
         {
           "operations": [
             "<module>",
-            "json/json",
             "projectTemplateFiles"
           ],
           "exports": [
@@ -134,13 +126,6 @@
       ],
       "operations": [
         {
-          "name": "emptyDirectory/emptyDirectory",
-          "parameters": [
-            "path"
-          ],
-          "async": false
-        },
-        {
           "name": "fail/fail",
           "parameters": [
             "code",
@@ -152,21 +137,6 @@
           "name": "nativeMockAcceptanceObservations",
           "parameters": [
             "stderr"
-          ],
-          "async": false
-        },
-        {
-          "name": "nativeMockAcceptanceObservations/amount/amount",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "nativeMockAcceptanceObservations/exact/exact",
-          "parameters": [
-            "value",
-            "keys"
           ],
           "async": false
         },
@@ -199,22 +169,6 @@
           "async": false
         },
         {
-          "name": "nativeMockAcceptanceObservations/positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "nativeMockAcceptanceObservations/sameField",
-          "parameters": [
-            "actual",
-            "expected",
-            "message"
-          ],
-          "async": false
-        },
-        {
           "name": "projectInitArguments",
           "parameters": [
             "args"
@@ -240,29 +194,11 @@
           "async": false
         },
         {
-          "name": "requireProjectInitSupport/unavailable/unavailable",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "same/same",
-          "parameters": [
-            "a",
-            "b"
-          ],
-          "async": false
-        },
-        {
           "name": "scaffoldProject",
           "parameters": [
             "directory",
             "template"
           ],
-          "async": false
-        },
-        {
-          "name": "scaffoldProject/checkRoot/checkRoot",
-          "parameters": [],
           "async": false
         }
       ],
@@ -282,13 +218,10 @@
         {
           "operations": [
             "<module>",
-            "emptyDirectory/emptyDirectory",
             "fail/fail",
             "projectInitArguments",
             "projectInitialAdoptionArguments",
-            "same/same",
-            "scaffoldProject",
-            "scaffoldProject/checkRoot/checkRoot"
+            "scaffoldProject"
           ],
           "exports": [
             "projectInitArguments",
@@ -410,16 +343,11 @@
         {
           "operations": [
             "requireProjectInitSupport",
-            "requireProjectInitSupport/unavailable/unavailable",
             "nativeMockAcceptanceObservations",
-            "nativeMockAcceptanceObservations/amount/amount",
-            "nativeMockAcceptanceObservations/exact/exact",
             "nativeMockAcceptanceObservations/exact/exact/exact",
             "nativeMockAcceptanceObservations/nativeMockAcceptanceObservations",
             "nativeMockAcceptanceObservations/nativeMockAcceptanceObservations#2",
-            "nativeMockAcceptanceObservations/nativeMockAcceptanceObservations#3",
-            "nativeMockAcceptanceObservations/positive/positive",
-            "nativeMockAcceptanceObservations/sameField"
+            "nativeMockAcceptanceObservations/nativeMockAcceptanceObservations#3"
           ],
           "exports": [
             "requireProjectInitSupport",

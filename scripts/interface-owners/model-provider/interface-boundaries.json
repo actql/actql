@@ -12,13 +12,6 @@
       ],
       "operations": [
         {
-          "name": "assertRuntime/assertRuntime",
-          "parameters": [
-            "moon"
-          ],
-          "async": false
-        },
-        {
           "name": "assertRuntime/assertRuntime/assertRuntime",
           "parameters": [
             "name"
@@ -43,21 +36,6 @@
           "name": "createInstalledUndiciOpenAIChatRegistration",
           "parameters": [
             "config"
-          ],
-          "async": false
-        },
-        {
-          "name": "frozen/frozen",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedChatRegistration",
-          "parameters": [
-            "config",
-            "originalUndici"
           ],
           "async": false
         },
@@ -138,30 +116,6 @@
           "async": false
         },
         {
-          "name": "int/int",
-          "parameters": [
-            "value",
-            "minimum"
-          ],
-          "async": false
-        },
-        {
-          "name": "issue/issue",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "snapshotData",
-          "parameters": [
-            "value",
-            "keys",
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "snapshotData/entries/entries",
           "parameters": [
             "name"
@@ -207,13 +161,10 @@
         {
           "operations": [
             "<module>",
-            "assertRuntime/assertRuntime",
             "assertRuntime/assertRuntime/assertRuntime",
             "cid/cid",
             "createInstalledOpenAIChatRegistration",
             "createInstalledUndiciOpenAIChatRegistration",
-            "frozen/frozen",
-            "installedChatRegistration",
             "installedChatRegistration/installedChatRegistration",
             "installedChatRegistration/installedChatRegistration/init:physicalPreflight/init:physicalPreflight",
             "installedChatRegistration/installedChatRegistration/init:physicalPreflight/init:physicalPreflight/init:checked/init:checked",
@@ -224,9 +175,6 @@
             "installedChatRegistration/installedChatRegistration#5",
             "installedChatRegistration/installedChatRegistration#6",
             "installedChatRegistration/installedChatRegistration#7",
-            "int/int",
-            "issue/issue",
-            "snapshotData",
             "snapshotData/entries/entries",
             "snapshotData/snapshotData",
             "snapshotData/snapshotData#2",
@@ -421,37 +369,6 @@
           "async": false
         },
         {
-          "name": "createInstalledTypeSafeDecisionRegistration/int/int",
-          "parameters": [
-            "value",
-            "minimum"
-          ],
-          "async": false
-        },
-        {
-          "name": "frozen/frozen",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "issue/issue",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "snapshot",
-          "parameters": [
-            "value",
-            "keys",
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "snapshot/snapshot",
           "parameters": [
             "name"
@@ -506,10 +423,6 @@
             "createInstalledTypeSafeDecisionRegistration/createInstalledTypeSafeDecisionRegistration#3",
             "createInstalledTypeSafeDecisionRegistration/createInstalledTypeSafeDecisionRegistration#4",
             "createInstalledTypeSafeDecisionRegistration/createInstalledTypeSafeDecisionRegistration#5",
-            "createInstalledTypeSafeDecisionRegistration/int/int",
-            "frozen/frozen",
-            "issue/issue",
-            "snapshot",
             "snapshot/snapshot",
             "snapshot/snapshot#2",
             "snapshot/snapshot#3",
@@ -668,30 +581,6 @@
           "async": false
         },
         {
-          "name": "createSdkPhysicalPreflight",
-          "parameters": [
-            "moon",
-            "request",
-            "preparation",
-            "profile",
-            "installation",
-            "quantities",
-            "fetch",
-            "responseLimits",
-            "persistRaw",
-            "notify",
-            "checked",
-            "observeAt",
-            "cleanupRaw",
-            "preparationProgress",
-            "rawCaptureBinder",
-            "preparePlan",
-            "selectSaved",
-            "responseMode"
-          ],
-          "async": false
-        },
-        {
           "name": "createSdkPhysicalPreflight/advance/advance",
           "parameters": [],
           "async": false
@@ -757,11 +646,6 @@
           "async": false
         },
         {
-          "name": "createSdkPhysicalPreflight/pollResponse/pollResponse",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "createSdkPhysicalPreflight/pollResponse/pollResponse/pollResponse",
           "parameters": [],
           "async": false
@@ -798,11 +682,6 @@
           "async": false
         },
         {
-          "name": "createSdkPhysicalPreflight/wake/wake",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "generationPlan",
           "parameters": [
             "moon",
@@ -833,7 +712,6 @@
             "createSdkNativeDecisionPreflight",
             "createSdkNativeDecisionPreflight/createSdkNativeDecisionPreflight",
             "createSdkNativeDecisionPreflight/createSdkNativeDecisionPreflight#2",
-            "createSdkPhysicalPreflight",
             "createSdkPhysicalPreflight/advance/advance",
             "createSdkPhysicalPreflight/bound/bound",
             "createSdkPhysicalPreflight/cancel/cancel",
@@ -845,14 +723,12 @@
             "createSdkPhysicalPreflight/init:reconcileRaw/init:reconcileRaw/init:reconcileRaw#2",
             "createSdkPhysicalPreflight/init:reconcileRaw/init:reconcileRaw/init:reconcileRaw#3",
             "createSdkPhysicalPreflight/poll/poll",
-            "createSdkPhysicalPreflight/pollResponse/pollResponse",
             "createSdkPhysicalPreflight/pollResponse/pollResponse/pollResponse",
             "createSdkPhysicalPreflight/pollResponse/pollResponse/pollResponse#2",
             "createSdkPhysicalPreflight/pollResponse/pollResponse/pollResponse#3",
             "createSdkPhysicalPreflight/pollResponse/pollResponse/pollResponse#4",
             "createSdkPhysicalPreflight/preflight/preflight",
             "createSdkPhysicalPreflight/start/start",
-            "createSdkPhysicalPreflight/wake/wake",
             "generationPlan"
           ],
           "exports": [
@@ -985,13 +861,6 @@
           "async": false
         },
         {
-          "name": "createAdmittedTypeSafeDecisionPreflight/checked/checked",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "createAdmittedTypeSafeDecisionPreflight/cleanup/cleanup",
           "parameters": [],
           "async": false
@@ -1034,7 +903,6 @@
             "createAdmittedTypeSafeDecisionPreflight",
             "createAdmittedTypeSafeDecisionPreflight/advance/advance",
             "createAdmittedTypeSafeDecisionPreflight/bounds/bounds",
-            "createAdmittedTypeSafeDecisionPreflight/checked/checked",
             "createAdmittedTypeSafeDecisionPreflight/cleanup/cleanup",
             "createAdmittedTypeSafeDecisionPreflight/createAdmittedTypeSafeDecisionPreflight",
             "createAdmittedTypeSafeDecisionPreflight/createAdmittedTypeSafeDecisionPreflight#2",
@@ -1154,30 +1022,10 @@
           "async": false
         },
         {
-          "name": "admitOpenAIOriginalMaterials/checked/checked",
-          "parameters": [
-            "result"
-          ],
-          "async": false
-        },
-        {
           "name": "admitOpenAIOriginalMaterials/policies/policies",
           "parameters": [
             "name",
             "kind"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "fields/fields",
-          "parameters": [
-            "names",
-            "check"
           ],
           "async": false
         },
@@ -1231,15 +1079,6 @@
           "async": false
         },
         {
-          "name": "record/record",
-          "parameters": [
-            "value",
-            "required",
-            "optional"
-          ],
-          "async": false
-        },
-        {
           "name": "record/record/fields/fields",
           "parameters": [
             "name"
@@ -1264,14 +1103,6 @@
           "name": "scalar/scalar",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "shape/shape",
-          "parameters": [
-            "names",
-            "check"
           ],
           "async": false
         },
@@ -1393,10 +1224,7 @@
           "operations": [
             "<module>",
             "admitOpenAIOriginalMaterials",
-            "admitOpenAIOriginalMaterials/checked/checked",
             "admitOpenAIOriginalMaterials/policies/policies",
-            "fail/fail",
-            "fields/fields",
             "fields/fields/fields",
             "identity/identity",
             "installation/installation",
@@ -1404,12 +1232,10 @@
             "original/original",
             "original/original/original",
             "quantity/quantity",
-            "record/record",
             "record/record/fields/fields",
             "record/record/record",
             "record/record/record#2",
             "scalar/scalar",
-            "shape/shape",
             "shape/shape/shape",
             "snapshotOpenAIOriginalMaterials",
             "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials",
@@ -1610,31 +1436,9 @@
           "async": false
         },
         {
-          "name": "prepareOriginalOpenAIChatRequest/exactInteger/exactInteger",
-          "parameters": [
-            "value",
-            "minimum"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareOriginalOpenAIChatRequest/prepareOriginalOpenAIChatRequest",
           "parameters": [
             "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareProjectedOriginal",
-          "parameters": [
-            "moon",
-            "request",
-            "taskCid",
-            "promptCid",
-            "outputSchemaCid",
-            "modelSelector",
-            "installation",
-            "value"
           ],
           "async": false
         },
@@ -1667,9 +1471,7 @@
             "createAdmittedOpenAIChatPreflight/progress/init:cleanup/init:cleanup",
             "prepareAdmittedOpenAIChatRequest",
             "prepareOriginalOpenAIChatRequest",
-            "prepareOriginalOpenAIChatRequest/exactInteger/exactInteger",
             "prepareOriginalOpenAIChatRequest/prepareOriginalOpenAIChatRequest",
-            "prepareProjectedOriginal",
             "prepareProjectedOriginal/init:verifyRequest/init:verifyRequest"
           ],
           "exports": [
@@ -2069,13 +1871,6 @@
       ],
       "operations": [
         {
-          "name": "assertRuntime",
-          "parameters": [
-            "moon"
-          ],
-          "async": false
-        },
-        {
           "name": "assertRuntime/assertRuntime",
           "parameters": [
             "name"
@@ -2107,27 +1902,6 @@
           "name": "createInstalledHttpChatRegistration/createInstalledHttpChatRegistration",
           "parameters": [
             "moon"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "frozen/frozen",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedOpaqueRegistration",
-          "parameters": [
-            "config"
           ],
           "async": false
         },
@@ -2172,21 +1946,6 @@
           "async": false
         },
         {
-          "name": "integer/integer",
-          "parameters": [
-            "value",
-            "minimum"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainConfiguration",
-          "parameters": [
-            "config"
-          ],
-          "async": false
-        },
-        {
           "name": "retainConfiguration/headers/headers",
           "parameters": [
             "originalPair"
@@ -2216,15 +1975,6 @@
           "async": false
         },
         {
-          "name": "snapshot",
-          "parameters": [
-            "value",
-            "fields",
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "snapshot/snapshot",
           "parameters": [
             "name"
@@ -2243,15 +1993,6 @@
           "name": "snapshot/snapshot#3",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "snapshotArray",
-          "parameters": [
-            "value",
-            "maximum",
-            "code"
           ],
           "async": false
         },
@@ -2284,31 +2025,23 @@
         {
           "operations": [
             "<module>",
-            "assertRuntime",
             "assertRuntime/assertRuntime",
             "cid/cid",
             "createInstalledHttpChatRegistration",
             "createInstalledHttpChatRegistration/config/config",
             "createInstalledHttpChatRegistration/createInstalledHttpChatRegistration",
-            "fail/fail",
-            "frozen/frozen",
-            "installedOpaqueRegistration",
             "installedOpaqueRegistration/installedOpaqueRegistration",
             "installedOpaqueRegistration/installedOpaqueRegistration/init:physicalPreflight/init:physicalPreflight",
             "installedOpaqueRegistration/installedOpaqueRegistration/init:physicalPreflight/init:physicalPreflight/init:checked/init:checked",
             "installedOpaqueRegistration/installedOpaqueRegistration/installedOpaqueRegistration",
             "installedOpaqueRegistration/installedOpaqueRegistration#2",
-            "integer/integer",
-            "retainConfiguration",
             "retainConfiguration/headers/headers",
             "retainConfiguration/retainConfiguration",
             "retainConfiguration/retainConfiguration#2",
             "retainConfiguration/retainConfiguration#3",
-            "snapshot",
             "snapshot/snapshot",
             "snapshot/snapshot#2",
             "snapshot/snapshot#3",
-            "snapshotArray",
             "snapshotArray/snapshotArray",
             "text/text"
           ],
@@ -2635,30 +2368,6 @@
           "name": "createHttpChatPreflight/start/start/start#3",
           "parameters": [],
           "async": false
-        },
-        {
-          "name": "createHttpChatPreflight/unknown/unknown",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createHttpChatPreflight/wake/wake",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
         }
       ],
       "imports": [
@@ -2706,11 +2415,7 @@
             "createHttpChatPreflight/start/start/start/start/start",
             "createHttpChatPreflight/start/start/start/start/start#2",
             "createHttpChatPreflight/start/start/start#2",
-            "createHttpChatPreflight/start/start/start#3",
-            "createHttpChatPreflight/unknown/unknown",
-            "createHttpChatPreflight/wake/wake",
-            "fail/fail",
-            "positive/positive"
+            "createHttpChatPreflight/start/start/start#3"
           ],
           "exports": [
             "createHttpChatPreflight"
@@ -2984,30 +2689,10 @@
           "async": false
         },
         {
-          "name": "admitHTTPOriginalMaterials/checked/checked",
-          "parameters": [
-            "result"
-          ],
-          "async": false
-        },
-        {
           "name": "admitHTTPOriginalMaterials/policies/policies",
           "parameters": [
             "name",
             "kind"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "fields/fields",
-          "parameters": [
-            "names",
-            "check"
           ],
           "async": false
         },
@@ -3068,15 +2753,6 @@
           "async": false
         },
         {
-          "name": "record/record",
-          "parameters": [
-            "value",
-            "required",
-            "optional"
-          ],
-          "async": false
-        },
-        {
           "name": "record/record/fields/fields",
           "parameters": [
             "name"
@@ -3101,14 +2777,6 @@
           "name": "scalar/scalar",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "shape/shape",
-          "parameters": [
-            "names",
-            "check"
           ],
           "async": false
         },
@@ -3230,10 +2898,7 @@
           "operations": [
             "<module>",
             "admitHTTPOriginalMaterials",
-            "admitHTTPOriginalMaterials/checked/checked",
             "admitHTTPOriginalMaterials/policies/policies",
-            "fail/fail",
-            "fields/fields",
             "fields/fields/fields",
             "identity/identity",
             "installation/installation",
@@ -3242,12 +2907,10 @@
             "original/original",
             "original/original/original",
             "quantity/quantity",
-            "record/record",
             "record/record/fields/fields",
             "record/record/record",
             "record/record/record#2",
             "scalar/scalar",
-            "shape/shape",
             "shape/shape/shape",
             "snapshotHTTPOriginalMaterials",
             "snapshotHTTPOriginalMaterials/snapshotHTTPOriginalMaterials",

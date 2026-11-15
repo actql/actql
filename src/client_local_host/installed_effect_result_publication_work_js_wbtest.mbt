@@ -52,6 +52,7 @@ fn effect_result_work_remaining(owner : ClientInstalledManagedRun) -> Int64 {
 
 ///|
 test "Effect Result progress and later dependency pin spend one original receipt" {
+  // resource-case-id: effect_result_original_work_receipt
   let (prepared, request, plan, owner, ledger, captured, execution) = dependency_original_fixture()
   prepare_installed_effect_result_publication_work(
     owner, prepared, request, plan, captured,
@@ -231,6 +232,7 @@ test "Result grants only remaining original work and refuses without another tra
 
 ///|
 test "Result work upfront one-byte-short refusal issues no receipt and preserves original cleanup" {
+  // resource-case-id: effect_result_one_short_cleanup
   let (prepared, request, plan, owner, ledger, captured, execution) = dependency_original_fixture()
   let control = owner.effect_operation_controls.unwrap()
   let capacity = installed_effect_result_publication_work_capacity().unwrap()

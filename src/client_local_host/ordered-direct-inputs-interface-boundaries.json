@@ -1741,7 +1741,7 @@
       "operations": [
         {
           "name": "[I,P]original_request_plan_construction_quote",
-          "declaration": "[ I , P ] original_request_plan_construction_quote ( capacity : @ resources . PreparationCapacity [ I , P ] , input : I , data : @ checked . ParsedCheckDataEstimate , ) - > Result [ ( Int64 , Int64 ) , ClientRequestPreparationIssue ]"
+          "declaration": "[ I , P ] original_request_plan_construction_quote ( capacity : @ resources . PreparationCapacity [ I , P ] , input : I , data : @ checked . ParsedCheckDataEstimate , tasks ? : Int"
         },
         {
           "name": "[I]begin_request_program_managed_run",

@@ -70,8 +70,14 @@ function names(pattern) {
 
 // Resolve only lexical, single-write references. The normal builder must still
 // admit each resulting target; this AST projection never loads product code.
-function runtimeImportReferences(tree) {
+function runtimeImportReferences(tree, privateFunctions) {
   const scopes = new WeakMap(), parents = new WeakMap(), assignments = [], nodes = [];
+  const callables = new WeakMap(), candidates = new Map(), exported = new Set();
+  const callable = (binding, node) => {
+    callables.set(binding, node);
+    if (!candidates.has(node)) candidates.set(node, new Set());
+    candidates.get(node).add(binding);
+  };
   const scope = (parent, functionScope = false) => ({parent, functionScope, bindings: new Map()});
   const lookup = (current, name) => {
     for (; current; current = current.parent) if (current.bindings.has(name)) return current.bindings.get(name);
@@ -87,7 +93,13 @@ function runtimeImportReferences(tree) {
     parents.set(node, parent);
     nodes.push(node);
     if (node.type === 'FunctionDeclaration' || node.type === 'ClassDeclaration') {
-      if (node.id) declare(current, node.id.name, {function: node.type === 'FunctionDeclaration' ? node : undefined});
+      if (node.id) {
+        const binding = declare(current, node.id.name, {function: node.type === 'FunctionDeclaration' ? node : undefined});
+        if (node.type === 'FunctionDeclaration') {
+          callable(binding, node);
+          if (/^Export/u.test(parent?.type ?? '')) exported.add(node);
+        }
+      }
     }
     if (/^(?:FunctionDeclaration|FunctionExpression|ArrowFunctionExpression)$/u.test(node.type)) {
       current = scope(current, true);
@@ -100,7 +112,12 @@ function runtimeImportReferences(tree) {
             ? {function: node, index, property: property ? property.key.name ?? property.key.value : undefined} : undefined});
         }
       });
-      if (node.type === 'FunctionExpression' && node.id) declare(current, node.id.name);
+      if (node.type === 'FunctionExpression' && node.id) {
+        const binding = declare(current, node.id.name);
+        // A returned/passed function literal is not a private declaration.
+        // Only retain its self-name when an actual local binding owns it.
+        if (candidates.has(node)) callable(binding, node);
+      }
     } else if (['BlockStatement', 'CatchClause'].includes(node.type)) {
       current = scope(current);
       if (node.param) for (const name of names(node.param)) declare(current, name);
@@ -122,7 +139,14 @@ function runtimeImportReferences(tree) {
           if (property && value.init) binding.projection = {node: value.init, key: property.key.name ?? property.key.value};
           else binding.invalid = true;
         }
-        else if (value.init) binding.initializers.push(value.init);
+        else if (value.init) {
+          binding.initializers.push(value.init);
+          if (/^(?:FunctionExpression|ArrowFunctionExpression)$/u.test(value.init.type)) {
+            callable(binding, value.init);
+            binding.definition = value.id;
+            if (/^Export/u.test(parent?.type ?? '')) exported.add(value.init);
+          }
+        }
       }
     }
     if (['AssignmentExpression', 'UpdateExpression', 'UnaryExpression'].includes(node.type)) assignments.push(node);
@@ -153,14 +177,23 @@ function runtimeImportReferences(tree) {
   }
   const calls = new Map(), escaped = new Set();
   for (const node of nodes) if (node.type === 'Identifier') {
-    const binding = lookup(scopes.get(node), node.name), fn = binding?.function;
+    const binding = lookup(scopes.get(node), node.name), fn = binding?.function ?? (binding && callables.get(binding));
     if (!fn) continue;
     const parent = parents.get(node);
-    if (parent === fn && fn.id === node) continue;
+    if (parent === fn && fn.id === node || binding.definition === node) continue;
     if (parent?.type === 'CallExpression' && parent.callee === node) {
       if (!calls.has(fn)) calls.set(fn, []);
       calls.get(fn).push(parent);
     } else escaped.add(fn);
+  }
+  // Direct eval can observe/return any lexical function without an Identifier
+  // reference in this syntax tree. Keep the entire module conservative there.
+  const lexicalEval = nodes.some(node => node.type === 'CallExpression' && !node.optional &&
+    node.callee.type === 'Identifier' && node.callee.name === 'eval' && !lookup(scopes.get(node), 'eval'));
+  for (const [fn, bindings] of candidates) {
+    if (!lexicalEval && !exported.has(fn) && !escaped.has(fn) && [...bindings].every(binding => !binding.invalid)) {
+      privateFunctions?.add(fn);
+    }
   }
   const union = values => values.length === 1 ? values[0] : {kind: 'alternatives', values};
   const unresolved = () => ({kind: 'unresolved'});
@@ -264,13 +297,15 @@ function runtimeImportReferences(tree) {
   return reference;
 }
 
-// Private helpers are inventoried too: a new decision helper must not hide
-// under an already classified file. Locations are diagnostic, not identity.
+// Keep implementation syntax available for diagnostics. Responsibility belongs
+// to the actual module and its escaping/public operations, not private helper
+// names or argument spelling. Compiler representation checks remain separate.
 export function javascriptInterface(source, {resolveRuntimeImport} = {}) {
   const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module',
     allowHashBang: true, locations: true});
   const operations = [], exports = [], imports = [], compilerFields = [], unresolvedSyntax = [], occurrences = new Map();
-  const runtimeReference = resolveRuntimeImport && runtimeImportReferences(tree);
+  const privateFunctions = new WeakSet(), privateOperations = [];
+  const runtimeReference = runtimeImportReferences(tree, privateFunctions);
   function commonJsMembers(value) {
     if (value?.type === 'CallExpression' && value.callee.type === 'MemberExpression' &&
         value.callee.object.name === 'Object' && propertyName(value.callee) === 'freeze') value = value.arguments[0];
@@ -301,6 +336,7 @@ export function javascriptInterface(source, {resolveRuntimeImport} = {}) {
       occurrences.set(base, occurrence);
       const path = occurrence === 1 ? base : `${base}#${occurrence}`;
       operations.push({name: path, parameters: node.params.flatMap(names), async: node.async});
+      if (privateFunctions.has(node)) privateOperations.push(path);
       childScope = [...scope, name];
     }
     if (node.type === 'ImportDeclaration' || node.type === 'ExportAllDeclaration' ||
@@ -311,7 +347,7 @@ export function javascriptInterface(source, {resolveRuntimeImport} = {}) {
       const target = literalValue(argument);
       if (typeof target === 'string') imports.push(target);
       else {
-        const reference = runtimeReference?.(argument);
+        const reference = resolveRuntimeImport && runtimeReference(argument);
         const resolved = reference && resolveRuntimeImport(reference);
         if (Array.isArray(resolved) && resolved.length && resolved.every(value => typeof value === 'string')) imports.push(...resolved);
         else unresolvedSyntax.push('runtime-dependent module dependency requires original owner/artifact mapping');
@@ -359,6 +395,7 @@ export function javascriptInterface(source, {resolveRuntimeImport} = {}) {
   }
   visit(tree);
   return {exports: ordered(exports), operations: operations.sort((a, b) => a.name.localeCompare(b.name)),
+    privateOperations: ordered(privateOperations),
     imports: ordered(imports), compilerFields: ordered(compilerFields), unresolvedSyntax: ordered(unresolvedSyntax)};
 }
 
@@ -485,7 +522,8 @@ function reference(root, ref, readReference, verification = false, registeredTes
 // Source headers keep argument roles/types, but an optional trailing comma
 // in the OUTER named-parameter list is formatting. Nested tuple punctuation
 // and compiler-generated .mbti/API text retain their exact existing identity.
-function sourceOperationCorrespondence(module, operations) {
+function sourceOperationCorrespondence(module, operations, privateOperations = []) {
+  if (/\.[cm]?jsx?$/u.test(module)) return operations.filter(operation => !privateOperations.includes(operation.name));
   if (!module.endsWith('.mbt')) return operations;
   return operations.map(operation => {
     if (typeof operation.declaration !== 'string') return operation;
@@ -551,10 +589,13 @@ export function assertInterfaceCoverage({root, modules, declarations, generated 
     // Actual source/artifact correspondence uses the current module digest;
     // privileged generated representations retain their proof check below.
     assert.deepEqual(declaration.exports, module.exports, `Unregistered interface export: ${module.module}`);
-    assert.deepEqual(sourceOperationCorrespondence(module.module, declaration.operations),
-      sourceOperationCorrespondence(module.module, module.operations),
+    const privateSnapshot = declaration.role !== 'generated-binding' && !module.compilerFields?.length;
+    const actualPrivate = privateSnapshot ? module.privateOperations ?? [] : [];
+    const declaredOperations = sourceOperationCorrespondence(module.module, declaration.operations);
+    const actualOperations = sourceOperationCorrespondence(module.module, module.operations, actualPrivate);
+    assert.deepEqual(declaredOperations, actualOperations,
       `Unregistered interface operation: ${module.module}`);
-    for (const [field, actual] of [['operations', ['<module>', ...module.operations.map(value => value.name)]],
+    for (const [field, actual] of [['operations', ['<module>', ...actualOperations.map(value => value.name)]],
       ['exports', module.exports]]) {
       const covered = declaration.contracts.flatMap(value => value[field]);
       assert.equal(new Set(covered).size, covered.length, `Duplicate operation contract: ${module.module}`);

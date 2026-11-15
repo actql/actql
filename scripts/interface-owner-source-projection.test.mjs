@@ -62,17 +62,16 @@ test('body-only optional snapshots preserve Git syntax and existing owner contra
     'syntax/reference gate is separate from semantic review, not an automatic review receipt');
 });
 
-test('safe extraction and a new export report exact membership gaps instead of assigning semantic groups', t => {
+test('private extraction stays with the module while a new public export requires its contract', t => {
   const f = fixture(t);
   f.write('outside/connector.mjs', 'function helper(value) {return value;} export function read(value) {return helper(value);} export const extra = 1;');
   const source = f.commit();
   const {updates: [update]} = projectOwnerSourceUpdates(f.root, f.options(source), [f.declaration]);
-  assert.deepEqual(update.difference.operations.added, ['helper']);
+  assert.deepEqual(update.difference.operations.added, []);
   assert.deepEqual(update.difference.exports.added, ['extra']);
   assert.deepEqual(update.candidate.contracts, f.declaration.contracts);
   assert.throws(() => f.check(source, [update.candidate]), /Missing operation contract/u);
   const reviewed = structuredClone(update.candidate);
-  reviewed.contracts[0].operations.push('helper');
   reviewed.contracts[0].exports.push('extra');
   assert.equal(f.check(source, [reviewed]).primaryComplete, true);
 });
@@ -231,7 +230,8 @@ test('reviewed Account Model construction checks51 syntax snapshots and50 Source
   assert.deepEqual(unresolved.map(row=>row.module),['adapters/host-node/embedded-local.mjs']);
   const embedded=unresolved[0];
   for(const owner of owners) for(const declaration of owner.declarations.filter(row=>row.module===embedded.module)) {
-    for(const field of ['sha256','operations','exports']) assert.deepEqual(declaration[field],embedded[field]);
+    assert.deepEqual(declaration.exports,embedded.exports);
+    assert.deepEqual(declaration.operations,embedded.operations.filter(value=>!embedded.privateOperations.includes(value.name)));
   }
   assert.throws(()=>check(owners,actual),/Unresolved interface syntax/u);
   const result=check();
@@ -326,7 +326,8 @@ test('stable Model File cold Mock Account and row publication tail retains22 exa
   const unresolved=finalTailActual.filter(row=>row.unresolvedSyntax?.length);
   assert.deepEqual(unresolved.map(row=>row.module),['adapters/host-node/embedded-local.mjs']);
   for(const owner of finalTailOwners) for(const declaration of owner.declarations.filter(d=>d.module===unresolved[0].module)) {
-    for(const key of ['sha256','operations','exports'])assert.deepEqual(declaration[key],unresolved[0][key]);
+    assert.deepEqual(declaration.exports,unresolved[0].exports);
+    assert.deepEqual(declaration.operations,unresolved[0].operations.filter(value=>!unresolved[0].privateOperations.includes(value.name)));
   }
   assert.throws(()=>checkFinalTail(finalTailOwners,finalTailActual),/Unresolved interface syntax/u);
   const checked=checkFinalTail();assert.equal(checked.complete,true);assert.equal(checked.primaryComplete,true);

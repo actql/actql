@@ -11,8 +11,6 @@
           "operations": [
             "<module>",
             "checkGcsCollectionTarget",
-            "collectionResult",
-            "fail/fail",
             "gcsCollectionUploadMapping",
             "integer/integer",
             "issueGcsCollectionReference",
@@ -399,21 +397,6 @@
           "async": false
         },
         {
-          "name": "collectionResult",
-          "parameters": [
-            "moon",
-            "result"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "gcsCollectionUploadMapping",
           "parameters": [
             "original",
@@ -510,9 +493,6 @@
         {
           "operations": [
             "<module>",
-            "argumentsFor",
-            "declarationResult",
-            "fail/fail",
             "gcsUploadCatalogDeclaration",
             "gcsUploadCommandDeclaration",
             "integer/integer"
@@ -631,31 +611,6 @@
         "gcsUploadCommandDeclaration"
       ],
       "operations": [
-        {
-          "name": "argumentsFor",
-          "parameters": [
-            "connectorId",
-            "maxBytes",
-            "maxNodes",
-            "maxDepth"
-          ],
-          "async": false
-        },
-        {
-          "name": "declarationResult",
-          "parameters": [
-            "moon",
-            "result"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
         {
           "name": "gcsUploadCatalogDeclaration",
           "parameters": [
@@ -805,39 +760,9 @@
       ],
       "operations": [
         {
-          "name": "encode/encode",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "encode/encode/encode",
           "parameters": [
             "character"
-          ],
-          "async": false
-        },
-        {
-          "name": "exact/exact",
-          "parameters": [
-            "value",
-            "maximum",
-            "empty"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -886,14 +811,6 @@
             "pair"
           ],
           "async": false
-        },
-        {
-          "name": "result",
-          "parameters": [
-            "moon",
-            "value"
-          ],
-          "async": false
         }
       ],
       "imports": [
@@ -911,17 +828,12 @@
         {
           "operations": [
             "<module>",
-            "encode/encode",
             "encode/encode/encode",
-            "exact/exact",
-            "fail/fail",
-            "positive/positive",
             "readGcsObjects",
             "readGcsObjects/readGcsObjects",
             "readGcsObjects/readGcsObjects#2",
             "readGcsObjects/readGcsObjects#3",
-            "readGcsObjects/readGcsObjects#4",
-            "result"
+            "readGcsObjects/readGcsObjects#4"
           ],
           "exports": [
             "readGcsObjects"
@@ -1056,7 +968,6 @@
             "borrowOwnedGcsMetadataPatchTarget/view/init:readFor/init:readFor",
             "borrowOwnedGcsMetadataPatchTarget/view/init:retire/init:retire",
             "createGcsMutationRequestChild",
-            "createGcsMutationRequestChild/current/current",
             "createGcsMutationRequestChild/current/current/current",
             "createGcsMutationRequestChild/current/current/current#2",
             "createGcsMutationRequestChild/init:prepare/init:prepare",
@@ -1070,14 +981,8 @@
             "createGcsMutationRequestChild/release/release",
             "createGcsMutationRequestChild/release/release/release",
             "createGcsMutationRequestChild/release/release/release#2",
-            "createGcsMutationRequestChild/rememberFailure/rememberFailure",
-            "createGcsMutationRequestChild/unavailable/unavailable",
-            "fail/fail",
             "freeze/freeze",
             "gcsOwnedResult",
-            "integer/integer",
-            "metadataArguments",
-            "originalRequest",
             "ownedGcsObjectRequestCid",
             "ownedGcsObjectResponseMatches",
             "prepareGcsObjectBinding",
@@ -1093,8 +998,7 @@
             "projectOwnedGcsObjectResponse",
             "readGcsObjectTarget",
             "recheckOwnedGcsObjectRequest",
-            "sendOwnedGcsObjectRequest",
-            "wire/wire"
+            "sendOwnedGcsObjectRequest"
           ],
           "exports": [
             "admitGcsObjectMetadata",
@@ -1694,13 +1598,6 @@
           "async": false
         },
         {
-          "name": "createGcsMutationRequestChild/current/current",
-          "parameters": [
-            "original"
-          ],
-          "async": false
-        },
-        {
           "name": "createGcsMutationRequestChild/current/current/current",
           "parameters": [],
           "async": false
@@ -1772,25 +1669,6 @@
           "async": false
         },
         {
-          "name": "createGcsMutationRequestChild/rememberFailure/rememberFailure",
-          "parameters": [
-            "primary"
-          ],
-          "async": false
-        },
-        {
-          "name": "createGcsMutationRequestChild/unavailable/unavailable",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "freeze/freeze",
           "parameters": [
             "value"
@@ -1802,29 +1680,6 @@
           "parameters": [
             "moon",
             "result"
-          ],
-          "async": false
-        },
-        {
-          "name": "integer/integer",
-          "parameters": [
-            "value",
-            "minimum"
-          ],
-          "async": false
-        },
-        {
-          "name": "metadataArguments",
-          "parameters": [
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalRequest",
-          "parameters": [
-            "request",
-            "binding"
           ],
           "async": false
         },
@@ -2022,13 +1877,6 @@
             "signal"
           ],
           "async": true
-        },
-        {
-          "name": "wire/wire",
-          "parameters": [
-            "value"
-          ],
-          "async": false
         }
       ],
       "imports": [
@@ -2095,39 +1943,10 @@
           "async": false
         },
         {
-          "name": "bytes",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "gcsUploadResult",
           "parameters": [
             "moon",
             "result"
-          ],
-          "async": false
-        },
-        {
-          "name": "integer/integer",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "original",
-          "parameters": [
-            "request",
-            "binding"
           ],
           "async": false
         },
@@ -2235,11 +2054,7 @@
             "admitGcsUploadTargetObservation",
             "admitGcsUploadTargetObservation/admitGcsUploadTargetObservation",
             "admitGcsUploadTargetObservation/admitGcsUploadTargetObservation#2",
-            "bytes",
-            "fail/fail",
             "gcsUploadResult",
-            "integer/integer",
-            "original",
             "ownedGcsUploadBody",
             "ownedGcsUploadResponseMatches",
             "prepareOwnedGcsMultipartUpload",
@@ -10355,46 +10170,9 @@
       ],
       "operations": [
         {
-          "name": "abi",
-          "parameters": [
-            "moon",
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "bytes",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "freeze/freeze",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "integer/integer",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "original",
-          "parameters": [
-            "request",
-            "binding"
           ],
           "async": false
         },
@@ -10487,14 +10265,6 @@
           "async": false
         },
         {
-          "name": "result",
-          "parameters": [
-            "moon",
-            "operation"
-          ],
-          "async": false
-        },
-        {
           "name": "sendOwnedGcsComposition",
           "parameters": [
             "request",
@@ -10521,12 +10291,7 @@
         {
           "operations": [
             "<module>",
-            "abi",
-            "bytes",
-            "fail/fail",
             "freeze/freeze",
-            "integer/integer",
-            "original",
             "ownedGcsCompositionBody",
             "ownedGcsCompositionBody/ownedGcsCompositionBody",
             "ownedGcsCompositionResponseMatches",
@@ -10539,7 +10304,6 @@
             "projectOwnedGcsCompositionResponse/projectOwnedGcsCompositionResponse",
             "recheckOwnedGcsComposition",
             "recheckOwnedGcsComposition/recheckOwnedGcsComposition",
-            "result",
             "sendOwnedGcsComposition"
           ],
           "exports": [

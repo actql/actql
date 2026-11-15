@@ -44,26 +44,6 @@
           "async": false
         },
         {
-          "name": "executeRead",
-          "parameters": [
-            "prepared",
-            "received"
-          ],
-          "async": true
-        },
-        {
-          "name": "executeRead/request/request",
-          "parameters": [
-            "operation",
-            "index",
-            "method",
-            "path",
-            "query",
-            "body"
-          ],
-          "async": true
-        },
-        {
           "name": "executeRead/request/request/response/response",
           "parameters": [
             "options"
@@ -73,52 +53,6 @@
         {
           "name": "executeRead/request/request/response/response/response",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "executeRead/verify/verify",
-          "parameters": [
-            "operation"
-          ],
-          "async": true
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalReader",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareRead",
-          "parameters": [
-            "moon",
-            "workspaceId",
-            "names",
-            "initialAuthorization",
-            "credential",
-            "authorizationFor",
-            "limits",
-            "current",
-            "chargeResponse",
-            "consumeObservation",
-            "consumePage",
-            "signal"
-          ],
           "async": false
         },
         {
@@ -185,15 +119,8 @@
             "createSlackUserListReader/handle/init:read/init:read",
             "createSlackUserListReader/handle/init:read/init:read/result/result",
             "createSlackUserListReader/handle/init:requestStop/init:requestStop",
-            "executeRead",
-            "executeRead/request/request",
             "executeRead/request/request/response/response",
             "executeRead/request/request/response/response/response",
-            "executeRead/verify/verify",
-            "fail/fail",
-            "originalReader",
-            "positive/positive",
-            "prepareRead",
             "prepareRead/prepareRead",
             "prepareRead/prepareRead#2",
             "prepareRead/prepareRead#3",
@@ -344,13 +271,6 @@
       ],
       "operations": [
         {
-          "name": "absolute/absolute",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "checkInstalledSlackSourceProfile",
           "parameters": [
             "value"
@@ -365,30 +285,9 @@
           "async": false
         },
         {
-          "name": "checkSite",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "checkSite/checkSite",
           "parameters": [
             "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
           ],
           "async": false
         },
@@ -501,40 +400,8 @@
           "async": false
         },
         {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "readInputs",
-          "parameters": [
-            "profile",
-            "configurationReader",
-            "readJson"
-          ],
-          "async": true
-        },
-        {
           "name": "readInputs/reads/reads",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "sha/sha",
-          "parameters": [
-            "bytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "slackReaderSelection",
-          "parameters": [
-            "original",
-            "columns",
-            "profile"
-          ],
           "async": false
         },
         {
@@ -553,28 +420,9 @@
           "async": false
         },
         {
-          "name": "slackReaderSelection/sequence/sequence",
-          "parameters": [
-            "operation",
-            "maxUses",
-            "entries"
-          ],
-          "async": false
-        },
-        {
           "name": "slackReaderSelection/slackReaderSelection",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "snapshot",
-          "parameters": [
-            "value",
-            "required",
-            "optional",
-            "code"
           ],
           "async": false
         },
@@ -589,13 +437,6 @@
           "name": "snapshot/snapshot#2",
           "parameters": [
             "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
           ],
           "async": false
         }
@@ -624,13 +465,9 @@
         {
           "operations": [
             "<module>",
-            "absolute/absolute",
             "checkInstalledSlackSourceProfile",
             "checkInstalledSlackSourceProfile/checkInstalledSlackSourceProfile",
-            "checkSite",
             "checkSite/checkSite",
-            "cid/cid",
-            "fail/fail",
             "loadInstalledSlackSource/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledSlackSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledSlackSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
@@ -638,12 +475,8 @@
             "loadInstalledSlackSource/declarationPorts/declarationPorts",
             "loadInstalledSlackSource/target/target",
             "loadInstalledSlackSource/views/views",
-            "positive/positive",
-            "sha/sha",
-            "snapshot",
             "snapshot/snapshot",
             "snapshot/snapshot#2",
-            "text/text",
             "loadInstalledSlackSource/columnCount/columnCount",
             "loadInstalledSlackSource/init:prepareReadSequence/init:prepareReadSequence",
             "loadInstalledSlackSource/services/services"
@@ -925,8 +758,7 @@
         {
           "operations": [
             "installedSlackSourceIdentityParts",
-            "loadInstalledSlackSource",
-            "readInputs"
+            "loadInstalledSlackSource"
           ],
           "exports": [],
           "attributes": {
@@ -1395,10 +1227,8 @@
         {
           "operations": [
             "loadInstalledSlackSource/capacity/capacity",
-            "slackReaderSelection",
             "slackReaderSelection/children/children",
             "slackReaderSelection/children/children/children",
-            "slackReaderSelection/sequence/sequence",
             "slackReaderSelection/slackReaderSelection"
           ],
           "exports": [],
@@ -1483,15 +1313,6 @@
       ],
       "operations": [
         {
-          "name": "createChannelReader",
-          "parameters": [
-            "options",
-            "retainOriginal",
-            "allConversations"
-          ],
-          "async": false
-        },
-        {
           "name": "createChannelReader/handle/init:observe/init:observe",
           "parameters": [],
           "async": false
@@ -1551,28 +1372,6 @@
           "async": false
         },
         {
-          "name": "executeRead",
-          "parameters": [
-            "prepared",
-            "received",
-            "retainPage",
-            "retainExchange"
-          ],
-          "async": true
-        },
-        {
-          "name": "executeRead/request/request",
-          "parameters": [
-            "operation",
-            "index",
-            "method",
-            "path",
-            "query",
-            "body"
-          ],
-          "async": true
-        },
-        {
           "name": "executeRead/request/request/request",
           "parameters": [
             "options"
@@ -1582,70 +1381,6 @@
         {
           "name": "executeRead/request/request/request/request",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "executeRead/verify/verify",
-          "parameters": [
-            "operation"
-          ],
-          "async": true
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalChannel",
-          "parameters": [
-            "selection",
-            "moon"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalReader",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareRead",
-          "parameters": [
-            "moon",
-            "workspaceId",
-            "names",
-            "initialAuthorization",
-            "credential",
-            "authorizationFor",
-            "limits",
-            "current",
-            "chargeResponse",
-            "consumeObservation",
-            "consumePage",
-            "signal",
-            "retainOriginal",
-            "allConversations"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareRead/capture/capture",
-          "parameters": [
-            "name",
-            "optional"
-          ],
           "async": false
         },
         {
@@ -1756,7 +1491,6 @@
         {
           "operations": [
             "<module>",
-            "createChannelReader",
             "createChannelReader/handle/init:observe/init:observe",
             "createChannelReader/handle/init:read/init:read",
             "createChannelReader/handle/init:read/init:read/result/result",
@@ -1766,17 +1500,8 @@
             "createSlackChannelListReader",
             "createSlackChannelListReaderForHistory",
             "createSlackConversationListReaderForHistory",
-            "executeRead",
-            "executeRead/request/request",
             "executeRead/request/request/request",
             "executeRead/request/request/request/request",
-            "executeRead/verify/verify",
-            "fail/fail",
-            "originalChannel",
-            "originalReader",
-            "positive/positive",
-            "prepareRead",
-            "prepareRead/capture/capture",
             "prepareRead/capture/capture/capture",
             "prepareRead/prepareRead",
             "prepareRead/prepareRead#2",
@@ -2059,16 +1784,6 @@
       ],
       "operations": [
         {
-          "name": "captureProvider",
-          "parameters": [
-            "moon",
-            "names",
-            "optional",
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "captureProvider/captureProvider",
           "parameters": [
             "name"
@@ -2110,13 +1825,6 @@
             "operation"
           ],
           "async": true
-        },
-        {
-          "name": "createHistoryReader",
-          "parameters": [
-            "original"
-          ],
-          "async": false
         },
         {
           "name": "createHistoryReader/handle/init:observe/init:observe",
@@ -2230,30 +1938,6 @@
           "async": false
         },
         {
-          "name": "executeRead",
-          "parameters": [
-            "prepared",
-            "received",
-            "retainPage",
-            "retainIdentity",
-            "retainExchange",
-            "retainControl"
-          ],
-          "async": true
-        },
-        {
-          "name": "executeRead/request/request",
-          "parameters": [
-            "operation",
-            "index",
-            "method",
-            "path",
-            "query",
-            "body"
-          ],
-          "async": true
-        },
-        {
           "name": "executeRead/request/request/response/response",
           "parameters": [
             "options"
@@ -2266,23 +1950,6 @@
           "async": false
         },
         {
-          "name": "executeRead/verify/verify",
-          "parameters": [
-            "operation"
-          ],
-          "async": true
-        },
-        {
-          "name": "executeReplyRead",
-          "parameters": [
-            "prepared",
-            "received",
-            "retainControl",
-            "retainExchange"
-          ],
-          "async": true
-        },
-        {
           "name": "executeReplyRead/response/response",
           "parameters": [
             "options"
@@ -2293,69 +1960,6 @@
           "name": "executeReplyRead/verify/verify",
           "parameters": [],
           "async": true
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalReader",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalReplyReader",
-          "parameters": [
-            "handle"
-          ],
-          "async": false
-        },
-        {
-          "name": "ownColumnArray",
-          "parameters": [
-            "value",
-            "maximum"
-          ],
-          "async": false
-        },
-        {
-          "name": "ownHistoryWindow",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareRead",
-          "parameters": [
-            "moon",
-            "workspaceId",
-            "channel",
-            "names",
-            "initialAuthorization",
-            "credential",
-            "authorizationFor",
-            "limits",
-            "current",
-            "chargeResponse",
-            "consumeObservation",
-            "consumePage",
-            "signal",
-            "requestWindow"
-          ],
-          "async": false
         },
         {
           "name": "prepareRead/prepareRead",
@@ -2375,24 +1979,6 @@
           "name": "prepareRead/prepareRead#3",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareReplyRead",
-          "parameters": [
-            "historyReader",
-            "originalPage",
-            "index",
-            "names",
-            "initialAuthorization",
-            "credential",
-            "authorizationFor",
-            "limits",
-            "current",
-            "chargeResponse",
-            "consumePage",
-            "signal"
           ],
           "async": false
         },
@@ -2418,24 +2004,6 @@
           "async": false
         },
         {
-          "name": "projectionArray",
-          "parameters": [
-            "value",
-            "maximum"
-          ],
-          "async": false
-        },
-        {
-          "name": "projectionRecord",
-          "parameters": [
-            "value",
-            "required",
-            "optional",
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "projectionRecord/projectionRecord",
           "parameters": [
             "key"
@@ -2446,14 +2014,6 @@
           "name": "projectionRecord/projectionRecord#2",
           "parameters": [
             "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainOutcome",
-          "parameters": [
-            "value",
-            "state"
           ],
           "async": false
         },
@@ -2501,14 +2061,12 @@
             "SlackMessageHistoryReadFailure/constructor:constructor/constructor:constructor",
             "SlackMessageProjectionFailure/constructor:constructor/constructor:constructor",
             "SlackMessageRepliesReadFailure/constructor:constructor/constructor:constructor",
-            "captureProvider",
             "captureProvider/captureProvider",
             "captureProvider/captureProvider#2",
             "captureProvider/captureProvider/captureProvider",
             "coalesceSlackMessageReaders",
             "coalesceSlackMessageReaders/coalesceSlackMessageReaders",
             "coalesceSlackMessageReaders/current/current",
-            "createHistoryReader",
             "createHistoryReader/handle/init:observe/init:observe",
             "createHistoryReader/handle/init:read/init:read",
             "createHistoryReader/handle/init:read/init:read/result/result",
@@ -2526,33 +2084,18 @@
             "createSlackMessageRepliesReader/handle/init:read/init:read/result/result#2",
             "createSlackMessageRepliesReader/handle/init:read/init:read/result/result#3",
             "createSlackMessageRepliesReader/handle/init:requestStop/init:requestStop",
-            "executeRead",
-            "executeRead/request/request",
             "executeRead/request/request/response/response",
             "executeRead/request/request/response/response/response",
-            "executeRead/verify/verify",
-            "executeReplyRead",
             "executeReplyRead/response/response",
             "executeReplyRead/verify/verify",
-            "fail/fail",
-            "originalReader",
-            "originalReplyReader",
-            "ownColumnArray",
-            "ownHistoryWindow",
-            "positive/positive",
-            "prepareRead",
             "prepareRead/prepareRead",
             "prepareRead/prepareRead#2",
             "prepareRead/prepareRead#3",
-            "prepareReplyRead",
             "prepareReplyRead/prepareReplyRead",
             "prepareReplyRead/prepareReplyRead#2",
             "prepareReplyRead/prepareReplyRead#3",
-            "projectionArray",
-            "projectionRecord",
             "projectionRecord/projectionRecord",
-            "projectionRecord/projectionRecord#2",
-            "retainOutcome"
+            "projectionRecord/projectionRecord#2"
           ],
           "exports": [
             "SLACK_MESSAGE_HISTORY_OPERATION",
@@ -2967,13 +2510,6 @@
       ],
       "operations": [
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareSlackSourceReadSequence",
           "parameters": [
             "moon",
@@ -2984,28 +2520,6 @@
             "applySynchronousProjection"
           ],
           "async": false
-        },
-        {
-          "name": "prepareSlackSourceReadSequence/accountRows/accountRows",
-          "parameters": [
-            "count"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareSlackSourceReadSequence/append/append",
-          "parameters": [
-            "context",
-            "rows"
-          ],
-          "async": true
-        },
-        {
-          "name": "prepareSlackSourceReadSequence/identity/identity",
-          "parameters": [
-            "context"
-          ],
-          "async": true
         },
         {
           "name": "prepareSlackSourceReadSequence/identity/identity/identity",
@@ -3039,14 +2553,6 @@
           "async": false
         },
         {
-          "name": "prepareSlackSourceReadSequence/list/list",
-          "parameters": [
-            "context",
-            "kind"
-          ],
-          "async": true
-        },
-        {
           "name": "prepareSlackSourceReadSequence/list/list/page/page",
           "parameters": [
             "body"
@@ -3066,15 +2572,6 @@
             "args"
           ],
           "async": false
-        },
-        {
-          "name": "prepareSlackSourceReadSequence/readHistory/readHistory",
-          "parameters": [
-            "context",
-            "channelPage",
-            "index"
-          ],
-          "async": true
         },
         {
           "name": "prepareSlackSourceReadSequence/readHistory/readHistory/fields/fields",
@@ -3119,16 +2616,6 @@
           "async": false
         },
         {
-          "name": "prepareSlackSourceReadSequence/readReplies/readReplies",
-          "parameters": [
-            "context",
-            "page",
-            "index",
-            "channel"
-          ],
-          "async": true
-        },
-        {
           "name": "prepareSlackSourceReadSequence/readReplies/readReplies/admitted/admitted",
           "parameters": [
             "body"
@@ -3166,20 +2653,6 @@
           "async": false
         },
         {
-          "name": "prepareSlackSourceReadSequence/request/request",
-          "parameters": [
-            "context",
-            "operation",
-            "method",
-            "path",
-            "query",
-            "project",
-            "body",
-            "originalRequest"
-          ],
-          "async": true
-        },
-        {
           "name": "prepareSlackSourceReadSequence/request/request/value/init:prepare/init:prepare",
           "parameters": [],
           "async": false
@@ -3215,21 +2688,15 @@
         {
           "operations": [
             "<module>",
-            "fail/fail",
             "prepareSlackSourceReadSequence",
-            "prepareSlackSourceReadSequence/accountRows/accountRows",
-            "prepareSlackSourceReadSequence/append/append",
-            "prepareSlackSourceReadSequence/identity/identity",
             "prepareSlackSourceReadSequence/identity/identity/identity",
             "prepareSlackSourceReadSequence/init:read/init:read",
             "prepareSlackSourceReadSequence/init:read/init:read/init:read",
             "prepareSlackSourceReadSequence/init:read/init:read/init:read/init:read",
             "prepareSlackSourceReadSequence/init:retire/init:retire",
-            "prepareSlackSourceReadSequence/list/list",
             "prepareSlackSourceReadSequence/list/list/page/page",
             "prepareSlackSourceReadSequence/provider/provider",
             "prepareSlackSourceReadSequence/provider/provider/provider",
-            "prepareSlackSourceReadSequence/readHistory/readHistory",
             "prepareSlackSourceReadSequence/readHistory/readHistory/fields/fields",
             "prepareSlackSourceReadSequence/readHistory/readHistory/history/history",
             "prepareSlackSourceReadSequence/readHistory/readHistory/original/original",
@@ -3238,7 +2705,6 @@
             "prepareSlackSourceReadSequence/readHistory/readHistory/readHistory#2",
             "prepareSlackSourceReadSequence/readHistory/readHistory/readHistory#3",
             "prepareSlackSourceReadSequence/readHistory/readHistory/rows/rows",
-            "prepareSlackSourceReadSequence/readReplies/readReplies",
             "prepareSlackSourceReadSequence/readReplies/readReplies/admitted/admitted",
             "prepareSlackSourceReadSequence/readReplies/readReplies/control/control",
             "prepareSlackSourceReadSequence/readReplies/readReplies/fields/fields",
@@ -3246,7 +2712,6 @@
             "prepareSlackSourceReadSequence/readReplies/readReplies/readReplies",
             "prepareSlackSourceReadSequence/readReplies/readReplies/readReplies#2",
             "prepareSlackSourceReadSequence/readReplies/readReplies/readReplies#3",
-            "prepareSlackSourceReadSequence/request/request",
             "prepareSlackSourceReadSequence/request/request/value/init:prepare/init:prepare",
             "prepareSlackSourceReadSequence/request/request/value/init:prepare/init:prepare/init:project/init:project",
             "prepareSlackSourceReadSequence/request/request/value/init:prepare/init:prepare/request/request"

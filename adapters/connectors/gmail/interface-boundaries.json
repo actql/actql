@@ -45,16 +45,6 @@
           "async": false
         },
         {
-          "name": "executeRead",
-          "parameters": [
-            "context",
-            "pages",
-            "signal",
-            "received"
-          ],
-          "async": true
-        },
-        {
           "name": "executeRead/response/response",
           "parameters": [
             "options"
@@ -67,31 +57,10 @@
           "async": true
         },
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "GmailLabelListReadFailure/constructor:constructor/constructor:constructor",
           "parameters": [
             "cause",
             "observations"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalReader",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -163,24 +132,6 @@
           "async": false
         },
         {
-          "name": "prepareRead",
-          "parameters": [
-            "moon",
-            "mailbox",
-            "names",
-            "initialAuthorization",
-            "credential",
-            "authorizationFor",
-            "limits",
-            "current",
-            "chargeResponse",
-            "consumePage",
-            "signal",
-            "callResource"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareRead/pages/pages",
           "parameters": [
             "method",
@@ -225,12 +176,8 @@
             "createGmailLabelListReader/handle/init:read/init:read",
             "createGmailLabelListReader/handle/init:read/init:read/result/result",
             "createGmailLabelListReader/handle/init:requestStop/init:requestStop",
-            "executeRead",
             "executeRead/response/response",
             "executeRead/verify/verify",
-            "fail/fail",
-            "originalReader",
-            "positive/positive",
             "prepareGmailLabelListPages",
             "prepareGmailLabelListPages/component/component",
             "prepareGmailLabelListPages/init:decodePage/init:decodePage",
@@ -240,7 +187,6 @@
             "prepareGmailLabelListPages/prepareGmailLabelListPages#2",
             "prepareGmailLabelListPages/provider/provider",
             "prepareGmailLabelListPages/provider/provider/provider",
-            "prepareRead",
             "prepareRead/pages/pages",
             "prepareRead/prepareRead",
             "readGmailLabelList"
@@ -1354,13 +1300,6 @@
       ],
       "operations": [
         {
-          "name": "absolute/absolute",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "checkInstalledGmailSourceProfile",
           "parameters": [
             "profile"
@@ -1382,47 +1321,9 @@
           "async": false
         },
         {
-          "name": "checkSite",
-          "parameters": [
-            "site"
-          ],
-          "async": false
-        },
-        {
           "name": "checkSite/checkSite",
           "parameters": [
             "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "closed/closed",
-          "parameters": [
-            "value",
-            "keys"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "gmailThreadReaderSelection",
-          "parameters": [
-            "original",
-            "columns",
-            "profile"
           ],
           "async": false
         },
@@ -1434,21 +1335,6 @@
             "read",
             "_installation",
             "context"
-          ],
-          "async": true
-        },
-        {
-          "name": "loadInstalledGmailLabels",
-          "parameters": [
-            "profile",
-            "moon",
-            "providerMoon",
-            "runtimeBundleCid",
-            "resolveSecret",
-            "configurationReader",
-            "sourceInitialization",
-            "installationServices",
-            "installation"
           ],
           "async": true
         },
@@ -1580,38 +1466,8 @@
           "async": false
         },
         {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "readInputs",
-          "parameters": [
-            "profile",
-            "configurationReader",
-            "readJson"
-          ],
-          "async": true
-        },
-        {
           "name": "readInputs/reads/reads",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "sha/sha",
-          "parameters": [
-            "bytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
-          ],
           "async": false
         }
       ],
@@ -1638,17 +1494,11 @@
         {
           "operations": [
             "<module>",
-            "absolute/absolute",
             "checkInstalledGmailSourceProfile",
             "checkInstalledGmailSourceProfile/checkInstalledGmailSourceProfile",
             "checkInstalledGmailSourceProfile/checkInstalledGmailSourceProfile#2",
-            "checkSite",
             "checkSite/checkSite",
-            "cid/cid",
-            "closed/closed",
-            "fail/fail",
             "installedGmailSourceIdentityParts",
-            "loadInstalledGmailLabels",
             "loadInstalledGmailLabels/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledGmailLabels/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledGmailLabels/init:preparePageReader/init:preparePageReader",
@@ -1664,11 +1514,7 @@
             "loadInstalledGmailSource/loadInstalledGmailSource/loadInstalledGmailSource",
             "loadInstalledGmailSource/services/services",
             "loadInstalledGmailSource/target/target",
-            "positive/positive",
-            "readInputs",
-            "readInputs/reads/reads",
-            "sha/sha",
-            "text/text"
+            "readInputs/reads/reads"
           ],
           "exports": [
             "INSTALLED_GMAIL_SITE_VERSION",
@@ -1862,7 +1708,6 @@
         },
         {
           "operations": [
-            "gmailThreadReaderSelection",
             "loadInstalledGmailSource/capacity/capacity"
           ],
           "exports": [],
@@ -1954,13 +1799,6 @@
           "async": false
         },
         {
-          "name": "component/component",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "component/component/component",
           "parameters": [
             "char"
@@ -2004,22 +1842,6 @@
             "reason"
           ],
           "async": false
-        },
-        {
-          "name": "createGmailThreadReader/own/own",
-          "parameters": [
-            "receiver"
-          ],
-          "async": false
-        },
-        {
-          "name": "executeRead",
-          "parameters": [
-            "prepared",
-            "received",
-            "retainControl"
-          ],
-          "async": true
         },
         {
           "name": "executeRead/executeRead",
@@ -2081,20 +1903,6 @@
             "method",
             "receiver",
             "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "executeRead/verify/verify",
-          "parameters": [
-            "operation"
-          ],
-          "async": true
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
           ],
           "async": false
         },
@@ -2181,13 +1989,6 @@
           "async": false
         },
         {
-          "name": "prepareRead",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareRead/prepareRead",
           "parameters": [
             "args"
@@ -2254,7 +2055,6 @@
           "operations": [
             "<module>",
             "assertOriginalGmailThreadRequest",
-            "component/component",
             "component/component/component",
             "createGmailThreadReader",
             "createGmailThreadReader/handle/init:observe/init:observe",
@@ -2262,8 +2062,6 @@
             "createGmailThreadReader/handle/init:read/init:read/result/result",
             "createGmailThreadReader/handle/init:read/init:read/result/result#2",
             "createGmailThreadReader/handle/init:requestStop/init:requestStop",
-            "createGmailThreadReader/own/own",
-            "executeRead",
             "executeRead/executeRead",
             "executeRead/init:consumeObservation/init:consumeObservation",
             "executeRead/init:consumePage/init:consumePage",
@@ -2273,8 +2071,6 @@
             "executeRead/init:readChild/init:readChild/response/response/response",
             "executeRead/selectedProvider/init:gmailPrepareThreadRead/init:gmailPrepareThreadRead",
             "executeRead/sequence/sequence",
-            "executeRead/verify/verify",
-            "fail/fail",
             "GmailThreadReadFailure/constructor:constructor/constructor:constructor",
             "GmailThreadReadFailure/constructor:constructor/constructor:constructor/constructor:constructor",
             "prepareGmailThreadReadSequence",
@@ -2287,7 +2083,6 @@
             "prepareGmailThreadReadSequence/init:retire/init:retire",
             "prepareGmailThreadReadSequence/provider/provider",
             "prepareGmailThreadReadSequence/provider/provider/provider",
-            "prepareRead",
             "prepareRead/prepareRead",
             "prepareRead/prepareRead#2",
             "prepareRead/prepareRead#3",
@@ -2780,13 +2575,6 @@
           "async": false
         },
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "gmailThreadReaderLimitsValid",
           "parameters": [
             "limits"
@@ -2806,13 +2594,6 @@
             "name"
           ],
           "async": false
-        },
-        {
-          "name": "integer/integer",
-          "parameters": [
-            "value"
-          ],
-          "async": false
         }
       ],
       "imports": [],
@@ -2826,11 +2607,9 @@
           "operations": [
             "<module>",
             "checkGmailThreadReaderLimits",
-            "fail/fail",
             "gmailThreadReaderLimitsValid",
             "gmailThreadReaderLimitsValid/gmailThreadReaderLimitsValid",
-            "gmailThreadReaderLimitsValid/gmailThreadReaderLimitsValid#2",
-            "integer/integer"
+            "gmailThreadReaderLimitsValid/gmailThreadReaderLimitsValid#2"
           ],
           "exports": [
             "checkGmailThreadReaderLimits",

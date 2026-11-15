@@ -49,11 +49,6 @@
           "async": false
         },
         {
-          "name": "fail/fail",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "freezeAcquisitionDiagnostic",
           "parameters": [
             "value"
@@ -65,13 +60,6 @@
           "parameters": [
             "value",
             "expected"
-          ],
-          "async": false
-        },
-        {
-          "name": "object/object",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -131,22 +119,10 @@
           "async": false
         },
         {
-          "name": "selectInstalledDuckDBAcquisition/estimates/estimates/optional/optional",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "selectInstalledDuckDBAcquisition/selection/selection",
           "parameters": [
             "field"
           ],
-          "async": false
-        },
-        {
-          "name": "selectInstalledDuckDBAcquisition/unknown/unknown",
-          "parameters": [],
           "async": false
         }
       ],
@@ -159,10 +135,8 @@
             "checkDuckDBAcquisitionPlanning/checkDuckDBAcquisitionPlanning#2",
             "checkDuckDBAcquisitionPlanning/checkDuckDBAcquisitionPlanning#3",
             "checkDuckDBAcquisitionPlanning/checkDuckDBAcquisitionPlanning#4",
-            "fail/fail",
             "freezeAcquisitionDiagnostic",
             "keys/keys",
-            "object/object",
             "quantity/quantity",
             "selectInstalledDuckDBAcquisition",
             "selectInstalledDuckDBAcquisition/eligible/eligible",
@@ -170,9 +144,7 @@
             "selectInstalledDuckDBAcquisition/estimates/estimates/estimates",
             "selectInstalledDuckDBAcquisition/estimates/estimates/estimates#2",
             "selectInstalledDuckDBAcquisition/estimates/estimates/estimates#3",
-            "selectInstalledDuckDBAcquisition/estimates/estimates/optional/optional",
-            "selectInstalledDuckDBAcquisition/selection/selection",
-            "selectInstalledDuckDBAcquisition/unknown/unknown"
+            "selectInstalledDuckDBAcquisition/selection/selection"
           ],
           "exports": [
             "checkDuckDBAcquisitionPlanning",
@@ -371,13 +343,6 @@
           "async": true
         },
         {
-          "name": "runBroadAcquisition/runBroadAcquisition/begin/begin",
-          "parameters": [
-            "fields"
-          ],
-          "async": true
-        },
-        {
           "name": "runBroadAcquisition/runBroadAcquisition/fields/fields",
           "parameters": [
             "chunk"
@@ -405,7 +370,6 @@
             "<module>",
             "runBroadAcquisition",
             "runBroadAcquisition/runBroadAcquisition",
-            "runBroadAcquisition/runBroadAcquisition/begin/begin",
             "runBroadAcquisition/runBroadAcquisition/fields/fields",
             "runBroadAcquisition/runBroadAcquisition/metadata/metadata",
             "runBroadAcquisition/runBroadAcquisition/transport/transport"
@@ -829,19 +793,6 @@
       ],
       "operations": [
         {
-          "name": "executeFixedCompute",
-          "parameters": [
-            "port",
-            "limits",
-            "importLimits",
-            "consume",
-            "signal",
-            "retainSession",
-            "accounting"
-          ],
-          "async": true
-        },
-        {
           "name": "executeFixedCompute/executeFixedCompute",
           "parameters": [
             "session"
@@ -858,13 +809,6 @@
         {
           "name": "executeFixedCompute/executeFixedCompute/discard/discard",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "executeFixedCompute/executeFixedCompute/importRow/importRow",
-          "parameters": [
-            "parameters"
-          ],
           "async": false
         },
         {
@@ -956,24 +900,15 @@
           "name": "runResidentFixedCompute/result/result/discard/discard",
           "parameters": [],
           "async": false
-        },
-        {
-          "name": "runResidentFixedCompute/result/result/endPhase/endPhase",
-          "parameters": [
-            "name"
-          ],
-          "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "executeFixedCompute",
             "executeFixedCompute/executeFixedCompute",
             "executeFixedCompute/executeFixedCompute/batch/batch",
             "executeFixedCompute/executeFixedCompute/discard/discard",
-            "executeFixedCompute/executeFixedCompute/importRow/importRow",
             "executeFixedCompute/executeFixedCompute/streamed/streamed",
             "executeFixedCompute/executeFixedCompute/write/write",
             "executeFixedCompute/executeFixedCompute#2",
@@ -984,8 +919,7 @@
             "runFixedCompute/result/result",
             "runResidentFixedCompute",
             "runResidentFixedCompute/result/result",
-            "runResidentFixedCompute/result/result/discard/discard",
-            "runResidentFixedCompute/result/result/endPhase/endPhase"
+            "runResidentFixedCompute/result/result/discard/discard"
           ],
           "exports": [
             "matchesFixedCompute",
@@ -1085,11 +1019,6 @@
           "async": false
         },
         {
-          "name": "createImportBatch/flush/flush",
-          "parameters": [],
-          "async": true
-        },
-        {
           "name": "createImportBatch/init:append/init:append",
           "parameters": [
             "row"
@@ -1121,7 +1050,6 @@
           "operations": [
             "<module>",
             "createImportBatch",
-            "createImportBatch/flush/flush",
             "createImportBatch/init:append/init:append",
             "createImportBatch/init:append/init:append/init:append",
             "createImportBatch/init:append/init:append/init:append#2",
@@ -1315,21 +1243,6 @@
             "field"
           ],
           "async": false
-        },
-        {
-          "name": "physicalDouble",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "physicalValue",
-          "parameters": [
-            "value",
-            "type"
-          ],
-          "async": false
         }
       ],
       "contracts": [
@@ -1349,9 +1262,7 @@
             "managedColumnRowProvider/provider/init:status/init:status",
             "managedColumnTransferEstimate",
             "managedColumnTransferEstimate/managedColumnTransferEstimate",
-            "managedColumnTransferEstimate/rowObjectBytes/rowObjectBytes",
-            "physicalDouble",
-            "physicalValue"
+            "managedColumnTransferEstimate/rowObjectBytes/rowObjectBytes"
           ],
           "exports": [
             "encodeManagedColumnFrame",
@@ -1436,14 +1347,6 @@
       ],
       "operations": [
         {
-          "name": "cleanupState/cleanupState",
-          "parameters": [
-            "handle",
-            "required"
-          ],
-          "async": false
-        },
-        {
           "name": "closeManagedDuckDBOutput",
           "parameters": [
             "moon",
@@ -1451,14 +1354,6 @@
             "state"
           ],
           "async": true
-        },
-        {
-          "name": "member/member",
-          "parameters": [
-            "value",
-            "name"
-          ],
-          "async": false
         },
         {
           "name": "settleFailedManagedDuckDB",
@@ -1471,73 +1366,9 @@
           "async": true
         },
         {
-          "name": "settleFailedManagedDuckDB/cancelOutput/cancelOutput",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "settleFailedManagedDuckDB/closeExecution/closeExecution",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "settleFailedManagedDuckDB/closeOutputOwners/closeOutputOwners",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "settleFailedManagedDuckDB/drive/drive",
-          "parameters": [],
-          "async": true
-        },
-        {
           "name": "settleFailedManagedDuckDB/handle/init:retry/init:retry",
           "parameters": [],
           "async": true
-        },
-        {
-          "name": "settleFailedManagedDuckDB/nativeState/nativeState",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "settleFailedManagedDuckDB/nextAction/nextAction",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "settleFailedManagedDuckDB/outputState/outputState",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "settleFailedManagedDuckDB/reclaimOutput/reclaimOutput",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "settleFailedManagedDuckDB/record/record",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "settleFailedManagedDuckDB/recordProgress/recordProgress",
-          "parameters": [
-            "method"
-          ],
-          "async": false
-        },
-        {
-          "name": "settleFailedManagedDuckDB/refreshExecution/refreshExecution",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "settleFailedManagedDuckDB/settleExecution/settleExecution",
-          "parameters": [],
-          "async": false
         },
         {
           "name": "settleFailedManagedDuckDB/settleFailedManagedDuckDB",
@@ -1556,23 +1387,9 @@
         {
           "operations": [
             "<module>",
-            "cleanupState/cleanupState",
             "closeManagedDuckDBOutput",
-            "member/member",
             "settleFailedManagedDuckDB",
-            "settleFailedManagedDuckDB/cancelOutput/cancelOutput",
-            "settleFailedManagedDuckDB/closeExecution/closeExecution",
-            "settleFailedManagedDuckDB/closeOutputOwners/closeOutputOwners",
-            "settleFailedManagedDuckDB/drive/drive",
             "settleFailedManagedDuckDB/handle/init:retry/init:retry",
-            "settleFailedManagedDuckDB/nativeState/nativeState",
-            "settleFailedManagedDuckDB/nextAction/nextAction",
-            "settleFailedManagedDuckDB/outputState/outputState",
-            "settleFailedManagedDuckDB/reclaimOutput/reclaimOutput",
-            "settleFailedManagedDuckDB/record/record",
-            "settleFailedManagedDuckDB/recordProgress/recordProgress",
-            "settleFailedManagedDuckDB/refreshExecution/refreshExecution",
-            "settleFailedManagedDuckDB/settleExecution/settleExecution",
             "settleFailedManagedDuckDB/settleFailedManagedDuckDB",
             "settleFailedManagedDuckDB/status/status"
           ],
@@ -1730,13 +1547,6 @@
       ],
       "operations": [
         {
-          "name": "fieldsFrame",
-          "parameters": [
-            "fields"
-          ],
-          "async": false
-        },
-        {
           "name": "fieldsFrame/fieldsFrame",
           "parameters": [
             "name",
@@ -1745,29 +1555,9 @@
           "async": false
         },
         {
-          "name": "loadRuntime/loadRuntime",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "logicalComparisonAccounting",
-          "parameters": [
-            "values"
-          ],
-          "async": false
-        },
-        {
           "name": "logicalComparisonAccounting/logicalComparisonAccounting",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "logicalMeasurementAccounting",
-          "parameters": [
-            "values",
-            "prefix"
           ],
           "async": false
         },
@@ -2000,12 +1790,8 @@
         {
           "operations": [
             "<module>",
-            "fieldsFrame",
             "fieldsFrame/fieldsFrame",
-            "loadRuntime/loadRuntime",
-            "logicalComparisonAccounting",
             "logicalComparisonAccounting/logicalComparisonAccounting",
-            "logicalMeasurementAccounting",
             "logicalMeasurementAccounting/logicalMeasurementAccounting",
             "runManagedColumnStrategyHostCompute",
             "runManagedColumnStrategyHostCompute/accounting/init:chargeTransfer/init:chargeTransfer",
@@ -2149,22 +1935,6 @@
           "async": false
         },
         {
-          "name": "runNativeAcquisition/runNativeAcquisition/receive/receive",
-          "parameters": [
-            "role",
-            "sql",
-            "parameters"
-          ],
-          "async": true
-        },
-        {
-          "name": "runNativeAcquisition/runNativeAcquisition/receive/receive/begin/begin",
-          "parameters": [
-            "fields"
-          ],
-          "async": true
-        },
-        {
           "name": "runNativeAcquisition/runNativeAcquisition/receive/receive/fields/fields",
           "parameters": [
             "chunk"
@@ -2186,8 +1956,6 @@
             "runNativeAcquisition",
             "runNativeAcquisition/runNativeAcquisition",
             "runNativeAcquisition/runNativeAcquisition/metadataFields/metadataFields",
-            "runNativeAcquisition/runNativeAcquisition/receive/receive",
-            "runNativeAcquisition/runNativeAcquisition/receive/receive/begin/begin",
             "runNativeAcquisition/runNativeAcquisition/receive/receive/fields/fields",
             "runNativeAcquisition/runNativeAcquisition/receive/receive/transport/transport"
           ],
@@ -2476,11 +2244,6 @@
           "async": false
         },
         {
-          "name": "createPhysicalAppender/flushBuffered/flushBuffered",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "createPhysicalAppender/init:append/init:append",
           "parameters": [
             "parameters",
@@ -2543,7 +2306,6 @@
             "<module>",
             "createPhysicalAppender",
             "createPhysicalAppender/columns/columns",
-            "createPhysicalAppender/flushBuffered/flushBuffered",
             "createPhysicalAppender/init:append/init:append",
             "createPhysicalAppender/init:appendScalars/init:appendScalars",
             "createPhysicalAppender/init:appendScalars/init:appendScalars/init:appendScalars",
@@ -2749,51 +2511,10 @@
           "async": false
         },
         {
-          "name": "canonicalIntegerText",
-          "parameters": [
-            "text"
-          ],
-          "async": false
-        },
-        {
-          "name": "exactInteger",
-          "parameters": [
-            "text",
-            "bits",
-            "signed"
-          ],
-          "async": false
-        },
-        {
-          "name": "exactSmallInteger",
-          "parameters": [
-            "text",
-            "bits",
-            "signed"
-          ],
-          "async": false
-        },
-        {
           "name": "exportPhysicalValue",
           "parameters": [
             "value",
             "type"
-          ],
-          "async": false
-        },
-        {
-          "name": "floatBits",
-          "parameters": [
-            "value",
-            "width"
-          ],
-          "async": false
-        },
-        {
-          "name": "floatFromBits",
-          "parameters": [
-            "text",
-            "width"
           ],
           "async": false
         },
@@ -2817,13 +2538,6 @@
             "code"
           ],
           "async": false
-        },
-        {
-          "name": "requireValue",
-          "parameters": [
-            "condition"
-          ],
-          "async": false
         }
       ],
       "contracts": [
@@ -2831,16 +2545,10 @@
           "operations": [
             "<module>",
             "bindPhysicalValue",
-            "canonicalIntegerText",
-            "exactInteger",
-            "exactSmallInteger",
             "exportPhysicalValue",
-            "floatBits",
-            "floatFromBits",
             "physicalJsonScalarBytes",
             "physicalType",
-            "PhysicalValueError/constructor:constructor/constructor:constructor",
-            "requireValue"
+            "PhysicalValueError/constructor:constructor/constructor:constructor"
           ],
           "exports": [
             "PhysicalValueError",
@@ -3063,24 +2771,6 @@
           "async": true
         },
         {
-          "name": "authorizeSourceAccess",
-          "parameters": [
-            "source",
-            "signal"
-          ],
-          "async": true
-        },
-        {
-          "name": "cancellationBoundary",
-          "parameters": [
-            "start",
-            "limits",
-            "signal",
-            "accounting"
-          ],
-          "async": true
-        },
-        {
           "name": "cancellationBoundary/deadline/deadline",
           "parameters": [
             "resolve"
@@ -3127,16 +2817,6 @@
           "async": false
         },
         {
-          "name": "createInstance",
-          "parameters": [
-            "path",
-            "readonly",
-            "limits",
-            "inputFiles"
-          ],
-          "async": false
-        },
-        {
           "name": "provisionComputeDatabase",
           "parameters": [
             "suppliedLimits",
@@ -3179,32 +2859,6 @@
           "async": false
         },
         {
-          "name": "usingSession",
-          "parameters": [
-            "path",
-            "readonly",
-            "suppliedLimits",
-            "body",
-            "signal",
-            "accounting",
-            "shared",
-            "inputFiles"
-          ],
-          "async": true
-        },
-        {
-          "name": "usingSession/assertLive/assertLive",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "usingSession/chargeBytes/chargeBytes",
-          "parameters": [
-            "n"
-          ],
-          "async": false
-        },
-        {
           "name": "usingSession/cleanOwnedResources/cleanOwnedResources",
           "parameters": [],
           "async": true
@@ -3238,11 +2892,6 @@
           "async": false
         },
         {
-          "name": "usingSession/destroyCachedInsert/destroyCachedInsert",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "usingSession/onAbort/onAbort",
           "parameters": [],
           "async": false
@@ -3267,18 +2916,6 @@
             "error"
           ],
           "async": false
-        },
-        {
-          "name": "usingSession/runCommand/runCommand",
-          "parameters": [
-            "sql",
-            "parameters",
-            "consume",
-            "reuseInsert",
-            "statementMode",
-            "receiveMetadata"
-          ],
-          "async": true
         },
         {
           "name": "usingSession/runCommand/runCommand/bound/bound",
@@ -3323,29 +2960,7 @@
           "async": false
         },
         {
-          "name": "usingSession/runCopyParquet/runCopyParquet",
-          "parameters": [
-            "selectSql",
-            "parameters",
-            "outputPath"
-          ],
-          "async": true
-        },
-        {
           "name": "usingSession/runCopyParquet/runCopyParquet/runCopyParquet",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "usingSession/startResidentAppender/startResidentAppender",
-          "parameters": [
-            "table",
-            "columns"
-          ],
-          "async": true
-        },
-        {
-          "name": "usingSession/startResidentAppender/startResidentAppender/ensure/ensure",
           "parameters": [],
           "async": false
         },
@@ -3385,14 +3000,6 @@
         {
           "name": "usingSession/startResidentAppender/startResidentAppender/init:flush/init:flush",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "usingSession/trackFlight/trackFlight",
-          "parameters": [
-            "promise",
-            "recordFailure"
-          ],
           "async": false
         },
         {
@@ -3486,7 +3093,6 @@
         {
           "operations": [
             "<module>",
-            "cancellationBoundary",
             "cancellationBoundary/deadline/deadline",
             "cancellationBoundary/init:retry/init:retry",
             "cancellationBoundary/onAbort/onAbort",
@@ -3495,43 +3101,33 @@
             "cancellationBoundary/operation/operation#2",
             "cancellationBoundary/operation/operation#3",
             "cancellationBoundary/status/status",
-            "createInstance",
             "provisionComputeDatabase",
             "provisionComputeDatabase/close/close",
             "provisionComputeDatabase/init:run/init:run",
             "provisionComputeDatabase/init:run/init:run/init:run",
             "provisionComputeDatabase/status/status",
-            "usingSession",
-            "usingSession/assertLive/assertLive",
-            "usingSession/chargeBytes/chargeBytes",
             "usingSession/cleanOwnedResources/cleanOwnedResources",
             "usingSession/cleanupStatus/cleanupStatus",
             "usingSession/command/command",
             "usingSession/copyParquet/copyParquet",
             "usingSession/createFileView/createFileView",
-            "usingSession/destroyCachedInsert/destroyCachedInsert",
             "usingSession/onAbort/onAbort",
             "usingSession/openResidentAppender/openResidentAppender",
             "usingSession/recordAppenderFailure/recordAppenderFailure",
             "usingSession/recordCommandFailure/recordCommandFailure",
-            "usingSession/runCommand/runCommand",
             "usingSession/runCommand/runCommand/bound/bound",
             "usingSession/runCommand/runCommand/bound/bound/bound",
             "usingSession/runCommand/runCommand/bound/bound/bound#2",
             "usingSession/runCommand/runCommand/columns/columns",
             "usingSession/runCommand/runCommand/runCommand",
             "usingSession/runCommand/runCommand/vectors/vectors",
-            "usingSession/runCopyParquet/runCopyParquet",
             "usingSession/runCopyParquet/runCopyParquet/runCopyParquet",
-            "usingSession/startResidentAppender/startResidentAppender",
-            "usingSession/startResidentAppender/startResidentAppender/ensure/ensure",
             "usingSession/startResidentAppender/startResidentAppender/init:append/init:append",
             "usingSession/startResidentAppender/startResidentAppender/init:append/init:append/init:append",
             "usingSession/startResidentAppender/startResidentAppender/init:appendScalars/init:appendScalars",
             "usingSession/startResidentAppender/startResidentAppender/init:appendScalars/init:appendScalars/init:appendScalars",
             "usingSession/startResidentAppender/startResidentAppender/init:finish/init:finish",
             "usingSession/startResidentAppender/startResidentAppender/init:flush/init:flush",
-            "usingSession/trackFlight/trackFlight",
             "usingSession/trackFlight/trackFlight/trackFlight",
             "usingSession/trackFlight/trackFlight/trackFlight#2",
             "usingSession/usingSession",
@@ -3620,7 +3216,6 @@
         {
           "operations": [
             "authorizeLocalDatabase",
-            "authorizeSourceAccess",
             "revokeLocalDatabase",
             "withCurrentSourceEvidenceRead"
           ],
@@ -4134,13 +3729,6 @@
       ],
       "operations": [
         {
-          "name": "canonical/canonical",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "checkInstalledGcsSourceProfile",
           "parameters": [
             "profile"
@@ -4158,42 +3746,6 @@
           "name": "checkInstalledGcsSourceProfile/checkInstalledGcsSourceProfile#2",
           "parameters": [
             "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "closed/closed",
-          "parameters": [
-            "value",
-            "keys"
-          ],
-          "async": false
-        },
-        {
-          "name": "exact/exact",
-          "parameters": [
-            "value",
-            "maximum",
-            "empty"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -4248,13 +3800,6 @@
           "async": false
         },
         {
-          "name": "prepareGcsSourceDeclarationInputs/request/request",
-          "parameters": [
-            "fields"
-          ],
-          "async": false
-        },
-        {
           "name": "restoreGcsSourceDeclaration",
           "parameters": [
             "moon",
@@ -4263,39 +3808,15 @@
             "includeObjects"
           ],
           "async": false
-        },
-        {
-          "name": "restoreGcsSourceDeclaration/restore/restore",
-          "parameters": [
-            "views",
-            "expected"
-          ],
-          "async": false
-        },
-        {
-          "name": "view",
-          "parameters": [
-            "resource",
-            "schema",
-            "request",
-            "acquisition"
-          ],
-          "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "canonical/canonical",
             "checkInstalledGcsSourceProfile",
             "checkInstalledGcsSourceProfile/checkInstalledGcsSourceProfile",
             "checkInstalledGcsSourceProfile/checkInstalledGcsSourceProfile#2",
-            "cid/cid",
-            "closed/closed",
-            "exact/exact",
-            "fail/fail",
-            "positive/positive",
             "prepareGcsSourceDeclarationInputs",
             "prepareGcsSourceDeclarationInputs/deriveFinalViews/deriveFinalViews",
             "prepareGcsSourceDeclarationInputs/deriveFinalViews/deriveFinalViews/deriveFinalViews",
@@ -4303,10 +3824,7 @@
             "prepareGcsSourceDeclarationInputs/deriveFinalViews/deriveFinalViews/deriveFinalViews#3",
             "prepareGcsSourceDeclarationInputs/deriveFinalViews/deriveFinalViews/finalViews/finalViews",
             "prepareGcsSourceDeclarationInputs/initialViews/initialViews",
-            "prepareGcsSourceDeclarationInputs/request/request",
-            "restoreGcsSourceDeclaration",
-            "restoreGcsSourceDeclaration/restore/restore",
-            "view"
+            "restoreGcsSourceDeclaration"
           ],
           "exports": [
             "GCS_REGISTRATION",
@@ -4496,20 +4014,6 @@
       ],
       "operations": [
         {
-          "name": "absolute/absolute",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "canonical/canonical",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "checkInstalledGcsSourceProfile",
           "parameters": [
             "profile"
@@ -4517,31 +4021,9 @@
           "async": false
         },
         {
-          "name": "checkSite",
-          "parameters": [
-            "site"
-          ],
-          "async": false
-        },
-        {
           "name": "checkSite/checkSite",
           "parameters": [
             "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "cause"
           ],
           "async": false
         },
@@ -4731,42 +4213,14 @@
             "fields"
           ],
           "async": false
-        },
-        {
-          "name": "readSite",
-          "parameters": [
-            "path",
-            "read"
-          ],
-          "async": true
-        },
-        {
-          "name": "sameKeys/sameKeys",
-          "parameters": [
-            "value",
-            "keys"
-          ],
-          "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
-          ],
-          "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "absolute/absolute",
-            "canonical/canonical",
             "checkInstalledGcsSourceProfile",
-            "checkSite",
             "checkSite/checkSite",
-            "cid/cid",
-            "fail/fail",
             "installedGcsSourceIdentityParts",
             "loadInstalledGcsSource",
             "loadInstalledGcsSource/admitsApprovalTarget/admitsApprovalTarget",
@@ -4791,10 +4245,7 @@
             "loadInstalledGcsSource/resourceFor/resourceFor",
             "loadInstalledGcsSource/resourceValid/resourceValid",
             "loadInstalledGcsSource/resourceValid/resourceValid/resourceValid",
-            "loadInstalledGcsSource/target/target",
-            "readSite",
-            "sameKeys/sameKeys",
-            "text/text"
+            "loadInstalledGcsSource/target/target"
           ],
           "exports": [
             "INSTALLED_GCS_SITE_VERSION",
@@ -5129,47 +4580,9 @@
           "async": false
         },
         {
-          "name": "encode/encode",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "encode/encode/encode",
           "parameters": [
             "char"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "object/object",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "page",
-          "parameters": [
-            "body",
-            "target",
-            "maximum",
-            "moon"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -5188,25 +4601,9 @@
           "async": false
         },
         {
-          "name": "setup",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
           "name": "setup/setup",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value",
-            "max",
-            "empty"
           ],
           "async": false
         }
@@ -5216,17 +4613,10 @@
           "operations": [
             "<module>",
             "authorization",
-            "encode/encode",
             "encode/encode/encode",
-            "fail/fail",
-            "object/object",
-            "page",
-            "positive/positive",
             "readGcsFileListing",
             "readGcsFileListing/readGcsFileListing",
-            "setup",
-            "setup/setup",
-            "text/text"
+            "setup/setup"
           ],
           "exports": [
             "GCS_FILE_LIST_OPERATION",
@@ -5355,13 +4745,6 @@
       ],
       "operations": [
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "readGcsKeyedContent",
           "parameters": [
             "moon",
@@ -5428,7 +4811,6 @@
         {
           "operations": [
             "<module>",
-            "fail/fail",
             "readGcsKeyedContent",
             "readGcsKeyedContent/captured/captured",
             "readGcsKeyedContent/captured/captured#2",
@@ -5555,41 +4937,10 @@
           "async": false
         },
         {
-          "name": "checkedDigests",
-          "parameters": [
-            "body",
-            "expected",
-            "signal",
-            "chargeVerification"
-          ],
-          "async": true
-        },
-        {
-          "name": "checkedTarget",
-          "parameters": [
-            "target"
-          ],
-          "async": false
-        },
-        {
-          "name": "count/count",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "crcTable/crcTable",
           "parameters": [
             "_",
             "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "encode/encode",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -5601,42 +4952,9 @@
           "async": false
         },
         {
-          "name": "exactText",
-          "parameters": [
-            "value",
-            "maxBytes",
-            "allowEmpty"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "gcsMetadataRequestWire",
           "parameters": [
             "target"
-          ],
-          "async": false
-        },
-        {
-          "name": "legacyDigest",
-          "parameters": [
-            "value",
-            "bytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "legacyMetadata",
-          "parameters": [
-            "body",
-            "target",
-            "limits"
           ],
           "async": false
         },
@@ -5651,31 +4969,9 @@
           "async": false
         },
         {
-          "name": "physicalRequest",
-          "parameters": [
-            "target",
-            "phase",
-            "metageneration",
-            "contentEncoding",
-            "sizeBytes"
-          ],
-          "async": false
-        },
-        {
           "name": "readGcsVersionedContent",
           "parameters": [
             "options"
-          ],
-          "async": true
-        },
-        {
-          "name": "readGcsVersionedContent/request",
-          "parameters": [
-            "phase",
-            "maxBytes",
-            "metageneration",
-            "contentEncoding",
-            "sizeBytes"
           ],
           "async": true
         },
@@ -5685,13 +4981,6 @@
             "response",
             "expectedEncoding",
             "rangeSize"
-          ],
-          "async": false
-        },
-        {
-          "name": "setup",
-          "parameters": [
-            "options"
           ],
           "async": false
         },
@@ -5708,13 +4997,6 @@
             "value"
           ],
           "async": false
-        },
-        {
-          "name": "token/token",
-          "parameters": [
-            "value"
-          ],
-          "async": false
         }
       ],
       "contracts": [
@@ -5722,26 +5004,14 @@
           "operations": [
             "<module>",
             "authorization",
-            "checkedDigests",
-            "checkedTarget",
-            "count/count",
             "crcTable/crcTable",
-            "encode/encode",
             "encode/encode/encode",
-            "exactText",
-            "fail/fail",
             "gcsMetadataRequestWire",
-            "legacyDigest",
-            "legacyMetadata",
             "metadata",
-            "physicalRequest",
             "readGcsVersionedContent",
-            "readGcsVersionedContent/request",
             "responseHeaders",
-            "setup",
             "setup/setup",
-            "size/size",
-            "token/token"
+            "size/size"
           ],
           "exports": [
             "gcsMetadataRequestWire",
@@ -5865,13 +5135,6 @@
       ],
       "operations": [
         {
-          "name": "absolute/absolute",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "checkInstalledGitHubEffectProfile",
           "parameters": [
             "profile"
@@ -5903,36 +5166,6 @@
           "name": "checkWrite/checkWrite#2",
           "parameters": [
             "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "commentOutcome",
-          "parameters": [
-            "projected"
-          ],
-          "async": false
-        },
-        {
-          "name": "commentValue",
-          "parameters": [
-            "resource",
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "cause"
           ],
           "async": false
         },
@@ -6044,17 +5277,6 @@
           "async": false
         },
         {
-          "name": "mappingsOf",
-          "parameters": [
-            "moon",
-            "declaration",
-            "writes",
-            "sourceInitialization",
-            "readOriginalText"
-          ],
-          "async": true
-        },
-        {
           "name": "mappingsOf/mappingsOf",
           "parameters": [
             "path"
@@ -6082,37 +5304,17 @@
             "mapping"
           ],
           "async": false
-        },
-        {
-          "name": "sameKeys/sameKeys",
-          "parameters": [
-            "value",
-            "keys"
-          ],
-          "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
-          ],
-          "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "absolute/absolute",
             "checkInstalledGitHubEffectProfile",
             "checkInstalledGitHubEffectProfile/checkInstalledGitHubEffectProfile",
             "checkWrite",
             "checkWrite/checkWrite",
             "checkWrite/checkWrite#2",
-            "cid/cid",
-            "commentOutcome",
-            "commentValue",
-            "fail/fail",
             "installedGitHubEffectIdentityParts",
             "loadInstalledGitHubEffect",
             "loadInstalledGitHubEffect/environment/environment",
@@ -6121,13 +5323,10 @@
             "loadInstalledGitHubEffect/loadInstalledGitHubEffect",
             "loadInstalledGitHubEffect/loadInstalledGitHubEffect#2",
             "loadInstalledGitHubEffect/readers/readers",
-            "mappingsOf",
             "mappingsOf/mappingsOf",
             "mappingsOf/mappingsOf#2",
             "publishInstalledGitHubEffect",
-            "publishInstalledGitHubEffect/publishInstalledGitHubEffect",
-            "sameKeys/sameKeys",
-            "text/text"
+            "publishInstalledGitHubEffect/publishInstalledGitHubEffect"
           ],
           "exports": [
             "INSTALLED_GITHUB_EFFECT_VERSION",
@@ -6413,13 +5612,6 @@
       ],
       "operations": [
         {
-          "name": "absolute/absolute",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "checkInstalledGitHubSourceProfile",
           "parameters": [
             "profile"
@@ -6427,24 +5619,9 @@
           "async": false
         },
         {
-          "name": "environmentSecret/environmentSecret",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
           "name": "environmentSecret/environmentSecret/environmentSecret",
           "parameters": [],
           "async": true
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "cause"
-          ],
-          "async": false
         },
         {
           "name": "installedGitHubSourceIdentityParts",
@@ -6631,32 +5808,14 @@
             "path"
           ],
           "async": false
-        },
-        {
-          "name": "sameKeys/sameKeys",
-          "parameters": [
-            "value",
-            "keys"
-          ],
-          "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
-          ],
-          "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "absolute/absolute",
             "checkInstalledGitHubSourceProfile",
-            "environmentSecret/environmentSecret",
             "environmentSecret/environmentSecret/environmentSecret",
-            "fail/fail",
             "installedGitHubSourceIdentityParts",
             "loadInstalledGitHubSource",
             "loadInstalledGitHubSource/loadInstalledGitHubSource",
@@ -6676,9 +5835,7 @@
             "readSite",
             "readSite/readers/readers",
             "restore",
-            "restore/restore",
-            "sameKeys/sameKeys",
-            "text/text"
+            "restore/restore"
           ],
           "exports": [
             "INSTALLED_GITHUB_SITE_VERSION",
@@ -6888,49 +6045,6 @@
           "async": true
         },
         {
-          "name": "checkLimits",
-          "parameters": [
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "count/count",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "exactRequestCid",
-          "parameters": [
-            "parts"
-          ],
-          "async": false
-        },
-        {
-          "name": "exchange",
-          "parameters": [
-            "moon",
-            "authorization",
-            "credential",
-            "callResource",
-            "operation",
-            "body",
-            "limits",
-            "signal"
-          ],
-          "async": true
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "details"
-          ],
-          "async": false
-        },
-        {
           "name": "finalizeGitHubCommentRequest",
           "parameters": [
             "moon",
@@ -6954,14 +6068,6 @@
           "async": false
         },
         {
-          "name": "ownCommentLogicalRequest",
-          "parameters": [
-            "request",
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "ownCommentLogicalRequest/original/original",
           "parameters": [
             "name"
@@ -6972,13 +6078,6 @@
           "name": "ownCommentLogicalRequest/ownCommentLogicalRequest",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "pairs/pairs",
-          "parameters": [
-            "headers"
           ],
           "async": false
         },
@@ -7069,14 +6168,6 @@
           "async": false
         },
         {
-          "name": "projectGitHubCommentSubjectResponse/refuse/refuse",
-          "parameters": [
-            "code",
-            "details"
-          ],
-          "async": false
-        },
-        {
           "name": "restoreGitHubCommentRequest",
           "parameters": [
             "moon",
@@ -7120,16 +6211,10 @@
           "operations": [
             "<module>",
             "checkGitHubCommentSubject",
-            "checkLimits",
-            "count/count",
-            "exchange",
-            "fail/fail",
-            "pairs/pairs",
             "pairs/pairs/pairs",
             "pairs/pairs/pairs#2",
             "prepareGitHubCommentSubjectRequest",
             "projectGitHubCommentSubjectResponse",
-            "projectGitHubCommentSubjectResponse/refuse/refuse",
             "sendGitHubIssueComment"
           ],
           "exports": [
@@ -7252,7 +6337,6 @@
         },
         {
           "operations": [
-            "exactRequestCid",
             "prepareGitHubCommentRequest",
             "projectGitHubCommentObservation"
           ],
@@ -7395,7 +6479,6 @@
         },
         {
           "operations": [
-            "ownCommentLogicalRequest",
             "ownCommentLogicalRequest/original/original",
             "ownCommentLogicalRequest/ownCommentLogicalRequest",
             "prepareGitHubCommentConfirmationRequest",
@@ -7540,51 +6623,6 @@
       ],
       "operations": [
         {
-          "name": "checkLimits",
-          "parameters": [
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "count/count",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "details"
-          ],
-          "async": false
-        },
-        {
-          "name": "githubReadField",
-          "parameters": [
-            "value",
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "githubReadMethod",
-          "parameters": [
-            "value",
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "pairs/pairs",
-          "parameters": [
-            "headers"
-          ],
-          "async": false
-        },
-        {
           "name": "pairs/pairs/pairs",
           "parameters": [
             "entry"
@@ -7673,52 +6711,11 @@
           "async": false
         },
         {
-          "name": "readGitHubRowsByNode",
-          "parameters": [
-            "moon",
-            "repository",
-            "filters",
-            "credential",
-            "callResource",
-            "authorizationFor",
-            "limits",
-            "chargePage",
-            "consumeObservation",
-            "consumePage",
-            "signal",
-            "pullRequests",
-            "comments",
-            "managed"
-          ],
-          "async": true
-        },
-        {
-          "name": "readGitHubRowsByNode/checkPrefix/checkPrefix",
-          "parameters": [
-            "admitted"
-          ],
-          "async": false
-        },
-        {
           "name": "readGitHubRowsByNode/checkPrefix/checkPrefix/checkPrefix",
           "parameters": [
             "facts"
           ],
           "async": false
-        },
-        {
-          "name": "readGitHubRowsByNode/decoded/decoded",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "readGitHubRowsByNode/exchange/exchange",
-          "parameters": [
-            "body"
-          ],
-          "async": true
         },
         {
           "name": "readGitHubRowsByNode/exchange/exchange/facts/facts",
@@ -7735,22 +6732,7 @@
           "async": false
         },
         {
-          "name": "readGitHubRowsByNode/invoke/invoke",
-          "parameters": [
-            "method",
-            "args"
-          ],
-          "async": false
-        },
-        {
           "name": "readGitHubRowsByNode/readGitHubRowsByNode",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "readGitHubRowsByNode/remember/remember",
           "parameters": [
             "value"
           ],
@@ -7761,15 +6743,6 @@
           "parameters": [
             "code",
             "details"
-          ],
-          "async": false
-        },
-        {
-          "name": "readGitHubSourceChild",
-          "parameters": [
-            "context",
-            "originalAuthorization",
-            "input"
           ],
           "async": false
         },
@@ -7797,12 +6770,6 @@
         {
           "operations": [
             "<module>",
-            "checkLimits",
-            "count/count",
-            "fail/fail",
-            "githubReadField",
-            "githubReadMethod",
-            "pairs/pairs",
             "pairs/pairs/pairs",
             "pairs/pairs/pairs#2",
             "prepareGitHubSourceReadSequence",
@@ -7816,18 +6783,11 @@
             "readGitHubIssueCommentsByNode",
             "readGitHubIssuesByNode",
             "readGitHubPullRequestsByNode",
-            "readGitHubRowsByNode",
-            "readGitHubRowsByNode/checkPrefix/checkPrefix",
             "readGitHubRowsByNode/checkPrefix/checkPrefix/checkPrefix",
-            "readGitHubRowsByNode/decoded/decoded",
-            "readGitHubRowsByNode/exchange/exchange",
             "readGitHubRowsByNode/exchange/exchange/facts/facts",
             "readGitHubRowsByNode/exchange/exchange/facts/facts/facts",
-            "readGitHubRowsByNode/invoke/invoke",
             "readGitHubRowsByNode/readGitHubRowsByNode",
-            "readGitHubRowsByNode/remember/remember",
             "readGitHubRowsByNode/stopped/stopped",
-            "readGitHubSourceChild",
             "readGitHubSourceChild/init:prepare/init:prepare",
             "readGitHubSourceChild/init:prepare/init:prepare/init:prepare",
             "readGitHubSourceChild/readGitHubSourceChild"
@@ -8034,39 +6994,10 @@
       ],
       "operations": [
         {
-          "name": "checkLimits",
-          "parameters": [
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "count/count",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "details"
-          ],
-          "async": false
-        },
-        {
           "name": "githubIssueListPath",
           "parameters": [
             "owner",
             "repo"
-          ],
-          "async": false
-        },
-        {
-          "name": "pairs/pairs",
-          "parameters": [
-            "headers"
           ],
           "async": false
         },
@@ -8121,11 +7052,7 @@
         {
           "operations": [
             "<module>",
-            "checkLimits",
-            "count/count",
-            "fail/fail",
             "githubIssueListPath",
-            "pairs/pairs",
             "pairs/pairs/pairs",
             "pairs/pairs/pairs#2",
             "readGitHubIssues",
@@ -8221,24 +7148,6 @@
       ],
       "operations": [
         {
-          "name": "binding/binding",
-          "parameters": [
-            "profile",
-            "root",
-            "principalId",
-            "implementation"
-          ],
-          "async": false
-        },
-        {
-          "name": "bridgeOf/bridgeOf",
-          "parameters": [
-            "profile",
-            "implementation"
-          ],
-          "async": false
-        },
-        {
           "name": "checkInstalledTableEffectProfile",
           "parameters": [
             "profile"
@@ -8277,60 +7186,6 @@
           "name": "checkInstalledTableSourceProfile/checkInstalledTableSourceProfile#2",
           "parameters": [
             "target"
-          ],
-          "async": false
-        },
-        {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "commonProfile",
-          "parameters": [
-            "profile",
-            "version",
-            "extraKeys"
-          ],
-          "async": false
-        },
-        {
-          "name": "dataCid/dataCid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "dataWire/dataWire",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "deepFreeze/deepFreeze",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "identityParts",
-          "parameters": [
-            "profile",
-            "checked",
-            "installation"
           ],
           "async": false
         },
@@ -8419,20 +7274,6 @@
           "async": false
         },
         {
-          "name": "selectedImplementation/selectedImplementation",
-          "parameters": [
-            "installation"
-          ],
-          "async": false
-        },
-        {
-          "name": "snapshot/snapshot",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "text/text",
           "parameters": [
             "value"
@@ -8444,21 +7285,12 @@
         {
           "operations": [
             "<module>",
-            "binding/binding",
-            "bridgeOf/bridgeOf",
             "checkInstalledTableEffectProfile",
             "checkInstalledTableEffectProfile/checkInstalledTableEffectProfile",
             "checkInstalledTableEffectProfile/checkInstalledTableEffectProfile#2",
             "checkInstalledTableSourceProfile",
             "checkInstalledTableSourceProfile/checkInstalledTableSourceProfile",
             "checkInstalledTableSourceProfile/checkInstalledTableSourceProfile#2",
-            "cid/cid",
-            "commonProfile",
-            "dataCid/dataCid",
-            "dataWire/dataWire",
-            "deepFreeze/deepFreeze",
-            "fail/fail",
-            "identityParts",
             "installedTableEffectIdentityParts",
             "installedTableSourceIdentityParts",
             "keys/keys",
@@ -8469,8 +7301,6 @@
             "loadInstalledTableEffect/mapping/mapping",
             "loadInstalledTableSource",
             "loadInstalledTableSource/loadInstalledTableSource",
-            "selectedImplementation/selectedImplementation",
-            "snapshot/snapshot",
             "text/text"
           ],
           "exports": [
@@ -9689,21 +8519,6 @@
       ],
       "operations": [
         {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "cause"
-          ],
-          "async": false
-        },
-        {
           "name": "installedSalesforceSiteBinding",
           "parameters": [
             "site",
@@ -9777,15 +8592,6 @@
           "async": false
         },
         {
-          "name": "loadInstalledSalesforceSite/authorizeDescribe",
-          "parameters": [
-            "resource",
-            "occurrence",
-            "signal"
-          ],
-          "async": true
-        },
-        {
           "name": "loadInstalledSalesforceSite/bindManagedAcquisition",
           "parameters": [
             "authorization",
@@ -9802,18 +8608,6 @@
           "async": false
         },
         {
-          "name": "loadInstalledSalesforceSite/bindRecordAcquisition/assertOpen/assertOpen",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSalesforceSite/bindRecordAcquisition/captureCurrent/captureCurrent",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "loadInstalledSalesforceSite/bindRecordAcquisition/captureCurrent/captureCurrent/captureCurrent",
           "parameters": [
             "name"
@@ -9821,30 +8615,8 @@
           "async": false
         },
         {
-          "name": "loadInstalledSalesforceSite/bindRecordAcquisition/credentialFor/credentialFor",
-          "parameters": [
-            "callbacks"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSalesforceSite/bindRecordAcquisition/currentFor/currentFor",
-          "parameters": [
-            "record",
-            "methods"
-          ],
-          "async": false
-        },
-        {
           "name": "loadInstalledSalesforceSite/bindRecordAcquisition/currentFor/currentFor/assertCurrent/assertCurrent",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSalesforceSite/bindRecordAcquisition/currentFor/currentFor/assertOriginal/assertOriginal",
-          "parameters": [
-            "method"
-          ],
           "async": false
         },
         {
@@ -9867,28 +8639,6 @@
           "parameters": [
             "authorization",
             "current"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSalesforceSite/catalogSyncRequest",
-          "parameters": [
-            "occurrence",
-            "retainResponses",
-            "maxRetainedBytes",
-            "limits",
-            "runCid",
-            "dispatchCid",
-            "taskAttempt",
-            "grantUses",
-            "resources"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSalesforceSite/catalogSyncRequest/grant/grant",
-          "parameters": [
-            "operation"
           ],
           "async": false
         },
@@ -9929,14 +8679,6 @@
           "async": true
         },
         {
-          "name": "loadInstalledSalesforceSite/describedTargets/describedTargets",
-          "parameters": [
-            "resources",
-            "evidence"
-          ],
-          "async": false
-        },
-        {
           "name": "loadInstalledSalesforceSite/describedTargets/describedTargets/described/described",
           "parameters": [
             "name"
@@ -9972,24 +8714,6 @@
           "async": true
         },
         {
-          "name": "loadInstalledSalesforceSite/describeNamed",
-          "parameters": [
-            "resources",
-            "occurrence",
-            "runCid",
-            "dispatchCid",
-            "retainEvidence",
-            "maxRetainedBytes",
-            "limits",
-            "approval",
-            "signal",
-            "retainPublicationOriginals",
-            "readChild",
-            "controlConstruction"
-          ],
-          "async": true
-        },
-        {
           "name": "loadInstalledSalesforceSite/describeNamed/describeNamed",
           "parameters": [],
           "async": false
@@ -10016,16 +8740,6 @@
         {
           "name": "loadInstalledSalesforceSite/describeNamed/result/result/issue/issue/issued/issued",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSalesforceSite/generate/generate",
-          "parameters": [
-            "observation",
-            "connectorId",
-            "resources",
-            "limits"
-          ],
           "async": false
         },
         {
@@ -10075,13 +8789,6 @@
           "async": false
         },
         {
-          "name": "loadInstalledSalesforceSite/originalDeclaration/originalDeclaration",
-          "parameters": [
-            "declared"
-          ],
-          "async": false
-        },
-        {
           "name": "loadInstalledSalesforceSite/peek",
           "parameters": [
             "decision",
@@ -10093,13 +8800,6 @@
             "signal"
           ],
           "async": true
-        },
-        {
-          "name": "loadInstalledSalesforceSite/peek/describe/describe",
-          "parameters": [
-            "suffix"
-          ],
-          "async": false
         },
         {
           "name": "loadInstalledSalesforceSite/peek/result/result",
@@ -10176,13 +8876,6 @@
           "async": false
         },
         {
-          "name": "loadInstalledSalesforceSite/restoreDeclaration/finish/finish",
-          "parameters": [
-            "observation"
-          ],
-          "async": false
-        },
-        {
           "name": "loadInstalledSalesforceSite/restoreDeclaration/mismatch/mismatch",
           "parameters": [
             "name"
@@ -10200,11 +8893,6 @@
           "async": false
         },
         {
-          "name": "loadInstalledSalesforceSite/restoreDeclaration/recoverOriginal/recoverOriginal",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "loadInstalledSalesforceSite/restoreDeclaration/restored/init:project/init:project",
           "parameters": [],
           "async": false
@@ -10212,16 +8900,6 @@
         {
           "name": "loadInstalledSalesforceSite/restoreDeclaration/restored/restored",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSalesforceSite/signRecord",
-          "parameters": [
-            "fields",
-            "resource",
-            "assertDecisionCurrent",
-            "decision"
-          ],
           "async": false
         },
         {
@@ -10267,13 +8945,6 @@
           "async": false
         },
         {
-          "name": "validProfile",
-          "parameters": [
-            "profile"
-          ],
-          "async": false
-        },
-        {
           "name": "validProfile/validProfile",
           "parameters": [
             "key"
@@ -10315,8 +8986,6 @@
         {
           "operations": [
             "<module>",
-            "cid/cid",
-            "fail/fail",
             "installSalesforceAuthorization",
             "installedSalesforceSiteBinding",
             "loadInstalledSalesforceSite",
@@ -10325,22 +8994,14 @@
             "loadInstalledSalesforceSite/admitCheckpointReadApproval",
             "loadInstalledSalesforceSite/attestEffectCapability",
             "loadInstalledSalesforceSite/attestEffectCapability/init:current/init:current",
-            "loadInstalledSalesforceSite/authorizeDescribe",
             "loadInstalledSalesforceSite/bindManagedAcquisition",
             "loadInstalledSalesforceSite/bindRecordAcquisition",
-            "loadInstalledSalesforceSite/bindRecordAcquisition/assertOpen/assertOpen",
-            "loadInstalledSalesforceSite/bindRecordAcquisition/captureCurrent/captureCurrent",
             "loadInstalledSalesforceSite/bindRecordAcquisition/captureCurrent/captureCurrent/captureCurrent",
-            "loadInstalledSalesforceSite/bindRecordAcquisition/credentialFor/credentialFor",
-            "loadInstalledSalesforceSite/bindRecordAcquisition/currentFor/currentFor",
             "loadInstalledSalesforceSite/bindRecordAcquisition/currentFor/currentFor/assertCurrent/assertCurrent",
-            "loadInstalledSalesforceSite/bindRecordAcquisition/currentFor/currentFor/assertOriginal/assertOriginal",
             "loadInstalledSalesforceSite/bindRecordAcquisition/currentFor/currentFor/assertOriginal/assertOriginal/assertOriginal",
             "loadInstalledSalesforceSite/bindRecordAcquisition/currentFor/currentFor/observeCurrent/observeCurrent",
             "loadInstalledSalesforceSite/bindRecordAcquisition/init:close/init:close",
             "loadInstalledSalesforceSite/bindRecordAcquisition/init:forAuthorization/init:forAuthorization",
-            "loadInstalledSalesforceSite/catalogSyncRequest",
-            "loadInstalledSalesforceSite/catalogSyncRequest/grant/grant",
             "loadInstalledSalesforceSite/catalogSyncRequest/request/request",
             "loadInstalledSalesforceSite/closeSite",
             "loadInstalledSalesforceSite/custody/custody",
@@ -10348,16 +9009,12 @@
             "loadInstalledSalesforceSite/declareCatalog",
             "loadInstalledSalesforceSite/describeEffectCatalog",
             "loadInstalledSalesforceSite/describeForAcquisition",
-            "loadInstalledSalesforceSite/describeNamed",
             "loadInstalledSalesforceSite/describeNamed/describeNamed",
-            "loadInstalledSalesforceSite/describedTargets/describedTargets",
             "loadInstalledSalesforceSite/describedTargets/describedTargets/described/described",
-            "loadInstalledSalesforceSite/generate/generate",
             "loadInstalledSalesforceSite/issueGrant",
             "loadInstalledSalesforceSite/issueGrant/issueGrant",
             "loadInstalledSalesforceSite/loadInstalledSalesforceSite",
             "loadInstalledSalesforceSite/peek",
-            "loadInstalledSalesforceSite/peek/describe/describe",
             "loadInstalledSalesforceSite/peek/result/result",
             "loadInstalledSalesforceSite/peek/result/result#2",
             "loadInstalledSalesforceSite/peek/result/result#3",
@@ -10369,20 +9026,16 @@
             "loadInstalledSalesforceSite/refreshCatalog",
             "loadInstalledSalesforceSite/restoreDeclaration",
             "loadInstalledSalesforceSite/restoreDeclaration/mismatch/mismatch",
-            "loadInstalledSalesforceSite/signRecord",
             "loadInstalledSalesforceSite/siteBinding/siteBinding",
             "releaseSalesforceSite",
             "retainSalesforceSiteCleanup",
             "text/text",
-            "validProfile",
             "validProfile/validProfile",
             "validProfile/validProfile#2",
             "validProfile/validProfile#3",
             "validProfile/validProfile#4",
-            "loadInstalledSalesforceSite/restoreDeclaration/finish/finish",
             "loadInstalledSalesforceSite/restoreDeclaration/observed/init:project/init:project",
             "loadInstalledSalesforceSite/restoreDeclaration/observed/observed",
-            "loadInstalledSalesforceSite/restoreDeclaration/recoverOriginal/recoverOriginal",
             "loadInstalledSalesforceSite/restoreDeclaration/restored/init:project/init:project",
             "loadInstalledSalesforceSite/restoreDeclaration/restored/restored"
           ],
@@ -10679,7 +9332,6 @@
             "loadInstalledSalesforceSite/init:observe/init:observe",
             "loadInstalledSalesforceSite/init:withOriginals/init:withOriginals",
             "loadInstalledSalesforceSite/init:withOriginals/init:withOriginals/value/value",
-            "loadInstalledSalesforceSite/originalDeclaration/originalDeclaration",
             "loadInstalledSalesforceSite/site/site",
             "observeInstalledSalesforcePublicationCurrent",
             "withInstalledSalesforceDeclarationOriginals"
@@ -10800,13 +9452,6 @@
       ],
       "operations": [
         {
-          "name": "byCid/byCid",
-          "parameters": [
-            "values"
-          ],
-          "async": false
-        },
-        {
           "name": "byCid/byCid/byCid",
           "parameters": [
             "value"
@@ -10818,13 +9463,6 @@
           "parameters": [
             "a",
             "b"
-          ],
-          "async": false
-        },
-        {
-          "name": "bytesCid/bytesCid",
-          "parameters": [
-            "body"
           ],
           "async": false
         },
@@ -10848,14 +9486,6 @@
           "async": false
         },
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "cause"
-          ],
-          "async": false
-        },
-        {
           "name": "loadSalesforceGeneration",
           "parameters": [
             "site",
@@ -10873,15 +9503,6 @@
             "generationText"
           ],
           "async": true
-        },
-        {
-          "name": "originalGeneration",
-          "parameters": [
-            "site",
-            "declared",
-            "generationText"
-          ],
-          "async": false
         },
         {
           "name": "publishSalesforceGeneration",
@@ -10939,14 +9560,6 @@
           "async": false
         },
         {
-          "name": "targetSet",
-          "parameters": [
-            "connectorId",
-            "resources"
-          ],
-          "async": false
-        },
-        {
           "name": "text/text",
           "parameters": [
             "value"
@@ -10975,13 +9588,10 @@
         {
           "operations": [
             "<module>",
-            "byCid/byCid",
             "byCid/byCid/byCid",
             "byCid/byCid/byCid#2",
-            "bytesCid/bytesCid",
             "describeSalesforceGeneration",
             "describeSalesforceGeneration/generation/generation",
-            "fail/fail",
             "loadSalesforceGeneration",
             "publishSalesforceGeneration",
             "readPublicationFile",
@@ -10989,7 +9599,6 @@
             "restoreSalesforceGeneration",
             "restoreSalesforceGeneration/restoreSalesforceGeneration",
             "salesforceCheckEnvironment",
-            "targetSet",
             "text/text"
           ],
           "exports": [
@@ -11112,7 +9721,6 @@
         {
           "operations": [
             "observeSalesforcePublicationOriginals",
-            "originalGeneration",
             "withSalesforcePublicationOriginals",
             "withSalesforcePublicationOriginals/withSalesforcePublicationOriginals"
           ],
@@ -11209,11 +9817,6 @@
         "installSalesforceResourceDiscovery"
       ],
       "operations": [
-        {
-          "name": "fail/fail",
-          "parameters": [],
-          "async": false
-        },
         {
           "name": "installSalesforceResourceDiscovery",
           "parameters": [
@@ -11320,7 +9923,6 @@
         {
           "operations": [
             "<module>",
-            "fail/fail",
             "installSalesforceResourceDiscovery",
             "installSalesforceResourceDiscovery/authorize/authorize",
             "installSalesforceResourceDiscovery/entries/entries",
@@ -11423,11 +10025,6 @@
           "async": false
         },
         {
-          "name": "fail/fail",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "resolveSalesforceResource",
           "parameters": [
             "moon",
@@ -11472,7 +10069,6 @@
           "operations": [
             "<module>",
             "catalogRequiredReason",
-            "fail/fail",
             "resolveSalesforceResource",
             "resolveSalesforceResource/arguments_/arguments_",
             "resolveSalesforceResource/ownedBinding/ownedBinding",
@@ -11562,29 +10158,6 @@
       ],
       "operations": [
         {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "denied/denied",
-          "parameters": [
-            "code",
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "cause"
-          ],
-          "async": false
-        },
-        {
           "name": "installSalesforceResourceService",
           "parameters": [
             "salesforceMoon",
@@ -11598,14 +10171,6 @@
             "site"
           ],
           "async": false
-        },
-        {
-          "name": "installSalesforceResourceService/discoveryFor",
-          "parameters": [
-            "principalId",
-            "resourceConnection"
-          ],
-          "async": true
         },
         {
           "name": "installSalesforceResourceService/init:inspectResource/init:inspectResource",
@@ -11643,14 +10208,6 @@
           "async": true
         },
         {
-          "name": "installSalesforceResourceService/install/install",
-          "parameters": [
-            "site",
-            "catalog"
-          ],
-          "async": false
-        },
-        {
           "name": "installSalesforceResourceService/install/install/mismatch/mismatch",
           "parameters": [
             "name"
@@ -11664,41 +10221,19 @@
             "declared"
           ],
           "async": false
-        },
-        {
-          "name": "installSalesforceResourceService/siteFor/siteFor",
-          "parameters": [
-            "principalId",
-            "resourceConnection"
-          ],
-          "async": false
-        },
-        {
-          "name": "utf8Bytes/utf8Bytes",
-          "parameters": [
-            "text"
-          ],
-          "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "cid/cid",
-            "denied/denied",
-            "fail/fail",
             "installSalesforceResourceService",
             "installSalesforceResourceService/byConnection/byConnection",
-            "installSalesforceResourceService/discoveryFor",
             "installSalesforceResourceService/init:inspectResource/init:inspectResource",
             "installSalesforceResourceService/init:peekResource/init:peekResource",
             "installSalesforceResourceService/init:resources/init:resources",
-            "installSalesforceResourceService/install/install",
             "installSalesforceResourceService/install/install/mismatch/mismatch",
-            "installSalesforceResourceService/installPublished",
-            "installSalesforceResourceService/siteFor/siteFor",
-            "utf8Bytes/utf8Bytes"
+            "installSalesforceResourceService/installPublished"
           ],
           "exports": [
             "installSalesforceResourceService"
@@ -11779,28 +10314,6 @@
       ],
       "operations": [
         {
-          "name": "decodeBoundedBase64",
-          "parameters": [
-            "value",
-            "remaining"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "recoverRetainedSalesforceCatalog",
           "parameters": [
             "moon",
@@ -11843,9 +10356,6 @@
         {
           "operations": [
             "<module>",
-            "decodeBoundedBase64",
-            "fail/fail",
-            "positive/positive",
             "recoverRetainedSalesforceCatalog",
             "recoverRetainedSalesforceCatalog/describes/describes",
             "recoverRetainedSalesforceCatalog/observation/observation",
@@ -11928,32 +10438,6 @@
       ],
       "operations": [
         {
-          "name": "count/count",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "scopedGet",
-          "parameters": [
-            "authorization",
-            "path",
-            "maxBytes",
-            "credential",
-            "callResource",
-            "signal"
-          ],
-          "async": true
-        },
-        {
           "name": "syncSalesforceCatalog",
           "parameters": [
             "moon",
@@ -11981,35 +10465,14 @@
             "name"
           ],
           "async": false
-        },
-        {
-          "name": "validateAuthorization",
-          "parameters": [
-            "authorization",
-            "operation",
-            "originalScope"
-          ],
-          "async": false
-        },
-        {
-          "name": "validateLimits",
-          "parameters": [
-            "limits"
-          ],
-          "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "count/count",
-            "fail/fail",
-            "scopedGet",
             "syncSalesforceCatalog",
-            "syncSalesforceCatalog/syncSalesforceCatalog",
-            "validateAuthorization",
-            "validateLimits"
+            "syncSalesforceCatalog/syncSalesforceCatalog"
           ],
           "exports": [
             "syncSalesforceCatalog"
@@ -12100,15 +10563,6 @@
           "async": true
         },
         {
-          "name": "command",
-          "parameters": [
-            "args",
-            "config",
-            "signal"
-          ],
-          "async": true
-        },
-        {
           "name": "createSalesforceCliSecretResolver",
           "parameters": [
             "connection",
@@ -12124,11 +10578,6 @@
           "async": false
         },
         {
-          "name": "createSalesforceCliSecretResolver/clock/clock",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "createSalesforceCliSecretResolver/createSalesforceCliSecretResolver",
           "parameters": [],
           "async": false
@@ -12139,11 +10588,6 @@
             "token"
           ],
           "async": false
-        },
-        {
-          "name": "createSalesforceCliSecretResolver/refresh",
-          "parameters": [],
-          "async": true
         },
         {
           "name": "createSalesforceCliSecretResolver/resolveSecret",
@@ -12164,22 +10608,6 @@
           "async": false
         },
         {
-          "name": "display",
-          "parameters": [
-            "alias",
-            "config",
-            "signal"
-          ],
-          "async": true
-        },
-        {
-          "name": "fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "inspectSalesforceCliConnection",
           "parameters": [
             "alias",
@@ -12188,49 +10616,9 @@
           "async": true
         },
         {
-          "name": "options",
-          "parameters": [
-            "executable",
-            "timeoutMs",
-            "maxOutputBytes",
-            "invoke"
-          ],
-          "async": false
-        },
-        {
           "name": "origin",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "sameConnection/sameConnection",
-          "parameters": [
-            "left",
-            "right"
-          ],
-          "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "waitFor",
-          "parameters": [
-            "promise",
-            "signal"
           ],
           "async": false
         },
@@ -12267,24 +10655,14 @@
           "operations": [
             "<module>",
             "accessToken",
-            "command",
             "createSalesforceCliSecretResolver",
-            "createSalesforceCliSecretResolver/clock/clock",
             "createSalesforceCliSecretResolver/createSalesforceCliSecretResolver",
             "createSalesforceCliSecretResolver/createSalesforceCliSecretResolver#2",
-            "createSalesforceCliSecretResolver/refresh",
             "createSalesforceCliSecretResolver/resolveSecret",
             "createSalesforceCliSecretResolver/resolveSecret/resolveSecret",
             "createSalesforceCliSecretResolver/resolveSecret/resolveSecret#2",
-            "display",
-            "fail",
             "inspectSalesforceCliConnection",
-            "options",
             "origin",
-            "positive/positive",
-            "sameConnection/sameConnection",
-            "text/text",
-            "waitFor",
             "waitFor/waitFor",
             "waitFor/waitFor/onAbort/onAbort",
             "waitFor/waitFor/waitFor",
@@ -12372,20 +10750,6 @@
       ],
       "operations": [
         {
-          "name": "count/count",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "projectSalesforceCollectionObservation",
           "parameters": [
             "moon",
@@ -12421,8 +10785,6 @@
         {
           "operations": [
             "<module>",
-            "count/count",
-            "fail/fail",
             "sendRawSalesforceContinueCollection",
             "writeSalesforceContinueCollection"
           ],
@@ -12671,27 +11033,6 @@
           "async": false
         },
         {
-          "name": "checkRequests",
-          "parameters": [
-            "owner",
-            "requests",
-            "runtimeBundleCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "currentGrant",
-          "parameters": [
-            "owner"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "inspectSalesforceEffectCapability",
           "parameters": [
             "capability",
@@ -12723,9 +11064,6 @@
           "operations": [
             "<module>",
             "attestSalesforceEffectCapabilityAuthority",
-            "checkRequests",
-            "currentGrant",
-            "fail/fail",
             "inspectSalesforceEffectCapability",
             "issueSalesforceEffectCapability"
           ],
@@ -12811,13 +11149,6 @@
       ],
       "operations": [
         {
-          "name": "count/count",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "describeSalesforceResources",
           "parameters": [
             "moon",
@@ -12838,13 +11169,6 @@
             "controlConstruction"
           ],
           "async": true
-        },
-        {
-          "name": "describeSalesforceResources/construct/construct",
-          "parameters": [
-            "callback"
-          ],
-          "async": false
         },
         {
           "name": "describeSalesforceResources/describeSalesforceResources",
@@ -12887,13 +11211,6 @@
         {
           "name": "describeSalesforceResources/sync/sync",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
           "async": false
         },
         {
@@ -12954,11 +11271,6 @@
           "async": false
         },
         {
-          "name": "withSalesforceNamedDescribeOriginals/recheckOriginals/recheckOriginals",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "withSalesforceNamedDescribeOriginals/recheckOriginals/recheckOriginals/recheckOriginals",
           "parameters": [],
           "async": false
@@ -12973,9 +11285,7 @@
         {
           "operations": [
             "<module>",
-            "count/count",
             "describeSalesforceResources",
-            "describeSalesforceResources/construct/construct",
             "describeSalesforceResources/describeSalesforceResources",
             "describeSalesforceResources/describeSalesforceResources#2",
             "describeSalesforceResources/describeSalesforceResources#3",
@@ -12983,7 +11293,6 @@
             "describeSalesforceResources/describeSalesforceResources/result/result",
             "describeSalesforceResources/describeSalesforceResources/result/result#2",
             "describeSalesforceResources/sync/sync",
-            "fail/fail",
             "recoverNamedSalesforceObservation",
             "recoverNamedSalesforceObservation/observation/observation",
             "recoverNamedSalesforceObservation/observation/observation#2",
@@ -13103,7 +11412,6 @@
             "withSalesforceNamedDescribeOriginals",
             "withSalesforceNamedDescribeOriginals/operations/operations",
             "withSalesforceNamedDescribeOriginals/operations/operations/operations",
-            "withSalesforceNamedDescribeOriginals/recheckOriginals/recheckOriginals",
             "withSalesforceNamedDescribeOriginals/recheckOriginals/recheckOriginals/recheckOriginals",
             "withSalesforceNamedDescribeOriginals/withSalesforceNamedDescribeOriginals"
           ],
@@ -13200,20 +11508,6 @@
       ],
       "operations": [
         {
-          "name": "count/count",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "projectSalesforceSingleObservation",
           "parameters": [
             "moon",
@@ -13249,8 +11543,6 @@
         {
           "operations": [
             "<module>",
-            "count/count",
-            "fail/fail",
             "sendRawSalesforceSingleRecord",
             "writeSalesforceSingleRecord"
           ],
@@ -13409,13 +11701,6 @@
       ],
       "operations": [
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "observeSalesforceAccountConditionalTarget",
           "parameters": [
             "options"
@@ -13463,31 +11748,9 @@
           "async": false
         },
         {
-          "name": "observeSingleTarget",
-          "parameters": [
-            "moon",
-            "request",
-            "currentCatalog",
-            "authorization",
-            "credential",
-            "limits",
-            "signal",
-            "callResource",
-            "accountConditional"
-          ],
-          "async": true
-        },
-        {
           "name": "retireSalesforceAccountTargetOriginal",
           "parameters": [
             "observed"
-          ],
-          "async": false
-        },
-        {
-          "name": "validLimits/validLimits",
-          "parameters": [
-            "limits"
           ],
           "async": false
         },
@@ -13501,21 +11764,9 @@
           "async": false
         },
         {
-          "name": "withSalesforceAccountTargetOriginal/check/check",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "withSalesforceAccountTargetOriginal/check/check/check",
           "parameters": [
             "credentialFacts"
-          ],
-          "async": false
-        },
-        {
-          "name": "withSalesforceAccountTargetOriginal/check/check/check/values/values",
-          "parameters": [
-            "name"
           ],
           "async": false
         },
@@ -13543,20 +11794,15 @@
         {
           "operations": [
             "<module>",
-            "fail/fail",
             "observeSalesforceAccountConditionalTarget",
             "observeSalesforceSingleTarget",
             "observeSalesforceTargetSet",
             "observeSalesforceTargetSet/observed/observed",
             "observeSalesforceTargetSet/owned/owned",
             "observeSalesforceTargetSet/owned/owned/owned",
-            "observeSingleTarget",
             "retireSalesforceAccountTargetOriginal",
-            "validLimits/validLimits",
             "withSalesforceAccountTargetOriginal",
-            "withSalesforceAccountTargetOriginal/check/check",
             "withSalesforceAccountTargetOriginal/check/check/check",
-            "withSalesforceAccountTargetOriginal/check/check/check/values/values",
             "withSalesforceAccountTargetOriginal/check/check/check/values/values/values",
             "withSalesforceAccountTargetOriginal/check/check/check/values/values/values#2",
             "withSalesforceAccountTargetOriginal/withSalesforceAccountTargetOriginal"
@@ -13709,13 +11955,6 @@
       ],
       "operations": [
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "recoverCapturedSalesforceSingleRequests",
           "parameters": [
             "moon",
@@ -13776,13 +12015,6 @@
           "async": false
         },
         {
-          "name": "recoverPreparedSalesforceSingleRequests/positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "recoverPreparedSalesforceSingleRequests/requests/requests",
           "parameters": [
             "member",
@@ -13799,16 +12031,6 @@
           "async": false
         },
         {
-          "name": "selectedMemberIndexes",
-          "parameters": [
-            "value",
-            "count",
-            "maximum",
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "selectedMemberIndexes/selectedMemberIndexes",
           "parameters": [
             "_",
@@ -13821,15 +12043,12 @@
         {
           "operations": [
             "<module>",
-            "fail/fail",
             "recoverCapturedSalesforceSingleRequests",
             "recoverCapturedSalesforceSingleRequests/members/members",
             "recoverCapturedSalesforceSingleRequests/members/members/members",
             "recoverPreparedSalesforceSingleRequests",
-            "recoverPreparedSalesforceSingleRequests/positive/positive",
             "recoverPreparedSalesforceSingleRequests/requests/requests",
             "recoverPreparedSalesforceSingleRequests/requests/requests/requests",
-            "selectedMemberIndexes",
             "selectedMemberIndexes/selectedMemberIndexes",
             "recoverCapturedSalesforceSingleRequests/members/members/catalog/catalog"
           ],

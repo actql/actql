@@ -179,20 +179,6 @@
           "async": false
         },
         {
-          "name": "admitInstalledBinary/parse/parse",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "admitInstalledBinary/parse/parse#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "launch",
           "parameters": [
             "args"
@@ -236,9 +222,7 @@
           "operations": [
             "admitInstalledBinary",
             "admitInstalledBinary/difference/difference",
-            "admitInstalledBinary/difference/difference#2",
-            "admitInstalledBinary/parse/parse",
-            "admitInstalledBinary/parse/parse#2"
+            "admitInstalledBinary/difference/difference#2"
           ],
           "exports": [
             "admitInstalledBinary"
@@ -955,37 +939,7 @@
           "async": false
         },
         {
-          "name": "admitLocalRuntimePlatform/parse/parse",
-          "parameters": [
-            "text"
-          ],
-          "async": false
-        },
-        {
-          "name": "boundedRead/boundedRead",
-          "parameters": [
-            "descriptor",
-            "size"
-          ],
-          "async": false
-        },
-        {
           "name": "digest/digest",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "exact/exact",
-          "parameters": [
-            "value",
-            "keys"
-          ],
-          "async": false
-        },
-        {
-          "name": "filename/filename",
           "parameters": [
             "value"
           ],
@@ -1006,15 +960,6 @@
           "name": "localRuntimeHash/localRuntimeHash",
           "parameters": [
             "bytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "readInstalledLocalRuntimeManifest",
-          "parameters": [
-            "root",
-            "expected",
-            "metadata"
           ],
           "async": false
         },
@@ -1040,15 +985,6 @@
           "name": "validateLocalRuntimeManifest/licenses/licenses",
           "parameters": [
             "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "validateLocalRuntimeManifest/member/member",
-          "parameters": [
-            "item",
-            "prefix",
-            "maxBytes"
           ],
           "async": false
         },
@@ -1368,8 +1304,7 @@
           "operations": [
             "admitLocalRuntimePlatform",
             "admitLocalRuntimePlatform/difference/difference",
-            "admitLocalRuntimePlatform/difference/difference#2",
-            "admitLocalRuntimePlatform/parse/parse"
+            "admitLocalRuntimePlatform/difference/difference#2"
           ],
           "exports": [
             "admitLocalRuntimePlatform"
@@ -1511,9 +1446,7 @@
           }
         },
         {
-          "operations": [
-            "boundedRead/boundedRead"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -1793,9 +1726,7 @@
           }
         },
         {
-          "operations": [
-            "exact/exact"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -1934,9 +1865,7 @@
           }
         },
         {
-          "operations": [
-            "filename/filename"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -2076,8 +2005,7 @@
         },
         {
           "operations": [
-            "installedLocalRuntimeEnvironment",
-            "readInstalledLocalRuntimeManifest"
+            "installedLocalRuntimeEnvironment"
           ],
           "exports": [
             "installedLocalRuntimeEnvironment"
@@ -2508,7 +2436,6 @@
           "operations": [
             "validateLocalRuntimeManifest",
             "validateLocalRuntimeManifest/licenses/licenses",
-            "validateLocalRuntimeManifest/member/member",
             "validateLocalRuntimeManifest/validateLocalRuntimeManifest",
             "validateLocalRuntimeManifest/validateLocalRuntimeManifest/validateLocalRuntimeManifest"
           ],
@@ -81582,24 +81509,7 @@
       "module": "scripts/check-python-local-core.mjs",
       "sha256": "812ab5856068af641d67294968c87e45bde2ac2290777e2d68e000b0bada2dd0",
       "exports": [],
-      "operations": [
-        {
-          "name": "run",
-          "parameters": [
-            "command",
-            "args",
-            "timeout"
-          ],
-          "async": false
-        },
-        {
-          "name": "run/hash/hash",
-          "parameters": [
-            "path"
-          ],
-          "async": false
-        }
-      ],
+      "operations": [],
       "imports": [
         "./local-checks-guard.mjs",
         "node:assert/strict",
@@ -81619,9 +81529,7 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
-            "run",
-            "run/hash/hash"
+            "<module>"
           ],
           "exports": [],
           "attributes": {

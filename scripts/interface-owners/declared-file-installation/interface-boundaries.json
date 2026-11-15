@@ -19,14 +19,6 @@
           "async": false
         },
         {
-          "name": "checkProfile",
-          "parameters": [
-            "profile",
-            "role"
-          ],
-          "async": false
-        },
-        {
           "name": "createDeclaredFileInstallationInventory",
           "parameters": [
             "moon",
@@ -49,14 +41,6 @@
           "name": "createDeclaredFileInstallationInventory/current/current",
           "parameters": [],
           "async": false
-        },
-        {
-          "name": "createDeclaredFileInstallationInventory/failRecord",
-          "parameters": [
-            "record",
-            "cause"
-          ],
-          "async": true
         },
         {
           "name": "createDeclaredFileInstallationInventory/failRecord/failRecord",
@@ -127,19 +111,6 @@
           "name": "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/member/member",
           "parameters": [
             "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/memberCurrent/memberCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/prepare/prepare",
-          "parameters": [
-            "method",
-            "retainPrepared"
           ],
           "async": false
         },
@@ -261,13 +232,6 @@
           "name": "table/table#2",
           "parameters": [],
           "async": true
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
-          ],
-          "async": false
         }
       ],
       "imports": [
@@ -287,11 +251,9 @@
           "operations": [
             "<module>",
             "assertDeclaredFileInstallationInventory",
-            "checkProfile",
             "createDeclaredFileInstallationInventory",
             "createDeclaredFileInstallationInventory/createDeclaredFileInstallationInventory",
             "createDeclaredFileInstallationInventory/current/current",
-            "createDeclaredFileInstallationInventory/failRecord",
             "createDeclaredFileInstallationInventory/failRecord/failRecord",
             "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin",
             "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin",
@@ -307,8 +269,6 @@
             "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/member/init:load/init:load/init:load#4",
             "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/member/init:prepareBorrowedDeclaration/init:prepareBorrowedDeclaration",
             "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/member/member",
-            "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/memberCurrent/memberCurrent",
-            "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/prepare/prepare",
             "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/prepare/prepare/prepare",
             "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/previous/previous",
             "createDeclaredFileInstallationInventory/inventory/init:fail/init:fail",
@@ -323,8 +283,7 @@
             "sourceModule/sourceModule#2",
             "sourceModule/sourceModule#3",
             "table/table",
-            "table/table#2",
-            "text/text"
+            "table/table#2"
           ],
           "exports": [
             "assertDeclaredFileInstallationInventory",

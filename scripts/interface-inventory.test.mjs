@@ -18,10 +18,13 @@ function fixture(t) {
   }
   put('owner.md', 'Existing owner contract and real boundary verification');
   const ref = {path: 'owner.md', anchor: 'Existing owner contract'};
-  const declaration = module => ({module: module.module, sha256: module.sha256, role: 'physical-io', owner: 'existing-owner',
-    exports: module.exports, operations: module.operations, contracts: [{
-      operations: ['<module>', ...module.operations.map(value => value.name)], exports: module.exports,
-      attributes: Object.fromEntries(interfaceAttributes.map(key => [key, [ref]]))}]});
+  const declaration = module => {
+    const operations = module.operations.filter(value => !module.privateOperations?.includes(value.name));
+    return {module: module.module, sha256: module.sha256, role: 'physical-io', owner: 'existing-owner',
+      exports: module.exports, operations, contracts: [{
+        operations: ['<module>', ...operations.map(value => value.name)], exports: module.exports,
+        attributes: Object.fromEntries(interfaceAttributes.map(key => [key, [ref]]))}]};
+  };
   return {root, put, declaration, ref};
 }
 
@@ -59,14 +62,86 @@ test('new outside-directory product module cannot inherit the entry classificati
     declarations: registered}), /Unregistered distributed interface: different\/new-host.mjs/u);
 });
 
-test('new helper inside an already classified module fails operation coverage', t => {
+test('private helper additions and refactors remain with the existing module owner', t => {
   const {root, put, declaration} = fixture(t);
   put('entry.mjs', 'export function read() {}');
   const declarations = javascriptClosure(root, ['entry.mjs']).map(declaration);
   put('entry.mjs', 'function decideUnknown() {return true;} export function read() {return decideUnknown();}');
   const modules = javascriptClosure(root, ['entry.mjs']);
-  assert.throws(() => assertInterfaceCoverage({root, modules, declarations}),
-    /Unregistered interface operation/u);
+  assert.equal(assertInterfaceCoverage({root, modules, declarations}), 1);
+});
+
+test('private declarations and local arrows can change names parameters and existence', t => {
+  const {root, put, declaration} = fixture(t);
+  const original = 'function local(value) {return value;} const use = value => local(value); export function read(value) {return use(value);}';
+  put('entry.mjs', original);
+  const declarations = javascriptClosure(root, ['entry.mjs']).map(declaration);
+  assert.deepEqual(declarations[0].operations.map(value => value.name), ['read']);
+  for (const source of [
+    'function renamed(value, extra) {return value;} const use = (value, extra) => renamed(value, extra); export function read(value) {return use(value);}',
+    'export function read(value) {return value;}',
+    'function unused(first, second) {} export function read(value) {return value;}',
+  ]) {
+    put('entry.mjs', source);
+    assert.equal(assertInterfaceCoverage({root, modules: javascriptClosure(root, ['entry.mjs']), declarations}), 1);
+  }
+});
+
+test('exported aliased returned and observed function signatures stay strict', t => {
+  const {root, put, declaration} = fixture(t);
+  for (const source of [
+    'export function read(value) {return value;}',
+    'const read = value => value; export {read};',
+    'function control(value) {return value;} export function read() {return control;}',
+    'export function read() {return function control(value) {return value;};}',
+    'function control(value) {return value;} export function read() {return control.length;}',
+    'export class Host {read(value) {return value;}}',
+    'export const host = {read(value) {return value;}};',
+  ]) {
+    put('entry.mjs', source);
+    const declarations = javascriptClosure(root, ['entry.mjs']).map(declaration);
+    put('entry.mjs', source.replace('(value)', '(value, extra)').replace('value =>', '(value, extra) =>'));
+    assert.throws(() => assertInterfaceCoverage({root, modules: javascriptClosure(root, ['entry.mjs']), declarations}),
+      /Unregistered interface operation/u, source);
+  }
+});
+
+test('a private function becoming escaped or an escaped function disappearing requires review', t => {
+  const {root, put, declaration} = fixture(t);
+  const privateSource = 'function control(value) {return value;} export function read(value) {return control(value);}';
+  put('entry.mjs', privateSource);
+  const privateDeclaration = javascriptClosure(root, ['entry.mjs']).map(declaration);
+  const escaped = 'function control(value) {return value;} export function read(value) {return control;}';
+  put('entry.mjs', escaped);
+  const modules = javascriptClosure(root, ['entry.mjs']);
+  assert.throws(() => assertInterfaceCoverage({root, modules, declarations: privateDeclaration}), /Unregistered interface operation/u);
+  const escapedDeclaration = modules.map(declaration);
+  put('entry.mjs', privateSource);
+  assert.throws(() => assertInterfaceCoverage({root, modules: javascriptClosure(root, ['entry.mjs']), declarations: escapedDeclaration}), /Unregistered interface operation/u);
+});
+
+test('generated binding helper changes retain exact operation and generated-byte proof', t => {
+  const {root, put, declaration, ref} = fixture(t);
+  put('entry.mjs', 'function inner(value) {return value._0;} export function read(value) {return inner(value);}');
+  const modules = javascriptClosure(root, ['entry.mjs']);
+  const declared = declaration(modules[0]);declared.role = 'generated-binding';
+  declared.operations = modules[0].operations;
+  declared.contracts[0].operations = ['<module>', ...modules[0].operations.map(value => value.name)];
+  const proof = {module:'entry.mjs',sha256:modules[0].sha256,generator:ref,freshness:ref};
+  assert.equal(assertInterfaceCoverage({root, modules, declarations:[declared], generated:[proof]}),1);
+  put('entry.mjs', 'function inner(value, extra) {return value._0;} export function read(value) {return inner(value);}');
+  assert.throws(() => assertInterfaceCoverage({root, modules:javascriptClosure(root,['entry.mjs']), declarations:[declared],generated:[proof]}), /Unregistered interface operation/u);
+});
+
+test('direct eval retains lexical function contracts without a syntactic reference', t => {
+  const {root, put, declaration} = fixture(t);
+  const source = "function hidden(value) {return value;} export function read() {return eval('hidden');}";
+  put('entry.mjs', source);
+  const modules = javascriptClosure(root, ['entry.mjs']);
+  assert.deepEqual(modules[0].privateOperations, []);
+  const declarations = modules.map(declaration);
+  put('entry.mjs', source.replace('hidden(value)', 'hidden(value, extra)'));
+  assert.throws(() => assertInterfaceCoverage({root, modules:javascriptClosure(root,['entry.mjs']), declarations}), /Unregistered interface operation/u);
 });
 
 test('new export fails even when its helper was already registered', t => {

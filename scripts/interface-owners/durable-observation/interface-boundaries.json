@@ -178,11 +178,6 @@
           "async": false
         },
         {
-          "name": "createDiagnosticObserver/pump/pump",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "createDiagnosticObserver/pump/pump/pump",
           "parameters": [],
           "async": false
@@ -222,7 +217,6 @@
           "operations": [
             "createDiagnosticObserver",
             "createDiagnosticObserver/emit/emit",
-            "createDiagnosticObserver/pump/pump",
             "createDiagnosticObserver/pump/pump/pump",
             "createDiagnosticObserver/pump/pump/pump#2",
             "createDiagnosticObserver/pump/pump/pump#3",
@@ -424,35 +418,11 @@
           "async": false
         },
         {
-          "name": "accumulateSelectedRows",
-          "parameters": [
-            "context",
-            "detail",
-            "pendingLimit"
-          ],
-          "async": false
-        },
-        {
-          "name": "bindSelectedRequestRows",
-          "parameters": [
-            "detail",
-            "binding"
-          ],
-          "async": false
-        },
-        {
           "name": "captureManagedRunObservation",
           "parameters": [
             "projection",
             "ref",
             "readUsage"
-          ],
-          "async": false
-        },
-        {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -557,18 +527,6 @@
           "async": false
         },
         {
-          "name": "installHostObservation/closeStorage/closeStorage",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installHostObservation/drop/drop",
-          "parameters": [
-            "reason"
-          ],
-          "async": false
-        },
-        {
           "name": "installHostObservation/emit/emit",
           "parameters": [
             "operation",
@@ -586,32 +544,13 @@
           "async": false
         },
         {
-          "name": "installHostObservation/enterApplicationCallback/enterApplicationCallback",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "installHostObservation/enterApplicationCallback/enterApplicationCallback/enterApplicationCallback",
           "parameters": [],
           "async": false
         },
         {
-          "name": "installHostObservation/finishContext/finishContext",
-          "parameters": [
-            "context"
-          ],
-          "async": false
-        },
-        {
           "name": "installHostObservation/finishContext/finishContext/finishContext",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installHostObservation/flushSelectedRows/flushSelectedRows",
-          "parameters": [
-            "context"
-          ],
           "async": false
         },
         {
@@ -680,11 +619,6 @@
           "async": false
         },
         {
-          "name": "installHostObservation/pump/pump",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "installHostObservation/pump/pump/pump",
           "parameters": [],
           "async": false
@@ -697,15 +631,6 @@
         {
           "name": "installHostObservation/pump/pump/pump/pump#2",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installHostObservation/resolveRunIdentity/resolveRunIdentity",
-          "parameters": [
-            "context",
-            "ref",
-            "terminal"
-          ],
           "async": false
         },
         {
@@ -734,13 +659,6 @@
           "name": "isHostObservationProjection/isHostObservationProjection",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "managedRunResources",
-          "parameters": [
-            "values"
           ],
           "async": false
         },
@@ -847,7 +765,6 @@
       "contracts": [
         {
           "operations": [
-            "cid/cid",
             "createHostObservationConnection",
             "createHostObservationConnection/allowed/allowed",
             "createHostObservationConnection/createHostObservationConnection",
@@ -860,11 +777,8 @@
             "createHostObservationConnection/token/token#2",
             "installHostObservation",
             "installHostObservation/accepted/accepted",
-            "installHostObservation/closeStorage/closeStorage",
-            "installHostObservation/drop/drop",
             "installHostObservation/emit/emit",
             "installHostObservation/emit/emit/emit",
-            "installHostObservation/enterApplicationCallback/enterApplicationCallback",
             "installHostObservation/enterApplicationCallback/enterApplicationCallback/enterApplicationCallback",
             "installHostObservation/projection/init:close/init:close",
             "installHostObservation/projection/init:close/init:close/init:close",
@@ -873,7 +787,6 @@
             "installHostObservation/projection/projection#2",
             "installHostObservation/projection/projection#3",
             "installHostObservation/projection/projection#5",
-            "installHostObservation/pump/pump",
             "installHostObservation/pump/pump/pump",
             "installHostObservation/pump/pump/pump/pump",
             "installHostObservation/pump/pump/pump/pump#2",
@@ -1025,7 +938,6 @@
             "installHostObservation/projection/init:captureManagedRun/init:captureManagedRun/init:captureManagedRun",
             "installHostObservation/projection/init:captureManagedRun/init:captureManagedRun/init:captureManagedRun/init:captureManagedRun",
             "installHostObservation/projection/projection#4",
-            "managedRunResources",
             "resourceFields/resourceFields",
             "resourceFields/resourceFields#2",
             "resourceFields/resourceFields#3"
@@ -1138,10 +1050,7 @@
         },
         {
           "operations": [
-            "<anonymous>#4",
-            "accumulateSelectedRows",
-            "installHostObservation/flushSelectedRows/flushSelectedRows",
-            "bindSelectedRequestRows"
+            "<anonymous>#4"
           ],
           "exports": [],
           "attributes": {
@@ -1276,7 +1185,6 @@
             "installHostObservation/captureCurrentOperation/captureCurrentOperation",
             "installHostObservation/captureCurrentOperation/captureCurrentOperation/init:release/init:release",
             "installHostObservation/captureCurrentOperation/captureCurrentOperation/init:run/init:run",
-            "installHostObservation/finishContext/finishContext",
             "installHostObservation/finishContext/finishContext/finishContext",
             "installHostObservation/retainOperation/retainOperation"
           ],
@@ -1385,9 +1293,7 @@
           }
         },
         {
-          "operations": [
-            "installHostObservation/resolveRunIdentity/resolveRunIdentity"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -1591,11 +1497,6 @@
       ],
       "operations": [
         {
-          "name": "fail/fail",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "invocationBindingsMatch",
           "parameters": [
             "scope",
@@ -1642,13 +1543,6 @@
           "async": false
         },
         {
-          "name": "metadataControl/metadataControl",
-          "parameters": [
-            "control"
-          ],
-          "async": false
-        },
-        {
           "name": "ownInvocationAuthorization",
           "parameters": [
             "authorization",
@@ -1679,13 +1573,6 @@
             "value"
           ],
           "async": false
-        },
-        {
-          "name": "primitive/primitive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
         }
       ],
       "role": "public-wire-codec",
@@ -1693,17 +1580,14 @@
       "contracts": [
         {
           "operations": [
-            "fail/fail",
             "invocationBindingsMatch",
             "invocationBindingsMatch/invocationBindingsMatch",
             "invocationScopeFields",
             "invokeScopedCredentialOperation",
-            "metadataControl/metadataControl",
             "ownInvocationAuthorization",
             "ownInvocationContext",
             "ownInvocationLimits",
-            "ownInvocationLimits/ownInvocationLimits",
-            "primitive/primitive"
+            "ownInvocationLimits/ownInvocationLimits"
           ],
           "exports": [
             "invocationBindingsMatch",
@@ -2064,20 +1948,6 @@
           "async": false
         },
         {
-          "name": "createSqliteTransaction/failure/failure",
-          "parameters": [
-            "code",
-            "cause",
-            "details"
-          ],
-          "async": false
-        },
-        {
-          "name": "createSqliteTransaction/inspect/inspect",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "createSqliteTransaction/run/run",
           "parameters": [
             "body"
@@ -2117,8 +1987,6 @@
             "createSqliteTransaction",
             "createSqliteTransaction/assertUsable/assertUsable",
             "createSqliteTransaction/createSqliteTransaction",
-            "createSqliteTransaction/failure/failure",
-            "createSqliteTransaction/inspect/inspect",
             "createSqliteTransaction/run/run",
             "throwSqliteInitializationFailure",
             "throwSqliteInitializationFailure/close/close",
@@ -2546,16 +2414,6 @@
           "async": false
         },
         {
-          "name": "openNodeInferCaptureCustody/cleanupOwned/cleanupOwned",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openNodeInferCaptureCustody/cleanupPublication/cleanupPublication",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openNodeInferCaptureCustody/cleanupPublication/cleanupPublication/cleanupPublication",
           "parameters": [
             "value"
@@ -2570,11 +2428,6 @@
           "async": false
         },
         {
-          "name": "openNodeInferCaptureCustody/cleanupPublicationOwned/cleanupPublicationOwned",
-          "parameters": [],
-          "async": true
-        },
-        {
           "name": "openNodeInferCaptureCustody/custody/custody",
           "parameters": [],
           "async": false
@@ -2582,38 +2435,6 @@
         {
           "name": "openNodeInferCaptureCustody/custody/init:close/init:close",
           "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openNodeInferCaptureCustody/hold",
-          "parameters": [
-            "name",
-            "slot",
-            "wire",
-            "semanticCid",
-            "entry",
-            "phase"
-          ],
-          "async": true
-        },
-        {
-          "name": "openNodeInferCaptureCustody/holdAttachments",
-          "parameters": [
-            "slot",
-            "entry",
-            "phase"
-          ],
-          "async": true
-        },
-        {
-          "name": "openNodeInferCaptureCustody/holdEvidence",
-          "parameters": [
-            "name",
-            "slot",
-            "evidence",
-            "entry",
-            "phase"
-          ],
           "async": true
         },
         {
@@ -2665,11 +2486,6 @@
           "async": true
         },
         {
-          "name": "openNodeInferCaptureCustody/maximumStoredCaptureWire",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openNodeInferCaptureCustody/openNodeInferCaptureCustody",
           "parameters": [
             "preparePublication"
@@ -2678,11 +2494,6 @@
         },
         {
           "name": "openNodeInferCaptureCustody/persistSettlement",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openNodeInferCaptureCustody/persistSourceObservation",
           "parameters": [],
           "async": true
         },
@@ -2696,11 +2507,6 @@
           "parameters": [
             "publicationOriginal"
           ],
-          "async": false
-        },
-        {
-          "name": "openNodeInferCaptureCustody/retireAliases",
-          "parameters": [],
           "async": false
         },
         {
@@ -2721,16 +2527,6 @@
             "error"
           ],
           "async": false
-        },
-        {
-          "name": "openNodeInferCaptureCustody/retirePublicationAliases",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "pending/pending",
-          "parameters": [],
-          "async": false
         }
       ],
       "contracts": [
@@ -2740,16 +2536,10 @@
             "openNodeInferCaptureCustody/cleanup/cleanup",
             "openNodeInferCaptureCustody/cleanup/cleanup/cleanup",
             "openNodeInferCaptureCustody/cleanup/cleanup/cleanup#2",
-            "openNodeInferCaptureCustody/cleanupOwned/cleanupOwned",
-            "openNodeInferCaptureCustody/cleanupPublication/cleanupPublication",
             "openNodeInferCaptureCustody/cleanupPublication/cleanupPublication/cleanupPublication",
             "openNodeInferCaptureCustody/cleanupPublication/cleanupPublication/cleanupPublication#2",
-            "openNodeInferCaptureCustody/cleanupPublicationOwned/cleanupPublicationOwned",
             "openNodeInferCaptureCustody/custody/custody",
             "openNodeInferCaptureCustody/custody/init:close/init:close",
-            "openNodeInferCaptureCustody/hold",
-            "openNodeInferCaptureCustody/holdAttachments",
-            "openNodeInferCaptureCustody/holdEvidence",
             "openNodeInferCaptureCustody/init:completedInventoryReceipt/init:completedInventoryReceipt",
             "openNodeInferCaptureCustody/init:configureModelJournal/init:configureModelJournal",
             "openNodeInferCaptureCustody/init:configureModelJournal/init:configureModelJournal/init:configureModelJournal",
@@ -2757,17 +2547,13 @@
             "openNodeInferCaptureCustody/init:modelEvidence/init:modelEvidence",
             "openNodeInferCaptureCustody/init:persist/init:persist",
             "openNodeInferCaptureCustody/init:persistSettlement/init:persistSettlement",
-            "openNodeInferCaptureCustody/maximumStoredCaptureWire",
             "openNodeInferCaptureCustody/openNodeInferCaptureCustody",
             "openNodeInferCaptureCustody/persistSettlement",
-            "openNodeInferCaptureCustody/persistSourceObservation",
             "openNodeInferCaptureCustody/persistStoppedAttempts",
             "openNodeInferCaptureCustody/retainCompleted",
-            "openNodeInferCaptureCustody/retireAliases",
             "openNodeInferCaptureCustody/retirePublication/retirePublication",
             "openNodeInferCaptureCustody/retirePublication/retirePublication/retirePublication",
-            "openNodeInferCaptureCustody/retirePublication/retirePublication/retirePublication#2",
-            "openNodeInferCaptureCustody/retirePublicationAliases"
+            "openNodeInferCaptureCustody/retirePublication/retirePublication/retirePublication#2"
           ],
           "exports": [
             "openNodeInferCaptureCustody"
@@ -2944,9 +2730,7 @@
           }
         },
         {
-          "operations": [
-            "pending/pending"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -3378,16 +3162,6 @@
           "async": false
         },
         {
-          "name": "createNodeInferEntryPersistence/begin",
-          "parameters": [
-            "original",
-            "reference",
-            "provenance",
-            "enter"
-          ],
-          "async": false
-        },
-        {
           "name": "createNodeInferEntryPersistence/begin/begin",
           "parameters": [],
           "async": false
@@ -3405,18 +3179,6 @@
             "key",
             "value"
           ],
-          "async": false
-        },
-        {
-          "name": "createNodeInferEntryPersistence/begin/retireSave/retireSave",
-          "parameters": [
-            "receipt"
-          ],
-          "async": false
-        },
-        {
-          "name": "createNodeInferEntryPersistence/begin/unknown/unknown",
-          "parameters": [],
           "async": false
         },
         {
@@ -3460,12 +3222,9 @@
         {
           "operations": [
             "createNodeInferEntryPersistence",
-            "createNodeInferEntryPersistence/begin",
             "createNodeInferEntryPersistence/begin/begin",
             "createNodeInferEntryPersistence/begin/finish/finish",
             "createNodeInferEntryPersistence/begin/finish/finish/finish",
-            "createNodeInferEntryPersistence/begin/retireSave/retireSave",
-            "createNodeInferEntryPersistence/begin/unknown/unknown",
             "createNodeInferEntryPersistence/begin/view/view",
             "createNodeInferEntryPersistence/init:beginImmediate/init:beginImmediate",
             "createNodeInferEntryPersistence/init:beginImmediate/init:beginImmediate/init:beginImmediate",
@@ -3843,11 +3602,6 @@
           "async": false
         },
         {
-          "name": "createModelRawCaptureStorePort/current/current",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "createModelRawCaptureStorePort/init:cleanupStoreReads/init:cleanupStoreReads",
           "parameters": [
             "notify"
@@ -3873,13 +3627,6 @@
           "name": "createModelRawCaptureStorePort/init:persistChat/init:persistChat",
           "parameters": [
             "metadata"
-          ],
-          "async": true
-        },
-        {
-          "name": "createModelRawCaptureStorePort/observeStoreRead/observeStoreRead",
-          "parameters": [
-            "read"
           ],
           "async": true
         },
@@ -3917,11 +3664,6 @@
           "parameters": [
             "call"
           ],
-          "async": false
-        },
-        {
-          "name": "createModelRawTransportPersistence/createModelRawTransportPersistence/retireView/retireView",
-          "parameters": [],
           "async": false
         },
         {
@@ -3964,22 +3706,6 @@
           "async": false
         },
         {
-          "name": "retainedRawFailure/retainedRawFailure",
-          "parameters": [
-            "error",
-            "facts"
-          ],
-          "async": false
-        },
-        {
-          "name": "tuple/tuple",
-          "parameters": [
-            "value",
-            "length"
-          ],
-          "async": false
-        },
-        {
           "name": "tuple/tuple/fields/fields",
           "parameters": [
             "_",
@@ -4001,13 +3727,11 @@
             "createModelRawCaptureStorePort",
             "createModelRawCaptureStorePort/confirmRaw/confirmRaw",
             "createModelRawCaptureStorePort/confirmRaw/confirmRaw/confirmRaw",
-            "createModelRawCaptureStorePort/current/current",
             "createModelRawCaptureStorePort/init:cleanupStoreReads/init:cleanupStoreReads",
             "createModelRawCaptureStorePort/init:cleanupStoreReads/init:cleanupStoreReads/init:cleanupStoreReads",
             "createModelRawCaptureStorePort/init:cleanupStoreReads/init:cleanupStoreReads/init:cleanupStoreReads#2",
             "createModelRawCaptureStorePort/init:cleanupStoreReads/init:cleanupStoreReads/init:cleanupStoreReads#3",
             "createModelRawCaptureStorePort/init:persistChat/init:persistChat",
-            "createModelRawCaptureStorePort/observeStoreRead/observeStoreRead",
             "createModelRawCaptureStorePort/originals/originals",
             "createModelRawCaptureStorePort/persist/persist",
             "createModelRawCaptureStorePort/persist/persist/persist"
@@ -4170,7 +3894,6 @@
           "operations": [
             "createModelRawTransportPersistence",
             "createModelRawTransportPersistence/createModelRawTransportPersistence",
-            "createModelRawTransportPersistence/createModelRawTransportPersistence/retireView/retireView",
             "createModelRawTransportPersistence/persist/persist",
             "createModelRawTransportPersistence/wake/wake"
           ],
@@ -4499,9 +4222,7 @@
           }
         },
         {
-          "operations": [
-            "retainedRawFailure/retainedRawFailure"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -4656,7 +4377,6 @@
         },
         {
           "operations": [
-            "tuple/tuple",
             "tuple/tuple/fields/fields",
             "tuple/tuple/tuple"
           ],
@@ -5137,14 +4857,6 @@
       ],
       "operations": [
         {
-          "name": "cleanupState/cleanupState",
-          "parameters": [
-            "handle",
-            "required"
-          ],
-          "async": false
-        },
-        {
           "name": "createRemoteSiteCoordinator",
           "parameters": [
             "control",
@@ -5162,37 +4874,6 @@
             "currentDispatchContext"
           ],
           "async": false
-        },
-        {
-          "name": "createRemoteSiteCoordinator/currentContext/currentContext",
-          "parameters": [
-            "dispatch",
-            "envelope"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRemoteSiteCoordinator/dispatchFacts/dispatchFacts",
-          "parameters": [
-            "dispatch"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRemoteSiteCoordinator/enterResumed/enterResumed",
-          "parameters": [
-            "decision",
-            "dispatchIdentity"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRemoteSiteCoordinator/exchange/exchange",
-          "parameters": [
-            "request",
-            "operation"
-          ],
-          "async": true
         },
         {
           "name": "createRemoteSiteCoordinator/init:cancel/init:cancel",
@@ -5245,45 +4926,8 @@
           "async": false
         },
         {
-          "name": "createRemoteSiteCoordinator/observe/observe",
-          "parameters": [
-            "dispatch",
-            "response"
-          ],
-          "async": false
-        },
-        {
           "name": "createRemoteSiteCoordinator/observe/observe/init:canRetireCancellationDelivery/init:canRetireCancellationDelivery",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRemoteSiteCoordinator/options/options",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRemoteSiteCoordinator/outputKey/outputKey",
-          "parameters": [
-            "dispatch",
-            "intent"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRemoteSiteCoordinator/projectOutputRecord/projectOutputRecord",
-          "parameters": [
-            "record"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRemoteSiteCoordinator/recordFor/recordFor",
-          "parameters": [
-            "dispatch"
-          ],
           "async": false
         },
         {
@@ -5301,43 +4945,6 @@
           "async": true
         },
         {
-          "name": "createRemoteSiteCoordinator/requireDispatch/requireDispatch",
-          "parameters": [
-            "boundary",
-            "scope",
-            "subjectCid",
-            "signal",
-            "resumption"
-          ],
-          "async": true
-        },
-        {
-          "name": "createRemoteSiteCoordinator/requireIntent/requireIntent",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRemoteSiteCoordinator/retainedDelivery/retainedDelivery",
-          "parameters": [
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation",
-          "parameters": [
-            "key",
-            "request",
-            "payloadRequest",
-            "transferRequest",
-            "record",
-            "transferRoute"
-          ],
-          "async": false
-        },
-        {
           "name": "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/cleanupHandle/init:retry/init:retry",
           "parameters": [],
           "async": true
@@ -5350,13 +4957,6 @@
         {
           "name": "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/refresh/refresh",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/runBranch/runBranch",
-          "parameters": [
-            "operation"
-          ],
           "async": false
         },
         {
@@ -5415,35 +5015,6 @@
           "name": "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/stopped/stopped/stopped",
           "parameters": [],
           "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "member/member",
-          "parameters": [
-            "value",
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "ownedOutputFailure/ownedOutputFailure",
-          "parameters": [
-            "reason"
-          ],
-          "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
-          ],
-          "async": false
         }
       ],
       "role": "physical-io",
@@ -5451,12 +5022,7 @@
       "contracts": [
         {
           "operations": [
-            "cleanupState/cleanupState",
             "createRemoteSiteCoordinator",
-            "createRemoteSiteCoordinator/currentContext/currentContext",
-            "createRemoteSiteCoordinator/dispatchFacts/dispatchFacts",
-            "createRemoteSiteCoordinator/enterResumed/enterResumed",
-            "createRemoteSiteCoordinator/exchange/exchange",
             "createRemoteSiteCoordinator/init:cancel/init:cancel",
             "createRemoteSiteCoordinator/init:completionEvidenceAvailable/init:completionEvidenceAvailable",
             "createRemoteSiteCoordinator/init:dispatch/init:dispatch",
@@ -5464,22 +5030,12 @@
             "createRemoteSiteCoordinator/init:query/init:query",
             "createRemoteSiteCoordinator/init:receiveObservation/init:receiveObservation",
             "createRemoteSiteCoordinator/init:release/init:release",
-            "createRemoteSiteCoordinator/observe/observe",
             "createRemoteSiteCoordinator/observe/observe/init:canRetireCancellationDelivery/init:canRetireCancellationDelivery",
-            "createRemoteSiteCoordinator/options/options",
-            "createRemoteSiteCoordinator/outputKey/outputKey",
-            "createRemoteSiteCoordinator/projectOutputRecord/projectOutputRecord",
-            "createRemoteSiteCoordinator/recordFor/recordFor",
             "createRemoteSiteCoordinator/records/records",
             "createRemoteSiteCoordinator/recoverDispatch/recoverDispatch",
-            "createRemoteSiteCoordinator/requireDispatch/requireDispatch",
-            "createRemoteSiteCoordinator/requireIntent/requireIntent",
-            "createRemoteSiteCoordinator/retainedDelivery/retainedDelivery",
-            "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation",
             "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/cleanupHandle/init:retry/init:retry",
             "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/destination/destination",
             "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/refresh/refresh",
-            "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/runBranch/runBranch",
             "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/runBranch/runBranch/runBranch",
             "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/runBranch/runBranch/runBranch#2",
             "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/source/source",
@@ -5488,11 +5044,7 @@
             "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/startOutputOperation#3",
             "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/startOutputOperation#4",
             "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/stopped/stopped",
-            "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/stopped/stopped/stopped",
-            "fail/fail",
-            "member/member",
-            "ownedOutputFailure/ownedOutputFailure",
-            "text/text"
+            "createRemoteSiteCoordinator/startOutputOperation/startOutputOperation/stopped/stopped/stopped"
           ],
           "exports": [
             "createRemoteSiteCoordinator"
@@ -5652,24 +5204,6 @@
           "async": false
         },
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "inspectCoordinatorFormat",
-          "parameters": [
-            "root",
-            "coordinatorAuthority",
-            "maxInspectionEntries",
-            "maxInspectionBytes"
-          ],
-          "async": false
-        },
-        {
           "name": "inspectCoordinatorFormat/inspectCoordinatorFormat",
           "parameters": [
             "database"
@@ -5678,11 +5212,6 @@
         },
         {
           "name": "inspectCoordinatorFormat/inspectCoordinatorFormat#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "inspectCoordinatorFormat/inspectEntries/inspectEntries",
           "parameters": [],
           "async": false
         },
@@ -5706,30 +5235,8 @@
           "async": false
         },
         {
-          "name": "openSqliteCoordinatorDispatchJournal/advanceOutput/advanceOutput",
-          "parameters": [
-            "transition",
-            "result",
-            "record",
-            "control"
-          ],
-          "async": false
-        },
-        {
           "name": "openSqliteCoordinatorDispatchJournal/advanceOutput/advanceOutput/advanceOutput",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openSqliteCoordinatorDispatchJournal/advanceTransition/advanceTransition",
-          "parameters": [
-            "transition",
-            "evidence",
-            "subject",
-            "measurement",
-            "record",
-            "control"
-          ],
           "async": false
         },
         {
@@ -5738,30 +5245,10 @@
           "async": false
         },
         {
-          "name": "openSqliteCoordinatorDispatchJournal/bit/bit",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openSqliteCoordinatorDispatchJournal/checkedOutputKey/checkedOutputKey",
-          "parameters": [
-            "value",
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "openSqliteCoordinatorDispatchJournal/checkedOutputKey/checkedOutputKey/checkedOutputKey",
           "parameters": [
             "item"
           ],
-          "async": false
-        },
-        {
-          "name": "openSqliteCoordinatorDispatchJournal/ensureOpen/ensureOpen",
-          "parameters": [],
           "async": false
         },
         {
@@ -5893,16 +5380,6 @@
           "async": false
         },
         {
-          "name": "openSqliteCoordinatorDispatchJournal/install/install",
-          "parameters": [
-            "request",
-            "requestJson",
-            "control",
-            "deliveryEnvelope"
-          ],
-          "async": false
-        },
-        {
           "name": "openSqliteCoordinatorDispatchJournal/install/install/install",
           "parameters": [
             "value"
@@ -5915,45 +5392,13 @@
           "async": false
         },
         {
-          "name": "openSqliteCoordinatorDispatchJournal/installOutput/installOutput",
-          "parameters": [
-            "wire"
-          ],
-          "async": false
-        },
-        {
           "name": "openSqliteCoordinatorDispatchJournal/installOutput/installOutput/installOutput",
           "parameters": [],
           "async": false
         },
         {
-          "name": "openSqliteCoordinatorDispatchJournal/integer/integer",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "openSqliteCoordinatorDispatchJournal/openSqliteCoordinatorDispatchJournal",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openSqliteCoordinatorDispatchJournal/outputRowState/outputRowState",
-          "parameters": [
-            "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "openSqliteCoordinatorDispatchJournal/outputWire/outputWire",
-          "parameters": [
-            "admission",
-            "payloadRequest",
-            "transferRequest",
-            "control",
-            "transferControl"
-          ],
           "async": false
         },
         {
@@ -5971,42 +5416,7 @@
           "async": false
         },
         {
-          "name": "openSqliteCoordinatorDispatchJournal/parseOutputTransition/parseOutputTransition",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openSqliteCoordinatorDispatchJournal/parseOutputTransition/parseOutputTransition/parseInteger/parseInteger",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
           "name": "openSqliteCoordinatorDispatchJournal/parseOutputTransition/parseOutputTransition/parseOutputTransition",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "openSqliteCoordinatorDispatchJournal/parseProjection/parseProjection",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openSqliteCoordinatorDispatchJournal/parseProjection/parseProjection/parseBit/parseBit",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "openSqliteCoordinatorDispatchJournal/parseProjection/parseProjection/parseInteger/parseInteger",
           "parameters": [
             "item"
           ],
@@ -6016,32 +5426,6 @@
           "name": "openSqliteCoordinatorDispatchJournal/parseProjection/parseProjection/parseProjection",
           "parameters": [
             "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "openSqliteCoordinatorDispatchJournal/parseProjection/parseProjection/state/state",
-          "parameters": [
-            "offset"
-          ],
-          "async": false
-        },
-        {
-          "name": "openSqliteCoordinatorDispatchJournal/persistTransition/persistTransition",
-          "parameters": [
-            "prepared",
-            "evidenceJson",
-            "subjectJson",
-            "measurementJson"
-          ],
-          "async": false
-        },
-        {
-          "name": "openSqliteCoordinatorDispatchJournal/prepareTransition/prepareTransition",
-          "parameters": [
-            "transition",
-            "record",
-            "control"
           ],
           "async": false
         },
@@ -6060,31 +5444,9 @@
           "async": false
         },
         {
-          "name": "openSqliteCoordinatorDispatchJournal/restoredState/restoredState",
-          "parameters": [
-            "row"
-          ],
-          "async": false
-        },
-        {
           "name": "openSqliteCoordinatorDispatchJournal/restoredState/restoredState/restoredState",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openSqliteCoordinatorDispatchJournal/rowState/rowState",
-          "parameters": [
-            "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "openSqliteCoordinatorDispatchJournal/sameState/sameState",
-          "parameters": [
-            "left",
-            "right"
           ],
           "async": false
         },
@@ -6097,24 +5459,10 @@
           "async": false
         },
         {
-          "name": "syncDirectory",
-          "parameters": [
-            "path"
-          ],
-          "async": false
-        },
-        {
           "name": "tableDefinitions/tableDefinitions",
           "parameters": [
             "sql",
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
           ],
           "async": false
         }
@@ -6125,20 +5473,12 @@
         {
           "operations": [
             "count/count",
-            "fail/fail",
-            "inspectCoordinatorFormat",
             "inspectCoordinatorFormat/inspectCoordinatorFormat",
             "inspectCoordinatorFormat/inspectCoordinatorFormat#2",
-            "inspectCoordinatorFormat/inspectEntries/inspectEntries",
             "openSqliteCoordinatorDispatchJournal",
-            "openSqliteCoordinatorDispatchJournal/advanceOutput/advanceOutput",
             "openSqliteCoordinatorDispatchJournal/advanceOutput/advanceOutput/advanceOutput",
-            "openSqliteCoordinatorDispatchJournal/advanceTransition/advanceTransition",
             "openSqliteCoordinatorDispatchJournal/advanceTransition/advanceTransition/advanceTransition",
-            "openSqliteCoordinatorDispatchJournal/bit/bit",
-            "openSqliteCoordinatorDispatchJournal/checkedOutputKey/checkedOutputKey",
             "openSqliteCoordinatorDispatchJournal/checkedOutputKey/checkedOutputKey/checkedOutputKey",
-            "openSqliteCoordinatorDispatchJournal/ensureOpen/ensureOpen",
             "openSqliteCoordinatorDispatchJournal/init:accept/init:accept",
             "openSqliteCoordinatorDispatchJournal/init:acceptOutput/init:acceptOutput",
             "openSqliteCoordinatorDispatchJournal/init:advance/init:advance",
@@ -6154,37 +5494,19 @@
             "openSqliteCoordinatorDispatchJournal/init:inspectState/init:inspectState",
             "openSqliteCoordinatorDispatchJournal/init:recoverJournal/init:recoverJournal",
             "openSqliteCoordinatorDispatchJournal/init:recoverOutputs/init:recoverOutputs",
-            "openSqliteCoordinatorDispatchJournal/install/install",
             "openSqliteCoordinatorDispatchJournal/install/install/install",
             "openSqliteCoordinatorDispatchJournal/install/install/install#2",
-            "openSqliteCoordinatorDispatchJournal/installOutput/installOutput",
             "openSqliteCoordinatorDispatchJournal/installOutput/installOutput/installOutput",
-            "openSqliteCoordinatorDispatchJournal/integer/integer",
             "openSqliteCoordinatorDispatchJournal/openSqliteCoordinatorDispatchJournal",
-            "openSqliteCoordinatorDispatchJournal/outputRowState/outputRowState",
-            "openSqliteCoordinatorDispatchJournal/outputWire/outputWire",
             "openSqliteCoordinatorDispatchJournal/outputWire/outputWire/outputWire",
             "openSqliteCoordinatorDispatchJournal/outputWire/outputWire/outputWire#2",
-            "openSqliteCoordinatorDispatchJournal/parseOutputTransition/parseOutputTransition",
-            "openSqliteCoordinatorDispatchJournal/parseOutputTransition/parseOutputTransition/parseInteger/parseInteger",
             "openSqliteCoordinatorDispatchJournal/parseOutputTransition/parseOutputTransition/parseOutputTransition",
-            "openSqliteCoordinatorDispatchJournal/parseProjection/parseProjection",
-            "openSqliteCoordinatorDispatchJournal/parseProjection/parseProjection/parseBit/parseBit",
-            "openSqliteCoordinatorDispatchJournal/parseProjection/parseProjection/parseInteger/parseInteger",
             "openSqliteCoordinatorDispatchJournal/parseProjection/parseProjection/parseProjection",
-            "openSqliteCoordinatorDispatchJournal/parseProjection/parseProjection/state/state",
-            "openSqliteCoordinatorDispatchJournal/persistTransition/persistTransition",
-            "openSqliteCoordinatorDispatchJournal/prepareTransition/prepareTransition",
             "openSqliteCoordinatorDispatchJournal/prepareTransition/prepareTransition/prepareTransition",
             "openSqliteCoordinatorDispatchJournal/prepareTransition/prepareTransition/prepareTransition#2",
-            "openSqliteCoordinatorDispatchJournal/restoredState/restoredState",
             "openSqliteCoordinatorDispatchJournal/restoredState/restoredState/restoredState",
-            "openSqliteCoordinatorDispatchJournal/rowState/rowState",
-            "openSqliteCoordinatorDispatchJournal/sameState/sameState",
             "openSqliteCoordinatorDispatchJournal/sameState/sameState/sameState",
-            "syncDirectory",
-            "tableDefinitions/tableDefinitions",
-            "text/text"
+            "tableDefinitions/tableDefinitions"
           ],
           "exports": [
             "openSqliteCoordinatorDispatchJournal"
@@ -6487,18 +5809,6 @@
       ],
       "operations": [
         {
-          "name": "acquireBinding",
-          "parameters": [
-            "binding",
-            "scope",
-            "control",
-            "journal",
-            "resolveSecret",
-            "bindingBorrow"
-          ],
-          "async": false
-        },
-        {
           "name": "acquireBinding/acquireBinding",
           "parameters": [
             "key"
@@ -6513,52 +5823,9 @@
           "async": false
         },
         {
-          "name": "authenticationCurrent",
-          "parameters": [
-            "state",
-            "original",
-            "scope",
-            "control",
-            "journal",
-            "now",
-            "signal"
-          ],
-          "async": false
-        },
-        {
-          "name": "authenticationDependency",
-          "parameters": [
-            "state",
-            "parentScope",
-            "grant",
-            "scope",
-            "control",
-            "journal",
-            "trustedNow"
-          ],
-          "async": false
-        },
-        {
           "name": "authenticationDependency/authenticationDependency",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "authenticationOutcomeFailure",
-          "parameters": [
-            "originalFailure",
-            "outcomeFailure",
-            "useCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "authenticationTokenReader",
-          "parameters": [
-            "registration",
-            "maxSecretBytes"
           ],
           "async": false
         },
@@ -6591,39 +5858,6 @@
           "async": false
         },
         {
-          "name": "bindingQuiescent",
-          "parameters": [
-            "state"
-          ],
-          "async": false
-        },
-        {
-          "name": "callCredentialResource",
-          "parameters": [
-            "grant",
-            "useId",
-            "scope",
-            "control",
-            "journal",
-            "operations",
-            "resolveSecret",
-            "ca",
-            "cert",
-            "key",
-            "now",
-            "maxRequestBytes",
-            "maxResponseBytes",
-            "returnRejectedResponse",
-            "retainRunResponseOriginal",
-            "currentBeforeSend",
-            "responseCustody",
-            "observeResponseBytes",
-            "signal",
-            "binding"
-          ],
-          "async": true
-        },
-        {
           "name": "callCredentialResource/retainResponse/retainResponse",
           "parameters": [],
           "async": false
@@ -6644,14 +5878,6 @@
           "async": true
         },
         {
-          "name": "checkAuthenticationSelection",
-          "parameters": [
-            "state",
-            "original"
-          ],
-          "async": false
-        },
-        {
           "name": "checkAuthenticationSelection/checkAuthenticationSelection",
           "parameters": [
             "scope",
@@ -6667,31 +5893,8 @@
           "async": false
         },
         {
-          "name": "count/count",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "credentialBindingCurrent",
-          "parameters": [
-            "binding",
-            "scope",
-            "signal"
-          ],
-          "async": false
-        },
-        {
           "name": "credentialBindingCurrent/credentialBindingCurrent",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "exactRequestTarget",
-          "parameters": [
-            "path"
-          ],
           "async": false
         },
         {
@@ -6745,14 +5948,6 @@
           "async": false
         },
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "cause"
-          ],
-          "async": false
-        },
-        {
           "name": "httpsCredentialResponseWindowBytes",
           "parameters": [
             "maxResponseBytes"
@@ -6796,22 +5991,6 @@
           "async": false
         },
         {
-          "name": "operationFor",
-          "parameters": [
-            "operations",
-            "scope",
-            "maxRequestBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "ownAuthenticationRegistration",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "ownAuthenticationRegistration/ownAuthenticationRegistration",
           "parameters": [
             "name"
@@ -6843,11 +6022,6 @@
           "async": true
         },
         {
-          "name": "prepareHttpsCredentialAuthenticationMaterial/current/current",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "prepareHttpsCredentialAuthenticationMaterial/deadline/deadline",
           "parameters": [
             "minimum",
@@ -6856,47 +6030,10 @@
           "async": false
         },
         {
-          "name": "prepareHttpsCredentialAuthenticationMaterial/time/time",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "receive",
-          "parameters": [
-            "hostname",
-            "port",
-            "path",
-            "method",
-            "body",
-            "bodyMediaType",
-            "requestBytes",
-            "secret",
-            "authenticationForm",
-            "headers",
-            "ca",
-            "cert",
-            "key",
-            "signal",
-            "maxResponseBytes",
-            "binding",
-            "retainRunResponseOriginal",
-            "observeResponseBytes"
-          ],
-          "async": false
-        },
-        {
           "name": "receive/receive",
           "parameters": [
             "resolve",
             "reject"
-          ],
-          "async": false
-        },
-        {
-          "name": "receive/receive/finish/finish",
-          "parameters": [
-            "handler",
-            "value"
           ],
           "async": false
         },
@@ -6927,11 +6064,6 @@
           "parameters": [
             "error"
           ],
-          "async": false
-        },
-        {
-          "name": "receive/receive/release/release",
-          "parameters": [],
           "async": false
         },
         {
@@ -6994,13 +6126,6 @@
           "async": false
         },
         {
-          "name": "requireSecretOriginalCurrent",
-          "parameters": [
-            "state"
-          ],
-          "async": false
-        },
-        {
           "name": "retainHttpsCredentialBindingReadChild",
           "parameters": [
             "binding"
@@ -7020,20 +6145,6 @@
         {
           "name": "retainHttpsCredentialBindingReadChild/borrow/init:retire/init:retire",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "retireBinding",
-          "parameters": [
-            "state"
-          ],
-          "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
-          ],
           "async": false
         },
         {
@@ -7057,62 +6168,41 @@
       "contracts": [
         {
           "operations": [
-            "acquireBinding",
             "acquireBinding/acquireBinding",
             "acquireBinding/acquireBinding#2",
-            "authenticationCurrent",
-            "authenticationDependency",
             "authenticationDependency/authenticationDependency",
-            "authenticationOutcomeFailure",
-            "authenticationTokenReader",
             "authenticationTokenReader/authenticationTokenReader",
             "authenticationTokenReader/authenticationTokenReader#2",
             "authenticationTokenReader/init:read/init:read",
             "authenticationTokenReader/init:read/init:read/init:read",
-            "callCredentialResource",
             "callHttpsCredentialResource",
-            "checkAuthenticationSelection",
             "checkAuthenticationSelection/checkAuthenticationSelection",
             "closeHttpsCredentialBinding",
-            "count/count",
-            "credentialBindingCurrent",
             "credentialBindingCurrent/credentialBindingCurrent",
-            "exactRequestTarget",
             "exchangeHttpsCredentialAuthentication",
             "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication",
             "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication#2",
             "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication#3",
             "exchangeHttpsCredentialAuthentication/expires/expires",
-            "fail/fail",
             "openHttpsCredentialBinding",
             "openHttpsCredentialBinding/openHttpsCredentialBinding",
             "openHttpsCredentialBinding/original/original",
-            "operationFor",
-            "ownAuthenticationRegistration",
             "ownAuthenticationRegistration/ownAuthenticationRegistration",
             "ownAuthenticationRegistration/ownAuthenticationRegistration#2",
             "prepareHttpsCredentialAuthenticationMaterial",
-            "prepareHttpsCredentialAuthenticationMaterial/current/current",
             "prepareHttpsCredentialAuthenticationMaterial/deadline/deadline",
-            "prepareHttpsCredentialAuthenticationMaterial/time/time",
-            "receive",
             "receive/receive",
-            "receive/receive/finish/finish",
             "receive/receive/finish/finish/finish",
             "receive/receive/receive",
             "receive/receive/receive#2",
             "receive/receive/receive#3",
             "receive/receive/receive/receive",
-            "receive/receive/release/release",
             "receive/receive/request/request",
             "receive/receive/request/request/readObservedResponse/readObservedResponse/finishObserver/finishObserver#2",
             "receive/receive/request/request/request",
             "receive/receive/request/request/request#2",
             "receive/receive/request/request/request#3",
-            "retireBinding",
-            "text/text",
-            "openHttpsCredentialBinding/openHttpsCredentialBinding#2",
-            "requireSecretOriginalCurrent"
+            "openHttpsCredentialBinding/openHttpsCredentialBinding#2"
           ],
           "exports": [
             "callHttpsCredentialResource",
@@ -7743,7 +6833,6 @@
         },
         {
           "operations": [
-            "bindingQuiescent",
             "callCredentialResource/retainResponse/retainResponse",
             "callCredentialResource/retainResponse/retainResponse#2",
             "httpsCredentialResponseWindowBytes",
@@ -8639,14 +7728,6 @@
           "async": false
         },
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "cause"
-          ],
-          "async": false
-        },
-        {
           "name": "openSqliteCredentialJournal",
           "parameters": [
             "root",
@@ -8655,19 +7736,6 @@
             "maxUses",
             "maxGrantBytes",
             "maxUseBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "openSqliteCredentialJournal/active/active",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openSqliteCredentialJournal/admitGrant/admitGrant",
-          "parameters": [
-            "row",
-            "control"
           ],
           "async": false
         },
@@ -8797,36 +7865,6 @@
           "async": false
         },
         {
-          "name": "openSqliteCredentialJournal/requireControl/requireControl",
-          "parameters": [
-            "control"
-          ],
-          "async": false
-        },
-        {
-          "name": "syncDirectory",
-          "parameters": [
-            "path"
-          ],
-          "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "validJournalGrantProjection",
-          "parameters": [
-            "control",
-            "projection",
-            "grantCid"
-          ],
-          "async": false
-        },
-        {
           "name": "validJournalGrantProjection/validJournalGrantProjection",
           "parameters": [
             "key"
@@ -8854,10 +7892,7 @@
         {
           "operations": [
             "count/count",
-            "fail/fail",
             "openSqliteCredentialJournal",
-            "openSqliteCredentialJournal/active/active",
-            "openSqliteCredentialJournal/admitGrant/admitGrant",
             "openSqliteCredentialJournal/closePhysical/closePhysical",
             "openSqliteCredentialJournal/init:acceptGrant/init:acceptGrant",
             "openSqliteCredentialJournal/init:acceptGrant/init:acceptGrant/init:acceptGrant",
@@ -8877,10 +7912,6 @@
             "openSqliteCredentialJournal/openSqliteCredentialJournal",
             "openSqliteCredentialJournal/record/record",
             "openSqliteCredentialJournal/record/record/record",
-            "openSqliteCredentialJournal/requireControl/requireControl",
-            "syncDirectory",
-            "text/text",
-            "validJournalGrantProjection",
             "validJournalGrantProjection/validJournalGrantProjection",
             "validJournalGrantProjection/validJournalGrantProjection#2",
             "validJournalGrantProjection/values/values"
@@ -9078,14 +8109,6 @@
           "async": false
         },
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "cause"
-          ],
-          "async": false
-        },
-        {
           "name": "openSqliteDispatchJournal",
           "parameters": [
             "root",
@@ -9095,26 +8118,6 @@
             "maxDispatches",
             "maxRequestBytes",
             "maxEvidenceBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "openSqliteDispatchJournal/bit/bit",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openSqliteDispatchJournal/ensureOpen/ensureOpen",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openSqliteDispatchJournal/equalState/equalState",
-          "parameters": [
-            "left",
-            "right"
           ],
           "async": false
         },
@@ -9233,15 +8236,6 @@
           "async": false
         },
         {
-          "name": "openSqliteDispatchJournal/install/install",
-          "parameters": [
-            "request",
-            "requestJson",
-            "control"
-          ],
-          "async": false
-        },
-        {
           "name": "openSqliteDispatchJournal/install/install/install",
           "parameters": [
             "value"
@@ -9251,13 +8245,6 @@
         {
           "name": "openSqliteDispatchJournal/install/install/install#2",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openSqliteDispatchJournal/integer/integer",
-          "parameters": [
-            "value"
-          ],
           "async": false
         },
         {
@@ -9278,27 +8265,6 @@
           "async": false
         },
         {
-          "name": "openSqliteDispatchJournal/parseProjection/parseProjection",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openSqliteDispatchJournal/parseProjection/parseProjection/parseBit/parseBit",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "openSqliteDispatchJournal/parseProjection/parseProjection/parseInteger/parseInteger",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
           "name": "openSqliteDispatchJournal/parseProjection/parseProjection/parseProjection",
           "parameters": [
             "item"
@@ -9306,45 +8272,8 @@
           "async": false
         },
         {
-          "name": "openSqliteDispatchJournal/parseProjection/parseProjection/state/state",
-          "parameters": [
-            "offset"
-          ],
-          "async": false
-        },
-        {
-          "name": "openSqliteDispatchJournal/persistPhysicalTransition/persistPhysicalTransition",
-          "parameters": [
-            "prepared",
-            "executionEvidenceJson",
-            "managedOutputSubjectCid",
-            "managedOutputSubjectJson",
-            "managedOutputMeasurementCid",
-            "managedOutputMeasurementJson"
-          ],
-          "async": false
-        },
-        {
-          "name": "openSqliteDispatchJournal/persistTransition/persistTransition",
-          "parameters": [
-            "key",
-            "projection",
-            "revision"
-          ],
-          "async": false
-        },
-        {
           "name": "openSqliteDispatchJournal/persistTransition/persistTransition/persistTransition",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openSqliteDispatchJournal/preparePhysicalTransition/preparePhysicalTransition",
-          "parameters": [
-            "key",
-            "projection",
-            "revision"
-          ],
           "async": false
         },
         {
@@ -9355,43 +8284,7 @@
           "async": false
         },
         {
-          "name": "openSqliteDispatchJournal/requestFromRow/requestFromRow",
-          "parameters": [
-            "row",
-            "control"
-          ],
-          "async": false
-        },
-        {
-          "name": "openSqliteDispatchJournal/rowState/rowState",
-          "parameters": [
-            "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "openSqliteDispatchJournal/stateFromRow/stateFromRow",
-          "parameters": [
-            "row"
-          ],
-          "async": false
-        },
-        {
           "name": "openSqliteDispatchJournal/stateFromRow/stateFromRow/stateFromRow",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "syncDirectory",
-          "parameters": [
-            "path"
-          ],
-          "async": false
-        },
-        {
-          "name": "text/text",
           "parameters": [
             "value"
           ],
@@ -9404,11 +8297,7 @@
         {
           "operations": [
             "count/count",
-            "fail/fail",
             "openSqliteDispatchJournal",
-            "openSqliteDispatchJournal/bit/bit",
-            "openSqliteDispatchJournal/ensureOpen/ensureOpen",
-            "openSqliteDispatchJournal/equalState/equalState",
             "openSqliteDispatchJournal/equalState/equalState/equalState",
             "openSqliteDispatchJournal/init:accept/init:accept",
             "openSqliteDispatchJournal/init:advance/init:advance",
@@ -9424,29 +8313,15 @@
             "openSqliteDispatchJournal/init:restart/init:restart",
             "openSqliteDispatchJournal/init:restart/init:restart/init:restart",
             "openSqliteDispatchJournal/init:restart/init:restart/init:restart#2",
-            "openSqliteDispatchJournal/install/install",
             "openSqliteDispatchJournal/install/install/install",
             "openSqliteDispatchJournal/install/install/install#2",
-            "openSqliteDispatchJournal/integer/integer",
             "openSqliteDispatchJournal/openSqliteDispatchJournal",
             "openSqliteDispatchJournal/openSqliteDispatchJournal#2",
             "openSqliteDispatchJournal/openSqliteDispatchJournal/metadata/metadata",
-            "openSqliteDispatchJournal/parseProjection/parseProjection",
-            "openSqliteDispatchJournal/parseProjection/parseProjection/parseBit/parseBit",
-            "openSqliteDispatchJournal/parseProjection/parseProjection/parseInteger/parseInteger",
             "openSqliteDispatchJournal/parseProjection/parseProjection/parseProjection",
-            "openSqliteDispatchJournal/parseProjection/parseProjection/state/state",
-            "openSqliteDispatchJournal/persistPhysicalTransition/persistPhysicalTransition",
-            "openSqliteDispatchJournal/persistTransition/persistTransition",
             "openSqliteDispatchJournal/persistTransition/persistTransition/persistTransition",
-            "openSqliteDispatchJournal/preparePhysicalTransition/preparePhysicalTransition",
             "openSqliteDispatchJournal/preparePhysicalTransition/preparePhysicalTransition/preparePhysicalTransition",
-            "openSqliteDispatchJournal/requestFromRow/requestFromRow",
-            "openSqliteDispatchJournal/rowState/rowState",
-            "openSqliteDispatchJournal/stateFromRow/stateFromRow",
-            "openSqliteDispatchJournal/stateFromRow/stateFromRow/stateFromRow",
-            "syncDirectory",
-            "text/text"
+            "openSqliteDispatchJournal/stateFromRow/stateFromRow/stateFromRow"
           ],
           "exports": [
             "openSqliteDispatchJournal"
@@ -9609,26 +8484,10 @@
           "async": false
         },
         {
-          "name": "equal/equal",
-          "parameters": [
-            "left",
-            "right"
-          ],
-          "async": false
-        },
-        {
           "name": "equal/equal/equal",
           "parameters": [
             "value",
             "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "cause"
           ],
           "async": false
         },
@@ -9647,23 +8506,10 @@
           "async": false
         },
         {
-          "name": "openSqliteTransferJournal/checkedKey/checkedKey",
-          "parameters": [
-            "request",
-            "control"
-          ],
-          "async": false
-        },
-        {
           "name": "openSqliteTransferJournal/checkedKey/checkedKey/checkedKey",
           "parameters": [
             "value"
           ],
-          "async": false
-        },
-        {
-          "name": "openSqliteTransferJournal/ensureOpen/ensureOpen",
-          "parameters": [],
           "async": false
         },
         {
@@ -9775,13 +8621,6 @@
           "async": false
         },
         {
-          "name": "openSqliteTransferJournal/requireControl/requireControl",
-          "parameters": [
-            "control"
-          ],
-          "async": false
-        },
-        {
           "name": "openSqliteTransferJournal/restore/restore",
           "parameters": [
             "row",
@@ -9795,20 +8634,6 @@
             "row"
           ],
           "async": false
-        },
-        {
-          "name": "syncDirectory",
-          "parameters": [
-            "path"
-          ],
-          "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
-          ],
-          "async": false
         }
       ],
       "role": "physical-io",
@@ -9817,13 +8642,9 @@
         {
           "operations": [
             "count/count",
-            "equal/equal",
             "equal/equal/equal",
-            "fail/fail",
             "openSqliteTransferJournal",
-            "openSqliteTransferJournal/checkedKey/checkedKey",
             "openSqliteTransferJournal/checkedKey/checkedKey/checkedKey",
-            "openSqliteTransferJournal/ensureOpen/ensureOpen",
             "openSqliteTransferJournal/init:accept/init:accept",
             "openSqliteTransferJournal/init:accept/init:accept/init:accept",
             "openSqliteTransferJournal/init:advance/init:advance",
@@ -9840,11 +8661,8 @@
             "openSqliteTransferJournal/init:recover/init:recover/init:recover",
             "openSqliteTransferJournal/openSqliteTransferJournal",
             "openSqliteTransferJournal/openSqliteTransferJournal/metadata/metadata",
-            "openSqliteTransferJournal/requireControl/requireControl",
             "openSqliteTransferJournal/restore/restore",
-            "openSqliteTransferJournal/state/state",
-            "syncDirectory",
-            "text/text"
+            "openSqliteTransferJournal/state/state"
           ],
           "exports": [
             "openSqliteTransferJournal"

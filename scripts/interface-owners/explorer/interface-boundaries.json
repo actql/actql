@@ -451,19 +451,6 @@
           "async": false
         },
         {
-          "name": "reject/reject",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "sameRun/sameRun",
-          "parameters": [
-            "a",
-            "b"
-          ],
-          "async": false
-        },
-        {
           "name": "sameRun/sameRun/sameRun",
           "parameters": [
             "key"
@@ -499,8 +486,6 @@
           "operations": [
             "<module>",
             "captureCancellation",
-            "reject/reject",
-            "sameRun/sameRun",
             "sameRun/sameRun/sameRun",
             "validCancellationObservation",
             "validCancellationObservation/validCancellationObservation"
@@ -975,37 +960,10 @@
           "async": false
         },
         {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "exact/exact",
-          "parameters": [
-            "v",
-            "keys"
-          ],
-          "async": false
-        },
-        {
           "name": "exact/exact/exact",
           "parameters": [
             "k"
           ],
-          "async": false
-        },
-        {
-          "name": "frozen/frozen",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "refuse/refuse",
-          "parameters": [],
           "async": false
         },
         {
@@ -1047,11 +1005,7 @@
             "checkpointPageModel",
             "checkpointPageModel/checkpointPageModel",
             "checkpointPageModel/checkpointPageModel#2",
-            "cid/cid",
-            "exact/exact",
             "exact/exact/exact",
-            "frozen/frozen",
-            "refuse/refuse",
             "reviewText",
             "reviewText/bytes/bytes",
             "validReviewObservation"
@@ -1272,11 +1226,6 @@
             "value"
           ],
           "async": false
-        },
-        {
-          "name": "refuse/refuse",
-          "parameters": [],
-          "async": false
         }
       ],
       "imports": [
@@ -1304,8 +1253,7 @@
             "layoutPositions/expected/expected",
             "layoutPositions/layoutPositions",
             "layoutPositions/points/points",
-            "layoutPositions/points/points/points",
-            "refuse/refuse"
+            "layoutPositions/points/points/points"
           ],
           "exports": [
             "elkGraph",
@@ -1574,14 +1522,6 @@
           "async": false
         },
         {
-          "name": "requestFlowLayout/requestFlowLayout/finish/finish",
-          "parameters": [
-            "error",
-            "positions"
-          ],
-          "async": false
-        },
-        {
           "name": "requestFlowLayout/requestFlowLayout/requestFlowLayout",
           "parameters": [],
           "async": false
@@ -1623,7 +1563,6 @@
             "requestFlowLayout/requestFlowLayout",
             "requestFlowLayout/requestFlowLayout/abort/abort",
             "requestFlowLayout/requestFlowLayout/elk/elk",
-            "requestFlowLayout/requestFlowLayout/finish/finish",
             "requestFlowLayout/requestFlowLayout/requestFlowLayout",
             "requestFlowLayout/requestFlowLayout/requestFlowLayout#2",
             "requestFlowLayout/requestFlowLayout/requestFlowLayout#3",
@@ -1769,11 +1708,6 @@
             "index"
           ],
           "async": false
-        },
-        {
-          "name": "flowPresentation/refuse/refuse",
-          "parameters": [],
-          "async": false
         }
       ],
       "imports": [
@@ -1791,8 +1725,7 @@
             "flowPresentation",
             "flowPresentation/edges/edges",
             "flowPresentation/flowPresentation",
-            "flowPresentation/flowPresentation#2",
-            "flowPresentation/refuse/refuse"
+            "flowPresentation/flowPresentation#2"
           ],
           "exports": [
             "flowPresentation"
@@ -2696,13 +2629,6 @@
       ],
       "operations": [
         {
-          "name": "boundedProjectionOptions",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
           "name": "createReadEpoch",
           "parameters": [],
           "async": false
@@ -2721,14 +2647,6 @@
           "name": "createReadEpoch/init:invalidate/init:invalidate",
           "parameters": [],
           "async": false
-        },
-        {
-          "name": "currentRead",
-          "parameters": [
-            "ticket",
-            "read"
-          ],
-          "async": true
         },
         {
           "name": "describeExistingResult",
@@ -2830,13 +2748,6 @@
           "name": "readStaticPlan/readStaticPlan",
           "parameters": [],
           "async": true
-        },
-        {
-          "name": "refuse/refuse",
-          "parameters": [
-            "code"
-          ],
-          "async": false
         }
       ],
       "imports": [
@@ -2852,12 +2763,10 @@
         {
           "operations": [
             "<module>",
-            "boundedProjectionOptions",
             "createReadEpoch",
             "createReadEpoch/init:capture/init:capture",
             "createReadEpoch/init:capture/init:capture/init:assertCurrent/init:assertCurrent",
             "createReadEpoch/init:invalidate/init:invalidate",
-            "currentRead",
             "describeExistingResult",
             "describeExistingResult/describeExistingResult",
             "describeExistingResult/run/run",
@@ -2872,8 +2781,7 @@
             "readExistingRunPlan/run/run",
             "readExistingRunPlan/view/view",
             "readStaticPlan",
-            "readStaticPlan/readStaticPlan",
-            "refuse/refuse"
+            "readStaticPlan/readStaticPlan"
           ],
           "exports": [
             "ExplorerReadError",
@@ -3322,21 +3230,6 @@
       ],
       "operations": [
         {
-          "name": "frozen/frozen",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "historyModel",
-          "parameters": [
-            "owners",
-            "ref"
-          ],
-          "async": false
-        },
-        {
           "name": "historyModel/histories/histories",
           "parameters": [
             "item"
@@ -3374,13 +3267,6 @@
           "async": true
         },
         {
-          "name": "readRunObservation/current/current",
-          "parameters": [
-            "action"
-          ],
-          "async": true
-        },
-        {
           "name": "readRunObservation/model/model",
           "parameters": [],
           "async": true
@@ -3392,11 +3278,6 @@
         },
         {
           "name": "readRunObservation/run/run",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "refuse/refuse",
           "parameters": [],
           "async": false
         },
@@ -3425,23 +3306,10 @@
           "async": false
         },
         {
-          "name": "sameRef/sameRef",
-          "parameters": [
-            "a",
-            "b"
-          ],
-          "async": false
-        },
-        {
           "name": "sameRef/sameRef/sameRef",
           "parameters": [
             "key"
           ],
-          "async": false
-        },
-        {
-          "name": "unavailable/unavailable",
-          "parameters": [],
           "async": false
         }
       ],
@@ -3458,24 +3326,18 @@
         {
           "operations": [
             "<module>",
-            "frozen/frozen",
-            "historyModel",
             "historyModel/histories/histories",
             "historyModel/histories/histories/histories",
             "historyModel/histories/histories/vector/vector",
             "quantity/quantity",
             "readRunObservation",
-            "readRunObservation/current/current",
             "readRunObservation/model/model",
             "readRunObservation/owners/owners",
             "readRunObservation/run/run",
-            "refuse/refuse",
             "runObservationModel",
             "runObservationModel/resultAvailability/resultAvailability",
             "runObservationModel/runObservationModel",
-            "sameRef/sameRef",
-            "sameRef/sameRef/sameRef",
-            "unavailable/unavailable"
+            "sameRef/sameRef/sameRef"
           ],
           "exports": [
             "readRunObservation",
@@ -3916,23 +3778,9 @@
       ],
       "operations": [
         {
-          "name": "boundedFile",
-          "parameters": [
-            "path",
-            "limit",
-            "exactBytes"
-          ],
-          "async": true
-        },
-        {
           "name": "loadExplorerAssets",
           "parameters": [],
           "async": true
-        },
-        {
-          "name": "refused/refused",
-          "parameters": [],
-          "async": false
         }
       ],
       "imports": [
@@ -3950,9 +3798,7 @@
         {
           "operations": [
             "<module>",
-            "boundedFile",
-            "loadExplorerAssets",
-            "refused/refused"
+            "loadExplorerAssets"
           ],
           "exports": [
             "loadExplorerAssets"
@@ -4386,40 +4232,8 @@
           "async": false
         },
         {
-          "name": "createExplorerBrowserSource/read/read",
-          "parameters": [
-            "kind",
-            "body",
-            "group"
-          ],
-          "async": true
-        },
-        {
-          "name": "createExplorerBrowserSource/request/request",
-          "parameters": [
-            "path",
-            "body",
-            "original"
-          ],
-          "async": true
-        },
-        {
-          "name": "jsonReply",
-          "parameters": [
-            "response"
-          ],
-          "async": true
-        },
-        {
           "name": "jsonReply/jsonReply",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "refused/refused",
-          "parameters": [
-            "code"
-          ],
           "async": false
         }
       ],
@@ -4451,11 +4265,7 @@
             "createExplorerBrowserSource/init:reviewCheckpoint/init:reviewCheckpoint",
             "createExplorerBrowserSource/init:runPlan/init:runPlan",
             "createExplorerBrowserSource/invalidate/invalidate",
-            "createExplorerBrowserSource/read/read",
-            "createExplorerBrowserSource/request/request",
-            "jsonReply",
-            "jsonReply/jsonReply",
-            "refused/refused"
+            "jsonReply/jsonReply"
           ],
           "exports": [
             "createExplorerBrowserSource"
@@ -4578,11 +4388,6 @@
           "async": true
         },
         {
-          "name": "reject/reject",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "requestExistingCancellation",
           "parameters": [
             "client",
@@ -4590,14 +4395,6 @@
             "ticket"
           ],
           "async": true
-        },
-        {
-          "name": "sameRun/sameRun",
-          "parameters": [
-            "a",
-            "b"
-          ],
-          "async": false
         },
         {
           "name": "sameRun/sameRun/sameRun",
@@ -4621,9 +4418,7 @@
           "operations": [
             "<module>",
             "lookupExistingCancellation",
-            "reject/reject",
             "requestExistingCancellation",
-            "sameRun/sameRun",
             "sameRun/sameRun/sameRun"
           ],
           "exports": [
@@ -4739,22 +4534,6 @@
       ],
       "operations": [
         {
-          "name": "currentRead",
-          "parameters": [
-            "ticket",
-            "read"
-          ],
-          "async": true
-        },
-        {
-          "name": "exact/exact",
-          "parameters": [
-            "v",
-            "keys"
-          ],
-          "async": false
-        },
-        {
           "name": "exact/exact/exact",
           "parameters": [
             "k"
@@ -4794,16 +4573,6 @@
             "item"
           ],
           "async": false
-        },
-        {
-          "name": "refuse/refuse",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "unavailable/unavailable",
-          "parameters": [],
-          "async": false
         }
       ],
       "imports": [
@@ -4819,16 +4588,12 @@
         {
           "operations": [
             "<module>",
-            "currentRead",
-            "exact/exact",
             "exact/exact/exact",
             "readCheckpointReview",
             "readCheckpointReview/value/value",
             "readWaitingCheckpoints",
             "readWaitingCheckpoints/page/page",
-            "readWaitingCheckpoints/readWaitingCheckpoints",
-            "refuse/refuse",
-            "unavailable/unavailable"
+            "readWaitingCheckpoints/readWaitingCheckpoints"
           ],
           "exports": [
             "readCheckpointReview",
@@ -4953,18 +4718,6 @@
             "selection"
           ],
           "async": true
-        },
-        {
-          "name": "invalid/invalid",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "readLaunchFile",
-          "parameters": [
-            "path"
-          ],
-          "async": true
         }
       ],
       "imports": [
@@ -4982,9 +4735,7 @@
           "operations": [
             "<module>",
             "explorerArguments",
-            "explorerLaunchInput",
-            "invalid/invalid",
-            "readLaunchFile"
+            "explorerLaunchInput"
           ],
           "exports": [
             "explorerArguments",
@@ -5428,13 +5179,6 @@
       ],
       "operations": [
         {
-          "name": "copiedAssets",
-          "parameters": [
-            "assets"
-          ],
-          "async": false
-        },
-        {
           "name": "createExplorerGateway",
           "parameters": [
             "client",
@@ -5445,13 +5189,6 @@
             "bootstrapMs",
             "launchInput",
             "allowCancellation"
-          ],
-          "async": false
-        },
-        {
-          "name": "createExplorerGateway/assertSession/assertSession",
-          "parameters": [
-            "selected"
           ],
           "async": false
         },
@@ -5560,15 +5297,6 @@
           "async": false
         },
         {
-          "name": "exact/exact",
-          "parameters": [
-            "value",
-            "required",
-            "optional"
-          ],
-          "async": false
-        },
-        {
           "name": "exact/exact/exact",
           "parameters": [
             "key"
@@ -5583,28 +5311,6 @@
           "async": false
         },
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "status"
-          ],
-          "async": false
-        },
-        {
-          "name": "jsonShape",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "readJson",
-          "parameters": [
-            "request"
-          ],
-          "async": true
-        },
-        {
           "name": "readJson/readJson",
           "parameters": [],
           "async": false
@@ -5617,21 +5323,6 @@
         {
           "name": "readJson/timer/timer/timer",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "safeReadError",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "sameToken/sameToken",
-          "parameters": [
-            "a",
-            "b"
-          ],
           "async": false
         },
         {
@@ -5709,11 +5400,6 @@
             "resolve"
           ],
           "async": false
-        },
-        {
-          "name": "token/token",
-          "parameters": [],
-          "async": false
         }
       ],
       "imports": [
@@ -5736,9 +5422,7 @@
         {
           "operations": [
             "<module>",
-            "copiedAssets",
             "createExplorerGateway",
-            "createExplorerGateway/assertSession/assertSession",
             "createExplorerGateway/createExplorerGateway",
             "createExplorerGateway/createExplorerGateway/createExplorerGateway",
             "createExplorerGateway/createExplorerGateway/createExplorerGateway/createExplorerGateway",
@@ -5756,17 +5440,11 @@
             "createExplorerGateway/init:invalidateScope/init:invalidateScope",
             "createExplorerGateway/init:issueBootstrap/init:issueBootstrap",
             "createExplorerGateway/invalidate/invalidate",
-            "exact/exact",
             "exact/exact/exact",
             "exact/exact/exact#2",
-            "fail/fail",
-            "jsonShape",
-            "readJson",
             "readJson/readJson",
             "readJson/timer/timer",
             "readJson/timer/timer/timer",
-            "safeReadError",
-            "sameToken/sameToken",
             "startExplorerGateway",
             "startExplorerGateway/init:close/init:close",
             "startExplorerGateway/init:close/init:close/attempt/attempt",
@@ -5777,8 +5455,7 @@
             "startExplorerGateway/init:close/init:close/socket/socket/socket",
             "startExplorerGateway/server/server",
             "startExplorerGateway/startExplorerGateway",
-            "startExplorerGateway/startExplorerGateway#2",
-            "token/token"
+            "startExplorerGateway/startExplorerGateway#2"
           ],
           "exports": [
             "createExplorerGateway",
@@ -5947,23 +5624,10 @@
           "async": false
         },
         {
-          "name": "exact/exact",
-          "parameters": [
-            "value",
-            "keys"
-          ],
-          "async": false
-        },
-        {
           "name": "exact/exact/exact",
           "parameters": [
             "key"
           ],
-          "async": false
-        },
-        {
-          "name": "refuse/refuse",
-          "parameters": [],
           "async": false
         }
       ],
@@ -5980,9 +5644,7 @@
           "operations": [
             "<module>",
             "copyExplorerLaunchInput",
-            "exact/exact",
-            "exact/exact/exact",
-            "refuse/refuse"
+            "exact/exact/exact"
           ],
           "exports": [
             "copyExplorerLaunchInput"

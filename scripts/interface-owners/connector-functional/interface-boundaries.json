@@ -47,13 +47,6 @@
           "async": true
         },
         {
-          "name": "fieldsFrame",
-          "parameters": [
-            "fields"
-          ],
-          "async": false
-        },
-        {
           "name": "fieldsFrame/fieldsFrame",
           "parameters": [
             "name",
@@ -208,29 +201,9 @@
           "async": true
         },
         {
-          "name": "loadRuntime/loadRuntime",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "logicalComparisonAccounting",
-          "parameters": [
-            "values"
-          ],
-          "async": false
-        },
-        {
           "name": "logicalComparisonAccounting/logicalComparisonAccounting",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "logicalMeasurementAccounting",
-          "parameters": [
-            "values",
-            "prefix"
           ],
           "async": false
         },
@@ -313,17 +286,6 @@
           "async": true
         },
         {
-          "name": "registerRetained",
-          "parameters": [
-            "output",
-            "material",
-            "readable",
-            "body",
-            "configuration"
-          ],
-          "async": false
-        },
-        {
           "name": "rows",
           "parameters": [
             "value"
@@ -403,13 +365,6 @@
             "activeSignal"
           ],
           "async": true
-        },
-        {
-          "name": "runBroadHostQuery/captured/captured/owns/owns",
-          "parameters": [
-            "current"
-          ],
-          "async": false
         },
         {
           "name": "runBroadHostQuery/captured/captured/port/init:abort/init:abort",
@@ -555,11 +510,6 @@
           "async": false
         },
         {
-          "name": "runBroadHostQuery/retainedSourceCapture/retainedSourceCapture",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "runBroadHostQuery/runBroadHostQuery",
           "parameters": [
             "options"
@@ -601,22 +551,6 @@
           "async": true
         },
         {
-          "name": "runHostCompute",
-          "parameters": [
-            "setup",
-            "limits",
-            "importLimits",
-            "signal",
-            "strategy",
-            "resident",
-            "retained",
-            "outputKey",
-            "completionReady",
-            "managed"
-          ],
-          "async": true
-        },
-        {
           "name": "runHostCompute/accounting/init:chargeTransfer/init:chargeTransfer",
           "parameters": [
             "bytes"
@@ -633,22 +567,6 @@
         {
           "name": "runHostCompute/accounting/init:started/init:started",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runHostCompute/begin/begin",
-          "parameters": [
-            "fields"
-          ],
-          "async": false
-        },
-        {
-          "name": "runHostCompute/beginInputStream/beginInputStream",
-          "parameters": [
-            "port",
-            "wire",
-            "maxFrameBytes"
-          ],
           "async": false
         },
         {
@@ -736,13 +654,6 @@
           "async": true
         },
         {
-          "name": "runHostCompute/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput/begin/begin",
-          "parameters": [
-            "fields"
-          ],
-          "async": false
-        },
-        {
           "name": "runHostCompute/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput/fields/fields",
           "parameters": [
             "chunk"
@@ -798,20 +709,6 @@
             "session"
           ],
           "async": true
-        },
-        {
-          "name": "runHostCompute/init:verifyResidentInput/init:verifyResidentInput/begin/begin",
-          "parameters": [
-            "fields"
-          ],
-          "async": false
-        },
-        {
-          "name": "runHostCompute/init:verifyResidentInput/init:verifyResidentInput/begin/begin#2",
-          "parameters": [
-            "fields"
-          ],
-          "async": false
         },
         {
           "name": "runHostCompute/init:verifyResidentInput/init:verifyResidentInput/fields/fields",
@@ -1005,19 +902,6 @@
           "async": false
         },
         {
-          "name": "runHostNativeQuery",
-          "parameters": [
-            "grant",
-            "setup",
-            "limits",
-            "signal",
-            "ledger",
-            "retained",
-            "outputKey"
-          ],
-          "async": true
-        },
-        {
           "name": "runHostNativeQuery/accounting/init:chargeTransfer/init:chargeTransfer",
           "parameters": [
             "bytes"
@@ -1076,13 +960,6 @@
           "async": true
         },
         {
-          "name": "runHostNativeQuery/captured/captured/owns/owns",
-          "parameters": [
-            "current"
-          ],
-          "async": false
-        },
-        {
           "name": "runHostNativeQuery/captured/captured/port/init:abort/init:abort",
           "parameters": [],
           "async": false
@@ -1094,11 +971,6 @@
             "chunk",
             "current"
           ],
-          "async": true
-        },
-        {
-          "name": "runHostNativeQuery/captured/captured/port/init:acceptChunk/init:acceptChunk/flush/flush",
-          "parameters": [],
           "async": true
         },
         {
@@ -1240,11 +1112,6 @@
           "async": false
         },
         {
-          "name": "runHostNativeQuery/liveRun/liveRun",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "runHostNativeQuery/output/output",
           "parameters": [],
           "async": false
@@ -1305,11 +1172,6 @@
           "name": "runHostNativeQuery/retainedCleanup/retainedCleanup#2",
           "parameters": [],
           "async": true
-        },
-        {
-          "name": "runHostNativeQuery/retainedSourceCapture/retainedSourceCapture",
-          "parameters": [],
-          "async": false
         },
         {
           "name": "runHostNativeQuery/runHostNativeQuery",
@@ -1479,14 +1341,6 @@
           "async": true
         },
         {
-          "name": "sourceEvidenceOriginalAccess",
-          "parameters": [
-            "current",
-            "issue"
-          ],
-          "async": false
-        },
-        {
           "name": "sourceEvidenceOriginalAccess/init:prepare/init:prepare",
           "parameters": [
             "options"
@@ -1514,7 +1368,6 @@
           "operations": [
             "<module>",
             "consumeRetainedComputeInput",
-            "fieldsFrame",
             "fieldsFrame/fieldsFrame",
             "importResidentStrategyInput",
             "importResidentStrategyInput/compileBatch/compileBatch",
@@ -1537,10 +1390,7 @@
             "importRetainedComputeInput",
             "importRetainedComputeInput/importRetainedComputeInput",
             "issueNativeSourceEvidence",
-            "loadRuntime/loadRuntime",
-            "logicalComparisonAccounting",
             "logicalComparisonAccounting/logicalComparisonAccounting",
-            "logicalMeasurementAccounting",
             "logicalMeasurementAccounting/logicalMeasurementAccounting",
             "nativeSourceIdentityMatches",
             "openResidentStrategyEnvironment",
@@ -1553,7 +1403,6 @@
             "openResidentStrategyEnvironment/init:settled/init:settled",
             "openResidentStrategyEnvironment/init:started/init:started",
             "prepareNativeSourceEvidenceOriginal",
-            "registerRetained",
             "rows",
             "runBroadHostQuery",
             "runBroadHostQuery/accounting/init:chargeTransfer/init:chargeTransfer",
@@ -1567,7 +1416,6 @@
             "runBroadHostQuery/captured/captured/init:abort/init:abort",
             "runBroadHostQuery/captured/captured/init:close/init:close",
             "runBroadHostQuery/captured/captured/init:completeBounded/init:completeBounded",
-            "runBroadHostQuery/captured/captured/owns/owns",
             "runBroadHostQuery/captured/captured/port/init:abort/init:abort",
             "runBroadHostQuery/captured/captured/port/init:acceptChunk/init:acceptChunk",
             "runBroadHostQuery/captured/captured/port/init:acceptMetadata/init:acceptMetadata",
@@ -1589,18 +1437,14 @@
             "runBroadHostQuery/result/result#2",
             "runBroadHostQuery/result/result#3",
             "runBroadHostQuery/result/result#4",
-            "runBroadHostQuery/retainedSourceCapture/retainedSourceCapture",
             "runBroadHostQuery/runBroadHostQuery",
             "runBroadHostQuery/runBroadHostQuery#2",
             "runBroadHostQuery/runBroadHostQuery#3",
             "runBroadHostQuery/runBroadHostQuery/runBroadHostQuery",
             "runFixedHostCompute",
-            "runHostCompute",
             "runHostCompute/accounting/init:chargeTransfer/init:chargeTransfer",
             "runHostCompute/accounting/init:settled/init:settled",
             "runHostCompute/accounting/init:started/init:started",
-            "runHostCompute/begin/begin",
-            "runHostCompute/beginInputStream/beginInputStream",
             "runHostCompute/finishOutput/finishOutput",
             "runHostCompute/finishOutput/finishOutput/finishOutput",
             "runHostCompute/finishOutput/finishOutput/finishOutput#2",
@@ -1614,7 +1458,6 @@
             "runHostCompute/init:output/init:output",
             "runHostCompute/init:prepareDirectInput/init:prepareDirectInput",
             "runHostCompute/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput",
-            "runHostCompute/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput/begin/begin",
             "runHostCompute/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput/fields/fields",
             "runHostCompute/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput/identityReused/identityReused",
             "runHostCompute/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput",
@@ -1624,8 +1467,6 @@
             "runHostCompute/init:retry/init:retry",
             "runHostCompute/init:retry/init:retry#2",
             "runHostCompute/init:verifyResidentInput/init:verifyResidentInput",
-            "runHostCompute/init:verifyResidentInput/init:verifyResidentInput/begin/begin",
-            "runHostCompute/init:verifyResidentInput/init:verifyResidentInput/begin/begin#2",
             "runHostCompute/init:verifyResidentInput/init:verifyResidentInput/fields/fields",
             "runHostCompute/init:verifyResidentInput/init:verifyResidentInput/fields/fields#2",
             "runHostCompute/retainedCleanup/retainedCleanup",
@@ -1657,7 +1498,6 @@
             "runHostCompute/runHostCompute/storedFields/storedFields",
             "runHostCompute/storageReleased/storageReleased",
             "runHostCompute/verify/verify",
-            "runHostNativeQuery",
             "runHostNativeQuery/accounting/init:chargeTransfer/init:chargeTransfer",
             "runHostNativeQuery/accounting/init:settled/init:settled",
             "runHostNativeQuery/accounting/init:started/init:started",
@@ -1669,10 +1509,8 @@
             "runHostNativeQuery/captured/captured/init:abort/init:abort",
             "runHostNativeQuery/captured/captured/init:close/init:close",
             "runHostNativeQuery/captured/captured/init:retry/init:retry",
-            "runHostNativeQuery/captured/captured/owns/owns",
             "runHostNativeQuery/captured/captured/port/init:abort/init:abort",
             "runHostNativeQuery/captured/captured/port/init:acceptChunk/init:acceptChunk",
-            "runHostNativeQuery/captured/captured/port/init:acceptChunk/init:acceptChunk/flush/flush",
             "runHostNativeQuery/captured/captured/port/init:acceptMetadata/init:acceptMetadata",
             "runHostNativeQuery/captured/captured/port/init:beginReceipt/init:beginReceipt",
             "runHostNativeQuery/captured/captured/port/init:finishMetadata/init:finishMetadata",
@@ -1694,7 +1532,6 @@
             "runHostNativeQuery/evidenceOriginal/evidenceOriginal",
             "runHostNativeQuery/evidenceOriginal/evidenceOriginal#2",
             "runHostNativeQuery/evidenceOriginal/evidenceOriginal/evidenceOriginal",
-            "runHostNativeQuery/liveRun/liveRun",
             "runHostNativeQuery/output/output",
             "runHostNativeQuery/output/output/output",
             "runHostNativeQuery/result/init:close/init:close",
@@ -1706,7 +1543,6 @@
             "runHostNativeQuery/result/result#5",
             "runHostNativeQuery/retainedCleanup/retainedCleanup",
             "runHostNativeQuery/retainedCleanup/retainedCleanup#2",
-            "runHostNativeQuery/retainedSourceCapture/retainedSourceCapture",
             "runHostNativeQuery/runHostNativeQuery",
             "runHostNativeQuery/runHostNativeQuery#2",
             "runHostNativeQuery/runHostNativeQuery#3",
@@ -1724,7 +1560,6 @@
             "runRetainedStrategyNativeHostQuery",
             "runStrategyHostCompute",
             "runStrategyNativeHostQuery",
-            "sourceEvidenceOriginalAccess",
             "sourceEvidenceOriginalAccess/init:prepare/init:prepare",
             "sourceEvidenceOriginalAccess/init:retire/init:retire",
             "sourceEvidenceOriginalAccess/init:take/init:take",
@@ -2082,13 +1917,6 @@
           "async": false
         },
         {
-          "name": "duckdbStrategyContribution/closeEnvironments",
-          "parameters": [
-            "entries"
-          ],
-          "async": true
-        },
-        {
           "name": "duckdbStrategyContribution/closeEnvironments/closeEnvironments",
           "parameters": [],
           "async": false
@@ -2207,13 +2035,6 @@
             "input"
           ],
           "async": false
-        },
-        {
-          "name": "managedSiteCapacity/managedSiteCapacity",
-          "parameters": [
-            "value"
-          ],
-          "async": false
         }
       ],
       "contracts": [
@@ -2221,7 +2042,6 @@
           "operations": [
             "<module>",
             "duckdbStrategyContribution",
-            "duckdbStrategyContribution/closeEnvironments",
             "duckdbStrategyContribution/closeEnvironments/closeEnvironments",
             "duckdbStrategyContribution/closeEnvironments/closeEnvironments#2",
             "duckdbStrategyContribution/init:beforeNext/init:beforeNext",
@@ -2239,8 +2059,7 @@
             "duckdbStrategyContribution/init:run/init:run/init:run",
             "duckdbStrategyContribution/init:run/init:run/init:run#2",
             "duckdbStrategyContribution/init:runPrepared/init:runPrepared",
-            "duckdbStrategyContribution/init:runPrepared/init:runPrepared/result/result",
-            "managedSiteCapacity/managedSiteCapacity"
+            "duckdbStrategyContribution/init:runPrepared/init:runPrepared/result/result"
           ],
           "exports": [
             "duckdbStrategyContribution"
@@ -2387,25 +2206,6 @@
           "async": false
         },
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "generationFacts",
-          "parameters": [
-            "site",
-            "salesforceMoon",
-            "declared",
-            "writes",
-            "baseEnvironmentWire"
-          ],
-          "async": false
-        },
-        {
           "name": "generationFacts/environment/environment",
           "parameters": [
             "mapping"
@@ -2418,21 +2218,6 @@
             "write"
           ],
           "async": false
-        },
-        {
-          "name": "installedSalesforceEffect",
-          "parameters": [
-            "moon",
-            "salesforceMoon",
-            "site",
-            "installed",
-            "ledgerRoot",
-            "connectorId",
-            "accountConfiguration",
-            "runtimeBundleCid",
-            "construction"
-          ],
-          "async": true
         },
         {
           "name": "installedSalesforceEffect/installedSalesforceEffect",
@@ -2508,26 +2293,9 @@
           "async": false
         },
         {
-          "name": "mappingInput/mappingInput",
-          "parameters": [
-            "write"
-          ],
-          "async": false
-        },
-        {
           "name": "mappingInput/mappingInput/mappingInput",
           "parameters": [
             "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "membersOf",
-          "parameters": [
-            "moon",
-            "prepared",
-            "installed",
-            "unit"
           ],
           "async": false
         },
@@ -2551,33 +2319,6 @@
           "parameters": [
             "member",
             "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "openSite",
-          "parameters": [
-            "profile",
-            "root",
-            "principalId",
-            "moon",
-            "salesforceMoon",
-            "runtimeBundleCid",
-            "resolveSecret",
-            "openCredentialJournal"
-          ],
-          "async": true
-        },
-        {
-          "name": "prepareInstalledSalesforceEffectDriver",
-          "parameters": [
-            "construction",
-            "moon",
-            "salesforceMoon",
-            "site",
-            "installed",
-            "nextOccurrence",
-            "siteBindingCid"
           ],
           "async": false
         },
@@ -2606,23 +2347,6 @@
           "async": false
         },
         {
-          "name": "prepareInstalledSalesforceEffectDriver/method/method",
-          "parameters": [
-            "receiver",
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationRecord/publicationRecord",
-          "parameters": [
-            "source",
-            "mappings",
-            "environment"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationRecord/publicationRecord/publicationRecord",
           "parameters": [
             "mapping"
@@ -2645,17 +2369,6 @@
           "async": false
         },
         {
-          "name": "resolveMember",
-          "parameters": [
-            "moon",
-            "prepared",
-            "installed",
-            "stageIndex",
-            "effectId"
-          ],
-          "async": false
-        },
-        {
           "name": "resolveMember/mapping/mapping",
           "parameters": [
             "candidate"
@@ -2670,29 +2383,11 @@
           "async": false
         },
         {
-          "name": "resourcesOf/resourcesOf",
-          "parameters": [
-            "profile"
-          ],
-          "async": false
-        },
-        {
           "name": "resourcesOf/resourcesOf/resourcesOf",
           "parameters": [
             "write"
           ],
           "async": false
-        },
-        {
-          "name": "restoreGeneration",
-          "parameters": [
-            "site",
-            "salesforceMoon",
-            "moon",
-            "profile",
-            "construction"
-          ],
-          "async": true
         },
         {
           "name": "restoreGeneration/mappings/mappings",
@@ -2755,13 +2450,6 @@
             "stageIndex"
           ],
           "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
-          ],
-          "async": false
         }
       ],
       "contracts": [
@@ -2775,40 +2463,28 @@
             "checkWrite/checkWrite#2",
             "checkWrite/checkWrite#3",
             "checkWrite/checkWrite#4",
-            "fail/fail",
-            "generationFacts",
             "generationFacts/environment/environment",
             "generationFacts/mappings/mappings",
-            "installedSalesforceEffect",
             "installedSalesforceEffect/installedSalesforceEffect",
             "installedSalesforceEffect/nextOccurrence/nextOccurrence",
             "installedSalesforceEffect/targetReadInventory/targetReadInventory",
             "loadInstalledSalesforceEffect",
             "loadInstalledSalesforceEffect/loadInstalledSalesforceEffect",
             "loadInstalledSalesforceEffect/loadInstalledSalesforceEffect#2",
-            "mappingInput/mappingInput",
             "mappingInput/mappingInput/mappingInput",
-            "membersOf",
             "membersOf/members/members",
             "membersOf/membersOf",
             "membersOf/membersOf#2",
-            "openSite",
-            "prepareInstalledSalesforceEffectDriver",
             "prepareInstalledSalesforceEffectDriver/init:capacity/init:capacity",
             "prepareInstalledSalesforceEffectDriver/init:project/init:project",
             "prepareInstalledSalesforceEffectDriver/init:project/init:project/driver/driver",
             "prepareInstalledSalesforceEffectDriver/init:project/init:project/driver/driver/driver",
-            "prepareInstalledSalesforceEffectDriver/method/method",
-            "publicationRecord/publicationRecord",
             "publicationRecord/publicationRecord/publicationRecord",
             "publishInstalledSalesforceEffect",
             "publishInstalledSalesforceEffect/publishInstalledSalesforceEffect",
-            "resolveMember",
             "resolveMember/mapping/mapping",
             "resolveMember/resolveMember",
-            "resourcesOf/resourcesOf",
             "resourcesOf/resourcesOf/resourcesOf",
-            "restoreGeneration",
             "restoreGeneration/mappings/mappings",
             "restoreGeneration/mappings/mappings/mappings",
             "restoreGeneration/mappings/mappings/mappings#2",
@@ -2816,7 +2492,6 @@
             "salesforceEffectTargetReadInventory/salesforceEffectTargetReadInventory",
             "salesforceEffectUnit",
             "salesforceEffectUnit/units/units",
-            "text/text",
             "restoreGeneration/provider/init:project/init:project",
             "restoreGeneration/provider/provider"
           ],
@@ -3051,40 +2726,6 @@
           "async": false
         },
         {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSalesforceAdapter",
-          "parameters": [
-            "moon",
-            "queryMoon",
-            "site",
-            "authorization",
-            "declaration",
-            "recover",
-            "discovery",
-            "construction",
-            "readerPolicy",
-            "resources",
-            "generationCid",
-            "catalogCid",
-            "connectorId"
-          ],
-          "async": true
-        },
-        {
           "name": "installedSalesforceAdapter/bindingUnits/bindingUnits",
           "parameters": [
             "units",
@@ -3263,20 +2904,6 @@
           "async": false
         },
         {
-          "name": "openSite",
-          "parameters": [
-            "profile",
-            "root",
-            "principalId",
-            "moon",
-            "salesforceMoon",
-            "runtimeBundleCid",
-            "resolveSecret",
-            "openCredentialJournal"
-          ],
-          "async": true
-        },
-        {
           "name": "publishInstalledSalesforceSource",
           "parameters": [
             "profile",
@@ -3285,23 +2912,9 @@
           "async": true
         },
         {
-          "name": "queryRuntime",
-          "parameters": [
-            "moon"
-          ],
-          "async": false
-        },
-        {
           "name": "queryRuntime/queryRuntime",
           "parameters": [
             "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "recoveryArguments",
-          "parameters": [
-            "evidence"
           ],
           "async": false
         },
@@ -3325,13 +2938,6 @@
             "value"
           ],
           "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
-          ],
-          "async": false
         }
       ],
       "contracts": [
@@ -3340,9 +2946,6 @@
             "<module>",
             "checkInstalledSalesforceSourceProfile",
             "checkInstalledSalesforceSourceProfile/checkInstalledSalesforceSourceProfile",
-            "cid/cid",
-            "fail/fail",
-            "installedSalesforceAdapter",
             "installedSalesforceAdapter/directReadIdentity/directReadIdentity",
             "installedSalesforceAdapter/directReadIdentity/directReadIdentity#2",
             "installedSalesforceAdapter/directReadIdentity/directReadIdentity#3",
@@ -3355,15 +2958,11 @@
             "installedSalesforceSourceIdentityParts/readers/readers",
             "loadInstalledSalesforceSource",
             "loadInstalledSalesforceSource/init:project/init:project",
-            "openSite",
             "publishInstalledSalesforceSource",
-            "queryRuntime",
             "queryRuntime/queryRuntime",
-            "recoveryArguments",
             "recoveryArguments/recoveryArguments",
             "recoveryArguments/recoveryArguments#2",
             "recoveryArguments/recoveryArguments#3",
-            "text/text",
             "installedSalesforceAdapter/bindingUnits/bindingUnits",
             "installedSalesforceAdapter/providerReader/init:prepareReadSequence/init:prepareReadSequence",
             "installedSalesforceAdapter/resourceUnits/resourceUnits",
@@ -3651,20 +3250,6 @@
       ],
       "operations": [
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "parseExact/parseExact",
-          "parameters": [
-            "wire"
-          ],
-          "async": false
-        },
-        {
           "name": "salesforceRowEffectSite",
           "parameters": [
             "site"
@@ -3704,13 +3289,6 @@
             "siteBindingCid",
             "generationCid",
             "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "salesforceWriteDriver/fieldsOf/fieldsOf",
-          "parameters": [
-            "member"
           ],
           "async": false
         },
@@ -3838,28 +3416,6 @@
           "async": false
         },
         {
-          "name": "salesforceWriteDriver/installedOf/installedOf",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "salesforceWriteDriver/keyOf/keyOf",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "salesforceWriteDriver/projectionOf/projectionOf",
-          "parameters": [
-            "member",
-            "observation"
-          ],
-          "async": false
-        },
-        {
           "name": "salesforceWriteDriver/recoverRequests/recoverRequests",
           "parameters": [
             "durable",
@@ -3932,28 +3488,16 @@
             "callResource"
           ],
           "async": false
-        },
-        {
-          "name": "writeBody",
-          "parameters": [
-            "salesforceMoon",
-            "result",
-            "projection"
-          ],
-          "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "fail/fail",
-            "parseExact/parseExact",
             "salesforceRowEffectSite",
             "salesforceRowEffectSite/salesforceRowEffectSite",
             "salesforceRowEffectSite/salesforceRowEffectSite#2",
             "salesforceWriteDriver",
-            "salesforceWriteDriver/fieldsOf/fieldsOf",
             "salesforceWriteDriver/fieldsOf/fieldsOf/fieldsOf",
             "salesforceWriteDriver/init:admitTargetReadApproval/init:admitTargetReadApproval",
             "salesforceWriteDriver/init:admitTargetReadApproval/init:admitTargetReadApproval/binding/binding",
@@ -3969,9 +3513,6 @@
             "salesforceWriteDriver/init:project/init:project",
             "salesforceWriteDriver/init:recheckRequests/init:recheckRequests",
             "salesforceWriteDriver/init:recheckRequests/init:recheckRequests/recheck/recheck",
-            "salesforceWriteDriver/installedOf/installedOf",
-            "salesforceWriteDriver/keyOf/keyOf",
-            "salesforceWriteDriver/projectionOf/projectionOf",
             "salesforceWriteDriver/recoverRequests/recoverRequests",
             "salesforceWriteDriver/recoverRequests/recoverRequests/recoverRequests",
             "salesforceWriteDriver/requestCid/requestCid",
@@ -3979,8 +3520,7 @@
             "salesforceWriteDriver/salesforceWriteDriver#2",
             "salesforceWriteDriver/salesforceWriteDriver#3",
             "salesforceWriteDriver/salesforceWriteDriver#4",
-            "salesforceWriteDriver/salesforceWriteDriver#5",
-            "writeBody"
+            "salesforceWriteDriver/salesforceWriteDriver#5"
           ],
           "exports": [
             "salesforceRowEffectSite",
@@ -4227,46 +3767,7 @@
       ],
       "operations": [
         {
-          "name": "count/count",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "driveQueryPages",
-          "parameters": [
-            "moon",
-            "initialAuthorization",
-            "authorizationForPage",
-            "credential",
-            "limits",
-            "consumePage",
-            "chargePage",
-            "callResource",
-            "signal",
-            "scope",
-            "owner"
-          ],
-          "async": true
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "method/method",
-          "parameters": [
-            "value",
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "own/own",
           "parameters": [
             "value",
             "name"
@@ -4321,13 +3822,6 @@
             "input"
           ],
           "async": false
-        },
-        {
-          "name": "prepareSalesforceSourceReadSequence/sequence/init:read/init:read/metadata/metadata",
-          "parameters": [
-            "suffix"
-          ],
-          "async": true
         },
         {
           "name": "prepareSalesforceSourceReadSequence/sequence/init:read/init:read/metadata/metadata/observed/observed",
@@ -4491,53 +3985,12 @@
             "name"
           ],
           "async": false
-        },
-        {
-          "name": "recheckCurrentCatalog",
-          "parameters": [
-            "options"
-          ],
-          "async": true
-        },
-        {
-          "name": "validateAuthorization",
-          "parameters": [
-            "authorization",
-            "originalScope"
-          ],
-          "async": false
-        },
-        {
-          "name": "validateLimits",
-          "parameters": [
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "validateRead",
-          "parameters": [
-            "moon",
-            "plan",
-            "initialAuthorization",
-            "authorizationForPage",
-            "credential",
-            "refreshCatalog",
-            "limits",
-            "consumePage",
-            "chargePage",
-            "callResource"
-          ],
-          "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "count/count",
-            "driveQueryPages",
-            "fail/fail",
             "readSalesforceManagedQuery",
             "readSalesforceManagedQuery/context/context",
             "readSalesforceManagedQuery/result/result",
@@ -4555,19 +4008,13 @@
             "readSalesforceQuery/result/result#5",
             "readSalesforceQuery/result/result#6",
             "readSalesforceQuery/result/result#7",
-            "recheckCurrentCatalog",
-            "validateAuthorization",
-            "validateLimits",
-            "validateRead",
             "method/method",
-            "own/own",
             "prepareSalesforceSourceReadSequence",
             "prepareSalesforceSourceReadSequence/sequence/init:read/init:read",
             "prepareSalesforceSourceReadSequence/sequence/init:read/init:read/init:consumePage/init:consumePage",
             "prepareSalesforceSourceReadSequence/sequence/init:read/init:read/init:read",
             "prepareSalesforceSourceReadSequence/sequence/init:read/init:read/init:read#2",
             "prepareSalesforceSourceReadSequence/sequence/init:read/init:read/init:read#3",
-            "prepareSalesforceSourceReadSequence/sequence/init:read/init:read/metadata/metadata",
             "prepareSalesforceSourceReadSequence/sequence/init:read/init:read/metadata/metadata/observed/observed",
             "prepareSalesforceSourceReadSequence/sequence/init:read/init:read/plan/plan",
             "prepareSalesforceSourceReadSequence/sequence/init:retire/init:retire",
@@ -4860,29 +4307,6 @@
       ],
       "operations": [
         {
-          "name": "approvalOf/approvalOf",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "approvedValue/approvedValue",
-          "parameters": [
-            "kind",
-            "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureBeforeSendCheck",
-          "parameters": [
-            "driver",
-            "recipe"
-          ],
-          "async": false
-        },
-        {
           "name": "captureBeforeSendCheck/captureBeforeSendCheck",
           "parameters": [
             "name"
@@ -4897,26 +4321,9 @@
           "async": false
         },
         {
-          "name": "captureEffectResources",
-          "parameters": [
-            "receiver"
-          ],
-          "async": false
-        },
-        {
           "name": "captureEffectResources/captureEffectResources",
           "parameters": [
             "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureManagedDriverConstruction",
-          "parameters": [
-            "construction",
-            "definition",
-            "driver",
-            "provider"
           ],
           "async": false
         },
@@ -4928,25 +4335,9 @@
           "async": false
         },
         {
-          "name": "captureManagedDriverConstruction/own/own",
-          "parameters": [
-            "value",
-            "names"
-          ],
-          "async": false
-        },
-        {
           "name": "captureManagedDriverConstruction/own/own/own",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureManagedPlanDefinition",
-          "parameters": [
-            "definition",
-            "driver"
           ],
           "async": false
         },
@@ -4959,26 +4350,9 @@
           "async": false
         },
         {
-          "name": "captureManagedPlanDefinition/fields/fields",
-          "parameters": [
-            "value",
-            "names"
-          ],
-          "async": false
-        },
-        {
           "name": "captureManagedPlanDefinition/fields/fields/fields",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureManagedPlanRecipes",
-          "parameters": [
-            "recipes",
-            "driver",
-            "maxOperations"
           ],
           "async": false
         },
@@ -4993,14 +4367,6 @@
           "name": "captureManagedPlanRecipes/captureManagedPlanRecipes#2",
           "parameters": [
             "kind"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureResponseConfirmation",
-          "parameters": [
-            "driver",
-            "recipe"
           ],
           "async": false
         },
@@ -5054,13 +4420,6 @@
           "async": false
         },
         {
-          "name": "checkDriver",
-          "parameters": [
-            "driver"
-          ],
-          "async": false
-        },
-        {
           "name": "checkDriver/checkDriver",
           "parameters": [
             "kind"
@@ -5071,13 +4430,6 @@
           "name": "cid/cid",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "commandContentBorrower",
-          "parameters": [
-            "configuration"
           ],
           "async": false
         },
@@ -5136,21 +4488,6 @@
         {
           "name": "commandContentBorrower/init:release/init:release",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "commandContentBorrower/observe/observe",
-          "parameters": [
-            "operation"
-          ],
-          "async": false
-        },
-        {
-          "name": "commandContentRow",
-          "parameters": [
-            "port",
-            "row"
-          ],
           "async": false
         },
         {
@@ -5318,16 +4655,6 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage",
-          "parameters": [
-            "owners",
-            "environmentWire",
-            "routes",
-            "retainedLimits"
-          ],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/adapter/adapter",
           "parameters": [
             "mapping"
@@ -5389,31 +4716,6 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/admitCapability/admitCapability",
-          "parameters": [
-            "member",
-            "entries",
-            "current",
-            "runInvocationCid",
-            "dispatchRequestCid",
-            "controlConstruction"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/admitRow/admitRow",
-          "parameters": [
-            "applyPreview",
-            "memberIndex",
-            "rowIndex",
-            "claim",
-            "member",
-            "entry",
-            "previewRow"
-          ],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/assertPrepared/assertPrepared",
           "parameters": [
             "runMoon",
@@ -5429,24 +4731,6 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/authorPreview",
-          "parameters": [
-            "control",
-            "prepared",
-            "inputs",
-            "context",
-            "requestScope",
-            "limits",
-            "managedEffect",
-            "members",
-            "rowsOf",
-            "capabilities",
-            "footprints",
-            "payloads"
-          ],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/authorPreview/effects/effects",
           "parameters": [
             "member",
@@ -5458,17 +4742,6 @@
           "name": "createRowEffectStage/authorPreview/effects/effects/effects",
           "parameters": [
             "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/basePreflight/basePreflight",
-          "parameters": [
-            "effects",
-            "members",
-            "requestScope",
-            "keys",
-            "limits"
           ],
           "async": false
         },
@@ -5518,43 +4791,6 @@
             "member"
           ],
           "async": false
-        },
-        {
-          "name": "createRowEffectStage/bindRunResources/bindRunResources",
-          "parameters": [
-            "facts",
-            "members"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage",
-          "parameters": [
-            "control",
-            "store",
-            "execution",
-            "checkedHost",
-            "prepared",
-            "identity",
-            "plan",
-            "previewContext",
-            "unit",
-            "members",
-            "runInvocationCid",
-            "dispatches",
-            "requestScope",
-            "storedResults",
-            "signal",
-            "targetReads",
-            "contentOwner",
-            "managedEffect",
-            "updateTargetSelections",
-            "own",
-            "ownInputs",
-            "ownChildren",
-            "assertCurrent"
-          ],
-          "async": true
         },
         {
           "name": "createRowEffectStage/captureStage/capabilities/capabilities",
@@ -5665,11 +4901,6 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/childrenPending/childrenPending",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/captureStage/childrenPending/childrenPending/childrenPending",
           "parameters": [
             "value"
@@ -5697,11 +4928,6 @@
             "wire"
           ],
           "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/constructRows/constructRows",
-          "parameters": [],
-          "async": true
         },
         {
           "name": "createRowEffectStage/captureStage/constructRows/constructRows/constructRows",
@@ -5876,50 +5102,11 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/checkRows/checkRows",
-          "parameters": [
-            "members",
-            "entries",
-            "runInvocationCid",
-            "dispatches",
-            "subjectOf",
-            "signal",
-            "assertCurrent",
-            "physicalOperations",
-            "controlConstruction",
-            "operationPhase"
-          ],
-          "async": true
-        },
-        {
           "name": "createRowEffectStage/checkRows/checkRows/checkRows",
           "parameters": [
             "authorization",
             "credential",
             "callResource"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/checkSubject/checkSubject",
-          "parameters": [
-            "runInvocationCid",
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/claimsOf/claimsOf",
-          "parameters": [
-            "body",
-            "keys",
-            "entries",
-            "requestScope",
-            "unit",
-            "dispatches",
-            "unitCids",
-            "members",
-            "retentionId"
           ],
           "async": false
         },
@@ -5939,37 +5126,9 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/commitDecisions/commitDecisions",
-          "parameters": [
-            "decisions",
-            "subjectCid",
-            "members"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/commonCapability/commonCapability",
-          "parameters": [
-            "member",
-            "entries"
-          ],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/commonCapability/commonCapability/commonCapability",
           "parameters": [
             "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/continuationOf/continuationOf",
-          "parameters": [
-            "plan",
-            "unit",
-            "members",
-            "dispatches",
-            "selected"
           ],
           "async": false
         },
@@ -5987,20 +5146,6 @@
             "recipe"
           ],
           "async": false
-        },
-        {
-          "name": "createRowEffectStage/decideTargetRead/decideTargetRead",
-          "parameters": [
-            "member",
-            "runInvocationCid",
-            "dispatchRequestCid",
-            "subjectCid",
-            "signal",
-            "targetReads",
-            "assertCurrent",
-            "controlConstruction"
-          ],
-          "async": true
         },
         {
           "name": "createRowEffectStage/decideTargetRead/decideTargetRead/decideTargetRead",
@@ -6021,55 +5166,6 @@
           "name": "createRowEffectStage/decideTargetRead/decideTargetRead/originals/originals",
           "parameters": [
             "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/describeMember/describeMember",
-          "parameters": [
-            "member",
-            "maxRows",
-            "physicalOperations",
-            "operationPhase",
-            "runInvocationCid",
-            "dispatchRequestCid",
-            "label",
-            "approval",
-            "signal",
-            "assertCurrent",
-            "controlConstruction"
-          ],
-          "async": true
-        },
-        {
-          "name": "createRowEffectStage/entryOf/entryOf",
-          "parameters": [
-            "member",
-            "request",
-            "requestCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/footprintOf/footprintOf",
-          "parameters": [
-            "member",
-            "entries",
-            "controlConstruction"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/managedReadChild/managedReadChild",
-          "parameters": [
-            "member",
-            "phase",
-            "physicalOperations",
-            "runInvocationCid",
-            "dispatchRequestCid",
-            "assertCurrent",
-            "signal",
-            "originalTargetAuthorization"
           ],
           "async": false
         },
@@ -6116,23 +5212,6 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/memberDispatch/memberDispatch",
-          "parameters": [
-            "runInvocationCid",
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/membersOf/membersOf",
-          "parameters": [
-            "prepared",
-            "unit",
-            "maxMembers"
-          ],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/membersOf/membersOf/members/members",
           "parameters": [
             "effectId"
@@ -6156,34 +5235,10 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/observeRows/observeRows",
-          "parameters": [
-            "member",
-            "entries",
-            "current",
-            "read",
-            "signal",
-            "assertCurrent",
-            "physicalOperations",
-            "operationPhase",
-            "runInvocationCid",
-            "dispatchRequestCid"
-          ],
-          "async": true
-        },
-        {
           "name": "createRowEffectStage/observeRows/observeRows/observeRows",
           "parameters": [
             "row",
             "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/openLedger/openLedger",
-          "parameters": [
-            "identity",
-            "controlConstruction"
           ],
           "async": false
         },
@@ -6210,43 +5265,9 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/ownerOf/ownerOf",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/permissionsOf/permissionsOf",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/permissionsOf/permissionsOf/rule/rule",
           "parameters": [
             "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/physicalRoute/physicalRoute",
-          "parameters": [
-            "members",
-            "entries",
-            "previewRows",
-            "runInvocationCid",
-            "dispatches",
-            "subjectCid",
-            "applyPreview",
-            "ledger",
-            "targetReads",
-            "assertCurrent",
-            "dispatchIndexes",
-            "physicalOperations",
-            "controlConstruction",
-            "operationPhase"
           ],
           "async": false
         },
@@ -6381,11 +5402,6 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/physicalRoute/physicalRoute/requireOpen/requireOpen",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/physicalRoute/physicalRoute/retire/retire",
           "parameters": [],
           "async": false
@@ -6429,33 +5445,6 @@
         {
           "name": "createRowEffectStage/prepareCaptured/prepareCaptured#4",
           "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation",
-          "parameters": [
-            "member",
-            "rowIndex",
-            "phase",
-            "operation",
-            "site",
-            "originalAuthorization",
-            "useId",
-            "resource",
-            "purpose",
-            "invoke",
-            "managedEffect",
-            "requestChildren",
-            "retireRequestAliases",
-            "runInvocationCid",
-            "dispatchRequestCid",
-            "assertCurrent",
-            "signal",
-            "maxResponseBytes",
-            "constructChild",
-            "credentialSlot",
-            "responsePreparation"
-          ],
           "async": true
         },
         {
@@ -6536,11 +5525,6 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/prepareRecovered/finish/finish",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/prepareRecovered/finish/finish/finish",
           "parameters": [
             "member",
@@ -6594,11 +5578,6 @@
             "recoverySignal"
           ],
           "async": true
-        },
-        {
-          "name": "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/assertRecoveredCurrent/assertRecoveredCurrent",
-          "parameters": [],
-          "async": false
         },
         {
           "name": "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery",
@@ -6666,25 +5645,10 @@
           "async": true
         },
         {
-          "name": "createRowEffectStage/prepareRecovered/recoveryPending/recoveryPending",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/prepareRecovered/recoveryPending/recoveryPending/recoveryPending",
           "parameters": [
             "child"
           ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareRecovered/releaseLedger/releaseLedger",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareRecovered/requestsPending/requestsPending",
-          "parameters": [],
           "async": false
         },
         {
@@ -6697,18 +5661,6 @@
         {
           "name": "createRowEffectStage/prepareRecovered/retireRequestAliases/retireRequestAliases",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries",
-          "parameters": [
-            "managedEffect",
-            "requestChildren",
-            "retireRequestAliases",
-            "assertCurrent",
-            "signal",
-            "facts"
-          ],
           "async": false
         },
         {
@@ -6790,17 +5742,6 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/readDecision/readDecision",
-          "parameters": [
-            "member",
-            "resource",
-            "subjectCid",
-            "signal",
-            "assertCurrent"
-          ],
-          "async": true
-        },
-        {
           "name": "createRowEffectStage/recipeOf/recipeOf",
           "parameters": [
             "member"
@@ -6811,23 +5752,6 @@
           "name": "createRowEffectStage/recipes/recipes",
           "parameters": [
             "owner"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/recoveredEntries/recoveredEntries",
-          "parameters": [
-            "members",
-            "body",
-            "durable",
-            "recorded",
-            "maxRows",
-            "previewWire",
-            "runInvocationCid",
-            "dispatches",
-            "requestTags",
-            "controlConstruction",
-            "reserveRecoveryInput"
           ],
           "async": false
         },
@@ -6886,27 +5810,8 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/recoveredEntries/recoveredEntries/restore/restore",
-          "parameters": [
-            "owned",
-            "method",
-            "facts"
-          ],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/recoveredEntries/recoveredEntries/usesRecovery/usesRecovery",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/recoveredMembers/recoveredMembers",
-          "parameters": [
-            "body",
-            "provider",
-            "selected",
-            "maxMembers"
-          ],
           "async": false
         },
         {
@@ -6932,14 +5837,6 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/recoveryCid/recoveryCid",
-          "parameters": [
-            "member",
-            "dispatch"
-          ],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/requestEntry/requestEntry",
           "parameters": [
             "member",
@@ -6949,38 +5846,10 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/requestsOf/requestsOf",
-          "parameters": [
-            "member",
-            "rows",
-            "current",
-            "contentOf",
-            "createRows"
-          ],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/requestsOf/requestsOf/requestsOf",
           "parameters": [
             "row",
             "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/requireApproval/requireApproval",
-          "parameters": [
-            "member",
-            "decision"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/resolveMember/resolveMember",
-          "parameters": [
-            "prepared",
-            "stageIndex",
-            "effectId"
           ],
           "async": false
         },
@@ -6999,31 +5868,9 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/resourceFields/resourceFields",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/retainMember/retainMember",
-          "parameters": [
-            "owner",
-            "member"
-          ],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/routeOf/routeOf",
           "parameters": [
             "capability"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/runLimits/runLimits",
-          "parameters": [
-            "managed"
           ],
           "async": false
         },
@@ -7061,16 +5908,6 @@
           "name": "createRowEffectStage/scopes/scopes/scopes",
           "parameters": [
             "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/selectionFence/selectionFence",
-          "parameters": [
-            "facts",
-            "members",
-            "stageIndex",
-            "updateTargetSelections"
           ],
           "async": false
         },
@@ -7113,38 +5950,9 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/selectOwner/selectOwner",
-          "parameters": [
-            "descriptor"
-          ],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/selectOwner/selectOwner/route/route",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/settle/settle",
-          "parameters": [
-            "ledger",
-            "claim",
-            "applyPreview",
-            "memberIndex",
-            "rowIndex",
-            "projected"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/validateRecoveredEntries/validateRecoveredEntries",
-          "parameters": [
-            "members",
-            "body",
-            "recorded",
-            "entries"
           ],
           "async": false
         },
@@ -7169,50 +5977,6 @@
           "parameters": [
             "entry",
             "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "deriveInstalledRowWrite",
-          "parameters": [
-            "write",
-            "connectorRegistration"
-          ],
-          "async": false
-        },
-        {
-          "name": "deriveInstalledRowWrite/bindLogical",
-          "parameters": [
-            "request",
-            "resource",
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "deriveInstalledRowWrite/bindRequest",
-          "parameters": [
-            "request",
-            "resource",
-            "value",
-            "expectedCid",
-            "logical"
-          ],
-          "async": false
-        },
-        {
-          "name": "deriveInstalledRowWrite/cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "deriveInstalledRowWrite/data",
-          "parameters": [
-            "value",
-            "key",
-            "optional"
           ],
           "async": false
         },
@@ -7375,27 +6139,6 @@
           "async": true
         },
         {
-          "name": "deriveInstalledRowWrite/fail/fail",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "deriveInstalledRowWrite/freezeInput",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "deriveInstalledRowWrite/freezeRequestData",
-          "parameters": [
-            "value",
-            "depth",
-            "state"
-          ],
-          "async": false
-        },
-        {
           "name": "deriveInstalledRowWrite/freezeRequestData/freezeRequestData",
           "parameters": [
             "key",
@@ -7429,39 +6172,6 @@
           "async": true
         },
         {
-          "name": "deriveInstalledRowWrite/original/original",
-          "parameters": [
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "deriveInstalledRowWrite/physicalOriginal",
-          "parameters": [
-            "request",
-            "requestTag"
-          ],
-          "async": false
-        },
-        {
-          "name": "deriveInstalledRowWrite/recoveryBinding/recoveryBinding",
-          "parameters": [
-            "resource"
-          ],
-          "async": false
-        },
-        {
-          "name": "deriveInstalledRowWrite/restoreMembers",
-          "parameters": [
-            "durable",
-            "members",
-            "body",
-            "requestTags",
-            "indexes"
-          ],
-          "async": false
-        },
-        {
           "name": "deriveInstalledRowWrite/restoreMembers/restoreMembers",
           "parameters": [
             "index"
@@ -7484,45 +6194,9 @@
           "async": false
         },
         {
-          "name": "deriveInstalledRowWrite/text/text",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "deriveInstalledRowWrite/wireCid/wireCid",
-          "parameters": [
-            "wire"
-          ],
-          "async": false
-        },
-        {
-          "name": "exportLimits/exportLimits",
-          "parameters": [
-            "output"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "cause"
-          ],
-          "async": false
-        },
-        {
           "name": "guarded/guarded",
           "parameters": [
             "kind"
-          ],
-          "async": false
-        },
-        {
-          "name": "installationFacts/installationFacts",
-          "parameters": [
-            "owner"
           ],
           "async": false
         },
@@ -7595,29 +6269,6 @@
           "async": false
         },
         {
-          "name": "ownerBinding/ownerBinding",
-          "parameters": [
-            "owner"
-          ],
-          "async": false
-        },
-        {
-          "name": "parseExactJson/parseExactJson",
-          "parameters": [
-            "wire"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledCreateRows",
-          "parameters": [
-            "moon",
-            "proposals",
-            "limits"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareInstalledCreateRows/createRows/createRows",
           "parameters": [
             "item"
@@ -7646,20 +6297,6 @@
           "async": false
         },
         {
-          "name": "profileOf",
-          "parameters": [
-            "installation"
-          ],
-          "async": false
-        },
-        {
-          "name": "requireSynchronousEffectResource",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "requireSynchronousEffectResource/requireSynchronousEffectResource",
           "parameters": [],
           "async": false
@@ -7677,52 +6314,6 @@
           "parameters": [
             "original",
             "projection"
-          ],
-          "async": false
-        },
-        {
-          "name": "sameEffectValue/sameEffectValue",
-          "parameters": [
-            "kind",
-            "left",
-            "right"
-          ],
-          "async": false
-        },
-        {
-          "name": "sameValue/sameValue",
-          "parameters": [
-            "left",
-            "right"
-          ],
-          "async": false
-        },
-        {
-          "name": "selectionChanged/selectionChanged",
-          "parameters": [
-            "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "targeted/targeted",
-          "parameters": [
-            "kind"
-          ],
-          "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "updateObservation/updateObservation",
-          "parameters": [
-            "owner",
-            "installation"
           ],
           "async": false
         },
@@ -7748,13 +6339,6 @@
           "async": false
         },
         {
-          "name": "updateObservations/updateObservations",
-          "parameters": [
-            "owners"
-          ],
-          "async": false
-        },
-        {
           "name": "updateObservations/updateObservations/updateObservations",
           "parameters": [
             "owner"
@@ -7769,24 +6353,12 @@
             "prepared"
           ],
           "async": false
-        },
-        {
-          "name": "validateOwnerSelections/validateOwnerSelections",
-          "parameters": [
-            "owners",
-            "selections",
-            "prepared"
-          ],
-          "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "approvalOf/approvalOf",
-            "approvedValue/approvedValue",
-            "checkDriver",
             "checkDriver/checkDriver",
             "cid/cid",
             "composeInstalledRowEffectOwners",
@@ -7807,7 +6379,6 @@
             "createInstalledRowEffect/storeMappings/storeMappings/commands/commands",
             "createInstalledRowEffect/storeMappings/storeMappings/storeMappings",
             "createInstalledRowEffect/storeMappings/storeMappings/storeMappings/storeMappings",
-            "createRowEffectStage",
             "createRowEffectStage/adapter/adapter",
             "createRowEffectStage/adapter/adapter#2",
             "createRowEffectStage/adapter/adapter#3",
@@ -7817,19 +6388,14 @@
             "createRowEffectStage/adapter/adapter/adapter/adapter",
             "createRowEffectStage/adapter/init:close/init:close",
             "createRowEffectStage/adapter/init:close/init:close/init:close",
-            "createRowEffectStage/admitCapability/admitCapability",
-            "createRowEffectStage/admitRow/admitRow",
             "createRowEffectStage/assertPrepared/assertPrepared",
             "createRowEffectStage/assertPrepared/assertPrepared/assertPrepared",
-            "createRowEffectStage/authorPreview",
             "createRowEffectStage/authorPreview/effects/effects",
             "createRowEffectStage/authorPreview/effects/effects/effects",
-            "createRowEffectStage/basePreflight/basePreflight",
             "createRowEffectStage/basePreflight/basePreflight/basePreflight",
             "createRowEffectStage/basePreflight/basePreflight/basePreflight#2",
             "createRowEffectStage/basePreflight/basePreflight/basePreflight#3",
             "createRowEffectStage/basePreflight/basePreflight/basePreflight#4",
-            "createRowEffectStage/captureStage",
             "createRowEffectStage/captureStage/capabilities/capabilities",
             "createRowEffectStage/captureStage/captureStage#10",
             "createRowEffectStage/captureStage/captureStage#11",
@@ -7844,7 +6410,6 @@
             "createRowEffectStage/captureStage/captureStage/captureStage",
             "createRowEffectStage/captureStage/captureStage/captureStage#2",
             "createRowEffectStage/captureStage/captureStage/captureStage#3",
-            "createRowEffectStage/captureStage/childrenPending/childrenPending",
             "createRowEffectStage/captureStage/childrenPending/childrenPending/childrenPending",
             "createRowEffectStage/captureStage/claims/claims",
             "createRowEffectStage/captureStage/computation/computation",
@@ -7860,43 +6425,25 @@
             "createRowEffectStage/captureStage/releaseInputPins/releaseInputPins/releaseInputPins",
             "createRowEffectStage/captureStage/releaseInputs/releaseInputs",
             "createRowEffectStage/captureStage/verified/verified",
-            "createRowEffectStage/checkRows/checkRows",
-            "createRowEffectStage/checkSubject/checkSubject",
-            "createRowEffectStage/claimsOf/claimsOf",
             "createRowEffectStage/claimsOf/claimsOf/claimsOf",
             "createRowEffectStage/claimsOf/claimsOf/claimsOf/claimsOf",
-            "createRowEffectStage/commitDecisions/commitDecisions",
-            "createRowEffectStage/commonCapability/commonCapability",
             "createRowEffectStage/commonCapability/commonCapability/commonCapability",
-            "createRowEffectStage/continuationOf/continuationOf",
             "createRowEffectStage/continuationOf/continuationOf/continuationOf",
-            "createRowEffectStage/decideTargetRead/decideTargetRead",
             "createRowEffectStage/decideTargetRead/decideTargetRead/decideTargetRead",
             "createRowEffectStage/decideTargetRead/decideTargetRead/init:consumeOriginal/init:consumeOriginal",
             "createRowEffectStage/decideTargetRead/decideTargetRead/originals/originals",
-            "createRowEffectStage/describeMember/describeMember",
-            "createRowEffectStage/entryOf/entryOf",
-            "createRowEffectStage/footprintOf/footprintOf",
-            "createRowEffectStage/managedReadChild/managedReadChild",
             "createRowEffectStage/managedReadChild/managedReadChild/init:owned/init:owned",
             "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild",
             "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild/managedReadChild",
             "createRowEffectStage/managedReadChild/managedReadChild/ownedRead/ownedRead",
-            "createRowEffectStage/memberDispatch/memberDispatch",
-            "createRowEffectStage/membersOf/membersOf",
             "createRowEffectStage/membersOf/membersOf/members/members",
             "createRowEffectStage/membersOf/membersOf/membersOf",
             "createRowEffectStage/membersOf/membersOf/membersOf#2",
-            "createRowEffectStage/observeRows/observeRows",
             "createRowEffectStage/observeRows/observeRows/observeRows",
-            "createRowEffectStage/openLedger/openLedger",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes/orderedSourceIndexes",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes/positions/positions",
-            "createRowEffectStage/ownerOf/ownerOf",
-            "createRowEffectStage/permissionsOf/permissionsOf",
             "createRowEffectStage/permissionsOf/permissionsOf/rule/rule",
-            "createRowEffectStage/physicalRoute/physicalRoute",
             "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch",
             "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch",
             "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/bindDispatch",
@@ -7928,13 +6475,9 @@
             "createRowEffectStage/prepareRecovered/ledgerOwner/ledgerOwner",
             "createRowEffectStage/prepareRecovered/prepareRecovered",
             "createRowEffectStage/prepareRecovered/prepareRecovered#2",
-            "createRowEffectStage/prepareRecovered/releaseLedger/releaseLedger",
-            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries",
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries",
-            "createRowEffectStage/readDecision/readDecision",
             "createRowEffectStage/recipeOf/recipeOf",
             "createRowEffectStage/recipes/recipes",
-            "createRowEffectStage/recoveredEntries/recoveredEntries",
             "createRowEffectStage/recoveredEntries/recoveredEntries/currents/currents",
             "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries",
             "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries/rows/rows",
@@ -7943,48 +6486,31 @@
             "createRowEffectStage/recoveredEntries/recoveredEntries/recoveredEntries",
             "createRowEffectStage/recoveredEntries/recoveredEntries/requests/requests",
             "createRowEffectStage/recoveredEntries/recoveredEntries/usesRecovery/usesRecovery",
-            "createRowEffectStage/recoveredMembers/recoveredMembers",
             "createRowEffectStage/recoveredMembers/recoveredMembers/recoveredMembers",
             "createRowEffectStage/recoveredMembers/recoveredMembers/recoveredMembers/command/command",
             "createRowEffectStage/recoveredMembers/recoveredMembers/recoveredMembers/mapping/mapping",
-            "createRowEffectStage/recoveryCid/recoveryCid",
             "createRowEffectStage/requestEntry/requestEntry",
-            "createRowEffectStage/requestsOf/requestsOf",
             "createRowEffectStage/requestsOf/requestsOf/requestsOf",
-            "createRowEffectStage/requireApproval/requireApproval",
-            "createRowEffectStage/resolveMember/resolveMember",
             "createRowEffectStage/resolveMember/resolveMember/command/command",
             "createRowEffectStage/resolveMember/resolveMember/mapping/mapping",
-            "createRowEffectStage/retainMember/retainMember",
             "createRowEffectStage/routeOf/routeOf",
-            "createRowEffectStage/runLimits/runLimits",
             "createRowEffectStage/runLimits/runLimits/maxMembers/maxMembers",
             "createRowEffectStage/runLimits/runLimits/maxRows/maxRows",
             "createRowEffectStage/scopeKey/scopeKey",
             "createRowEffectStage/scopes/scopes",
             "createRowEffectStage/scopes/scopes/scopes",
-            "createRowEffectStage/selectOwner/selectOwner",
             "createRowEffectStage/selectOwner/selectOwner/route/route",
-            "createRowEffectStage/settle/settle",
-            "exportLimits/exportLimits",
-            "fail/fail",
             "guarded/guarded",
             "installedRowEffectDescriptors",
             "installedRowEffectDescriptors/installedRowEffectDescriptors",
             "installedRowEffectUnit",
             "installedRowEffectUnit/units/units",
             "optionalFunction/optionalFunction",
-            "parseExactJson/parseExactJson",
-            "prepareInstalledCreateRows",
             "prepareInstalledCreateRows/createRows/createRows",
             "prepareInstalledCreateRows/prepareInstalledCreateRows",
             "prepareInstalledCreateRows/prepareInstalledCreateRows#2",
             "prepareInstalledCreateRows/wires/wires",
-            "profileOf",
-            "retainInstalledRowEffectAdapter",
-            "sameValue/sameValue",
-            "targeted/targeted",
-            "text/text"
+            "retainInstalledRowEffectAdapter"
           ],
           "exports": [
             "composeInstalledRowEffectOwners",
@@ -8546,7 +7072,6 @@
         },
         {
           "operations": [
-            "captureBeforeSendCheck",
             "captureBeforeSendCheck/captureBeforeSendCheck",
             "captureBeforeSendCheck/selected/selected",
             "createRowEffectStage/captureStage/physicalOperations/physicalOperations",
@@ -8558,9 +7083,7 @@
             "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/send/send",
             "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/send/send/send",
             "createRowEffectStage/physicalRoute/physicalRoute/physicalRoute",
-            "createRowEffectStage/physicalRoute/physicalRoute/requireOpen/requireOpen",
             "createRowEffectStage/physicalRoute/physicalRoute/retire/retire",
-            "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation",
             "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/ownedRead/ownedRead",
             "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation",
             "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation#3",
@@ -8751,12 +7274,8 @@
         },
         {
           "operations": [
-            "captureEffectResources",
             "captureEffectResources/captureEffectResources",
-            "createRowEffectStage/bindRunResources/bindRunResources",
-            "createRowEffectStage/resourceFields/resourceFields",
             "createRowEffectStage/selectionFence/selectionFence/resourceOwners/resourceOwners",
-            "requireSynchronousEffectResource",
             "requireSynchronousEffectResource/requireSynchronousEffectResource"
           ],
           "exports": [],
@@ -8825,15 +7344,10 @@
         },
         {
           "operations": [
-            "captureManagedDriverConstruction",
             "captureManagedDriverConstruction/captureManagedDriverConstruction",
-            "captureManagedDriverConstruction/own/own",
             "captureManagedDriverConstruction/own/own/own",
-            "captureManagedPlanDefinition",
             "captureManagedPlanDefinition/array/array",
-            "captureManagedPlanDefinition/fields/fields",
             "captureManagedPlanDefinition/fields/fields/fields",
-            "captureManagedPlanRecipes",
             "captureManagedPlanRecipes/captureManagedPlanRecipes",
             "captureManagedPlanRecipes/captureManagedPlanRecipes#2"
           ],
@@ -8936,7 +7450,6 @@
         },
         {
           "operations": [
-            "commandContentBorrower",
             "commandContentBorrower/init:borrow/init:borrow",
             "commandContentBorrower/init:borrow/init:borrow/borrow/borrow",
             "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#2",
@@ -8947,8 +7460,6 @@
             "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow#3",
             "commandContentBorrower/init:borrow/init:borrow/prior/prior",
             "commandContentBorrower/init:release/init:release",
-            "commandContentBorrower/observe/observe",
-            "commandContentRow",
             "commandContentRow/commandContentRow",
             "createRowEffectStage/captureStage/init:onOriginalArtifact/init:onOriginalArtifact"
           ],
@@ -9998,26 +8509,19 @@
         {
           "operations": [
             "createRowEffectStage/physicalRoute/physicalRoute/assertClaimedCurrent/assertClaimedCurrent",
-            "createRowEffectStage/selectionFence/selectionFence",
             "createRowEffectStage/selectionFence/selectionFence/assertCurrent/assertCurrent",
             "createRowEffectStage/selectionFence/selectionFence/assertCurrent/assertCurrent/assertCurrent",
             "createRowEffectStage/selectionFence/selectionFence/selectedMembers/selectedMembers",
             "createRowEffectStage/selectionFence/selectionFence/selectedMembers/selectedMembers/mappings/mappings",
             "createRowEffectStage/selectionFence/selectionFence/selectedMembers/selectedMembers/selected/selected",
-            "installationFacts/installationFacts",
             "installedRowEffectOwnerBinding",
             "installedRowEffectUpdateObservation",
             "installedRowEffectUpdateObservations",
-            "ownerBinding/ownerBinding",
-            "selectionChanged/selectionChanged",
-            "updateObservation/updateObservation",
             "updateObservation/updateObservation/updateObservation",
             "updateObservation/updateObservation/updateObservation/updateObservation",
             "updateObservation/updateObservation/updateObservation/updateObservation#2",
-            "updateObservations/updateObservations",
             "updateObservations/updateObservations/updateObservations",
-            "validateInstalledUpdateOwnerSelections",
-            "validateOwnerSelections/validateOwnerSelections"
+            "validateInstalledUpdateOwnerSelections"
           ],
           "exports": [
             "installedRowEffectOwnerBinding",
@@ -10748,10 +9252,8 @@
           "operations": [
             "createRowEffectStage/prepareRecovered/closeRecovery/closeRecovery/flight/flight",
             "createRowEffectStage/prepareRecovered/closeRecovery/closeRecovery/flight/flight#2",
-            "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/assertRecoveredCurrent/assertRecoveredCurrent",
             "createRowEffectStage/prepareRecovered/physicalOperations/physicalOperations",
             "createRowEffectStage/prepareRecovered/physicalOperations/physicalOperations/init:assertCurrent/init:assertCurrent",
-            "createRowEffectStage/prepareRecovered/requestsPending/requestsPending",
             "createRowEffectStage/prepareRecovered/requestsPending/requestsPending/requestsPending",
             "createRowEffectStage/prepareRecovered/retireRequestAliases/retireRequestAliases"
           ],
@@ -10820,9 +9322,7 @@
           }
         },
         {
-          "operations": [
-            "createRowEffectStage/prepareRecovered/finish/finish"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -11386,7 +9886,6 @@
         {
           "operations": [
             "createRowEffectStage/prepareRecovered/memberIndexes/memberIndexes",
-            "createRowEffectStage/prepareRecovered/recoveryPending/recoveryPending",
             "createRowEffectStage/prepareRecovered/recoveryPending/recoveryPending/recoveryPending"
           ],
           "exports": [],
@@ -11491,10 +9990,6 @@
         },
         {
           "operations": [
-            "deriveInstalledRowWrite",
-            "deriveInstalledRowWrite/bindRequest",
-            "deriveInstalledRowWrite/cid/cid",
-            "deriveInstalledRowWrite/data",
             "deriveInstalledRowWrite/deriveInstalledRowWrite",
             "deriveInstalledRowWrite/deriveInstalledRowWrite#2",
             "deriveInstalledRowWrite/deriveInstalledRowWrite#3",
@@ -11511,18 +10006,10 @@
             "deriveInstalledRowWrite/driver/init:recoveryEntry/init:recoveryEntry/selectedRows/selectedRows",
             "deriveInstalledRowWrite/driver/init:requestFacts/init:requestFacts",
             "deriveInstalledRowWrite/driver/init:send/init:send",
-            "deriveInstalledRowWrite/fail/fail",
-            "deriveInstalledRowWrite/freezeInput",
-            "deriveInstalledRowWrite/freezeRequestData",
             "deriveInstalledRowWrite/freezeRequestData/freezeRequestData",
-            "deriveInstalledRowWrite/original/original",
-            "deriveInstalledRowWrite/recoveryBinding/recoveryBinding",
-            "deriveInstalledRowWrite/restoreMembers",
             "deriveInstalledRowWrite/restoreMembers/restoreMembers",
             "deriveInstalledRowWrite/restoreMembers/restoreMembers/restoreMembers",
-            "deriveInstalledRowWrite/restoreMembers/restoreMembers/saved/saved",
-            "deriveInstalledRowWrite/text/text",
-            "deriveInstalledRowWrite/wireCid/wireCid"
+            "deriveInstalledRowWrite/restoreMembers/restoreMembers/saved/saved"
           ],
           "exports": [],
           "attributes": {
@@ -12143,9 +10630,7 @@
           }
         },
         {
-          "operations": [
-            "sameEffectValue/sameEffectValue"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -12409,7 +10894,6 @@
         },
         {
           "operations": [
-            "captureResponseConfirmation",
             "captureResponseConfirmation/captureResponseConfirmation",
             "captureResponseConfirmation/captureResponseConfirmation#2",
             "captureResponseConfirmation/captureResponseConfirmation#3",
@@ -12421,16 +10905,13 @@
             "createRowEffectStage/physicalRoute/physicalRoute/confirmResponse/confirmResponse/confirmed/confirmed",
             "createRowEffectStage/prepareRecovered/prepareRecovered#3",
             "createRowEffectStage/prepareRecovered/prepareRecovered/prepareRecovered",
-            "createRowEffectStage/recoveredEntries/recoveredEntries/restore/restore",
-            "deriveInstalledRowWrite/bindLogical",
             "deriveInstalledRowWrite/deriveInstalledRowWrite#4",
             "deriveInstalledRowWrite/deriveInstalledRowWrite#5",
             "deriveInstalledRowWrite/deriveInstalledRowWrite#6",
             "deriveInstalledRowWrite/driver/init:assertRequestFinalized/init:assertRequestFinalized",
             "deriveInstalledRowWrite/driver/init:capabilityRequestCid/init:capabilityRequestCid",
             "deriveInstalledRowWrite/driver/init:finalizeRequest/init:finalizeRequest",
-            "deriveInstalledRowWrite/init:confirmResponse/init:confirmResponse",
-            "deriveInstalledRowWrite/physicalOriginal"
+            "deriveInstalledRowWrite/init:confirmResponse/init:confirmResponse"
           ],
           "exports": [],
           "attributes": {
@@ -12550,7 +11031,6 @@
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries#2",
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/release/release",
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/reserveRecoveryInput/reserveRecoveryInput",
-            "createRowEffectStage/validateRecoveredEntries/validateRecoveredEntries",
             "createRowEffectStage/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries",
             "createRowEffectStage/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries/claimBySource/claimBySource",
             "createRowEffectStage/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries"
@@ -12737,7 +11217,6 @@
         },
         {
           "operations": [
-            "createRowEffectStage/captureStage/constructRows/constructRows",
             "createRowEffectStage/captureStage/constructRows/constructRows/constructRows",
             "createRowEffectStage/captureStage/constructRows/constructRows/constructRows#2",
             "createRowEffectStage/captureStage/constructRows/constructRows/context/context",
@@ -12895,13 +11374,6 @@
         "startInstalledRowRun"
       ],
       "operations": [
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
         {
           "name": "startInstalledRowRun",
           "parameters": [
@@ -13200,11 +11672,6 @@
           "async": false
         },
         {
-          "name": "startInstalledRowRun/stopReader/stopReader",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "startInstalledRowRun/stopReader/stopReader/stopReader",
           "parameters": [],
           "async": false
@@ -13221,7 +11688,6 @@
         {
           "operations": [
             "<module>",
-            "fail/fail",
             "startInstalledRowRun",
             "startInstalledRowRun/capture",
             "startInstalledRowRun/cleanup",
@@ -13250,7 +11716,6 @@
             "startInstalledRowRun/run/run#5",
             "startInstalledRowRun/run/run#6",
             "startInstalledRowRun/startInstalledRowRun",
-            "startInstalledRowRun/stopReader/stopReader",
             "startInstalledRowRun/stopReader/stopReader/stopReader",
             "startInstalledRowRun/stopReader/stopReader/stopReader#2"
           ],
@@ -14406,13 +12871,6 @@
       "sha256": "ace3b7593f5c0882a735005fdcaa3ad35e098d3b99ab57e502ca44dad383a62f",
       "operations": [
         {
-          "name": "byCid/byCid",
-          "parameters": [
-            "values"
-          ],
-          "async": false
-        },
-        {
           "name": "byCid/byCid/byCid",
           "parameters": [
             "value"
@@ -14424,13 +12882,6 @@
           "parameters": [
             "a",
             "b"
-          ],
-          "async": false
-        },
-        {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -14480,43 +12931,12 @@
           "async": true
         },
         {
-          "name": "createInstalledRowSource/acquire",
-          "parameters": [
-            "state",
-            "preparedProgram",
-            "preparedEffect",
-            "registry",
-            "values",
-            "fragment",
-            "ordered",
-            "access",
-            "signal",
-            "preparedSource",
-            "retainedRelationOutput",
-            "occurrence",
-            "ledger",
-            "originalOperationScope",
-            "captureOnly"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/acquire/closeOriginal/closeOriginal",
-          "parameters": [],
-          "async": true
-        },
-        {
           "name": "createInstalledRowSource/acquire/complete/complete",
           "parameters": [],
           "async": true
         },
         {
           "name": "createInstalledRowSource/acquire/complete/complete/verifyRead/verifyRead",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/acquire/issueGrant/issueGrant",
           "parameters": [],
           "async": false
         },
@@ -14634,13 +13054,6 @@
           "async": false
         },
         {
-          "name": "createInstalledRowSource/captureCapacity/captureCapacity",
-          "parameters": [
-            "owner"
-          ],
-          "async": false
-        },
-        {
           "name": "createInstalledRowSource/constructReadMetadata/constructReadMetadata",
           "parameters": [],
           "async": false
@@ -14740,27 +13153,6 @@
           "async": true
         },
         {
-          "name": "createInstalledRowSource/decideRead/decideRead",
-          "parameters": [
-            "prepared",
-            "access",
-            "signal"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/describePreparedSource",
-          "parameters": [
-            "requirement",
-            "occurrence",
-            "checkedOwner",
-            "wholeInput",
-            "plannedAcquisition",
-            "effectful"
-          ],
-          "async": false
-        },
-        {
           "name": "createInstalledRowSource/describePreparedSource/describePreparedSource",
           "parameters": [
             "value"
@@ -14844,19 +13236,9 @@
           "async": true
         },
         {
-          "name": "createInstalledRowSource/openKeyed/closeOriginal/closeOriginal",
-          "parameters": [],
-          "async": true
-        },
-        {
           "name": "createInstalledRowSource/openKeyed/init:close/init:close",
           "parameters": [],
           "async": true
-        },
-        {
-          "name": "createInstalledRowSource/openKeyed/observedMs/observedMs",
-          "parameters": [],
-          "async": false
         },
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed",
@@ -15109,13 +13491,6 @@
           "async": false
         },
         {
-          "name": "createInstalledRowSource/ordinarySubject/ordinarySubject",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
           "name": "createInstalledRowSource/prepare",
           "parameters": [
             "preparedProgram",
@@ -15132,16 +13507,6 @@
             "occurrence"
           ],
           "async": true
-        },
-        {
-          "name": "createInstalledRowSource/prepare/authorizePreparation/authorizePreparation",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/prepare/recheck/recheck",
-          "parameters": [],
-          "async": false
         },
         {
           "name": "createInstalledRowSource/prepareKeyed",
@@ -15165,13 +13530,6 @@
           "name": "createInstalledRowSource/prepareKeyed/prepareKeyed#2",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/prepareOriginalAcquisition",
-          "parameters": [
-            "requirement"
           ],
           "async": false
         },
@@ -15200,13 +13558,6 @@
           "name": "createInstalledRowSource/resources/resources",
           "parameters": [
             "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/selectedKeyedContent/selectedKeyedContent",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -15278,19 +13629,6 @@
           "async": true
         },
         {
-          "name": "createInstalledRowSource/verifyKeyedRead/recheck/recheck",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "cause"
-          ],
-          "async": false
-        },
-        {
           "name": "installedRowCredentialOperationSite",
           "parameters": [
             "credential"
@@ -15329,13 +13667,6 @@
             "args"
           ],
           "async": true
-        },
-        {
-          "name": "installRowSourceAuthorization/own/own",
-          "parameters": [
-            "decision"
-          ],
-          "async": false
         },
         {
           "name": "loadRowSourceCredentialCustody",
@@ -15379,11 +13710,6 @@
             "openCredentialJournal"
           ],
           "async": true
-        },
-        {
-          "name": "openInstalledRowSite/current/current",
-          "parameters": [],
-          "async": false
         },
         {
           "name": "openInstalledRowSite/init:close/init:close",
@@ -15448,11 +13774,6 @@
           "async": false
         },
         {
-          "name": "openRowSourceCredentialCustody/bindReadResourceChild/assertParent/assertParent",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openRowSourceCredentialCustody/bindReadResourceChild/observeCurrent/observeCurrent",
           "parameters": [],
           "async": true
@@ -15461,13 +13782,6 @@
           "name": "openRowSourceCredentialCustody/bindRunAcquisition",
           "parameters": [
             "authorization",
-            "callbacks"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/captureRunCurrent",
-          "parameters": [
             "callbacks"
           ],
           "async": false
@@ -15514,11 +13828,6 @@
           "parameters": [
             "cause"
           ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/closeRunBindings",
-          "parameters": [],
           "async": false
         },
         {
@@ -15617,11 +13926,6 @@
           "async": false
         },
         {
-          "name": "openRowSourceCredentialCustody/originalScopeFields/originalScopeFields",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openRowSourceCredentialCustody/readChildCredential",
           "parameters": [
             "acquisition",
@@ -15635,22 +13939,6 @@
             "parent",
             "acquisition",
             "authorization"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/readResourceParent",
-          "parameters": [
-            "acquisition"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialCustody/retainRunBinding",
-          "parameters": [
-            "authorization",
-            "current",
-            "resourceParent"
           ],
           "async": false
         },
@@ -15744,13 +14032,6 @@
           "async": true
         },
         {
-          "name": "openRowSourceCredentialSite/bindingWire/bindingWire",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "openRowSourceCredentialSite/callResource/callResource",
           "parameters": [
             "options"
@@ -15760,13 +14041,6 @@
         {
           "name": "openRowSourceCredentialSite/closeOwnedAuthorization/closeOwnedAuthorization",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/currentEffectRead",
-          "parameters": [
-            "approved"
-          ],
           "async": false
         },
         {
@@ -15834,49 +14108,14 @@
           "async": false
         },
         {
-          "name": "openRowSourceCredentialSite/synchronous",
-          "parameters": [
-            "result"
-          ],
-          "async": false
-        },
-        {
           "name": "openRowSourceCredentialSite/synchronous/synchronous",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "ownCredentialAcquisitionLimits",
-          "parameters": [
-            "input"
-          ],
           "async": false
         },
         {
           "name": "ownCredentialAcquisitionLimits/ownCredentialAcquisitionLimits",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "ownCredentialSecretPresentation",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareImmutablePhysicalTargets",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareImmutablePhysicalTargets/arrayValues/arrayValues",
-          "parameters": [
-            "input"
           ],
           "async": false
         },
@@ -15903,23 +14142,11 @@
           "async": false
         },
         {
-          "name": "prepareImmutablePhysicalTargets/mismatch/mismatch",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets",
           "parameters": [
             "field"
           ],
           "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite",
-          "parameters": [
-            "options"
-          ],
-          "async": true
         },
         {
           "name": "prepareInstallationMetadataSite/account/account",
@@ -15936,27 +14163,11 @@
           "async": false
         },
         {
-          "name": "prepareInstallationMetadataSite/callAccount/callAccount",
-          "parameters": [
-            "name",
-            "args"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareInstallationMetadataSite/current/current",
           "parameters": [
             "operation"
           ],
           "async": true
-        },
-        {
-          "name": "prepareInstallationMetadataSite/data/data",
-          "parameters": [
-            "value",
-            "keys"
-          ],
-          "async": false
         },
         {
           "name": "prepareInstallationMetadataSite/data/data/data",
@@ -15969,20 +14180,6 @@
           "name": "prepareInstallationMetadataSite/data/data/data#2",
           "parameters": [
             "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/ensureCurrent/ensureCurrent",
-          "parameters": [
-            "operation"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/factsFor/factsFor",
-          "parameters": [
-            "target"
           ],
           "async": false
         },
@@ -16082,21 +14279,9 @@
           "async": false
         },
         {
-          "name": "prepareInstallationMetadataSite/invalid/invalid",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "prepareInstallationMetadataSite/pair/pair",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/positive/positive",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -16120,11 +14305,6 @@
           "async": false
         },
         {
-          "name": "prepareInstallationMetadataSite/profileCurrent/profileCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "prepareInstallationMetadataSite/profileCurrent/profileCurrent/profileCurrent",
           "parameters": [
             "key"
@@ -16139,26 +14319,8 @@
           "async": false
         },
         {
-          "name": "prepareInstallationMetadataSite/synchronous/synchronous",
-          "parameters": [
-            "result"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareInstallationMetadataSite/synchronous/synchronous/synchronous",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "retainCredentialOperationSite",
-          "parameters": [
-            "site",
-            "custody",
-            "identity",
-            "enabled",
-            "originalBind"
-          ],
           "async": false
         },
         {
@@ -16211,13 +14373,6 @@
           "async": false
         },
         {
-          "name": "rowSourceCheckEnvironment/members/members",
-          "parameters": [
-            "values"
-          ],
-          "async": false
-        },
-        {
           "name": "rowSourceCheckEnvironment/parse/parse",
           "parameters": [
             "wire"
@@ -16251,13 +14406,6 @@
         },
         {
           "name": "text/text",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "valueCid/valueCid",
           "parameters": [
             "value"
           ],
@@ -16311,15 +14459,11 @@
         {
           "operations": [
             "<module>",
-            "byCid/byCid",
             "byCid/byCid/byCid",
             "byCid/byCid/byCid#2",
-            "cid/cid",
             "createInstalledRowSource",
-            "createInstalledRowSource/acquire",
             "createInstalledRowSource/acquire/complete/complete",
             "createInstalledRowSource/acquire/complete/complete/verifyRead/verifyRead",
-            "createInstalledRowSource/acquire/issueGrant/issueGrant",
             "createInstalledRowSource/acquire/readerOptions/consumeObservation",
             "createInstalledRowSource/acquire/readerOptions/readerOptions",
             "createInstalledRowSource/acquire/readerOptions/readerOptions#2",
@@ -16329,7 +14473,6 @@
             "createInstalledRowSource/acquire/readerOptions/readerOptions#9",
             "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions",
             "createInstalledRowSource/acquire/readerOptions/readerOptions/selected/selected",
-            "createInstalledRowSource/captureCapacity/captureCapacity",
             "createInstalledRowSource/constructReadMetadata/constructReadMetadata",
             "createInstalledRowSource/constructReadMetadata/constructReadMetadata/sourceReadAccesses/sourceReadAccesses",
             "createInstalledRowSource/createInstalledRowSource",
@@ -16340,15 +14483,12 @@
             "createInstalledRowSource/createInstalledRowSource#8",
             "createInstalledRowSource/createInstalledRowSource#9",
             "createInstalledRowSource/currentRead/currentRead",
-            "createInstalledRowSource/decideRead/decideRead",
-            "createInstalledRowSource/describePreparedSource",
             "createInstalledRowSource/describePreparedSource/describePreparedSource",
             "createInstalledRowSource/describePreparedSource/describePreparedSource#2",
             "createInstalledRowSource/keyedRecoveryBinding",
             "createInstalledRowSource/open",
             "createInstalledRowSource/openCapture",
             "createInstalledRowSource/openKeyed",
-            "createInstalledRowSource/openKeyed/observedMs/observedMs",
             "createInstalledRowSource/openKeyed/openKeyed",
             "createInstalledRowSource/openKeyed/openKeyed#13",
             "createInstalledRowSource/openKeyed/openKeyed#2",
@@ -16382,28 +14522,20 @@
             "createInstalledRowSource/ordinaryRecoveryBinding",
             "createInstalledRowSource/ordinaryRecoveryBinding/ordinaryRecoveryBinding",
             "createInstalledRowSource/ordinaryRecoveryBinding/ordinaryRecoveryBinding#2",
-            "createInstalledRowSource/ordinarySubject/ordinarySubject",
             "createInstalledRowSource/prepare",
-            "createInstalledRowSource/prepare/authorizePreparation/authorizePreparation",
-            "createInstalledRowSource/prepare/recheck/recheck",
             "createInstalledRowSource/prepareKeyed",
             "createInstalledRowSource/prepareKeyed/prepareKeyed",
             "createInstalledRowSource/prepareKeyed/prepareKeyed#2",
             "createInstalledRowSource/prepareRetained",
             "createInstalledRowSource/prepareRetained/prepareRetained",
             "createInstalledRowSource/resources/resources",
-            "createInstalledRowSource/selectedKeyedContent/selectedKeyedContent",
             "createInstalledRowSource/verifyKeyedRead",
-            "createInstalledRowSource/verifyKeyedRead/recheck/recheck",
-            "fail/fail",
             "installRowSourceAuthorization",
             "installRowSourceAuthorization/installRowSourceAuthorization",
             "installRowSourceAuthorization/installRowSourceAuthorization#2",
             "installRowSourceAuthorization/installRowSourceAuthorization#3",
-            "installRowSourceAuthorization/own/own",
             "openRowSourceCredentialCustody",
             "openRowSourceCredentialCustody/bindRunAcquisition",
-            "openRowSourceCredentialCustody/captureRunCurrent",
             "openRowSourceCredentialCustody/captureRunCurrent/assertCurrent/assertCurrent",
             "openRowSourceCredentialCustody/captureRunCurrent/assertCurrent/assertCurrent/assertCurrent",
             "openRowSourceCredentialCustody/captureRunCurrent/captureRunCurrent",
@@ -16411,7 +14543,6 @@
             "openRowSourceCredentialCustody/checkGrantRequest",
             "openRowSourceCredentialCustody/close",
             "openRowSourceCredentialCustody/close/close",
-            "openRowSourceCredentialCustody/closeRunBindings",
             "openRowSourceCredentialCustody/custody/custody",
             "openRowSourceCredentialCustody/custody/custody#2",
             "openRowSourceCredentialCustody/custody/init:closeOnce/init:closeOnce",
@@ -16424,13 +14555,9 @@
             "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#2",
             "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#3",
             "openRowSourceCredentialCustody/openRunAcquisition/originalRequest/originalRequest",
-            "openRowSourceCredentialCustody/originalScopeFields/originalScopeFields",
-            "openRowSourceCredentialCustody/retainRunBinding",
             "openRowSourceCredentialCustody/sign",
             "openRowSourceCredentialSite",
-            "openRowSourceCredentialSite/bindingWire/bindingWire",
             "openRowSourceCredentialSite/callResource/callResource",
-            "openRowSourceCredentialSite/currentEffectRead",
             "openRowSourceCredentialSite/currentEffectRead/currentEffectRead",
             "openRowSourceCredentialSite/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead",
             "openRowSourceCredentialSite/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead",
@@ -16439,25 +14566,19 @@
             "openRowSourceCredentialSite/init:issueReadGrant/init:issueReadGrant",
             "openRowSourceCredentialSite/openRowSourceCredentialSite",
             "openRowSourceCredentialSite/openRowSourceCredentialSite#2",
-            "openRowSourceCredentialSite/synchronous",
             "openRowSourceCredentialSite/synchronous/synchronous",
-            "prepareImmutablePhysicalTargets",
-            "prepareImmutablePhysicalTargets/arrayValues/arrayValues",
             "prepareImmutablePhysicalTargets/init:prepare/init:prepare",
             "prepareImmutablePhysicalTargets/init:prepare/init:prepare/init:prepare",
             "prepareImmutablePhysicalTargets/init:prepare/init:prepare/target/target",
-            "prepareImmutablePhysicalTargets/mismatch/mismatch",
             "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets",
             "rowSourceCheckEnvironment",
             "rowSourceCheckEnvironment/build/build",
             "rowSourceCheckEnvironment/encode/encode",
             "rowSourceCheckEnvironment/evidenceCid/evidenceCid",
-            "rowSourceCheckEnvironment/members/members",
             "rowSourceCheckEnvironment/parse/parse",
             "rowSourceCheckEnvironment/rowSourceCheckEnvironment",
             "rowSourceCheckEnvironment/rowSourceCheckEnvironment/rowSourceCheckEnvironment",
-            "text/text",
-            "valueCid/valueCid"
+            "text/text"
           ],
           "exports": [
             "createInstalledRowSource",
@@ -17187,7 +15308,6 @@
         },
         {
           "operations": [
-            "createInstalledRowSource/acquire/closeOriginal/closeOriginal",
             "createInstalledRowSource/acquire/recovery/init:cleanup/init:cleanup",
             "createInstalledRowSource/acquire/recovery/init:close/init:close",
             "createInstalledRowSource/acquire/recovery/recovery"
@@ -18263,8 +16383,7 @@
         },
         {
           "operations": [
-            "createInstalledRowSource/managedProviderCaptureCapacity",
-            "createInstalledRowSource/prepareOriginalAcquisition"
+            "createInstalledRowSource/managedProviderCaptureCapacity"
           ],
           "exports": [],
           "attributes": {
@@ -18489,7 +16608,6 @@
         {
           "operations": [
             "createInstalledRowSource/openKeyed/cleanup/cleanup",
-            "createInstalledRowSource/openKeyed/closeOriginal/closeOriginal",
             "createInstalledRowSource/openKeyed/init:close/init:close",
             "createInstalledRowSource/openKeyed/openKeyed#10",
             "createInstalledRowSource/openKeyed/openKeyed#11",
@@ -18603,16 +16721,12 @@
           "operations": [
             "installedRowCredentialOperationSite",
             "openInstalledRowSite",
-            "openInstalledRowSite/current/current",
             "openInstalledRowSite/init:close/init:close",
             "openInstalledRowSite/init:resolveSecret/init:resolveSecret",
             "openInstalledRowSite/openInstalledRowSite",
             "openRowSourceCredentialCustody/authorizationPurpose",
             "openRowSourceCredentialSite/closeOwnedAuthorization/closeOwnedAuthorization",
-            "ownCredentialAcquisitionLimits",
             "ownCredentialAcquisitionLimits/ownCredentialAcquisitionLimits",
-            "ownCredentialSecretPresentation",
-            "retainCredentialOperationSite",
             "retainCredentialOperationSite/retainCredentialOperationSite",
             "retainCredentialOperationSite/retainCredentialOperationSite#2"
           ],
@@ -19220,16 +17334,11 @@
             "openRowSourceCredentialCustody/installationMetadataJournal/init:close/init:close",
             "openRowSourceCredentialCustody/installationMetadataJournal/installationMetadataJournal",
             "openRowSourceCredentialCustody/signInstallationMetadata",
-            "prepareInstallationMetadataSite",
             "prepareInstallationMetadataSite/account/account",
             "prepareInstallationMetadataSite/accountMethods/accountMethods",
-            "prepareInstallationMetadataSite/callAccount/callAccount",
             "prepareInstallationMetadataSite/current/current",
-            "prepareInstallationMetadataSite/data/data",
             "prepareInstallationMetadataSite/data/data/data",
             "prepareInstallationMetadataSite/data/data/data#2",
-            "prepareInstallationMetadataSite/ensureCurrent/ensureCurrent",
-            "prepareInstallationMetadataSite/factsFor/factsFor",
             "prepareInstallationMetadataSite/init:attach/init:attach",
             "prepareInstallationMetadataSite/init:attach/init:attach/site/init:close/init:close",
             "prepareInstallationMetadataSite/init:attach/init:attach/site/init:credential/init:credential",
@@ -19239,16 +17348,12 @@
             "prepareInstallationMetadataSite/init:attach/init:attach/site/site",
             "prepareInstallationMetadataSite/init:attach/init:attach/site/site#2",
             "prepareInstallationMetadataSite/init:close/init:close",
-            "prepareInstallationMetadataSite/invalid/invalid",
             "prepareInstallationMetadataSite/pair/pair",
-            "prepareInstallationMetadataSite/positive/positive",
             "prepareInstallationMetadataSite/prepareInstallationMetadataSite",
             "prepareInstallationMetadataSite/prepareInstallationMetadataSite#2",
             "prepareInstallationMetadataSite/prepareInstallationMetadataSite#3",
-            "prepareInstallationMetadataSite/profileCurrent/profileCurrent",
             "prepareInstallationMetadataSite/profileCurrent/profileCurrent/profileCurrent",
             "prepareInstallationMetadataSite/selectedProfile/selectedProfile",
-            "prepareInstallationMetadataSite/synchronous/synchronous",
             "prepareInstallationMetadataSite/synchronous/synchronous/synchronous"
           ],
           "exports": [],
@@ -19387,10 +17492,8 @@
           "operations": [
             "openRowSourceCredentialCustody/bindReadResourceChild",
             "openRowSourceCredentialCustody/bindReadResourceChild/assertCurrent/assertCurrent",
-            "openRowSourceCredentialCustody/bindReadResourceChild/assertParent/assertParent",
             "openRowSourceCredentialCustody/bindReadResourceChild/observeCurrent/observeCurrent",
-            "openRowSourceCredentialCustody/readResourceChildCredential",
-            "openRowSourceCredentialCustody/readResourceParent"
+            "openRowSourceCredentialCustody/readResourceChildCredential"
           ],
           "exports": [],
           "attributes": {
@@ -19803,13 +17906,6 @@
           "async": false
         },
         {
-          "name": "checkInstalledTableEffectLimits/object/object",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "cid/cid",
           "parameters": [
             "value"
@@ -19886,17 +17982,6 @@
           "async": false
         },
         {
-          "name": "createInstalledTableEffect/claimsOf/claimsOf",
-          "parameters": [
-            "body",
-            "keys",
-            "requestScope",
-            "unit",
-            "retentionId"
-          ],
-          "async": false
-        },
-        {
           "name": "createInstalledTableEffect/claimsOf/claimsOf/claimsOf",
           "parameters": [
             "member",
@@ -19908,11 +17993,6 @@
           "name": "createInstalledTableEffect/cleanupOwner/cleanupOwner",
           "parameters": [],
           "async": false
-        },
-        {
-          "name": "createInstalledTableEffect/cleanupOwner/cleanupOwner/drain/drain",
-          "parameters": [],
-          "async": true
         },
         {
           "name": "createInstalledTableEffect/cleanupOwner/cleanupOwner/owner/init:cleanup/init:cleanup",
@@ -19939,29 +18019,6 @@
         {
           "name": "createInstalledTableEffect/cleanupOwner/cleanupOwner/owner/owner",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledTableEffect/commonStage/commonStage",
-          "parameters": [
-            "control",
-            "store",
-            "execution",
-            "storedResults",
-            "computation",
-            "preview",
-            "applyPreview",
-            "ledger",
-            "body",
-            "members",
-            "scopes",
-            "owner",
-            "request",
-            "attempt",
-            "contractLimits",
-            "now",
-            "continuationWire"
-          ],
           "async": false
         },
         {
@@ -20012,17 +18069,6 @@
           "async": false
         },
         {
-          "name": "createInstalledTableEffect/dispatchBinder/dispatchBinder",
-          "parameters": [
-            "control",
-            "ledger",
-            "owner",
-            "body",
-            "scopes"
-          ],
-          "async": false
-        },
-        {
           "name": "createInstalledTableEffect/dispatchBinder/dispatchBinder/dispatchBinder",
           "parameters": [
             "binding"
@@ -20053,23 +18099,6 @@
           "parameters": [
             "key",
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledTableEffect/openLedger/openLedger",
-          "parameters": [
-            "identity"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledTableEffect/preflightOf/preflightOf",
-          "parameters": [
-            "body",
-            "targets",
-            "requestScope",
-            "keys"
           ],
           "async": false
         },
@@ -20240,13 +18269,6 @@
           "async": true
         },
         {
-          "name": "createInstalledTableEffect/prepareRecovered/evidenceDecision/evidenceDecision",
-          "parameters": [
-            "index"
-          ],
-          "async": true
-        },
-        {
           "name": "createInstalledTableEffect/prepareRecovered/prepareRecovered",
           "parameters": [],
           "async": false
@@ -20300,14 +18322,6 @@
           "async": false
         },
         {
-          "name": "createInstalledTableEffect/resolve/resolve",
-          "parameters": [
-            "descriptor",
-            "capabilityCid"
-          ],
-          "async": false
-        },
-        {
           "name": "createInstalledTableEffect/resolve/resolve/target/target",
           "parameters": [
             "target"
@@ -20315,26 +18329,9 @@
           "async": false
         },
         {
-          "name": "createInstalledTableEffect/scopesOf/scopesOf",
-          "parameters": [
-            "targets"
-          ],
-          "async": false
-        },
-        {
           "name": "createInstalledTableEffect/scopesOf/scopesOf/scopesOf",
           "parameters": [
             "target"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledTableEffect/useCid/useCid",
-          "parameters": [
-            "kind",
-            "body",
-            "subjectCid",
-            "decisions"
           ],
           "async": false
         },
@@ -20347,34 +18344,6 @@
         },
         {
           "name": "createInstalledTableEffect/useCid/useCid/useCid#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "exportLimits/exportLimits",
-          "parameters": [
-            "o"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "hash/hash",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
           "parameters": [
             "value"
           ],
@@ -20403,7 +18372,6 @@
             "checkInstalledTableEffectLimits/checkInstalledTableEffectLimits",
             "checkInstalledTableEffectLimits/checkInstalledTableEffectLimits#2",
             "checkInstalledTableEffectLimits/checkInstalledTableEffectLimits#3",
-            "checkInstalledTableEffectLimits/object/object",
             "cid/cid",
             "createInstalledTableEffect",
             "createInstalledTableEffect/adapter/adapter",
@@ -20413,16 +18381,13 @@
             "createInstalledTableEffect/adapter/adapter#5",
             "createInstalledTableEffect/adapter/init:close/init:close",
             "createInstalledTableEffect/capabilityRoute/capabilityRoute",
-            "createInstalledTableEffect/claimsOf/claimsOf",
             "createInstalledTableEffect/claimsOf/claimsOf/claimsOf",
             "createInstalledTableEffect/cleanupOwner/cleanupOwner",
-            "createInstalledTableEffect/cleanupOwner/cleanupOwner/drain/drain",
             "createInstalledTableEffect/cleanupOwner/cleanupOwner/owner/init:cleanup/init:cleanup",
             "createInstalledTableEffect/cleanupOwner/cleanupOwner/owner/init:cleanup/init:cleanup/init:cleanup",
             "createInstalledTableEffect/cleanupOwner/cleanupOwner/owner/init:close/init:close",
             "createInstalledTableEffect/cleanupOwner/cleanupOwner/owner/init:setLedger/init:setLedger",
             "createInstalledTableEffect/cleanupOwner/cleanupOwner/owner/owner",
-            "createInstalledTableEffect/commonStage/commonStage",
             "createInstalledTableEffect/commonStage/commonStage/commonStage",
             "createInstalledTableEffect/commonStage/commonStage/commonStage#2",
             "createInstalledTableEffect/commonStage/commonStage/commonStage/commonStage",
@@ -20430,14 +18395,11 @@
             "createInstalledTableEffect/createInstalledTableEffect#2",
             "createInstalledTableEffect/createInstalledTableEffect#3",
             "createInstalledTableEffect/createInstalledTableEffect/createInstalledTableEffect",
-            "createInstalledTableEffect/dispatchBinder/dispatchBinder",
             "createInstalledTableEffect/dispatchBinder/dispatchBinder/dispatchBinder",
             "createInstalledTableEffect/dispose/dispose",
             "createInstalledTableEffect/dispose/dispose/dispose",
             "createInstalledTableEffect/installed/installed",
             "createInstalledTableEffect/limits/limits",
-            "createInstalledTableEffect/openLedger/openLedger",
-            "createInstalledTableEffect/preflightOf/preflightOf",
             "createInstalledTableEffect/preflightOf/preflightOf/preflightOf",
             "createInstalledTableEffect/preflightOf/preflightOf/preflightOf#2",
             "createInstalledTableEffect/preflightOf/preflightOf/preflightOf#3",
@@ -20462,7 +18424,6 @@
             "createInstalledTableEffect/prepareManagedPlan/prepareManagedPlan/prepareManagedPlan#2",
             "createInstalledTableEffect/prepareManagedPlan/prepareManagedPlan/prepareManagedPlan#3",
             "createInstalledTableEffect/prepareRecovered",
-            "createInstalledTableEffect/prepareRecovered/evidenceDecision/evidenceDecision",
             "createInstalledTableEffect/prepareRecovered/prepareRecovered",
             "createInstalledTableEffect/prepareRecovered/prepareRecovered#2",
             "createInstalledTableEffect/prepareRecovered/reconcileStoredResponses/reconcileStoredResponses",
@@ -20471,17 +18432,10 @@
             "createInstalledTableEffect/prepareRecovered/refreshPreflight/refreshPreflight/ready/ready",
             "createInstalledTableEffect/prepareRecovered/refreshPreflight/refreshPreflight/refreshPreflight",
             "createInstalledTableEffect/prepareRecovered/targets/targets",
-            "createInstalledTableEffect/resolve/resolve",
             "createInstalledTableEffect/resolve/resolve/target/target",
-            "createInstalledTableEffect/scopesOf/scopesOf",
             "createInstalledTableEffect/scopesOf/scopesOf/scopesOf",
-            "createInstalledTableEffect/useCid/useCid",
             "createInstalledTableEffect/useCid/useCid/useCid",
             "createInstalledTableEffect/useCid/useCid/useCid#2",
-            "exportLimits/exportLimits",
-            "fail/fail",
-            "hash/hash",
-            "positive/positive",
             "text/text",
             "wire/wire"
           ],
@@ -20635,20 +18589,6 @@
           "async": false
         },
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "hash/hash",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "positive/positive",
           "parameters": [
             "value"
@@ -20671,8 +18611,6 @@
             "authorTableOperationPreview/effects/effects",
             "authorTableOperationPreview/effects/effects/effects",
             "authorTableOperationPreview/tablePreviews/tablePreviews",
-            "fail/fail",
-            "hash/hash",
             "positive/positive",
             "wire/wire"
           ],
@@ -20881,14 +18819,6 @@
           "async": false
         },
         {
-          "name": "createNotionDatabaseReaderFactory/call/call",
-          "parameters": [
-            "name",
-            "args"
-          ],
-          "async": false
-        },
-        {
           "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare",
           "parameters": [
             "options"
@@ -20901,11 +18831,6 @@
             "input"
           ],
           "async": true
-        },
-        {
-          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/closeTransport/closeTransport",
-          "parameters": [],
-          "async": false
         },
         {
           "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/coordinates/coordinates",
@@ -20954,14 +18879,6 @@
           "async": false
         },
         {
-          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/invoke/invoke",
-          "parameters": [
-            "name",
-            "args"
-          ],
-          "async": false
-        },
-        {
           "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/selectedProperty/selectedProperty",
           "parameters": [
             "selected"
@@ -20990,46 +18907,9 @@
           "async": false
         },
         {
-          "name": "data",
-          "parameters": [
-            "value",
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "methods",
-          "parameters": [
-            "value",
-            "names"
-          ],
-          "async": false
-        },
-        {
           "name": "methods/methods",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
           ],
           "async": false
         }
@@ -21052,10 +18932,8 @@
           "operations": [
             "<module>",
             "createNotionDatabaseReaderFactory",
-            "createNotionDatabaseReaderFactory/call/call",
             "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare",
             "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/authorizationFor/authorizationFor",
-            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/closeTransport/closeTransport",
             "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/coordinates/coordinates",
             "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:observe/init:observe",
             "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read",
@@ -21063,17 +18941,11 @@
             "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#2",
             "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#3",
             "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:requestStop/init:requestStop",
-            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/invoke/invoke",
             "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/selectedProperty/selectedProperty",
             "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/verify/verify",
             "createNotionDatabaseReaderFactory/provider/provider",
             "createNotionDatabaseReaderFactory/provider/provider/provider",
-            "data",
-            "fail/fail",
-            "methods",
-            "methods/methods",
-            "positive/positive",
-            "text/text"
+            "methods/methods"
           ],
           "exports": [
             "createNotionDatabaseReaderFactory"
@@ -21151,20 +19023,6 @@
       ],
       "operations": [
         {
-          "name": "current",
-          "parameters": [
-            "state"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "loadInstalledNotionProjectConnection",
           "parameters": [
             "moon",
@@ -21178,14 +19036,6 @@
         {
           "name": "loadInstalledNotionProjectConnection/acquisition/acquisition",
           "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledNotionProjectConnection/call/call",
-          "parameters": [
-            "method",
             "args"
           ],
           "async": false
@@ -21222,13 +19072,6 @@
           "async": false
         },
         {
-          "name": "loadInstalledNotionProjectConnection/spend/spend",
-          "parameters": [
-            "amount"
-          ],
-          "async": false
-        },
-        {
           "name": "loadInstalledNotionProjectConnection/view/init:originalsForRuntime/init:originalsForRuntime",
           "parameters": [
             "commonRuntime",
@@ -21242,31 +19085,9 @@
           "async": false
         },
         {
-          "name": "ports",
-          "parameters": [
-            "receiver",
-            "names"
-          ],
-          "async": false
-        },
-        {
           "name": "ports/ports",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "readLimits",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -21281,13 +19102,6 @@
           "name": "readLimits/readLimits#2",
           "parameters": [
             "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
           ],
           "async": false
         }
@@ -21307,26 +19121,18 @@
         {
           "operations": [
             "<module>",
-            "current",
-            "fail/fail",
             "loadInstalledNotionProjectConnection",
             "loadInstalledNotionProjectConnection/acquisition/acquisition",
-            "loadInstalledNotionProjectConnection/call/call",
             "loadInstalledNotionProjectConnection/fence/fence",
             "loadInstalledNotionProjectConnection/fence/fence/fence",
             "loadInstalledNotionProjectConnection/loadInstalledNotionProjectConnection",
             "loadInstalledNotionProjectConnection/loadInstalledNotionProjectConnection#2",
             "loadInstalledNotionProjectConnection/loadInstalledNotionProjectConnection#3",
-            "loadInstalledNotionProjectConnection/spend/spend",
             "loadInstalledNotionProjectConnection/view/init:originalsForRuntime/init:originalsForRuntime",
             "loadInstalledNotionProjectConnection/view/init:retire/init:retire",
-            "ports",
             "ports/ports",
-            "positive/positive",
-            "readLimits",
             "readLimits/readLimits",
-            "readLimits/readLimits#2",
-            "text/text"
+            "readLimits/readLimits#2"
           ],
           "exports": [
             "loadInstalledNotionProjectConnection"
@@ -21413,28 +19219,8 @@
           "async": false
         },
         {
-          "name": "createNotionOriginalEffectPropertyCodec/call/call",
-          "parameters": [
-            "name",
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "createNotionOriginalEffectPropertyCodec/current",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "createNotionOriginalEffectPropertyCodec/current/current",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createNotionOriginalEffectPropertyCodec/fieldIndex",
-          "parameters": [
-            "value"
-          ],
           "async": false
         },
         {
@@ -21448,16 +19234,6 @@
           "name": "createNotionOriginalEffectPropertyCodec/ports/ports",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "createNotionOriginalEffectPropertyCodec/prepare",
-          "parameters": [
-            "handle",
-            "field",
-            "property",
-            "end"
           ],
           "async": false
         },
@@ -21517,15 +19293,6 @@
           "async": false
         },
         {
-          "name": "data",
-          "parameters": [
-            "value",
-            "keys",
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "data/data",
           "parameters": [
             "key"
@@ -21536,29 +19303,6 @@
           "name": "data/data#2",
           "parameters": [
             "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "integer/integer",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "limits",
-          "parameters": [
-            "value",
-            "keys",
-            "positives"
           ],
           "async": false
         },
@@ -21591,13 +19335,9 @@
           "operations": [
             "<module>",
             "createNotionOriginalEffectPropertyCodec",
-            "createNotionOriginalEffectPropertyCodec/call/call",
-            "createNotionOriginalEffectPropertyCodec/current",
             "createNotionOriginalEffectPropertyCodec/current/current",
-            "createNotionOriginalEffectPropertyCodec/fieldIndex",
             "createNotionOriginalEffectPropertyCodec/original",
             "createNotionOriginalEffectPropertyCodec/ports/ports",
-            "createNotionOriginalEffectPropertyCodec/prepare",
             "createNotionOriginalEffectPropertyCodec/retireRow",
             "createNotionOriginalEffectPropertyCodec/view/init:dateRange/init:dateRange",
             "createNotionOriginalEffectPropertyCodec/view/init:projectRow/init:projectRow",
@@ -21605,12 +19345,8 @@
             "createNotionOriginalEffectPropertyCodec/view/init:retire/init:retire",
             "createNotionOriginalEffectPropertyCodec/view/init:retireRow/init:retireRow",
             "createNotionOriginalEffectPropertyCodec/view/init:wire/init:wire",
-            "data",
             "data/data",
             "data/data#2",
-            "fail/fail",
-            "integer/integer",
-            "limits",
             "limits/limits",
             "limits/limits#2"
           ],
@@ -21743,20 +19479,6 @@
           "async": false
         },
         {
-          "name": "captureInstalledEffectPlanRecipe/memberConstruction/memberConstruction",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureInstalledEffectPlanRecipe/operations/operations",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
           "name": "captureInstalledEffectPlanRecipe/operations/operations/entries/entries",
           "parameters": [
             "_",
@@ -21769,14 +19491,6 @@
           "parameters": [
             "_",
             "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureInstalledEffectPlanRecipe/own/own",
-          "parameters": [
-            "value",
-            "names"
           ],
           "async": false
         },
@@ -21799,13 +19513,6 @@
           "parameters": [
             "bytes",
             "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
           ],
           "async": false
         },
@@ -21835,23 +19542,6 @@
           "name": "prepareInstalledEffectCaptureChild",
           "parameters": [
             "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectConstructorChild",
-          "parameters": [
-            "run",
-            "memberIndex",
-            "rowIndex",
-            "operationIndex",
-            "operation",
-            "perRow",
-            "originalConstruct",
-            "originalInputExtent",
-            "requestsRetired",
-            "ownedChild",
-            "ownedOutputWire"
           ],
           "async": false
         },
@@ -21959,28 +19649,6 @@
           "async": false
         },
         {
-          "name": "prepareInstalledEffectControlConstruction/invoke/invoke",
-          "parameters": [
-            "receiver",
-            "method",
-            "args",
-            "inputWire",
-            "grant",
-            "requestProjection",
-            "footprintProjection",
-            "ledgerRoot",
-            "ledgerFamily",
-            "nativeConstruction",
-            "memberReceipt"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectControlConstruction/invoke/invoke/observePlan/observePlan",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "prepareInstalledEffectControlConstruction/ledgerCodec/ledgerCodec",
           "parameters": [
             "receiver",
@@ -22074,13 +19742,6 @@
           "async": false
         },
         {
-          "name": "prepareInstalledEffectControlConstruction/retainInvalid/retainInvalid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareInstalledEffectControlConstruction/retainInvalid/retainInvalid/joined/joined",
           "parameters": [
             "yes",
@@ -22106,11 +19767,6 @@
         },
         {
           "name": "prepareInstalledEffectControlConstruction/retire/retire",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectControlConstruction/sameRecord/sameRecord",
           "parameters": [],
           "async": false
         },
@@ -22192,13 +19848,6 @@
           "async": false
         },
         {
-          "name": "prepareInstalledEffectCredentialChild/chargeBytes/chargeBytes",
-          "parameters": [
-            "bytes"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareInstalledEffectCredentialChild/check/check",
           "parameters": [],
           "async": false
@@ -22226,40 +19875,9 @@
           "async": true
         },
         {
-          "name": "prepareInstalledEffectCredentialChild/method/method",
-          "parameters": [
-            "value",
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectCredentialChild/nativeCurrent/nativeCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "prepareInstalledEffectCredentialChild/observe/observe",
           "parameters": [],
           "async": true
-        },
-        {
-          "name": "prepareInstalledEffectCredentialChild/originalRecord/originalRecord",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectCredentialChild/originalRecord/originalRecord/same/same",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectCredentialChild/own/own",
-          "parameters": [
-            "value",
-            "name"
-          ],
-          "async": false
         },
         {
           "name": "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild",
@@ -22292,13 +19910,6 @@
         {
           "name": "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#5",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectCredentialChild/retainFence/retainFence",
-          "parameters": [
-            "value"
-          ],
           "async": false
         },
         {
@@ -22369,20 +19980,6 @@
           "async": false
         },
         {
-          "name": "prepareInstalledEffectOwnedRequestChild/captureMethods/captureMethods",
-          "parameters": [
-            "names"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectOwnedRequestChild/drain/drain",
-          "parameters": [
-            "retry"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareInstalledEffectOwnedRequestChild/drain/drain/drain",
           "parameters": [],
           "async": true
@@ -22401,13 +19998,6 @@
           "name": "prepareInstalledEffectOwnedRequestChild/managed/init:construct/init:construct",
           "parameters": [],
           "async": false
-        },
-        {
-          "name": "prepareInstalledEffectOwnedRequestChild/managed/init:construct/init:construct/finish/finish",
-          "parameters": [
-            "value"
-          ],
-          "async": true
         },
         {
           "name": "prepareInstalledEffectOwnedRequestChild/managed/init:construct/init:construct/init:construct",
@@ -22490,17 +20080,6 @@
           "async": false
         },
         {
-          "name": "prepareInstalledPhysicalWritePlanRecipe/quote/quote",
-          "parameters": [
-            "controlWireBytes",
-            "previewBytes",
-            "previewNodes",
-            "previewDepth",
-            "recoveryBytes"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareInstalledPhysicalWritePlanRecipe/recoveryInputExtent/recoveryInputExtent",
           "parameters": [
             "previewWire",
@@ -22537,26 +20116,9 @@
           "async": false
         },
         {
-          "name": "prepareInstalledStandardCreatePlanRecipe/originalMethod/originalMethod",
-          "parameters": [
-            "receiver",
-            "name"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareInstalledStandardCreatePlanRecipe/originalMethod/originalMethod/originalMethod",
           "parameters": [
             "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledStandardCreatePlanRecipe/physical/physical",
-          "parameters": [
-            "phase",
-            "selected",
-            "capacity"
           ],
           "async": false
         },
@@ -22580,13 +20142,6 @@
           "name": "selectInstalledEffectCredentialOperation/selectInstalledEffectCredentialOperation",
           "parameters": [
             "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
           ],
           "async": false
         }
@@ -22613,15 +20168,10 @@
             "captureInstalledEffectPlanRecipe/captureInstalledEffectPlanRecipe#2",
             "captureInstalledEffectPlanRecipe/captureInstalledEffectPlanRecipe/captureInstalledEffectPlanRecipe",
             "captureInstalledEffectPlanRecipe/entries/entries",
-            "captureInstalledEffectPlanRecipe/memberConstruction/memberConstruction",
-            "captureInstalledEffectPlanRecipe/operations/operations",
             "captureInstalledEffectPlanRecipe/operations/operations/entries/entries",
             "captureInstalledEffectPlanRecipe/operations/operations/operations",
-            "captureInstalledEffectPlanRecipe/own/own",
             "captureInstalledEffectPlanRecipe/own/own/own",
             "captureInstalledStandardCreateLimits",
-            "fail/fail",
-            "prepareInstalledEffectConstructorChild",
             "prepareInstalledEffectConstructorChild/drain/drain",
             "prepareInstalledEffectConstructorChild/init:prepare/init:prepare",
             "prepareInstalledEffectConstructorChild/init:prepare/init:prepare/grow/grow",
@@ -22641,24 +20191,17 @@
             "prepareInstalledEffectCredentialChild/callResource/callResource/callResource#4",
             "prepareInstalledEffectCredentialChild/callResource/callResource/response/response",
             "prepareInstalledEffectCredentialChild/callResource/callResource/result/result",
-            "prepareInstalledEffectCredentialChild/chargeBytes/chargeBytes",
             "prepareInstalledEffectCredentialChild/check/check",
             "prepareInstalledEffectCredentialChild/drain/drain",
             "prepareInstalledEffectCredentialChild/drain/drain/drain",
             "prepareInstalledEffectCredentialChild/drain/drain/drain/settled/settled",
             "prepareInstalledEffectCredentialChild/init:prepare/init:prepare",
-            "prepareInstalledEffectCredentialChild/method/method",
-            "prepareInstalledEffectCredentialChild/nativeCurrent/nativeCurrent",
             "prepareInstalledEffectCredentialChild/observe/observe",
-            "prepareInstalledEffectCredentialChild/originalRecord/originalRecord",
-            "prepareInstalledEffectCredentialChild/originalRecord/originalRecord/same/same",
-            "prepareInstalledEffectCredentialChild/own/own",
             "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild",
             "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#2",
             "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#3",
             "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#4",
             "prepareInstalledEffectCredentialChild/prepareInstalledEffectCredentialChild#5",
-            "prepareInstalledEffectCredentialChild/retainFence/retainFence",
             "prepareInstalledEffectCredentialChild/retainFence/retainFence/retainFence",
             "prepareInstalledEffectCredentialChild/retainFence/retainFence/retainFence/settled/settled",
             "prepareInstalledEffectManagedPlan",
@@ -22669,11 +20212,8 @@
             "prepareInstalledEffectManagedPlan/prepareInstalledEffectManagedPlan#2",
             "prepareInstalledEffectRequestChild",
             "prepareInstalledStandardCreatePlanRecipe",
-            "prepareInstalledStandardCreatePlanRecipe/originalMethod/originalMethod",
             "prepareInstalledStandardCreatePlanRecipe/originalMethod/originalMethod/originalMethod",
-            "prepareInstalledStandardCreatePlanRecipe/physical/physical",
-            "prepareInstalledStandardCreatePlanRecipe/prepareInstalledStandardCreatePlanRecipe",
-            "text/text"
+            "prepareInstalledStandardCreatePlanRecipe/prepareInstalledStandardCreatePlanRecipe"
           ],
           "exports": [
             "captureInstalledEffectPlanRecipe",
@@ -22873,12 +20413,10 @@
             "prepareInstalledEffectControlConstruction/prepareInstalledEffectControlConstruction",
             "prepareInstalledEffectControlConstruction/prepareInstalledEffectControlConstruction#2",
             "prepareInstalledEffectControlConstruction/retainInputs/retainInputs",
-            "prepareInstalledEffectControlConstruction/retainInvalid/retainInvalid",
             "prepareInstalledEffectControlConstruction/retainInvalid/retainInvalid/joined/joined",
             "prepareInstalledEffectControlConstruction/retainInvalid/retainInvalid/settled/settled",
             "prepareInstalledEffectControlConstruction/retainRecoveredInputs/retainRecoveredInputs",
-            "prepareInstalledEffectControlConstruction/retire/retire",
-            "prepareInstalledEffectControlConstruction/sameRecord/sameRecord"
+            "prepareInstalledEffectControlConstruction/retire/retire"
           ],
           "exports": [
             "prepareInstalledEffectControlConstruction"
@@ -22992,7 +20530,6 @@
             "prepareInstalledPhysicalWritePlanRecipe/extent/extent",
             "prepareInstalledPhysicalWritePlanRecipe/prepareInstalledPhysicalWritePlanRecipe",
             "prepareInstalledPhysicalWritePlanRecipe/prepareInstalledPhysicalWritePlanRecipe#2",
-            "prepareInstalledPhysicalWritePlanRecipe/quote/quote",
             "prepareInstalledPhysicalWritePlanRecipe/recoveryInputExtent/recoveryInputExtent",
             "prepareInstalledPhysicalWritePlanRecipe/selected/selected",
             "prepareInstalledPhysicalWritePlanRecipe/selected/selected/selected"
@@ -23130,13 +20667,10 @@
         {
           "operations": [
             "prepareInstalledEffectOwnedRequestChild",
-            "prepareInstalledEffectOwnedRequestChild/captureMethods/captureMethods",
-            "prepareInstalledEffectOwnedRequestChild/drain/drain",
             "prepareInstalledEffectOwnedRequestChild/drain/drain/drain",
             "prepareInstalledEffectOwnedRequestChild/drain/drain/drain#2",
             "prepareInstalledEffectOwnedRequestChild/init:prepare/init:prepare",
             "prepareInstalledEffectOwnedRequestChild/managed/init:construct/init:construct",
-            "prepareInstalledEffectOwnedRequestChild/managed/init:construct/init:construct/finish/finish",
             "prepareInstalledEffectOwnedRequestChild/managed/init:construct/init:construct/init:construct",
             "prepareInstalledEffectOwnedRequestChild/managed/init:construct/init:construct/init:construct/init:construct",
             "prepareInstalledEffectOwnedRequestChild/managed/managed",
@@ -23243,8 +20777,6 @@
             "prepareInstalledEffectControlConstruction/footprint/footprint",
             "prepareInstalledEffectControlConstruction/footprint/footprint/footprint",
             "prepareInstalledEffectControlConstruction/grant/grant",
-            "prepareInstalledEffectControlConstruction/invoke/invoke",
-            "prepareInstalledEffectControlConstruction/invoke/invoke/observePlan/observePlan",
             "prepareInstalledEffectControlConstruction/ledgerFamily/ledgerFamily",
             "prepareInstalledEffectControlConstruction/ledgerOpen/ledgerOpen",
             "prepareInstalledEffectControlConstruction/parsePreview/parsePreview",
@@ -23636,13 +21168,6 @@
           "async": false
         },
         {
-          "name": "createMappedKintoneCreateWrite/bytesOf/bytesOf",
-          "parameters": [
-            "wire"
-          ],
-          "async": false
-        },
-        {
           "name": "createMappedKintoneCreateWrite/createMappedKintoneCreateWrite",
           "parameters": [
             "name"
@@ -23660,14 +21185,6 @@
           "name": "createMappedKintoneCreateWrite/createMappedKintoneCreateWrite#3",
           "parameters": [
             "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "createMappedKintoneCreateWrite/data/data",
-          "parameters": [
-            "value",
-            "names"
           ],
           "async": false
         },
@@ -23709,11 +21226,6 @@
           "async": false
         },
         {
-          "name": "createMappedKintoneCreateWrite/invalid/invalid",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "createMappedKintoneCreateWrite/limits/limits",
           "parameters": [
             "name"
@@ -23721,50 +21233,9 @@
           "async": false
         },
         {
-          "name": "createMappedKintoneCreateWrite/retain/retain",
-          "parameters": [
-            "request",
-            "value",
-            "native"
-          ],
-          "async": false
-        },
-        {
-          "name": "createMappedKintoneCreateWrite/selected/selected",
-          "parameters": [
-            "selectedResource",
-            "request",
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalMapping",
-          "parameters": [
-            "moon",
-            "mapping",
-            "declaration"
-          ],
-          "async": false
-        },
-        {
           "name": "originalMapping/originalMapping",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -23898,10 +21369,7 @@
         {
           "operations": [
             "<module>",
-            "fail/fail",
-            "originalMapping",
             "originalMapping/originalMapping",
-            "positive/positive",
             "prepareMappedKintoneCreate",
             "prepareMappedKintoneCreate/prepareMappedKintoneCreate",
             "prepareMappedKintoneCreateFormCheck",
@@ -23997,20 +21465,15 @@
         {
           "operations": [
             "createMappedKintoneCreateWrite",
-            "createMappedKintoneCreateWrite/bytesOf/bytesOf",
             "createMappedKintoneCreateWrite/createMappedKintoneCreateWrite",
             "createMappedKintoneCreateWrite/createMappedKintoneCreateWrite#2",
             "createMappedKintoneCreateWrite/createMappedKintoneCreateWrite#3",
-            "createMappedKintoneCreateWrite/data/data",
             "createMappedKintoneCreateWrite/data/data/data",
             "createMappedKintoneCreateWrite/init:body/init:body",
             "createMappedKintoneCreateWrite/init:classify/init:classify",
             "createMappedKintoneCreateWrite/init:project/init:project",
             "createMappedKintoneCreateWrite/init:request/init:request",
-            "createMappedKintoneCreateWrite/invalid/invalid",
-            "createMappedKintoneCreateWrite/limits/limits",
-            "createMappedKintoneCreateWrite/retain/retain",
-            "createMappedKintoneCreateWrite/selected/selected"
+            "createMappedKintoneCreateWrite/limits/limits"
           ],
           "exports": [
             "createMappedKintoneCreateWrite"
@@ -24095,13 +21558,6 @@
       ],
       "operations": [
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareInstalledEffectOwnedPhysicalChild",
           "parameters": [
             "run",
@@ -24120,11 +21576,6 @@
           "parameters": [
             "bytes"
           ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectOwnedPhysicalChild/current/current",
-          "parameters": [],
           "async": false
         },
         {
@@ -24166,10 +21617,8 @@
         {
           "operations": [
             "<module>",
-            "fail/fail",
             "prepareInstalledEffectOwnedPhysicalChild",
             "prepareInstalledEffectOwnedPhysicalChild/chargeBytes/chargeBytes",
-            "prepareInstalledEffectOwnedPhysicalChild/current/current",
             "prepareInstalledEffectOwnedPhysicalChild/init:prepare/init:prepare",
             "prepareInstalledEffectOwnedPhysicalChild/prepareInstalledEffectOwnedPhysicalChild",
             "prepareInstalledEffectOwnedPhysicalChild/prepareInstalledEffectOwnedPhysicalChild#2",
@@ -24333,20 +21782,6 @@
           "async": false
         },
         {
-          "name": "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/physical/physical",
-          "parameters": [
-            "phase",
-            "perRow",
-            "selectedOperation",
-            "capacity",
-            "requestBytes",
-            "responseBytes",
-            "maximumCapacity",
-            "originalResponseExtent"
-          ],
-          "async": false
-        },
-        {
           "name": "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/physical/physical/extent/extent",
           "parameters": [
             "value"
@@ -24365,16 +21800,6 @@
           "parameters": [
             "sum",
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/quantities/quantities",
-          "parameters": [
-            "inputProfile",
-            "capture",
-            "controlBytes",
-            "hostInputBytes"
           ],
           "async": false
         },
@@ -24404,22 +21829,9 @@
           "async": false
         },
         {
-          "name": "fail/fail",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "integer/integer",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalMethod",
-          "parameters": [
-            "receiver",
-            "name"
           ],
           "async": false
         },
@@ -24439,16 +21851,12 @@
             "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes",
             "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/inputExtent/inputExtent",
             "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/names/names",
-            "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/physical/physical",
             "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/physical/physical/extent/extent",
             "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/prepareSalesforceEffectPlanRecipes",
             "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/prepareSalesforceEffectPlanRecipes#2",
-            "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/quantities/quantities",
             "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/responseExtent/responseExtent",
             "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/targetResponseExtent/targetResponseExtent",
-            "fail/fail",
             "integer/integer",
-            "originalMethod",
             "originalMethod/originalMethod",
             "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/inputExtent/inputExtent/entry/entry",
             "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/inputExtent/inputExtent/inputExtent",

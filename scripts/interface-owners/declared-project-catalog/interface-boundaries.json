@@ -10,29 +10,6 @@
       ],
       "operations": [
         {
-          "name": "capturedCatalogOptions",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "closed/closed",
-          "parameters": [
-            "value",
-            "required",
-            "optional"
-          ],
-          "async": false
-        },
-        {
           "name": "closed/closed/closed",
           "parameters": [
             "name"
@@ -43,13 +20,6 @@
           "name": "closed/closed/closed#2",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
           ],
           "async": false
         },
@@ -69,18 +39,6 @@
           "async": true
         },
         {
-          "name": "invalid/invalid",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "list/list",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "loadDeclaredProjectCatalog",
           "parameters": [
             "moon",
@@ -89,59 +47,8 @@
           "async": true
         },
         {
-          "name": "names/names",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "object/object",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "path/path",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "projectDeclaredCatalog",
-          "parameters": [
-            "moon",
-            "directory",
-            "catalogFile",
-            "dataFile",
-            "connections",
-            "connectionOriginal",
-            "assertCurrent",
-            "openFile",
-            "installationInventory"
-          ],
-          "async": true
-        },
-        {
           "name": "projectDeclaredCatalog/admit/admit",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "projectDeclaredCatalog/argumentsFor/argumentsFor",
-          "parameters": [
-            "binding"
-          ],
-          "async": false
-        },
-        {
-          "name": "projectDeclaredCatalog/call/call",
-          "parameters": [
-            "name",
-            "args"
-          ],
           "async": false
         },
         {
@@ -190,14 +97,6 @@
           "async": false
         },
         {
-          "name": "projectDeclaredCatalog/fileCall/fileCall",
-          "parameters": [
-            "name",
-            "args"
-          ],
-          "async": false
-        },
-        {
           "name": "projectDeclaredCatalog/fileMethods/fileMethods",
           "parameters": [
             "name"
@@ -212,16 +111,6 @@
         {
           "name": "projectDeclaredCatalog/finalInput/finalInput#2",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "projectDeclaredCatalog/inputStage/inputStage",
-          "parameters": [
-            "member",
-            "geometry",
-            "project",
-            "metadata"
-          ],
           "async": false
         },
         {
@@ -408,19 +297,6 @@
           "async": false
         },
         {
-          "name": "projectDeclaredCatalog/restoreInput/restoreInput",
-          "parameters": [
-            "member",
-            "connectorId",
-            "registration",
-            "revision",
-            "input",
-            "final",
-            "originalOnly"
-          ],
-          "async": false
-        },
-        {
           "name": "projectDeclaredCatalog/restoreInput/restoreInput/project/project",
           "parameters": [],
           "async": false
@@ -428,13 +304,6 @@
         {
           "name": "projectDeclaredCatalog/restoreInput/restoreInput/projection/init:capacity/init:capacity",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "projectDeclaredCatalog/savedInput/savedInput",
-          "parameters": [
-            "selected"
-          ],
           "async": false
         },
         {
@@ -590,23 +459,12 @@
         {
           "operations": [
             "<module>",
-            "capturedCatalogOptions",
-            "cid/cid",
-            "closed/closed",
             "closed/closed/closed",
             "closed/closed/closed#2",
-            "fail/fail",
             "freeze/freeze",
             "inspectDeclaredProjectCatalog",
-            "invalid/invalid",
-            "list/list",
             "loadDeclaredProjectCatalog",
-            "names/names",
-            "object/object",
-            "path/path",
-            "projectDeclaredCatalog",
             "projectDeclaredCatalog/admit/admit",
-            "projectDeclaredCatalog/call/call",
             "projectDeclaredCatalog/facts/facts",
             "projectDeclaredCatalog/facts/facts#2",
             "projectDeclaredCatalog/facts/facts/content/content",
@@ -616,7 +474,6 @@
             "projectDeclaredCatalog/facts/facts/listing/listing",
             "projectDeclaredCatalog/finalInput/finalInput",
             "projectDeclaredCatalog/finalInput/finalInput#2",
-            "projectDeclaredCatalog/inputStage/inputStage",
             "projectDeclaredCatalog/inputStage/inputStage/projection/init:capacity/init:capacity",
             "projectDeclaredCatalog/mappingInput/mappingInput",
             "projectDeclaredCatalog/mappingInput/mappingInput#2",
@@ -641,10 +498,8 @@
             "projectDeclaredCatalog/projectDeclaredCatalog#7",
             "projectDeclaredCatalog/projectDeclaredCatalog#8",
             "projectDeclaredCatalog/projectDeclaredCatalog#9",
-            "projectDeclaredCatalog/restoreInput/restoreInput",
             "projectDeclaredCatalog/restoreInput/restoreInput/project/project",
             "projectDeclaredCatalog/restoreInput/restoreInput/projection/init:capacity/init:capacity",
-            "projectDeclaredCatalog/savedInput/savedInput",
             "projectDeclaredCatalog/savedInput/savedInput/savedInput",
             "projectDeclaredCatalog/savedInput/savedInput/savedInput#2",
             "projectDeclaredCatalog/savedInput/savedInput/savedInput#3",
@@ -665,8 +520,6 @@
             "projectDeclaredCatalog/source/source/writes/writes",
             "text/text",
             "wire/wire",
-            "projectDeclaredCatalog/argumentsFor/argumentsFor",
-            "projectDeclaredCatalog/fileCall/fileCall",
             "projectDeclaredCatalog/fileMethods/fileMethods",
             "projectDeclaredCatalog/projectDeclaredCatalog#11",
             "projectDeclaredCatalog/projectDeclaredCatalog#12",

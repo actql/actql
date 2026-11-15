@@ -16,20 +16,6 @@
       ],
       "operations": [
         {
-          "name": "absolute/absolute",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "canonical/canonical",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "checkInstalledKintoneSourceProfile",
           "parameters": [
             "profile"
@@ -51,57 +37,11 @@
           "async": false
         },
         {
-          "name": "checkSite",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "checkSite/checkSite",
           "parameters": [
             "key"
           ],
           "async": false
-        },
-        {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "closed/closed",
-          "parameters": [
-            "value",
-            "keys"
-          ],
-          "async": false
-        },
-        {
-          "name": "decodeMetadataBody",
-          "parameters": [
-            "encoded",
-            "maxBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "inputs",
-          "parameters": [
-            "profile",
-            "readers"
-          ],
-          "async": true
         },
         {
           "name": "installedKintoneSiteBinding",
@@ -207,21 +147,6 @@
           "async": false
         },
         {
-          "name": "metadataBodyBytes",
-          "parameters": [
-            "encoded",
-            "maxBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareInstalledKintoneMaterials",
           "parameters": [
             "profile",
@@ -285,26 +210,16 @@
         {
           "operations": [
             "<module>",
-            "absolute/absolute",
-            "canonical/canonical",
             "checkInstalledKintoneSourceProfile",
             "checkInstalledKintoneSourceProfile/checkInstalledKintoneSourceProfile",
             "checkInstalledKintoneSourceProfile/checkInstalledKintoneSourceProfile#2",
-            "checkSite",
             "checkSite/checkSite",
-            "cid/cid",
-            "closed/closed",
-            "decodeMetadataBody",
-            "fail/fail",
-            "inputs",
             "installedKintoneSourceIdentityParts",
             "installedKintoneSourceIdentityParts/readers/readers",
             "loadInstalledKintoneSource/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledKintoneSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledKintoneSource/loadInstalledKintoneSource",
             "loadInstalledKintoneSource/target/target",
-            "metadataBodyBytes",
-            "positive/positive",
             "text/text"
           ],
           "exports": [
@@ -586,29 +501,6 @@
       ],
       "operations": [
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "readBounds",
-          "parameters": [
-            "moon",
-            "limits"
-          ],
-          "async": false
-        },
-        {
           "name": "readKintoneRecords",
           "parameters": [
             "moon",
@@ -623,15 +515,6 @@
             "consumeObservation",
             "signal",
             "callResource"
-          ],
-          "async": true
-        },
-        {
-          "name": "readKintoneRecords/exchange/exchange",
-          "parameters": [
-            "operation",
-            "path",
-            "body"
           ],
           "async": true
         },
@@ -673,11 +556,7 @@
         {
           "operations": [
             "<module>",
-            "fail/fail",
-            "positive/positive",
-            "readBounds",
             "readKintoneRecords",
-            "readKintoneRecords/exchange/exchange",
             "readKintoneRecords/exchange/exchange/exchange",
             "readKintoneRecords/form/form",
             "readKintoneRecords/readKintoneRecords",
@@ -813,25 +692,11 @@
       ],
       "operations": [
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "KintoneDeleteFailure/constructor:constructor/constructor:constructor",
           "parameters": [
             "cause",
             "observations",
             "phase"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -868,29 +733,6 @@
             "guestSpaceId",
             "signal",
             "callResource"
-          ],
-          "async": true
-        },
-        {
-          "name": "sendRawKintoneDelete/observedRead/observedRead",
-          "parameters": [
-            "operation",
-            "index",
-            "path",
-            "payload",
-            "check"
-          ],
-          "async": true
-        },
-        {
-          "name": "sendRawKintoneDelete/receive/receive",
-          "parameters": [
-            "operation",
-            "index",
-            "path",
-            "method",
-            "payload",
-            "headers"
           ],
           "async": true
         },
@@ -940,13 +782,6 @@
             "bytes"
           ],
           "async": false
-        },
-        {
-          "name": "sendRawKintoneDelete/verify/verify",
-          "parameters": [
-            "operation"
-          ],
-          "async": true
         }
       ],
       "imports": [
@@ -964,22 +799,17 @@
         {
           "operations": [
             "<module>",
-            "fail/fail",
             "KintoneDeleteFailure/constructor:constructor/constructor:constructor",
-            "positive/positive",
             "projectKintoneDeleteObservation",
             "projectKintoneDeleteObservation/projectKintoneDeleteObservation",
             "sendRawKintoneDelete",
-            "sendRawKintoneDelete/observedRead/observedRead",
-            "sendRawKintoneDelete/receive/receive",
             "sendRawKintoneDelete/receive/receive/response/response",
             "sendRawKintoneDelete/receive/receive/response/response/response",
             "sendRawKintoneDelete/sendRawKintoneDelete",
             "sendRawKintoneDelete/sendRawKintoneDelete#2",
             "sendRawKintoneDelete/sendRawKintoneDelete#3",
             "sendRawKintoneDelete/sendRawKintoneDelete#4",
-            "sendRawKintoneDelete/sendRawKintoneDelete#5",
-            "sendRawKintoneDelete/verify/verify"
+            "sendRawKintoneDelete/sendRawKintoneDelete#5"
           ],
           "exports": [
             "KINTONE_RECORD_DELETE_OPERATION",
@@ -1617,25 +1447,11 @@
       ],
       "operations": [
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "KintoneLookupFailure/constructor:constructor/constructor:constructor",
           "parameters": [
             "cause",
             "observations",
             "phase"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -1655,13 +1471,6 @@
             "guestSpaceId",
             "signal",
             "callResource"
-          ],
-          "async": true
-        },
-        {
-          "name": "readRawKintoneKeyLookup/form/form",
-          "parameters": [
-            "index"
           ],
           "async": true
         },
@@ -1687,16 +1496,6 @@
           "async": false
         },
         {
-          "name": "readRawKintoneKeyLookup/receive/receive",
-          "parameters": [
-            "operation",
-            "index",
-            "path",
-            "payload"
-          ],
-          "async": true
-        },
-        {
           "name": "readRawKintoneKeyLookup/receive/receive/response/response",
           "parameters": [
             "options"
@@ -1707,13 +1506,6 @@
           "name": "readRawKintoneKeyLookup/receive/receive/response/response/response",
           "parameters": [],
           "async": false
-        },
-        {
-          "name": "readRawKintoneKeyLookup/verify/verify",
-          "parameters": [
-            "operation"
-          ],
-          "async": true
         }
       ],
       "imports": [
@@ -1733,18 +1525,13 @@
         {
           "operations": [
             "<module>",
-            "fail/fail",
             "KintoneLookupFailure/constructor:constructor/constructor:constructor",
-            "positive/positive",
             "readRawKintoneKeyLookup",
-            "readRawKintoneKeyLookup/form/form",
             "readRawKintoneKeyLookup/readRawKintoneKeyLookup",
             "readRawKintoneKeyLookup/readRawKintoneKeyLookup#2",
             "readRawKintoneKeyLookup/readRawKintoneKeyLookup#3",
-            "readRawKintoneKeyLookup/receive/receive",
             "readRawKintoneKeyLookup/receive/receive/response/response",
-            "readRawKintoneKeyLookup/receive/receive/response/response/response",
-            "readRawKintoneKeyLookup/verify/verify"
+            "readRawKintoneKeyLookup/receive/receive/response/response/response"
           ],
           "exports": [
             "KintoneLookupFailure",
@@ -1827,25 +1614,11 @@
       ],
       "operations": [
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "KintoneWriteFailure/constructor:constructor/constructor:constructor",
           "parameters": [
             "cause",
             "observations",
             "phase"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -1888,29 +1661,6 @@
           "async": true
         },
         {
-          "name": "sendRawKintoneWrite/observedRead/observedRead",
-          "parameters": [
-            "selected",
-            "index",
-            "path",
-            "payload",
-            "check"
-          ],
-          "async": true
-        },
-        {
-          "name": "sendRawKintoneWrite/receive/receive",
-          "parameters": [
-            "selected",
-            "index",
-            "path",
-            "method",
-            "payload",
-            "headers"
-          ],
-          "async": true
-        },
-        {
           "name": "sendRawKintoneWrite/receive/receive/response/response",
           "parameters": [
             "options"
@@ -1947,21 +1697,6 @@
           "name": "sendRawKintoneWrite/sendRawKintoneWrite#4",
           "parameters": [
             "bytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "sendRawKintoneWrite/verify/verify",
-          "parameters": [
-            "selected"
-          ],
-          "async": true
-        },
-        {
-          "name": "writePorts",
-          "parameters": [
-            "moon",
-            "kind"
           ],
           "async": false
         },
@@ -2010,22 +1745,16 @@
         {
           "operations": [
             "<module>",
-            "fail/fail",
             "KintoneWriteFailure/constructor:constructor/constructor:constructor",
-            "positive/positive",
             "projectKintoneWriteObservation",
             "projectKintoneWriteObservation/projectKintoneWriteObservation",
             "sendRawKintoneWrite",
-            "sendRawKintoneWrite/observedRead/observedRead",
-            "sendRawKintoneWrite/receive/receive",
             "sendRawKintoneWrite/receive/receive/response/response",
             "sendRawKintoneWrite/receive/receive/response/response/response",
             "sendRawKintoneWrite/sendRawKintoneWrite",
             "sendRawKintoneWrite/sendRawKintoneWrite#2",
             "sendRawKintoneWrite/sendRawKintoneWrite#3",
             "sendRawKintoneWrite/sendRawKintoneWrite#4",
-            "sendRawKintoneWrite/verify/verify",
-            "writePorts",
             "writePorts/ports/ports",
             "writePorts/writePorts",
             "writePorts/writePorts#2",
@@ -2434,13 +2163,6 @@
           "async": false
         },
         {
-          "name": "createMappedKintoneCreateWrite/bytesOf/bytesOf",
-          "parameters": [
-            "wire"
-          ],
-          "async": false
-        },
-        {
           "name": "createMappedKintoneCreateWrite/createMappedKintoneCreateWrite",
           "parameters": [
             "name"
@@ -2458,14 +2180,6 @@
           "name": "createMappedKintoneCreateWrite/createMappedKintoneCreateWrite#3",
           "parameters": [
             "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "createMappedKintoneCreateWrite/data/data",
-          "parameters": [
-            "value",
-            "names"
           ],
           "async": false
         },
@@ -2507,11 +2221,6 @@
           "async": false
         },
         {
-          "name": "createMappedKintoneCreateWrite/invalid/invalid",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "createMappedKintoneCreateWrite/limits/limits",
           "parameters": [
             "name"
@@ -2519,50 +2228,9 @@
           "async": false
         },
         {
-          "name": "createMappedKintoneCreateWrite/retain/retain",
-          "parameters": [
-            "request",
-            "value",
-            "native"
-          ],
-          "async": false
-        },
-        {
-          "name": "createMappedKintoneCreateWrite/selected/selected",
-          "parameters": [
-            "selectedResource",
-            "request",
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalMapping",
-          "parameters": [
-            "moon",
-            "mapping",
-            "declaration"
-          ],
-          "async": false
-        },
-        {
           "name": "originalMapping/originalMapping",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -2698,28 +2366,20 @@
         {
           "operations": [
             "<module>",
-            "fail/fail",
-            "originalMapping",
             "originalMapping/originalMapping",
-            "positive/positive",
             "prepareMappedKintoneCreate",
             "prepareMappedKintoneCreate/prepareMappedKintoneCreate",
             "sendMappedKintoneCreate",
             "createMappedKintoneCreateWrite",
-            "createMappedKintoneCreateWrite/bytesOf/bytesOf",
             "createMappedKintoneCreateWrite/createMappedKintoneCreateWrite",
             "createMappedKintoneCreateWrite/createMappedKintoneCreateWrite#2",
             "createMappedKintoneCreateWrite/createMappedKintoneCreateWrite#3",
-            "createMappedKintoneCreateWrite/data/data",
             "createMappedKintoneCreateWrite/data/data/data",
             "createMappedKintoneCreateWrite/init:body/init:body",
             "createMappedKintoneCreateWrite/init:classify/init:classify",
             "createMappedKintoneCreateWrite/init:project/init:project",
             "createMappedKintoneCreateWrite/init:request/init:request",
-            "createMappedKintoneCreateWrite/invalid/invalid",
             "createMappedKintoneCreateWrite/limits/limits",
-            "createMappedKintoneCreateWrite/retain/retain",
-            "createMappedKintoneCreateWrite/selected/selected",
             "prepareMappedKintoneCreateFormCheck",
             "prepareMappedKintoneCreateFormCheck/init:project/init:project",
             "prepareMappedKintoneCreateFormCheck/prepareMappedKintoneCreateFormCheck",
@@ -2873,20 +2533,15 @@
         {
           "operations": [
             "createMappedKintoneCreateWrite",
-            "createMappedKintoneCreateWrite/bytesOf/bytesOf",
             "createMappedKintoneCreateWrite/createMappedKintoneCreateWrite",
             "createMappedKintoneCreateWrite/createMappedKintoneCreateWrite#2",
             "createMappedKintoneCreateWrite/createMappedKintoneCreateWrite#3",
-            "createMappedKintoneCreateWrite/data/data",
             "createMappedKintoneCreateWrite/data/data/data",
             "createMappedKintoneCreateWrite/init:body/init:body",
             "createMappedKintoneCreateWrite/init:classify/init:classify",
             "createMappedKintoneCreateWrite/init:project/init:project",
             "createMappedKintoneCreateWrite/init:request/init:request",
-            "createMappedKintoneCreateWrite/invalid/invalid",
             "createMappedKintoneCreateWrite/limits/limits",
-            "createMappedKintoneCreateWrite/retain/retain",
-            "createMappedKintoneCreateWrite/selected/selected",
             "prepareMappedKintoneCreateFormCheck",
             "prepareMappedKintoneCreateFormCheck/init:project/init:project",
             "prepareMappedKintoneCreateFormCheck/prepareMappedKintoneCreateFormCheck",
@@ -4810,29 +4465,6 @@
       ],
       "operations": [
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalMapping",
-          "parameters": [
-            "moon",
-            "mapping",
-            "declaration"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "projectMappedKintoneDeleteOutcome",
           "parameters": [
             "moon",
@@ -4886,9 +4518,6 @@
         {
           "operations": [
             "<module>",
-            "fail/fail",
-            "originalMapping",
-            "positive/positive",
             "projectMappedKintoneDeleteOutcome",
             "projectMappedKintoneDeleteOutcome/projectMappedKintoneDeleteOutcome",
             "projectMappedKintoneDeleteOutcome/projectMappedKintoneDeleteOutcome#2",
@@ -7912,14 +7541,6 @@
           "async": false
         },
         {
-          "name": "createKintoneManagedSequence/call/call",
-          "parameters": [
-            "name",
-            "args"
-          ],
-          "async": false
-        },
-        {
           "name": "createKintoneManagedSequence/methods/methods",
           "parameters": [
             "name"
@@ -7934,20 +7555,10 @@
           "async": false
         },
         {
-          "name": "createKintoneManagedSequence/prepare/current/current",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "createKintoneManagedSequence/prepare/init:read/init:read",
           "parameters": [
             "context"
           ],
-          "async": true
-        },
-        {
-          "name": "createKintoneManagedSequence/prepare/init:read/init:read/observeForm/observeForm",
-          "parameters": [],
           "async": true
         },
         {
@@ -7995,13 +7606,6 @@
           "async": false
         },
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "method",
           "parameters": [
             "value",
@@ -8025,12 +7629,9 @@
           "operations": [
             "<module>",
             "createKintoneManagedSequence",
-            "createKintoneManagedSequence/call/call",
             "createKintoneManagedSequence/methods/methods",
             "createKintoneManagedSequence/prepare",
-            "createKintoneManagedSequence/prepare/current/current",
             "createKintoneManagedSequence/prepare/init:read/init:read",
-            "createKintoneManagedSequence/prepare/init:read/init:read/observeForm/observeForm",
             "createKintoneManagedSequence/prepare/init:read/init:read/observeForm/observeForm/init:prepare/init:prepare",
             "createKintoneManagedSequence/prepare/init:read/init:read/observeForm/observeForm/init:prepare/init:prepare/init:project/init:project",
             "createKintoneManagedSequence/prepare/init:read/init:read/rows/init:prepare/init:prepare",
@@ -8038,7 +7639,6 @@
             "createKintoneManagedSequence/prepare/init:responseCapacity/init:responseCapacity",
             "createKintoneManagedSequence/prepare/init:retire/init:retire",
             "createKintoneManagedSequence/prepare/request/request",
-            "fail/fail",
             "method"
           ],
           "exports": [
@@ -8583,13 +8183,6 @@
       ],
       "operations": [
         {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "createKintoneUpdateRequestAdapter",
           "parameters": [
             "moon",
@@ -8603,13 +8196,6 @@
             "generationCid",
             "guestSpaceId",
             "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "createKintoneUpdateRequestAdapter/finalized/finalized",
-          "parameters": [
-            "request"
           ],
           "async": false
         },
@@ -8732,66 +8318,9 @@
           "async": false
         },
         {
-          "name": "createKintoneUpdateRequestAdapter/logicalIdentity/logicalIdentity",
-          "parameters": [
-            "identity",
-            "valueWire"
-          ],
-          "async": false
-        },
-        {
           "name": "createKintoneUpdateRequestAdapter/native/native",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "createKintoneUpdateRequestAdapter/observed/observed",
-          "parameters": [
-            "observation"
-          ],
-          "async": false
-        },
-        {
-          "name": "createKintoneUpdateRequestAdapter/physicalIdentity/physicalIdentity",
-          "parameters": [
-            "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "createKintoneUpdateRequestAdapter/targetBytes/targetBytes",
-          "parameters": [
-            "text"
-          ],
-          "async": false
-        },
-        {
-          "name": "createKintoneUpdateRequestAdapter/valueBytes/valueBytes",
-          "parameters": [
-            "wire"
-          ],
-          "async": false
-        },
-        {
-          "name": "encode/encode",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "isCid/isCid",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -8807,14 +8336,6 @@
           "name": "method/method/method",
           "parameters": [
             "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "own/own",
-          "parameters": [
-            "value",
-            "names"
           ],
           "async": false
         },
@@ -8838,20 +8359,6 @@
             "value"
           ],
           "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "wireCid/wireCid",
-          "parameters": [
-            "bytes"
-          ],
-          "async": false
         }
       ],
       "imports": [
@@ -8867,9 +8374,7 @@
         {
           "operations": [
             "<module>",
-            "cid/cid",
             "createKintoneUpdateRequestAdapter",
-            "createKintoneUpdateRequestAdapter/finalized/finalized",
             "createKintoneUpdateRequestAdapter/get/get",
             "createKintoneUpdateRequestAdapter/init:assertFinalized/init:assertFinalized",
             "createKintoneUpdateRequestAdapter/init:capabilityRequestCid/init:capabilityRequestCid",
@@ -8885,23 +8390,12 @@
             "createKintoneUpdateRequestAdapter/init:restore/init:restore",
             "createKintoneUpdateRequestAdapter/init:savedWire/init:savedWire",
             "createKintoneUpdateRequestAdapter/init:targetReadBody/init:targetReadBody",
-            "createKintoneUpdateRequestAdapter/logicalIdentity/logicalIdentity",
             "createKintoneUpdateRequestAdapter/native/native",
-            "createKintoneUpdateRequestAdapter/observed/observed",
-            "createKintoneUpdateRequestAdapter/physicalIdentity/physicalIdentity",
-            "createKintoneUpdateRequestAdapter/targetBytes/targetBytes",
-            "createKintoneUpdateRequestAdapter/valueBytes/valueBytes",
-            "encode/encode",
-            "fail/fail",
-            "isCid/isCid",
             "method/method",
             "method/method/method",
-            "own/own",
             "own/own/own",
             "own/own/own#2",
-            "positive/positive",
-            "text/text",
-            "wireCid/wireCid"
+            "positive/positive"
           ],
           "exports": [
             "createKintoneUpdateRequestAdapter"
@@ -9053,46 +8547,9 @@
       ],
       "operations": [
         {
-          "name": "capture/capture",
-          "parameters": [
-            "receiver",
-            "name",
-            "asynchronous"
-          ],
-          "async": false
-        },
-        {
           "name": "capture/capture/capture",
           "parameters": [
             "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "encode/encode",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "isCid/isCid",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -9117,14 +8574,6 @@
             "limits",
             "maxMembers",
             "maxRecoveryBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "kintoneUpdateDriver/frame/frame",
-          "parameters": [
-            "member",
-            "current"
           ],
           "async": false
         },
@@ -9246,14 +8695,6 @@
           "async": false
         },
         {
-          "name": "kintoneUpdateDriver/readScope/readScope",
-          "parameters": [
-            "options",
-            "observations"
-          ],
-          "async": false
-        },
-        {
           "name": "kintoneUpdateDriver/readScope/readScope/decision/decision",
           "parameters": [
             "slot"
@@ -9281,13 +8722,6 @@
             "response"
           ],
           "async": false
-        },
-        {
-          "name": "kintoneUpdateDriver/readScope/readScope/verify/verify",
-          "parameters": [
-            "slot"
-          ],
-          "async": true
         },
         {
           "name": "kintoneUpdateDriver/restore/restore",
@@ -9341,39 +8775,10 @@
           "async": false
         },
         {
-          "name": "kintoneUpdateDriver/selected/selected",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
           "name": "KintoneUpdateObservationFailure/constructor:constructor/constructor:constructor",
           "parameters": [
             "cause",
             "observations"
-          ],
-          "async": false
-        },
-        {
-          "name": "memberFacts/memberFacts",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "sameRecord/sameRecord",
-          "parameters": [
-            "value",
-            "expected"
           ],
           "async": false
         },
@@ -9389,13 +8794,6 @@
           "parameters": [
             "item",
             "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "wireCid/wireCid",
-          "parameters": [
-            "wire"
           ],
           "async": false
         }
@@ -9418,14 +8816,8 @@
         {
           "operations": [
             "<module>",
-            "capture/capture",
             "capture/capture/capture",
-            "cid/cid",
-            "encode/encode",
-            "fail/fail",
-            "isCid/isCid",
             "kintoneUpdateDriver",
-            "kintoneUpdateDriver/frame/frame",
             "kintoneUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval",
             "kintoneUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval/matched/matched",
             "kintoneUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval/matched/matched/matched",
@@ -9441,22 +8833,16 @@
             "kintoneUpdateDriver/init:send/init:send",
             "kintoneUpdateDriver/kintoneUpdateDriver",
             "kintoneUpdateDriver/kintoneUpdateDriver#2",
-            "kintoneUpdateDriver/readScope/readScope",
             "kintoneUpdateDriver/readScope/readScope/decision/decision",
             "kintoneUpdateDriver/readScope/readScope/readScope",
             "kintoneUpdateDriver/readScope/readScope/readScope/input/input",
             "kintoneUpdateDriver/readScope/readScope/readScope/value/value",
-            "kintoneUpdateDriver/readScope/readScope/verify/verify",
             "kintoneUpdateDriver/restore/restore",
             "kintoneUpdateDriver/restore/restore/indexes/indexes",
             "kintoneUpdateDriver/restore/restore/restore",
             "kintoneUpdateDriver/restore/restore/restore/restore",
             "kintoneUpdateDriver/restore/restore/restore#2",
-            "kintoneUpdateDriver/selected/selected",
-            "KintoneUpdateObservationFailure/constructor:constructor/constructor:constructor",
-            "memberFacts/memberFacts",
-            "positive/positive",
-            "wireCid/wireCid"
+            "KintoneUpdateObservationFailure/constructor:constructor/constructor:constructor"
           ],
           "exports": [
             "KINTONE_UPDATE_TARGET_VERSION",
@@ -9529,7 +8915,6 @@
         {
           "operations": [
             "kintoneUpdateDriver/restore/restore/restore/restore#2",
-            "sameRecord/sameRecord",
             "sameRecord/sameRecord/sameRecord",
             "sameRecord/sameRecord/sameRecord/sameRecord"
           ],
@@ -9755,16 +9140,6 @@
       ],
       "operations": [
         {
-          "name": "bindingFor",
-          "parameters": [
-            "member",
-            "unit",
-            "siteBindingCid",
-            "generationCid"
-          ],
-          "async": false
-        },
-        {
           "name": "checkInstalledKintoneEffectProfile",
           "parameters": [
             "profile"
@@ -9772,38 +9147,9 @@
           "async": false
         },
         {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "closed/closed",
-          "parameters": [
-            "value",
-            "names"
-          ],
-          "async": false
-        },
-        {
           "name": "closed/closed/closed",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "encode/encode",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
           ],
           "async": false
         },
@@ -9990,16 +9336,6 @@
           "async": false
         },
         {
-          "name": "membersOf",
-          "parameters": [
-            "moon",
-            "prepared",
-            "unit",
-            "mapping"
-          ],
-          "async": false
-        },
-        {
           "name": "membersOf/members/members",
           "parameters": [
             "effectId"
@@ -10023,24 +9359,9 @@
           "async": false
         },
         {
-          "name": "method/method",
-          "parameters": [
-            "receiver",
-            "name"
-          ],
-          "async": false
-        },
-        {
           "name": "method/method/method",
           "parameters": [
             "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
           ],
           "async": false
         }
@@ -10069,13 +9390,8 @@
         {
           "operations": [
             "<module>",
-            "bindingFor",
             "checkInstalledKintoneEffectProfile",
-            "cid/cid",
-            "closed/closed",
             "closed/closed/closed",
-            "encode/encode",
-            "fail/fail",
             "installedKintoneEffectIdentityParts",
             "installedKintoneEffectIdentityParts/readers/readers",
             "loadInstalledKintoneEffect",
@@ -10101,13 +9417,10 @@
             "loadInstalledKintoneEffect/textUnits/textUnits",
             "loadInstalledKintoneEffect/textUnits/textUnits#2",
             "loadInstalledKintoneEffect/view/view",
-            "membersOf",
             "membersOf/members/members",
             "membersOf/members/members#2",
             "membersOf/membersOf",
-            "method/method",
-            "method/method/method",
-            "text/text"
+            "method/method/method"
           ],
           "exports": [
             "INSTALLED_KINTONE_EFFECT_VERSION",
@@ -10199,21 +9512,6 @@
           "async": false
         },
         {
-          "name": "captureKintoneEffectPlanRecipeBuilder/add/add",
-          "parameters": [
-            "left",
-            "right"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureKintoneEffectPlanRecipeBuilder/native/native",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "captureKintoneEffectPlanRecipeBuilder/original/original",
           "parameters": [
             "name"
@@ -10235,70 +9533,11 @@
           "async": false
         },
         {
-          "name": "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/capturedExtent/capturedExtent",
-          "parameters": [
-            "values"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/cold/cold",
-          "parameters": [
-            "bytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/host/host",
-          "parameters": [
-            "kind",
-            "bytes"
-          ],
-          "async": false
-        },
-        {
           "name": "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/init:inputExtent/init:inputExtent",
           "parameters": [
             "previewWire",
             "recovery",
             "memberIndex"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/mutation/mutation",
-          "parameters": [
-            "maximum"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/operationExtent/operationExtent",
-          "parameters": [
-            "operation",
-            "capacity",
-            "transfer",
-            "physical"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/parsed/parsed",
-          "parameters": [
-            "bytes",
-            "nodes",
-            "depth"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/physical/physical",
-          "parameters": [
-            "phase",
-            "slot",
-            "resource",
-            "perRow",
-            "target"
           ],
           "async": false
         },
@@ -10311,13 +9550,6 @@
           "async": false
         },
         {
-          "name": "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/physical/physical/of/of",
-          "parameters": [
-            "bytes"
-          ],
-          "async": false
-        },
-        {
           "name": "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/prepareKintoneEffectPlanRecipe",
           "parameters": [
             "values"
@@ -10325,48 +9557,8 @@
           "async": false
         },
         {
-          "name": "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/profile/profile",
-          "parameters": [
-            "targetBytes",
-            "metadataBytes",
-            "responseBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/quantities/quantities",
-          "parameters": [
-            "values",
-            "hostBytes",
-            "control",
-            "recoveryBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "data/data",
-          "parameters": [
-            "value",
-            "names"
-          ],
-          "async": false
-        },
-        {
           "name": "data/data/data",
           "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "method/method",
-          "parameters": [
-            "receiver",
             "name"
           ],
           "async": false
@@ -10404,27 +9596,12 @@
           "operations": [
             "<module>",
             "captureKintoneEffectPlanRecipeBuilder",
-            "captureKintoneEffectPlanRecipeBuilder/add/add",
-            "captureKintoneEffectPlanRecipeBuilder/native/native",
             "captureKintoneEffectPlanRecipeBuilder/original/original",
             "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe",
-            "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/capturedExtent/capturedExtent",
-            "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/cold/cold",
-            "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/host/host",
             "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/init:inputExtent/init:inputExtent",
-            "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/mutation/mutation",
-            "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/operationExtent/operationExtent",
-            "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/parsed/parsed",
-            "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/physical/physical",
             "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/physical/physical/init:responseExtent/init:responseExtent",
-            "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/physical/physical/of/of",
             "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/prepareKintoneEffectPlanRecipe",
-            "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/profile/profile",
-            "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/quantities/quantities",
-            "data/data",
             "data/data/data",
-            "fail/fail",
-            "method/method",
             "method/method/method",
             "positive/positive"
           ],

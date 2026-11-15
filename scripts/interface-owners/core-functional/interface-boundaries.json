@@ -531,19 +531,6 @@
           "async": false
         },
         {
-          "name": "createInstallationPreparationMetadata/active/active",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstallationPreparationMetadata/call/call",
-          "parameters": [
-            "name",
-            "args"
-          ],
-          "async": false
-        },
-        {
           "name": "createInstallationPreparationMetadata/createInstallationPreparationMetadata",
           "parameters": [
             "name"
@@ -558,32 +545,6 @@
           "async": false
         },
         {
-          "name": "createInstallationPreparationMetadata/own/own",
-          "parameters": [
-            "map",
-            "token",
-            "subject"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstallationPreparationMetadata/rawScope/rawScope",
-          "parameters": [
-            "token",
-            "subject"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstallationPreparationMetadata/retain/retain",
-          "parameters": [
-            "map",
-            "value",
-            "subject"
-          ],
-          "async": false
-        },
-        {
           "name": "createInstallationPreparationMetadata/scopeFields/scopeFields",
           "parameters": [
             "token"
@@ -594,13 +555,6 @@
           "name": "createInstallationPreparationMetadata/subjectFields/subjectFields",
           "parameters": [
             "token"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstallationPreparationMetadata/text/text",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -758,13 +712,6 @@
           "async": false
         },
         {
-          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/registerGrant/registerGrant",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "createInstallationPreparationMetadata/view/init:prepareScope/init:prepareScope",
           "parameters": [
             "subject",
@@ -814,14 +761,6 @@
           "async": false
         },
         {
-          "name": "data",
-          "parameters": [
-            "value",
-            "keys"
-          ],
-          "async": false
-        },
-        {
           "name": "data/data",
           "parameters": [
             "key"
@@ -832,22 +771,6 @@
           "name": "data/data#2",
           "parameters": [
             "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "fields",
-          "parameters": [
-            "values",
-            "keys",
-            "kinds"
           ],
           "async": false
         },
@@ -867,36 +790,9 @@
           "async": false
         },
         {
-          "name": "integer/integer",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "invalid/invalid",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "stringProjection",
-          "parameters": [
-            "value",
-            "length"
-          ],
-          "async": false
-        },
-        {
           "name": "stringProjection/stringProjection",
           "parameters": [
             "field"
-          ],
-          "async": false
-        },
-        {
-          "name": "time/time",
-          "parameters": [
-            "value"
           ],
           "async": false
         }
@@ -915,16 +811,10 @@
         {
           "operations": [
             "createInstallationPreparationMetadata",
-            "createInstallationPreparationMetadata/active/active",
-            "createInstallationPreparationMetadata/call/call",
             "createInstallationPreparationMetadata/createInstallationPreparationMetadata",
             "createInstallationPreparationMetadata/methods/methods",
-            "createInstallationPreparationMetadata/own/own",
-            "createInstallationPreparationMetadata/rawScope/rawScope",
-            "createInstallationPreparationMetadata/retain/retain",
             "createInstallationPreparationMetadata/scopeFields/scopeFields",
             "createInstallationPreparationMetadata/subjectFields/subjectFields",
-            "createInstallationPreparationMetadata/text/text",
             "createInstallationPreparationMetadata/view/init:admitSubject/init:admitSubject",
             "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject",
             "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control",
@@ -946,7 +836,6 @@
             "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:prepareUse/init:prepareUse",
             "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:projection/init:projection",
             "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:scopeFields/init:scopeFields",
-            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/registerGrant/registerGrant",
             "createInstallationPreparationMetadata/view/init:prepareScope/init:prepareScope",
             "createInstallationPreparationMetadata/view/init:prepareScope/init:prepareScope/init:prepareScope",
             "createInstallationPreparationMetadata/view/init:prepareSubject/init:prepareSubject",
@@ -954,18 +843,11 @@
             "createInstallationPreparationMetadata/view/init:retireMetadataView/init:retireMetadataView",
             "createInstallationPreparationMetadata/view/view",
             "createInstallationPreparationMetadata/view/view#2",
-            "data",
             "data/data",
             "data/data#2",
-            "fail/fail",
-            "fields",
             "fields/fields",
             "fields/fields#2",
-            "integer/integer",
-            "invalid/invalid",
-            "stringProjection",
-            "stringProjection/stringProjection",
-            "time/time"
+            "stringProjection/stringProjection"
           ],
           "exports": [
             "createInstallationPreparationMetadata"
@@ -1198,19 +1080,6 @@
           "async": false
         },
         {
-          "name": "createLocalSigningMetadata/active/active",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createLocalSigningMetadata/call/call",
-          "parameters": [
-            "name",
-            "args"
-          ],
-          "async": false
-        },
-        {
           "name": "createLocalSigningMetadata/createLocalSigningMetadata",
           "parameters": [
             "name"
@@ -1316,36 +1185,6 @@
             "name"
           ],
           "async": false
-        },
-        {
-          "name": "createLocalSigningMetadata/original/original",
-          "parameters": [
-            "map",
-            "token"
-          ],
-          "async": false
-        },
-        {
-          "name": "createLocalSigningMetadata/retain/retain",
-          "parameters": [
-            "map",
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createLocalSigningMetadata/time/time",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
         }
       ],
       "imports": [
@@ -1361,8 +1200,6 @@
         {
           "operations": [
             "createLocalSigningMetadata",
-            "createLocalSigningMetadata/active/active",
-            "createLocalSigningMetadata/call/call",
             "createLocalSigningMetadata/createLocalSigningMetadata",
             "createLocalSigningMetadata/createLocalSigningMetadata#2",
             "createLocalSigningMetadata/createLocalSigningMetadata#3",
@@ -1376,11 +1213,7 @@
             "createLocalSigningMetadata/init:prepareUse/init:prepareUse",
             "createLocalSigningMetadata/init:retireMetadataView/init:retireMetadataView",
             "createLocalSigningMetadata/init:useProjection/init:useProjection",
-            "createLocalSigningMetadata/methods/methods",
-            "createLocalSigningMetadata/original/original",
-            "createLocalSigningMetadata/retain/retain",
-            "createLocalSigningMetadata/time/time",
-            "fail/fail"
+            "createLocalSigningMetadata/methods/methods"
           ],
           "exports": [
             "createLocalSigningMetadata"
@@ -1591,7 +1424,6 @@
         {
           "operations": [
             "contentCaptureControl",
-            "contentCaptureControl/args/args",
             "contentCaptureControl/args/args/args",
             "contentCaptureControl/args/args/args#2",
             "contentCaptureControl/init:candidate/init:candidate",
@@ -1606,7 +1438,6 @@
             "contentCaptureControl/init:reissuer/init:reissuer",
             "contentCaptureControl/init:releaseWorkspace/init:releaseWorkspace",
             "contentCaptureControl/init:reserveWorkspace/init:reserveWorkspace",
-            "contentCaptureControl/own/own",
             "contentGenerationControl",
             "contentGenerationControl/init:advance/init:advance",
             "contentGenerationControl/init:bindInput/init:bindInput",
@@ -1669,9 +1500,6 @@
             "contentGenerationControl/init:workspaceCapacity/init:workspaceCapacity/exported/exported",
             "contentGenerationControl/init:workspaceCapacity/init:workspaceCapacity/init:workspaceCapacity",
             "contentGenerationControl/init:workspaceCapacity/init:workspaceCapacity/init:workspaceCapacity#2",
-            "contentGenerationControl/owned/owned",
-            "contentGenerationControl/quantity/quantity",
-            "contentGenerationControl/referenceLimits/referenceLimits",
             "contentGenerationControl/referenceLimits/referenceLimits/referenceLimits",
             "effectApplicationControl",
             "effectApplicationControl/effectApplicationControl",
@@ -1708,11 +1536,9 @@
             "effectApplicationControl/effectApplicationControl#7",
             "effectApplicationControl/effectApplicationControl#8",
             "effectApplicationControl/effectApplicationControl#9",
-            "inferQuantityCapacity",
             "inferQuantityCapacity/inferQuantityCapacity",
             "inferQuantityCapacity/inferQuantityCapacity/inferQuantityCapacity",
             "outputExportControl",
-            "outputExportControl/finishTransformation",
             "outputExportControl/finishTransformation/finishTransformation",
             "outputExportControl/init:advance/init:advance",
             "outputExportControl/init:appendManagedResultImport/init:appendManagedResultImport",
@@ -1728,24 +1554,15 @@
             "outputExportControl/outputExportControl",
             "outputExportControl/outputExportControl#2",
             "outputExportControl/outputExportControl#3",
-            "outputExportControl/validEvidenceContext/validEvidenceContext",
             "outputExportControl/validEvidenceContext/validEvidenceContext/validEvidenceContext",
             "outputExportControl/validEvidenceContext/validEvidenceContext/validEvidenceContext#2",
-            "outputExportControl/validEvidenceLimits/validEvidenceLimits",
             "outputExportControl/validEvidenceLimits/validEvidenceLimits/validEvidenceLimits",
             "publicationControl",
-            "publicationControl/admissionToken/admissionToken",
-            "publicationControl/captureContractLimits/captureContractLimits",
-            "publicationControl/compiledContent/compiledContent",
-            "publicationControl/compiledRunResult/compiledRunResult",
             "publicationControl/compiledSourceFreeResultPolicy/compiledSourceFreeResultPolicy",
-            "publicationControl/contentCaptures/contentCaptures",
             "publicationControl/contentCaptures/contentCaptures/contentCaptures",
             "publicationControl/effectSourceToken/effectSourceToken",
             "publicationControl/evidenceToken/evidenceToken",
-            "publicationControl/finishCapturedPreparation/finishCapturedPreparation",
             "publicationControl/finishCapturedPreparation/finishCapturedPreparation/finishCapturedPreparation",
-            "publicationControl/finishPublicationValidation/finishPublicationValidation",
             "publicationControl/finishPublicationValidation/finishPublicationValidation/finishPublicationValidation",
             "publicationControl/init:admit/init:admit",
             "publicationControl/init:admitCapturedEffectSourceArtifact/init:admitCapturedEffectSourceArtifact",
@@ -2035,7 +1852,6 @@
             "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/bodies/bodies",
             "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/bodies/bodies#2",
             "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/bodies/bodies/bodies",
-            "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/extent/extent",
             "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/lookupBodies/lookupBodies",
             "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/originals/originals",
             "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/value/value",
@@ -2143,23 +1959,12 @@
             "publicationControl/init:tablePreviewInputAvailable/init:tablePreviewInputAvailable",
             "publicationControl/init:tablePreviewLedgerBinding/init:tablePreviewLedgerBinding",
             "publicationControl/init:trustedClockNotBefore/init:trustedClockNotBefore",
-            "publicationControl/inspect/inspect",
-            "publicationControl/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence",
             "publicationControl/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence",
             "publicationControl/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence#2",
-            "publicationControl/inspectAdmission/inspectAdmission",
             "publicationControl/inspectEffectSource/inspectEffectSource",
-            "publicationControl/inspectEvidence/inspectEvidence",
-            "publicationControl/inspectLocalEffectArtifact/inspectLocalEffectArtifact",
-            "publicationControl/inspectSnapshot/inspectSnapshot",
-            "publicationControl/inspectSourceAdvance/inspectSourceAdvance",
-            "publicationControl/issuanceLimits/issuanceLimits",
-            "publicationControl/localEffectContext/localEffectContext",
             "publicationControl/localEffectContext/localEffectContext/localEffectContext",
             "publicationControl/localEffectSourceToken/localEffectSourceToken",
-            "publicationControl/prepareAcquiredSerializationGraph/prepareAcquiredSerializationGraph",
             "publicationControl/prepareAcquiredSerializationGraph/prepareAcquiredSerializationGraph/prepareAcquiredSerializationGraph",
-            "publicationControl/prepareSerializationGraph/prepareSerializationGraph",
             "publicationControl/prepareSerializationGraph/prepareSerializationGraph/prepareSerializationGraph",
             "publicationControl/snapshotToken/snapshotToken",
             "publicationControl/sourceAdvanceToken/sourceAdvanceToken",
@@ -2214,7 +2019,6 @@
             "remoteBundleControl/remoteBundleControl/remoteBundleControl#3",
             "remoteBundleControl/remoteBundleControl/remoteBundleControl#4",
             "remoteCredentialControl",
-            "remoteCredentialControl/grantFields/grantFields",
             "remoteCredentialControl/init:authorizeUse/init:authorizeUse",
             "remoteCredentialControl/init:prepareUse/init:prepareUse",
             "remoteCredentialControl/remoteCredentialControl",
@@ -2228,7 +2032,6 @@
             "remoteCredentialControl/remoteCredentialControl#8",
             "remoteCredentialControl/remoteCredentialControl#9",
             "remoteSiteControl",
-            "remoteSiteControl/fields/fields",
             "remoteSiteControl/init:admit/init:admit",
             "remoteSiteControl/init:outputIntentProjection/init:outputIntentProjection",
             "remoteSiteControl/init:prepare/init:prepare",
@@ -2236,7 +2039,6 @@
             "remoteSiteControl/init:prepareOutputIntent/init:prepareOutputIntent",
             "remoteSiteControl/init:preparePublicationPayload/init:preparePublicationPayload",
             "remoteSiteControl/init:restore/init:restore",
-            "remoteSiteControl/int64/int64",
             "remoteSiteControl/remoteSiteControl",
             "remoteSiteControl/remoteSiteControl#10",
             "remoteSiteControl/remoteSiteControl#100",
@@ -2355,7 +2157,6 @@
             "remoteStandardSourceControl/remoteStandardSourceControl",
             "remoteStandardSourceControl/remoteStandardSourceControl#2",
             "remoteTransferControl",
-            "remoteTransferControl/int64/int64",
             "remoteTransferControl/remoteTransferControl",
             "remoteTransferControl/remoteTransferControl#10",
             "remoteTransferControl/remoteTransferControl#11",
@@ -2397,7 +2198,6 @@
             "remoteTransferControl/remoteTransferControl/remoteTransferControl",
             "remoteTransferControl/remoteTransferControl/remoteTransferControl#2",
             "remoteTransferControl/remoteTransferControl/remoteTransferControl#3",
-            "remoteTransferControl/requestFields/requestFields",
             "remoteTransferControl/requestFields/requestFields/requestFields",
             "remoteTransferControl/requestFields/requestFields/requestFields#2",
             "remoteTransferControl/requestFields/requestFields/requestFields#3",
@@ -2433,7 +2233,6 @@
             "siteControl/siteControl#2",
             "siteControl/siteControl#3",
             "siteControl/siteControl/siteControl",
-            "tuplePair/tuplePair",
             "usageKeys/usageKeys",
             "usageKeys/usageKeys/usageKeys"
           ],
@@ -3213,6 +3012,10 @@
               {
                 "path": "adapters/host-common/deferred-catalog-control.test.mjs",
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-node/result-transformation-control.test.mjs",
+                "anchor": "test('owned work failure cancels the same transformation and preserves the original cause'"
               }
             ]
           }
@@ -3303,17 +3106,11 @@
         },
         {
           "operations": [
-            "publicationControl/capturedPreparationLimits/capturedPreparationLimits",
-            "publicationControl/finishProgramCapture/finishProgramCapture",
             "publicationControl/finishProgramCapture/finishProgramCapture/finishProgramCapture",
-            "publicationControl/finishProgramSnapshot/finishProgramSnapshot",
             "publicationControl/finishProgramSnapshot/finishProgramSnapshot/finishProgramSnapshot",
-            "publicationControl/finishProgramValidation/finishProgramValidation",
             "publicationControl/finishProgramValidation/finishProgramValidation/finishProgramValidation",
-            "publicationControl/finishStoreValidation/finishStoreValidation",
             "publicationControl/finishStoreValidation/finishStoreValidation/finishStoreValidation",
-            "publicationControl/init:effectFreeStoredCommitValid/init:effectFreeStoredCommitValid",
-            "publicationControl/programCaptureLimits/programCaptureLimits"
+            "publicationControl/init:effectFreeStoredCommitValid/init:effectFreeStoredCommitValid"
           ],
           "exports": [],
           "attributes": {
@@ -7323,8 +7120,7 @@
             "publicationControl/init:reserveEffectCaptureDecoded/init:reserveEffectCaptureDecoded",
             "publicationControl/init:reserveEffectCaptureEncrypted/init:reserveEffectCaptureEncrypted",
             "publicationControl/init:reserveEffectCaptureEnvelope/init:reserveEffectCaptureEnvelope",
-            "publicationControl/init:retireRecoveredEffectCapturedRun/init:retireRecoveredEffectCapturedRun",
-            "publicationControl/inspectPreparedEffectCapturedRun/inspectPreparedEffectCapturedRun"
+            "publicationControl/init:retireRecoveredEffectCapturedRun/init:retireRecoveredEffectCapturedRun"
           ],
           "exports": [],
           "attributes": {
@@ -7893,13 +7689,6 @@
           "async": false
         },
         {
-          "name": "contentCaptureControl/args/args",
-          "parameters": [
-            "limits"
-          ],
-          "async": false
-        },
-        {
           "name": "contentCaptureControl/args/args/args",
           "parameters": [
             "key"
@@ -8017,14 +7806,6 @@
             "ledger",
             "maxBytes",
             "inventoryCount"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentCaptureControl/own/own",
-          "parameters": [
-            "set",
-            "value"
           ],
           "async": false
         },
@@ -8649,30 +8430,6 @@
           "async": false
         },
         {
-          "name": "contentGenerationControl/owned/owned",
-          "parameters": [
-            "set",
-            "value",
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/quantity/quantity",
-          "parameters": [
-            "value",
-            "minimum"
-          ],
-          "async": false
-        },
-        {
-          "name": "contentGenerationControl/referenceLimits/referenceLimits",
-          "parameters": [
-            "limits"
-          ],
-          "async": false
-        },
-        {
           "name": "contentGenerationControl/referenceLimits/referenceLimits/referenceLimits",
           "parameters": [
             "key"
@@ -8925,13 +8682,6 @@
           "async": false
         },
         {
-          "name": "inferQuantityCapacity",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "inferQuantityCapacity/inferQuantityCapacity",
           "parameters": [
             "scope"
@@ -9028,14 +8778,6 @@
           "async": false
         },
         {
-          "name": "outputExportControl/finishTransformation",
-          "parameters": [
-            "preparation",
-            "signal"
-          ],
-          "async": true
-        },
-        {
           "name": "outputExportControl/finishTransformation/finishTransformation",
           "parameters": [
             "resolve"
@@ -9086,7 +8828,8 @@
             "limits",
             "convertedOutput",
             "selection",
-            "signal"
+            "signal",
+            "resultProgress"
           ],
           "async": false
         },
@@ -9094,7 +8837,8 @@
           "name": "outputExportControl/init:finishManagedResultImport/init:finishManagedResultImport",
           "parameters": [
             "value",
-            "signal"
+            "signal",
+            "resultProgress"
           ],
           "async": false
         },
@@ -9140,7 +8884,8 @@
           "parameters": [
             "value",
             "selection",
-            "signal"
+            "signal",
+            "resultProgress"
           ],
           "async": true
         },
@@ -9166,13 +8911,6 @@
           "async": false
         },
         {
-          "name": "outputExportControl/validEvidenceContext/validEvidenceContext",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "outputExportControl/validEvidenceContext/validEvidenceContext/validEvidenceContext",
           "parameters": [
             "name"
@@ -9183,13 +8921,6 @@
           "name": "outputExportControl/validEvidenceContext/validEvidenceContext/validEvidenceContext#2",
           "parameters": [
             "cid"
-          ],
-          "async": false
-        },
-        {
-          "name": "outputExportControl/validEvidenceLimits/validEvidenceLimits",
-          "parameters": [
-            "limits"
           ],
           "async": false
         },
@@ -9208,53 +8939,9 @@
           "async": false
         },
         {
-          "name": "publicationControl/admissionToken/admissionToken",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/captureContractLimits/captureContractLimits",
-          "parameters": [
-            "limits",
-            "label"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/capturedPreparationLimits/capturedPreparationLimits",
-          "parameters": [
-            "preparation"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/compiledContent/compiledContent",
-          "parameters": [
-            "compiled"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/compiledRunResult/compiledRunResult",
-          "parameters": [
-            "result",
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/compiledSourceFreeResultPolicy/compiledSourceFreeResultPolicy",
           "parameters": [
             "compiled"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/contentCaptures/contentCaptures",
-          "parameters": [
-            "values"
           ],
           "async": false
         },
@@ -9280,29 +8967,11 @@
           "async": false
         },
         {
-          "name": "publicationControl/finishCapturedPreparation/finishCapturedPreparation",
-          "parameters": [
-            "preparation",
-            "signal",
-            "retainComputation",
-            "dependencyOriginal"
-          ],
-          "async": true
-        },
-        {
           "name": "publicationControl/finishCapturedPreparation/finishCapturedPreparation/finishCapturedPreparation",
           "parameters": [
             "resolve"
           ],
           "async": false
-        },
-        {
-          "name": "publicationControl/finishProgramCapture/finishProgramCapture",
-          "parameters": [
-            "capture",
-            "signal"
-          ],
-          "async": true
         },
         {
           "name": "publicationControl/finishProgramCapture/finishProgramCapture/finishProgramCapture",
@@ -9312,29 +8981,11 @@
           "async": false
         },
         {
-          "name": "publicationControl/finishProgramSnapshot/finishProgramSnapshot",
-          "parameters": [
-            "publication",
-            "output",
-            "signal"
-          ],
-          "async": true
-        },
-        {
           "name": "publicationControl/finishProgramSnapshot/finishProgramSnapshot/finishProgramSnapshot",
           "parameters": [
             "resolve"
           ],
           "async": false
-        },
-        {
-          "name": "publicationControl/finishProgramValidation/finishProgramValidation",
-          "parameters": [
-            "validation",
-            "signal",
-            "requireCurrent"
-          ],
-          "async": true
         },
         {
           "name": "publicationControl/finishProgramValidation/finishProgramValidation/finishProgramValidation",
@@ -9344,30 +8995,11 @@
           "async": false
         },
         {
-          "name": "publicationControl/finishPublicationValidation/finishPublicationValidation",
-          "parameters": [
-            "preparation",
-            "advance",
-            "finish",
-            "cancel",
-            "signal"
-          ],
-          "async": true
-        },
-        {
           "name": "publicationControl/finishPublicationValidation/finishPublicationValidation/finishPublicationValidation",
           "parameters": [
             "resolve"
           ],
           "async": false
-        },
-        {
-          "name": "publicationControl/finishStoreValidation/finishStoreValidation",
-          "parameters": [
-            "validation",
-            "requireCurrent"
-          ],
-          "async": true
         },
         {
           "name": "publicationControl/finishStoreValidation/finishStoreValidation/finishStoreValidation",
@@ -13476,13 +13108,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/extent/extent",
-          "parameters": [
-            "quote"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/lookupBodies/lookupBodies",
           "parameters": [
             "body"
@@ -14767,24 +14392,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/inspect/inspect",
-          "parameters": [
-            "contract",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence",
-          "parameters": [
-            "issued",
-            "publicationRetention",
-            "limits",
-            "deferCatalogs"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence",
           "parameters": [
             "pair"
@@ -14799,66 +14406,9 @@
           "async": false
         },
         {
-          "name": "publicationControl/inspectAdmission/inspectAdmission",
-          "parameters": [
-            "admission"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/inspectEffectSource/inspectEffectSource",
           "parameters": [
             "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/inspectEvidence/inspectEvidence",
-          "parameters": [
-            "evidence"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/inspectLocalEffectArtifact/inspectLocalEffectArtifact",
-          "parameters": [
-            "issued"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/inspectPreparedEffectCapturedRun/inspectPreparedEffectCapturedRun",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/inspectSnapshot/inspectSnapshot",
-          "parameters": [
-            "snapshot"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/inspectSourceAdvance/inspectSourceAdvance",
-          "parameters": [
-            "advance"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/issuanceLimits/issuanceLimits",
-          "parameters": [
-            "limits",
-            "label"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/localEffectContext/localEffectContext",
-          "parameters": [
-            "context"
           ],
           "async": false
         },
@@ -14877,16 +14427,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/prepareAcquiredSerializationGraph/prepareAcquiredSerializationGraph",
-          "parameters": [
-            "checkedProgram",
-            "options",
-            "intermediate",
-            "request"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/prepareAcquiredSerializationGraph/prepareAcquiredSerializationGraph/prepareAcquiredSerializationGraph",
           "parameters": [
             "key"
@@ -14894,26 +14434,9 @@
           "async": false
         },
         {
-          "name": "publicationControl/prepareSerializationGraph/prepareSerializationGraph",
-          "parameters": [
-            "checkedProgram",
-            "options",
-            "intermediate",
-            "request"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/prepareSerializationGraph/prepareSerializationGraph/prepareSerializationGraph",
           "parameters": [
             "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/programCaptureLimits/programCaptureLimits",
-          "parameters": [
-            "capture"
           ],
           "async": false
         },
@@ -15317,13 +14840,6 @@
           "async": false
         },
         {
-          "name": "remoteCredentialControl/grantFields/grantFields",
-          "parameters": [
-            "grant"
-          ],
-          "async": false
-        },
-        {
           "name": "remoteCredentialControl/init:authorizeUse/init:authorizeUse",
           "parameters": [
             "value",
@@ -15420,13 +14936,6 @@
           "async": false
         },
         {
-          "name": "remoteSiteControl/fields/fields",
-          "parameters": [
-            "request"
-          ],
-          "async": false
-        },
-        {
           "name": "remoteSiteControl/init:admit/init:admit",
           "parameters": [
             "request"
@@ -15504,14 +15013,6 @@
             "processMaterialGeneration",
             "processOwner",
             "processGeneration"
-          ],
-          "async": false
-        },
-        {
-          "name": "remoteSiteControl/int64/int64",
-          "parameters": [
-            "value",
-            "label"
           ],
           "async": false
         },
@@ -16439,14 +15940,6 @@
           "async": false
         },
         {
-          "name": "remoteTransferControl/int64/int64",
-          "parameters": [
-            "value",
-            "label"
-          ],
-          "async": false
-        },
-        {
           "name": "remoteTransferControl/remoteTransferControl",
           "parameters": [
             "request"
@@ -16777,13 +16270,6 @@
           "async": false
         },
         {
-          "name": "remoteTransferControl/requestFields/requestFields",
-          "parameters": [
-            "request"
-          ],
-          "async": false
-        },
-        {
           "name": "remoteTransferControl/requestFields/requestFields/requestFields",
           "parameters": [
             "chunk"
@@ -17081,13 +16567,6 @@
           "parameters": [
             "_",
             "letter"
-          ],
-          "async": false
-        },
-        {
-          "name": "tuplePair/tuplePair",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -17413,21 +16892,6 @@
           "async": false
         },
         {
-          "name": "missing/missing",
-          "parameters": [
-            "reason"
-          ],
-          "async": false
-        },
-        {
-          "name": "preparedEvidenceBytes",
-          "parameters": [
-            "item",
-            "maxBytes"
-          ],
-          "async": false
-        },
-        {
           "name": "projectInferEvidence",
           "parameters": [
             "configuration",
@@ -17461,11 +16925,6 @@
             "sum",
             "wire"
           ],
-          "async": false
-        },
-        {
-          "name": "projectInferEvidence/checkOriginalCurrent/checkOriginalCurrent",
-          "parameters": [],
           "async": false
         },
         {
@@ -17519,11 +16978,6 @@
           "async": false
         },
         {
-          "name": "projectInferEvidence/releaseCopy/releaseCopy",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "projectInferEvidence/unavailable/unavailable",
           "parameters": [
             "item"
@@ -17545,11 +16999,6 @@
             "consume"
           ],
           "async": true
-        },
-        {
-          "name": "withPreparedInferEvidence/release/release",
-          "parameters": [],
-          "async": false
         },
         {
           "name": "withPreparedInferEvidence/withPreparedInferEvidence",
@@ -17576,12 +17025,9 @@
             "cid/cid",
             "configureInferEvidence",
             "configureInferEvidence/configureInferEvidence",
-            "missing/missing",
-            "preparedEvidenceBytes",
             "projectInferEvidence",
             "projectInferEvidence/bySlot/bySlot",
             "projectInferEvidence/bytes/bytes",
-            "projectInferEvidence/checkOriginalCurrent/checkOriginalCurrent",
             "projectInferEvidence/projectInferEvidence",
             "projectInferEvidence/projectInferEvidence#2",
             "projectInferEvidence/projectInferEvidence#3",
@@ -17590,10 +17036,8 @@
             "projectInferEvidence/projectInferEvidence#6",
             "projectInferEvidence/projectInferEvidence#7",
             "projectInferEvidence/projectInferEvidence/projectInferEvidence",
-            "projectInferEvidence/releaseCopy/releaseCopy",
             "projectInferEvidence/unavailable/unavailable",
             "withPreparedInferEvidence",
-            "withPreparedInferEvidence/release/release",
             "withPreparedInferEvidence/withPreparedInferEvidence",
             "withPreparedInferEvidence/withPreparedInferEvidence#2",
             "withPreparedInferEvidence/withPreparedInferEvidence#3"
@@ -17880,34 +17324,25 @@
       "contracts": [
         {
           "operations": [
-            "codecInt/codecInt",
-            "codecLimits/codecLimits",
             "codecLimits/codecLimits/codecLimits",
             "finishNodeInferOriginalReadScopes",
-            "finishNodeInferOriginalReadScopes/current/current",
             "finishNodeInferOriginalReadScopes/current/current/current",
-            "metadataUnavailable/metadataUnavailable",
             "openNodeComposedInferProvider",
             "openNodeComposedInferProvider/component/component",
             "openNodeComposedInferProvider/component/component#2",
             "openNodeComposedInferProvider/component/component#3",
             "openNodeComposedInferProvider/component/init:bindOriginal/init:bindOriginal",
-            "openNodeComposedInferProvider/component/init:bindOriginal/init:bindOriginal/read/read",
             "openNodeComposedInferProvider/openOriginal/openOriginal",
             "openNodeComposedInferProvider/openOriginal/openOriginal/init:retainOperation/init:retainOperation",
             "openNodeComposedInferProvider/provider/provider",
             "openNodeComposedInferProvider/provider/provider#2",
             "openNodeComposedInferProvider/provider/provider#3",
             "openNodeComposedInferProvider/provider/provider/provider",
-            "openNodeComposedInferProvider/recordFailure/recordFailure",
-            "openNodeComposedInferProvider/selectRead/selectRead",
             "openNodeInferOperation",
-            "openNodeInferOperation/bindOriginalRuntimeObservation",
             "openNodeInferOperation/cleanup",
             "openNodeInferOperation/close",
             "openNodeInferOperation/close/close",
             "openNodeInferOperation/close/close#2",
-            "openNodeInferOperation/drive",
             "openNodeInferOperation/observeOriginalRuntime",
             "openNodeInferOperation/openNodeInferOperation",
             "openNodeInferOperation/openNodeInferOperation#2",
@@ -18017,7 +17452,6 @@
             "openNodeInferOperation/stop",
             "openNodeInferOperation/stop/stop",
             "pending/pending",
-            "prepareWithOriginalRawSetter",
             "prepareWithOriginalRawSetter/set/set",
             "retireNodeInferOriginalRead",
             "selectOriginalInferMetadataAcquisition",
@@ -19033,8 +18467,6 @@
             "fundedInferCaptureInventoryCount",
             "fundedInferStoppedAttemptCount",
             "inferCopyFundingOriginal",
-            "inferEvidenceCopyConstruction",
-            "inferEvidenceCopyConstruction/failure/failure",
             "inferEvidenceCopyFunded",
             "openNodeInferOperation/operation/init:fundedStoppedAttemptCount/init:fundedStoppedAttemptCount",
             "openNodeInferOperation/operation/init:originalMaterializationCurrent/init:originalMaterializationCurrent",
@@ -19263,22 +18695,6 @@
       ],
       "operations": [
         {
-          "name": "codecInt/codecInt",
-          "parameters": [
-            "value",
-            "positive"
-          ],
-          "async": false
-        },
-        {
-          "name": "codecLimits/codecLimits",
-          "parameters": [
-            "value",
-            "keys"
-          ],
-          "async": false
-        },
-        {
           "name": "codecLimits/codecLimits/codecLimits",
           "parameters": [
             "item"
@@ -19290,11 +18706,6 @@
           "parameters": [
             "model"
           ],
-          "async": false
-        },
-        {
-          "name": "finishNodeInferOriginalReadScopes/current/current",
-          "parameters": [],
           "async": false
         },
         {
@@ -19348,23 +18759,6 @@
           "async": false
         },
         {
-          "name": "inferEvidenceCopyConstruction",
-          "parameters": [
-            "moon",
-            "operation",
-            "bundle",
-            "kind"
-          ],
-          "async": false
-        },
-        {
-          "name": "inferEvidenceCopyConstruction/failure/failure",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "inferEvidenceCopyFunded",
           "parameters": [
             "receipt",
@@ -19378,11 +18772,6 @@
           "parameters": [
             "read"
           ],
-          "async": false
-        },
-        {
-          "name": "metadataUnavailable/metadataUnavailable",
-          "parameters": [],
           "async": false
         },
         {
@@ -19431,13 +18820,6 @@
           "name": "openNodeComposedInferProvider/component/init:bindOriginal/init:bindOriginal",
           "parameters": [
             "context"
-          ],
-          "async": false
-        },
-        {
-          "name": "openNodeComposedInferProvider/component/init:bindOriginal/init:bindOriginal/read/read",
-          "parameters": [
-            "name"
           ],
           "async": false
         },
@@ -19495,21 +18877,6 @@
           "async": false
         },
         {
-          "name": "openNodeComposedInferProvider/recordFailure/recordFailure",
-          "parameters": [
-            "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "openNodeComposedInferProvider/selectRead/selectRead",
-          "parameters": [
-            "preparation",
-            "restored"
-          ],
-          "async": false
-        },
-        {
           "name": "openNodeInferOperation",
           "parameters": [
             "moon",
@@ -19548,13 +18915,6 @@
           "async": false
         },
         {
-          "name": "openNodeInferOperation/bindOriginalRuntimeObservation",
-          "parameters": [
-            "preparedCallSet"
-          ],
-          "async": false
-        },
-        {
           "name": "openNodeInferOperation/cleanup",
           "parameters": [],
           "async": false
@@ -19573,11 +18933,6 @@
           "name": "openNodeInferOperation/close/close#2",
           "parameters": [],
           "async": false
-        },
-        {
-          "name": "openNodeInferOperation/drive",
-          "parameters": [],
-          "async": true
         },
         {
           "name": "openNodeInferOperation/observeOriginalRuntime",
@@ -20432,16 +19787,6 @@
         {
           "name": "pending/pending",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareWithOriginalRawSetter",
-          "parameters": [
-            "prepare",
-            "request",
-            "notification",
-            "retain"
-          ],
           "async": false
         },
         {
@@ -22193,22 +21538,7 @@
           "async": false
         },
         {
-          "name": "installNodeInferRun/run/run/cleanupOwned/cleanupOwned",
-          "parameters": [],
-          "async": true
-        },
-        {
           "name": "installNodeInferRun/run/run/cleanupPending/cleanupPending",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installNodeInferRun/run/run/current/current",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installNodeInferRun/run/run/current/current#2",
           "parameters": [],
           "async": false
         },
@@ -22272,11 +21602,6 @@
           "async": false
         },
         {
-          "name": "installNodeInferRun/run/run/liveModel/liveModel",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "installNodeInferRun/run/run/original/init:openCapturedHost/init:openCapturedHost",
           "parameters": [
             "captures"
@@ -22316,11 +21641,6 @@
           "name": "installNodeInferRun/run/run/retireOriginalPreparation/retireOriginalPreparation",
           "parameters": [],
           "async": true
-        },
-        {
-          "name": "installNodeInferRun/run/run/retireOriginalPreparation/retireOriginalPreparation/sameOriginal/sameOriginal",
-          "parameters": [],
-          "async": false
         },
         {
           "name": "installNodeInferRun/run/run/run",
@@ -22446,26 +21766,6 @@
           "async": false
         },
         {
-          "name": "installNodeInferRun/run/run/settle",
-          "parameters": [
-            "settlement"
-          ],
-          "async": true
-        },
-        {
-          "name": "sourceFreeModelPreparation",
-          "parameters": [
-            "moon",
-            "control",
-            "prepared",
-            "plan",
-            "selected",
-            "model",
-            "acquired"
-          ],
-          "async": false
-        },
-        {
           "name": "sourceFreeModelPreparation/current/current",
           "parameters": [],
           "async": false
@@ -22512,25 +21812,6 @@
         },
         {
           "name": "sourceFreeModelPreparation/publicationCapacity/publicationCapacity",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "sourceFreeModelsPreparation",
-          "parameters": [
-            "moon",
-            "control",
-            "prepared",
-            "plan",
-            "selected",
-            "model",
-            "acquired",
-            "preparationHolder"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceFreeModelsPreparation/current/current",
           "parameters": [],
           "async": false
         },
@@ -22618,10 +21899,7 @@
             "installNodeInferRun/run/run/cleanup/cleanup",
             "installNodeInferRun/run/run/cleanup/cleanup/cleanup",
             "installNodeInferRun/run/run/cleanup/cleanup/cleanup#2",
-            "installNodeInferRun/run/run/cleanupOwned/cleanupOwned",
             "installNodeInferRun/run/run/cleanupPending/cleanupPending",
-            "installNodeInferRun/run/run/current/current",
-            "installNodeInferRun/run/run/current/current#2",
             "installNodeInferRun/run/run/declaredResults/declaredResults",
             "installNodeInferRun/run/run/declaredResults/declaredResults#2",
             "installNodeInferRun/run/run/declaredResults/declaredResults#3",
@@ -22630,7 +21908,6 @@
             "installNodeInferRun/run/run/init:retainCopy/init:retainCopy",
             "installNodeInferRun/run/run/init:retainExecution/init:retainExecution",
             "installNodeInferRun/run/run/init:retainOperation/init:retainOperation",
-            "installNodeInferRun/run/run/liveModel/liveModel",
             "installNodeInferRun/run/run/original/init:openCapturedHost/init:openCapturedHost",
             "installNodeInferRun/run/run/original/init:prepareRead/init:prepareRead",
             "installNodeInferRun/run/run/original/init:retain/init:retain",
@@ -22638,7 +21915,6 @@
             "installNodeInferRun/run/run/prepareRead/prepareRead",
             "installNodeInferRun/run/run/preparedSource/preparedSource",
             "installNodeInferRun/run/run/retireOriginalPreparation/retireOriginalPreparation",
-            "installNodeInferRun/run/run/retireOriginalPreparation/retireOriginalPreparation/sameOriginal/sameOriginal",
             "installNodeInferRun/run/run/run",
             "installNodeInferRun/run/run/run#10",
             "installNodeInferRun/run/run/run#11",
@@ -22658,8 +21934,7 @@
             "installNodeInferRun/run/run/run#6",
             "installNodeInferRun/run/run/run#7",
             "installNodeInferRun/run/run/run#8",
-            "installNodeInferRun/run/run/run#9",
-            "installNodeInferRun/run/run/settle"
+            "installNodeInferRun/run/run/run#9"
           ],
           "exports": [
             "installNodeInferRun"
@@ -23045,7 +22320,6 @@
         },
         {
           "operations": [
-            "sourceFreeModelPreparation",
             "sourceFreeModelPreparation/current/current",
             "sourceFreeModelPreparation/init:openCapturedHost/init:openCapturedHost",
             "sourceFreeModelPreparation/init:openCapturedHost/init:openCapturedHost/init:openCapturedHost",
@@ -23054,8 +22328,6 @@
             "sourceFreeModelPreparation/init:retain/init:retain",
             "sourceFreeModelPreparation/init:retire/init:retire",
             "sourceFreeModelPreparation/publicationCapacity/publicationCapacity",
-            "sourceFreeModelsPreparation",
-            "sourceFreeModelsPreparation/current/current",
             "sourceFreeModelsPreparation/current/current/current",
             "sourceFreeModelsPreparation/init:openCapturedHost/init:openCapturedHost",
             "sourceFreeModelsPreparation/init:openCapturedHost/init:openCapturedHost/init:openCapturedHost",
@@ -23196,15 +22468,6 @@
       ],
       "operations": [
         {
-          "name": "checkCapturedInventory/checkCapturedInventory",
-          "parameters": [
-            "value",
-            "runDefinitionCid",
-            "binding"
-          ],
-          "async": false
-        },
-        {
           "name": "checkCapturedInventory/checkCapturedInventory/checkCapturedInventory",
           "parameters": [
             "key"
@@ -23215,28 +22478,6 @@
           "name": "checkCapturedInventory/checkCapturedInventory/checkCapturedInventory#2",
           "parameters": [
             "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "checkCapturedInventory/checkCapturedInventory/closed/closed",
-          "parameters": [
-            "item",
-            "keys"
-          ],
-          "async": false
-        },
-        {
-          "name": "entryIdentity/entryIdentity",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
           ],
           "async": false
         },
@@ -23258,15 +22499,6 @@
           "async": true
         },
         {
-          "name": "installNodeModelContinuation/admittedInventory",
-          "parameters": [
-            "originals",
-            "immediate",
-            "token"
-          ],
-          "async": false
-        },
-        {
           "name": "installNodeModelContinuation/admittedInventory/admittedInventory",
           "parameters": [
             "slot"
@@ -23274,20 +22506,8 @@
           "async": false
         },
         {
-          "name": "installNodeModelContinuation/changed/changed",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "installNodeModelContinuation/checkpoints/checkpoints",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installNodeModelContinuation/immutableInput",
-          "parameters": [
-            "value"
-          ],
           "async": false
         },
         {
@@ -23350,11 +22570,6 @@
           "async": false
         },
         {
-          "name": "installNodeModelContinuation/installOriginalJournal",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "installNodeModelContinuation/observe",
           "parameters": [
             "entry"
@@ -23365,30 +22580,6 @@
           "name": "installNodeModelContinuation/open",
           "parameters": [
             "options"
-          ],
-          "async": true
-        },
-        {
-          "name": "installNodeModelContinuation/openOwned",
-          "parameters": [
-            "operation",
-            "preparedCallSet",
-            "plan",
-            "selected",
-            "principalId",
-            "declaredResults",
-            "submission",
-            "signal",
-            "existing",
-            "inputToken",
-            "claim",
-            "parentResume",
-            "journalPort",
-            "sourceContinuation",
-            "retainEvidenceCopy",
-            "originalPreparation",
-            "preserveEvidenceInputs",
-            "ownership"
           ],
           "async": true
         },
@@ -23425,11 +22616,6 @@
             "receipt"
           ],
           "async": true
-        },
-        {
-          "name": "installNodeModelContinuation/openOwned/confirmRawOriginals",
-          "parameters": [],
-          "async": false
         },
         {
           "name": "installNodeModelContinuation/openOwned/confirmRawOriginals/confirmRawOriginals",
@@ -23618,13 +22804,6 @@
           "async": false
         },
         {
-          "name": "installNodeModelContinuation/openOwned/leaf/leaf",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
           "name": "installNodeModelContinuation/openOwned/openOwned",
           "parameters": [
             "name"
@@ -23651,14 +22830,6 @@
           "async": false
         },
         {
-          "name": "installNodeModelContinuation/openOwned/originalResourceReadCurrent",
-          "parameters": [
-            "park",
-            "acquisition"
-          ],
-          "async": false
-        },
-        {
           "name": "installNodeModelContinuation/openOwned/owner/owner",
           "parameters": [],
           "async": false
@@ -23669,11 +22840,6 @@
             "entry",
             "receipt"
           ],
-          "async": false
-        },
-        {
-          "name": "installNodeModelContinuation/openOwned/rawOriginalsCurrent",
-          "parameters": [],
           "async": false
         },
         {
@@ -23691,26 +22857,9 @@
           "async": false
         },
         {
-          "name": "installNodeModelContinuation/openOwned/selectedOriginalStorageEvidence",
-          "parameters": [
-            "park",
-            "storageBinding",
-            "acquisition"
-          ],
-          "async": true
-        },
-        {
           "name": "installNodeModelContinuation/originalResourceCut",
           "parameters": [
             "park"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeModelContinuation/ownedInput",
-          "parameters": [
-            "token",
-            "runDefinitionCid"
           ],
           "async": false
         },
@@ -23763,16 +22912,6 @@
           "async": false
         },
         {
-          "name": "installNodeModelContinuation/retain",
-          "parameters": [
-            "receiptWire",
-            "receipt",
-            "snapshot",
-            "bytes"
-          ],
-          "async": false
-        },
-        {
           "name": "installNodeModelContinuation/retain/token/token",
           "parameters": [],
           "async": false
@@ -23780,13 +22919,6 @@
         {
           "name": "installNodeModelContinuation/retain/token/token#2",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installNodeModelContinuation/retireReceipt",
-          "parameters": [
-            "receiptWire"
-          ],
           "async": false
         },
         {
@@ -23901,44 +23033,6 @@
           "async": false
         },
         {
-          "name": "originalDigest/originalDigest",
-          "parameters": [
-            "originals"
-          ],
-          "async": false
-        },
-        {
-          "name": "parseCore/parseCore",
-          "parameters": [
-            "wire"
-          ],
-          "async": false
-        },
-        {
-          "name": "requireModelDispatchPreparation",
-          "parameters": [
-            "moon",
-            "selected"
-          ],
-          "async": false
-        },
-        {
-          "name": "same/same",
-          "parameters": [
-            "a",
-            "b"
-          ],
-          "async": false
-        },
-        {
-          "name": "select/select",
-          "parameters": [
-            "value",
-            "keys"
-          ],
-          "async": false
-        },
-        {
           "name": "select/select/select",
           "parameters": [
             "key"
@@ -23951,18 +23045,11 @@
       "contracts": [
         {
           "operations": [
-            "checkCapturedInventory/checkCapturedInventory",
             "checkCapturedInventory/checkCapturedInventory/checkCapturedInventory",
             "checkCapturedInventory/checkCapturedInventory/checkCapturedInventory#2",
-            "checkCapturedInventory/checkCapturedInventory/closed/closed",
-            "entryIdentity/entryIdentity",
-            "fail/fail",
             "installNodeModelContinuation",
-            "installNodeModelContinuation/admittedInventory",
             "installNodeModelContinuation/admittedInventory/admittedInventory",
-            "installNodeModelContinuation/changed/changed",
             "installNodeModelContinuation/checkpoints/checkpoints",
-            "installNodeModelContinuation/immutableInput",
             "installNodeModelContinuation/init:savedScope/init:savedScope",
             "installNodeModelContinuation/init:savedScope/init:savedScope/available/available",
             "installNodeModelContinuation/installNodeModelContinuation",
@@ -23971,17 +23058,14 @@
             "installNodeModelContinuation/installNodeModelContinuation#4",
             "installNodeModelContinuation/installNodeModelContinuation#5",
             "installNodeModelContinuation/installNodeModelContinuation#6",
-            "installNodeModelContinuation/installOriginalJournal",
             "installNodeModelContinuation/observe",
             "installNodeModelContinuation/open",
-            "installNodeModelContinuation/openOwned",
             "installNodeModelContinuation/openOwned/cleanup/cleanup",
             "installNodeModelContinuation/openOwned/cleanup/cleanup/cleanup",
             "installNodeModelContinuation/openOwned/cleanup/cleanup/cleanup#2",
             "installNodeModelContinuation/openOwned/cleanup/cleanup/cleanup#3",
             "installNodeModelContinuation/openOwned/cleanupPending/cleanupPending",
             "installNodeModelContinuation/openOwned/confirmOriginalResourceStateSaved",
-            "installNodeModelContinuation/openOwned/confirmRawOriginals",
             "installNodeModelContinuation/openOwned/confirmRawOriginals/confirmRawOriginals",
             "installNodeModelContinuation/openOwned/continuationView/continuationView",
             "installNodeModelContinuation/openOwned/continuationView/init:authorize/init:authorize",
@@ -24010,30 +23094,23 @@
             "installNodeModelContinuation/openOwned/continuationView/init:retainOriginalResourceCurrentCut/init:retainOriginalResourceCurrentCut/init:retainOriginalResourceCurrentCut",
             "installNodeModelContinuation/openOwned/gateOptions/gateOptions",
             "installNodeModelContinuation/openOwned/installed/installed",
-            "installNodeModelContinuation/openOwned/leaf/leaf",
             "installNodeModelContinuation/openOwned/openOwned",
             "installNodeModelContinuation/openOwned/openOwned#2",
             "installNodeModelContinuation/openOwned/openOwned#3",
             "installNodeModelContinuation/openOwned/originalJournalInstallation",
-            "installNodeModelContinuation/openOwned/originalResourceReadCurrent",
             "installNodeModelContinuation/openOwned/owner/owner",
             "installNodeModelContinuation/openOwned/persistence/init:settled/init:settled",
-            "installNodeModelContinuation/openOwned/rawOriginalsCurrent",
             "installNodeModelContinuation/openOwned/receipt/init:consume/init:consume",
             "installNodeModelContinuation/openOwned/review/review",
-            "installNodeModelContinuation/openOwned/selectedOriginalStorageEvidence",
             "installNodeModelContinuation/originalResourceCut",
-            "installNodeModelContinuation/ownedInput",
             "installNodeModelContinuation/prime",
             "installNodeModelContinuation/readSettled",
             "installNodeModelContinuation/readSettled/readSettled",
             "installNodeModelContinuation/readSettled/readSettled#2",
             "installNodeModelContinuation/readSettled/readSettled#3",
             "installNodeModelContinuation/release",
-            "installNodeModelContinuation/retain",
             "installNodeModelContinuation/retain/token/token",
             "installNodeModelContinuation/retain/token/token#2",
-            "installNodeModelContinuation/retireReceipt",
             "installNodeModelContinuation/retireReceipt/absent/absent",
             "installNodeModelContinuation/usage/usage",
             "installNodeModelContinuation/verifier/init:admitImmediateEntry/init:admitImmediateEntry",
@@ -24048,10 +23125,6 @@
             "installNodeModelContinuation/verifier/verifier#7",
             "installNodeModelContinuation/verifier/verifier#8",
             "installNodeModelContinuation/verifier/verifier#9",
-            "originalDigest/originalDigest",
-            "parseCore/parseCore",
-            "same/same",
-            "select/select",
             "select/select/select"
           ],
           "exports": [
@@ -24185,9 +23258,7 @@
           }
         },
         {
-          "operations": [
-            "requireModelDispatchPreparation"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -24456,21 +23527,6 @@
           "async": false
         },
         {
-          "name": "checkedModelMetadata",
-          "parameters": [
-            "result",
-            "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "checkInstallation",
-          "parameters": [
-            "installation"
-          ],
-          "async": false
-        },
-        {
           "name": "checkInstallation/checkInstallation",
           "parameters": [
             "key"
@@ -24575,31 +23631,6 @@
           "async": false
         },
         {
-          "name": "modelDefaultsCallbacks",
-          "parameters": [
-            "moon"
-          ],
-          "async": false
-        },
-        {
-          "name": "modelDefaultsResolver",
-          "parameters": [
-            "moon",
-            "providerId",
-            "bindingOriginals",
-            "assertCurrent",
-            "receiver",
-            "reader",
-            "resolver",
-            "bindingReader",
-            "usageReader",
-            "readCapacity",
-            "retainedCapacity",
-            "resolutionCapacities"
-          ],
-          "async": false
-        },
-        {
           "name": "modelDefaultsResolver/resolveTaskDefaults",
           "parameters": [
             "selectedModel",
@@ -24659,41 +23690,6 @@
         },
         {
           "name": "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults#7",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "originalModelMaterialArrays",
-          "parameters": [
-            "installation"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalModelMaterialArrays/ownString/ownString",
-          "parameters": [
-            "entry",
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalModelMaterialArrays/validate/validate",
-          "parameters": [
-            "entries",
-            "fields"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalModelMaterialArrays/validate/validate/entryFields/entryFields",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalModelMaterialIntrinsics",
           "parameters": [],
           "async": false
         },
@@ -24784,16 +23780,6 @@
           "async": false
         },
         {
-          "name": "readInstalledModelDependenciesLegacy",
-          "parameters": [
-            "moon",
-            "execution",
-            "installation",
-            "originalMock"
-          ],
-          "async": false
-        },
-        {
           "name": "readInstalledModelDependenciesLegacy/bodies/bodies",
           "parameters": [
             "entry"
@@ -24838,36 +23824,9 @@
           "async": false
         },
         {
-          "name": "readInstalledModelExecutionLegacy",
-          "parameters": [
-            "moon",
-            "prepared",
-            "installation",
-            "occurrence"
-          ],
-          "async": false
-        },
-        {
           "name": "readInstalledModelExecutionLegacy/entry/entry",
           "parameters": [
             "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainAdmittedProviderBinding",
-          "parameters": [
-            "moon",
-            "providerId",
-            "originals",
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainModelDefaultsLimits",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -24876,13 +23835,6 @@
           "parameters": [
             "key",
             "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainModelQuantityCapacity",
-          "parameters": [
-            "capacity"
           ],
           "async": false
         },
@@ -24908,13 +23860,6 @@
           "async": false
         },
         {
-          "name": "retainProviderBindingOriginals",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "retainProviderBindingOriginals/retainProviderBindingOriginals",
           "parameters": [
             "key",
@@ -24930,7 +23875,6 @@
           "operations": [
             "admitInstalledModelProvider",
             "admitInstalledModelProviderBinding",
-            "checkInstallation",
             "checkInstallation/checkInstallation",
             "installedModelEnvironment",
             "installModelProviders",
@@ -24942,35 +23886,23 @@
             "installModelProviders/requireEagerSdkStartup/requireEagerSdkStartup",
             "installModelProviders/resolveTaskDefaults/resolveTaskDefaults",
             "installModelProviders/resolveTaskDefaults/resolveTaskDefaults#2",
-            "originalModelMaterialArrays",
-            "originalModelMaterialArrays/ownString/ownString",
             "readInstalledModelDependencies",
             "readInstalledModelDependencies/bodies/bodies",
             "readInstalledModelDependencies/readInstalledModelDependencies",
             "readInstalledModelDependencies/readInstalledModelDependencies#2",
-            "readInstalledModelDependenciesLegacy",
             "readInstalledModelDependenciesLegacy/bodies/bodies",
             "readInstalledModelDependenciesLegacy/readInstalledModelDependenciesLegacy",
             "readInstalledModelDependenciesLegacy/readInstalledModelDependenciesLegacy#2",
             "readInstalledModelExecution",
             "readInstalledModelExecution/entry/entry",
-            "readInstalledModelExecutionLegacy",
             "readInstalledModelExecutionLegacy/entry/entry",
-            "retainAdmittedProviderBinding",
-            "retainModelDefaultsLimits",
             "retainModelDefaultsLimits/retainModelDefaultsLimits",
-            "retainModelQuantityCapacity",
             "retainModelQuantityCapacity/retainModelQuantityCapacity",
             "retainModelQuantityCapacity/retainModelQuantityCapacity/retainModelQuantityCapacity",
             "retainModelQuantityCapacity/retainModelQuantityCapacity#2",
-            "retainProviderBindingOriginals",
             "retainProviderBindingOriginals/retainProviderBindingOriginals",
             "consumeInstalledModelExecutionAbsence",
-            "checkedModelMetadata",
             "consumeInstalledModelPreparationRefusal",
-            "originalModelMaterialArrays/validate/validate",
-            "originalModelMaterialArrays/validate/validate/entryFields/entryFields",
-            "originalModelMaterialIntrinsics",
             "readInstalledModelDependencies/funded/funded",
             "readInstalledModelDependencies/funded/funded/funded",
             "readInstalledModelExecution/funded/funded"
@@ -25233,8 +24165,6 @@
             "assertInstalledModelDefaultsAdoption",
             "assertInstalledModelDefaultsPreparation",
             "installModelProviders/installModelProviders#4",
-            "modelDefaultsCallbacks",
-            "modelDefaultsResolver",
             "modelDefaultsResolver/resolveTaskDefaults",
             "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults",
             "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults#2",
@@ -26003,63 +24933,7 @@
           "async": false
         },
         {
-          "name": "managedSiteCapacity/managedSiteCapacity",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "runManagedExecution/runManagedExecution",
-          "parameters": [
-            "operations",
-            "checked",
-            "signal",
-            "faultInjection",
-            "task",
-            "handlePause",
-            "checkpointPause",
-            "moon"
-          ],
-          "async": true
-        },
-        {
           "name": "runManagedExecution/runManagedExecution/onAbort/onAbort",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runManagedFinalization/runManagedFinalization",
-          "parameters": [
-            "operations",
-            "checked",
-            "signal",
-            "payload",
-            "storageBytes",
-            "available"
-          ],
-          "async": true
-        },
-        {
-          "name": "stopBoundedExecution/stopBoundedExecution",
-          "parameters": [
-            "operations",
-            "checked"
-          ],
-          "async": false
-        },
-        {
-          "name": "validateManagedAdvance/validateManagedAdvance",
-          "parameters": [
-            "observation",
-            "quantum",
-            "errorName",
-            "allowPause"
-          ],
-          "async": false
-        },
-        {
-          "name": "yieldToHost/yieldToHost",
           "parameters": [],
           "async": false
         },
@@ -26129,13 +25003,7 @@
             "localStrategyContribution/init:runPrepared/init:runPrepared/resolved/resolved/resolved",
             "localStrategyContribution/init:runPrepared/init:runPrepared/resolvedRowPlan/resolvedRowPlan",
             "localStrategyContribution/init:runPrepared/init:runPrepared/siteInputs/siteInputs",
-            "managedSiteCapacity/managedSiteCapacity",
-            "runManagedExecution/runManagedExecution",
             "runManagedExecution/runManagedExecution/onAbort/onAbort",
-            "runManagedFinalization/runManagedFinalization",
-            "stopBoundedExecution/stopBoundedExecution",
-            "validateManagedAdvance/validateManagedAdvance",
-            "yieldToHost/yieldToHost",
             "yieldToHost/yieldToHost/yieldToHost"
           ],
           "exports": [
@@ -26432,13 +25300,6 @@
       ],
       "operations": [
         {
-          "name": "managedSiteCapacity/managedSiteCapacity",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "numericStrategyContribution",
           "parameters": [
             "moon",
@@ -26601,7 +25462,6 @@
       "contracts": [
         {
           "operations": [
-            "managedSiteCapacity/managedSiteCapacity",
             "numericStrategyContribution",
             "numericStrategyContribution/init:prepareNext/init:prepareNext",
             "numericStrategyContribution/init:prepareNext/init:prepareNext/configuration/configuration",
@@ -26929,14 +25789,6 @@
           "async": false
         },
         {
-          "name": "bindWorkersFiniteHost/retainPreparation/retainPreparation",
-          "parameters": [
-            "program",
-            "compilation"
-          ],
-          "async": false
-        },
-        {
           "name": "boolean/boolean",
           "parameters": [
             "value"
@@ -26958,11 +25810,6 @@
           "async": false
         },
         {
-          "name": "invalid/invalid",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "numericProfile/numericProfile",
           "parameters": [
             "value"
@@ -26970,31 +25817,9 @@
           "async": false
         },
         {
-          "name": "optional/optional",
-          "parameters": [
-            "shape"
-          ],
-          "async": false
-        },
-        {
-          "name": "protectedGate",
-          "parameters": [
-            "authorization"
-          ],
-          "async": false
-        },
-        {
           "name": "quantity/quantity",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "snapshot",
-          "parameters": [
-            "value",
-            "shape"
           ],
           "async": false
         },
@@ -27050,16 +25875,11 @@
             "bindWorkersFiniteHost/init:prepare/init:prepare",
             "bindWorkersFiniteHost/init:usage/init:usage",
             "bindWorkersFiniteHost/init:withExecution/init:withExecution",
-            "bindWorkersFiniteHost/retainPreparation/retainPreparation",
             "boolean/boolean",
             "fragmentShape/fragmentShape",
             "integer/integer",
-            "invalid/invalid",
             "numericProfile/numericProfile",
-            "optional/optional",
-            "protectedGate",
             "quantity/quantity",
-            "snapshot",
             "snapshot/snapshot",
             "snapshot/snapshot#2",
             "snapshot/snapshot#3",
@@ -27681,13 +26501,6 @@
           "async": false
         },
         {
-          "name": "checked",
-          "parameters": [
-            "result"
-          ],
-          "async": false
-        },
-        {
           "name": "checkedOutputPublicationFacts/checkedOutputPublicationFacts",
           "parameters": [
             "plan"
@@ -27834,20 +26647,6 @@
           "async": false
         },
         {
-          "name": "effectCheckpointValue/effectCheckpointValue",
-          "parameters": [
-            "handle"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectCurrentLimits/effectCurrentLimits",
-          "parameters": [
-            "supplied"
-          ],
-          "async": false
-        },
-        {
           "name": "effectCurrentLimits/effectCurrentLimits/effectCurrentLimits",
           "parameters": [
             "value",
@@ -27910,21 +26709,6 @@
           "async": false
         },
         {
-          "name": "effectCurrentText/effectCurrentText",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectCurrentValue/effectCurrentValue",
-          "parameters": [
-            "values",
-            "handle"
-          ],
-          "async": false
-        },
-        {
           "name": "effectResumeDeliveries/effectResumeDeliveries",
           "parameters": [
             "args"
@@ -27976,13 +26760,6 @@
           "async": false
         },
         {
-          "name": "holderTerminalValue/holderTerminalValue",
-          "parameters": [
-            "handle"
-          ],
-          "async": false
-        },
-        {
           "name": "initialDeliveryEligible/initialDeliveryEligible",
           "parameters": [
             "record",
@@ -27992,22 +26769,10 @@
           "async": false
         },
         {
-          "name": "invalidSiteInput/invalidSiteInput",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "issueOutputPlanPollJson/issueOutputPlanPollJson",
           "parameters": [
             "durable",
             "input"
-          ],
-          "async": false
-        },
-        {
-          "name": "issueOutputPlanPollJson/issueOutputPlanPollJson/integer/integer",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -28175,32 +26940,6 @@
           "async": false
         },
         {
-          "name": "prepareEffectResumeDeliveryJson/prepareEffectResumeDeliveryJson",
-          "parameters": [
-            "serialize",
-            "report",
-            "resolutionWire",
-            "authentication",
-            "reviewers",
-            "claim",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareEffectResumeDeliveryJson/prepareEffectResumeDeliveryJson/byteLength/byteLength",
-          "parameters": [
-            "value",
-            "maximum"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareEffectResumeDeliveryJson/prepareEffectResumeDeliveryJson/invalid/invalid",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "prepareEffectResumeDeliveryJson/prepareEffectResumeDeliveryJson/prepareEffectResumeDeliveryJson",
           "parameters": [
             "value",
@@ -28353,14 +27092,6 @@
           "async": false
         },
         {
-          "name": "siteArray/siteArray",
-          "parameters": [
-            "value",
-            "valid"
-          ],
-          "async": false
-        },
-        {
           "name": "siteBoolean/siteBoolean",
           "parameters": [
             "value"
@@ -28369,13 +27100,6 @@
         },
         {
           "name": "siteInteger/siteInteger",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "siteOptionalInteger/siteOptionalInteger",
           "parameters": [
             "value"
           ],
@@ -28432,14 +27156,6 @@
           "async": false
         },
         {
-          "name": "snapshotTextRecord/snapshotTextRecord",
-          "parameters": [
-            "value",
-            "fields"
-          ],
-          "async": false
-        },
-        {
           "name": "snapshotTextRecord/snapshotTextRecord/snapshot/snapshot",
           "parameters": [
             "key"
@@ -28465,13 +27181,6 @@
           "parameters": [
             "durable",
             "transition"
-          ],
-          "async": false
-        },
-        {
-          "name": "validateDeliveryContext",
-          "parameters": [
-            "context"
           ],
           "async": false
         }
@@ -28513,7 +27222,6 @@
             "bundleRetention/bundleRetention#7",
             "bundleRetention/bundleRetention#8",
             "bundleRetention/bundleRetention#9",
-            "checked",
             "checkedOutputPublicationFacts/checkedOutputPublicationFacts",
             "checkedOutputPublicationFacts/checkedOutputPublicationFacts/checkedOutputPublicationFacts",
             "commitIntent/commitIntent",
@@ -28534,8 +27242,6 @@
             "effectCheckpointReports/effectCheckpointReports#4",
             "effectCheckpointReports/effectCheckpointReports#5",
             "effectCheckpointReports/effectCheckpointReports/effectCheckpointReports",
-            "effectCheckpointValue/effectCheckpointValue",
-            "effectCurrentLimits/effectCurrentLimits",
             "effectCurrentLimits/effectCurrentLimits/effectCurrentLimits",
             "effectCurrentLimits/effectCurrentLimits/values/values",
             "effectCurrentObservations/effectCurrentObservations",
@@ -28544,8 +27250,6 @@
             "effectCurrentObservations/effectCurrentObservations#4",
             "effectCurrentObservations/effectCurrentObservations#5",
             "effectCurrentObservations/effectCurrentObservations#6",
-            "effectCurrentText/effectCurrentText",
-            "effectCurrentValue/effectCurrentValue",
             "effectResumeDeliveries/effectResumeDeliveries",
             "effectResumeDeliveries/effectResumeDeliveries#2",
             "holderTerminalReports/holderTerminalReports",
@@ -28553,11 +27257,8 @@
             "holderTerminalReports/holderTerminalReports#3",
             "holderTerminalReports/holderTerminalReports#4",
             "holderTerminalReports/holderTerminalReports#5",
-            "holderTerminalValue/holderTerminalValue",
             "initialDeliveryEligible/initialDeliveryEligible",
-            "invalidSiteInput/invalidSiteInput",
             "issueOutputPlanPollJson/issueOutputPlanPollJson",
-            "issueOutputPlanPollJson/issueOutputPlanPollJson/integer/integer",
             "issueOutputPlanPollJson/issueOutputPlanPollJson/issueOutputPlanPollJson",
             "outputAdmissionDurableJson/outputAdmissionDurableJson",
             "outputInitialPollJson/outputInitialPollJson",
@@ -28580,9 +27281,6 @@
             "pollQueryJson/pollQueryJson",
             "pollReleaseJson/pollReleaseJson",
             "prepareDispatch/prepareDispatch",
-            "prepareEffectResumeDeliveryJson/prepareEffectResumeDeliveryJson",
-            "prepareEffectResumeDeliveryJson/prepareEffectResumeDeliveryJson/byteLength/byteLength",
-            "prepareEffectResumeDeliveryJson/prepareEffectResumeDeliveryJson/invalid/invalid",
             "prepareEffectResumeDeliveryJson/prepareEffectResumeDeliveryJson/prepareEffectResumeDeliveryJson",
             "prepareIntent/prepareIntent",
             "prepareOutputIntent/prepareOutputIntent",
@@ -28602,10 +27300,8 @@
             "restoreDurable/restoreDurable",
             "restoreDurableOutput/restoreDurableOutput",
             "restoreDurablePayload/restoreDurablePayload",
-            "siteArray/siteArray",
             "siteBoolean/siteBoolean",
             "siteInteger/siteInteger",
-            "siteOptionalInteger/siteOptionalInteger",
             "sitePlanning/sitePlanning",
             "sitePlanning/sitePlanning#2",
             "sitePlanning/sitePlanning/sitePlanning",
@@ -28613,12 +27309,10 @@
             "sitePlanning/sitePlanning/sitePlanning#3",
             "sitePlanning/sitePlanning/sitePlanning#4",
             "sitePlanning/sitePlanning/sitePlanning#5",
-            "snapshotTextRecord/snapshotTextRecord",
             "snapshotTextRecord/snapshotTextRecord/snapshot/snapshot",
             "snapshotTextRecord/snapshotTextRecord/snapshotTextRecord",
             "snapshotTextRecord/snapshotTextRecord/snapshotTextRecord#2",
-            "transitionDurableJson/transitionDurableJson",
-            "validateDeliveryContext"
+            "transitionDurableJson/transitionDurableJson"
           ],
           "exports": [
             "acceptedSiteOutput",
@@ -29400,14 +28094,6 @@
           "async": false
         },
         {
-          "name": "admitRetainedInputPlan/booleanResult/booleanResult",
-          "parameters": [
-            "value",
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "admitRetainedInputPlan/value/value",
           "parameters": [
             "key",
@@ -29543,31 +28229,9 @@
           "async": false
         },
         {
-          "name": "admittedEffectTaskProgress",
-          "parameters": [
-            "allowed",
-            "definition",
-            "authority",
-            "durableWires"
-          ],
-          "async": false
-        },
-        {
           "name": "admittedEffectTaskProgress/admittedEffectTaskProgress",
           "parameters": [
             "wire"
-          ],
-          "async": false
-        },
-        {
-          "name": "admittedTaskProgress",
-          "parameters": [
-            "prepared",
-            "compilation",
-            "admission",
-            "definition",
-            "authority",
-            "durableWires"
           ],
           "async": false
         },
@@ -29615,22 +28279,6 @@
           "async": false
         },
         {
-          "name": "checked",
-          "parameters": [
-            "result",
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "checkedProfileSelection",
-          "parameters": [
-            "profiles",
-            "error"
-          ],
-          "async": false
-        },
-        {
           "name": "checkRunBinding",
           "parameters": [
             "prepared",
@@ -29669,40 +28317,9 @@
           "async": false
         },
         {
-          "name": "deliveryCall",
-          "parameters": [
-            "method",
-            "args"
-          ],
-          "async": false
-        },
-        {
           "name": "deliveryContract",
           "parameters": [
             "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "deliveryResult",
-          "parameters": [
-            "method",
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "deliveryToken",
-          "parameters": [
-            "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "deliveryView",
-          "parameters": [
-            "contract",
-            "original"
           ],
           "async": false
         },
@@ -29721,14 +28338,6 @@
           "async": false
         },
         {
-          "name": "effectCompilationFor",
-          "parameters": [
-            "prepared",
-            "compilation"
-          ],
-          "async": false
-        },
-        {
           "name": "effectExecutionShape",
           "parameters": [
             "prepared",
@@ -29740,20 +28349,6 @@
           "name": "effectExecutionShape/effectExecutionShape",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectFinalOriginals",
-          "parameters": [
-            "evidence"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectFinalOriginals/own/own",
-          "parameters": [
-            "name"
           ],
           "async": false
         },
@@ -29786,23 +28381,6 @@
           "name": "effectPreviewIdentityCid",
           "parameters": [
             "preview"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectProjectionArray",
-          "parameters": [
-            "value",
-            "maximum"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectReceiptWires",
-          "parameters": [
-            "preview",
-            "setReceiptWire",
-            "memberReceiptWires"
           ],
           "async": false
         },
@@ -29949,13 +28527,6 @@
           "async": false
         },
         {
-          "name": "effectReviewCheckpointReconciliationState/snapshot/snapshot",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "effectReviewCheckpointWaitingState",
           "parameters": [
             "binding",
@@ -29987,13 +28558,6 @@
             "allowed",
             "definition",
             "at"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectSiteSelection",
-          "parameters": [
-            "selection"
           ],
           "async": false
         },
@@ -30060,24 +28624,10 @@
           "async": false
         },
         {
-          "name": "effectTaskProgressSnapshot",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "effectTaskProgressSnapshot/effectTaskProgressSnapshot",
           "parameters": [
             "row",
             "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "evidenceItems",
-          "parameters": [
-            "values"
           ],
           "async": false
         },
@@ -30089,26 +28639,9 @@
           "async": false
         },
         {
-          "name": "exactRetainedFields/exactRetainedFields",
-          "parameters": [
-            "value",
-            "keys"
-          ],
-          "async": false
-        },
-        {
           "name": "executionShape",
           "parameters": [
             "compilation"
-          ],
-          "async": false
-        },
-        {
-          "name": "handle",
-          "parameters": [
-            "map",
-            "value",
-            "kind"
           ],
           "async": false
         },
@@ -30231,14 +28764,6 @@
             "retention",
             "actualRowCount",
             "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "issuedDelivery",
-          "parameters": [
-            "method",
-            "args"
           ],
           "async": false
         },
@@ -30869,13 +29394,6 @@
           "async": false
         },
         {
-          "name": "nonnegativeCount",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "openResultDeliveryControl",
           "parameters": [],
           "async": false
@@ -31245,37 +29763,6 @@
           "async": false
         },
         {
-          "name": "openResultDeliveryControl/limitsOf/limitsOf",
-          "parameters": [
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "openResultDeliveryControl/mark/mark",
-          "parameters": [
-            "method",
-            "progress",
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openResultDeliveryControl/progressToken/progressToken",
-          "parameters": [
-            "progress"
-          ],
-          "async": false
-        },
-        {
-          "name": "openResultDeliveryControl/sameBounds/sameBounds",
-          "parameters": [
-            "first",
-            "second"
-          ],
-          "async": false
-        },
-        {
           "name": "openResultDeliveryControl/sameBounds/sameBounds/sameBounds",
           "parameters": [
             "value",
@@ -31446,14 +29933,6 @@
           "async": false
         },
         {
-          "name": "prepareRetainedTaskInput/booleanResult/booleanResult",
-          "parameters": [
-            "value",
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareRetainedTaskInput/input/input",
           "parameters": [
             "key",
@@ -31486,14 +29965,6 @@
           "name": "prepareRetainedTaskInput/prepareRetainedTaskInput#2",
           "parameters": [
             "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareRetainedTaskInput/stringResult/stringResult",
-          "parameters": [
-            "read",
-            "code"
           ],
           "async": false
         },
@@ -31646,17 +30117,6 @@
           "async": false
         },
         {
-          "name": "prepareSourceProgramOriginal",
-          "parameters": [
-            "intent",
-            "environment",
-            "publicationWire",
-            "primaryResultRecipe",
-            "publishedEnvironment"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareSourceRequest",
           "parameters": [
             "prepared",
@@ -31748,13 +30208,6 @@
             "manifest",
             "resultName",
             "bindings"
-          ],
-          "async": false
-        },
-        {
-          "name": "projectCommittedResultRead/cid/cid",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -31861,13 +30314,6 @@
           "async": false
         },
         {
-          "name": "publicationContract",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationIndexScopeKey",
           "parameters": [
             "ref",
@@ -31879,20 +30325,6 @@
           "name": "publicationIndexScopeKey/publicationIndexScopeKey",
           "parameters": [
             "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationItems",
-          "parameters": [
-            "values"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationLimits",
-          "parameters": [
-            "limits"
           ],
           "async": false
         },
@@ -31974,23 +30406,6 @@
           "async": false
         },
         {
-          "name": "requireHandle",
-          "parameters": [
-            "map",
-            "token"
-          ],
-          "async": false
-        },
-        {
-          "name": "requirePublishedEnvironment",
-          "parameters": [
-            "prepared",
-            "environment",
-            "publicationWire"
-          ],
-          "async": false
-        },
-        {
           "name": "restoreEffectRunNormalization",
           "parameters": [
             "materials"
@@ -32058,13 +30473,6 @@
           "async": false
         },
         {
-          "name": "resultOccurrence",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "resultReadAvailability",
           "parameters": [
             "manifest",
@@ -32094,13 +30502,6 @@
           "parameters": [
             "field",
             "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainedEffectFinal",
-          "parameters": [
-            "receipt"
           ],
           "async": false
         },
@@ -32231,23 +30632,9 @@
           "async": false
         },
         {
-          "name": "retainedWire/retainedWire",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "runCancellationIntentCid",
           "parameters": [
             "identity"
-          ],
-          "async": false
-        },
-        {
-          "name": "runEvidence",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -32403,13 +30790,6 @@
           "async": false
         },
         {
-          "name": "taskProgressSnapshot",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "taskProgressSnapshot/taskProgressSnapshot",
           "parameters": [
             "row",
@@ -32537,23 +30917,9 @@
           "async": false
         },
         {
-          "name": "validateRunMaterialsInput",
-          "parameters": [
-            "retained"
-          ],
-          "async": false
-        },
-        {
           "name": "validateRunMaterialsInput/validateRunMaterialsInput",
           "parameters": [
             "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "validateTaskPhysicalStartClaim",
-          "parameters": [
-            "claim"
           ],
           "async": false
         },
@@ -32595,7 +30961,6 @@
             "admitRetainedInputPlan",
             "admitRetainedInputPlan/admitRetainedInputPlan",
             "admitRetainedInputPlan/admitRetainedInputPlan#2",
-            "admitRetainedInputPlan/booleanResult/booleanResult",
             "admitRetainedInputPlan/value/value",
             "admitRetainedInputPlan/value/value#2",
             "admitRetainedInputPlan/value/value#3",
@@ -32611,33 +30976,22 @@
             "admitTaskRun",
             "admitTaskRun/admitTaskRun",
             "admitTaskRunDefinition",
-            "admittedEffectTaskProgress",
             "admittedEffectTaskProgress/admittedEffectTaskProgress",
-            "admittedTaskProgress",
             "admittedTaskProgress/admittedTaskProgress",
             "beginResultMaterialHolds",
             "bindPreparedEffectRunMaterials",
             "captureOriginalRunPlan",
             "captureOriginalRunPlan/captureOriginalRunPlan",
             "checkRunBinding",
-            "checked",
-            "checkedProfileSelection",
             "compileEffect",
             "compileTasks",
             "compileValues",
             "compiledPlanCid",
-            "deliveryCall",
             "deliveryContract",
-            "deliveryResult",
-            "deliveryToken",
-            "deliveryView",
             "describeCommittedResult",
-            "effectCompilationFor",
             "effectExecutionShape",
             "effectExecutionShape/effectExecutionShape",
             "effectPreviewIdentityCid",
-            "effectProjectionArray",
-            "effectReceiptWires",
             "effectResultDefinitions",
             "effectResultDefinitions/effectResultDefinitions",
             "effectResultDefinitions/effectResultDefinitions#2",
@@ -32654,12 +31008,10 @@
             "effectReviewCheckpointPreview",
             "effectReviewCheckpointReconciliationState",
             "effectReviewCheckpointReconciliationState/effectReviewCheckpointReconciliationState",
-            "effectReviewCheckpointReconciliationState/snapshot/snapshot",
             "effectReviewCheckpointWaitingState",
             "effectReviewProjectionBindingFacts",
             "effectReviewProjectionBindingFacts/effectReviewProjectionBindingFacts",
             "effectRunStartCurrent",
-            "effectSiteSelection",
             "effectSiteSelection/args/args",
             "effectSiteSelection/effectSiteSelection",
             "effectSourceEvidenceFacts",
@@ -32668,13 +31020,9 @@
             "effectSourceInputBinding",
             "effectTaskKeys",
             "effectTaskKeys/effectTaskKeys",
-            "effectTaskProgressSnapshot",
             "effectTaskProgressSnapshot/effectTaskProgressSnapshot",
-            "evidenceItems",
             "evidenceItems/evidenceItems",
-            "exactRetainedFields/exactRetainedFields",
             "executionShape",
-            "handle",
             "inspectCanonicalResultRows",
             "inspectCanonicalResultRows/inspectCanonicalResultRows",
             "inspectEffectTaskProgress",
@@ -32751,8 +31099,6 @@
             "issueTaskRunDefinition/issueTaskRunDefinition",
             "issueTaskRunMaterials",
             "issueUnpublishedRunStateWire",
-            "issuedDelivery",
-            "nonnegativeCount",
             "openResultDeliveryControl",
             "openResultDeliveryControl/init:admit/init:admit",
             "openResultDeliveryControl/init:beginResultAccessProgress/init:beginResultAccessProgress",
@@ -32797,10 +31143,6 @@
             "openResultDeliveryControl/init:resultReadRetentionPolicyCid/init:resultReadRetentionPolicyCid",
             "openResultDeliveryControl/init:resultRetentionClockContractCid/init:resultRetentionClockContractCid",
             "openResultDeliveryControl/init:trustedClockNotBefore/init:trustedClockNotBefore",
-            "openResultDeliveryControl/limitsOf/limitsOf",
-            "openResultDeliveryControl/mark/mark",
-            "openResultDeliveryControl/progressToken/progressToken",
-            "openResultDeliveryControl/sameBounds/sameBounds",
             "openResultDeliveryControl/sameBounds/sameBounds/sameBounds",
             "originalRunPlanAdmissionEvidence",
             "prepare",
@@ -32820,13 +31162,11 @@
             "prepareRetainedInputProducer",
             "prepareRetainedInputProducer/current/current",
             "prepareRetainedTaskInput",
-            "prepareRetainedTaskInput/booleanResult/booleanResult",
             "prepareRetainedTaskInput/input/input",
             "prepareRetainedTaskInput/input/input#2",
             "prepareRetainedTaskInput/input/input#3",
             "prepareRetainedTaskInput/prepareRetainedTaskInput",
             "prepareRetainedTaskInput/prepareRetainedTaskInput#2",
-            "prepareRetainedTaskInput/stringResult/stringResult",
             "prepareRetainedTaskInput/stringResult/stringResult/stringResult",
             "prepareRetainedTaskInputEdge",
             "prepareRetainedTaskInputEdge/prepareRetainedTaskInputEdge",
@@ -32852,7 +31192,6 @@
             "privateRunDefinition",
             "privateTaskCompilationWires",
             "projectCommittedResultRead",
-            "projectCommittedResultRead/cid/cid",
             "projectCommittedResultRead/projectCommittedResultRead",
             "projectCommittedResultRead/projectCommittedResultRead#2",
             "projectEffectSiteRun",
@@ -32864,11 +31203,8 @@
             "projectTaskSiteRun",
             "projectTaskSiteRun/projectTaskSiteRun",
             "projectTaskSiteRun/projectTaskSiteRun#2",
-            "publicationContract",
             "publicationIndexScopeKey",
             "publicationIndexScopeKey/publicationIndexScopeKey",
-            "publicationItems",
-            "publicationLimits",
             "publicationLimits/publicationLimits",
             "publicationToken",
             "publishedEnvironmentMatches",
@@ -32879,15 +31215,12 @@
             "readStoredRunPlanOriginal/readStoredRunPlanOriginal#4",
             "requestFields",
             "requestRelation",
-            "requireHandle",
-            "requirePublishedEnvironment",
             "restoreEffectRunNormalization",
             "resultDefinitions",
             "resultDefinitions/resultDefinitions",
             "resultDefinitions/resultDefinitions#2",
             "resultMaterialHoldsFacts",
             "resultMaterialHoldsWire",
-            "resultOccurrence",
             "resultReadAvailability",
             "resultSchema",
             "resultSchema/resultSchema",
@@ -32910,9 +31243,7 @@
             "retainedTaskInputEdgeFacts/retainedTaskInputEdgeFacts",
             "retainedTaskInputFacts",
             "retainedTaskInputFacts/retainedTaskInputFacts",
-            "retainedWire/retainedWire",
             "runCancellationIntentCid",
-            "runEvidence",
             "sealRunEvidenceValue",
             "sourceEvidenceFacts",
             "sourceEvidenceFacts/sourceEvidenceFacts",
@@ -32927,7 +31258,6 @@
             "taskInputBinding",
             "taskKeys",
             "taskKeys/taskKeys",
-            "taskProgressSnapshot",
             "taskProgressSnapshot/taskProgressSnapshot",
             "taskResultDefinitions",
             "taskResultDefinitions/taskResultDefinitions",
@@ -32942,23 +31272,18 @@
             "validatePublicationRecordTransition",
             "validateRetainedInputPlan",
             "validateRetainedTaskInput",
-            "validateRunMaterialsInput",
             "validateRunMaterialsInput/validateRunMaterialsInput",
-            "validateTaskPhysicalStartClaim",
             "validateTaskPhysicalStartClaim/validateTaskPhysicalStartClaim",
             "validateTaskPhysicalStartClaim/validateTaskPhysicalStartClaim#2",
             "admitEffectfulFinalRunEvidence",
             "admitOriginalResultOccurrenceEvidence",
             "admitOriginalResultOccurrenceEvidence/fields/fields",
-            "effectFinalOriginals",
-            "effectFinalOriginals/own/own",
             "effectfulFinalRunOutcome",
             "effectfulFinalRunReconciliationState",
             "issueSucceededRunStateWire/wire/wire#5",
             "issueSucceededRunStateWire/wire/wire#6",
             "issueSucceededRunStateWire/wire/wire#7",
             "issueSucceededRunStateWire/wire/wire#8",
-            "retainedEffectFinal",
             "validateEffectfulPublicationCommit/validateEffectfulPublicationCommit",
             "effectfulFinalRunFailedState"
           ],
@@ -33592,7 +31917,6 @@
           "operations": [
             "admitSourceRequestFields",
             "prepareSourceProgram",
-            "prepareSourceProgramOriginal",
             "prepareSourceRequest",
             "restoreSourceProgram",
             "restoreSourceProgram/restoreSourceProgram",
@@ -34355,20 +32679,6 @@
           "async": false
         },
         {
-          "name": "checked",
-          "parameters": [
-            "result"
-          ],
-          "async": false
-        },
-        {
-          "name": "integer/integer",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "observationBudgetSnapshot",
           "parameters": [
             "budget"
@@ -34422,23 +32732,6 @@
             "value"
           ],
           "async": false
-        },
-        {
-          "name": "requireToken",
-          "parameters": [
-            "map",
-            "handle"
-          ],
-          "async": false
-        },
-        {
-          "name": "token",
-          "parameters": [
-            "map",
-            "value",
-            "kind"
-          ],
-          "async": false
         }
       ],
       "owner": "Existing common observation custody and opaque scope/budget",
@@ -34449,17 +32742,13 @@
             "admitObservationScope",
             "admitObservationScope/admitObservationScope",
             "chargeObservation",
-            "checked",
-            "integer/integer",
             "observationBudgetSnapshot",
             "observationBudgetSnapshot/observationBudgetSnapshot",
             "observationScopeKey",
             "openObservationBudget",
             "openObservationBudget/openObservationBudget",
             "openObservationBudget/openObservationBudget#2",
-            "openObservationBudget/openObservationBudget#3",
-            "requireToken",
-            "token"
+            "openObservationBudget/openObservationBudget#3"
           ],
           "exports": [
             "admitObservationScope",
@@ -34755,13 +33044,6 @@
           "async": false
         },
         {
-          "name": "checked",
-          "parameters": [
-            "result"
-          ],
-          "async": false
-        },
-        {
           "name": "chunks/chunks",
           "parameters": [
             "request"
@@ -34794,13 +33076,6 @@
           "name": "commitTransition/commitTransition",
           "parameters": [
             "transition"
-          ],
-          "async": false
-        },
-        {
-          "name": "limits/limits",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -34918,13 +33193,11 @@
             "activeAt/activeAt",
             "admitDurableJson/admitDurableJson",
             "admitEnvelopeJson/admitEnvelopeJson",
-            "checked",
             "chunks/chunks",
             "chunks/chunks/chunks",
             "chunks/chunks/chunks#2",
             "chunks/chunks/chunks#3",
             "commitTransition/commitTransition",
-            "limits/limits",
             "prepareCleanup/prepareCleanup",
             "prepareDestinationCommit/prepareDestinationCommit",
             "prepareFailure/prepareFailure",
@@ -49513,7 +47786,7 @@
       "operations": [
         {
           "name": "[I,P]original_request_plan_construction_quote",
-          "declaration": "[ I , P ] original_request_plan_construction_quote ( capacity : @ resources . PreparationCapacity [ I , P ] , input : I , data : @ checked . ParsedCheckDataEstimate , ) - > Result [ ( Int64 , Int64 ) , ClientRequestPreparationIssue ]"
+          "declaration": "[ I , P ] original_request_plan_construction_quote ( capacity : @ resources . PreparationCapacity [ I , P ] , input : I , data : @ checked . ParsedCheckDataEstimate , tasks ? : Int"
         },
         {
           "name": "[I]begin_request_program_managed_run",
@@ -91361,13 +89634,6 @@
       ],
       "operations": [
         {
-          "name": "extent/extent",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "withOriginalInferModelObservation",
           "parameters": [
             "moon",
@@ -91403,7 +89669,6 @@
         {
           "operations": [
             "<module>",
-            "extent/extent",
             "withOriginalInferModelObservation",
             "withOriginalInferModelObservation/withOriginalInferModelObservation"
           ],
@@ -92359,15 +90624,6 @@
           "async": false
         },
         {
-          "name": "originalBudget",
-          "parameters": [
-            "moon",
-            "result",
-            "diagnostic"
-          ],
-          "async": false
-        },
-        {
           "name": "originalBudget/fields/fields",
           "parameters": [
             "_",
@@ -92490,7 +90746,6 @@
         },
         {
           "operations": [
-            "originalBudget",
             "originalBudget/fields/fields",
             "originalBudget/originalBudget"
           ],
@@ -94940,6 +93195,10 @@
           "declaration": "preparation_work_ordinal ( phase : PreparationWorkPhase ) - > Int"
         },
         {
+          "name": "remaining_preparation_phase_work_continuation64",
+          "declaration": "remaining_preparation_phase_work_continuation64 ( receipt : PreparationPhaseWorkContinuation64 , ) - > Result [ Int64 , PreparationWorkIssue ]"
+        },
+        {
           "name": "resume_preparation_phase_work_continuation64",
           "declaration": "resume_preparation_phase_work_continuation64 ( receipt : PreparationPhaseWorkContinuation64 , ) - > Result [ Unit , PreparationWorkIssue ]"
         },
@@ -94968,25 +93227,26 @@
           "operations": [
             "<module>",
             "[I,P]begin_preparation_phase_work",
-            "[I,P]begin_preparation_phase_work_continuation64",
             "[I,P]begin_preparation_phase_work64",
+            "[I,P]begin_preparation_phase_work_continuation64",
             "[I,P]begin_preparation_work_state",
             "[I,P]finish_preparation_work_state",
             "[I,P]resume_preparation_work_state",
             "[I,P]return_preparation_work_state",
             "[I,P]spend_preparation_work_state",
             "finish_preparation_phase_work",
-            "finish_preparation_phase_work_continuation64",
             "finish_preparation_phase_work64",
+            "finish_preparation_phase_work_continuation64",
             "preparation_phase_work_construction_inventory",
             "preparation_phase_work_continuation64_construction_inventory",
             "preparation_phase_work_continuation64_retained_inventory",
             "preparation_work_ordinal",
+            "remaining_preparation_phase_work_continuation64",
             "resume_preparation_phase_work_continuation64",
             "return_preparation_phase_work_continuation64",
             "spend_preparation_phase_work",
-            "spend_preparation_phase_work_continuation64",
-            "spend_preparation_phase_work64"
+            "spend_preparation_phase_work64",
+            "spend_preparation_phase_work_continuation64"
           ],
           "exports": [],
           "attributes": {
@@ -95048,6 +93308,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_result_publication_work_js_wbtest.mbt",
+                "case_id": "effect_result_original_work_receipt"
               }
             ]
           }
@@ -97737,6 +96001,270 @@
       ],
       "referenceQualification": "Source ownership and selected component correspondence only; not a normal artifact, global RAM reservation or ordinary execution acceptance.",
       "package": "client_local_host"
+    },
+    {
+      "module": "src/client_local_host/installed_effect_result_publication_work.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing installed Effect preparation and original publication-work Owner",
+      "sha256": "670545ef52c4a16f9c152d5cdf9d158e6f08a614af28e819de7647791e4b1562",
+      "exports": [],
+      "operations": [
+        {
+          "name": "advance_installed_effect_result_publication",
+          "declaration": "advance_installed_effect_result_publication ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , run : @ strategy . CapturedEffectRunDAG , transformation : @ publication_host . CapturedClientResultTransformation , quantum : Int , ) - > Result [ ( Bool , Int ) , ClientInstalledEffectResultPublicationIssue ]"
+        },
+        {
+          "name": "installed_effect_publication_work_receipt_bytes",
+          "declaration": "installed_effect_publication_work_receipt_bytes ( ) - > Int64 ?"
+        },
+        {
+          "name": "installed_effect_result_publication_work_capacity",
+          "declaration": "installed_effect_result_publication_work_capacity ( ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "prepare_installed_effect_result_publication_work",
+          "declaration": "prepare_installed_effect_result_publication_work ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , run : @ strategy . CapturedEffectRunDAG , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "advance_installed_effect_result_publication",
+            "installed_effect_publication_work_receipt_bytes",
+            "installed_effect_result_publication_work_capacity",
+            "prepare_installed_effect_result_publication_work"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_effect_result_publication_work.mbt",
+                "anchor": "pub fn prepare_installed_effect_result_publication_work("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_effect_result_publication_work.mbt",
+                "anchor": "pub fn prepare_installed_effect_result_publication_work("
+              },
+              {
+                "path": "src/client_local_host/installed_effect_result_publication_work.mbt",
+                "anchor": "pub fn advance_installed_effect_result_publication("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_effect_result_publication_work.mbt",
+                "anchor": "pub fn prepare_installed_effect_result_publication_work("
+              },
+              {
+                "path": "adapters/host-node/effect-result-work.test.mjs",
+                "anchor": "test('a tuple changed during native progress is refused after actual consumed work'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_effect_result_publication_work.mbt",
+                "anchor": "pub fn prepare_installed_effect_result_publication_work("
+              },
+              {
+                "path": "src/client_local_host/installed_effect_result_publication_work_js_wbtest.mbt",
+                "case_id": "effect_result_original_work_receipt"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/effect-result-work.mjs",
+                "anchor": "export function prepareInstalledEffectResultProgress("
+              },
+              {
+                "path": "adapters/host-node/effect-result-work.mjs",
+                "anchor": "InstalledEffectResultWorkPending"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_effect_result_publication_work.mbt",
+                "anchor": "pub fn advance_installed_effect_result_publication("
+              },
+              {
+                "path": "adapters/host-node/effect-result-work.mjs",
+                "anchor": "if (failed) throw primary;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/result-transformation-control.test.mjs",
+                "anchor": "test('cell-backed Result cancellation retains the same cleanup path'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_effect_result_publication_work.mbt",
+                "anchor": "pub fn prepare_installed_effect_result_publication_work("
+              },
+              {
+                "path": "src/client_local_host/installed_effect_result_publication_work_js_wbtest.mbt",
+                "case_id": "effect_result_one_short_cleanup"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/installed_effect_result_publication_work.mbt",
+                "anchor": "pub fn advance_installed_effect_result_publication("
+              },
+              {
+                "path": "src/connectors_builtin_node/client_effect_result_publication_bridge.mbt",
+                "anchor": "#export_name(\"clientProgramInstalledEffectResultAdvance\")"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/effect-result-work.test.mjs",
+                "anchor": "test('a tuple changed during native progress is refused after actual consumed work'"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_result_publication_work_js_wbtest.mbt",
+                "case_id": "effect_result_original_work_receipt"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_result_publication_work_js_wbtest.mbt",
+                "case_id": "effect_result_one_short_cleanup"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Source and original bounded component references only; no new grant, normal package, physical cleanup or whole Host acceptance"
+    },
+    {
+      "module": "src/connectors_builtin_node/client_effect_result_publication_bridge.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing installed Effect preparation and original publication-work Owner",
+      "sha256": "a1323b6f5687adec2f8d6d92dcb97e12d767e9e4d6e5098a32f3485c5c744abb",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_installed_effect_result_advance",
+          "declaration": "client_program_installed_effect_result_advance ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , source : ClientLocalEffectHost , value : StrategyHostResultTransformation , quantum : Int , ) - > Result [ ( Bool , Int ) , @ client_local_host . ClientInstalledEffectResultPublicationIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_result_work_prepare",
+          "declaration": "client_program_installed_effect_result_work_prepare ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , source : ClientLocalEffectHost , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_installed_effect_result_advance",
+            "client_program_installed_effect_result_work_prepare"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_effect_result_publication_work.mbt",
+                "anchor": "pub fn prepare_installed_effect_result_publication_work("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_effect_result_publication_work.mbt",
+                "anchor": "pub fn prepare_installed_effect_result_publication_work("
+              },
+              {
+                "path": "src/client_local_host/installed_effect_result_publication_work.mbt",
+                "anchor": "pub fn advance_installed_effect_result_publication("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_effect_result_publication_work.mbt",
+                "anchor": "pub fn prepare_installed_effect_result_publication_work("
+              },
+              {
+                "path": "adapters/host-node/effect-result-work.test.mjs",
+                "anchor": "test('a tuple changed during native progress is refused after actual consumed work'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_effect_result_publication_work.mbt",
+                "anchor": "pub fn prepare_installed_effect_result_publication_work("
+              },
+              {
+                "path": "src/client_local_host/installed_effect_result_publication_work_js_wbtest.mbt",
+                "case_id": "effect_result_original_work_receipt"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/effect-result-work.mjs",
+                "anchor": "export function prepareInstalledEffectResultProgress("
+              },
+              {
+                "path": "adapters/host-node/effect-result-work.mjs",
+                "anchor": "InstalledEffectResultWorkPending"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_effect_result_publication_work.mbt",
+                "anchor": "pub fn advance_installed_effect_result_publication("
+              },
+              {
+                "path": "adapters/host-node/effect-result-work.mjs",
+                "anchor": "if (failed) throw primary;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/result-transformation-control.test.mjs",
+                "anchor": "test('cell-backed Result cancellation retains the same cleanup path'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_effect_result_publication_work.mbt",
+                "anchor": "pub fn prepare_installed_effect_result_publication_work("
+              },
+              {
+                "path": "src/client_local_host/installed_effect_result_publication_work_js_wbtest.mbt",
+                "case_id": "effect_result_one_short_cleanup"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/installed_effect_result_publication_work.mbt",
+                "anchor": "pub fn advance_installed_effect_result_publication("
+              },
+              {
+                "path": "src/connectors_builtin_node/client_effect_result_publication_bridge.mbt",
+                "anchor": "#export_name(\"clientProgramInstalledEffectResultAdvance\")"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/effect-result-work.test.mjs",
+                "anchor": "test('a tuple changed during native progress is refused after actual consumed work'"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_result_publication_work_js_wbtest.mbt",
+                "case_id": "effect_result_original_work_receipt"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_result_publication_work_js_wbtest.mbt",
+                "case_id": "effect_result_one_short_cleanup"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Source and original bounded component references only; no new grant, normal package, physical cleanup or whole Host acceptance"
     }
   ]
 }
