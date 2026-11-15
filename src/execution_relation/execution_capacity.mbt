@@ -104,6 +104,58 @@ fn bounded_count_group_borrows_input(kernel : @lower.PreparedKernel) -> Bool {
 }
 
 ///|
+fn bounded_number_group_scalar_schema(schema : @schema.Schema) -> Bool {
+  if !@schema.all_fields_required(schema) {
+    return false
+  }
+  for field in 0..<@schema.field_count(schema) {
+    match @schema.field_at(schema, field).unwrap().contract.shape {
+      @contract.Number | @contract.Boolean | @contract.Text(_) => ()
+      _ => return false
+    }
+  }
+  true
+}
+
+///|
+/// The direct Number SUM/AVG group borrows its original scalar input cells.
+/// Key cells are returned from the representative input row; aggregate Number
+/// cells and pending row arrays are funded by the complete group workspace.
+/// Constructed/dynamic/recursive/presence-bearing families keep the full path.
+pub fn bounded_number_group_borrows_input(
+  kernel : @lower.PreparedKernel,
+) -> Bool {
+  guard @lower.kernel_group(kernel) is Some(group) &&
+    !@lower.group_is_window(group) &&
+    !bounded_group_dynamic(group) &&
+    @lower.group_aggregate_count(group) > 0 else {
+    return false
+  }
+  let input = @lower.kernel_input_schema(kernel)
+  if !bounded_number_group_scalar_schema(input) ||
+    !bounded_number_group_scalar_schema(@lower.kernel_output_schema(kernel)) {
+    return false
+  }
+  for index in 0..<@lower.group_aggregate_count(group) {
+    let aggregate = @lower.group_aggregate_at(group, index).unwrap()
+    let number_fold = match @lower.group_aggregate_function(aggregate) {
+      @relation.Sum | @relation.Avg => true
+      _ => false
+    }
+    guard number_fold &&
+      @lower.group_aggregate_distinct(aggregate) != Some(true) &&
+      @lower.group_aggregate_order_count(aggregate) == 0 &&
+      @lower.group_aggregate_result(aggregate).shape is @contract.Number &&
+      @lower.group_aggregate_argument(aggregate) is @lower.AggregateField(field) &&
+      @schema.lookup(input, field) is Some(contract) &&
+      contract.shape is @contract.Number else {
+      return false
+    }
+  }
+  true
+}
+
+///|
 // The bounded INNER JOIN compares only its checked immediate key columns.
 // Other required columns are carried as original immutable cells: neither
 // binary input scan nor projected output constructs their value forest.
@@ -368,6 +420,12 @@ pub fn generated_bounded_sequence_capacity(
       .unwrap_or(false)
     _ => false
   }
+  let borrowed_number_group = match operation {
+    @lower.RowStep(kernel) =>
+      bounded_number_group_borrows_input(kernel) &&
+      bounded_group_step_supported(generated, kernel)
+    _ => false
+  }
   if operation is @lower.RowStep(kernel) &&
     (
       @lower.kernel_group(kernel) is Some(_) ||
@@ -375,6 +433,7 @@ pub fn generated_bounded_sequence_capacity(
       @lower.kernel_analytic(kernel) is Some(_)
     ) &&
     !borrowed_window_group &&
+    !borrowed_number_group &&
     !borrowed_pivot {
     return generated_sequence_capacity(generated, limits, measurement)
   }
@@ -432,7 +491,8 @@ pub fn generated_bounded_sequence_capacity(
       borrowed_cross ||
       borrowed_join ||
       borrowed_window ||
-      borrowed_window_group,
+      borrowed_window_group ||
+      borrowed_number_group,
     // Append uses the same workspace-funded binary input scan as CROSS JOIN;
     // its constructor receives no physical measurement forest or wire buffer.
     bounded_measurement=borrowed_values ||
@@ -441,7 +501,8 @@ pub fn generated_bounded_sequence_capacity(
       borrowed_cross ||
       borrowed_join ||
       borrowed_window ||
-      borrowed_window_group,
+      borrowed_window_group ||
+      borrowed_number_group,
   )
   guard ordinary is Some(ordinary) else { return None }
   // The Values provider does not pass FixedInputGuardMeasureLimits to its

@@ -292,6 +292,8 @@ pub fn bounded_join_cleanup_pending(BoundedJoinExecution) -> Bool
 
 pub fn bounded_nest_cleanup_pending(BoundedNestExecution) -> Bool
 
+pub fn bounded_number_group_borrows_input(@lowering_relation.PreparedKernel) -> Bool
+
 pub fn bounded_row_window_cleanup_pending(BoundedRowWindowExecution) -> Bool
 
 pub fn bounded_sequence_match_cleanup_pending(BoundedSequenceMatchExecution) -> Bool

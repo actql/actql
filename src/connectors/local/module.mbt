@@ -614,6 +614,8 @@ fn local_module_default_output_start_capacity(
           }
         }
       Some(@lower.RowStep(kernel)) if count == 1 &&
+        @execution.bounded_number_group_borrows_input(kernel) => ()
+      Some(@lower.RowStep(kernel)) if count == 1 &&
         @lower.kernel_pivot(kernel) is Some(_) => {
         // The existing bounded group/PIVOT child reads original scalar
         // cells, retaining the text axis and aggregate workspace. Scalar

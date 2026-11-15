@@ -106,3 +106,133 @@ test "managed runtime UNION requirements follow checked demand beyond fixed slot
     )
   }
 }
+
+///|
+// The failing ordinary CLI SQL, with the same installed requirements and
+// finite Ledger. This does not stand in for Native service/Run admission.
+fn runtime_number_group_execute(
+  prepared : @publication_host.PreparedClientProgram,
+  expected : Array[Json],
+  description : String,
+) -> Unit raise {
+  let assets = @publication_host.client_local_product_assets()
+  let contracts = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let requirements = prepare_source_free_runtime_requirements_result(
+    prepared,
+    contracts,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let limits = requirements.maximum_limits()
+  assert_eq(limits.execution_bytes, 536870912L)
+  let ledger = @resources.create_ledger(limits).unwrap()
+  let setup = open_source_free_local_retained_host_on_ledger(
+    prepared,
+    ledger,
+    contracts,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+    requirements=Some(requirements),
+  ).unwrap()
+  let output = match
+    execute_source_free_local_tasks_guarded(
+      setup,
+      16,
+      requirements.finalization_round_limit(prepared).unwrap(),
+      () => true,
+    ) {
+    Ok(value) => value
+    Err(failure) => {
+      let issue = match local_values_execution_failure_issue(failure) {
+        Driver(ExecutionCapacityRefusal(original, needed, available, policy)) =>
+          "Driver/ExecutionCapacityRefusal/" +
+          @debug.to_string((original, needed, available, policy))
+        Driver(Execution(@strategy.Physical(original))) =>
+          "Driver/Execution/Physical/" + @debug.to_string(original)
+        Driver(
+          Configuration(
+            @connector.Execution(
+              @execution.Rows(step, @execution.LogicalRows(original))
+            )
+          )
+        ) =>
+          "Driver/Configuration/Execution/LogicalRows/" +
+          @debug.to_string((step, original))
+        Driver(
+          Configuration(
+            @connector.Execution(@execution.Capture(step, original))
+          )
+        ) =>
+          "Driver/Configuration/Execution/Capture/" +
+          @debug.to_string((step, original))
+        Driver(Configuration(_)) => "Driver/Configuration/other"
+        Driver(Preparation(_)) => "Driver/Preparation"
+        Driver(Execution(_)) => "Driver/Execution/other"
+        Driver(ManagedValues(_)) => "Driver/ManagedValues"
+        Driver(ManagedCopy(original)) =>
+          "Driver/ManagedCopy/" + @debug.to_string(original)
+        Driver(ManagedRetention(original)) =>
+          "Driver/ManagedRetention/" + @debug.to_string(original)
+        Driver(_) => "Driver/other"
+        _ => "non-Driver"
+      }
+      if !retry_local_values_execution_failure_cleanup(failure) {
+        fail("ordinary grouped cleanup pending; original refusal: " + issue)
+      }
+      fail(
+        "ordinary grouped original refused: " +
+        issue +
+        "; original input: " +
+        description,
+      )
+    }
+  }
+  let rows = output.rows().unwrap().map(row => @json.parse(row))
+  assert_eq(rows, expected)
+  assert_true(output.close())
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+}
+
+///|
+fn runtime_number_group_case(
+  query : String,
+  expected : Array[Json],
+) -> Unit raise {
+  runtime_number_group_execute(
+    runtime_requirements_union_prepared(sql=Some(query)),
+    expected,
+    query,
+  )
+}
+
+///|
+test "ordinary grouped numeric SQL executes its original retained task chain" {
+  runtime_number_group_case(
+    "WITH x AS (SELECT 'a' AS bucket, 1 AS n UNION ALL SELECT 'a' AS bucket, 2 AS n UNION ALL SELECT 'b' AS bucket, 4 AS n) SELECT bucket, SUM(n) AS total, AVG(n) AS average FROM x GROUP BY bucket ORDER BY bucket",
+    [
+      @json.parse("{\"bucket\":\"a\",\"total\":3,\"average\":1.5}"),
+      @json.parse("{\"bucket\":\"b\",\"total\":4,\"average\":4}"),
+    ],
+  )
+}
+
+///|
+test "ordinary direct Number groups retain empty and NULL aggregate semantics" {
+  for
+    query in [
+      "WITH x AS (SELECT 1 AS n WHERE FALSE) SELECT SUM(n) AS total, AVG(n) AS average FROM x",
+      "WITH x AS (SELECT CAST(NULL AS NUMBER) AS n UNION ALL SELECT CAST(NULL AS NUMBER) AS n) SELECT SUM(n) AS total, AVG(n) AS average FROM x",
+    ] {
+    runtime_number_group_case(query, [
+      @json.parse("{\"total\":null,\"average\":null}"),
+    ])
+  }
+}
