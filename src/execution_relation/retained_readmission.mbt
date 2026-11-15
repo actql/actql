@@ -10,7 +10,7 @@
 struct TrustedRetainedReadmission[P] {
   preparation : CompletionPreparation
   expected : RetainedCompletionDescriptor
-  facts : RetainedReadmissionFacts
+  schema : @schema.Schema
   verify : (P) -> RetainedOutputMaterial?
   mut open : Bool
 }
@@ -47,7 +47,8 @@ struct RetainedReadmissionFacts {
 // Options, identifier result and one live scalar decoder Some/tuple.
 // The call-expanded packet co-counts sequential alternatives (15H/13R/13W),
 // including the materialization holder's optional facts link and the added
-// TrustedRetainedReadmission facts field.
+// TrustedRetainedReadmission checked-schema field. The issued facts object
+// itself is not retained by the receiving port.
 // Schema names borrow
 // their checked UTF8 measurement; there is no variable name array or copy.
 let retained_readmission_facts_control : Int64 = preparation_representation_cost({
@@ -257,7 +258,7 @@ pub fn[P] prepare_trusted_retained_readmission(
   }
   // Immutable metadata was validated exactly once by its issuer. Current
   // custody and full content are still checked by the real verifier below.
-  Ok({ preparation, expected, facts, verify, open: true, })
+  Ok({ preparation, expected, schema: facts.schema, verify, open: true, })
 }
 
 ///|
@@ -280,7 +281,7 @@ pub fn[P] readmit_trusted_retained_output(
   let target = @pipeline.Target::Step(expected.output_step)
   guard physical_equal(receipt.owner, owner) &&
     receipt.target == target &&
-    physical_equal(receipt.schema, port.facts.schema) else {
+    physical_equal(receipt.schema, port.schema) else {
     return Err(ForeignOutput)
   }
   if receipt.cid != expected.rows_cid ||
