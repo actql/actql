@@ -79,9 +79,10 @@
       "constructorDigest": "9da13097d98735340b48968beb6fea264dad794cd792d104a73a10f9085f94b5"
     }
   ],
-  "sourcePremises": {
-    "src/connectors/local/managed_provider.mbt": "aaf8b151ad412f768af6aaeec2ff78208cd1941dd68053f929a99aa7098ef106",
-    "src/execution_relation/generated_sequence.mbt": "0e348f1ad56fa689a1121dc24f7909a43ea2bbd50e381afa052b10d6de4ae883"
+  "providerRecord": {
+    "path": "src/connectors/local/managed_provider.mbt",
+    "name": "ManagedProvider",
+    "declarationDigest": "ab347158785514605cbd1e8fe4236cdb3d68dc602ea170c61a06f072065aaa42"
   },
   "bounds": {
     "providerRecords": 11,
@@ -94,9 +95,9 @@
   "completeParentUpper": false,
   "completePipelineUpper": false,
   "wrapperDigests": {
-    "managed_provider": "97c7881276b3a72486a9095b5c320496b231e97ef7aef148f6e3a45f8e52128b",
-    "managed_provider_with_inputs": "1161662194fc637d95e72e00c78f059787a45ae204270ff7ce60aa5a4f397134",
-    "managed_provider_with_numeric": "6fbdba5a2ad1efbb95bd7e3f8da81861b7d48c9de7c7a2155f2e4de53e29ef7e"
+    "managed_provider": "f3598b4224dfab39ebd8bbd27811223a87909ef344c9090738f64f1491e2cc38",
+    "managed_provider_with_inputs": "46bafd245b1a9d6f98753ffadf21a4c078226a186efc83078eaf631f3da6b30b",
+    "managed_provider_with_numeric": "a1b565d414e3c18796303dcbf1d3b5d8c11a30f6e9fd810175484d98849c2ab0"
   },
   "selectionFactory": {
     "path": "src/connectors/local/selected_relation_provider.mbt",

@@ -209,19 +209,13 @@ test('archived adopted deltas reconstruct all three authenticated complete prior
 for (const [name, path, from, to] of [
   ['extra candidate field', 'src/connectors/local/managed_provider.mbt', 'struct ManagedProvider {', 'struct ManagedProvider {\n  extra : String'],
   ['bound Infer tuple in a candidate', 'src/connectors/local/managed_provider.mbt', 'infer_relation_prefix: None,', 'infer_relation_prefix: Some((prefix, 0, execution, measurement)),'],
-  ['dropped immutable query-time original', 'src/execution_relation/generated_sequence.mbt', 'query_time : @publication.QueryEvaluationTime?', 'query_time : Int'],
   ['unreviewed constructor allocation', 'src/connectors/local/selected_relation_provider.mbt', 'fn selected_relation_provider(', 'fn selected_relation_provider(\n  extra : String,'],
-  ['changed same-original refinement', 'src/execution_relation/generated_sequence.mbt',
-    '!physical_equal(original.contracts, candidate.contracts)', 'false'],
-  ['prebound workspace growth at preparation', 'src/execution_relation/generated_sequence.mbt',
-    'working: None,', 'working: Some(foreign),'],
-  ['rebound workspace growth in refinement', 'src/execution_relation/generated_sequence.mbt',
-    '!physical_equal(original.working, candidate.working)', 'false'],
 ]) test(`current source correspondence rejects ${name}`, () => {
   const source = read(path).toString();
   assert(source.includes(from));
   const changed = source.replace(from, to);
-  assert.throws(() => providerConstructionBound(p => p === path ? changed : read(p)), /Unreviewed current constructor source/);
+  assert.throws(() => providerConstructionBound(p => p === path ? changed : read(p)),
+    /Unreviewed current constructor source|Changed current ManagedProvider declaration|Changed current candidate construction wrapper/);
 });
 
 test('current census binds complete factories without freezing unrelated module text', () => {
@@ -237,10 +231,6 @@ test('current census binds complete factories without freezing unrelated module 
     assert.notEqual(changed, source);
     assert.throws(() => providerConstructionBound(p => p === path ? changed : read(p)),
       /Unreviewed current constructor source/);
-  }
-  for (const path of Object.keys(profile.sourcePremises)) {
-    assert.throws(() => providerConstructionBound(p => p === path ?
-      Buffer.concat([read(path), Buffer.from('\n')]) : read(p)), /Unreviewed current constructor source/);
   }
 });
 

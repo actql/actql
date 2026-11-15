@@ -5,13 +5,51 @@ import { fieldLayout } from '../backing/native-extent.mjs';
 import {reviewedFunction, checkConstructionSourceReview} from './provider-construction-source-review.mjs';
 const profileBytes = readFileSync(new URL('./provider-construction-current.json', import.meta.url));
 const profile = JSON.parse(profileBytes);
+// Attributes belong to the declaration even across a documentation marker.
+// Skip comments/quoted contents while locating only the attached #name(args)
+// or #name headers; this does not traverse callback or runtime callees.
+function currentDeclarationAttributes(source, start) {
+  const tokens = [...source.slice(0, start).matchAll(
+    /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])'|\/\/[^\n]*|\/\*[\s\S]*?\*\/|#[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*|\S/gu,
+  )].filter(token => !token[0].startsWith('//') && !token[0].startsWith('/*'));
+  const attributes = [];
+  let end = tokens.length;
+  while (end > 0) {
+    let begin = end - 1;
+    if (tokens[begin][0] === ')') {
+      let depth = 1;
+      while (begin > 0 && depth > 0) {
+        begin--;
+        if (tokens[begin][0] === ')') depth++;
+        else if (tokens[begin][0] === '(') depth--;
+      }
+      if (depth !== 0 || begin === 0) break;
+      begin--;
+    }
+    if (!/^#[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*$/u.test(tokens[begin][0])) break;
+    attributes.unshift(source.slice(tokens[begin].index,
+      tokens[end - 1].index + tokens[end - 1][0].length));
+    end = begin;
+  }
+  return attributes.length ? attributes.join('\n') + '\n' : '';
+}
 // Canonical MoonBit top-level declarations end with an unindented brace.
 // Exclude trailing module comments and subsequent helpers from this boundary.
 export function currentFactoryDeclaration(source, name) {
   const declaration = reviewedFunction(source, name);
   const end = declaration.indexOf('\n}');
   assert(end >= 0, `Missing complete factory ${name}`);
-  return declaration.slice(0, end + 2);
+  return currentDeclarationAttributes(source, source.indexOf(declaration)) +
+    declaration.slice(0, end + 2);
+}
+export function currentProviderRecordDeclaration(source, name) {
+  assert.equal(name, 'ManagedProvider');
+  const declarations = [...source.matchAll(/^struct ManagedProvider \{/gm)];
+  assert.equal(declarations.length, 1, 'Changed current ManagedProvider declaration');
+  const start = declarations[0].index;
+  const end = source.indexOf('\n}', start);
+  assert(end >= 0, 'Missing complete ManagedProvider declaration');
+  return currentDeclarationAttributes(source, start) + source.slice(start, end + 2);
 }
 export function providerConstructionBound(read) {
   return constructionBound(read, false);
@@ -96,7 +134,6 @@ function checkCurrentConstructionSources(read) {
   // while the existing wrapper/layout premises retain their own boundaries.
   // Whole-source provenance is still returned from the bytes actually read
   // and authenticated by the separate compiled-input/execution checks.
-  const sources = profile.sourcePremises;
   assert.equal(profile.selectionFactory.name, 'bounded_relation_step_provider');
   assert.equal(profile.selectionFactory.path, 'src/connectors/local/selected_relation_provider.mbt');
   assert.equal(hash(currentFactoryDeclaration(read(profile.selectionFactory.path).toString(),
@@ -106,20 +143,20 @@ function checkCurrentConstructionSources(read) {
     assert.equal(hash(currentFactoryDeclaration(read(provider.path).toString(), provider.name)),
       provider.constructorDigest, `Unreviewed current constructor source ${provider.path}`);
   }
-  for (const [path, digest] of Object.entries(sources)) {
-    assert.equal(hash(read(path)), digest, `Unreviewed current constructor source ${path}`);
-  }
   assert.deepEqual(Object.keys(profile.wrapperDigests),
     ['managed_provider', 'managed_provider_with_inputs', 'managed_provider_with_numeric']);
   const managed = read('src/connectors/local/managed_provider.mbt').toString();
+  assert.equal(profile.providerRecord.path, 'src/connectors/local/managed_provider.mbt');
+  assert.equal(hash(currentProviderRecordDeclaration(managed, profile.providerRecord.name)),
+    profile.providerRecord.declarationDigest, 'Changed current ManagedProvider declaration');
   for (const [name, digest] of Object.entries(profile.wrapperDigests)) {
-    assert.equal(hash(reviewedFunction(managed, name)), digest,
+    assert.equal(hash(currentFactoryDeclaration(managed, name)), digest,
       `Changed current candidate construction wrapper ${name}`);
   }
   return {recipeDigest: hash(recipe),
     selectedDigest: hash(read('src/connectors/local/selected_relation_provider.mbt')),
-    managedDigest: sources['src/connectors/local/managed_provider.mbt'],
-    generatedDigest: sources['src/execution_relation/generated_sequence.mbt'],
+    managedDigest: hash(managed),
+    generatedDigest: hash(read('src/execution_relation/generated_sequence.mbt')),
     scope: profile.scope,
     completeConstructorByteCorrespondence: false,
     completeParentUpper: false, completePipelineUpper: false};
