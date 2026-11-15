@@ -23,18 +23,19 @@ fn source_cell_identity_capacity(
   scan : @execution.ExecutionCapacity,
 ) -> @execution.ExecutionCapacity? {
   guard @execution.preparation_representation_cost({
-      // The new facts add H2/R2/W5: record + Some, identity/payload
-      // references, four measured words and the Some tag. Both peaks are
-      // funded before construction by the original caller reservation.
-      record_headers: 11L,
-      reference_slots: 19L,
-      scalar_words: 11L,
+      record_headers: 9L,
+      reference_slots: 17L,
+      scalar_words: 6L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })
     is Some(controls) else {
     return None
   }
+  // Both the original inventory and the added facts are covered before
+  // construction by the same caller reservation; no unnamed slack.
+  let facts = captured_source_relation_dependency_usage_capacity()
+  let controls = controls + @execution.execution_capacity_retained_bytes(facts)
   let r = @execution.execution_capacity_retained_bytes(scan)
   let e = @execution.execution_capacity_execution_bytes(scan)
   if r > 9223372036854775807L - controls || e > 9223372036854775807L - controls {
@@ -222,10 +223,8 @@ pub fn finish_captured_source_cell_identity(
   let schema = @execution.relation_schema_wire(schema_identity)
   // The SAME receipt already measured both exact canonical preimages. Do not
   // encode/count the retained strings again to apply this byte refusal bound.
-  let logical_usage = @execution.logical_relation_usage(logical_identity)
-  let schema_usage = @execution.relation_schema_usage(schema_identity)
-  let body_bytes = logical_usage.0
-  let schema_bytes = schema_usage.0
+  let (body_bytes, logical_nodes, _) = @execution.logical_relation_usage(logical_identity)
+  let (schema_bytes, schema_nodes, _) = @execution.relation_schema_usage(schema_identity)
   if body_bytes > value.body_limit ||
     schema_bytes > value.body_limit - body_bytes {
     return Err(DependencyBodyLimit)
@@ -235,12 +234,12 @@ pub fn finish_captured_source_cell_identity(
     logical_relation_cid: @execution.logical_relation_cid(logical_identity),
     schema_cid: @execution.relation_schema_cid(schema_identity),
     row_count: @execution.completed_relation_export_measurement(receipt).row_count,
-    dependency_bodies: Some((body, schema)),
-    dependency_usage: Some({
+    dependency_bodies: Some({
+      bodies: Some((body, schema)),
       logical_bytes: body_bytes,
-      logical_nodes: logical_usage.1,
+      logical_nodes,
       schema_bytes,
-      schema_nodes: schema_usage.1,
+      schema_nodes,
     }),
   }
   // Cancellation cuts the scan's aliases, never the returned identity or the

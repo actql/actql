@@ -156,12 +156,10 @@ pub fn prepare_captured_source_relation_export(
 }
 
 ///|
-/// Identity established by one complete bounded traversal of the captured
-/// Relation. It describes observed input material, not Run admission or a
-/// source authorization grant.
 /// Encoder facts from the same retained canonical preimages. Rows and schema
 /// fields are deliberately not represented as nesting depth.
 pub struct CapturedSourceRelationDependencyUsage {
+  priv bodies : (String, String)?
   logical_bytes : Int
   logical_nodes : Int
   schema_bytes : Int
@@ -169,13 +167,15 @@ pub struct CapturedSourceRelationDependencyUsage {
 }
 
 ///|
+/// Identity established by one complete bounded traversal of the captured
+/// Relation. It describes observed input material, not Run admission or a
+/// source authorization grant.
 pub struct CapturedSourceRelationIdentity {
   origin : CapturedInputSource
   logical_relation_cid : String
   schema_cid : String
   row_count : Int
-  mut dependency_bodies : (String, String)?
-  priv mut dependency_usage : CapturedSourceRelationDependencyUsage?
+  priv mut dependency_bodies : CapturedSourceRelationDependencyUsage?
 }
 
 ///|
@@ -221,7 +221,25 @@ pub fn captured_source_relation_dependency_bodies(
   if !captured_source_relation_identity_matches_source(identity, source) {
     return None
   }
-  identity.dependency_bodies
+  match identity.dependency_bodies {
+    Some(original) => original.bodies
+    None => None
+  }
+}
+
+///|
+/// Additional fixed retention for measured facts around the original optional
+/// body tuple. The tuple/Some already belongs to its old constructor inventory;
+/// only H2/R2/W5 is new. This DATA grants no capacity or source permission.
+pub fn captured_source_relation_dependency_usage_capacity() -> @execution.ExecutionCapacity {
+  let bytes = @execution.preparation_representation_cost({
+    record_headers: 2L,
+    reference_slots: 2L,
+    scalar_words: 5L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  @execution.execution_capacity(bytes, bytes).unwrap()
 }
 
 ///|
@@ -236,7 +254,7 @@ pub fn captured_source_relation_dependency_usage(
     identity.dependency_bodies is None {
     return None
   }
-  identity.dependency_usage
+  identity.dependency_bodies
 }
 
 ///|
@@ -311,19 +329,16 @@ pub fn identify_captured_source_relation(
   } else {
     None
   }
-  let dependency_usage = if dependency_bodies is Some(_) {
-    let logical = @execution.logical_relation_usage(
+  let dependency_bodies = if dependency_bodies is Some(_) {
+    // Destructure each temporary usage tuple before requesting the next one:
+    // no simultaneous extra pair of three-word tuple records is retained.
+    let (logical_bytes, logical_nodes, _) = @execution.logical_relation_usage(
       @execution.completed_relation_export_identity(receipt),
     )
-    let schema = @execution.relation_schema_usage(
+    let (schema_bytes, schema_nodes, _) = @execution.relation_schema_usage(
       @execution.completed_relation_export_schema_identity(receipt),
     )
-    Some({
-      logical_bytes: logical.0,
-      logical_nodes: logical.1,
-      schema_bytes: schema.0,
-      schema_nodes: schema.1,
-    })
+    Some({ bodies: dependency_bodies, logical_bytes, logical_nodes, schema_bytes, schema_nodes, })
   } else {
     None
   }
@@ -339,7 +354,6 @@ pub fn identify_captured_source_relation(
       @execution.completed_relation_export_content(receipt),
     ).3,
     dependency_bodies,
-    dependency_usage,
   }
   @execution.cancel_completed_relation_export_receipt(receipt)
   Ok(identity)
@@ -537,5 +551,4 @@ pub fn clear_captured_source_relation_dependency_bodies(
   identity : CapturedSourceRelationIdentity,
 ) -> Unit {
   identity.dependency_bodies = None
-  identity.dependency_usage = None
 }

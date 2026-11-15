@@ -34,7 +34,8 @@ pub fn configured_retained_native_capacity(
 fn retained_native_capacity(l : NativeHostLimits) -> NativeCapacity? {
   guard native_capacity(l) is Some(full) else { return None }
   let c = l.completion
-  let mut retained = 0L
+  let facts = @query.captured_source_relation_dependency_usage_capacity()
+  let mut retained = @execution.execution_capacity_retained_bytes(facts)
   for
     n in [
       l.transport.max_columns,
@@ -62,7 +63,7 @@ fn retained_native_capacity(l : NativeHostLimits) -> NativeCapacity? {
   // Raw JSON, source cursors, admitted values and transient conversion nodes
   // coexist only for one bounded frame. Cumulative counters in physical,
   // measurement and retention limits are not simultaneously retained values.
-  let mut scratch = 0L
+  let mut scratch = @execution.execution_capacity_execution_bytes(facts)
   for
     n in [
       l.transport.max_nodes.to_int64() * 4L,
@@ -111,8 +112,12 @@ fn retained_native_capacity(l : NativeHostLimits) -> NativeCapacity? {
 ///|
 fn native_capacity(l : NativeHostLimits) -> NativeCapacity? {
   let c = l.completion
-  let mut retained = 0L
-  let mut scratch = 0L
+  // This same capture may hand off one retained Effect identity. Its fixed
+  // encoder facts remain with the existing Source holding, including in Node
+  // and Resident consumers. No second allocation owner or larger limit.
+  let facts = @query.captured_source_relation_dependency_usage_capacity()
+  let mut retained = @execution.execution_capacity_retained_bytes(facts)
+  let mut scratch = @execution.execution_capacity_execution_bytes(facts)
   for
     n in [
       l.physical.max_rows,
