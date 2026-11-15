@@ -418,10 +418,12 @@ fn prepare_funded_effect_dependency_inventory(
     Err(issue) => return Err(issue)
     _ => return Err(ForeignOriginal)
   }
-  guard installed_effect_dependency_body_capacity(
+  guard installed_effect_dependency_envelope_capacity(
       @publication.prepared_captured_effect_dependency_inventory_geometry(
         prepared,
       ),
+      bodies.length(),
+      index_units,
     )
     is Some(envelope) else {
     return Err(InsufficientCapacity)

@@ -582,3 +582,93 @@ fn installed_effect_dependency_graph_capacity(
     workspace_bytes: 0L,
   })
 }
+
+///|
+// issue_prepared_captured_effect_dependency_inventory emits the SAME admitted
+// CanonicalValue bodies. No Source parser, normalization, new value tree or
+// wire buffer is constructed here. Existing body/index holdings stay charged.
+fn installed_effect_dependency_envelope_capacity(
+  geometry : @encode.EncodingConstructionGeometry,
+  entries : Int,
+  key_units : Int64,
+) -> @execution.ExecutionCapacity? {
+  if entries < 0 || key_units < 0L || geometry.bytes < 0 || geometry.depth < 0 {
+    return None
+  }
+  let n = entries.to_int64()
+  let d = geometry.depth.to_int64()
+  guard @encode.text_writer_construction_inventory(
+      geometry.bytes,
+      geometry.nodes,
+      geometry.depth,
+    )
+    is Some(writer) &&
+    @shape.reference_array_retained_extent(1L, n) is Some(output) &&
+    @shape.collection_construction_extent({
+      // One (key,body) pair and key String per entry. Heap sort is in-place;
+      // map returns a separate array while ordered pairs/keys still coexist.
+      records: 2L * n + 3L,
+      record_references: 2L * n + 3L,
+      record_words: 0L,
+      reference_arrays: 1L,
+      reference_items: n,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(ordering) &&
+    @shape.collection_construction_extent({
+      // Canonical emit_value borrows every value/key. Its synchronous stack
+      // owns one cursor1H1R1W plus parent variant1H1R per open container.
+      records: 2L * d + 2L,
+      record_references: 2L * d + 2L,
+      record_words: d,
+      reference_arrays: 1L,
+      reference_items: d,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(emission) &&
+    @execution.checked_preparation_add_product(0L, key_units, 2L) is Some(keys) else {
+    return None
+  }
+  let bytes = geometry.bytes.to_int64()
+  @execution.preparation_execution_capacity({
+    // Final String, inventory and Result plus its returned body-reference
+    // vector. These are additional roots; body value trees are only borrowed.
+    retained: {
+      record_headers: output.record_headers + 3L,
+      reference_slots: output.reference_slots + 4L,
+      scalar_words: output.scalar_words,
+      owned_utf16_units: bytes,
+      owned_wire_bytes: 0L,
+    },
+    workspace: {
+      // The writer recipe ALREADY includes its final String. Split that one
+      // header/text domain into returned holding, leaving old/new builder
+      // backing and all writer controls live until this constructor returns.
+      record_headers: writer.record_headers -
+      1L +
+      ordering.record_headers +
+      emission.record_headers +
+      1L,
+      reference_slots: writer.reference_slots +
+      ordering.reference_slots +
+      emission.reference_slots +
+      3L,
+      scalar_words: writer.scalar_words +
+      ordering.scalar_words +
+      emission.scalar_words +
+      2L,
+      owned_utf16_units: writer.owned_utf16_units - bytes + keys,
+      owned_wire_bytes: 0L,
+    },
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  })
+}
