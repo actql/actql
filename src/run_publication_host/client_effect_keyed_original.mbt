@@ -91,6 +91,7 @@ pub fn start_client_effect_keyed_capture_lookup_input(
   max_name_bytes : Int,
   max_bytes : Int,
   max_work : Int,
+  source_sequence? : @execution.GeneratedSequence? = None,
 ) -> Result[ClientKeyedLookupInput, ClientKeyedRequestIssue] {
   guard client_effect_keyed_original_available(original) && !original.started else {
     return Err(ForeignLeft)
@@ -105,9 +106,7 @@ pub fn start_client_effect_keyed_capture_lookup_input(
       original.ledger,
       max_entries,
     )
-    is Some(captures) &&
-    @row_host.row_captured_input_requirement_at(captures, 0)
-    is Some(requirement) else {
+    is Some(captures) else {
     return Err(ForeignLeft)
   }
   let left = match
@@ -126,6 +125,28 @@ pub fn start_client_effect_keyed_capture_lookup_input(
     return Err(ForeignLeft)
   }
   let join = @acquisition.keyed_join_step(original.keyed.binding.join)
+  let sequence = match source_sequence {
+    Some(sequence) => {
+      guard physical_equal(
+        @execution.generated_sequence_owner(sequence),
+        original.keyed.owner,
+      ) else {
+        return Err(ForeignLeft)
+      }
+      sequence
+    }
+    None => {
+      guard @row_host.row_captured_input_requirement_at(captures, 0)
+        is Some(requirement) else {
+        return Err(ForeignLeft)
+      }
+      @query.query_generated_sequence(
+        @planning.query_material_owner(
+          @planning.query_requirement_material(requirement),
+        ),
+      )
+    }
+  }
   let composed : ClientComposedKeyedOriginal = {
     origin: SourceEffectOrigin(original),
     compiled: original.compiled,
@@ -135,11 +156,7 @@ pub fn start_client_effect_keyed_capture_lookup_input(
     captures,
     // This sequence is compiler DATA only, never a completed prefix. The
     // actual captured operation's read/output above supplies its completion.
-    sequence: @query.query_generated_sequence(
-      @planning.query_material_owner(
-        @planning.query_requirement_material(requirement),
-      ),
-    ),
+    sequence,
     inputs: [(join, 0, left.read)],
     completed: None,
     direct_output: Some(output),

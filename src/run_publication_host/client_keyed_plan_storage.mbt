@@ -31,6 +31,7 @@ fn client_keyed_plan_metadata_storage_original(
   stage : Int,
   input : Int,
   join : Int,
+  physical_profile? : Bool = true,
 ) -> @execution.PreparationRepresentationUnits? {
   let program = @strategy.graph_program(owner.graph)
   let mut selected = None
@@ -76,7 +77,13 @@ fn client_keyed_plan_metadata_storage_original(
       // (6 refs), acquisition/Effect view,
       // the selected pair/Option and each role tuple/two possible Options.
       records: 10L + 3L * roles,
-      record_references: 8L + 14L + 5L + 6L + 16L + 4L + 5L * roles,
+      record_references: 8L +
+      (if physical_profile { 14L } else { 13L }) +
+      5L +
+      6L +
+      16L +
+      4L +
+      5L * roles,
       record_words: 4L + 4L,
       reference_arrays: 4L,
       reference_items: roles + fields,
@@ -108,6 +115,7 @@ fn client_keyed_plan_metadata_storage_original(
 pub fn prepared_client_effect_keyed_plan_measurement_storage(
   effect : PreparedClientEffectComputation,
   keyed : ClientKeyedAcquisition,
+  generic? : Bool = false,
 ) -> @execution.PreparationRepresentationUnits? {
   guard client_keyed_acquisition_matches_effect_program(keyed, effect) &&
     client_keyed_acquisition_coordinates(keyed) is Some((stage, task, join)) &&
@@ -121,14 +129,17 @@ pub fn prepared_client_effect_keyed_plan_measurement_storage(
       stage,
       @acquisition.keyed_join_input(keyed.binding.join),
       join,
+      physical_profile=!generic,
     )
     is Some(metadata) &&
     @shape.collection_construction_extent({
       // One measurement holder plus two Fragment measurement records, their
       // geometry triples/producer pairs, and the three node/one pair geometry.
-      records: 19L,
-      record_references: 27L,
-      record_words: 45L,
+      // The closed Source-only measurement and component variants coexist
+      // during issue. Model compiler inputs retain their original layout.
+      records: 21L,
+      record_references: 29L,
+      record_words: 47L,
       reference_arrays: 2L,
       reference_items: 5L,
       scalar_arrays: 0L,

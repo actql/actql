@@ -3,8 +3,20 @@
 /// execution contract or independent runnable Graph is manufactured here.
 pub struct ClientEffectKeyedPlanGraph {
   priv owner : PreparedClientEffectComputation
-  priv component : ClientKeyedPlanComponent
+  priv component : ClientEffectKeyedPlanComponent
   priv graph_nodes : Array[@canonical.CanonicalValue]
+}
+
+///|
+priv enum ClientEffectKeyedPlanComponent {
+  NativeKeyedPlan(ClientKeyedPlanComponent)
+  GenericKeyedPlan(ClientGenericKeyedPlanComponent)
+}
+
+///|
+priv enum ClientEffectKeyedPlanInput {
+  NativeKeyedConstruction(ClientKeyedPlanBarrierInput)
+  GenericKeyedConstruction(ClientGenericKeyedPlanBarrierInput)
 }
 
 ///|
@@ -80,7 +92,7 @@ pub fn measure_client_effect_keyed_plan_construction(
   }
   Ok({
     owner: effect,
-    original: input,
+    original: NativeKeyedConstruction(input),
     fragments: [left, joined],
     barrier,
     node,
@@ -95,7 +107,66 @@ pub struct ClientEffectKeyedPlanConstruction {
   barrier : (Int, Int, Int)
   node : (Int, Int, Int)
   priv owner : PreparedClientEffectComputation
-  priv original : ClientKeyedPlanBarrierInput
+  priv original : ClientEffectKeyedPlanInput
+}
+
+///|
+/// Select only the real checked file-content Source protocol. The acquisition
+/// and its policies grant no dispatch, Model permission or completed input.
+pub fn measure_client_effect_generic_keyed_plan_construction(
+  effect : PreparedClientEffectComputation,
+  acquisition : ClientKeyedAcquisition,
+  sequence_limits : @lower.SequenceLimits,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientEffectKeyedPlanConstruction, ClientInferPlanGraphIssue] {
+  guard client_keyed_acquisition_matches_effect_program(acquisition, effect) &&
+    prepared_client_effect_infer_occurrences(effect) is Some([]) &&
+    client_keyed_acquisition_coordinates(acquisition) is Some((_, task, join)) else {
+    return Err(UnsupportedProgram)
+  }
+  let fragments = match
+    prepare_client_keyed_plan_fragment_inputs_original(
+      client_effect_program_view(effect),
+      acquisition.owner,
+      task,
+      join,
+      acquisition,
+      sequence_limits,
+      max_nodes,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let input = match
+    prepare_client_generic_keyed_plan_barrier_input(
+      fragments, 1000000, max_bytes, max_nodes, max_depth,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let (left, joined) = match
+    measure_client_keyed_plan_fragments(
+      fragments, max_bytes, max_nodes, max_depth,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let (barrier, node) = match
+    measure_client_generic_keyed_plan_barrier(
+      input, max_bytes, max_nodes, max_depth,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  Ok({
+    owner: effect,
+    original: GenericKeyedConstruction(input),
+    fragments: [left, joined],
+    barrier,
+    node,
+  })
 }
 
 ///|
@@ -105,15 +176,31 @@ pub fn issue_client_effect_keyed_plan_graph(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientEffectKeyedPlanGraph, ClientInferPlanGraphIssue] {
-  let input = construction.original
   let effect = construction.owner
-  let component = match
-    issue_client_keyed_plan_component(input, max_bytes, max_nodes, max_depth) {
-    Err(issue) => return Err(issue)
-    Ok(value) => value
+  let component = match construction.original {
+    NativeKeyedConstruction(input) =>
+      match
+        issue_client_keyed_plan_component(
+          input, max_bytes, max_nodes, max_depth,
+        ) {
+        Err(issue) => return Err(issue)
+        Ok(value) => NativeKeyedPlan(value)
+      }
+    GenericKeyedConstruction(input) =>
+      match
+        issue_client_generic_keyed_plan_component(
+          input, max_bytes, max_nodes, max_depth,
+        ) {
+        Err(issue) => return Err(issue)
+        Ok(value) => GenericKeyedPlan(value)
+      }
   }
   let nodes = []
-  for fragment in [component.left, component.barrier, component.joined] {
+  let fragments = match component {
+    NativeKeyedPlan(value) => [value.left, value.barrier, value.joined]
+    GenericKeyedPlan(value) => [value.left, value.barrier, value.joined]
+  }
+  for fragment in fragments {
     guard parse_plan_identity_value(
         fragment.wire,
         max_bytes,
@@ -132,7 +219,7 @@ pub fn issue_client_effect_keyed_plan_graph(
 pub fn client_effect_keyed_plan_graph_coordinates(
   value : ClientEffectKeyedPlanGraph,
 ) -> (Int, Int, Int) {
-  let original = value.component.original.fragments
+  let original = client_effect_keyed_plan_fragments(value)
   let (stage, _, join) = client_keyed_acquisition_coordinates(
     original.acquisition,
   ).unwrap()
@@ -146,7 +233,10 @@ pub fn client_effect_keyed_plan_graph_matches(
   acquisition : ClientKeyedAcquisition,
 ) -> Bool {
   physical_equal(value.owner, effect) &&
-  physical_equal(value.component.original.fragments.acquisition, acquisition) &&
+  physical_equal(
+    client_effect_keyed_plan_fragments(value).acquisition,
+    acquisition,
+  ) &&
   client_keyed_acquisition_matches_effect_program(acquisition, effect)
 }
 
@@ -162,7 +252,7 @@ pub fn client_effect_allowed_keyed_run(
     client_effect_keyed_plan_graph_matches(
       plan,
       allowed.compilation.owner,
-      plan.component.original.fragments.acquisition,
+      client_effect_keyed_plan_fragments(plan).acquisition,
     ) else {
     return Err(ForeignOwner)
   }
@@ -207,8 +297,29 @@ fn client_composed_keyed_original_component(
 ) -> ClientKeyedPlanComponent? {
   match value.origin {
     ModelOrigin(_, plan) => plan.keyed
-    SourceEffectOrigin(original) => Some(original.plan.component)
+    SourceEffectOrigin(original) =>
+      match original.plan.component {
+        NativeKeyedPlan(component) => Some(component)
+        GenericKeyedPlan(_) => None
+      }
   }
+}
+
+///|
+fn client_effect_keyed_plan_fragments(
+  value : ClientEffectKeyedPlanGraph,
+) -> ClientKeyedPlanFragmentInputs {
+  match value.component {
+    NativeKeyedPlan(component) => component.original.fragments
+    GenericKeyedPlan(component) => component.original.fragments
+  }
+}
+
+///|
+pub fn client_effect_keyed_plan_graph_is_generic(
+  value : ClientEffectKeyedPlanGraph,
+) -> Bool {
+  value.component is GenericKeyedPlan(_)
 }
 
 ///|

@@ -94,19 +94,20 @@ test "Source-only keyed construction retains the actual Effect join without a Mo
   ).unwrap()
   assert_true(client_effect_keyed_plan_graph_matches(graph, prepared, keyed))
   assert_eq(graph.graph_nodes.length(), 3)
-  assert_true(
-    physical_equal(graph.component.original.fragments.acquisition, keyed),
-  )
-  assert_true(physical_equal(graph.component.original.profile, profile))
+  guard graph.component is NativeKeyedPlan(component) else {
+    fail("real Native Source-only plan")
+  }
+  assert_true(physical_equal(component.original.fragments.acquisition, keyed))
+  assert_true(physical_equal(component.original.profile, profile))
   assert_eq(
-    graph.component.original.fragments.final_step,
+    component.original.fragments.final_step,
     @acquisition.keyed_join_step(keyed.binding.join),
   )
   for
     (fragment, measured) in [
-      (graph.component.left, construction.fragments[0].fragment),
-      (graph.component.barrier, construction.node),
-      (graph.component.joined, construction.fragments[1].fragment),
+      (component.left, construction.fragments[0].fragment),
+      (component.barrier, construction.node),
+      (component.joined, construction.fragments[1].fragment),
     ] {
     let actual = content_construction_geometry(fragment.wire)
     assert_true(

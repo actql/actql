@@ -629,6 +629,8 @@ pub fn client_effect_keyed_original_matches(ClientEffectKeyedOriginal, PreparedC
 
 pub fn client_effect_keyed_plan_graph_coordinates(ClientEffectKeyedPlanGraph) -> (Int, Int, Int)
 
+pub fn client_effect_keyed_plan_graph_is_generic(ClientEffectKeyedPlanGraph) -> Bool
+
 pub fn client_effect_keyed_plan_graph_matches(ClientEffectKeyedPlanGraph, PreparedClientEffectComputation, ClientKeyedAcquisition) -> Bool
 
 pub fn client_effect_keyed_request_matches_parent(ClientKeyedRequest, ClientEffectKeyedOriginal, @physical_resources.Ledger) -> Bool
@@ -2099,6 +2101,8 @@ pub fn lower_client_source_input_query(ClientSourceInput, @client_source_publica
 
 pub fn measure_client_compiled_run_static_plan_view(ClientCompiledRun, PreparedClientProgram, Int, Int, Int, inspect_installed? : Bool, before_carrier_measurement? : ((@carrier_contract.Carrier) -> Bool)?) -> Result[ClientStaticPlanViewConstruction, ClientCompiledRunPlanIssue]
 
+pub fn measure_client_effect_generic_keyed_plan_construction(PreparedClientEffectComputation, ClientKeyedAcquisition, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientEffectKeyedPlanConstruction, ClientInferPlanGraphIssue]
+
 pub fn measure_client_effect_keyed_plan_construction(PreparedClientEffectComputation, ClientKeyedAcquisition, @run_publication.PublicationContract, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientEffectKeyedPlanConstruction, ClientInferPlanGraphIssue]
 
 pub fn measure_client_local_normalization_construction(ClientLocalNormalizationPreparation) -> Result[ClientLocalNormalizationConstruction, ClientLocalNormalizationIssue]
@@ -2465,7 +2469,7 @@ pub fn prepared_client_effect_infer_occurrence(PreparedClientEffectComputation) 
 
 pub fn prepared_client_effect_infer_occurrences(PreparedClientEffectComputation) -> Array[ClientInferOccurrence]?
 
-pub fn prepared_client_effect_keyed_plan_measurement_storage(PreparedClientEffectComputation, ClientKeyedAcquisition) -> @execution_relation.PreparationRepresentationUnits?
+pub fn prepared_client_effect_keyed_plan_measurement_storage(PreparedClientEffectComputation, ClientKeyedAcquisition, generic? : Bool) -> @execution_relation.PreparationRepresentationUnits?
 
 pub fn prepared_client_effect_measurement_storage(ClientEffectCompilationConstructionInput, ClientPureCompilationLimits) -> Result[@execution_relation.PreparationRepresentationUnits, ClientValuesExecutablePlanIssue]
 
@@ -2725,7 +2729,7 @@ pub fn start_captured_result_publication_export(@physical_strategy_host.Captured
 
 pub fn start_client_composed_keyed_file_locator(ClientKeyedLookupInput, ClientKeyedRequest, Array[@execution_query.CapturedInputSource], Array[@execution_relation.SuppliedRelationRead?]) -> Result[ClientKeyedFileLocator, ClientKeyedRequestIssue]
 
-pub fn start_client_effect_keyed_capture_lookup_input(ClientEffectKeyedOriginal, Array[@client_row_source_host.RowCapturedInput], Int, Int, Int, Int) -> Result[ClientKeyedLookupInput, ClientKeyedRequestIssue]
+pub fn start_client_effect_keyed_capture_lookup_input(ClientEffectKeyedOriginal, Array[@client_row_source_host.RowCapturedInput], Int, Int, Int, Int, source_sequence? : @execution_relation.GeneratedSequence?) -> Result[ClientKeyedLookupInput, ClientKeyedRequestIssue]
 
 pub fn start_client_keyed_declared_file_request_plan(ClientKeyedLookupInput, String, Int64, String) -> Result[Unit, ClientKeyedRequestIssue]
 
