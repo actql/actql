@@ -109,7 +109,8 @@ try {
             connection: {all: true}, resource: {all: true}, operation: {any_of: ['read', 'write']}, exclusions: []},
         ]}), hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},
         reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId: userInfo().username,
-          publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}]}};
+          publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
+        reviewReaders: [userInfo().username]}};
     await save(handoffPath, original);
   } else {
     original = JSON.parse(await readFile(handoffPath, 'utf8'));
