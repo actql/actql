@@ -9923,8 +9923,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/ingress/ingress#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/ingress/ingress#3",
             "openPreparedInstalledHost/preparation/init:bindManagedComputeRunObservation/init:bindManagedComputeRunObservation",
-            "openPreparedInstalledHost/preparation/init:managedComputeUsageReader/init:managedComputeUsageReader",
-            "openPreparedInstalledHost/preparation/init:managedComputeUsageReader/init:managedComputeUsageReader/init:managedComputeUsageReader"
+            "openPreparedInstalledHost/preparation/init:managedComputeUsageReader/init:managedComputeUsageReader"
           ],
           "exports": [],
           "attributes": {
@@ -10024,7 +10023,7 @@
                 "anchor": "test('managed usage retains one original reader and operation correlation across row consumption'"
               },
               {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mjs",
                 "anchor": "test('managed usage reader selects only the same admitted Run and releases its installation alias'"
               },
               {
@@ -10032,19 +10031,19 @@
                 "anchor": "test('Result operation capture forwards the same installed optional holder on demand'"
               },
               {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mjs",
                 "anchor": "test('final managed accounting retains every original scalar after actual retirement and cuts Core aliases'"
               },
               {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mjs",
                 "anchor": "test('pending final Core retirement keeps the same live usage and resamples only its successful retry'"
               },
               {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mjs",
                 "anchor": "test('failed manager retirement retains original custody and publishes final DATA only after the same retry'"
               },
               {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mjs",
                 "anchor": "test('final accounting cannot retain a foreign object or extra alias from a malformed runtime port'"
               },
               {
@@ -10147,8 +10146,6 @@
         },
         {
           "operations": [
-            "managedPreparationRetirementContinuation",
-            "managedPreparationRetirementContinuation/managedPreparationRetirementContinuation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/localPreparationCustody/localPreparationCustody#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareSubmit/prepareSubmit#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService#2",
@@ -10355,19 +10352,19 @@
                 "anchor": "test('open borrows the one installed AoA projection through the same sequence original'"
               },
               {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mjs",
                 "anchor": "test('final managed accounting retains every original scalar after actual retirement and cuts Core aliases'"
               },
               {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mjs",
                 "anchor": "test('pending final Core retirement keeps the same live usage and resamples only its successful retry'"
               },
               {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mjs",
                 "anchor": "test('failed manager retirement retains original custody and publishes final DATA only after the same retry'"
               },
               {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mjs",
                 "anchor": "test('final accounting cannot retain a foreign object or extra alias from a malformed runtime port'"
               },
               {
@@ -20241,19 +20238,6 @@
           "async": false
         },
         {
-          "name": "managedPreparationRetirementContinuation",
-          "parameters": [
-            "run",
-            "record"
-          ],
-          "async": false
-        },
-        {
-          "name": "managedPreparationRetirementContinuation/managedPreparationRetirementContinuation",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "now/now",
           "parameters": [],
           "async": false
@@ -23156,11 +23140,6 @@
           "async": false
         },
         {
-          "name": "openPreparedInstalledHost/preparation/init:managedComputeUsageReader/init:managedComputeUsageReader/init:managedComputeUsageReader",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openPreparedInstalledHost/preparation/init:managedModelSourceCoordinates/init:managedModelSourceCoordinates",
           "parameters": [
             "runtime",
@@ -24517,7 +24496,6 @@
         "../host-common/completed-run-publication.mjs",
         "../host-common/diagnostic-observer.mjs",
         "../host-common/effect-preparation-result.mjs",
-        "../host-common/ledger-contract.generated.mjs",
         "../host-common/observation.mjs",
         "../host-common/run-state-access.mjs",
         "../host-common/run-state-observation.mjs",
@@ -24627,7 +24605,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "db767767a379a2a347ebc01cff5d869613da5a46784a03e3b079d1de0f1d9a8c"
+      "sha256": "cd589270fd289b9f6f7d00d79451fb2d95da457cafed6ad01077e3b25a8f7d28"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

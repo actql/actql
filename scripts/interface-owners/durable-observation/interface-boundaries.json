@@ -1130,7 +1130,7 @@
                 "anchor": "test('managed usage retains one original reader and operation correlation across row consumption'"
               },
               {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mjs",
                 "anchor": "test('managed usage reader selects only the same admitted Run and releases its installation alias'"
               }
             ]

@@ -35,7 +35,8 @@ import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
 import {existsSync} from 'node:fs';
 import {validClientConnection} from '../../packages/client-wire/index.mjs';
-import {createEmbeddedHostRegistry, installedHostShutdown} from './embedded-local-lifecycle.mjs';
+import {createEmbeddedHostRegistry, installedHostShutdown, managedPreparationRetirementContinuation,
+  bindManagedComputeRunObservation, managedComputeUsageReader} from './embedded-local-lifecycle.mjs';
 import {installHttpRequestPreparation} from './http-request-preparation.mjs';
 import {openClientRequestJournal, observeOriginalClientRequestJournalCustody,
   assertOriginalClientRequestJournalFacilityCurrent}
@@ -153,7 +154,6 @@ import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {installHostObservation, observationTraceParent,
   captureManagedRunObservation} from '../host-common/observation.mjs';
-import {ledgerLimitsFields, ledgerUsageFields} from '../host-common/ledger-contract.generated.mjs';
 import {installNodeClientDispatchOwner, observeNodeRunCancellation, cancelNodeRunContinuation,
   observeNodeRestoredModelStop, observeNodeRestoredLocalStop, recordNodeRunPhysicalStop} from './client-dispatch-owner.mjs';
 import {prepareOrdinaryHostJournal} from './ordinary-host-journal.mjs';
@@ -1407,45 +1407,6 @@ function validateSourceNamespace(value) {
   if (value !== undefined && (typeof value !== 'string' || !value || !value.isWellFormed() || Buffer.byteLength(value) > 256)) {
     throw new TypeError('InvalidSourceNamespaceDeclaration');
   }
-}
-
-// Separate lexical scope: a returned cleanup continuation cannot keep the
-// retiring method's Prepared parameter or SDK request body alive.
-function managedPreparationRetirementContinuation(run, record) {
-  let retired = false, finalAccounting;
-  return () => {
-    if (!retired) {
-      let observed;
-      // The original input/control children have returned before this final
-      // cut. Core drops its Ledger on success; late Result observation keeps
-      // only these exact immutable scalars, never a live/current witness.
-      if (typeof run.usage === 'function') {
-        try {
-          const values = checked(Reflect.apply(run.usage, run.runtime, [run.value]));
-          const length = ledgerLimitsFields.length + ledgerUsageFields.length;
-          if (Array.isArray(values) && values.length === length &&
-              Reflect.ownKeys(values).length === length + 1) {
-            let numeric = true;
-            for (let index = 0; index < length; index++) {
-              const field = Object.getOwnPropertyDescriptor(values, String(index));
-              if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'bigint') {
-                numeric = false; break;
-              }
-            }
-            if (numeric) observed = Object.freeze(values);
-          }
-        } catch { /* Optional metadata cannot replace original cleanup. */ }
-      }
-      checked(Reflect.apply(run.retire,run.runtime,[run.value]));
-      finalAccounting = observed;
-      retired = true;
-    }
-    run.manager.retireSeveredPreparation(run.original);
-    record.computeLiveRuns.delete(run);
-    for(const key of Object.keys(run)) run[key]=undefined;
-    run.closed=true;
-    if (finalAccounting !== undefined) run.finalAccounting = finalAccounting;
-  };
 }
 
 // Capture implementation methods and their original receivers once. Both
@@ -8246,34 +8207,10 @@ async function openPreparedInstalledHost(options, initialEntry) {
       throw clientOperationError('NodeManagedRunRuntimeUnavailable');
     },
     bindManagedComputeRunObservation(prepared, ref) {
-      const run = record.computeRuns?.get(prepared);
-      if (run === undefined || run.value === undefined || run.closed) return;
-      // Index only an actually admitted Run's existing holding. This does
-      // not cache authority, reconstruct a preparation or scan other Runs.
-      const key = JSON.stringify([ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid]);
-      const index = record.computeRunObservations ??= new Map();
-      const prior = index.get(key);
-      if (prior !== undefined && prior !== run) throw clientOperationError('ForeignInstalledComputeRun');
-      index.set(key, run);
-      // Capture the same native method without sampling or extending the
-      // Core Run lifetime. Final retirement supplies its last live DATA.
-      if (!Object.hasOwn(run, 'usage')) run.usage = run.runtime.clientProgramInstalledManagedRunAccounting;
+      return bindManagedComputeRunObservation(record, prepared, ref, clientOperationError);
     },
     managedComputeUsageReader(ref) {
-      const key = JSON.stringify([ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid]);
-      if (record.computeRunObservations?.get(key) === undefined) return undefined;
-      // Capture only the public key and existing installation bag. Final
-      // retirement clears that bag, including this index, so a held response
-      // cannot keep a prepared Program, Core Run or Ledger alive afterward.
-      return () => {
-        const run = record.computeRunObservations?.get(key);
-        if (run === undefined) return undefined;
-        if (run.closed) return run.finalAccounting;
-        if (run.value === undefined) return undefined;
-        if (!Object.hasOwn(run, 'usage')) run.usage = run.runtime.clientProgramInstalledManagedRunAccounting;
-        if (typeof run.usage !== 'function') return undefined;
-        return checked(Reflect.apply(run.usage, run.runtime, [run.value]));
-      };
+      return managedComputeUsageReader(record, ref);
     },
     sourcePreparation() {
       if (sourceManaged === undefined) return undefined;

@@ -44090,14 +44090,27 @@
     {
       "module": "adapters/host-node/embedded-local-lifecycle.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "973b4c42306c71908b5c96ecb2beb450a73cc4999d9993f6ea4d6e0ccb8af758",
+      "sha256": "bc6c29af530bc92a02d2c81bec857eb7a3b28df78f0a67751fabe336b898756e",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
+        "bindManagedComputeRunObservation",
         "createEmbeddedHostRegistry",
-        "installedHostShutdown"
+        "installedHostShutdown",
+        "managedComputeUsageReader",
+        "managedPreparationRetirementContinuation"
       ],
       "operations": [
+        {
+          "name": "bindManagedComputeRunObservation",
+          "parameters": [
+            "record",
+            "prepared",
+            "ref",
+            "clientOperationError"
+          ],
+          "async": false
+        },
         {
           "name": "closing/closing",
           "parameters": [],
@@ -44607,6 +44620,32 @@
         },
         {
           "name": "installedHostShutdown/shutdown/shutdown#9",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "managedComputeUsageReader",
+          "parameters": [
+            "record",
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "managedComputeUsageReader/managedComputeUsageReader",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "managedPreparationRetirementContinuation",
+          "parameters": [
+            "run",
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "managedPreparationRetirementContinuation/managedPreparationRetirementContinuation",
           "parameters": [],
           "async": false
         }
@@ -46055,12 +46094,98 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "managedPreparationRetirementContinuation",
+            "managedPreparationRetirementContinuation/managedPreparationRetirementContinuation",
+            "bindManagedComputeRunObservation",
+            "managedComputeUsageReader",
+            "managedComputeUsageReader/managedComputeUsageReader"
+          ],
+          "exports": [
+            "managedPreparationRetirementContinuation",
+            "bindManagedComputeRunObservation",
+            "managedComputeUsageReader"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "pub fn installed_managed_run_accounting("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "export function bindManagedComputeRunObservation(record, prepared, ref, clientOperationError) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "export function managedPreparationRetirementContinuation(run, record) {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "anchor": "test('pending final Core retirement keeps the same live usage and resamples only its successful retry'"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "anchor": "test('failed optional accounting cannot replace cleanup or fabricate a final snapshot'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "anchor": "test('failed manager retirement retains original custody and publishes final DATA only after the same retry'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "const length = ledgerLimitsFields.length + ledgerUsageFields.length;"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "These logical counters exclude durable Store history, shared Host holdings and"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "/// These are managed accounting values, not a measurement of process memory"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "anchor": "test('final managed accounting retains every original scalar after actual retirement and cuts Core aliases'"
+              },
+              {
+                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "anchor": "test('final accounting cannot retain a foreign object or extra alias from a malformed runtime port'"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
         "../../packages/sdk/host-port.mjs",
         "../../packages/sdk/internal/private-source-preparation.mjs",
+        "../host-common/ledger-contract.generated.mjs",
+        "../host-common/runtime-result.mjs",
         "./installed-host-cleanup.mjs"
       ],
       "compilerFields": [],
@@ -51093,7 +51218,7 @@
                 "anchor": "test('managed usage retains one original reader and operation correlation across row consumption'"
               },
               {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mjs",
                 "anchor": "test('managed usage reader selects only the same admitted Run and releases its installation alias'"
               },
               {
@@ -51515,7 +51640,7 @@
                 "anchor": "test('managed usage retains one original reader and operation correlation across row consumption'"
               },
               {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "path": "adapters/host-node/managed-run-observation.test.mjs",
                 "anchor": "test('managed usage reader selects only the same admitted Run and releases its installation alias'"
               }
             ]
