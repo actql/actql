@@ -153,11 +153,21 @@ fn construct_installed_client_family(
       @local_tea_provider.calendar_series_provider(records, capacity)
     CalendarBucket =>
       @local_tea_provider.calendar_bucket_provider(records, capacity)
+    // The common module binds these constructor recipes to its original
+    // execution/measurement policy. No legacy Host default is substituted.
     IntervalJoin =>
-      @local_tea_provider.interval_join_provider(records, capacity)
+      @local_tea_provider.interval_join_provider(
+        records,
+        capacity,
+        bounded_constructor=true,
+      )
     AsofJoin => @local_tea_provider.asof_join_provider(records, capacity)
     SequenceMatch =>
-      @local_tea_provider.sequence_match_provider(records, capacity)
+      @local_tea_provider.sequence_match_provider(
+        records,
+        capacity,
+        bounded_constructor=true,
+      )
     Vectors => @local_veca_provider.provider(records, 100000L, capacity)
   }
 }

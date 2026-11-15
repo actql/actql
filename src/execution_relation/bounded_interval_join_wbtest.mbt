@@ -40,6 +40,7 @@ fn bounded_interval_fixture_result(
   max_entries? : Int = 10000,
   text_key? : Bool = false,
   name_bytes? : Int = 10000,
+  capture? : (GeneratedSequence) -> Unit = fn(_) { () },
 ) -> Result[
   (@bounded.Control, BoundedIntervalJoinExecution, Array[ProducerRead]),
   BoundedIntervalJoinIssue,
@@ -123,6 +124,7 @@ fn bounded_interval_fixture_result(
   ).unwrap()
   let generated = constrain_generated_interval_search(generated, 0, 4L).unwrap()
   let generated = constrain_generated_join_output(generated, 0, 3L).unwrap()
+  capture(generated)
   let left = prepare_producer_read(
     receiver,
     bind_completed_input(receiver, 0, left_owner, left_output).unwrap(),
@@ -160,8 +162,9 @@ fn bounded_interval_fixture(
   max_work? : Int = 100000,
   max_entries? : Int = 10000,
   text_key? : Bool = false,
+  capture? : (GeneratedSequence) -> Unit = fn(_) { () },
 ) -> (@bounded.Control, BoundedIntervalJoinExecution, Array[ProducerRead]) raise {
-  bounded_interval_fixture_result(max_work, max_entries~, text_key~).unwrap()
+  bounded_interval_fixture_result(max_work, max_entries~, text_key~, capture~).unwrap()
 }
 
 ///|

@@ -40,6 +40,7 @@ test "standard Host runs bounded interval join for two consumers" {
   let interval_provider = @local_tea_provider.interval_join_provider(
     carrier_events_storage_limits(),
     interval_capacity,
+    bounded_constructor=true,
   )
   let installed = @local_driver.prepare_local_dispatch_module(
     @host_driver.open_dispatch_driver(run),
@@ -184,6 +185,120 @@ test "standard Host runs bounded interval join for two consumers" {
   @strategy.close_captured_task_output(run, 2)
   (right_ops.close)()
   (right_ops.cleanup_refresh)() |> ignore
+  @strategy.stop_captured_dag(run)
+  @strategy.close_captured_task_output(run, 0)
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "Interval provider quotes actual execution only for its registered bounded constructor" {
+  let (run, issuer) = captured_graph_fixture(
+    local_values_interval_chain=true,
+    managed_publication=true,
+  )
+  let limits = dispatch_test_limits()
+  let generated = dispatch_test_generated(run)
+  let selected = generated[2]
+  let old = @execution.generated_sequence_capacity(
+    selected,
+    limits.local_execution,
+    limits.guards,
+  ).unwrap()
+  let legacy = @local_tea_provider.interval_join_provider(
+    carrier_events_storage_limits(),
+    old,
+  )
+  assert_true(
+    @local_connector.managed_provider_bounded_relation_capacity(
+      legacy,
+      selected,
+      limits.local_execution,
+      limits.guards,
+    )
+    is None,
+  )
+  let unchanged = @local_connector.managed_provider_capacity(legacy, selected).unwrap()
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(unchanged),
+    @execution.execution_capacity_execution_bytes(old),
+  )
+  let provider = @local_tea_provider.interval_join_provider(
+    carrier_events_storage_limits(),
+    old,
+    bounded_constructor=true,
+  )
+  let checked = @local_connector.managed_provider_bounded_relation_capacity(
+    provider,
+    selected,
+    limits.local_execution,
+    limits.guards,
+  ).unwrap()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(checked),
+    @execution.execution_capacity_retained_bytes(old),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(checked) <
+    @execution.execution_capacity_execution_bytes(old),
+  )
+  assert_true(
+    @local_connector.managed_provider_bounded_relation_capacity(
+      provider,
+      generated[0],
+      limits.local_execution,
+      limits.guards,
+    )
+    is None,
+  )
+  assert_true(
+    @local_connector.managed_provider_bounded_relation_capacity(
+      provider,
+      selected,
+      {
+        ..limits.local_execution,
+        rows: {
+          ..limits.local_execution.rows,
+          operation_entries: carrier_events_storage_limits().max_workspace_slots -
+          1,
+        },
+      },
+      limits.guards,
+    )
+    is None,
+  )
+  let injected = @local_tea_provider.interval_join_provider(
+    carrier_events_storage_limits(),
+    @execution.execution_capacity(1L, 1L).unwrap(),
+    bounded_constructor=true,
+  )
+  assert_true(
+    @local_connector.managed_provider_bounded_relation_capacity(
+      injected,
+      selected,
+      limits.local_execution,
+      limits.guards,
+    )
+    is None,
+  )
+  let unchanged_injected = @local_connector.managed_provider_capacity_for_execution(
+    injected,
+    selected,
+    limits.local_execution,
+    limits.guards,
+  ).unwrap()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(unchanged_injected),
+    1L,
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(unchanged_injected),
+    1L,
+  )
   @strategy.stop_captured_dag(run)
   @strategy.close_captured_task_output(run, 0)
   @strategy.refresh_captured_retention(run)

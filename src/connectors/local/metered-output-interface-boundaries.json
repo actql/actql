@@ -811,6 +811,177 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/execution_relation/interval_capacity.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "dc7d7b66ba586f06da365083e186abbf48a4c07de3d25a5874b96ec49c489bc9",
+      "role": "common-semantics",
+      "owner": "Existing generated sequence capacity, shared representation contract and checked arithmetic",
+      "referenceQualification": "Original selected constructor and same-Task resource correspondence; no normal distribution or physical acceptance",
+      "exports": [],
+      "operations": [
+        {
+          "name": "bounded_interval_scalar_schema",
+          "declaration": "bounded_interval_scalar_schema ( schema : @ schema . Schema ) - > Bool"
+        },
+        {
+          "name": "generated_bounded_interval_capacity",
+          "declaration": "generated_bounded_interval_capacity ( generated : GeneratedSequence , limits : SequenceExecutionLimits , measurement : FixedInputGuardMeasureLimits , workspace_slots : Int , ) - > ExecutionCapacity ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "bounded_interval_scalar_schema",
+            "generated_bounded_interval_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/interval_capacity.mbt",
+                "anchor": "pub fn generated_bounded_interval_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"bounded Interval quotes full output with actual workspace and borrowed flat inputs\""
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/interval_capacity.mbt",
+                "anchor": "pub fn generated_bounded_interval_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"bounded Interval quotes full output with actual workspace and borrowed flat inputs\""
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/interval_capacity.mbt",
+                "anchor": "pub fn generated_bounded_interval_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"bounded Interval quotes full output with actual workspace and borrowed flat inputs\""
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/interval_capacity.mbt",
+                "anchor": "pub fn generated_bounded_interval_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"bounded Interval quotes full output with actual workspace and borrowed flat inputs\""
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/interval_capacity.mbt",
+                "anchor": "pub fn generated_bounded_interval_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"bounded Interval quotes full output with actual workspace and borrowed flat inputs\""
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/interval_capacity.mbt",
+                "anchor": "pub fn generated_bounded_interval_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"bounded Interval quotes full output with actual workspace and borrowed flat inputs\""
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/interval_capacity.mbt",
+                "anchor": "pub fn generated_bounded_interval_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"bounded Interval quotes full output with actual workspace and borrowed flat inputs\""
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/interval_capacity.mbt",
+                "anchor": "pub fn generated_bounded_interval_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"bounded Interval quotes full output with actual workspace and borrowed flat inputs\""
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/interval_capacity.mbt",
+                "anchor": "pub fn generated_bounded_interval_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"bounded Interval quotes full output with actual workspace and borrowed flat inputs\""
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/interval_capacity.mbt",
+                "anchor": "pub fn generated_bounded_interval_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"bounded Interval quotes full output with actual workspace and borrowed flat inputs\""
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
