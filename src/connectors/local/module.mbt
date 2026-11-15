@@ -458,18 +458,29 @@ fn local_module_default_output_start_capacity(
   // Only this built-in row chain gets a constructor-local startup baseline.
   // Each child borrows immutable input backing, attaches output to the same
   // task growth owner, and confirms scratch cleanup before its successor.
-  // Unrelated chains and constructed binding outputs keep the generic floor.
+  // Other chains keep their generic floor. Constructed row outputs retain
+  // their full final-output holding when DATA retention is not deferred.
   let mut unnest_chain = count > 1
   let mut has_unnest = false
+  let mut required_row_chain = count > 1
   for index in 0..<count {
     match @execution.generated_sequence_step_at(sequence, index) {
-      Some(@lower.RowStep(kernel)) =>
+      Some(@lower.RowStep(kernel)) => {
+        if !selected_binding_rows_supported(kernel) ||
+          !@schema.all_fields_required(@lower.kernel_input_schema(kernel)) ||
+          !@schema.all_fields_required(@lower.kernel_output_schema(kernel)) {
+          required_row_chain = false
+        }
         if @lower.kernel_unnest(kernel) is Some(_) {
           has_unnest = true
         } else if !selected_binding_rows_supported(kernel) {
           unnest_chain = false
         }
-      _ => unnest_chain = false
+      }
+      _ => {
+        unnest_chain = false
+        required_row_chain = false
+      }
     }
   }
   unnest_chain = unnest_chain && has_unnest
@@ -870,7 +881,13 @@ fn local_module_default_output_start_capacity(
   // Its chain retires child scratch before the next child. No legacy generic
   // sequence table is built; keep every child's full scratch and fixed roots,
   // while actual output DATA grows on the original shared attachment.
-  let constructor_chain = (count > 1 && metered_retention) || window_chain
+  // The same bounded row children retire scratch before their successor even
+  // when they construct Text and keep the full final-output holding prepaid.
+  // Retained-output deferral is independent: preserve full R when it is false,
+  // while the shared attachment still funds all live intermediate DATA in E.
+  let constructor_chain = (count > 1 && metered_retention) ||
+    window_chain ||
+    required_row_chain
   let mut scratch = if constructor_chain {
     0L
   } else {

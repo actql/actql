@@ -96,6 +96,7 @@ fn chain_lifetime_bind(
 ///|
 fn chain_lifetime_generated(
   owner : @lower.BoundPrepared,
+  fragment_work? : Int64 = 100000L,
 ) -> @execution.GeneratedSequence raise {
   let sequence = @lower.prepare_sequence(owner, {
     max_steps: 100,
@@ -145,7 +146,7 @@ fn chain_lifetime_generated(
             max_input_rows: 10L,
             max_value_bytes: 1000L,
             max_live_value_bytes: 10000L,
-            max_work: 100000L,
+            max_work: fragment_work,
           },
         ).unwrap(),
       )
