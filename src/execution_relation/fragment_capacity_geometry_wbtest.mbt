@@ -882,3 +882,114 @@ test "LENGTH constructor proof refuses computed receivers and retains generic de
     assert_eq(widened.execution_bytes - bounded.execution_bytes, 264L)
   }
 }
+
+///|
+fn text_equality_geometry(
+  expression : String,
+) -> (@lower.BoundPrepared, GeneratedSequence, FragmentRuntimeContext) raise {
+  let owner = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"record_key\":{\"type\":\"string\",\"nullable\":true}},\"rows\":[]},\"as\":\"seed\"},{\"filter\":" +
+    expression +
+    "}]",
+  )
+  let sequence = prepared_sequence(owner)
+  let context = sequence_fragment_context(sequence, 1, 4L)
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    sequence,
+    [context],
+    ["where_1"],
+    100000,
+    10000,
+  ).unwrap()
+  (owner, select_generated_sequence_step(generated, 1).unwrap(), context)
+}
+
+///|
+test "original nullable Text equality preserves Unicode data and exact constructor refusal" {
+  for
+    (expected, literal) in [
+      ("9007199254740993", "\"9007199254740993\""),
+      ("e\u0301", "\"e\\u0301\""),
+      ("😀", "\"😀\""),
+    ] {
+    let (_, selected, context) = text_equality_geometry(
+      "{\"eq\":[{\"field\":\"record_key\"},{\"literal\":" + literal + "}]}",
+    )
+    let limits = leaf_geometry_limits(4)
+    assert_true(bounded_text_equality_fragment_nodes(context) is Some(_))
+    assert_true(
+      bounded_leaf_fragment_capacity(selected, context, limits) is Some(_),
+    )
+    let input : Table = {
+      owner: @lower.kernel_owner(context.kernel),
+      id: @lower.kernel_input(context.kernel),
+      names: ["record_key"],
+      rows: [
+        [Text("9007199254740993")],
+        [Text("e\u0301")],
+        [Text("😀")],
+        [Null],
+      ],
+    }
+    let execute = fn(original : FragmentRuntimeContext, workspace) {
+      evaluate_rows_with_workspace(
+        original.kernel,
+        input,
+        4,
+        { remaining: 100000, max_frames: 100, },
+        row_output(),
+        workspace,
+        ordered_budget=Some(
+          fragment_runtime_for_kernel(original, original.kernel).unwrap(),
+        ),
+      )
+    }
+    let observed = row_workspace(100000)
+    let actual = execute(context, observed).unwrap()
+    assert_eq(actual.rows.length(), 1)
+    assert_true(actual.rows[0][0] is Text(value) && value == expected)
+    assert_true(observed.peak > 0)
+    assert_eq(
+      execute(context, row_workspace(observed.peak)).unwrap().rows.length(),
+      1,
+    )
+    assert_true(
+      execute(context, row_workspace(observed.peak - 1)) is Err(RowLimit),
+    )
+    let short = {
+      ..context,
+      limits: { ..context.limits, max_input_rows: 3L, },
+    }
+    assert_true(
+      execute(short, row_workspace(observed.peak))
+      is Err(LogicalRows(InputRowLimit)),
+    )
+    let (_, _, foreign) = text_equality_geometry(
+      "{\"eq\":[{\"field\":\"record_key\"},{\"literal\":" + literal + "}]}",
+    )
+    assert_true(
+      bounded_text_equality_fragment_nodes({
+        ..context,
+        fragment: foreign.fragment,
+      })
+      is None,
+    )
+  }
+}
+
+///|
+test "Text comparison proof leaves computed and conditional operands on generic path" {
+  for
+    expression in [
+      "{\"eq\":[{\"concat\":[{\"field\":\"record_key\"},{\"literal\":\"x\"}]},{\"literal\":\"x\"}]}",
+      "{\"eq\":[{\"if\":[{\"literal\":true},{\"field\":\"record_key\"},{\"literal\":\"x\"}]},{\"literal\":\"x\"}]}",
+    ] {
+    let (_, selected, context) = text_equality_geometry(expression)
+    assert_true(bounded_text_equality_fragment_nodes(context) is None)
+    assert_true(
+      bounded_leaf_fragment_capacity(selected, context, leaf_geometry_limits(4))
+      is None,
+    )
+  }
+}

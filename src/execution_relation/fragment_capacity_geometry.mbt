@@ -170,6 +170,77 @@ pub fn bounded_binding_alias_node_count(kernel : @lower.PreparedKernel) -> Int? 
 }
 
 ///|
+// Text comparison borrows only original scalar operands. The comparator walks
+// their UTF16 spelling and returns an inline Boolean/Null; it builds no Text,
+// normalizes no data and constructs no Reference. Other predicates retain the
+// generic live-value envelope, including conditional or computed Text inputs.
+fn bounded_borrowed_text_operand(expression : @lower.Expression) -> Bool {
+  guard @lower.expression_contract(expression).shape is @contract.Text(_) &&
+    @lower.expression_view_entries(expression) == 0 else {
+    return false
+  }
+  match @lower.expression_body(expression) {
+    @lower.Field(_, @relation.InputField(_))
+    | @lower.Literal(_)
+    | @lower.TypedNull => true
+    _ => false
+  }
+}
+
+///|
+fn bounded_text_equality_fragment_nodes(
+  context : FragmentRuntimeContext,
+) -> Int? {
+  guard @lower.kernel_body(context.kernel) is @lower.Filter(predicate) &&
+    @lower.expression_contract(predicate).shape is @contract.Boolean &&
+    @lower.expression_view_entries(predicate) == 0 &&
+    @lower.expression_body(predicate)
+    is @lower.Binary(@lower.Equal, left, right) &&
+    bounded_borrowed_text_operand(left) &&
+    bounded_borrowed_text_operand(right) else {
+    return None
+  }
+  let request = context.fragment.candidate.material.request.request
+  let roots = @lower.fragment_pipeline_roots(
+    @lower.fragment_request_pipeline(request),
+  )
+  if !physical_equal(
+      @lower.sequence_owner(@lower.root_sequence(roots)),
+      @lower.kernel_owner(context.kernel),
+    ) ||
+    @lower.root_step_range(roots) !=
+    (@lower.kernel_step(context.kernel), @lower.kernel_step(context.kernel) + 1) {
+    return None
+  }
+  let mut total = 0
+  for index in 0..<@lower.root_count(roots) {
+    guard @lower.root_at(roots, index) is Some(root) &&
+      root.step_index == @lower.kernel_step(context.kernel) else {
+      return None
+    }
+    let count = @typing.node_count(root.typed_expression)
+    if count < 1 || count > 2147483647 - total {
+      return None
+    }
+    for node in 0..<count {
+      guard @typing.node_at(root.typed_expression, node) is Some(value) else {
+        return None
+      }
+      match value.contract.shape {
+        @contract.Text(_) | @contract.Boolean => ()
+        _ => return None
+      }
+    }
+    total += count
+  }
+  if total > 0 {
+    Some(total)
+  } else {
+    None
+  }
+}
+
+///|
 // Constructor proof for the bounded, selected, single binding-row provider.
 // This is not a bound inferred from an AST's encoded size. The accepted
 // evaluator paths (expression.mbt) return an input/prior-slot alias, capture an
@@ -204,7 +275,10 @@ fn bounded_leaf_fragment_capacity(
   let bindings = @lower.kernel_bindings(kernel)
   let primitive_nodes = bounded_primitive_fragment_nodes(context)
   let predicate_nodes = if @lower.kernel_body(kernel) is @lower.Filter(_) {
-    primitive_nodes
+    match primitive_nodes {
+      Some(_) => primitive_nodes
+      None => bounded_text_equality_fragment_nodes(context)
+    }
   } else {
     None
   }
