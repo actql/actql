@@ -643,7 +643,8 @@ pub fn begin_client_keyed_lookup_response(
   let order_extra = if planned_slot >= 0 {
     0L
   } else {
-    match keyed_lookup_order_insert_capacity(state, state.selected_key_position) {
+    match
+      keyed_lookup_order_insert_capacity(state, state.selected_key_position) {
       Ok(value) => value
       Err(issue) => return Err(issue)
     }

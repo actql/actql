@@ -2,18 +2,28 @@
 // Scalar indices point into the SAME append-only response/request history.
 // Keys, typed Requests and physical children are neither copied nor reordered.
 fn keyed_lookup_order_capacity(count : Int) -> Int64? {
-  if count < 0 { return None }
+  if count < 0 {
+    return None
+  }
   @shape.collection_construction_extent({
-    records: 0L, record_references: 1L, record_words: 1L,
-    reference_arrays: 0L, reference_items: 0L,
-    scalar_arrays: 1L, scalar_items: count.to_int64(),
-    maps: 0L, map_entries: 0L,
-  }).bind(layout => @execution.preparation_representation_cost({
-    record_headers: layout.record_headers,
-    reference_slots: layout.reference_slots,
-    scalar_words: layout.scalar_words,
-    owned_utf16_units: 0L, owned_wire_bytes: 0L,
-  }))
+    records: 0L,
+    record_references: 1L,
+    record_words: 1L,
+    reference_arrays: 0L,
+    reference_items: 0L,
+    scalar_arrays: 1L,
+    scalar_items: count.to_int64(),
+    maps: 0L,
+    map_entries: 0L,
+  }).bind(layout => {
+    @execution.preparation_representation_cost({
+      record_headers: layout.record_headers,
+      reference_slots: layout.reference_slots,
+      scalar_words: layout.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+  })
 }
 
 ///|
@@ -36,12 +46,19 @@ fn keyed_lookup_order_find(
       return Err(Assembly("key_order_unavailable"))
     }
     let work = key.length().to_int64() + wire.length().to_int64() + 1L
-    if work > 2147483647L || !charge_keyed_lookup_input_work(state, work.to_int()) {
+    if work > 2147483647L ||
+      !charge_keyed_lookup_input_work(state, work.to_int()) {
       return Err(LookupLimit("work"))
     }
     let compared = key.compare(wire)
-    if compared == 0 { return Ok((slot, middle)) }
-    if compared < 0 { first = middle + 1 } else { last = middle }
+    if compared == 0 {
+      return Ok((slot, middle))
+    }
+    if compared < 0 {
+      first = middle + 1
+    } else {
+      last = middle
+    }
   }
   Ok((-1, first))
 }
@@ -54,7 +71,10 @@ fn keyed_lookup_order_insert_capacity(
   position : Int,
 ) -> Result[Int64, ClientKeyedRequestIssue] {
   let count = state.key_order.length()
-  if position < 0 || position > count || count != state.known.length() || count == 2147483647 {
+  if position < 0 ||
+    position > count ||
+    count != state.known.length() ||
+    count == 2147483647 {
     return Err(Assembly("key_order_unavailable"))
   }
   guard keyed_lookup_order_capacity(count) is Some(before) &&
