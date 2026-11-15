@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
-import {prepareNumericScaleConsumer} from '../../scripts/numeric-scale-installed-fixture.mjs';
+import {prepareNumericScaleConsumer, runNumericScalePhase} from '../../scripts/numeric-scale-installed-fixture.mjs';
 import {verifyNodeBenchmarkPackages} from '../../scripts/benchmark-node-operations.mjs';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {verifyLocalSourceRuntime, assertSourceRuntimeReceiptCurrent} from '../../scripts/verify-local-source-runtime.mjs';
@@ -31,22 +31,6 @@ after(async () => {
   if (startedCases > 0 && completedCases === startedCases) scratch.passed();
 });
 
-function runPhase(phase, directory, referencePath, count) {
-  const env = {...process.env}; delete env.NODE_PATH; delete env.NODE_OPTIONS;
-  const child = spawnSync(process.execPath, [prepared.actor, phase, directory, referencePath, String(count)],
-    {cwd: prepared.consumer, env, encoding: 'utf8', timeout: 360000, maxBuffer: 8 * 1024 * 1024});
-  assert.ifError(child.error);
-  assert.equal(child.signal, null, child.stderr);
-  assert.equal(child.status, 0, child.stderr);
-  const lines = child.stdout.trim().split('\n');
-  const report = JSON.parse(lines.at(-1));
-  const {inputWireBytes, ...completion} = report;
-  assert.deepEqual(completion, {phase, rowsVerified: count, closeReturned: true, pid: child.pid});
-  if (phase === 'produce-source') {
-    assert(Number.isSafeInteger(inputWireBytes) && inputWireBytes > 1048576);
-    console.log(`Numeric JSON Source input: ${inputWireBytes} UTF8 bytes, ${count} rows`);
-  } else assert.equal(inputWireBytes, undefined);
-}
 
 for (const {count, source} of [
   ...[1000, 10000, 10001, 100000].map(count => ({count, source: false})),
@@ -58,8 +42,8 @@ for (const {count, source} of [
     let completed = false;
     try {
       const referencePath = join(directory, 'original-run-reference.json');
-      runPhase(source ? 'produce-source' : 'produce', directory, referencePath, count);
-      runPhase('restore', directory, referencePath, count);
+      runNumericScalePhase(prepared, source ? 'produce-source' : 'produce', directory, referencePath, count);
+      runNumericScalePhase(prepared, 'restore', directory, referencePath, count);
       completed = true;
       completedCases++;
     } finally {

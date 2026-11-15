@@ -1,6 +1,7 @@
 // Reuse the existing normal-tar consumer and its complete installed inventory.
 // Only this authored actor is copied; product modules stay in the installation.
 import assert from 'node:assert/strict';
+import {spawnSync} from 'node:child_process';
 import {constants} from 'node:fs';
 import {copyFile, readFile, realpath} from 'node:fs/promises';
 import {join, relative, isAbsolute} from 'node:path';
@@ -30,4 +31,21 @@ export async function prepareNumericScaleConsumer({repository, directory, comman
   const prepared = await prepareHealthPackages({repository, root: directory,
     source: {sha: state.revision, dirty: false}, retained, command});
   return {...prepared, actor: await stageNumericScaleActor({repository, consumer: prepared.consumer})};
+}
+
+export function runNumericScalePhase(prepared, phase, directory, referencePath, count) {
+  const env = {...process.env}; delete env.NODE_PATH; delete env.NODE_OPTIONS;
+  const child = spawnSync(process.execPath, [prepared.actor, phase, directory, referencePath, String(count)],
+    {cwd: prepared.consumer, env, encoding: 'utf8', timeout: 360000, maxBuffer: 8 * 1024 * 1024});
+  assert.ifError(child.error);
+  assert.equal(child.signal, null, child.stderr);
+  assert.equal(child.status, 0, child.stderr);
+  const lines = child.stdout.trim().split('\n');
+  const report = JSON.parse(lines.at(-1));
+  const {inputWireBytes, ...completion} = report;
+  assert.deepEqual(completion, {phase, rowsVerified: count, closeReturned: true, pid: child.pid});
+  if (phase === 'produce-source') {
+    assert(Number.isSafeInteger(inputWireBytes) && inputWireBytes > 1048576);
+    console.log(`Numeric JSON Source input: ${inputWireBytes} UTF8 bytes, ${count} rows`);
+  } else assert.equal(inputWireBytes, undefined);
 }
