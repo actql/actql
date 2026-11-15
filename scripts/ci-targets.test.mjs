@@ -458,13 +458,6 @@ test('Host collection retains original command bodies and their actual build pre
   assert.equal(publication[3], 'npm run check:publication-owned-host');
   assert.equal(step('Test original publication Host extents').run, ownedHost[0]);
   assert.equal(step('Test original publication Host callers').run, ownedHost[1]);
-  const remote = commands('check:remote-site-runtime');
-  assert.equal(remote.length, 4);
-  assert.equal(step('Prepare the Remote Site runtime').run, remote.slice(0, 2).join('\n') + '\n');
-  assert.equal(step('Test durable Remote Site dispatch admission').run, remote[2]);
-  assert.equal(step('Test packed Remote coordinator').run, remote[3]);
-  assert.equal(step('Test original holder terminal facade').run,
-    'node --test packages/coordinator-core/holder-terminal.test.mjs');
   const runHost = commands('check:run-host-core');
   assert.equal(runHost.length, 4);
   assert.equal(step('Prepare the Run Host runtime').run, runHost[0]);

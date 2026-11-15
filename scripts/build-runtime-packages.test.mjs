@@ -28,12 +28,12 @@ test('holder terminal facade runs after the existing prepared Remote Site CI gat
   assert.equal(prepared.length, 1);
   const gate = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
     .scripts['check:remote-site-runtime'].split(' && ');
-  assert.equal(gate.length, 4);
-  assert.equal(gate[1], 'node scripts/build-runtime-packages.mjs coordinator-core');
-  assert.deepEqual(prepared[0].run.trim().split('\n'), gate.slice(0, 2));
+  assert.deepEqual(gate, ['npm run prepare:remote-site-runtime',
+    'npm run test:remote-site-runtime', 'node scripts/test-packed-coordinator-core.mjs']);
+  assert.equal(prepared[0].run, gate[0]);
   const consumers = [named('Test durable Remote Site dispatch admission'),
     named('Test packed Remote coordinator'), named('Test original holder terminal facade')];
-  assert.deepEqual(consumers.map(step => step.run), [...gate.slice(2),
+  assert.deepEqual(consumers.map(step => step.run), [...gate.slice(1),
     'node --test packages/coordinator-core/holder-terminal.test.mjs']);
   for (const step of consumers) {
     assert(steps.indexOf(prepared[0]) < steps.indexOf(step));
