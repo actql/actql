@@ -4,7 +4,7 @@ import {prepareInstalledEffectManagedPlanRun} from './installed-effect-managed-r
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 
 const ok = value => ({$tag: 1, _0: value});
-function fixture({changedWire = false} = {}) {
+function fixture({changedWire = false, quoteFailure} = {}) {
   const prepared = {}, request = {}, graph = {}, acquisition = {}, allowed = {};
   const definition = {name: 'run_definition', identity: 'sha256:' + '1'.repeat(64), wire: '{"original":true}'};
   const journalView = Object.freeze({...definition, wire: changedWire ? '{"original":false}' : definition.wire});
@@ -34,7 +34,11 @@ function fixture({changedWire = false} = {}) {
     queryTimePreparation: undefined, modelCompiled: undefined, runDefinition: journalView});
   return {calls, reached, run() {
     return prepareInstalledEffectManagedPlanRun({runs: new WeakMap(), liveRuns: new Set(),
-      runtime, manager: {prepareEffectKeyedPlan() {calls.push('quoted-graph'); return graph;}},
+      runtime, manager: {prepareEffectKeyedPlan() {
+        calls.push('quoted-graph');
+        if (quoteFailure !== undefined) throw quoteFailure;
+        return graph;
+      }},
       prepared, request, requestInput: {}, selection: {}, facts, inputs: {},
       publicationControl, assertCurrent() {}, checked: value => {assert.equal(value.$tag, 1); return value._0;}});
   }};
@@ -48,4 +52,11 @@ test('initial keyed preparation projects its same checked Definition after the o
 test('initial keyed preparation refuses changed full Definition bytes before compiled or Plan binding', () => {
   const f = fixture({changedWire: true}); assert.throws(f.run, {code: 'ForeignInstalledEffectManagedRun'});
   assert.deepEqual(f.calls, ['quoted-graph', 'original-view']);
+});
+
+test('initial keyed preparation preserves graph reservation refusal before projecting any original view', () => {
+  const primary = new Error('original graph capacity refused');
+  const f = fixture({quoteFailure: primary});
+  assert.throws(f.run, error => error === primary);
+  assert.deepEqual(f.calls, ['quoted-graph']);
 });

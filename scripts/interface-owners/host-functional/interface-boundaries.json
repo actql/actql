@@ -131070,7 +131070,7 @@
               },
               {
                 "path": "src/client_local_host/preparation_request_effect_keyed_graph.mbt",
-                "anchor": "fn keyed_initial_definition_view_representation()"
+                "anchor": "pub fn[I] prepare_request_effect_keyed_plan("
               }
             ],
             "extension": [
