@@ -39,6 +39,8 @@ struct ClientKeyedLookupInput {
   mut identity_work : Int64
   rows : Int
   mut input : @execution.AdmittedInput?
+  mut key_order : Array[Int]
+  mut selected_key_position : Int
   mut known : Array[
     (String, @execution.SuppliedRelationRead?, ClientKeyedResponseHistory?),
   ]
@@ -93,10 +95,11 @@ fn keyed_lookup_layout_capacity(
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })
-    is Some(controls) else {
+    is Some(controls) &&
+    keyed_lookup_order_capacity(0) is Some(order) else {
     return None
   }
-  Some((4096L + controls, 4096L + controls))
+  Some((4096L + controls + order, 4096L + controls + order))
 }
 
 ///|
@@ -243,6 +246,8 @@ fn start_client_keyed_lookup_input_owned(
     rows,
     input: Some(input),
     known: [],
+    key_order: [],
+    selected_key_position: -1,
     native_read_profile: None,
     native_static_request: None,
     native_transport: None,
@@ -566,19 +571,13 @@ pub fn find_client_keyed_lookup_response(
   if state.selected_index is Some(index) {
     return Ok(index)
   }
-  for index, (key, _, _) in state.known {
-    let amount = key.length().to_int64() + wire.length().to_int64() + 1L
-    if amount > 2147483647L ||
-      !charge_keyed_lookup_input_work(state, amount.to_int()) {
-      return Err(LookupLimit("work"))
-    }
-    if key == wire {
-      state.selected_index = Some(index)
-      return Ok(index)
-    }
+  let (index, position) = match keyed_lookup_order_find(state, wire) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
-  state.selected_index = Some(-1)
-  Ok(-1)
+  state.selected_index = Some(index)
+  state.selected_key_position = position
+  Ok(index)
 }
 
 ///|
@@ -605,6 +604,7 @@ pub fn reuse_client_keyed_lookup_response(
   state.selected_request = None
   state.selected_key = None
   state.selected_index = None
+  state.selected_key_position = -1
   Ok(())
 }
 
@@ -638,6 +638,14 @@ pub fn begin_client_keyed_lookup_response(
         return Err(Assembly("foreign_planned_response"))
       }
       slot
+    }
+  }
+  let order_extra = if planned_slot >= 0 {
+    0L
+  } else {
+    match keyed_lookup_order_insert_capacity(state, state.selected_key_position) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
     }
   }
   let acquisition = state.left.acquisition
@@ -730,6 +738,8 @@ pub fn begin_client_keyed_lookup_response(
       },
       owned_wire_bytes: 0L,
     })
+    is Some(row_extra) &&
+    @execution.checked_preparation_add_product(row_extra, order_extra, 1L)
     is Some(extra) else {
     return Err(Assembly("capacity_overflow"))
   }
@@ -850,8 +860,11 @@ pub fn advance_client_keyed_lookup_input(
               state.pending_history,
             )
           } else {
+            let slot = state.known.length()
             state.known.push((key, Some(read), state.pending_history))
+            state.key_order.insert(state.selected_key_position, slot)
           }
+          state.selected_key_position = -1
           state.pending_slot = -1
           state.completed_responses += 1
           state.accepted += 1
@@ -1203,6 +1216,7 @@ pub fn cleanup_client_keyed_lookup_input(
   state.selected_request = None
   state.selected_key = None
   state.selected_index = None
+  state.selected_key_position = -1
   if state.input is Some(input) &&
     !@execution.reclaim_admitted_input(input, quantum) {
     if @resources.reservation_open(state.reservation) {
@@ -1233,11 +1247,15 @@ pub fn cleanup_client_keyed_lookup_input(
     }
     state.known[state.known.length() - 1] = ("", None, None)
     state.known.pop() |> ignore
+    state.key_order.pop() |> ignore
   }
   if !state.known.is_empty() {
     return Ok(false)
   }
   state.known = []
+  // Pop may retain the Native backing. Drop this same index container before
+  // releasing the original reservation; no old keys or scalar capacity remain.
+  state.key_order = []
   state.completed_responses = 0
   if state.input is Some(input) {
     state.retired_row_work = @execution.admitted_input_work(input).to_int64()

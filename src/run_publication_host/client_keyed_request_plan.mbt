@@ -170,19 +170,20 @@ pub fn retain_client_keyed_lookup_planned_request(
   if !charge_keyed_lookup_input_work(state, wire.length()) {
     return Err(LookupLimit("work"))
   }
-  let mut slot = -1
-  for index, (key, _, _) in state.known {
-    let work = key.length().to_int64() + wire.length().to_int64() + 1L
-    if work > 2147483647L ||
-      !charge_keyed_lookup_input_work(state, work.to_int()) {
-      return Err(LookupLimit("work"))
-    }
-    if key == wire {
-      slot = index
-      break
-    }
+  let (found, position) = match keyed_lookup_order_find(state, wire) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
+  let mut slot = found
   let distinct = slot < 0
+  let order_extra = if distinct {
+    match keyed_lookup_order_insert_capacity(state, position) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+  } else {
+    0L
+  }
   guard @acquisition.keyed_row_request_retained_inventory(request.request)
     is Some(payload) &&
     keyed_lookup_plan_storage(requests.length(), state.known.length())
@@ -205,6 +206,8 @@ pub fn retain_client_keyed_lookup_planned_request(
     })
     is Some(body) &&
     @execution.checked_preparation_add_product(next - previous, body, 1L)
+    is Some(request_extra) &&
+    @execution.checked_preparation_add_product(request_extra, order_extra, 1L)
     is Some(extra) else {
     return Err(Assembly("capacity_overflow"))
   }
@@ -230,6 +233,7 @@ pub fn retain_client_keyed_lookup_planned_request(
         }),
       ),
     )
+    state.key_order.insert(position, slot)
   }
   requests.push((request, slot))
   state.selected_request = None
