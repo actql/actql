@@ -14,12 +14,12 @@ import {createPublicationContractControlFixture} from
 const cid = value => `sha256:${crypto.createHash('sha256').update(value).digest('hex')}`;
 const name = 'model_invocation_evidence';
 
-async function fixture(t) {
+async function fixture(t, selected = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-c-private-read-backing-'));
   const store = await openLocalPublicationStore({directory,
     storeAuthorityCid: cid('private read backing authority'), privateEvidenceKey: Buffer.alloc(32, 7),
     capacityBytes: 1048576, maxObjectBytes: 16384, maxObjects: 32,
-    maxContractNodes: 4096, maxContractDepth: 64}, createPublicationContractControlFixture());
+    maxContractNodes: 4096, maxContractDepth: 64, ...selected}, createPublicationContractControlFixture());
   let passed = false;
   t.after(async () => {
     assert.equal(await store.close(), true);
@@ -89,6 +89,19 @@ test('private read key and Base64 fields have exact dedicated backings and origi
   // It does not prove production GC, a Store ACK or a whole-phase upper bound.
 });
 
+test('large authenticated private evidence round-trips without a Base64 validator stack limit', async t => {
+  const f = await fixture(t, {capacityBytes: 32 * 1024 * 1024, maxObjectBytes: 8 * 1024 * 1024});
+  const wire = 'original private evidence\n'.repeat(180000);
+  assert(Buffer.byteLength(wire, 'utf8') > 4 * 1024 * 1024);
+  const semantic = cid('large private evidence semantic');
+  const holding = cid('large private evidence holding');
+  const object = await f.store.preparePrivateEvidence(name, wire, semantic);
+  await commit(f.store, object, semantic, holding);
+  const restored = await f.store.readPrivateEvidence(name, semantic, holding);
+  assert.deepEqual(restored, Buffer.from(wire, 'utf8'));
+  f.pass();
+});
+
 test('private read still rejects malformed and noncanonical Base64 before crypto', async t => {
   const f = await fixture(t);
   const probe = observeDecipher(t);
@@ -100,6 +113,8 @@ test('private read still rejects malformed and noncanonical Base64 before crypto
     for (const [index, [field, value]] of [
       ['nonce', 'AAA='], ['tag', 'AAAA'], ['ciphertext', 'AAA'],
       ['ciphertext', 'AB=='], ['ciphertext', 'AA A='],
+      ['ciphertext', 'AA=A'], ['ciphertext', '===='],
+      ['ciphertext', 'AAA\n'], ['ciphertext', 'AAA😀AAA'],
     ].entries()) {
       const bytes = Buffer.from(JSON.stringify({...original, [field]: value}));
       const writer = f.store.createPreparedObjectWriter(bytes.length);

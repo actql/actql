@@ -4297,15 +4297,24 @@ async function openOriginalLocalPublicationStore(
     return configuration.privateEvidenceKey;
   };
   const privateEvidenceField = (value, bytes) => {
-    if (typeof value !== 'string' ||
-        !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u
-          .test(value)) {
+    if (typeof value !== 'string' || value.length % 4 !== 0) {
       fail('PublicationPrivateEvidenceCorrupt');
+    }
+    // The selected holding already bounds this field. A repeated-group
+    // regexp can exhaust the engine stack on a valid large ciphertext;
+    // scan the same alphabet/padding grammar with constant workspace.
+    const end = value.length - (value.endsWith('==') ? 2 : value.endsWith('=') ? 1 : 0);
+    for (let index = 0; index < end; index++) {
+      const code = value.charCodeAt(index);
+      if (!(code >= 65 && code <= 90 || code >= 97 && code <= 122 ||
+          code >= 48 && code <= 57 || code === 43 || code === 47)) {
+        fail('PublicationPrivateEvidenceCorrupt');
+      }
     }
     // The bounded envelope and strict alphabet above fix the decoded extent.
     // Noncanonical padding bits still fail the same round-trip check below.
     // Keep nonce/tag/ciphertext on dedicated backings, not shared pool slices.
-    const length = value.length / 4 * 3 - (value.endsWith('==') ? 2 : value.endsWith('=') ? 1 : 0);
+    const length = value.length / 4 * 3 - (value.length - end);
     if (bytes !== undefined && length !== bytes) {
       fail('PublicationPrivateEvidenceCorrupt');
     }
