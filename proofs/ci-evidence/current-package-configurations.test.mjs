@@ -147,7 +147,7 @@ for (const [path, entry] of Object.entries(currentPackageConfigurations)) {
     }
     if (path === 'src/platform_native/signature/moon.pkg') {
       assert.equal(entry.revision, 'f86f409e62d39511380497cb0fe5639d5259f191');
-      const prior = gitTree(root, '523ada3259bf9e8147f746727fbfd56065036fd5').read(path).toString();
+      const prior = gitTree(root, '14050e0d50b79a01dc07e52024b8ada85ab14203').read(path).toString();
       assert.equal(hash(prior), 'c9f579ed2e7db177e27ae45e694788e76332cbc058594eca03e120539c138a7e');
       const selector = '    "model_private_evidence_native_wbtest.mbt": [ "native" ],\n';
       assert.equal(body.split(selector).length, 2);
@@ -225,7 +225,7 @@ test('current Source JSON review binds only its checked normalization count depe
   const digest='7924497475b1578e83add3ebe773c473b6eba23182ed7c8e9b54ec38ecfba44b';
   const entry=currentPackageConfigurations[path], selectedTree=gitTree(root,revision);
   const body=selectedTree.read(path).toString();
-  const prior=gitTree(root,'523ada3259bf9e8147f746727fbfd56065036fd5').read(path).toString();
+  const prior=gitTree(root,'14050e0d50b79a01dc07e52024b8ada85ab14203').read(path).toString();
   assert.equal(entry.revision,revision);assert.equal(entry.digest,digest);
   assert.equal(hash(body),digest);
   const dependency='  "actql/actql/capacity_arithmetic" @counts,\n';
@@ -258,6 +258,10 @@ test('current configuration entries bind exact authored Git inputs and literal d
     const review = currentPackageConfigurationReviewFor(request(path, entry.digest));
     assert.equal(review?.revision, entry.revision ?? currentConfigurationReviewRevision);
     assert.equal(review?.rule, entry.rule);
+    if (path === 'src/client_local_host/moon.pkg') {
+      // A shared local object database must not hide an unpublished review.
+      execFileSync('git', ['merge-base', '--is-ancestor', review.revision, 'HEAD'], {cwd: root});
+    }
     const selected = packageSourceInputs({tree: currentTree, packages: [path.slice(0, -9)], target: 'js'});
     assert(selected.paths.includes(path));
     if (packageImports(body).unknown) {
@@ -296,7 +300,7 @@ test('current physical Resource review binds platform VM selectors and refuses s
   const selectorOnly = body.replace(arithmetic, '');
   assert.equal(hash(selectorOnly), '23447fecf75b00a7f5f5828d0dd27c9711a4386d34d3e3320ae805950b4ccfeb');
   assert.equal(selectorOnly, gitTree(root, '3484e0f43d8eee0013bb5fb8fba03e7fc873377f').read(path).toString());
-  const prior = gitTree(root, '523ada3259bf9e8147f746727fbfd56065036fd5').read(path);
+  const prior = gitTree(root, '14050e0d50b79a01dc07e52024b8ada85ab14203').read(path);
   const selectors = '    "platform_vm_capacity_wasm.mbt": [ "wasm" ],\n' +
     '    "platform_vm_capacity_unsupported.mbt": [ "not", "wasm" ],\n';
   assert.equal(body.split(selectors).length, 2);
