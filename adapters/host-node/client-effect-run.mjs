@@ -265,8 +265,9 @@ export function installNodeClientEffectRun({moon,
           // The installed Host selects an actual Result policy original before
           // this new Run is recorded. A retained Run reuses its saved original.
           const resultPolicyOriginal = contentPolicies.get(prepared) ?? resultPolicyOriginalFor?.(prepared);
+          const definitionCompilation = compiled();
           const allowed = checked(moon.clientProgramIssueAllowedEffectRun(
-            compiled(), policy.executionContextCid, policy.hostPolicyCid,
+            definitionCompilation, policy.executionContextCid, policy.hostPolicyCid,
             policy.expiresAt));
           const definition = checked(moon.clientProgramIssueEffectRunDefinition(
             allowed, namespaceId, randomUUID(), createdAt, policy.expiresAt));
@@ -278,7 +279,7 @@ export function installNodeClientEffectRun({moon,
           const runDefinition = control.admit('run_definition',
             moon.strategyPublicationContractJson(definition), limits);
           const updateTargetRunOriginal = updateTargetOriginals?.captureRun({prepared,
-            allowed, definition, identity, compilation: compiled(), runDefinition}, reserveOriginal);
+            allowed, definition, identity, compilation: definitionCompilation, runDefinition}, reserveOriginal);
           // Selected UPDATE/STORE custody already contains this exact codec;
           // do not retain a second serialized copy. Other requested stops need
           // the same original materials before acceptance, not current config
