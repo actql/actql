@@ -2,6 +2,7 @@
 // Plan. The selected actual Native image and existing Host/Store limits supply
 // every variable bound; no permission, Resource admission or send is issued.
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {runtimeUnboxedReferenceOption} from '../../../host-common/compiler-binding.generated.mjs';
 import {captureInstalledEffectPlanRecipe} from '../../../host-node/installed-effect-plan.mjs';
 import {effectLedgerImplementationBounds} from '../../../host-node/effect-ledger-implementation-bounds.mjs';
 import {physicalContentReadWindowBytes} from '../../../store-local/publication-store.mjs';
@@ -23,6 +24,18 @@ export function prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writ
     'files.write.request', quantities[2], 0n, false));
   const physical = checked(moon.clientProgramInstalledEffectOperationExtentFromCapacityPrepare(
     'files.write', quantities[3], BigInt(limits.maxFileBytes), true));
+  // Each original path component has at most1024 UTF8 bytes, hence at most
+  // 1024 UTF16 units. The existing fixed opaque-boundary constructor covers
+  // the basename slice/lowercase, canonical {basename} text, UTF8 hash input,
+  // and fixed Array/Set headers. Variable target CIDs, growing slots and Set
+  // entries are separately retained by quantities[4] per actual checked row.
+  const footprintCapacity = runtimeUnboxedReferenceOption(
+    moon.clientProgramInstalledOpaqueBoundaryFootprintCapacity('local', 'file_collection', 1024));
+  if (footprintCapacity === undefined || footprintCapacity === null) {
+    throw new TypeError('InvalidLocalFileStoreConstructionGeometry');
+  }
+  const footprint = checked(moon.clientProgramInstalledEffectOperationExtentFromCapacityPrepare(
+    'files.write.footprint', footprintCapacity, 0n, false));
   let warmCapture = capture, coldCapture = capture, warmRequest = request, captureInput, requestInput, recoveryInput;
   if (requestHeaderUnits !== undefined) {
     if (!Number.isSafeInteger(requestHeaderUnits) || requestHeaderUnits < 1) {
@@ -103,7 +116,8 @@ export function prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writ
   }
   return captureInstalledEffectPlanRecipe(Object.freeze({
     memberOperations: Object.freeze([Object.freeze({operation: 'files.write.capture', extent: warmCapture}),
-      Object.freeze({operation: 'files.write.capture', extent: coldCapture})]),
+      Object.freeze({operation: 'files.write.capture', extent: coldCapture}),
+      Object.freeze({operation: 'files.write.footprint', extent: footprint})]),
     rowOperations: Object.freeze([Object.freeze({operation: 'files.write.request', extent: warmRequest}),
       Object.freeze({operation: 'files.write', extent: physical})]),
     savedControlCodec: Object.freeze({maxEntryBytes: controlEntryBytes, fallbackCapacity: fallback[4]}),
@@ -111,8 +125,9 @@ export function prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writ
       ...(captureInput === undefined ? {} : {inputExtent: captureInput})}),
     recoveryConstruction: Object.freeze({operationIndex: 1,
       ...(recoveryInput === undefined ? {} : {inputExtent: recoveryInput})}),
+    footprintConstruction: Object.freeze({operationIndex: 2}),
     requestConstruction: Object.freeze({operationIndex: 0,
       ...(requestInput === undefined ? {} : {inputExtent: requestInput})}),
     physicalWrite: Object.freeze({operationIndex: 1, transferBytes: BigInt(limits.maxFileBytes)}),
-  }), 4);
+  }), 5);
 }

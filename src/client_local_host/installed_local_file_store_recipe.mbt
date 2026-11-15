@@ -44,6 +44,43 @@ fn local_file_store_json_capacity(
 }
 
 ///|
+// The Local footprint borrows each original request and owns one target CID.
+// Keep the target Array's growing slots and the temporary duplicate Set on
+// the SAME control token until retirement. The Map entry recipe bounds a Set
+// entry's single borrowed key, links and growing buckets. Its fixed headers
+// and one bounded basename/hash constructor use the declared .footprint
+// member scratch; global boundary/scheme Strings remain borrowed constants.
+fn local_file_store_footprint_target_capacity() -> @execution.ExecutionCapacity? {
+  guard @shape.collection_construction_extent({
+      // One returned CID String header/length word per original row.
+      records: 1L,
+      record_references: 0L,
+      record_words: 1L,
+      reference_arrays: 0L,
+      reference_items: 1L,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 1L,
+    })
+    is Some(target) &&
+    @execution.preparation_representation_cost({
+      record_headers: target.record_headers,
+      reference_slots: target.reference_slots,
+      scalar_words: target.scalar_words,
+      owned_utf16_units: 71L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(retained) else {
+    return None
+  }
+  // This deliberately retains the growing Set/Array peak, including an
+  // opaque fallback's prefix. A successful constructor returns only scratch;
+  // it does not pretend to release this original control DATA early.
+  @execution.execution_capacity(retained, retained)
+}
+
+///|
 // The warm File capture initially retains only its proposal-reference Array;
 // generated proposal Strings remain borrowed from the original completed Read.
 // Reserve its wrapper/backing, four spare references and geometric-growth
@@ -330,6 +367,9 @@ pub fn installed_local_file_store_recipe_capacities(
       [saved, stored_buffers, projected],
       sequential_workspace=true,
     )
+    is Some(controls) &&
+    local_file_store_footprint_target_capacity() is Some(footprint_target) &&
+    @execution.add_execution_capacity(controls, footprint_target)
     is Some(controls) else {
     return Err(Unsupported)
   }

@@ -45,6 +45,58 @@ test "Local STORE quote retains actual native descriptor multiplicity and one re
 }
 
 ///|
+test "Local footprint targets retain CID and duplicate inventory apart from fixed hash scratch" {
+  let target = local_file_store_footprint_target_capacity().unwrap()
+  // One String header/word, Array growing slots3R, and the existing Set-key
+  // upper (Map entry4H11R13W). The CID is71 ASCII/UTF16 units, not a new copy
+  // of the request/path. This is the additional live population per row.
+  let expected = @execution.preparation_representation_cost({
+    record_headers: 5L,
+    reference_slots: 14L,
+    scalar_words: 14L,
+    owned_utf16_units: 71L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  assert_eq(@execution.execution_capacity_retained_bytes(target), expected)
+  assert_eq(@execution.execution_capacity_execution_bytes(target), expected)
+  let footprint = installed_effect_opaque_boundary_footprint_capacity(
+    "local", "file_collection", 1024,
+  ).unwrap()
+  assert_eq(@execution.execution_capacity_retained_bytes(footprint), 0L)
+  // The fixed hash quote must also exist for an empty member's Set/Array.
+  let fixed = @execution.preparation_representation_cost({
+    record_headers: 10L,
+    reference_slots: 31L,
+    scalar_words: 23L,
+    owned_utf16_units: 2L * 1024L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  assert_true(@execution.execution_capacity_execution_bytes(footprint) > fixed)
+  let quoted = local_file_store_recipe_fixture().unwrap()
+  let saved = standard_create_saved_control_capacity(1000000, 512, 16).unwrap()
+  let projected = local_file_store_json_capacity(65536, 512, 16).unwrap()
+  let stored = @execution.execution_capacity_inventory(
+    [{ unit: QuotedBytes, count: 1000000L, copies: 2, }],
+    [],
+    RetainedAlongsideExecution,
+  ).unwrap()
+  let prior = standard_create_sum_capacities(
+    [saved, stored, projected],
+    sequential_workspace=true,
+  ).unwrap()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(quoted[4]) -
+    @execution.execution_capacity_retained_bytes(prior),
+    expected,
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(quoted[4]) -
+    @execution.execution_capacity_execution_bytes(prior),
+    expected,
+  )
+}
+
+///|
 test "Local STORE quote preserves failed input envelope despite smaller accepted request" {
   let smaller = local_file_store_recipe_fixture(request=1000).unwrap()
   let bigger_input = local_file_store_recipe_fixture(request=1000, body=100001).unwrap()

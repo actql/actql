@@ -16,6 +16,7 @@ test('Local STORE recipe consumes actual constructor bounds in distinct original
     maxNameBytes: 1024, maxDepth: 130, writeQuantumBytes: 65536};
   const quantities = Array.from({length: 6}, () => Object.freeze({})), calls = [];
   const moon = {
+    clientProgramInstalledOpaqueBoundaryFootprintCapacity: (origin, account, units) => ({origin, account, units}),
     clientProgramInstalledLocalFileStoreControlWireBound: () => 1510,
     clientProgramInstalledLocalFileStoreRecipeCapacities(...args) {
       assert.strictEqual(this, moon); calls.push(args); return {$tag: 1, _0: quantities};
@@ -33,7 +34,11 @@ test('Local STORE recipe consumes actual constructor bounds in distinct original
     effectLedgerImplementationBounds.maxOutcomeNodes, effectLedgerImplementationBounds.maxOutcomeDepth,
     4321n, 4096, 1024, localFileWriteMaxComponents, 130, physicalContentReadWindowBytes];
   assert.deepEqual(calls, [[...expected,1510],[...expected,undefined]]);
-  assert.equal(recipe.memberOperations.length, 2);
+  assert.deepEqual(recipe.memberOperations.map(entry => entry.operation),
+    ['files.write.capture', 'files.write.capture', 'files.write.footprint']);
+  assert.deepEqual(recipe.footprintConstruction, {operationIndex: 2});
+  assert.deepEqual(recipe.memberOperations[2].extent, {operation: 'files.write.footprint',
+    capacity: {origin: 'local', account: 'file_collection', units: 1024}, transfer: 0n, physical: false});
   assert.strictEqual(recipe.memberOperations[1].extent, recipe.memberOperations[0].extent);
   assert.deepEqual(recipe.recoveryConstruction, {operationIndex: 1});
   assert.deepEqual(recipe.rowOperations.map(entry => entry.operation), ['files.write.request', 'files.write']);
@@ -43,6 +48,11 @@ test('Local STORE recipe consumes actual constructor bounds in distinct original
   assert.deepEqual(recipe.physicalWrite, {operationIndex: 1, transferBytes: 123456n});
   assert.deepEqual(recipe.savedControlCodec, {maxEntryBytes:1510, fallbackCapacity:quantities[4]});
   assert.equal(recipe.credentialOperations, undefined, 'Local must not borrow an HTTP/secret recipe');
+  const originalFootprintQuote = moon.clientProgramInstalledOpaqueBoundaryFootprintCapacity;
+  moon.clientProgramInstalledOpaqueBoundaryFootprintCapacity = () => undefined;
+  try {
+    assert.throws(() => prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writerProfile}), TypeError);
+  } finally {moon.clientProgramInstalledOpaqueBoundaryFootprintCapacity = originalFootprintQuote;}
 });
 
 test('owned physical write cannot reuse a constructor slot or malformed transfer amount', () => {
@@ -82,6 +92,7 @@ test('warm File recipe selects owned wire geometry while keeping cold and physic
   const actual = [{actual: 'member'}, {actual: 'row'}, {actual: 'request'}];
   const observations = [];
   const moon = {
+    clientProgramInstalledOpaqueBoundaryFootprintCapacity: (origin, account, units) => ({origin, account, units}),
     clientProgramInstalledLocalFileStoreControlWireBound: () => 1510,
     clientProgramInstalledLocalFileStoreRecipeCapacities: () => ({$tag: 1, _0: full}),
     clientProgramInstalledLocalFileStoreInitialConstructorCapacities: () => initial,
@@ -124,6 +135,7 @@ test('cold File recovery selects its same original member wire before parsing an
   const full = Array.from({length: 6}, () => ({})), initial = [{}, {}, {}], quotes = [];
   const actual = [{saved: true}, {clone: true}];
   const moon = {
+    clientProgramInstalledOpaqueBoundaryFootprintCapacity: (origin, account, units) => ({origin, account, units}),
     clientProgramInstalledLocalFileStoreControlWireBound: () => 1510,
     clientProgramInstalledLocalFileStoreRecipeCapacities: () => ({$tag: 1, _0: full}),
     clientProgramInstalledLocalFileStoreInitialConstructorCapacities: () => initial,
@@ -159,6 +171,7 @@ test('empty warm File capture quotes only its original recovery envelope', () =>
   const full = Array.from({length: 6}, () => ({}));
   const observations = [];
   const moon = {
+    clientProgramInstalledOpaqueBoundaryFootprintCapacity: (origin, account, units) => ({origin, account, units}),
     clientProgramInstalledLocalFileStoreControlWireBound: () => 1510,
     clientProgramInstalledLocalFileStoreRecipeCapacities: () => ({$tag: 1, _0: full}),
     clientProgramInstalledLocalFileStoreInitialConstructorCapacities: () => [{}, {}, {}],
