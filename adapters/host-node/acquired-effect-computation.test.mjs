@@ -871,7 +871,7 @@ test('acquired Effect publication reuses transferred Source evidence and admits 
   assert.strictEqual(values[0], original); assert.strictEqual(values[1], legacy); assert.deepEqual(calls, ['legacy']);
 });
 
-function restoredModelSourceEvidenceFixture({infer = {}, refusal} = {}) {
+function restoredModelSourceEvidenceFixture({infer = {}, refusal, sourceOnly = false} = {}) {
   const node = inferSourceNodes.find(value => value.type === 'IfStatement' &&
     inferSourceText.slice(value.test.start, value.test.end) === 'admission?.retained !== undefined');
   assert(node);
@@ -890,7 +890,8 @@ function restoredModelSourceEvidenceFixture({infer = {}, refusal} = {}) {
   const original = {}, captured = {}, record = {}, source = {};
   const restored = {captured, sourceEvidenceWire: 'same-authenticated-source-evidence'};
   const calls = [], captures = [], evidence = [], limits = Object.freeze({maxWireBytes: 1000000});
-  const ports = {infer, admission: {retained: record}, source, ledger: {}, captures, evidence,
+  const ports = {infer: sourceOnly ? undefined : infer, sourceKeyedPreparation: sourceOnly ? {} : undefined,
+    admission: {retained: record}, source, ledger: {}, captures, evidence,
     localContractLimits: limits, current() {calls.push('current');},
     sourceContinuation: {restore(actual, retained) {
       assert.strictEqual(actual, source); assert.strictEqual(retained, record);
@@ -1338,4 +1339,23 @@ test('Source-only keyed evidence refuses lost current before transferring the or
   const f = sourceOriginalFixture({sourceOnly: true, changedDuringPreparation: true});
   await assert.rejects(f.invoke, cause => cause === f.stale);
   assert.deepEqual(f.calls, ['prepare']); assert.deepEqual(f.evidence, []);
+});
+
+
+test('restored Source-only keyed capture admits its original authenticated evidence once', () => {
+  const f = restoredModelSourceEvidenceFixture({sourceOnly: true});
+  f.invoke();
+  assert.strictEqual(f.evidence[0].sourceEvidence, f.original);
+  assert.strictEqual(f.evidence[0].captured, f.captured);
+  assert.equal(f.evidence[0].sourceEvidenceWire, f.restored.sourceEvidenceWire);
+  assert.deepEqual(f.calls, ['restore', 'current', 'admit-original', 'current']);
+});
+
+test('restored Source-only keyed evidence refusal keeps its same capture for cleanup', () => {
+  const refusal = Object.freeze(new Error('original keyed Source evidence refused'));
+  const f = restoredModelSourceEvidenceFixture({sourceOnly: true, refusal});
+  assert.throws(f.invoke, error => error === refusal);
+  assert.deepEqual(f.captures, [f.captured]);
+  assert.deepEqual(f.evidence, []);
+  assert.deepEqual(f.calls, ['restore', 'current', 'admit-original']);
 });

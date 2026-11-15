@@ -542,7 +542,8 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
         // This wire came from the same authenticated, current Source closure.
         // Admit its original sealed evidence into this control's nominal map;
         // it is not a newly issued observation or a second provider read.
-        const sourceEvidence = infer === undefined ? undefined : acquired.control.admitRunEvidence(
+        const sourceEvidence = infer === undefined && sourceKeyedPreparation === undefined
+          ? undefined : acquired.control.admitRunEvidence(
           'source_evidence', restored.sourceEvidenceWire, localContractLimits);
         current();
         evidence.push(sourceEvidence === undefined ? restored : {...restored, sourceEvidence});
