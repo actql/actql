@@ -65,6 +65,22 @@ fn local_compilation_preparation_tag(
 }
 
 ///|
+fn local_compilation_effect_materials_tag(
+  issue : @run_host.ClientEffectRunMaterialsIssue,
+) -> Int64 {
+  match issue {
+    Input(_) => 1L
+    Program(_) => 2L
+    Compilation(_) => 3L
+    Binding(_) => 4L
+    RunMismatch => 5L
+    Request(_) => 6L
+    Normalization(_) => 7L
+    TargetSelection(_) => 8L
+  }
+}
+
+///|
 fn local_compilation_failure_tags(
   issue : @local_values.ClientRequestProgramPlanIssue,
   emit : (Int, Int64) -> Unit,
@@ -115,6 +131,10 @@ fn local_compilation_failure_tags(
     ModelSource(_) => 12L
     ContentQuery(_) => 13L
     ContentSource(_) => 14L
+    EffectMaterials(cause) => {
+      emit(12, local_compilation_effect_materials_tag(cause))
+      15L
+    }
   }
   emit(11, 6000L + family)
 }

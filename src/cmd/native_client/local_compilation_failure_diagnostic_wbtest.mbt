@@ -26,3 +26,25 @@ test "compilation diagnostics distinguish constructor limits ownership and work"
   )
   assert_eq(fields.length(), 0)
 }
+
+///|
+test "compilation diagnostics retain the closed Effect materials cause family" {
+  let cases : Array[(@run_host.ClientEffectRunMaterialsIssue, Int64)] = [
+    (
+      @run_host.Input(
+        @run_host.MaterialsConstructionRefused("private-codec-boundary"),
+      ),
+      1L,
+    ),
+    (@run_host.Program(@run_host.RequestValuePolicyConstruction), 2L),
+    (@run_host.Compilation(@run_host.Encoding), 3L),
+    (@run_host.Binding(@run_host.ForeignCompilation), 4L),
+    (@run_host.RunMismatch, 5L),
+    (@run_host.Request(@run_host.IdentityMismatch), 6L),
+    (@run_host.Normalization(@run_host.MissingOriginalJournal), 7L),
+    (@run_host.TargetSelection(@run_host.Limit), 8L),
+  ]
+  for (cause, expected) in cases {
+    assert_eq(local_compilation_effect_materials_tag(cause), expected)
+  }
+}
