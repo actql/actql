@@ -223,8 +223,12 @@ pub fn finish_captured_source_cell_identity(
   let schema = @execution.relation_schema_wire(schema_identity)
   // The SAME receipt already measured both exact canonical preimages. Do not
   // encode/count the retained strings again to apply this byte refusal bound.
-  let (body_bytes, logical_nodes, _) = @execution.logical_relation_usage(logical_identity)
-  let (schema_bytes, schema_nodes, _) = @execution.relation_schema_usage(schema_identity)
+  let (body_bytes, logical_nodes, _) = @execution.logical_relation_usage(
+    logical_identity,
+  )
+  let (schema_bytes, schema_nodes, _) = @execution.relation_schema_usage(
+    schema_identity,
+  )
   if body_bytes > value.body_limit ||
     schema_bytes > value.body_limit - body_bytes {
     return Err(DependencyBodyLimit)

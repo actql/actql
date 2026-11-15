@@ -18,23 +18,39 @@ fn installed_effect_capture_constructor_capacity(
   max_depth : Int,
   work : (Int) -> Bool,
 ) -> @execution.ExecutionCapacity? {
-  if dependencies < 0 || sources < 0 || local_sources < 0 || advances < 0 ||
-    members < 0 || generations < 0 {
+  if dependencies < 0 ||
+    sources < 0 ||
+    local_sources < 0 ||
+    advances < 0 ||
+    members < 0 ||
+    generations < 0 {
     return None
   }
   guard @publication.capture_construction_layout_facts(plan)
-    is Some((bytes, all_nodes, depth, nodes, results, fields, max_fields, models)) &&
+    is Some(
+      (bytes, all_nodes, depth, nodes, results, fields, max_fields, models)
+    ) &&
     publication_capture_constructor_layout(
-      bytes, nodes, depth, results, fields, max_fields, models,
+      bytes,
+      nodes,
+      depth,
+      results,
+      fields,
+      max_fields,
+      models,
       row_key_nodes=all_nodes - nodes,
       effect_members=members,
-    ) is Some(layout) &&
+    )
+    is Some(layout) &&
     @execution.preparation_execution_capacity({
       retained: layout.retained,
       workspace: layout.temporary,
-      retained_nodes: 0L, workspace_nodes: 0L,
-      retained_bytes: 0L, workspace_bytes: 0L,
-    }) is Some(base) else {
+      retained_nodes: 0L,
+      workspace_nodes: 0L,
+      retained_bytes: 0L,
+      workspace_bytes: 0L,
+    })
+    is Some(base) else {
     return None
   }
   let d = dependencies.to_int64()
@@ -51,52 +67,77 @@ fn installed_effect_capture_constructor_capacity(
       // Logical plan: pair/String; admitted plan map: one pair.
       // Content generation: Object/Frozen + five borrowed-child field pairs.
       records: 7L * d + 5L * m + 3L * s + l + 4L * p + 7L * g + 4L,
-      record_references: 10L * d + 5L * m + 5L * s + 2L * l + 7L * p +
-        12L * g + 8L,
+      record_references: 10L * d +
+      5L * m +
+      5L * s +
+      2L * l +
+      7L * p +
+      12L * g +
+      8L,
       record_words: 3L * d + 3L * m + s + p + g + 8L,
       // DI outer/entry fields, Effect map, logical CID/plan maps,
       // Source maps and sorted Source copies, advance/generation arrays.
       reference_arrays: d + g + 12L,
       reference_items: 4L * d + 2L * m + 3L * s + 2L * l + a + 2L * p + 6L * g,
-      scalar_arrays: 0L, scalar_items: 0L,
-      maps: 0L, map_entries: 0L,
-    }) is Some(metadata) &&
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(metadata) &&
     @shape.collection_construction_extent({
       // Actual preview-member and seen-plan maps used while admitting plans.
-      records: 4L, record_references: 8L, record_words: 4L,
-      reference_arrays: 0L, reference_items: 0L,
-      scalar_arrays: 0L, scalar_items: 0L,
-      maps: 2L, map_entries: m + p,
-    }) is Some(index) &&
+      records: 4L,
+      record_references: 8L,
+      record_words: 4L,
+      reference_arrays: 0L,
+      reference_items: 0L,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 2L,
+      map_entries: m + p,
+    })
+    is Some(index) &&
     closed_values_sort_scratch_layout(
-      Int::max(1, Int::max(sources, Int::max(local_sources, plan_wires.length()))),
-    ) is Some(sort) &&
+      Int::max(
+        1,
+        Int::max(sources, Int::max(local_sources, plan_wires.length())),
+      ),
+    )
+    is Some(sort) &&
     @execution.preparation_execution_capacity({
       retained: {
         record_headers: metadata.record_headers,
         reference_slots: metadata.reference_slots,
         scalar_words: metadata.scalar_words,
-        owned_utf16_units: 0L, owned_wire_bytes: 0L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
       },
       workspace: {
         record_headers: index.record_headers + sort.record_headers,
         reference_slots: index.reference_slots + sort.reference_slots,
         scalar_words: index.scalar_words + sort.scalar_words,
-        owned_utf16_units: 0L, owned_wire_bytes: 0L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
       },
-      retained_nodes: 0L, workspace_nodes: 0L,
-      retained_bytes: 0L, workspace_bytes: 0L,
-    }) is Some(wrappers) else {
+      retained_nodes: 0L,
+      workspace_nodes: 0L,
+      retained_bytes: 0L,
+      workspace_bytes: 0L,
+    })
+    is Some(wrappers) else {
     return None
   }
   let mut body = base
   for wire in plan_wires {
     guard installed_effect_dependency_wire_geometry(
         wire, max_bytes, max_nodes, max_depth, work,
-      ) is Some(geometry) &&
+      )
+      is Some(geometry) &&
       installed_effect_dependency_wire_capacity(
         geometry, max_bytes, max_nodes, max_depth,
-      ) is Some(parsed) &&
+      )
+      is Some(parsed) &&
       standard_create_sum_capacities([body, parsed], sequential_workspace=true)
       is Some(next) else {
       return None
@@ -291,7 +332,9 @@ pub fn begin_installed_effect_dependency_capture(
           Some(value) => {
             guard installed_effect_capture_constructor_capacity(
                 value,
-                @publication.captured_effect_dependency_inventory_count(inventory),
+                @publication.captured_effect_dependency_inventory_count(
+                  inventory,
+                ),
                 sources.length(),
                 local_sources.length(),
                 advances.length(),

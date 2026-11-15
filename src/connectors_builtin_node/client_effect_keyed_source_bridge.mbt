@@ -70,7 +70,9 @@ pub fn client_program_installed_effect_keyed_input_work_limit(
   prepared : @publication_host.PreparedClientEffectComputation,
   request : @publication_host.ClientRequestIdentity,
 ) -> Result[Int, @client_local_host.ClientInstalledManagedRunIssue] {
-  @client_local_host.installed_effect_keyed_input_work_limit(owner, prepared, request)
+  @client_local_host.installed_effect_keyed_input_work_limit(
+    owner, prepared, request,
+  )
 }
 
 ///|

@@ -568,7 +568,8 @@ fn resize_installed_effect_capture_recovery_material(
       is Some(completed_buffers) &&
       @execution.checked_preparation_add_product(
         completed_trees, completed_buffers, 1L,
-      ) is Some(completed_material) else {
+      )
+      is Some(completed_material) else {
       return Err(InsufficientCapacity)
     }
     return @resources.complete_prepared_run_operation_construction_output(

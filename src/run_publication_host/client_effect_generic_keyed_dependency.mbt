@@ -333,7 +333,9 @@ fn build_client_effect_keyed_generic_dependency_bodies(
       right_bodies.0,
       Some((right_bytes, right_nodes)),
     )
-    let (right_schema_bytes, right_schema_nodes, _) = @execution.relation_schema_usage(right_schema)
+    let (right_schema_bytes, right_schema_nodes, _) = @execution.relation_schema_usage(
+      right_schema,
+    )
     append_measured(
       "relation_schema",
       @execution.relation_schema_cid(right_schema),
@@ -374,7 +376,8 @@ fn build_client_effect_keyed_generic_dependency_bodies(
     // Native call-slot, activation, attempt-event or adoption to manufacture.
     for (wire, _, original_history) in lookup.known {
       guard original_history is Some(history) &&
-        history.wire_bytes > 0 && history.wire_nodes > 0 &&
+        history.wire_bytes > 0 &&
+        history.wire_nodes > 0 &&
         physical_equal(history.request.left, lookup.left) else {
         return Err(ForeignInput)
       }
@@ -383,7 +386,9 @@ fn build_client_effect_keyed_generic_dependency_bodies(
         Err(_) => return Err(Dependency(InvalidBody))
       }
       append_measured(
-        "request_values", cid, wire,
+        "request_values",
+        cid,
+        wire,
         Some((history.wire_bytes, history.wire_nodes)),
       )
     }
@@ -522,9 +527,14 @@ fn prepare_client_effect_keyed_generic_dependencies(
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()
-  match keyed_lookup_body_grow(
-    lookup, lookup.retained_bytes, lookup.execution_bytes, controls, None,
-  ) {
+  match
+    keyed_lookup_body_grow(
+      lookup,
+      lookup.retained_bytes,
+      lookup.execution_bytes,
+      controls,
+      None,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }

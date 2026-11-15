@@ -338,7 +338,13 @@ pub fn identify_captured_source_relation(
     let (schema_bytes, schema_nodes, _) = @execution.relation_schema_usage(
       @execution.completed_relation_export_schema_identity(receipt),
     )
-    Some({ bodies: dependency_bodies, logical_bytes, logical_nodes, schema_bytes, schema_nodes, })
+    Some({
+      bodies: dependency_bodies,
+      logical_bytes,
+      logical_nodes,
+      schema_bytes,
+      schema_nodes,
+    })
   } else {
     None
   }
