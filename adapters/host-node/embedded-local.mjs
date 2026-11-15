@@ -2283,11 +2283,13 @@ async function openInstalledHost(originalInstallation, preparation) {
         composedEnvironment, {textTime:textTimeEnabled,numericProfileCid,graphLawCid:contentCid(graphLaw)});
       environment = finalEnvironmentOriginal.admitted;
     } else {
-      environment = moon.clientProgramCheckEnvironmentWithGraphProfile(
-        environmentWire, evidenceCid,
-        textTimeEnabled,
-        true, true, true, true,
-        calendarArtifact !== undefined, false, numericProfileCid, contentCid(graphLaw));
+      // A changed final policy still belongs to this SAME Source parent. Keep
+      // its measured, funded raw/checker original through completion instead
+      // of admitting an unowned compatibility body and estimating it again.
+      finalEnvironmentOriginal = readInstalledHostEnvironment(installationServices, moon, environmentWire,
+        {textTime: textTimeEnabled, calendar: calendarArtifact !== undefined,
+          numericProfileCid, graphLawCid: contentCid(graphLaw)});
+      environment = finalEnvironmentOriginal.admitted;
     }
     if (environment !== undefined) {
       environment = admitInstalledCalendar(moon, environment, calendarArtifact);

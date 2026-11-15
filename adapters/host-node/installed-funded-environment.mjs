@@ -234,13 +234,15 @@ function composeEnvironment(services, moon, baseInput, sourceInput, effectInput,
         const value = moon.clientProgramReadCheckEnvironmentWire(wire, evidenceCid);
         if (value === undefined) fail('InstalledCheckEnvironmentConflict');return value;
       });
+      // The index retains this exact raw original. Fund that coheld alias
+      // separately before its first insertion; composing it with a provider
+      // peak would incorrectly retain the checker's completed workspace.
+      construct(() => checked(moon.clientProgramInstalledSourceConstructionCapacity(
+        1n,0n,0n,0n,0n,0n)), () => raw);
       return construct(() => {
         const capacity = moon.clientProgramCheckEnvironmentFromWireConstructionCapacity(raw);
         if (capacity === undefined) fail('InstalledEnvironmentModelConstructionUnavailable');
-        // Retain the extra raw-wire reference in the private original index
-        // before its first insertion, including inputs before composition.
-        const rawSlot = checked(moon.clientProgramInstalledSourceConstructionCapacity(1n,0n,0n,0n,0n,0n));
-        return checked(moon.clientProgramComposeInstalledSourceConstructionCapacity(rawSlot,[capacity]));
+        return capacity;
       }, () => {
         const admitted = moon.clientProgramCheckEnvironmentFromWire(raw, false, false, true, false, false, false, false);
         if (admitted === undefined) fail('InstalledCheckEnvironmentConflict');

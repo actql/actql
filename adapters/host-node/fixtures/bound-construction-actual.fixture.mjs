@@ -14,7 +14,7 @@ import {withFixtureConnector} from '../../host-common/connector-manifest.fixture
 import {canonicalJson, contentCid, sourceReadAccountConfiguration} from '../local-account-config.mjs';
 import {loadInstalledTableEffect} from '../../connectors/local/host/installed-local-table.mjs';
 import {fixtureCertificates, openHttpsExchangeFixture} from '../../site-node/https-exchange-fixture.mjs';
-import {createInstalledHostServices, retireInstalledSourceInitialization}
+import {createInstalledHostServices, retireInstalledSourceInitialization, closeInstalledAccountConstruction}
   from '../installed-host-services.mjs';
 import {loadInstalledSource, publishInstalledSourceProfile, installedSourcePublicationFacts} from '../installed-source.mjs';
 import {installedConnectors} from '../../connectors-builtin/installations.generated.mjs';
@@ -121,6 +121,7 @@ export async function boundConstructionActualFixture(t, {capacityEvents, nativeC
           return result;
         }})});
   const root = await mkdtemp(join(tmpdir(), 'actql-bound-construction-actual-'));
+  const baseEnvironmentWire = environment;
   const state = {}, sources = [], failures = [];
   let active = true, childrenPending = false, services, closed = false, secretReads = 0;
   let currentFault;
@@ -161,7 +162,10 @@ export async function boundConstructionActualFixture(t, {capacityEvents, nativeC
       }
     }
     for (const source of sources) await source.close();
-    if (services !== undefined) assert.equal(retireInstalledSourceInitialization(services), true);
+    if (services !== undefined) {
+      assert.equal(await closeInstalledAccountConstruction(services), true);
+      assert.equal(retireInstalledSourceInitialization(services), true);
+    }
     childrenPending = false;
     closeHostInitializationPreparation(state);
     active = false; closed = true;
@@ -175,7 +179,7 @@ export async function boundConstructionActualFixture(t, {capacityEvents, nativeC
   const parentInput = Object.freeze({root, purpose: 'installed connector component verification'});
   const parent = openHostInitializationPreparation(state, moon, parentInput, current, () => childrenPending);
   services = createInstalledHostServices({root, principalId: 'operator', moon,
-    initialPreparation: parent, assertCurrent: current});
+    initialPreparation: parent, assertCurrent: current, accountCurrent: current});
   childrenPending = true;
   const certificates = await fixtureCertificates(root);
   const privateKey = generateKeyPairSync('ed25519').privateKey.export({type: 'pkcs8', format: 'pem'});
@@ -440,7 +444,7 @@ export async function boundConstructionActualFixture(t, {capacityEvents, nativeC
       }
       const loader = selection.role === 'effect' ? loadInstalledEffect : loadInstalledSource;
       const source = await loader(selection.path, {root, principalId: 'operator',
-        moon, runtimeUrl, baseEnvironmentWire: environment, installationServices: services, connectorTable,
+        moon, runtimeUrl, baseEnvironmentWire, installationServices: services, connectorTable,
         resolveSecret() {secretReads++; assert.fail('Initialization must not resolve a provider token');}});
       sources.push(source);
       if (selection.role !== 'effect') {
@@ -467,6 +471,12 @@ export async function boundConstructionActualFixture(t, {capacityEvents, nativeC
     }
   }
   return {profile, salesforceProfile, gcsProfile, githubProfile, metadataSourceProfile, tableSourceProfile, tableEffectProfile, load, close, sources, services, moon, root, openJournalDescriptors,
+    baseEnvironmentWire,
+    failCurrentBeforeNextConstruction() {
+      assert.equal(currentFault, undefined);
+      currentFault = {ready: true, calls: 0, failure: new Error('OriginalSourceParentCurrentLost')};
+      return currentFault;
+    },
     sourceInputOriginal: parentInput,
     failCurrentOnNextReserve() {
       assert.equal(currentFault, undefined); assert.notEqual(capacityEvents, undefined);

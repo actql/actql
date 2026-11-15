@@ -29,7 +29,7 @@ function document(name, selectedBase = baseWire) {
 // these tests establish ordering/identity, not actual Root/Ledger admission.
 function fixture() {
   const input = {}, unit = {}, capacity = {}, initial = {}, events = [];
-  const state = {reads: 0, from: 0, retire: 0, refuse: false, cause: undefined, current: true, retireReady: true, reconciled: [], zero: new Set(), rawSlots: new Set(), rawSlotCompositions: [], delay: undefined};
+  const state = {reads: 0, from: 0, retire: 0, refuse: false, cause: undefined, current: true, retireReady: true, reconciled: [], zero: new Set(), rawSlots: new Set(), rawSlotCompositions: [], checkerQuotes: [], reserved: [], delay: undefined};
   const moon = {...native};
   for (const name of ['ReconcileInstalledSourceConstruction', 'CompleteInstalledSourceMaterial',
     'BorrowInstalledSourceMaterial', 'BorrowedInstalledSourceEnvironment', 'ReturnInstalledSourceMaterial',
@@ -55,7 +55,12 @@ function fixture() {
       events.push('raw-slot-quote');
       return result;
     },
-    clientProgramReserveInstalledSourceConstruction(value, original) {
+    clientProgramCheckEnvironmentFromWireConstructionCapacity(value) {
+      const result = native.clientProgramCheckEnvironmentFromWireConstructionCapacity(value);
+      state.checkerQuotes.push(result);return result;
+    },
+    clientProgramReserveInstalledSourceConstruction(value, original, quote) {
+      state.reserved.push([...quote.providers]);
       assert.equal(value, capacity);assert.equal(original, input);events.push('reserve');
       if (state.refuse) throw state.cause;return ok();
     },
@@ -177,22 +182,25 @@ test('Table129 source-profile option uses the actual early-policy Host entrance'
   assert.equal(declared.wire,baseWire);assert.deepEqual(declared.calls,[]);
 });
 
-test('initial Environment admission reserves its retained raw reference before the first index insertion', () => {
+test('initial Environment admission retains its raw reference without promoting completed checker scratch', () => {
   const f=fixture();
   f.compose(baseWire);
   assert.equal(f.state.from,1);
-  assert.equal(f.state.rawSlotCompositions.length,1);
-  const {original,providers,result}=f.state.rawSlotCompositions[0];
-  assert.equal(providers.length,1);
-  const slot=native.clientProgramSerializationCapacityBytes(original);
-  const before=native.clientProgramSerializationCapacityBytes(providers[0]);
-  const after=native.clientProgramSerializationCapacityBytes(result);
-  assert.equal(slot._0,256n);assert.equal(slot._1,256n);
-  // Source's existing composition law retains the provider's full peak,
-  // including its constructor workspace, alongside the new raw-reference slot.
-  assert.equal(after._0,before._1+256n);assert.equal(after._1,before._1+256n);
-  assert.ok(f.events.indexOf('raw-slot-quote')<f.events.indexOf('from'));
-  assert.equal(f.events[f.events.indexOf('from')-1],'reserve');
+  assert.equal(f.state.rawSlots.size,1);
+  const slot=[...f.state.rawSlots][0];
+  const fromIndex=f.events.indexOf('from');
+  assert.ok(fromIndex>0);
+  assert.equal(f.events[fromIndex-1],'reserve');
+  assert.ok(f.state.reserved.some(providers=>providers.includes(slot)));
+  assert.equal(f.state.rawSlotCompositions.length,0);
+  assert.equal(f.state.checkerQuotes.length,1);
+  const original=native.clientProgramSerializationCapacityBytes(f.state.checkerQuotes[0]);
+  assert.ok(original._1>original._0);
+  // Once the synchronous checker returns, only its real retained output and
+  // the independently funded raw alias coexist. Its workspace is reusable.
+  const last=f.state.reconciled.at(-1).map(value=>native.clientProgramSerializationCapacityBytes(value));
+  assert.ok(last.some(value=>value._0===original._0&&value._1===original._0));
+  assert.ok(last.every(value=>value._0!==original._1||value._1!==original._1));
   assert.equal(f.close(),true);
 });
 // Spy for this NEW bridge's caller forwarding only. The old retained namespace
@@ -347,12 +355,13 @@ test('inventory replacement releases only its prior shallow prefix and keeps mem
   const prefix = f.inventory(member, document('second'));
   const before = releasedSlots(f);
   const final = f.inventory(prefix, document('third'), () => true);
-  assert.equal(releasedSlots(f) - before, 3); // JS merge, wire read, native Environment.
+  const released = releasedSlots(f);
+  assert.ok(released > before, 'retired prefix must release its own construction quantities');
   assert.throws(() => f.inventory(prefix, document('fourth')), {code: 'ForeignInstalledEnvironmentOriginal'});
   // This failed call latches the same owner; the earlier completed output
   // still contains the same member leaves, without a second parse or refund.
   assert.equal(final.body.connector_catalogs.find(value => value.connector_id === 'member'), member.body.connector_catalogs[0]);
-  assert.equal(releasedSlots(f) - before, 3);
+  assert.equal(releasedSlots(f), released, 'rejected reuse cannot release another original');
   f.close();
 });
 

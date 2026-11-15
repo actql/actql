@@ -10,7 +10,7 @@ import {openInstalledRowSite, installedRowCredentialOperationSite, rowSourceChec
   rowSourceMapping, createInstalledRowSource, installRowSourceAuthorization} from './installed-row-source.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {authoredCommandProjection} from './installed-authored-command.mjs';
-import {sourceEnvironmentConstructionGeometry, sourceAuthoredViewConstructionGeometry, sourceJsonWireGeometry, sourceEnvironmentCompositionGeometry}
+import {sourceEnvironmentConstructionGeometry, sourceAuthoredViewConstructionGeometry, sourceJsonWireGeometry, sourceEnvironmentCompositionGeometry, sourceDeclarationRetainedGeometry}
   from './installed-source-construction-geometry.mjs';
 import {createInstalledRowEffect, resolveInstalledRowEffectConstruction} from './installed-row-effect.mjs';
 import {createInstalledTableSource, installedTableReadSite} from './installed-table-source.mjs';
@@ -975,9 +975,28 @@ function createInstalledSourceContext(original, material, installation, connecto
       material.nodes += 4n * basis; material.text += 8n * basis; material.wire += 8n * basis;
       scope.declarationBasis = basis;
     } finally {material.busy = false;}
+    const retainReturnedDeclaration = () => {
+      const retained = sourceDeclarationRetainedGeometry(wire, declaredWire);
+      // The old complete allowance remains held while observing the same
+      // original parent. Only a successful closed restore/export/parse may
+      // replace its temporary workspace with the actual coheld outputs.
+      reserveSource(original, material);
+      if (!scope.active || material.phase !== 'working' || scope.prepared !== undefined) {
+        fail('ForeignInstalledSourceInitialization');
+      }
+      const prior = {nodes:material.nodes, text:material.text, wire:material.wire};
+      material.nodes += retained.nodes - 4n * basis;
+      material.text += retained.text - 8n * basis;
+      material.wire -= 8n * basis;
+      try {reconcileSource(original, material);}
+      catch (cause) {Object.assign(material, prior);throw cause;}
+    };
     let prepared;
-    if (finish !== undefined) prepared = finish(declaration, declaredWire);
-    else {
+    if (finish !== undefined) {
+      prepared = finish(declaration, declaredWire);
+      retainReturnedDeclaration();
+    } else {
+      retainReturnedDeclaration();
       // Use the SAME funded Environment constructor for authored and native
       // declarations. Its exact frozen original, census and failed prefix
       // stay with this Source material before any later semantic admission.

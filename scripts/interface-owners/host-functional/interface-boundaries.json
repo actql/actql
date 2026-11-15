@@ -131480,7 +131480,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "40e22075fc1f5dbe3e44930adc5ab5ac4de092338586044a9b7ab9c20190f331",
+      "sha256": "2e9af9a7b14412e5530980737467614bf9c89f0f256a7560b83709ab8b8454e3",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -132289,6 +132289,11 @@
             "expectedCatalogCid",
             "finish"
           ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/prepareOriginalDeclaration/retainReturnedDeclaration/retainReturnedDeclaration",
+          "parameters": [],
           "async": false
         },
         {
@@ -133801,7 +133806,8 @@
             "sourceProjectionMethods",
             "sourceProjectionMethods/sourceProjectionMethods",
             "sourceQuote",
-            "withInstalledSourceLoading"
+            "withInstalledSourceLoading",
+            "createInstalledSourceContext/prepareOriginalDeclaration/retainReturnedDeclaration/retainReturnedDeclaration"
           ],
           "exports": [
             "assertInstalledSourceConstruction",
@@ -138350,12 +138356,13 @@
     },
     {
       "module": "adapters/host-node/installed-source-construction-geometry.mjs",
-      "sha256": "ad8eab3b714300f5e73e116d302f80299c2e4683b357358339c2f5185692019b",
+      "sha256": "b86e3caf58226a7ffff976ee1e9bf8c1782e83a3b680615fc43a731eacf2349c",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Host constructor input geometry; quantities confer no admission or lifecycle authority",
       "exports": [
         "sourceAuthoredViewConstructionGeometry",
+        "sourceDeclarationRetainedGeometry",
         "sourceEnvironmentCompositionGeometry",
         "sourceEnvironmentConstructionGeometry",
         "sourceEnvironmentRetainedGeometry",
@@ -138371,6 +138378,14 @@
           "name": "sourceAuthoredViewConstructionGeometry",
           "parameters": [
             "views"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceDeclarationRetainedGeometry",
+          "parameters": [
+            "inputWire",
+            "declaredWire"
           ],
           "async": false
         },
@@ -138428,14 +138443,16 @@
             "sourceEnvironmentConstructionGeometry",
             "sourceEnvironmentConstructionGeometry/add/add",
             "sourceEnvironmentRetainedGeometry",
-            "sourceJsonWireGeometry"
+            "sourceJsonWireGeometry",
+            "sourceDeclarationRetainedGeometry"
           ],
           "exports": [
             "sourceAuthoredViewConstructionGeometry",
             "sourceEnvironmentCompositionGeometry",
             "sourceEnvironmentConstructionGeometry",
             "sourceEnvironmentRetainedGeometry",
-            "sourceJsonWireGeometry"
+            "sourceJsonWireGeometry",
+            "sourceDeclarationRetainedGeometry"
           ],
           "attributes": {
             "responsibility": [
@@ -138524,7 +138541,7 @@
     },
     {
       "module": "adapters/host-node/installed-funded-environment.mjs",
-      "sha256": "b80cca5080bef0aea2175e43c6c7a181ba028bcbd81d42aa4a74388b511ef864",
+      "sha256": "d7a59309895332cd94499e0470ce6ab79bcd496a9bed88719d05bb949a88bf6a",
       "exports": [
         "admitInstalledSourceFinalEnvironment",
         "assertInstalledEnvironmentPublicationOriginal",
@@ -138628,6 +138645,16 @@
         },
         {
           "name": "composeEnvironment/admit/admit/admit#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "composeEnvironment/admit/admit/admit#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "composeEnvironment/admit/admit/admit#4",
           "parameters": [],
           "async": false
         },
@@ -138937,7 +138964,9 @@
             "readInstalledSourceEnvironment",
             "releaseRetiredInstalledEnvironmentComposition",
             "retainInstalledEnvironmentNativeOriginal",
-            "sealComposedBody"
+            "sealComposedBody",
+            "composeEnvironment/admit/admit/admit#3",
+            "composeEnvironment/admit/admit/admit#4"
           ],
           "exports": [
             "bindInstalledEnvironmentConstruction",

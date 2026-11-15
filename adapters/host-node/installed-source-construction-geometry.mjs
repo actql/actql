@@ -47,6 +47,25 @@ export function sourceJsonWireGeometry(wire, payloadOnly = false) {
     retained: {nodes: retainedNodes, text: retainedText, wire: 0n}};
 }
 
+// Completed declaration DATA, after restore/export/JSON.parse have returned.
+// RowDeclaration retains String fields and view/field arrays, not the parser,
+// contract checker or canonical writer's temporary trees. Its complete public
+// export bounds those native records alongside the decoded Host export and
+// the original authored snapshot. Borrowed input strings are conservatively
+// retained again; no cross-owner sharing discount is taken.
+export function sourceDeclarationRetainedGeometry(inputWire, declaredWire) {
+  if (typeof inputWire !== 'string' || typeof declaredWire !== 'string') invalid();
+  const input = sourceJsonWireGeometry(inputWire), declared = sourceJsonWireGeometry(declaredWire);
+  // Two returned metadata forests (native declaration/view records and the
+  // decoded export), plus the actual authored snapshot's separate geometry.
+  // Fixed declaration/export/index controls keep capture's 64-node envelope.
+  return {nodes: 2n * declared.retained.nodes + input.retained.nodes + 64n,
+    // Input wire plus its authored String values; exported wire, native
+    // String payloads and decoded Host String payloads all remain live.
+    text: 2n * (2n * BigInt(inputWire.length) + 3n * BigInt(declaredWire.length)),
+    wire: 0n};
+}
+
 // Literal wrapper vocabulary added by rowSourceCheckEnvironment. Include
 // optional members even when absent; input base fields are counted separately.
 const environmentEnvelope = '{"schema_snapshots":[],"connector_capabilities":[],"source_views":[],"contract_registry":[],"connector_catalogs":[],"connector_manifest":{"version":"actql-connectors/0.1","connectors":[]},"mapping_contracts":[],"command_contracts":[],"evidence_bundle_cid":"sha256:' + '0'.repeat(64) + '"}';
