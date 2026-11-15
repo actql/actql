@@ -348,3 +348,49 @@ pub fn client_program_effect_dependency_body_json(
 ) -> String {
   @publication.captured_effect_dependency_body_json(body)
 }
+
+///|
+#export_name("clientProgramEffectKeyedGenericSourceMetadata")
+pub fn client_program_effect_keyed_generic_source_metadata(
+  parent : @publication_host.ClientEffectKeyedOriginal,
+  lookup : @publication_host.ClientKeyedLookupInput,
+  identity : @query.CapturedSourceRelationIdentity,
+  logical : @publication.RunEvidenceValue,
+  observation : @publication.RunEvidenceValue,
+  retention_contract : String,
+  available_until : String,
+  delete_by : String,
+  metadata_delete_by : String,
+  metadata_policy : String,
+  clock_contract : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication.PublicationContract,
+  @publication_host.ClientKeyedRequestIssue,
+] {
+  @publication_host.prepare_client_effect_keyed_generic_source_metadata(
+    parent, lookup, identity, logical, observation, retention_contract, available_until,
+    delete_by, metadata_delete_by, metadata_policy, clock_contract, max_bytes, max_nodes,
+    max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramEffectKeyedGenericPublicationInput")
+pub fn client_program_effect_keyed_generic_publication_input(
+  parent : @publication_host.ClientEffectKeyedOriginal,
+  lookup : @publication_host.ClientKeyedLookupInput,
+  observed_at : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @execution.SuppliedRelationRead,
+  @publication_host.ClientKeyedRequestIssue,
+] {
+  @publication_host.finish_client_effect_keyed_generic_publication_input(
+    parent, lookup, observed_at, max_bytes, max_nodes, max_depth,
+  )
+}

@@ -3550,6 +3550,27 @@ function publicationControl(moon) {
       return Object.freeze({prefix: checked(moon.clientProgramStartInstalledOriginalComposedKeyedHostPrefix(
         managedRun, scope, value, originalDefinition, graph, keyed, originals, host))});
     },
+    prepareGenericEffectKeyedLookupSourceMetadata(parent, lookup, captures, sources, selection, limits) {
+      limits = captureContractLimits(limits, 'generic keyed Source metadata');
+      if (parent === undefined || !Array.isArray(captures) || captures.length !== 1 ||
+          !Array.isArray(sources) || sources.length !== 1 || sources[0]?.captured !== captures[0] ||
+          captures[0].identity === undefined || captures[0].logicalInput === undefined ||
+          sources[0].sourceEvidence === undefined) {
+        throw new TypeError('ForeignOriginalGenericKeyedSourceMetadata');
+      }
+      // Borrow these SAME typed capture/observation originals. The generic
+      // Owner checks their complete retained bodies before dispatch starts.
+      return checked(moon.clientProgramEffectKeyedGenericSourceMetadata(parent, lookup,
+        captures[0].identity, captures[0].logicalInput, evidenceToken(sources[0].sourceEvidence),
+        selection.retentionContractCid, selection.availableUntil, selection.deleteBy,
+        selection.metadataDeleteBy, selection.metadataRetentionPolicyCid,
+        selection.clockContractCid, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+    },
+    finishGenericEffectKeyedLookupPublicationInput(parent, lookup, observedAt, limits) {
+      limits = captureContractLimits(limits, 'generic keyed Source completion');
+      return checked(moon.clientProgramEffectKeyedGenericPublicationInput(parent, lookup, observedAt,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+    },
     prepareKeyedLookupSourceMetadata(lookup, request, captures, sources,
       retentionSelection, outputLimits, maxWork, limits, fileReadDeclarations) {
       limits = captureContractLimits(limits, 'keyed Source metadata');

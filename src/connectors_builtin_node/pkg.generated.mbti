@@ -1102,6 +1102,10 @@ pub fn client_program_effect_keyed_declared_file_activation_record(@run_publicat
 
 pub fn client_program_effect_keyed_declared_file_page_record(@run_publication_host.ClientKeyedNativeCapturedPage, @run_publication_host.ClientKeyedRequest, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectKeyedOriginal, Int) -> Result[String, @run_publication_host.ClientKeyedRequestIssue]
 
+pub fn client_program_effect_keyed_generic_publication_input(@run_publication_host.ClientEffectKeyedOriginal, @run_publication_host.ClientKeyedLookupInput, String, Int, Int, Int) -> Result[@execution_relation.SuppliedRelationRead, @run_publication_host.ClientKeyedRequestIssue]
+
+pub fn client_program_effect_keyed_generic_source_metadata(@run_publication_host.ClientEffectKeyedOriginal, @run_publication_host.ClientKeyedLookupInput, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, String, String, String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication_host.ClientKeyedRequestIssue]
+
 pub fn client_program_effect_keyed_lookup_join_prepare(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientKeyedLookupInput, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?) -> @client_local_host.ClientKeyedJoinPreparation?
 
 pub fn client_program_effect_keyed_native_activation_matches(@run_publication_host.ClientKeyedNativeActivation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectKeyedOriginal) -> Bool

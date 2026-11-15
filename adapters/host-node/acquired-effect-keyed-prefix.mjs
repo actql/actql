@@ -134,9 +134,13 @@ async function prepareOriginalEffectKeyedInput({moon, acquired, managedRun,
     const child = keyedContent;
     keyedContent = Object.freeze({...child, frame});
   }
-  publication = originalKeyedLookupPublication({moon, acquired, plan, infer, sourceOriginal,
-    captures, sources, requestJournal, runRef, capacity, signal, now, current, store,
-    fileReadDeclarations: sourceProfile.fileReadDeclarations});
+  const generic = sourceOriginal !== undefined &&
+    moon.clientProgramEffectKeyedPlanGraphIsGeneric(plan.graph) === true;
+  publication = generic
+    ? originalGenericKeyedLookupPublication({acquired, sourceOriginal, captures, sources, signal, now, current})
+    : originalKeyedLookupPublication({moon, acquired, plan, infer, sourceOriginal,
+      captures, sources, requestJournal, runRef, capacity, signal, now, current, store,
+      fileReadDeclarations: sourceProfile.fileReadDeclarations});
   try {
     lookup = await adapter.openKeyedLookup({preparedEffect: acquired.prepared,
       publication,
@@ -273,5 +277,37 @@ function originalKeyedLookupPublication({moon, acquired, plan, infer, sourceOrig
       originalCurrent();
       return Object.freeze({activation, record});
     },
+  });
+}
+
+
+// The actual generic content_ref protocol uses the same funded lookup and
+// captured Source bodies. Content bytes/holding stay with the original Store;
+// no Native activation, raw-response archive or cleanup ACK is manufactured.
+function originalGenericKeyedLookupPublication({acquired, sourceOriginal, captures, sources, signal, now, current}) {
+  if (typeof acquired.control.prepareGenericEffectKeyedLookupSourceMetadata !== 'function' ||
+      typeof acquired.control.finishGenericEffectKeyedLookupPublicationInput !== 'function') {
+    throw new TypeError('OriginalGenericKeyedLookupPublicationUnavailable');
+  }
+  let lookup, retention;
+  const originalCurrent = () => {signal?.throwIfAborted(); current();};
+  return Object.freeze({protocol: 'generic-source',
+    initialize(original) {
+      originalCurrent();
+      if (lookup !== undefined) throw new TypeError('OriginalKeyedLookupAlreadyInitialized');
+      lookup = original;
+      retention = acquired.control.prepareGenericEffectKeyedLookupSourceMetadata(sourceOriginal, lookup,
+        captures, sources, keyedInputRetentionSelection(acquired), localContractLimits);
+      originalCurrent();
+    },
+    finishInput(original) {
+      originalCurrent();
+      if (lookup !== original || retention === undefined) throw new TypeError('ForeignOriginalGenericKeyedLookup');
+      const read = acquired.control.finishGenericEffectKeyedLookupPublicationInput(sourceOriginal, lookup,
+        now(), localContractLimits);
+      originalCurrent();
+      return read;
+    },
+    async cleanup() {return true;},
   });
 }

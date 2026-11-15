@@ -11,7 +11,7 @@ const ok = value => ({$tag: 1, _0: value});
 
 // Explicit nominal ports exercise the actual shared composition. They do not
 // issue a Run, Source evidence, capacity, permission or physical cleanup ACK.
-function fixture({rawProtocol = false, sourceOnly = false} = {}) {
+function fixture({rawProtocol = false, sourceOnly = false, generic = false, failGenericMetadata = false, failGenericFinish = false} = {}) {
   const prepared = {}, managedRun = {}, graph = {}, scope = {}, compiled = {};
   const definition = {identity: 'sha256:' + '1'.repeat(64),
     wire: '{"valid_until":"2027-01-01T00:00:00.000Z"}'};
@@ -67,6 +67,14 @@ function fixture({rawProtocol = false, sourceOnly = false} = {}) {
       } else assert.deepEqual(value.originalCaptures, captures.map(member => member.capture));
       assert.equal(value.sourceAccess, access);
       value.publication.initialize(originalLookup);
+      if (generic) {
+        assert.equal(value.publication.protocol, 'generic-source');
+        assert.equal(value.publication.activate, undefined);
+        assert.equal(value.publication.retainRawResponse, undefined);
+        assert.equal(value.publication.adopt, undefined);
+        assert.strictEqual(value.publication.finishInput(originalLookup), original);
+        acquired++; return lookup;
+      }
       const attempt = value.publication.activate(originalLookup, keyedRequest);
       assert.equal(attempt.activation, activation); assert.equal(attempt.record, activationRecord);
       if (rawProtocol) {
@@ -79,7 +87,20 @@ function fixture({rawProtocol = false, sourceOnly = false} = {}) {
     }};
   const request = {};
   const sourceOriginal = {};
-  const control = {startInstalledEffectKeyedCaptureInput(...args) {
+  const genericFailure = new Error('original-generic-completion');
+  const control = {
+    prepareGenericEffectKeyedLookupSourceMetadata(parent, actual, originals, observations, selection, limits) {
+      assert(generic); assert.strictEqual(parent, sourceOriginal); assert.strictEqual(actual, originalLookup);
+      assert.strictEqual(originals, captures); assert.deepEqual(observations.map(value => value.captured), captures);
+      assert.equal(selection.availableUntil, '2027-01-01T00:00:00.000Z'); assert(limits.maxWireBytes > 0);
+      events.push('generic-metadata'); if (failGenericMetadata) throw genericFailure; return retention;
+    },
+    finishGenericEffectKeyedLookupPublicationInput(parent, actual, at, limits) {
+      assert.strictEqual(parent, sourceOriginal); assert.strictEqual(actual, originalLookup);
+      assert.equal(at, '2026-11-05T00:00:00.000Z'); assert(limits.maxNodes > 0);
+      events.push('generic-finish'); if (failGenericFinish) throw genericFailure; return original;
+    },
+    startInstalledEffectKeyedCaptureInput(...args) {
     assert(sourceOnly); assert(duty, 'cleanup retained before the original constructor');
     assert.deepEqual(args.slice(0, 8), [managedRun, prepared, request, compiled,
       definition, graph, acquisition, captures]);
@@ -105,6 +126,7 @@ function fixture({rawProtocol = false, sourceOnly = false} = {}) {
     assert(physicalRecord); events.push('page-prepare'); return page;
   }, keyedLookupPublicationEvidence(value) {assert.equal(value, observation); return evidence;}};
   const moon = {
+    clientProgramEffectKeyedPlanGraphIsGeneric(value) {assert.strictEqual(value, graph); return generic;},
     clientProgramInstalledEffectKeyedOriginal(parent, owner, identity) {
       assert(sourceOnly); assert.strictEqual(parent, managedRun);
       assert.strictEqual(owner, prepared); assert.strictEqual(identity, request);
@@ -164,7 +186,7 @@ function fixture({rawProtocol = false, sourceOnly = false} = {}) {
     delete options.infer; delete options.selected; delete options.originalPreparation; delete options.plan;
     options.sourcePreparation = {graph, acquisition, compiled, runDefinition: definition};
   }
-  return {options, moon, adapter, events, lookup, original, observation, evidence, left, sourceOriginal,
+  return {options, moon, adapter, events, lookup, original, observation, evidence, left, sourceOriginal, genericFailure,
     duty: () => duty, counts: () => ({acquired, prepares, advances, closes, cleanups}),
     setCurrent: value => {current = value;}, acknowledge: value => {ack = value;}};
 }
@@ -480,4 +502,26 @@ test('Source-only current loss retains its original capture cleanup without open
   assert.equal(f.counts().acquired, 0);
   assert.equal(await f.duty().cleanup(), true);
   assert.deepEqual(f.events, ['source-start', 'source-stop', 'source-cleanup']);
+});
+
+
+test('generic Source-only keyed publication uses original metadata and completion without Native history', async () => {
+  const f = fixture({sourceOnly: true, generic: true});
+  // There is no Native Journal or raw archive prerequisite for content_ref.
+  delete f.options.requestJournal;
+  const result = await prepareAcquiredEffectKeyedCapture(f.options);
+  assert.strictEqual(result.lookup, f.original);
+  assert.strictEqual(result.sourceOriginal, f.sourceOriginal);
+  assert.deepEqual(f.events, ['source-start', 'generic-metadata', 'generic-finish']);
+  assert.equal(await f.duty().cleanup(), true);
+  assert.deepEqual(f.events.slice(3), ['lookup-close', 'lookup-cleanup', 'source-stop', 'source-cleanup']);
+});
+
+test('generic Source-only metadata refusal retains its original cleanup and never activates Native transport', async () => {
+  const f = fixture({sourceOnly: true, generic: true, failGenericMetadata: true});
+  await assert.rejects(prepareAcquiredEffectKeyedCapture(f.options), error => error === f.genericFailure);
+  assert.equal(f.counts().acquired, 0);
+  assert.deepEqual(f.events, ['source-start', 'generic-metadata']);
+  // An unclassified thrown port result supplies no physical-stop evidence.
+  assert.equal(await f.duty().cleanup(), false);
 });
