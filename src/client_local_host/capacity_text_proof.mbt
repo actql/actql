@@ -210,8 +210,10 @@ fn client_local_decimal_text_bound(
 ///|
 // Borrow cached admission geometry from the SAME literal Values originals.
 // No second row/payload scan, parse, serialization or value copy occurs.
-// Checked CrossJoin may only copy these fields. Parameters and all other step
-// families retain the independent selected general policy.
+// Checked CrossJoin may only copy these fields. A closed Graph construction
+// keeps its own storage/identity/snapshot budgets; only immediate numeric MATCH
+// rows and predicates join this Relation Text proof. Unknown families retain
+// the independent selected general policy.
 fn client_local_original_values_text_bound(
   sequences : Array[@execution.GeneratedSequence],
   demand : ClientLocalValueNodeDemand,
@@ -221,6 +223,9 @@ fn client_local_original_values_text_bound(
   let mut text = 0L
   let mut copied = false
   let mut text_fields = 0L
+  let mut literal_total = 0L
+  let mut graph = false
+  let mut graph_inputs_required = true
   for sequence in sequences {
     let original = @execution.generated_prepared_sequence(sequence)
     let owner = @lower.sequence_owner(original)
@@ -234,8 +239,16 @@ fn client_local_original_values_text_bound(
       }
       remaining -= 1
       guard @lower.sequence_step(original, step) is Some(operation) &&
-        @lower.node_at(prepared, step) is Some(node) &&
-        @lower.node_relation_schema(node) is Some(schema) &&
+        @lower.node_at(prepared, step) is Some(node) else {
+        return None
+      }
+      if operation is @lower.GraphConstructionStep(_) {
+        // This opaque Carrier is never priced as a Relation. Its provider
+        // keeps the original Graph storage, labels, identity and snapshots.
+        graph = true
+        continue
+      }
+      guard @lower.node_relation_schema(node) is Some(schema) &&
         client_local_json_leaf_schema(schema) else {
         return None
       }
@@ -246,8 +259,13 @@ fn client_local_original_values_text_bound(
       remaining -= fields
       let mut row_text_fields = 0L
       for field in 0..<fields {
-        if @schema.field_at(schema, field) is Some(field) &&
-          @schema.field_contract(field).shape is @contract.Text(_) {
+        guard @schema.field_at(schema, field) is Some(field) else {
+          return None
+        }
+        if field.contract.nullable {
+          graph_inputs_required = false
+        }
+        if @schema.field_contract(field).shape is @contract.Text(_) {
           row_text_fields += 1L
         }
       }
@@ -258,15 +276,58 @@ fn client_local_original_values_text_bound(
             return None
           }
           text = Int64::max(text, bytes.to_int64())
+          guard @execution.checked_preparation_add_product(
+              literal_total,
+              bytes.to_int64(),
+              1L,
+            )
+            is Some(total) else {
+            return None
+          }
+          literal_total = total
         }
         // The checked CrossJoin projection copies original fields; it does
         // not evaluate expressions or synthesize Text. Count every repeated
         // Text field and output row, including duplicate aliases.
         @lower.CrossJoinStep(_) => copied = true
+        @lower.GraphMatchStep(matched) => {
+          graph = true
+          if fields > remaining {
+            return None
+          }
+          remaining -= fields
+          for field in 0..<fields {
+            guard @schema.field_at(schema, field) is Some(field) &&
+              !field.contract.nullable else {
+              return None
+            }
+            match field.contract.shape {
+              @contract.Number | @contract.Boolean => ()
+              _ => return None
+            }
+          }
+          if @lower.graph_match_predicate(matched) is Some(predicate) {
+            guard client_local_graph_immediate_predicate_work(
+                predicate, remaining,
+              )
+              is Some(used) else {
+              return None
+            }
+            remaining -= used
+          }
+        }
         _ => return None
       }
     }
   }
+  if graph && !graph_inputs_required {
+    return None
+  }
+  // Several Graph definitions can read different original Values. Sum every
+  // cached literal occurrence, including repeated prepared views, rather than
+  // assuming the largest source covers their simultaneous input. No rows or
+  // Graph properties are scanned or rebuilt by this optimization.
+  let text = if graph { literal_total } else { text }
   let text = if copied {
     // The existing literal admission charges each payload's UTF-8 at least
     // three times: whole Values preflight, literal scan and its reservation.
@@ -322,4 +383,45 @@ fn client_local_original_values_text_bound(
     wire
   }
   Some((total.to_int(), wire, row_wire))
+}
+
+///|
+// Deliberately closed, allocation-free predicate proof. A complete immediate
+// leaf or one immediate binary node cannot hide Text in a dormant descendant.
+// More general expressions keep the original independent policy.
+fn client_local_graph_immediate_predicate_leaf(
+  expression : @lower.Expression,
+) -> Bool {
+  if @lower.expression_contract(expression).nullable {
+    return false
+  }
+  match @lower.expression_contract(expression).shape {
+    @contract.Number | @contract.Boolean => ()
+    _ => return false
+  }
+  match @lower.expression_body(expression) {
+    @lower.Field(_, _) | @lower.Literal(_) => true
+    _ => false
+  }
+}
+
+///|
+fn client_local_graph_immediate_predicate_work(
+  expression : @lower.Expression,
+  remaining : Int,
+) -> Int? {
+  if remaining < 1 || @lower.expression_contract(expression).nullable {
+    return None
+  }
+  match @lower.expression_contract(expression).shape {
+    @contract.Number | @contract.Boolean => ()
+    _ => return None
+  }
+  match @lower.expression_body(expression) {
+    @lower.Field(_, _) | @lower.Literal(_) => Some(1)
+    @lower.Binary(_, left, right) if remaining >= 3 &&
+      client_local_graph_immediate_predicate_leaf(left) &&
+      client_local_graph_immediate_predicate_leaf(right) => Some(3)
+    _ => None
+  }
 }

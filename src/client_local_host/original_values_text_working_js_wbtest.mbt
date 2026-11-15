@@ -897,3 +897,125 @@ extern "js" fn original_many_small_text_working_program() -> String =
 test "original many small Text rows cross sixteen MiB total on the same finite owner" {
   original_bound_text_working_case(11)
 }
+
+///|
+// Original authored machine Program, read as DATA. No test reconstructs its
+// implementation, supplies a provider, or repairs its typed graph.
+extern "js" fn original_graph_parallel_text(
+  loader : PublicationTestLoader,
+) -> String =
+  #|(loader)=>loader('node:fs').readFileSync(new URL('../../../../../scripts/fixtures/graph-parallel.program.json',import.meta.url),'utf8')
+
+///|
+fn original_graph_parallel_requirements(
+  document : String,
+) -> ClientLocalRequirements raise {
+  let assets = @publication_host.client_local_product_assets()
+  guard @json.parse(assets.environment) is Object(fields) &&
+    fields.get("host_policy_profile") is Some(Object(profile)) &&
+    profile.get("capacity") is Some(Object(capacity)) else {
+    fail("original product Environment evidence")
+  }
+  // Same existing no-Model Local Graph defaults as the ordinary Host. These
+  // checker obligations do not replace or raise the 512MiB Resource policy.
+  for
+    name in [
+      "max_graph_construction_edges", "max_graph_construction_input_rows", "max_graph_construction_nodes",
+    ] {
+    if capacity.get(name) is None {
+      capacity[name] = Json::number(1000.0)
+    }
+  }
+  fields.remove("evidence_bundle_cid")
+  let body = @identity.from_json(Json::object(fields), 10000, 100, 100000)
+  let cid = @identity.cid_value(body, 100000, 10000, 100)
+  fields["evidence_bundle_cid"] = cid.to_json()
+  let wire = @identity.stringify_value(
+    @identity.from_json(Json::object(fields), 10000, 100, 100000),
+    100000,
+    10000,
+    100,
+  )
+  let environment = @publication_host.admit_client_check_environment(
+    wire,
+    cid,
+    { text_time: true, veca: true, },
+    { rela: true, sga: true, tea: true, calendar: false, text_rank: false, },
+    graph=true,
+  ).unwrap()
+  let prepared = match
+    @publication_host.prepare_effect_free_client_program(
+      document,
+      Json,
+      environment,
+      None,
+      @publication_host.client_standard_program_preparation_limits(),
+    ) {
+    Ok(value) => value
+    Err(Check(diagnostic)) => {
+      let issue : Error = @checked.diagnostic_cause(diagnostic)
+      fail("OriginalGraphCheck:" + @debug.render(Repr(issue), max_depth=12))
+    }
+    Err(_) => fail("OriginalGraphPreparation")
+  }
+  let installed = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  prepare_source_free_runtime_requirements(
+    prepared,
+    installed,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+}
+
+///|
+test "original Graph parallel inputs derive finite Relation Text from literal originals" {
+  let document = original_graph_parallel_text(
+    publication_test_loader(publication_test_url()),
+  )
+  let requirements = original_graph_parallel_requirements(document)
+  let plan = requirements.capacity_plan
+  let bound = client_local_original_values_text_bound(
+    plan.sequences,
+    plan.value_node_demand.unwrap(),
+  ).unwrap()
+  assert_eq(plan.values.max_text_bytes, bound.0)
+  assert_eq(plan.execution.rows.input_values.max_text_bytes, bound.0)
+  assert_eq(plan.execution.rows.output_values.max_text_bytes, bound.0)
+  assert_true(bound.0 > 0 && bound.0 < plan.values.max_work)
+  assert_true(plan.imports.row.max_bytes <= plan.imports.wire.max_bytes)
+  assert_eq(requirements.maximum_limits().retained_bytes, 536870912L)
+  assert_eq(requirements.maximum_limits().execution_bytes, 536870912L)
+  assert_true(
+    client_local_original_values_text_bound(
+      plan.sequences,
+      plan.value_node_demand.unwrap(),
+      max_work=0,
+    )
+    is None,
+  )
+}
+
+///|
+test "Graph Relation Text proof keeps unknown predicate descendants on their original policy" {
+  let document = original_graph_parallel_text(
+    publication_test_loader(publication_test_url()),
+  )
+  let original = original_graph_parallel_requirements(document).capacity_plan
+  let unknown = original_graph_parallel_requirements(
+      document.replace(old="key > 0", new="key > 0 AND true"),
+    ).capacity_plan
+  assert_true(
+    client_local_original_values_text_bound(
+      unknown.sequences,
+      unknown.value_node_demand.unwrap(),
+    )
+    is None,
+  )
+  assert_true(unknown.values.max_text_bytes > original.values.max_text_bytes)
+}
