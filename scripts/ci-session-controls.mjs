@@ -33,6 +33,14 @@ export function verifySessionControls(root, files, result) {
   return checked.counts;
 }
 
+export async function writeSessionControlOutput(result, output = process.stdout, error = process.stderr) {
+  // Failed verification throws synchronously. Finish both pipe writes first
+  // so the original failing cases and final summaries survive that exit.
+  for (const [stream, text] of [[output, result.stdout], [error, result.stderr]]) {
+    await new Promise((resolve, reject) => stream.write(text ?? '', issue => issue ? reject(issue) : resolve()));
+  }
+}
+
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   assert.equal(process.argv.length, 2, 'Session controls do not accept narrowing arguments');
   const root = fileURLToPath(new URL('../', import.meta.url));
@@ -41,8 +49,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     cwd: root, env: process.env, encoding: 'utf8', timeout: 59 * 60 * 1000,
     maxBuffer: 64 * 1024 * 1024, killSignal: 'SIGKILL',
   });
-  process.stdout.write(result.stdout ?? '');
-  process.stderr.write(result.stderr ?? '');
+  await writeSessionControlOutput(result);
   const counts = verifySessionControls(root, files, result);
   console.log('ACTQL_SESSION_CONTROLS ' + JSON.stringify({files: files.length, counts}));
 }

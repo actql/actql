@@ -3,11 +3,12 @@ import {spawnSync} from 'node:child_process';
 import {mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {Writable} from 'node:stream';
 import test from 'node:test';
 import {fileURLToPath} from 'node:url';
 import {parse} from 'yaml';
 import {nodeTestArguments} from './test-execution.mjs';
-import {sessionControlFiles, verifySessionControls} from './ci-session-controls.mjs';
+import {sessionControlFiles, verifySessionControls, writeSessionControlOutput} from './ci-session-controls.mjs';
 import {gateJobs} from './ci-targets.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -72,4 +73,19 @@ test('real Node summaries reject omitted, duplicate, empty, skipped and failed c
   assert.throws(() => verifySessionControls(directory, [], result), /Empty/u);
   assert.throws(() => verifySessionControls(directory, files, {...result, status: 1}));
   assert.throws(() => verifySessionControls(directory, files, {...result, signal: 'SIGTERM', status: null}));
+});
+
+test('Session failure output drains both pipes before verification can terminate the controller', async () => {
+  const written = [];
+  const stream = label => new Writable({highWaterMark: 16, write(chunk, _encoding, done) {
+    setImmediate(() => { written.push([label, chunk.toString()]); done(); });
+  }});
+  const stdout = 'original output\n'.repeat(100_000) + 'not ok original failing case\nACTQL_TEST_SUMMARY original tail\n';
+  const stderr = 'original stderr\n'.repeat(100) + 'original diagnostic tail\n';
+  const result = {status: 1, signal: null, stdout, stderr};
+  const flushing = writeSessionControlOutput(result, stream('stdout'), stream('stderr'));
+  assert.deepEqual(written, []);
+  await flushing;
+  assert.deepEqual(written, [['stdout', stdout], ['stderr', stderr]]);
+  assert.throws(() => verifySessionControls(root, ['proofs/ci-evidence/original.test.mjs'], result));
 });
