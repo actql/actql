@@ -56378,7 +56378,7 @@
               },
               {
                 "path": "src/connectors/local/module.mbt",
-                "anchor": "let constructor_chain = (count > 1 && metered_retention) || window_chain"
+                "anchor": "pub fn local_module_metered_output_start_capacity("
               },
               {
                 "path": "src/connectors/local/unnest_provider.mbt",
