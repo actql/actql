@@ -70442,6 +70442,10 @@
           "declaration": "captured_dag_strategy ( run : CapturedDAG ) - > StrategyRevision ?"
         },
         {
+          "name": "captured_effect_keyed_completed_input_matches",
+          "declaration": "captured_effect_keyed_completed_input_matches ( value : CapturedEffectRunDAG , task : Int , input : Int , read : @ execution . SuppliedRelationRead , ) - > Bool"
+        },
+        {
           "name": "captured_effect_keyed_prefix_input_matches",
           "declaration": "captured_effect_keyed_prefix_input_matches ( value : CapturedEffectRunDAG , task : Int , step : Int , port : Int , read : @ execution . ProducerRead , ) - > Bool"
         },
@@ -71047,6 +71051,7 @@
         },
         {
           "operations": [
+            "captured_effect_keyed_completed_input_matches",
             "captured_effect_keyed_supplied_input_matches",
             "open_captured_effect_keyed_source_run_dag",
             "open_original_effect_keyed_read"
@@ -71065,6 +71070,10 @@
               {
                 "path": "src/physical_strategy_host/captured_dag.mbt",
                 "anchor": "pub fn captured_effect_keyed_supplied_input_matches("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn captured_effect_keyed_completed_input_matches("
               }
             ],
             "inputsOutputs": [
@@ -71079,6 +71088,10 @@
               {
                 "path": "src/physical_strategy_host/captured_dag.mbt",
                 "anchor": "pub fn captured_effect_keyed_supplied_input_matches("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn captured_effect_keyed_completed_input_matches("
               }
             ],
             "identity": [
@@ -71093,6 +71106,10 @@
               {
                 "path": "src/physical_strategy_host/captured_dag.mbt",
                 "anchor": "pub fn captured_effect_keyed_supplied_input_matches("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn captured_effect_keyed_completed_input_matches("
               }
             ],
             "ownership": [
@@ -71107,6 +71124,10 @@
               {
                 "path": "src/physical_strategy_host/captured_dag.mbt",
                 "anchor": "pub fn captured_effect_keyed_supplied_input_matches("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn captured_effect_keyed_completed_input_matches("
               }
             ],
             "synchronization": [
@@ -71121,6 +71142,10 @@
               {
                 "path": "src/physical_strategy_host/captured_dag.mbt",
                 "anchor": "pub fn captured_effect_keyed_supplied_input_matches("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn captured_effect_keyed_completed_input_matches("
               }
             ],
             "failure": [
@@ -71135,6 +71160,10 @@
               {
                 "path": "src/physical_strategy_host/captured_dag.mbt",
                 "anchor": "pub fn captured_effect_keyed_supplied_input_matches("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn captured_effect_keyed_completed_input_matches("
               }
             ],
             "cancellation": [
@@ -71149,6 +71178,10 @@
               {
                 "path": "src/physical_strategy_host/captured_dag.mbt",
                 "anchor": "pub fn captured_effect_keyed_supplied_input_matches("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn captured_effect_keyed_completed_input_matches("
               }
             ],
             "resources": [
@@ -71163,6 +71196,10 @@
               {
                 "path": "src/physical_strategy_host/captured_dag.mbt",
                 "anchor": "pub fn captured_effect_keyed_supplied_input_matches("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn captured_effect_keyed_completed_input_matches("
               }
             ],
             "extension": [
@@ -71177,6 +71214,10 @@
               {
                 "path": "src/physical_strategy_host/captured_dag.mbt",
                 "anchor": "pub fn captured_effect_keyed_supplied_input_matches("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "pub fn captured_effect_keyed_completed_input_matches("
               }
             ],
             "verification": [
