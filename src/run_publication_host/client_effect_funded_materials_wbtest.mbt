@@ -297,3 +297,124 @@ test "funded materials preserve original supplied Unicode and reject before its 
   )
   assert_eq(purposes, ["run_materials_read", "parameters_read"])
 }
+
+///|
+test "nominal material inverse compares full original Environment before borrowing its configured owner" {
+  let (_, environment, effect_limits) = client_composed_effect_base_fixture()
+  let (prepared, allowed, definition) = original_effect_materials_fixture(
+    selected_environment=Some(environment),
+  )
+  let request = prepare_client_effect_request_identity(
+    prepared,
+    "sha256:" + "c".repeat(64),
+    "nominal-env",
+    source_free_caller_input_intent_cid(),
+  ).unwrap()
+  let wire = issue_prepared_client_effect_run_materials(
+    allowed,
+    definition,
+    request=Some(request),
+    before_body=Some((_, _, _, _) => true),
+  ).unwrap()
+  let seen : Array[String] = []
+  let restore = (material, selected) => {
+    admit_client_effect_run_materials(
+      material,
+      @publication.publication_contract_identity(definition),
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+      run_materials_manifests(),
+      run_materials_limits(),
+      effect_limits,
+      original_compilation=Some(allowed.compilation),
+      expected_request=Some(request),
+      original_environment=Some(selected),
+      before_body=Some(fn(purpose, _, _, _) {
+        seen.push(purpose)
+        true
+      }),
+    )
+  }
+  let restored = restore(wire, environment).unwrap()
+  assert_true(physical_equal(restored.prepared, prepared))
+  assert_false(seen.contains("environment_read"))
+  assert_eq(seen.filter(value => value == "environment"), [
+    "environment", "environment",
+  ])
+  let wrong = target_projection_replace_raw_field(
+    wire,
+    "check_environment",
+    Some("\"changed original\""),
+  )
+  seen.clear()
+  assert_true(restore(wrong, environment) is Err(Input(MaterialsEnvironment)))
+  assert_eq(seen, ["run_materials_read", "environment"])
+  let raw = read_client_run_materials_body(
+    wire,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let foreign = admit_client_check_environment(
+    raw.environment_wire,
+    @checked.checking_environment_cid(environment),
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  seen.clear()
+  assert_true(restore(wire, foreign) is Err(Input(MaterialsEnvironment)))
+  assert_eq(seen.length(), 0)
+  let changed_profiles = @checked.checking_environment(
+    @checked.checking_environment_wire(environment),
+    { text_time: false, veca: false, },
+    { rela: true, sga: true, tea: false, calendar: false, text_rank: false, },
+  )
+  assert_true(
+    restore(wire, changed_profiles) is Err(Input(MaterialsEnvironment)),
+  )
+  assert_eq(seen.length(), 0)
+}
+
+///|
+test "nominal material inverse rejects equal ModelTask bodies from another admitted original" {
+  let (_, allowed, definition, request) = selected_infer_original_fixture()
+  let checked = @strategy.graph_program(
+    allowed.compilation.compiled.owner.graph,
+  )
+  let wire_original = @checked.checked_environment(checked)
+  assert_true(@checked.checked_model_tasks(checked) is Some(_))
+  let foreign = admit_client_check_environment_from_wire(
+    wire_original,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  assert_true(
+    physical_equal(@checked.checking_environment_wire(foreign), wire_original),
+  )
+  let wire = issue_prepared_client_effect_run_materials(
+    allowed,
+    definition,
+    request=Some(request),
+    before_body=Some((_, _, _, _) => true),
+  ).unwrap()
+  let calls = Ref(0)
+  assert_true(
+    admit_client_effect_run_materials(
+      wire,
+      @publication.publication_contract_identity(definition),
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+      run_materials_manifests(),
+      run_materials_limits(),
+      client_standard_effect_computation_limits(),
+      original_compilation=Some(allowed.compilation),
+      expected_request=Some(request),
+      original_environment=Some(foreign),
+      before_body=Some(fn(_, _, _, _) {
+        calls.val += 1
+        true
+      }),
+    )
+    is Err(Input(MaterialsEnvironment)),
+  )
+  assert_eq(calls.val, 0)
+}

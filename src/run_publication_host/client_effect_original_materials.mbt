@@ -95,7 +95,7 @@ fn encode_prepared_client_effect_materials(
     Err(issue) => return Err(issue)
   }
   let infer_input = match
-    client_effect_original_infer_input(allowed.compilation) {
+    client_effect_original_infer_input(allowed.compilation, before_body~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -105,12 +105,15 @@ fn encode_prepared_client_effect_materials(
     Err(issue) => return Err(issue)
   }
   let infer_inputs_wire = match
-    client_effect_original_infer_inputs(allowed.compilation) {
+    client_effect_original_infer_inputs(allowed.compilation, before_body~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
   let source_free_policy_input = match
-    client_effect_original_source_free_policy_input(allowed.compilation) {
+    client_effect_original_source_free_policy_input(
+      allowed.compilation,
+      before_body~,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

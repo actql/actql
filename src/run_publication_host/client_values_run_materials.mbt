@@ -391,6 +391,7 @@ fn read_client_run_materials_body(
   operations : @context.PureOperationProfiles,
   numeric_profile_cid? : String? = None,
   before_body? : ((String, Int, Int, Int) -> Bool)? = None,
+  original_environment? : @checked.CheckEnvironment? = None,
 ) -> Result[ClientRunMaterialsBody, ClientValuesRunMaterialsIssue] {
   let max_bytes = match before_body {
     None => @remote.REMOTE_RUN_MATERIALS_MAX_BYTES
@@ -500,26 +501,58 @@ fn read_client_run_materials_body(
       }
     }
   }
-  if before_body is Some(fund) {
-    let bytes = match @scalar.admit_utf8_length(environment_wire, 2147483646) {
-      Ok(value) => value
-      Err(_) => return Err(MaterialsEnvironment)
+  let environment = match original_environment {
+    Some(original) => {
+      guard before_body is Some(fund) &&
+        environment_cid == @checked.checking_environment_cid(original) else {
+        return Err(MaterialsEnvironment)
+      }
+      let wire = @checked.checking_environment_wire(original)
+      let canonical = match
+        client_effect_funded_material_input(
+          "environment",
+          @environment.emission_geometry(wire),
+          writer => @environment.emit(wire, writer),
+          fund,
+        ) {
+        Ok(value) => value
+        Err(Input(issue)) => return Err(issue)
+        Err(_) => return Err(MaterialsEnvironment)
+      }
+      // The trusted Local caller proved this exact configured wrapper before
+      // entry. Core separately binds its nominal wire/tasks/profiles and ALL
+      // canonical bytes; a CID or saved boolean cannot select this branch.
+      if canonical != environment_wire {
+        return Err(MaterialsEnvironment)
+      }
+      original
     }
-    // Match the intrinsic bounds of admit_client_check_environment_wire;
-    // retain the outer tree and any earlier parameter tree in the SAME owner.
-    if !fund("environment_read", bytes, Int::max(1, bytes), 64) {
-      return Err(MaterialsConstructionRefused("environment_read"))
+    None => {
+      if before_body is Some(fund) {
+        let bytes = match
+          @scalar.admit_utf8_length(environment_wire, 2147483646) {
+          Ok(value) => value
+          Err(_) => return Err(MaterialsEnvironment)
+        }
+        // Match the intrinsic bounds of admit_client_check_environment_wire;
+        // retain the outer tree and any earlier parameter tree in the SAME owner.
+        if !fund("environment_read", bytes, Int::max(1, bytes), 64) {
+          return Err(MaterialsConstructionRefused("environment_read"))
+        }
+      }
+      guard admit_client_check_environment(
+          environment_wire,
+          environment_cid,
+          expressions,
+          operations,
+          numeric_profile_cid~,
+        )
+        is Some(environment) else {
+        return Err(MaterialsEnvironment)
+      }
+
+      environment
     }
-  }
-  guard admit_client_check_environment(
-      environment_wire,
-      environment_cid,
-      expressions,
-      operations,
-      numeric_profile_cid~,
-    )
-    is Some(environment) else {
-    return Err(MaterialsEnvironment)
   }
   let request_wire = match @decode.lookup(object, "client_request_identity") {
     None => None

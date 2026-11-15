@@ -204,7 +204,44 @@ pub fn admit_client_effect_run_materials(
     ClientEffectRunMaterialsIssue,
   ])? = None,
   before_body? : ((String, Int, Int, Int) -> Bool)? = None,
+  original_environment? : @checked.CheckEnvironment? = None,
 ) -> Result[ClientEffectRunMaterials, ClientEffectRunMaterialsIssue] {
+  if original_environment is Some(environment) {
+    guard original_compilation is Some(original) && before_body is Some(_) else {
+      return Err(Input(MaterialsEnvironment))
+    }
+    let checked = @strategy.graph_program(original.compiled.owner.graph)
+    let profile = @checked.checking_environment_profile_selection(environment)
+    let operations_original = @context.program_sources_operations(
+      @context.program_identity_sources(@checked.source_identity(checked)),
+    )
+    let same_tasks = match
+      (
+        @checked.checking_environment_model_tasks(environment),
+        @checked.checked_model_tasks(checked),
+      ) {
+      (None, None) => true
+      (Some(left), Some(right)) => physical_equal(left, right)
+      _ => false
+    }
+    if !physical_equal(
+        @checked.checking_environment_wire(environment),
+        @checked.effect_program_static_environment(original.owner.candidate),
+      ) ||
+      !same_tasks ||
+      profile.expressions != @checked.selected_expression_profiles(checked) ||
+      profile.operations !=
+      @context.operation_profiles_declared(operations_original) ||
+      profile.graph != @context.operation_profiles_graph(operations_original) ||
+      profile.expressions != expressions ||
+      profile.operations != operations ||
+      (
+        numeric_profile_cid is Some(cid) &&
+        profile.numeric_profile_cid != Some(cid)
+      ) {
+      return Err(Input(MaterialsEnvironment))
+    }
+  }
   let body = match
     read_client_run_materials_body(
       materials,
@@ -212,6 +249,7 @@ pub fn admit_client_effect_run_materials(
       operations,
       numeric_profile_cid~,
       before_body~,
+      original_environment~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Input(issue))

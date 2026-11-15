@@ -4,6 +4,7 @@
 /// originals have different owners and must not enter this alternative.
 fn client_effect_original_source_free_policy_input(
   compilation : ClientEffectCompilation,
+  before_body? : ((String, Int, Int, Int) -> Bool)? = None,
 ) -> Result[(String, String)?, ClientEffectRunMaterialsIssue] {
   // A Model component retains its own original execution/dependency policy.
   // Do not add an unrelated Host-policy alternative to those old materials.
@@ -29,6 +30,11 @@ fn client_effect_original_source_free_policy_input(
   let policy = component.policy
   let cid = @publication.captured_effect_dependency_body_cid(policy)
   let wire = @publication.captured_effect_dependency_body_json(policy)
+  if !client_effect_material_read_funded(
+      "source_free_policy_read", wire, 8192, 64, before_body,
+    ) {
+    return Err(Input(MaterialsConstructionRefused("source_free_policy_read")))
+  }
   if @publication.captured_effect_dependency_body_kind(policy) != "data_policy" ||
     admit_source_free_result_policy_body(cid, wire, 65536, 8192, 64) is Err(_) {
     return Err(Input(MaterialsEvidence("source_free_result_policy")))
