@@ -613,8 +613,12 @@ fn local_module_default_output_start_capacity(
             }
           }
         }
-      Some(@lower.RowStep(kernel)) if count == 1 &&
-        @execution.bounded_number_group_borrows_input(kernel) => ()
+      // The same bounded Number group also runs as a reclaimed chain child.
+      // It borrows input cells and funds pending rows in its complete child
+      // workspace; this existing chain confirms cleanup before its successor.
+      Some(@lower.RowStep(kernel)) if @execution.bounded_number_group_borrows_input(
+          kernel,
+        ) => ()
       Some(@lower.RowStep(kernel)) if count == 1 &&
         @lower.kernel_pivot(kernel) is Some(_) => {
         // The existing bounded group/PIVOT child reads original scalar
