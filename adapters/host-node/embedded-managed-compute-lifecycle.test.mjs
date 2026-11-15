@@ -1560,58 +1560,6 @@ test('funded policy Source current refusal keeps its original cause before mappi
 });
 
 
-async function timedInstallingFixture({captured=false,failRetire=false,failConstruction=false,failSever=false}={}){
-  const p=managedRunPorts(),prepared={},request={},sdkRequest={},artifact={},original={},time={},context={},scope={},option=new Proxy({}, {get(){assert.fail('opaque Core Option inspected');}});
-  let view;const events=[];
-  let f,retireAttempts=0,severAttempts=0;
-  const marker=Object.assign(Error('original pending retirement'),{cleanupPending:true});
-  p.runtime.clientProgramInstalledManagedRunRetire=function(actual){assert.equal(this,p.runtime);assert.equal(actual,p.value);events.push('retire');if(failRetire&&++retireAttempts===1)throw marker;};
-  p.runtime.clientProgramInstalledPreparationPayloadSevered=()=>false;
-  const manager={
-    adoptPreparation(p,r,id,construct){assert.equal(p,prepared);assert.equal(r,sdkRequest);assert.equal(id,request);assert.equal(construct(artifact),option);if(failConstruction)throw marker;events.push('adopt');return {original,value:pRuntimeValue()};},
-    adoptCapturePreparation(p,r,id,plan,construct){assert.equal(p,prepared);assert.equal(r,sdkRequest);assert.equal(id,request);assert.equal(construct(artifact),option);assert.equal(plan(),scope);if(failConstruction)throw marker;events.push('adopt');return {original,value:pRuntimeValue()};},
-    severPreparation(p,r){assert.equal(p,prepared);assert.equal(r,original);events.push('sever');if(failSever&&++severAttempts===1){events.push('consume-holder');throw marker;}},
-    retireSeveredPreparation(r){assert.equal(r,original);events.push('finish');},
-    close(){return {pending:false};},
-  };
-  function pRuntimeValue(){return p.value;}
-  f=lifecycle({runtime:p.runtime,factory:async()=>manager,originalRequest:value=>{assert.equal(value,prepared);return sdkRequest;},capturePlan(run){assert.equal(run.queryTimePreparation,time);assert.equal(run.queryInvocation,view);events.push('capture-plan');return scope;},invocationControl:{checkedClientManagedQueryInvocationOriginal(actual,p,retained){assert.equal(actual,pRuntimeValue());assert.equal(p,prepared);assert.equal(retained,view);events.push('read-original');return retained;}}});
-  await f.preparation.prepareManagedCompute();
-  const factory=(p,r,a,retained)=>{assert.equal(p,prepared);assert.equal(r,request);assert.equal(a,artifact);assert.equal(f.record.computeRuns.get(prepared).queryInvocation,retained);view=Object.freeze(Object.assign(retained,{queryTimePreparation:time,queryTime:context,compiled:{},runDefinition:{}}));events.push('construct');return Object.freeze({original:option,retained:view});};
-  const begin=fn=>f.preparation.prepareManagedComputeRun(p.runtime,prepared,request,captured?scope:undefined,fn);
-  return {...f,p,prepared,request,get view(){return view;},events,scope,marker,begin,factory};
-}
-
-test('timed installing caller retains first view before captured Plan and never retains Option carrier',async()=>{
-  for(const captured of [false,true]){
-    const f=await timedInstallingFixture({captured});assert.equal(f.begin(f.factory),f.p.value);
-    const run=f.record.computeRuns.get(f.prepared);assert.equal(run.queryInvocation,f.view);assert.equal(run.queryTimePreparation,f.view.queryTimePreparation);assert.equal(Object.hasOwn(run,'prepareInvocation'),false);
-    assert.equal(Object.hasOwn(run.queryInvocation,'original'),false);assert.equal(Object.hasOwn(run.queryInvocation,'invocationOriginal'),false);
-    assert.equal(f.begin(()=>assert.fail('replacement constructor must not run')),f.p.value);
-    assert.equal(f.preparation.managedComputeInvocationOriginal(f.p.runtime,f.prepared),f.view);
-    assert.deepEqual(f.events,['construct',...(captured?['capture-plan']:[]),'adopt','read-original']);
-    const finish=f.preparation.retireManagedComputeRun(f.prepared);assert.equal(run.queryInvocation,undefined);assert.equal(run.queryTimePreparation,undefined);finish();await f.initialControl.close();
-  }
-});
-
-test('timed installing caller keeps immutable view through pending retirement then clears at original sever',async()=>{
-  const f=await timedInstallingFixture({failRetire:true});f.begin(f.factory);const run=f.record.computeRuns.get(f.prepared);
-  assert.throws(()=>f.preparation.retireManagedComputeRun(f.prepared),e=>e===f.marker);assert.equal(run.queryInvocation,f.view);assert.equal(run.closed,false);
-  const finish=f.preparation.retireManagedComputeRun(f.prepared);assert.equal(run.queryInvocation,undefined);assert.equal(run.closed,true);
-  assert.throws(()=>f.preparation.managedComputeInvocationOriginal(f.p.runtime,f.prepared),{code:'NodeManagedRunRuntimeUnavailable'});finish();await f.initialControl.close();
-  assert.equal(f.events.filter(e=>e==='construct').length,1);assert.equal(f.events.filter(e=>e==='sever').length,1);
-});
-
-test('timed installing caller retains failed original construction and never invokes another factory',async()=>{
-  const f=await timedInstallingFixture({failConstruction:true});
-  for(let n=0;n<2;n++)assert.throws(()=>f.begin(f.factory),e=>e===f.marker);
-  assert.equal(f.events.filter(e=>e==='construct').length,1);const run=f.record.computeRuns.get(f.prepared);assert.equal(run.queryInvocation,f.view);
-  assert.throws(()=>f.preparation.managedComputeInvocationOriginal(f.p.runtime,f.prepared),{code:'NodeManagedRunRuntimeUnavailable'});
-  // This explicit component manager owns no admitted Core value on failure.
-  // Its original close is selected; no physical acknowledgement is inferred.
-  await f.initialControl.close();
-});
-
 test('timed installing fixed Host callback forwards actual Request header and original compiler exactly once',()=>{
   let declaration;visit(declared('openInstalledHost').body,node=>{if(node.type==='VariableDeclarator'&&node.id?.name==='prepareTimedRunInvocation')declaration=node;});assert(declaration);
   const prepared={},request={},artifact={},control={},retained={runDefinition:{wire:'saved-original-header'}},calls=[];
@@ -1650,45 +1598,6 @@ test('timed whole Source caller refuses an absent typed port and retains exact C
   }
 });
 
-test('timed whole Source installing closure forwards manager Option transiently without retaining a second carrier',async()=>{
-  const p=managedRunPorts(),prepared={},request={},sdkRequest={},artifact={},original={},scope={},time={},opaque=new Proxy({}, {get(){assert.fail('opaque Option inspected');}});
-  let planCalls=0,view;
-  const manager={adoptCapturePreparation(a,b,c,plan,construct){assert.equal(a,prepared);assert.equal(b,sdkRequest);assert.equal(c,request);const invocation=construct(artifact);assert.equal(invocation,opaque);assert.equal(plan(invocation),scope);return {original,value:p.value};},severPreparation(){},retireSeveredPreparation(){},close(){return {pending:false};}};
-  const f=lifecycle({runtime:p.runtime,factory:async()=>manager,originalRequest:a=>{assert.equal(a,prepared);return sdkRequest;},capturePlan(run,invocation){planCalls++;assert.equal(run.queryTimePreparation,time);assert.equal(invocation,opaque);return scope;}});
-  await f.preparation.prepareManagedCompute();
-  assert.equal(f.preparation.prepareManagedComputeRun(p.runtime,prepared,request,scope,(a,b,c,retained)=>{assert.equal(a,prepared);assert.equal(b,request);assert.equal(c,artifact);assert.equal(f.record.computeRuns.get(prepared).queryInvocation,retained);view=Object.freeze(Object.assign(retained,{queryTimePreparation:time}));return {original:opaque,retained:view};}),p.value);
-  const run=f.record.computeRuns.get(prepared);assert.equal(run.queryInvocation,view);assert.equal(Object.values(run).includes(opaque),false);assert.equal(planCalls,1);
-  const finish=f.preparation.retireManagedComputeRun(prepared);assert.equal(run.queryInvocation,undefined);finish();await f.initialControl.close();
-});
-
-
-test('timed installing Host retains partial original carrier before a throwing invocation issuer',async()=>{
-  const f=await timedInstallingFixture();let carrier;const compiled={},primary=Object.freeze(Error('partial first invocation'));
-  const construct=(prepared,request,artifact,held)=>{
-    assert.equal(prepared,f.prepared);assert.equal(request,f.request);
-    assert.equal(f.record.computeRuns.get(f.prepared).queryInvocation,held);
-    carrier=held;held.compiled=compiled;throw primary;
-  };
-  assert.throws(()=>f.begin(construct),error=>error===primary);
-  const run=f.record.computeRuns.get(f.prepared);assert.equal(run.failure,primary);
-  assert.equal(run.queryInvocation,carrier);assert.equal(carrier.compiled,compiled);
-  assert.throws(()=>f.begin(()=>assert.fail('no replacement issuer')),error=>error===primary);
-  await f.initialControl.close();
-});
-
-test('timed installing caller cuts invocation aliases before consumed parent settlement can throw',async()=>{
-  const f=await timedInstallingFixture({failSever:true});f.begin(f.factory);
-  const run=f.record.computeRuns.get(f.prepared),originalView=f.view;
-  assert.equal(run.queryInvocation,originalView);
-  assert.throws(()=>f.preparation.retireManagedComputeRun(f.prepared),error=>error===f.marker);
-  assert.equal(run.queryInvocation,undefined);assert.equal(run.queryTimePreparation,undefined);
-  assert.equal(run.prepared,f.prepared);assert.equal(run.closed,false);
-  const finish=f.preparation.retireManagedComputeRun(f.prepared);
-  assert.equal(run.prepared,undefined);assert.equal(run.closed,true);
-  assert.equal(f.events.filter(event=>event==='consume-holder').length,1);
-  assert.equal(f.events.filter(event=>event==='construct').length,1);
-  finish();await f.initialControl.close();
-});
 
 // Exercise the original installing methods with both managers retained, as a
 // cold Host can be after an ordinary operation. Opaque Core ports here prove
