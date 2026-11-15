@@ -7,6 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
+import {stageShortQueryFixtures} from './packed-fixture-support.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const names = ['client-wire', 'sdk', 'local-node', 'node'];
@@ -49,12 +50,7 @@ await copyFile(join(repository, 'scripts/fixtures/packed-local-without-duckdb.mj
   join(root, 'acceptance.mjs'));
 console.log(run(process.execPath, ['acceptance.mjs', 'initial']).trimEnd());
 console.log(run(process.execPath, ['acceptance.mjs', 'restart']).trimEnd());
-await copyFile(join(repository, 'scripts/fixtures/packed-short-queries.mjs'),
-  join(root, 'short-queries.mjs'));
-await copyFile(join(repository, 'scripts/fixtures/run-revision-assertions.mjs'),
-  join(root, 'run-revision-assertions.mjs'));
-await copyFile(join(repository, 'scripts/fixtures/client-cleanup.mjs'),
-  join(root, 'client-cleanup.mjs'));
+await stageShortQueryFixtures({repository, destination: root});
 await copyFile(join(repository, 'scripts/fixtures/packed-short-queries.typecheck.mts'),
   join(root, 'short-queries.typecheck.mts'));
 await copyFile(join(repository, 'packages/local-node/source-inventory.typecheck.mts'),

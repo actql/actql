@@ -12,6 +12,7 @@ import {fileURLToPath} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {releaseInterfaceCheck} from './release-interface-check.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
+import {stageShortQueryFixtures} from './packed-fixture-support.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
 import {observeNpmPackageRelease} from './release-registry.mjs';
 import {verifyPackageRelease} from './package-release.mjs';
@@ -156,9 +157,7 @@ try {
     ? (await readFile(join(approval, 'embedded-events.log'), 'utf8')).split('\n') : [];
   assert.equal(events.filter(v => v === 'computed').length, 0);
   assert.equal(events.filter(v => v === 'physical_start_reserved').length, 0);
-  await copyFile(join(repository, 'scripts/fixtures/packed-short-queries.mjs'), join(local, 'short-queries.mjs'));
-  await copyFile(join(repository, 'scripts/fixtures/run-revision-assertions.mjs'), join(local, 'run-revision-assertions.mjs'));
-  await copyFile(join(repository, 'scripts/fixtures/client-cleanup.mjs'), join(local, 'client-cleanup.mjs'));
+  await stageShortQueryFixtures({repository, destination: local});
   await copyFile(join(repository, 'scripts/fixtures/packed-short-queries.typecheck.mts'), join(local, 'short-queries.typecheck.mts'));
   results.push(await run(process.execPath, [join(repository, 'node_modules/typescript/bin/tsc'),
     '--strict', '--target', 'ES2022', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',

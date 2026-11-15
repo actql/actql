@@ -1,7 +1,8 @@
 // Follow authored fixture imports while keeping the real installed product
 // graph external. Product source is never copied as a fixture fallback.
-import {isAbsolute, join, relative, resolve, sep} from 'node:path';
+import {dirname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 import {realpathSync} from 'node:fs';
+import {copyFile, mkdir} from 'node:fs/promises';
 import {pathToFileURL} from 'node:url';
 import {localModuleGraphInputs} from './adapter-module-graph.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
@@ -22,6 +23,23 @@ export function packedFixtureSupport(root, entries,
     }
   }
   return support;
+}
+
+export async function stageShortQueryFixtures({repository, destination}) {
+  const entry = 'scripts/fixtures/packed-short-queries.mjs';
+  const files = [];
+  for (const path of packedFixtureSupport(repository, [entry])) {
+    const suffix = relative('scripts/fixtures', path);
+    if (isAbsolute(suffix) || suffix === '..' || suffix.startsWith('..' + sep)) {
+      throw new Error(`Unpackaged short-query fixture: ${path}`);
+    }
+    const name = path === entry ? 'short-queries.mjs' : suffix;
+    const target = join(destination, name);
+    await mkdir(dirname(target), {recursive: true});
+    await copyFile(join(repository, path), target);
+    files.push(name);
+  }
+  return files;
 }
 
 export const packedReadOpeningFixtureInputs = Object.freeze([
