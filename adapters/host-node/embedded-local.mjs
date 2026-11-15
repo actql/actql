@@ -1919,7 +1919,10 @@ async function openInstalledHost(originalInstallation, preparation) {
       preparation.assertResultPublicationCurrent();
       const actual = facts.recovered ?? facts;
       const prepared = actual.prepared, allowed = actual.allowed, definition = actual.definition;
-      const identity = actual.requestIdentity ?? actual.identity;
+      // restoreOriginal already authenticated this physical owner's Request
+      // against the independently readmitted Journal Request. Preserve that
+      // original; equal admitted handles are not interchangeable pointers.
+      const identity = actual.identity ?? actual.requestIdentity;
       if (prepared === undefined || allowed === undefined || definition === undefined || identity === undefined) {
         throw clientOperationError('InstalledLocalFileEffectResourcesUnavailable');
       }

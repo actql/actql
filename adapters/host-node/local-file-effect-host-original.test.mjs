@@ -112,6 +112,24 @@ test('Local Effect Host refuses missing saved Run and changed authorization befo
   }
 });
 
+test('Local Effect cold binding preserves its authenticated physical Request across Journal readmission',()=>{
+  const f=fixture({rows:101,members:17});
+  const readmitted=f.handles();
+  // The real restoreOriginal authenticated the original identity against this
+  // independently admitted Journal handle before returning both to recovery.
+  const recovered={...f.actual,requestIdentity:readmitted.identity};
+  const original=f.port.bindRunOriginal({recovered,managedEffect:f.managed});
+  assert.equal(f.port.limits(original).maxEffects,17);
+  assert.equal(f.runs.size,1);
+  assert.strictEqual(f.port.bindRunOriginal({recovered,managedEffect:f.managed}),original);
+  assert.throws(()=>f.port.bindRunOriginal({recovered:{...recovered,identity:readmitted.identity},
+    managedEffect:f.managed}),{code:'ForeignInstalledLocalFileEffectRun'});
+  assert.throws(()=>f.port.bindRunOriginal({recovered:{...recovered,prepared:readmitted.prepared},
+    managedEffect:f.managed}),/ForeignNominalPreparedRun/);
+  f.revoke();
+  assert.throws(()=>f.port.assertCurrent(original),error=>error===f.refusal);
+});
+
 test('Local Effect Host reconstructs validated saved handles but rejects a mismatched prepared original',()=>{
   const f=fixture(),first=f.port.bindRunOriginal(f.actual),restored=f.handles();
   const second=f.port.bindRunOriginal({recovered:{...restored,requestIdentity:restored.identity}});
