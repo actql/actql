@@ -176,7 +176,7 @@ test "request JSON caller keeps the same source while its actual domain consumer
 }
 
 ///|
-test "request bootstrap independently covers generic JSON entry allocated carriers before domain grow" {
+fn request_json_expected_bootstrap_control() -> Int64 {
   // The original 220H/402R/457W envelope adds four default-input limit
   // records and a Result wrapper (5H/7R/10W), plus the retired-scratch scalar (1W).
   // Observed intake adds ParseLimits/Some (2H/1R/3W) and the original
@@ -194,19 +194,22 @@ test "request bootstrap independently covers generic JSON entry allocated carrie
   // 1H/1R/1W =32 bytes before the syntax grow.
   // The shared post-lowering returned selection adds1H/1R =24 bytes.
   // One normalization-original reference adds1R before any grow.
+  // The prepared-original method's proxy, pair Array/backing, three growing
+  // names/methods/result backings and retained key/value add3H/16R/2W.
   // The existing 4096-byte entry group remains separate.
   // This independent tariff expansion includes no domain Source or Check body.
+  16L * (225L + 2L + 2L + 2L + 2L + 1L + 4L + 3L + 1L + 1L + 3L + 3L) +
+  8L * (409L + 1L + 2L + 2L + 2L + 2L + 11L + 6L + 1L + 1L + 4L + 1L + 16L) +
+  8L * (468L + 3L + 1L + 2L + 3L + 4L + 1L + 14L + 13L + 1L + 7L + 2L) +
+  4096L
+}
+
+///|
+test "request bootstrap independently covers generic JSON entry allocated carriers before domain grow" {
   let (retained, execution) = client_request_preparation_control_capacity(
     client_local_resource_policy(),
   ).unwrap()
-  assert_eq(retained, 15704L)
-  assert_eq(
-    16L * (225L + 2L + 2L + 2L + 2L + 1L + 4L + 3L + 1L + 1L + 3L) +
-    8L * (409L + 1L + 2L + 2L + 2L + 2L + 11L + 6L + 1L + 1L + 4L + 1L) +
-    8L * (468L + 3L + 1L + 2L + 3L + 4L + 1L + 14L + 13L + 1L + 7L) +
-    4096L,
-    15704L,
-  )
+  assert_eq(retained, request_json_expected_bootstrap_control())
   assert_eq(16L * 4L + 8L * 3L + 8L * 4L, 120L)
   assert_eq(16L * 2L + 8L * 2L + 8L * 2L, 64L)
   assert_eq(16L * 2L + 8L * 2L + 8L * 3L, 72L)
@@ -218,6 +221,7 @@ test "request bootstrap independently covers generic JSON entry allocated carrie
 ///|
 test "original request bootstrap entry carriers are already debited at the sole domain current callback" {
   let input = [1]
+  let expected_entry = request_json_expected_bootstrap_control()
   let selected : Ref[ClientRequestPreparation[Array[Int]]?] = Ref(None)
   let armed = Ref(false)
   let calls = Ref(0)
@@ -229,7 +233,7 @@ test "original request bootstrap entry carriers are already debited at the sole 
       let usage = @resources.ledger_usage(parent.ledger)
       backed_before_resize.val = parent.phase == Selecting &&
         parent.program_json is None &&
-        usage.reserved_retention_bytes == 15704L &&
+        usage.reserved_retention_bytes == expected_entry &&
         usage.reserved_execution_bytes == 0L
     }
     true
@@ -258,7 +262,7 @@ test "original request bootstrap entry carriers are already debited at the sole 
     16L * (585L + 8L + 1L) + 8L * (228L + 4L + 2L) + 8L * (1255L + 20L + 2L),
     21536L + 48L + 8L,
   )
-  assert_eq(usage.reserved_retention_bytes, 15704L + 21536L + 48L + 8L)
+  assert_eq(usage.reserved_retention_bytes, expected_entry + 21536L + 48L + 8L)
   assert_eq(usage.reserved_execution_bytes, 21536L + 48L + 8L)
   assert_true(physical_equal(child.capacity, parent.capacity))
   abort_request_preparation_after_cleanup(parent).unwrap()

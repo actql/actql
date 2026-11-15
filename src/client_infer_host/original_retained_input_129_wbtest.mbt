@@ -255,11 +255,19 @@ test "materialization witness refuses Ref0 tinyRead foreign completion and unquo
       rows,
       identity,
     )
-    is Err(_),
+    is Err(@input.CustodyUnavailable),
   )
-  assert_eq(forged.val, (0L, 0L))
-  assert_eq(@resources.ledger_usage(tiny).reserved_retention_bytes, 10L)
+  // Fixed facts controls were admitted before the variable-body grow failed.
+  // The same Read must preserve that actual prefix until its real retirement;
+  // a failed later constructor cannot reset either the Ref or the reservation.
+  let control = @relation.retained_readmission_facts_control_bytes()
+  assert_eq(forged.val, (7L + control, 5L + control))
+  let failed = @resources.ledger_usage(tiny)
+  assert_eq(failed.reserved_retention_bytes, 3L + forged.val.0)
+  assert_eq(failed.reserved_execution_bytes, 2L + forged.val.1)
   original_composed_test_release(tiny, tiny_consumer)
+  assert_eq(@resources.ledger_usage(tiny).reserved_retention_bytes, 0L)
+  assert_eq(@resources.ledger_usage(tiny).reserved_execution_bytes, 0L)
   let (ledger, read, consumer) = original_129_restore_read(fresh, 67108864L)
   @publication_host.enter_client_model_read_consumer(
     consumer,
