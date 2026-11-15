@@ -1445,3 +1445,42 @@ pub fn client_program_serialization_input_row_bound(
 ) -> Int {
   @client_local_host.client_serialization_input_row_bound(graph).unwrap_or(-1)
 }
+
+///|
+/// Keep the actual installed Whole acquisition distinct from a Query requirement.
+#export_name("clientProgramAdmitSerializationWholeCapturedInput")
+pub fn client_program_admit_serialization_whole_captured_input(
+  owner : @publication_host.PreparedClientProgram,
+  graph : @publication_host.ClientSerializationPlanGraph,
+  source : @query.CapturedInputSource,
+  identity : @query.CapturedSourceRelationIdentity,
+  capacity : @client_local_host.ClientInstalledWholeSourceCapacity,
+  logical : @publication.RunEvidenceValue,
+  source_wire : String,
+  authority_scope_cid : String,
+  started_at : String,
+  completed_at : String,
+) -> Result[
+  @publication_host.ClientSerializationCapturedInput,
+  @publication.RunEvidenceValueIssue,
+] {
+  let evidence = match
+    @publication.admit_run_evidence_value(
+      "source_evidence", source_wire, 100000, 10000, 100,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  @publication_host.admit_client_serialization_whole_captured_input(
+    owner,
+    graph,
+    source,
+    identity,
+    @client_local_host.installed_whole_source_original(capacity),
+    logical,
+    evidence,
+    authority_scope_cid,
+    started_at,
+    completed_at,
+  )
+}

@@ -52,3 +52,102 @@ test('deferred Catalog without an actual late provider refuses before inputs or 
     localEvidenceContext:{catalogDeferred:true}}),/MissingOriginalCatalogConstruction/);
   assert.equal(inspected,0);
 });
+
+// Exercise the actual Content adapter with explicit Core issuer doubles. These
+// checks establish tuple routing and call counts, not Core Whole admission.
+function serializationCaptureFixture() {
+  const compiledOriginal = {}, graphOriginal = {}, effect = {}, source = {},
+    identity = {}, capacity = {}, requirement = {}, logical = {}, proof = {}, calls = [];
+  const evidence = {name: 'fixture_evidence', identity: 'fixture_evidence', wire: '{}'};
+  const contract = {name: 'fixture_contract', identity: 'fixture_contract', wire: '{}'};
+  let refusal, sourceReads = 0;
+  const issue = port => (...args) => {
+    calls.push({port, args}); return refusal === undefined ? ok(proof) : {$tag: 0, _0: refusal};
+  };
+  const moon = {
+    strategyRemoteManagedOutputEvidenceKind: () => 'fixture metadata',
+    strategyPublicationAdmit: () => ok(contract),
+    strategyPublicationContractName: value => value.name,
+    strategyPublicationContractIdentityField: () => 'cid',
+    strategyPublicationContractIdentity: value => value.identity,
+    strategyPublicationContractJson: value => value.wire,
+    strategyRunEvidenceName: value => value.name,
+    strategyRunEvidenceIdentity: value => value.identity,
+    strategyRunEvidenceJson: value => value.wire,
+    clientProgramEffectAllowedSerializationRun: () => ok(compiledOriginal),
+    clientProgramCheckCompiledRunDefinition: () => true,
+    clientProgramCompiledRunHasSerialization: value => value === compiledOriginal,
+    clientProgramCompiledRunTemplate: () => evidence,
+    clientProgramCompiledRunPlan: () => contract,
+    clientProgramCompiledRunPrepared: () => evidence,
+    clientProgramCompiledRunAuthorization: () => evidence,
+    clientProgramCompiledRunAdmission: () => ({}),
+    clientProgramAcquiredSerializationPlanGraph: () => ok(graphOriginal),
+    clientProgramSerializationPlanGraphWire: () => '{}',
+    clientProgramAdmitEffectSerializationWholeCapturedInput: issue('effect-whole'),
+    clientProgramAdmitEffectSerializationCapturedInput: issue('effect-query'),
+    clientProgramAdmitSerializationWholeCapturedInput: issue('whole'),
+    clientProgramAdmitSerializationCapturedInput: issue('query'),
+  };
+  const control = runtimeCore(moon).publicationControl;
+  const definition = control.admit('run_definition', '{}',
+    {maxWireBytes: 4096, maxNodes: 256, maxDepth: 16});
+  const compiled = control.adoptCheckedClientEffectSerializationRun({}, definition);
+  const graph = control.prepareCheckedClientAcquiredSerializationGraph(effect,
+    {task: 1, step: 2, maxRows: 1, maxBytes: 256});
+  const captured = {capture: {source() {sourceReads++; return source;}}, identity, logicalInput: logical};
+  const observation = {sourceEvidenceWire: 'original evidence', authorityScopeCid: 'scope',
+    captureStartedAt: 'started', captureCompletedAt: 'completed'};
+  return {control, compiled, compiledOriginal, graph, graphOriginal, effect, captured,
+    source, identity, capacity, requirement, logical, proof, calls, observation,
+    reads: () => sourceReads, refuse(value) {refusal = value;}};
+}
+
+test('Content Whole and Query captures retain their distinct originals with one Core call', () => {
+  for (const whole of [false, true]) {
+    const f = serializationCaptureFixture();
+    const captured = whole ? {...f.captured, inputKind: 'whole-input', wholeCapacity: f.capacity}
+      : {...f.captured, requirement: f.requirement};
+    assert.strictEqual(f.control.bindCheckedClientEffectSerializationCapture(
+      f.compiled, f.effect, captured, f.observation), f.proof);
+    assert.equal(f.reads(), 1);
+    assert.equal(f.calls.length, 1);
+    assert.equal(f.calls[0].port, whole ? 'effect-whole' : 'effect-query');
+    assert.deepEqual(f.calls[0].args, [f.compiledOriginal, f.effect, f.source, f.identity,
+      whole ? f.capacity : f.requirement, f.logical, 'original evidence', 'scope', 'started', 'completed']);
+  }
+});
+
+test('plain Content preserves Query lookup evidence and never invents it for Whole', () => {
+  const f = serializationCaptureFixture(), keyed = {};
+  assert.strictEqual(f.control.bindCheckedClientSerializationCapture(f.effect, f.graph,
+    {...f.captured, requirement: f.requirement}, {...f.observation, keyedObservation: {observation: keyed}}), f.proof);
+  assert.equal(f.calls[0].port, 'query');
+  assert.strictEqual(f.calls[0].args.at(-1), keyed);
+  assert.strictEqual(f.control.bindCheckedClientSerializationCapture(f.effect, f.graph,
+    {...f.captured, inputKind: 'whole-input', wholeCapacity: f.capacity}, f.observation), f.proof);
+  assert.equal(f.calls[1].port, 'whole');
+  assert.strictEqual(f.calls[1].args[4], f.capacity);
+  const count = f.calls.length, reads = f.reads();
+  assert.throws(() => f.control.bindCheckedClientSerializationCapture(f.effect, f.graph,
+    {...f.captured, inputKind: 'whole-input'}, f.observation), TypeError);
+  assert.throws(() => f.control.bindCheckedClientSerializationCapture(f.effect, f.graph,
+    {...f.captured, inputKind: 'whole-input', wholeCapacity: f.capacity},
+    {...f.observation, keyedObservation: {observation: keyed}}), TypeError);
+  assert.equal(f.calls.length, count); assert.equal(f.reads(), reads);
+});
+
+test('Content refusal retains its primary cause without fallback or copied-original admission', () => {
+  const f = serializationCaptureFixture(), primary = new Error('original Whole refusal');
+  const captured = {...f.captured, inputKind: 'whole-input', wholeCapacity: f.capacity};
+  f.refuse(primary);
+  assert.throws(() => f.control.bindCheckedClientEffectSerializationCapture(
+    f.compiled, f.effect, captured, f.observation),
+  error => error.code === 'RunHostEffectContentCaptureRejected' && error.cause === primary);
+  assert.deepEqual(f.calls.map(call => call.port), ['effect-whole']); assert.equal(f.reads(), 1);
+  assert.throws(() => f.control.bindCheckedClientEffectSerializationCapture(
+    {...f.compiled}, f.effect, captured, f.observation), TypeError);
+  assert.throws(() => f.control.bindCheckedClientSerializationCapture(
+    f.effect, {...f.graph}, captured, f.observation), TypeError);
+  assert.equal(f.calls.length, 1); assert.equal(f.reads(), 1);
+});

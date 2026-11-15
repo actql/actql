@@ -399,3 +399,42 @@ pub fn client_program_admit_effect_serialization_captured_input(
     started_at, completed_at,
   )
 }
+
+///|
+/// Keep the actual installed Whole acquisition distinct from a Query requirement.
+#export_name("clientProgramAdmitEffectSerializationWholeCapturedInput")
+pub fn client_program_admit_effect_serialization_whole_captured_input(
+  run : @publication_host.ClientCompiledRun,
+  owner : @publication_host.PreparedClientEffectComputation,
+  source : @query.CapturedInputSource,
+  identity : @query.CapturedSourceRelationIdentity,
+  capacity : @client_local_host.ClientInstalledWholeSourceCapacity,
+  logical : @publication.RunEvidenceValue,
+  source_wire : String,
+  authority_scope_cid : String,
+  started_at : String,
+  completed_at : String,
+) -> Result[
+  @publication_host.ClientSerializationCapturedInput,
+  @publication.RunEvidenceValueIssue,
+] {
+  let evidence = match
+    @publication.admit_run_evidence_value(
+      "source_evidence", source_wire, 100000, 10000, 100,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  @publication_host.admit_client_effect_serialization_whole_captured_input(
+    run,
+    owner,
+    source,
+    identity,
+    @client_local_host.installed_whole_source_original(capacity),
+    logical,
+    evidence,
+    authority_scope_cid,
+    started_at,
+    completed_at,
+  )
+}

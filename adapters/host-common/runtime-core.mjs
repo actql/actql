@@ -3053,6 +3053,16 @@ function publicationControl(moon) {
       if (typeof captured?.capture?.source !== 'function' || captured.logicalInput === undefined) {
         throw new TypeError('Invalid Content Source capture');
       }
+      if (captured.inputKind === 'whole-input') {
+        if (captured.wholeCapacity === undefined || observation.keyedObservation !== undefined) {
+          throw new TypeError('Invalid Whole Content Source capture');
+        }
+        return compiledRunResult(moon.clientProgramAdmitSerializationWholeCapturedInput(
+          checkedProgram, selection, captured.capture.source(), captured.identity,
+          captured.wholeCapacity, captured.logicalInput, observation.sourceEvidenceWire,
+          observation.authorityScopeCid, observation.captureStartedAt, observation.captureCompletedAt),
+        'RunHostContentCaptureRejected');
+      }
       return compiledRunResult(moon.clientProgramAdmitSerializationCapturedInput(
         checkedProgram, selection, captured.capture.source(), captured.identity,
         captured.requirement, captured.logicalInput, observation.sourceEvidenceWire,
@@ -3075,9 +3085,14 @@ function publicationControl(moon) {
       if (typeof captured?.capture?.source !== 'function' || captured.logicalInput === undefined) {
         throw new TypeError('Invalid Effect Content Source capture');
       }
-      return compiledRunResult(moon.clientProgramAdmitEffectSerializationCapturedInput(
+      const whole = captured.inputKind === 'whole-input';
+      const original = whole ? captured.wholeCapacity : captured.requirement;
+      if (original === undefined) throw new TypeError('Invalid Effect Content Source original');
+      const admit = whole ? moon.clientProgramAdmitEffectSerializationWholeCapturedInput
+        : moon.clientProgramAdmitEffectSerializationCapturedInput;
+      return compiledRunResult(admit(
         value, checkedEffect, captured.capture.source(), captured.identity,
-        captured.requirement, captured.logicalInput, observation.sourceEvidenceWire,
+        original, captured.logicalInput, observation.sourceEvidenceWire,
         observation.authorityScopeCid, observation.captureStartedAt, observation.captureCompletedAt),
       'RunHostEffectContentCaptureRejected');
     },
