@@ -116473,7 +116473,7 @@
               },
               {
                 "path": "src/client_local_host/preparation_request_effect_keyed_js_wbtest.mbt",
-                "anchor": "fn request_source_keyed_graph_fixture()"
+                "anchor": "fn request_source_keyed_graph_fixture(\n  generic? : Bool = false,\n) -> ("
               }
             ]
           }
@@ -120368,7 +120368,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "bbda3fe02f0e58d7bc61152fd5ae5e6fa384d6386b2406f0dde1335de0eeeba3"
+      "sha256": "fce352a6dbfdb51bda1fe7fa7c02e8917faefa1d255a660114d24d2e34a789a0"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
@@ -130031,7 +130031,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect-managed-run.mjs",
-      "sha256": "389d09d37517085f0f49e477e805fc7b40a7f9056a0b61588a4e274790458f0f",
+      "sha256": "a986599d7066f62edb2f8a22b90f718bce55a0433fddcc98e4100f3b8b6203a6",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",

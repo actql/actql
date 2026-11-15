@@ -23904,6 +23904,7 @@
             "publicationControl/init:bindCheckedClientRequestEffectKeyedOriginal/init:bindCheckedClientRequestEffectKeyedOriginal",
             "publicationControl/init:bindCheckedInstalledEffectModelInvocation/init:bindCheckedInstalledEffectModelInvocation",
             "publicationControl/init:bindCheckedInstalledEffectSourceFreeInvocation/init:bindCheckedInstalledEffectSourceFreeInvocation",
+            "publicationControl/init:finishGenericEffectKeyedLookupPublicationInput/init:finishGenericEffectKeyedLookupPublicationInput",
             "publicationControl/init:issueCheckedClientEffectSourceFreeInvocationOriginal/init:issueCheckedClientEffectSourceFreeInvocationOriginal",
             "publicationControl/init:issueCheckedInstalledEffectCapturedInvocation/init:issueCheckedInstalledEffectCapturedInvocation",
             "publicationControl/init:issueCheckedInstalledEffectContentInvocation/init:issueCheckedInstalledEffectContentInvocation",
@@ -23919,6 +23920,7 @@
             "publicationControl/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation/issued/issued#2",
             "publicationControl/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation/issued/issued#3",
             "publicationControl/init:originalCheckedClientEffectPublication/init:originalCheckedClientEffectPublication",
+            "publicationControl/init:prepareGenericEffectKeyedLookupSourceMetadata/init:prepareGenericEffectKeyedLookupSourceMetadata",
             "publicationControl/init:prepareInstalledEffectKeyedSourceUnit/init:prepareInstalledEffectKeyedSourceUnit",
             "publicationControl/init:prepareInstalledEffectKeyedSourceUnit/init:prepareInstalledEffectKeyedSourceUnit/bodies/bodies",
             "publicationControl/init:prepareInstalledEffectKeyedSourceUnit/init:prepareInstalledEffectKeyedSourceUnit/value/value",
@@ -23940,6 +23942,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "prepareInstalledEffectKeyedSourceUnit(parent, prepared, request, plan, host,"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareGenericEffectKeyedLookupSourceMetadata(parent, lookup, captures, sources, selection, limits) {"
               }
             ],
             "inputsOutputs": [
@@ -23954,6 +23960,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "prepareInstalledEffectKeyedSourceUnit(parent, prepared, request, plan, host,"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareGenericEffectKeyedLookupSourceMetadata(parent, lookup, captures, sources, selection, limits) {"
               }
             ],
             "identity": [
@@ -23968,6 +23978,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "prepareInstalledEffectKeyedSourceUnit(parent, prepared, request, plan, host,"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareGenericEffectKeyedLookupSourceMetadata(parent, lookup, captures, sources, selection, limits) {"
               }
             ],
             "ownership": [
@@ -23982,6 +23996,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "prepareInstalledEffectKeyedSourceUnit(parent, prepared, request, plan, host,"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareGenericEffectKeyedLookupSourceMetadata(parent, lookup, captures, sources, selection, limits) {"
               }
             ],
             "synchronization": [
@@ -23996,6 +24014,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "prepareInstalledEffectKeyedSourceUnit(parent, prepared, request, plan, host,"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareGenericEffectKeyedLookupSourceMetadata(parent, lookup, captures, sources, selection, limits) {"
               }
             ],
             "failure": [
@@ -24010,6 +24032,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "prepareInstalledEffectKeyedSourceUnit(parent, prepared, request, plan, host,"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareGenericEffectKeyedLookupSourceMetadata(parent, lookup, captures, sources, selection, limits) {"
               }
             ],
             "cancellation": [
@@ -24024,6 +24050,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "prepareInstalledEffectKeyedSourceUnit(parent, prepared, request, plan, host,"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareGenericEffectKeyedLookupSourceMetadata(parent, lookup, captures, sources, selection, limits) {"
               }
             ],
             "resources": [
@@ -24038,6 +24068,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "prepareInstalledEffectKeyedSourceUnit(parent, prepared, request, plan, host,"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareGenericEffectKeyedLookupSourceMetadata(parent, lookup, captures, sources, selection, limits) {"
               }
             ],
             "extension": [
@@ -24052,6 +24086,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "prepareInstalledEffectKeyedSourceUnit(parent, prepared, request, plan, host,"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareGenericEffectKeyedLookupSourceMetadata(parent, lookup, captures, sources, selection, limits) {"
               }
             ],
             "verification": [
@@ -24062,6 +24100,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-publication.test.mjs",
                 "anchor": "test('Source-only keyed publication retains both original Sources and one combined Unit'"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.test.mjs",
+                "anchor": "test('generic Source-only keyed publication uses original metadata and completion without Native history'"
               }
             ]
           }
@@ -27514,6 +27556,16 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:finishGenericEffectKeyedLookupPublicationInput/init:finishGenericEffectKeyedLookupPublicationInput",
+          "parameters": [
+            "parent",
+            "lookup",
+            "observedAt",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:finishResultDelivery/init:finishResultDelivery",
           "parameters": [
             "serializer"
@@ -29523,6 +29575,18 @@
           "name": "publicationControl/init:prepareEffectCommandContentArtifact/init:prepareEffectCommandContentArtifact/init:prepareEffectCommandContentArtifact",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareGenericEffectKeyedLookupSourceMetadata/init:prepareGenericEffectKeyedLookupSourceMetadata",
+          "parameters": [
+            "parent",
+            "lookup",
+            "captures",
+            "sources",
+            "selection",
+            "limits"
           ],
           "async": false
         },
@@ -33369,7 +33433,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "7275bcc94d1f990d5dc760b8bebe8e766436a57328f62320b631c22886008922"
+      "sha256": "e741fb8d342a9bf0e2fbd9678db34e35bdad02124b7cefb0be9b47556ef1cc41"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -33995,7 +34059,7 @@
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "af8b54898ab056b51782df5296e3c8b1ed2132362939d283bba2865580751848",
+      "sha256": "cd9e1f8b9d32df197d3eee3423fe4f009ca32e91437cc55b34a5323fa2081a67",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -91713,7 +91777,7 @@
     {
       "module": "adapters/host-node/installed-row-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "8f32c823d22d04bce6b6bfd71e628811147296f578d1b44797f24c9d06faabc1",
+      "sha256": "5f61b3e40445748976fbb347bdd6ba5187f0ca9be3d20584e1901d355dc276cb",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -93536,7 +93600,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "d44b4ab61ba66c1546882a1b7d6cbb1626df717a00182d45b80f7101496e5f52",
+      "sha256": "7ac0388edbc939e6711c511cee2992e06e43759cc7ee82906bb46fc5570b8bfd",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -100918,7 +100982,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "7e3eb68ce6c246cc89bb296fdb20c7f121e2f3c7f66b730efe53749ba56a91d6",
+      "sha256": "d32d93fe643b4b0bf452c63ac956baf0e8ada4a9ebf949f061db75045fa3ba9a",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -161921,7 +161985,7 @@
     {
       "module": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "36a01553f6d46af9ebb79ae53703dd87a8c6ebe0efc842f9b6b128fdbe0651f8",
+      "sha256": "70c141832cbce8d29f0d3ce095e01a906a2c13dea0b4cd7d4628262588361752",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -161929,6 +161993,43 @@
         "prepareAcquiredEffectKeyedPrefix"
       ],
       "operations": [
+        {
+          "name": "originalGenericKeyedLookupPublication",
+          "parameters": [
+            "acquired",
+            "sourceOriginal",
+            "captures",
+            "sources",
+            "signal",
+            "now",
+            "current"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalGenericKeyedLookupPublication/init:cleanup/init:cleanup",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "originalGenericKeyedLookupPublication/init:finishInput/init:finishInput",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalGenericKeyedLookupPublication/init:initialize/init:initialize",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalGenericKeyedLookupPublication/originalCurrent/originalCurrent",
+          "parameters": [],
+          "async": false
+        },
         {
           "name": "originalKeyedLookupPublication",
           "parameters": [
@@ -162086,6 +162187,11 @@
         {
           "operations": [
             "<module>",
+            "originalGenericKeyedLookupPublication",
+            "originalGenericKeyedLookupPublication/init:cleanup/init:cleanup",
+            "originalGenericKeyedLookupPublication/init:finishInput/init:finishInput",
+            "originalGenericKeyedLookupPublication/init:initialize/init:initialize",
+            "originalGenericKeyedLookupPublication/originalCurrent/originalCurrent",
             "originalKeyedLookupPublication",
             "originalKeyedLookupPublication/init:activate/init:activate",
             "originalKeyedLookupPublication/init:adopt/init:adopt",
@@ -162121,6 +162227,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "async function prepareOriginalEffectKeyedInput("
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "function originalGenericKeyedLookupPublication("
               }
             ],
             "inputsOutputs": [
@@ -162135,6 +162245,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "async function prepareOriginalEffectKeyedInput("
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "function originalGenericKeyedLookupPublication("
               }
             ],
             "identity": [
@@ -162149,6 +162263,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "async function prepareOriginalEffectKeyedInput("
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "function originalGenericKeyedLookupPublication("
               }
             ],
             "ownership": [
@@ -162163,6 +162281,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "async function prepareOriginalEffectKeyedInput("
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "function originalGenericKeyedLookupPublication("
               }
             ],
             "synchronization": [
@@ -162177,6 +162299,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "async function prepareOriginalEffectKeyedInput("
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "function originalGenericKeyedLookupPublication("
               }
             ],
             "failure": [
@@ -162191,6 +162317,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "async function prepareOriginalEffectKeyedInput("
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "function originalGenericKeyedLookupPublication("
               }
             ],
             "cancellation": [
@@ -162205,6 +162335,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "async function prepareOriginalEffectKeyedInput("
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "function originalGenericKeyedLookupPublication("
               }
             ],
             "resources": [
@@ -162219,6 +162353,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "async function prepareOriginalEffectKeyedInput("
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "function originalGenericKeyedLookupPublication("
               }
             ],
             "extension": [
@@ -162233,6 +162371,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "async function prepareOriginalEffectKeyedInput("
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "function originalGenericKeyedLookupPublication("
               }
             ],
             "verification": [
@@ -162243,6 +162385,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.test.mjs",
                 "anchor": "test('Source-only keyed capture uses the same original lookup without Model or prefix execution'"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.test.mjs",
+                "anchor": "test('generic Source-only keyed publication uses original metadata and completion without Native history'"
               }
             ]
           }

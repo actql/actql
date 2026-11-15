@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "af8b54898ab056b51782df5296e3c8b1ed2132362939d283bba2865580751848",
+      "sha256": "cd9e1f8b9d32df197d3eee3423fe4f009ca32e91437cc55b34a5323fa2081a67",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -25515,7 +25515,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "7e3eb68ce6c246cc89bb296fdb20c7f121e2f3c7f66b730efe53749ba56a91d6",
+      "sha256": "d32d93fe643b4b0bf452c63ac956baf0e8ada4a9ebf949f061db75045fa3ba9a",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -28842,12 +28842,49 @@
     },
     {
       "module": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
-      "sha256": "36a01553f6d46af9ebb79ae53703dd87a8c6ebe0efc842f9b6b128fdbe0651f8",
+      "sha256": "70c141832cbce8d29f0d3ce095e01a906a2c13dea0b4cd7d4628262588361752",
       "exports": [
         "prepareAcquiredEffectKeyedCapture",
         "prepareAcquiredEffectKeyedPrefix"
       ],
       "operations": [
+        {
+          "name": "originalGenericKeyedLookupPublication",
+          "parameters": [
+            "acquired",
+            "sourceOriginal",
+            "captures",
+            "sources",
+            "signal",
+            "now",
+            "current"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalGenericKeyedLookupPublication/init:cleanup/init:cleanup",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "originalGenericKeyedLookupPublication/init:finishInput/init:finishInput",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalGenericKeyedLookupPublication/init:initialize/init:initialize",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalGenericKeyedLookupPublication/originalCurrent/originalCurrent",
+          "parameters": [],
+          "async": false
+        },
         {
           "name": "originalKeyedLookupPublication",
           "parameters": [
@@ -29008,6 +29045,11 @@
         {
           "operations": [
             "<module>",
+            "originalGenericKeyedLookupPublication",
+            "originalGenericKeyedLookupPublication/init:cleanup/init:cleanup",
+            "originalGenericKeyedLookupPublication/init:finishInput/init:finishInput",
+            "originalGenericKeyedLookupPublication/init:initialize/init:initialize",
+            "originalGenericKeyedLookupPublication/originalCurrent/originalCurrent",
             "originalKeyedLookupPublication",
             "originalKeyedLookupPublication/init:activate/init:activate",
             "originalKeyedLookupPublication/init:adopt/init:adopt",
@@ -29043,6 +29085,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "async function prepareOriginalEffectKeyedInput("
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "function originalGenericKeyedLookupPublication("
               }
             ],
             "inputsOutputs": [
@@ -29057,6 +29103,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "async function prepareOriginalEffectKeyedInput("
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "function originalGenericKeyedLookupPublication("
               }
             ],
             "identity": [
@@ -29071,6 +29121,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "async function prepareOriginalEffectKeyedInput("
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "function originalGenericKeyedLookupPublication("
               }
             ],
             "ownership": [
@@ -29085,6 +29139,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "async function prepareOriginalEffectKeyedInput("
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "function originalGenericKeyedLookupPublication("
               }
             ],
             "synchronization": [
@@ -29099,6 +29157,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "async function prepareOriginalEffectKeyedInput("
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "function originalGenericKeyedLookupPublication("
               }
             ],
             "failure": [
@@ -29113,6 +29175,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "async function prepareOriginalEffectKeyedInput("
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "function originalGenericKeyedLookupPublication("
               }
             ],
             "cancellation": [
@@ -29127,6 +29193,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "async function prepareOriginalEffectKeyedInput("
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "function originalGenericKeyedLookupPublication("
               }
             ],
             "resources": [
@@ -29141,6 +29211,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "async function prepareOriginalEffectKeyedInput("
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "function originalGenericKeyedLookupPublication("
               }
             ],
             "extension": [
@@ -29155,6 +29229,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "async function prepareOriginalEffectKeyedInput("
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "function originalGenericKeyedLookupPublication("
               }
             ],
             "verification": [
@@ -29165,6 +29243,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.test.mjs",
                 "anchor": "test('Source-only keyed capture uses the same original lookup without Model or prefix execution'"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.test.mjs",
+                "anchor": "test('generic Source-only keyed publication uses original metadata and completion without Native history'"
               }
             ]
           }
