@@ -3,6 +3,9 @@
 // SQL projects its SELECT before ordering; Pipe orders its current selected
 // scope and binds the final Result projection. Semantic equivalence does not
 // require byte-identical Programs or matching compilation identities.
+export const quotedLeadQuery = 'SELECT id, LEAD(id) OVER (ORDER BY id) AS `following` '
+  + 'FROM records WHERE id < 3';
+
 const capture = {
   id: 'capture',
   inputs: {remote: {connector: 'crm/main', resource: 'r'}},

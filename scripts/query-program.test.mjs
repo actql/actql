@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
 import {fileURLToPath} from 'node:url';
-import {groupedQueryCases} from './fixtures/grouped-query-programs.mjs';
+import {groupedQueryCases, quotedLeadQuery} from './fixtures/grouped-query-programs.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
 import {hexIntegerSuccesses, hexIntegerRefusals} from './fixtures/hex-integer-source-input.mjs';
 import {compileCapturedQueryJson as compileCapturedQueryWithCatalogJson, compileQueryJson,
@@ -25,13 +25,8 @@ const fields = Object.keys(input.schema);
 const sql = await readFile(fixture('query-pair.standard.sql'), 'utf8');
 const pipe = await readFile(fixture('query-pair.pipe.sql'), 'utf8');
 
-test('packed analytic LEAD fixture preserves its original quoted output name', async () => {
-  const source = await readFile(new URL('./test-node-client-package.mjs', import.meta.url), 'utf8');
-  const expression = /\['lead',\s*((?:'(?:\\.|[^'\\])*'\s*\+\s*)*'(?:\\.|[^'\\])*')\s*,/u.exec(source);
-  assert(expression, 'Keep the actual packed LEAD caller');
-  // Only the selected literal-string expression is evaluated, not the packed
-  // installer, Host or any of its stateful acceptance steps.
-  const sql = new Function('return (' + expression[1] + ');')();
+test('packed analytic LEAD fixture preserves its original quoted output name', () => {
+  const sql = quotedLeadQuery;
   const compile = text => compileCapturedQueryJson(text, 'records', 'remote',
     JSON.stringify({connector: 'crm/main', resource: 'r'}),
     JSON.stringify(['id', 'amount']), 'fixture.analytic_lead');

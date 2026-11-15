@@ -12,7 +12,7 @@ import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
 import {packedClientPackage, pinnedDuckDBPackage} from './packed-client-packages.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
-import {groupedQueryCases} from './fixtures/grouped-query-programs.mjs';
+import {groupedQueryCases, quotedLeadQuery} from './fixtures/grouped-query-programs.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const graphOnly = process.argv.includes('--graph-only');
@@ -869,9 +869,7 @@ const analyticCases = [
     'SELECT id, DENSE_RANK() OVER (ORDER BY id) AS ranking '
       + 'FROM records WHERE id < 3',
     [{id: 1, ranking: 1}, {id: 2, ranking: 2}]],
-  ['lead',
-    'SELECT id, LEAD(id) OVER (ORDER BY id) AS `following` '
-      + 'FROM records WHERE id < 3',
+  ['lead', quotedLeadQuery,
     [{id: 1, following: 2}, {id: 2, following: null}]],
   ['first-value',
     'SELECT id, FIRST_VALUE(amount) OVER (ORDER BY id '
