@@ -300,6 +300,10 @@ pub fn generated_bounded_sequence_capacity(
             @lower.kernel_bindings(kernel) is Some(_) ||
             @lower.kernel_body(kernel) is @lower.StableSort(_) ||
             @lower.kernel_body(kernel) is @lower.Select(_) ||
+            // FILTER forwards the same admitted cells after its unchanged
+            // predicate, stepped input/output rechecks and occurrence charge.
+            // Its complete independent Fragment workspace remains below.
+            @lower.kernel_body(kernel) is @lower.Filter(_) ||
             // UNNEST scans original arrays and rechecks the same immutable
             // carried/element values. Its maps, row arrays, complete input
             // charge and recheck/measurement cursors remain funded below.

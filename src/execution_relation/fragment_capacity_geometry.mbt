@@ -1,4 +1,49 @@
 ///|
+// SAME admitted Fragment roots, including dormant branches and every typed
+// child/intermediate. Number/Boolean/Null payloads are bounded immediate
+// cells; a scalar result alone cannot establish this constructor fact.
+// Reuse the original typed node table, never sampled rows or authored SQL.
+fn bounded_primitive_fragment_nodes(context : FragmentRuntimeContext) -> Int? {
+  let request = context.fragment.candidate.material.request.request
+  let roots = @lower.fragment_pipeline_roots(
+    @lower.fragment_request_pipeline(request),
+  )
+  if !physical_equal(
+      @lower.sequence_owner(@lower.root_sequence(roots)),
+      @lower.kernel_owner(context.kernel),
+    ) ||
+    @lower.root_step_range(roots) !=
+    (@lower.kernel_step(context.kernel), @lower.kernel_step(context.kernel) + 1) {
+    return None
+  }
+  let mut total = 0
+  for index in 0..<@lower.root_count(roots) {
+    guard @lower.root_at(roots, index) is Some(root) &&
+      root.step_index == @lower.kernel_step(context.kernel) else {
+      return None
+    }
+    let original = root.typed_expression
+    let count = @typing.node_count(original)
+    if count < 1 || count > 2147483647 - total {
+      return None
+    }
+    for node in 0..<count {
+      guard @typing.node_at(original, node) is Some(value) else { return None }
+      match value.contract.shape {
+        @contract.Number | @contract.Boolean => ()
+        _ => return None
+      }
+    }
+    total += count
+  }
+  if total > 0 {
+    Some(total)
+  } else {
+    None
+  }
+}
+
+///|
 // Constructor proof for the bounded, selected, single binding-row provider.
 // This is not a bound inferred from an AST's encoded size. The accepted
 // evaluator paths (expression.mbt) return an input/prior-slot alias, capture an
@@ -26,16 +71,30 @@ fn bounded_leaf_fragment_capacity(
     physical_equal(
       @lower.kernel_owner(kernel),
       @lower.sequence_owner(generated.sequence),
-    ) &&
-    @lower.kernel_bindings(kernel) is Some(bindings) else {
+    ) else {
     return None
   }
-  let count = @lower.bindings_count(bindings)
-  let ordered = @lower.bindings_ordered(bindings)
+  let bindings = @lower.kernel_bindings(kernel)
+  let predicate_nodes = if @lower.kernel_body(kernel) is @lower.Filter(_) {
+    bounded_primitive_fragment_nodes(context)
+  } else {
+    None
+  }
+  let count = match bindings {
+    Some(value) => @lower.bindings_count(value)
+    None =>
+      match predicate_nodes {
+        Some(nodes) => nodes
+        None => return None
+      }
+  }
+  let ordered = bindings.map(@lower.bindings_ordered).unwrap_or(false)
   let mut text_number = false
   let mut properties = 0L
-  for index in 0..<count {
-    guard @lower.binding_at(bindings, index) is Some((_, expression)) else {
+  // A proven primitive predicate retains all original roots/continuations;
+  // other predicates keep the complete generic live-value DATA envelope.
+  for index in 0..<bindings.map(@lower.bindings_count).unwrap_or(0) {
+    guard @lower.binding_at(bindings.unwrap(), index) is Some((_, expression)) else {
       return None
     }
     // Property continuations retain the original receiver and return its

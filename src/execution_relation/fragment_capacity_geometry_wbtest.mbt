@@ -567,3 +567,107 @@ test "bounded immediate leaf unused codec ceilings preserve real workspace and o
     )
   }
 }
+
+///|
+test "bounded primitive Filter scans every original typed intermediate including dormant branches" {
+  for
+    (expression, primitive) in [
+      ("{\"gt\":[{\"field\":\"a\"},{\"literal\":0}]}", true),
+      (
+        "{\"if\":[{\"literal\":true},{\"eq\":[{\"field\":\"a\"},{\"literal\":1}]},{\"not\":{\"literal\":false}}]}",
+        true,
+      ),
+      (
+        "{\"if\":[{\"literal\":true},{\"gt\":[{\"field\":\"a\"},{\"literal\":0}]},{\"eq\":[{\"literal\":\"dormant\"},{\"literal\":\"dormant\"}]}]}",
+        false,
+      ),
+      (
+        "{\"if\":[{\"literal\":true},{\"literal\":true},{\"in\":[{\"literal\":1},{\"literal\":[1]}]}]}",
+        false,
+      ),
+    ] {
+    let owner = row_owner(",{\"filter\":" + expression + "}")
+    let sequence = prepared_sequence(owner)
+    let context = sequence_fragment_context(sequence, 1, 2L)
+    let generated = prepare_generated_sequence(
+      registered_relation_contracts(),
+      sequence,
+      [context],
+      ["where_1"],
+      100000,
+      10000,
+    ).unwrap()
+    let selected = select_generated_sequence_step(generated, 1).unwrap()
+    assert_eq(bounded_primitive_fragment_nodes(context) is Some(_), primitive)
+    let limits = leaf_geometry_limits(2)
+    assert_eq(
+      bounded_leaf_fragment_capacity(selected, context, limits) is Some(_),
+      primitive,
+    )
+    let measurement : FixedInputGuardMeasureLimits = {
+      max_work: 100000,
+      max_bytes: 100000,
+      max_nodes: 10000,
+      max_depth: 100,
+    }
+    let quote = generated_bounded_sequence_capacity(
+      selected, limits, measurement,
+    ).unwrap()
+    let larger = {
+      ..context,
+      limits: {
+        ..context.limits,
+        max_live_value_bytes: context.limits.max_live_value_bytes + 1L,
+      },
+    }
+    let widened = generated_bounded_sequence_capacity(
+      { ..selected, contexts: [larger], },
+      limits,
+      measurement,
+    ).unwrap()
+    assert_eq(
+      widened.execution_bytes - quote.execution_bytes,
+      if primitive {
+        0L
+      } else {
+        264L
+      },
+    )
+    if primitive {
+      let input = row_capture(owner)
+      let execute = fn(original, workspace) {
+        let budget = fragment_runtime_for_kernel(original, original.kernel).unwrap()
+        evaluate_rows_with_workspace(
+          original.kernel,
+          input,
+          2,
+          { remaining: 100000, max_frames: 100, },
+          row_output(),
+          workspace,
+          ordered_budget=Some(budget),
+        )
+      }
+      let observed = row_workspace(100000)
+      assert_eq(execute(context, observed).unwrap().rows.length(), 1)
+      assert_true(observed.peak > 0)
+      assert_eq(
+        execute(context, row_workspace(observed.peak)).unwrap().rows.length(),
+        1,
+      )
+      assert_true(
+        execute(context, row_workspace(observed.peak - 1)) is Err(RowLimit),
+      )
+      let short = {
+        ..context,
+        limits: { ..context.limits, max_input_rows: 1L, },
+      }
+      assert_true(
+        execute(short, row_workspace(observed.peak))
+        is Err(LogicalRows(InputRowLimit)),
+      )
+    }
+    // This pure quote cannot change execution's original logical allowance.
+    assert_eq(larger.limits.max_work, context.limits.max_work)
+    assert_eq(larger.physical.max_body_bytes, context.physical.max_body_bytes)
+  }
+}

@@ -69,11 +69,37 @@ test "bounded Text Result wire counts every alias independently of larger work p
   // sixfold escaping/punctuation formula; no output row is sampled or emitted.
   let expected = 101005312
   assert_eq(client_local_result_scalar_wire_bytes(graph, 1), Some(expected))
-  let original = publication_plan_fixture(prepared).capacity_plan
+  // This test prices static publication metadata, not a default Host run.
+  // Obtain the SAME checked sequences/row domain before choosing each work
+  // policy below; an unrelated default runtime need not admit this wide row.
+  let assets = @publication_host.client_local_product_assets()
+  let selected = @publication_host.client_standard_program_preparation_limits()
+  let standard_codec = @publication_host.client_standard_pure_compilation_limits()
+  let sequences = prepare_client_local_sequences_owned(
+    Pure(prepared),
+    prepare_installed_sequence_contracts(
+      assets.registry,
+      assets.values,
+      Some(assets.fragment),
+      assets.ordered,
+    ).unwrap(),
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+    compilation_limits=Some({
+      ..standard_codec,
+      max_wire_bytes: selected.checking.compilation.artifacts.bytes,
+      max_nodes: selected.checking.compilation.artifacts.nodes,
+      max_depth: selected.checking.compilation.artifacts.depth,
+    }),
+  ).unwrap()
+  let admitted_rows = @publication_host.prepared_client_values_max_rows(
+    prepared,
+  )
   for work in [30000000, 100000000] {
     let plan = client_local_capacity_plan(
-      original.sequences,
-      original.admitted_rows,
+      sequences,
+      admitted_rows,
       scalar_values=true,
       graph=Some(graph),
       source_free_max_work=Some(work),
@@ -92,8 +118,8 @@ test "bounded Text Result wire counts every alias independently of larger work p
     assert_eq(narrow.values.max_work, work)
   }
   let small_work = client_local_capacity_plan(
-    original.sequences,
-    original.admitted_rows,
+    sequences,
+    admitted_rows,
     scalar_values=true,
     graph=Some(graph),
     source_free_max_work=Some(1),
