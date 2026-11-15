@@ -4590,7 +4590,8 @@
         "./entry.mjs",
         "./installed-source.mjs",
         "./local-values-plan.mjs",
-        "./ordinary-source-binding.mjs"
+        "./ordinary-source-binding.mjs",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
