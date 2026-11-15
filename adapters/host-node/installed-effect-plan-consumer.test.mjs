@@ -1758,3 +1758,36 @@ test('target material inverse is admitted once before the original Request is ad
   assert.equal(actual.materialsWire,'full-materials');assert(Object.isFrozen(actual));
   assert.deepEqual(events,['issue','reserve','inverse','adopt']);
 });
+
+
+test('ordinary material inverse receives the same installed text-time and calendar selections', async () => {
+  const {installUpdateTargetOriginals}=await import('./installed-update-originals.mjs');
+  const source=readFileSync(new URL('./embedded-local.mjs',import.meta.url),'utf8');
+  const calls=[];
+  (function walk(node){
+    if(!node||typeof node!=='object')return;
+    if(node.type==='CallExpression'&&node.callee.type==='Identifier'&&node.callee.name==='installUpdateTargetOriginals')calls.push(node);
+    for(const value of Object.values(node))if(Array.isArray(value))value.forEach(walk);else if(value&&typeof value==='object')walk(value);
+  })(parse(source,{ecmaVersion:'latest',sourceType:'module'}));
+  assert.equal(calls.length,1);
+  const expression=source.slice(calls[0].arguments[0].start,calls[0].arguments[0].end);
+  for(const textTimeEnabled of [false,true])for(const calendarArtifact of [undefined,{}]){
+    const prepared={},compilation={},allowed={},definition={},identity={},materials={},seen=[];
+    const moon={
+      clientProgramEffectRunMaterialsPrepared:value=>{assert.strictEqual(value,materials);return prepared;},
+      clientProgramEffectRunMaterialsCompilation:value=>{assert.strictEqual(value,materials);return compilation;},
+      clientProgramEffectRunMaterialsAllowed:()=>allowed,clientProgramEffectRunMaterialsDefinition:()=>definition,
+      clientProgramAdmitEffectRunMaterialsWithCompilation(){assert.fail('No generic or wire-only fallback');}
+    };
+    const preparation={admitManagedEffectMaterials(runtime,p,wire,run,c,request,features){
+      assert.strictEqual(runtime,moon);assert.strictEqual(p,prepared);assert.strictEqual(c,compilation);
+      assert.strictEqual(request,identity);assert.equal(wire,'same-wire');assert.equal(run,'same-run');
+      seen.push(features);return materials;
+    }};
+    const ports={moon,control:{},installedEffect:{},localContractLimits:{},textTimeEnabled,calendarArtifact,preparation};
+    const options=new Function(...Object.keys(ports),'return ('+expression+');')(...Object.values(ports));
+    const owner=installUpdateTargetOriginals(options);
+    assert.strictEqual(owner.restoreEffectMaterials('same-wire',{identity:'same-run'},identity,compilation,prepared).materials,materials);
+    assert.deepEqual(seen,[[textTimeEnabled,true,true,true,true,calendarArtifact!==undefined,false]]);
+  }
+});

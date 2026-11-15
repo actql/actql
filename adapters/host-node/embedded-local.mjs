@@ -2248,6 +2248,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   let environment;
   let evidenceCid;
   let sourcePublication;
+  let textTimeEnabled;
   try {
     if (environmentBody === undefined) {
       const {evidence_bundle_cid: selectedEvidenceCid, ...selectedBody} = JSON.parse(environmentWire);
@@ -2267,7 +2268,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       : preparation.readAsset('spec/dependencies/actql-graph-laws.json'));
     // These declarations admit checking for the installed family providers.
     // The exact task offer and execution obligations still select capability.
-    const textTimeEnabled = environmentBody.host_policy_profile?.text_time_evaluation !== undefined;
+    textTimeEnabled = environmentBody.host_policy_profile?.text_time_evaluation !== undefined;
     environmentBody = undefined;
     if (projectTasks !== undefined && mockModels === undefined) {
       finalEnvironmentOriginal = readInstalledHostEnvironment(installationServices, moon, environmentWire,
@@ -2721,6 +2722,9 @@ async function openInstalledHost(originalInstallation, preparation) {
   };
   Object.defineProperty(check, 'unavailable', {value: checkSource.unavailable});
   updateTargetOriginals = installUpdateTargetOriginals({moon, control, installedEffect,
+    // Preserve the exact same feature selection used for this installed
+    // Environment; a generic inverse default cannot replace its profiles.
+    features: [textTimeEnabled, true, true, true, true, calendarArtifact !== undefined, false],
     limits: localContractLimits,
     issueMaterials: facts => preparation.issueManagedEffectMaterials(moon, facts.prepared,
       facts.allowed, facts.definition, facts.identity),
