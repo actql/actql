@@ -17,6 +17,12 @@ import {invokeScopedCredentialOperation} from
   '../../../host-common/owned-invocation-context.mjs';
 import {prepareSalesforceSourceReadSequence, readSalesforceSourceChild} from
   '../site/salesforce-query-read.mjs';
+import {boundConstructionActualFixture} from
+  '../../../host-node/fixtures/bound-construction-actual.fixture.mjs';
+import {installedConnectors} from
+  '../../../connectors-builtin/installations.generated.mjs';
+import {createInstalledConnectorTable} from
+  '../../../host-node/installed-connectors.mjs';
 
 const operation = 'salesforce:query:read';
 const path = '/services/data/v62.0/query?q=SELECT%20Id%20FROM%20Account';
@@ -133,28 +139,43 @@ test('actual Salesforce caller selects the same complete native Reader before pu
   assert.deepEqual(events, ['quote', 'implementation', 'reader', 'source']);
 });
 
-test('actual bound specialized Site enters the same installation Reader association', async () => {
-  const installation = Object.freeze({}), context = Object.freeze({}), site = Object.freeze({close() {}});
-  const authorization = Object.freeze({}), reader = Object.freeze({}), services = {};
-  const original = {root: 'original-root', principalId: 'principal', moon: {},
-    selected: new WeakMap([[installation, 'original-runtime']]), siteInstallations: new WeakMap(), current() {}};
-  const material = {phase: 'working', inputs: []}, scope = {active: true, installation};
-  const sourceContexts = new WeakMap([[context, {original, material, scope}]]);
-  services.createSourceReader = input => {
-    assert.equal(input.sourceInitialization, context);assert.equal(input.installation, installation);
-    assert.equal(input.site, site);assert.equal(original.siteInstallations.get(site), context);
-    return reader;
-  };
-  const bind = await originalFunction('../../../host-node/installed-host-services.mjs', 'bindInstalledSourceConstruction', {
-    sourceContexts, installations: new WeakMap([[services, original]]), boundConstructions: new WeakMap(),
-    nodeTypes: (await import('node:util')).types, fail,
-    installedSourceConfigurationReader() {return {};}, captureConfigurationReaders() {return Object.freeze({});},
-  });
-  const bound = bind(services, context, {});
-  const opened = await bound.openSpecializedSite({authorizationConstructor: async () => authorization,
-    siteConstructor: async () => site, siteArgument: 'original-profile', accountConfiguration: 'original-account'});
-  assert.equal(opened.site, site);assert.equal(opened.authorization, authorization);
-  assert.equal(bound.createSourceReader({implementation: {}}), reader);
+test('actual bound specialized Site enters the same installation Reader association', async t => {
+  const fixture = await boundConstructionActualFixture(t);
+  const selected = await fixture.salesforceProfile();
+  const original = installedConnectors.find(entry => entry.registration === 'salesforce');
+  const module = await original.source.load();
+  let opened, reader;
+  const connectorTable = createInstalledConnectorTable([{...original, source: {...original.source,
+    async load() {return {...module, async load(profile, options) {
+      const bound = options.construction;
+      const construction = Object.freeze({...bound,
+        async openSpecializedSite(input) {
+          opened = await bound.openSpecializedSite(input);
+          return opened;
+        },
+        createSourceReader(input) {
+          assert.ok(opened?.site);
+          assert.doesNotThrow(() => opened.authorization.assertConfigurationCurrent());
+          reader = bound.createSourceReader(input);
+          return reader;
+        },
+        createRowSource(input) {
+          assert.ok(reader);
+          assert.equal(input.providerReader, reader);
+          return bound.createRowSource(input);
+        }});
+      return module.load(profile, {...options, construction});
+    }};}}}]);
+  const source = await fixture.load(selected, {connectorTable});
+  assert.equal(fixture.sources[0], source);
+  assert.ok(reader);
+  assert.equal(fixture.retire(), false, 'the actual Source retains its original initialization parent');
+  assert.doesNotThrow(() => opened.authorization.assertConfigurationCurrent());
+  assert.equal(await source.close(), true);
+  assert.throws(() => opened.authorization.assertConfigurationCurrent(),
+    {code: 'AuthorizationDecisionScopeClosed'});
+  await fixture.close();
+  assert.equal(fixture.retire(), true);
 });
 
 for (const refused of [true, false]) {
