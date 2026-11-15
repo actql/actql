@@ -1,3 +1,4 @@
+import {clientCheckSourceEnvironment} from './fixtures/client-check-source-environment.mjs';
 // Public check outcome and disclosure, through the public Local and HTTP
 // entrances of installed Hosts with a real DuckDB source profile. The
 // environment, aliases and account configurations are independent fixtures;
@@ -104,11 +105,9 @@ async function installedSource(root, {readOutcome, aliases,
   environment = sourceEnvironment, seedAuthoringRows = false, incompatiblePhysicalSchema = false}, hostEnvironmentWire) {
   // This is an adapter publication for the installed Host, not a standalone
   // checker profile. Preserve the Host's own policy when adding Source facts.
-  const base = JSON.parse(hostEnvironmentWire ?? selectInstalledHostEnvironment(moon,
-    (await readFile(join(repository, 'spec/local-check-environment.json'), 'utf8')).trimEnd()));
-  environment = {...environment, host_policy_profile: base.host_policy_profile};
-  delete environment.evidence_bundle_cid;
-  environment.evidence_bundle_cid = contentCid(environment);
+  const selectedHostWire = hostEnvironmentWire ?? selectInstalledHostEnvironment(moon,
+    (await readFile(join(repository, 'spec/local-check-environment.json'), 'utf8')).trimEnd());
+  environment = clientCheckSourceEnvironment(environment, selectedHostWire);
   const database = join(root, 'records.duckdb');
   const instance = await DuckDBInstance.create(database);
   const connection = await instance.connect();
