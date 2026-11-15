@@ -157,6 +157,8 @@ pub fn prepare_effect_preview_row_dispatch_key(@run_publication.EffectPreviewIde
 
 pub fn prepare_effect_recovery_bindings(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, String, String, Int, Int) -> Result[Array[Array[EffectRecoveryBinding]], EffectRecoveredClaimIssue]
 
+pub fn prepare_effect_recovery_bindings_from_keys(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, String, String, Array[Array[EffectDispatchKey]], Int, Int) -> Result[Array[Array[EffectRecoveryBinding]], EffectRecoveredClaimIssue]
+
 pub fn prepare_logical_item_locator(@logical_request_scope.LogicalRequestScope, String, String, String, String, Int, Int, Int, Int) -> Result[LogicalItemLocator, EffectIdentityIssue]
 
 pub fn prepare_logical_request_scope(String, String, Int) -> Result[@logical_request_scope.LogicalRequestScope, EffectIdentityIssue]

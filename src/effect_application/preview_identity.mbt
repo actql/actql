@@ -98,7 +98,35 @@ pub fn prepare_effect_preview_row_dispatch_key(
     @publication.effect_preview_row_count(preview, member_index) is Some(count) else {
     return Err(InvalidRowKey)
   }
-  let correlation = if kind == "command" && count > 1 {
+  prepare_effect_verified_row_dispatch_key(
+    scope,
+    @publication.effect_preview_semantic_identity(preview),
+    row,
+    @publication.effect_preview_row_correlation_wire(
+      preview, member_index, row_index,
+    ),
+    kind == "command" && count > 1,
+    max_key_bytes,
+    max_key_nodes,
+    max_key_depth,
+  )
+}
+
+///|
+// Both callers obtain the row identity/correlation from the same admitted
+// Preview. Recovery already has its verified ordered row, so it need not
+// rebuild a physical-row search or encode a second correlation String.
+fn prepare_effect_verified_row_dispatch_key(
+  scope : LogicalRequestScope,
+  preview_cid : String,
+  row : String,
+  original_correlation : String?,
+  multirow_command : Bool,
+  max_key_bytes : Int,
+  max_key_nodes : Int,
+  max_key_depth : Int,
+) -> Result[EffectDispatchKey, EffectIdentityIssue] {
+  let correlation = if multirow_command {
     // Reject before allocating the owned 73-unit canonical String. The
     // existing key constructor retains its original selected codec checks.
     if max_key_bytes < 73 {
@@ -106,21 +134,13 @@ pub fn prepare_effect_preview_row_dispatch_key(
     }
     "\"" + row + "\""
   } else {
-    match
-      @publication.effect_preview_row_correlation_wire(
-        preview, member_index, row_index,
-      ) {
+    match original_correlation {
       Some(value) => value
       None => return Err(InvalidRowKey)
     }
   }
   prepare_effect_dispatch_key(
-    scope,
-    @publication.effect_preview_semantic_identity(preview),
-    correlation,
-    max_key_bytes,
-    max_key_nodes,
-    max_key_depth,
+    scope, preview_cid, correlation, max_key_bytes, max_key_nodes, max_key_depth,
   )
 }
 

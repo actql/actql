@@ -81,6 +81,12 @@ test "multirow Command binds distinct full arguments without changing its collec
   let recovered = recover_effect_preview_apply_keys(
     admitted, scope, 1, 2, 4, 4096, 64, 8,
   ).unwrap()
+  let bindings = prepare_effect_recovery_bindings(
+    admitted, scope, "program", "unit", 2, 3,
+  ).unwrap()
+  let owned = prepare_effect_recovery_bindings_from_keys(
+    admitted, scope, "program", "unit", recovered, 2, 3,
+  ).unwrap()
   for row in 0..<2 {
     assert_eq(
       effect_dispatch_key_cid(recovered[0][row]),
@@ -97,6 +103,19 @@ test "multirow Command binds distinct full arguments without changing its collec
       64,
       8,
     ).unwrap()
+    assert_true(physical_equal(owned[0][row].key, recovered[0][row]))
+    assert_eq(
+      effect_dispatch_key_cid(bindings[0][row].key),
+      effect_dispatch_key_cid(keys[row]),
+    )
+    assert_eq(
+      logical_item_locator_cid(bindings[0][row].locator),
+      logical_item_locator_cid(locator),
+    )
+    assert_eq(
+      logical_item_locator_cid(owned[0][row].locator),
+      logical_item_locator_cid(locator),
+    )
     assert_true(
       admit_effect_single_row(
         admitted,
@@ -129,6 +148,48 @@ test "multirow Command binds distinct full arguments without changing its collec
   assert_true(
     check_admitted_effect_preview_apply_keys(admitted, foreign, [keys])
     is Err(ForeignKeyScope(0, 0)),
+  )
+  assert_true(
+    prepare_effect_recovery_bindings_from_keys(
+      admitted, foreign, "program", "unit", recovered, 2, 3,
+    )
+    is Err(ForeignPreviewRow(0, 0)),
+  )
+  assert_true(
+    prepare_effect_recovery_bindings_from_keys(
+      admitted,
+      scope,
+      "program",
+      "unit",
+      [[keys[1], keys[0]]],
+      2,
+      3,
+    )
+    is Err(ForeignPreviewRow(0, 0)),
+  )
+  assert_true(
+    prepare_effect_recovery_bindings_from_keys(
+      admitted,
+      scope,
+      "program",
+      "unit",
+      [[keys[0]]],
+      2,
+      3,
+    )
+    is Err(InvalidLimits),
+  )
+  assert_true(
+    prepare_effect_recovery_bindings_from_keys(
+      admitted, scope, "program", "unit", recovered, 1, 3,
+    )
+    is Err(InvalidLimits),
+  )
+  assert_true(
+    prepare_effect_recovery_bindings_from_keys(
+      admitted, scope, "program", "unit", recovered, 2, 2,
+    )
+    is Err(InvalidLimits),
   )
   assert_true(
     recover_effect_preview_apply_keys(admitted, scope, 1, 2, 2, 4096, 64, 8)
@@ -211,6 +272,28 @@ test "singleton Command Saved keeps its exact legacy dispatch and locator" {
     logical_item_locator_cid(locator),
     logical_item_locator_cid(restored),
   )
+  for
+    bindings in [
+      prepare_effect_recovery_bindings(admitted, scope, "program", "unit", 1, 2).unwrap(),
+      prepare_effect_recovery_bindings_from_keys(
+        admitted,
+        scope,
+        "program",
+        "unit",
+        [[recovered]],
+        1,
+        2,
+      ).unwrap(),
+    ] {
+    assert_eq(
+      effect_dispatch_key_cid(bindings[0][0].key),
+      effect_dispatch_key_cid(legacy),
+    )
+    assert_eq(
+      logical_item_locator_cid(bindings[0][0].locator),
+      logical_item_locator_cid(locator),
+    )
+  }
   assert_true(
     admit_effect_single_row(
       admitted,
@@ -224,4 +307,95 @@ test "singleton Command Saved keeps its exact legacy dispatch and locator" {
     )
     is Ok(_),
   )
+}
+
+///|
+test "Command recovery borrows physical keys in independently declared row order" {
+  let (original_wire, original) = command_dispatch_fixture(true)
+  let row0 = @publication.effect_preview_row_identity(original, 0, 0).unwrap()
+  let row1 = @publication.effect_preview_row_identity(original, 0, 1).unwrap()
+  // A saved admitted Preview may carry a row order distinct from its physical
+  // change enumeration. Authoring itself selects source order, so admit the
+  // explicit reversed permutation with freshly derived semantic identities.
+  let reordered = original_wire.replace_all(
+    old="\"row_order\":[\"" + row0 + "\",\"" + row1 + "\"]",
+    new="\"row_order\":[\"" + row1 + "\",\"" + row0 + "\"]",
+  )
+  let (set_cid, member_cids) = @publication.derive_effect_preview_identities(
+    reordered, 16384, 1024, 16,
+  ).unwrap()
+  let semantic = reordered
+    .replace_all(
+      old=@publication.effect_preview_semantic_identity(original),
+      new=set_cid,
+    )
+    .replace_all(
+      old=@publication.effect_preview_member_identity(original, 0).unwrap(),
+      new=member_cids[0],
+    )
+  let identity = @publication.admit_effect_preview_identity(
+    semantic,
+    preview_footprint_test_cid("a"),
+    "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a",
+    16384,
+    1024,
+    16,
+  ).unwrap()
+  let scope = prepare_logical_request_scope(
+    preview_footprint_test_cid("a"),
+    "command-request",
+    32,
+  ).unwrap()
+  let keys = [0, 1].map(row => {
+    prepare_effect_preview_row_dispatch_key(
+      identity, scope, 0, row, 4096, 64, 8,
+    ).unwrap()
+  })
+  let completed = semantic
+    .replace_all(
+      old="\"row_idempotency_key\":\"" + row0 + "\"",
+      new="\"row_idempotency_key\":\"" + effect_dispatch_key_cid(keys[0]) + "\"",
+    )
+    .replace_all(
+      old="\"row_idempotency_key\":\"" + row1 + "\"",
+      new="\"row_idempotency_key\":\"" + effect_dispatch_key_cid(keys[1]) + "\"",
+    )
+  let admitted = admit_effect_preview_apply_identity(
+    completed,
+    preview_footprint_test_cid("a"),
+    "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a",
+    scope,
+    [keys],
+    16384,
+    1024,
+    16,
+  ).unwrap()
+  assert_eq(
+    @publication.effect_preview_ordered_row_identity(admitted, 0, 0),
+    @publication.effect_preview_row_identity(admitted, 0, 1),
+  )
+  let owned = prepare_effect_recovery_bindings_from_keys(
+    admitted,
+    scope,
+    "program",
+    "unit",
+    [keys],
+    2,
+    3,
+  ).unwrap()
+  let legacy = prepare_effect_recovery_bindings(
+    admitted, scope, "program", "unit", 2, 3,
+  ).unwrap()
+  for ordered in 0..<2 {
+    let physical = 1 - ordered
+    assert_true(physical_equal(owned[0][ordered].key, keys[physical]))
+    assert_eq(
+      effect_dispatch_key_cid(legacy[0][ordered].key),
+      effect_dispatch_key_cid(keys[physical]),
+    )
+    assert_eq(
+      owned[0][ordered].locator.item_correlation_wire,
+      effect_dispatch_key_correlation_wire(keys[physical]),
+    )
+  }
 }
