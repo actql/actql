@@ -387,6 +387,7 @@ test('shared target reader retains both actual selected Core package target clau
       ['installed_effect_header_lifetime_js_wbtest.mbt', ['js']],
       ['installed_effect_dependency_original_js_wbtest.mbt', ['js']],
       ['installed_effect_publication_binding_js_wbtest.mbt', ['js']],
+      ['installed_effect_dependency_boundary_js_wbtest.mbt', ['js']],
       ['installed_effect_native_control_js_wbtest.mbt', ['js']],
       ['installed_effect_discarded_projection_js_wbtest.mbt', ['js']],
       ['installed_effect_operation_index_js_wbtest.mbt', ['js']],
