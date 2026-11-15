@@ -7,6 +7,8 @@ import test from 'node:test';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {checked as checkedRuntime} from '../host-common/runtime-result.mjs';
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {canonicalJson as canonicalValueJson} from
   '../../packages/sdk/host-port.mjs';
 import {issuedEffectSetReceiptWires} from
@@ -144,15 +146,16 @@ function batchClaims() {
   });
 }
 
-function admittedProgressFixture(firstPolicy = 'continue') {
+function admittedProgressFixture(firstPolicy = 'continue', firstRows = 2) {
   const scope = effect.logicalRequestScope(authorityScopeCid,
     'request-1', 32);
   const authoring =
     'sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a';
   const rowSpecs = [
-    {id: 'WriteOne', rows: ['row-1', 'row-2'], rowCids: [cid('3'), cid('4')],
+    {id: 'WriteOne', rows: Array.from({length:firstRows}, (_, index) => `row-${index + 1}`),
+      rowCids: Array.from({length:firstRows}, (_, index) => cid((index + 3).toString(16))),
       policy: firstPolicy, target: cid('1')},
-    {id: 'WriteTwo', rows: ['row-3'], rowCids: [cid('5')],
+    {id: 'WriteTwo', rows: [`row-${firstRows + 1}`], rowCids: [cid('5')],
       policy: 'halt', target: cid('2')},
   ];
   const effects = rowSpecs.map(({id, rows, rowCids, policy, target}) => ({
@@ -175,7 +178,7 @@ function admittedProgressFixture(firstPolicy = 'continue') {
       before: {state: 'present', value: {}},
       after: {state: 'present', value: {}},
       row_preview_cid: rowCids[index],
-      row_idempotency_key: cid(String(index + (id === 'WriteOne' ? 6 : 8))),
+      row_idempotency_key: cid((index + (id === 'WriteOne' ? 6 : 8)).toString(16)),
     })),
     row_order: rowCids, effect_member_preview_cid: cid('a'), executed: false,
   }));
@@ -1221,3 +1224,73 @@ test('Local closed producer codec admits all six Ledger states and refuses overs
   assert.throws(()=>effect.admitLedgerEntry(' '.repeat(maxEntryBytes+1)+'{}',
     maxEntryBytes,64,4),{code:'MoonBitHostFailure'});
 });
+
+
+test('member receipts cover every durable row beyond a single-entry codec without enlarging stored entries', async t => {
+  const root = await fixture(t);
+  const ledger = openEffectLedger({moon, root, authorityScopeCid,
+    callerRequestId:'request-1', maxEntryBytes:1510});
+  t.after(() => ledger.close());
+  const {admitted, claims} = admittedProgressFixture('continue', 8);
+  for (const claim of claims[0]) assert.equal(ledger.claimDispatch(claim).claimed, true);
+  const rowOwners = claims[0].map(claim => ({claim}));
+  const issued = await issueAuthorizedEffectMemberReceipt({ledger, preview:admitted,
+    memberIndex:0, rowOwners, commonMoon:moon, authorizeEvidenceRead:async () => true});
+  assert(Buffer.byteLength(issued.wire) > 1510);
+  const body = JSON.parse(issued.wire);
+  assert.equal(body.status, 'unknown_outcome');
+  assert.deepEqual(body.rows.map(row => row.row_preview_cid), claims[0].map((_, index) =>
+    effect.previewOrderedRowCid(admitted, 0, index)));
+  assert(body.rows.every(row => row.state === 'unknown'));
+  assert.equal(ledger.checkMemberReceiptRowPartitionEvidence({preview:admitted,
+    memberIndex:0, rowOwners, memberReceiptWire:issued.wire}), true);
+  assert.throws(() => ledger.checkMemberReceiptRowPartitionEvidence({preview:admitted,
+    memberIndex:0, rowOwners:[...rowOwners].reverse(), memberReceiptWire:issued.wire}));
+});
+
+
+for (const outcome of ['funded', 'refused', 'changed', 'proxy', 'replaced']) {
+  test(`member receipt grows the SAME constructor before its body: ${outcome}`, async t => {
+    const root = await fixture(t);
+    const original = Object.freeze(new Error('OriginalReceiptConstructionRefused'));
+    let quote, rowOwners, bodyCalls = 0, grows = 0;
+    const runtime = {...moon,
+      clientProgramInstalledEffectMemberReceiptConstruction(...args) {
+        const result = moon.clientProgramInstalledEffectMemberReceiptConstruction(...args);
+        quote = checkedRuntime(result); return result;
+      },
+      strategyIssueEffectMemberReceiptFromRowPartitionFunded(...args) {
+        bodyCalls++;
+        return moon.strategyIssueEffectMemberReceiptFromRowPartitionFunded(...args);
+      }};
+    const construction = (receiver, method, args, capacity) => {
+      if (capacity !== undefined) {
+        grows++;
+        assert.strictEqual(capacity, runtimeField(quote, 0));
+        if (outcome === 'refused') throw original;
+        if (outcome === 'changed') rowOwners.push(rowOwners[0]);
+        if (outcome === 'proxy') rowOwners = new Proxy(rowOwners, {});
+        if (outcome === 'replaced') rowOwners = [...rowOwners];
+      }
+      const value = Reflect.apply(method, receiver, args);
+      return value;
+    };
+    const ledger = openEffectLedger({moon:runtime, root, authorityScopeCid,
+      callerRequestId:'request-1', maxEntryBytes:1510, controlConstruction:construction});
+    t.after(() => ledger.close());
+    const {admitted, claims} = admittedProgressFixture('continue', 8);
+    for (const claim of claims[0]) assert.equal(ledger.claimDispatch(claim).claimed, true);
+    rowOwners = claims[0].map(claim => ({claim}));
+    const options = {preview:admitted, memberIndex:0, get rowOwners() {return rowOwners;}};
+    const call = () => ledger.issueMemberReceiptFromRowPartition(options, Object.freeze([]), -1);
+    if (outcome === 'refused') assert.throws(call, error => error === original);
+    else if (['changed','proxy','replaced'].includes(outcome)) assert.throws(call, {code:'InvalidEffectMemberReceiptEvidence'});
+    else {
+      const receipt = call();
+      assert.equal(JSON.parse(receipt.wire).rows.length, 8);
+      assert(Buffer.byteLength(receipt.wire) > 1510);
+    }
+    assert.equal(grows, 1);
+    assert.equal(bodyCalls, outcome === 'funded' ? 1 : 0);
+  });
+}

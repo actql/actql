@@ -134,8 +134,15 @@ fn installed_effect_operation_control_capacity(
     // The request, footprint, Ledger-open and Ledger-family selectors each add one method/context pair
     // and a fixed original-coordinate call vector (4H14R3W each). The optional frame retains one
     // variant/Some and the existing child reference, never another body owner.
-    // The shared four-word Ledger policy adds1H4W; at most32 existing
-    // wrapper contexts retain its borrowed reference (32R).
+    // The shared Ledger policy adds1H2R6W: two references retain the
+    // original Receipt constructor/runtime, and two words preserve its row
+    // outcome node/depth policy. Existing wrappers still borrow that same
+    // policy reference (at most32R), with no new per-Host callback.
+    // One active Receipt quote retains its Result, tuple and opaque capacity
+    // (3H2R5W) through the body constructor. Its private argument vector keeps
+    // that quote, original row count and row-owner Array (3R1W). The body
+    // refuses changed/Proxy Arrays before constructing evidence; no caller-
+    // owned vector is mutated.
     // The private original association owns a frozen6-reference record,
     // its temporary spread record and one WeakMap entry before registration.
     // Its current function is borrowed from the existing control.
@@ -149,6 +156,7 @@ fn installed_effect_operation_control_capacity(
     11L * count +
     69L +
     4L +
+    3L +
     recovery.record_headers,
     // Two captured original Core key methods extend the same JS control
     // closure. Mutable runtime properties cannot replace those constructors.
@@ -165,6 +173,7 @@ fn installed_effect_operation_control_capacity(
     17L * count +
     269L +
     4L +
+    7L +
     recovery.reference_slots,
     // The active codec retains its separately charged original output bound.
     scalar_words: dependency_cache.scalar_words +
@@ -176,6 +185,7 @@ fn installed_effect_operation_control_capacity(
     shared.scalar_words +
     29L * count +
     4L +
+    8L +
     recovery.scalar_words,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,

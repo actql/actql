@@ -40330,7 +40330,10 @@
             "preview",
             "memberIndex",
             "rowOwners",
-            "memberReceiptWire"
+            "memberReceiptWire",
+            "prepared",
+            "originalRows",
+            "originalOwners"
           ],
           "async": false
         },
@@ -40435,7 +40438,10 @@
           "parameters": [
             "preview",
             "memberIndex",
-            "rowOwners"
+            "rowOwners",
+            "prepared",
+            "originalRows",
+            "originalOwners"
           ],
           "async": false
         },
@@ -40759,6 +40765,13 @@
           "name": "openEffectLedger/validateStored/validateStored",
           "parameters": [
             "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareMemberReceiptConstruction",
+          "parameters": [
+            "args"
           ],
           "async": false
         }
@@ -41125,7 +41138,8 @@
           "operations": [
             "bindEffectLedgerConstruction",
             "bindEffectLedgerConstruction/bindEffectLedgerConstruction",
-            "bindEffectLedgerConstruction/bindEffectLedgerConstruction#2"
+            "bindEffectLedgerConstruction/bindEffectLedgerConstruction#2",
+            "prepareMemberReceiptConstruction"
           ],
           "exports": [],
           "attributes": {
@@ -41183,6 +41197,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "`currentAdmitted` methods use the same family for their single original CID"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "Member Receipt construction keeps the row Ledger and terminal Receipt codecs unchanged."
               }
             ],
             "extension": [
@@ -41203,6 +41221,10 @@
               {
                 "path": "adapters/host-node/installed-effect-plan.test.mjs",
                 "anchor": "test('standard Ledger single head reuses original family before physical current and same nested admission'"
+              },
+              {
+                "path": "adapters/host-node/effect-ledger.test.mjs",
+                "anchor": "test('member receipts cover every durable row beyond a single-entry codec without enlarging stored entries'"
               }
             ]
           }
@@ -41299,7 +41321,9 @@
         "./effect-ledger-implementation-bounds.mjs",
         "./sqlite-effect-ledger.mjs",
         "node:fs",
-        "node:util"
+        "node:util",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []

@@ -1,5 +1,7 @@
 import {types as nodeTypes} from 'node:util';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {openSqliteEffectLedger} from './sqlite-effect-ledger.mjs';
 import {realpathSync} from 'node:fs';
 import {effectLedgerImplementationBounds} from './effect-ledger-implementation-bounds.mjs';
@@ -35,6 +37,20 @@ function bindEffectLedgerCodecs(original, construction) {
 // durable bytes and the atomic compare-and-swap of one item head.
 // Same original receiver and methods; only these single-head/frontier constructors
 // use the finite family. Receipt/history/unknown work keeps the generic frame.
+// The already-funded generic call constructs only a fixed numeric quote.
+// Its returned carrier stays on the same control until the next body call;
+// the body then grows its aggregate workspace before any Receipt allocation.
+function prepareMemberReceiptConstruction(args) {
+  const rowOwners = args[0]?.rowOwners;
+  if (nodeTypes.isProxy(rowOwners) || !Array.isArray(rowOwners)) fail('InvalidEffectMemberReceiptEvidence');
+  const rows = rowOwners.length;
+  if (rows > this.maxEntries) fail('InvalidEffectMemberReceiptEvidence');
+  args[2] = rows; args[3] = rowOwners;
+  if (rows === 0) return undefined;
+  return checked(Reflect.apply(this.receiptConstruction, this.runtime,
+    [rows, this.maxEntryBytes, this.maxOutcomeNodes, this.maxOutcomeDepth]));
+}
+
 function bindEffectLedgerConstruction(ledger, construction, policy) {
   const caller = {};
   for (const name of Object.keys(ledger)) {
@@ -42,8 +58,16 @@ function bindEffectLedgerConstruction(ledger, construction, policy) {
     caller[name] = typeof method !== 'function' ? method : name === 'close'
       ? (...args) => Reflect.apply(method, ledger, args)
       : (...args) => {
-        // DATA lengths only, never argument getters/Proxy traps or row scans.
-        // Mutable/nonstandard callers keep their exact original generic path.
+        if ((name === 'issueMemberReceiptFromRowPartition' || name === 'checkMemberReceiptRowPartitionEvidence') &&
+            typeof policy.receiptConstruction === 'function') {
+          const prepared = construction(policy, prepareMemberReceiptConstruction, [args]);
+          // This is the existing private Ledger receiver. Public callers cannot
+          // inject a quote: their second argument is replaced at this boundary.
+          args[1] = prepared;
+          return construction(ledger, method, args, prepared === undefined ? undefined : runtimeField(prepared, 0));
+        }
+        // These family selections read only frozen DATA lengths. Mutable or
+        // nonstandard callers keep their exact original generic path.
         const members = args[1];
         let counts;
         if ((name === 'current' || name === 'currentAdmitted') &&
@@ -759,19 +783,53 @@ export function openEffectLedger({
     // Receipt; unknown and unattempted rows supply no invented outcome.
     // Current evidence-view authorization belongs to the Host caller.
     checkMemberReceiptRowPartitionEvidence({preview, memberIndex,
-      rowOwners, memberReceiptWire}) {
+      rowOwners, memberReceiptWire}, prepared, originalRows, originalOwners) {
       if (typeof memberReceiptWire !== 'string') {
         fail('InvalidEffectMemberReceiptEvidence');
       }
-      return control.checkMemberReceiptRowPartitionEvidence(
-        ...memberReceiptEvidence({preview, memberIndex, rowOwners}),
-        memberReceiptWire, rowOwners.length,
-        maxEntryBytes, maxOutcomeNodes, maxOutcomeDepth);
+      if (nodeTypes.isProxy(rowOwners) || !Array.isArray(rowOwners)) fail('InvalidEffectMemberReceiptEvidence');
+      if (controlConstruction !== undefined &&
+          typeof moon.clientProgramInstalledEffectMemberReceiptConstruction === 'function' &&
+          (rowOwners !== originalOwners || rowOwners.length !== originalRows)) {
+        fail('InvalidEffectMemberReceiptEvidence');
+      }
+      const evidence = memberReceiptEvidence({preview, memberIndex, rowOwners});
+      if (rowOwners.length === 0 || typeof moon.clientProgramInstalledEffectMemberReceiptConstruction !== 'function') {
+        return control.checkMemberReceiptRowPartitionEvidence(...evidence,
+          memberReceiptWire, rowOwners.length, maxEntryBytes, maxOutcomeNodes, maxOutcomeDepth);
+      }
+      // With no installed construction owner this is the existing explicitly
+      // managed component Ledger. The installed path uses its private quote.
+      const selected = controlConstruction === undefined
+        ? checked(moon.clientProgramInstalledEffectMemberReceiptConstruction(
+          rowOwners.length, maxEntryBytes, maxOutcomeNodes, maxOutcomeDepth)) : prepared;
+      if (selected === undefined) fail('InvalidEffectMemberReceiptEvidence');
+      return checked(moon.strategyCheckEffectMemberReceiptRowPartitionEvidenceFunded(
+        ...evidence, memberReceiptWire, rowOwners.length,
+        maxEntryBytes, maxOutcomeNodes, maxOutcomeDepth,
+        runtimeField(selected, 1), runtimeField(selected, 2), runtimeField(selected, 3)));
     },
-    issueMemberReceiptFromRowPartition({preview, memberIndex, rowOwners}) {
-      return control.issueMemberReceiptFromRowPartition(
-        ...memberReceiptEvidence({preview, memberIndex, rowOwners}),
-        rowOwners.length, maxEntryBytes, maxOutcomeNodes, maxOutcomeDepth);
+    issueMemberReceiptFromRowPartition({preview, memberIndex, rowOwners}, prepared, originalRows, originalOwners) {
+      if (nodeTypes.isProxy(rowOwners) || !Array.isArray(rowOwners)) fail('InvalidEffectMemberReceiptEvidence');
+      if (controlConstruction !== undefined &&
+          typeof moon.clientProgramInstalledEffectMemberReceiptConstruction === 'function' &&
+          (rowOwners !== originalOwners || rowOwners.length !== originalRows)) {
+        fail('InvalidEffectMemberReceiptEvidence');
+      }
+      const evidence = memberReceiptEvidence({preview, memberIndex, rowOwners});
+      if (rowOwners.length === 0 || typeof moon.clientProgramInstalledEffectMemberReceiptConstruction !== 'function') {
+        return control.issueMemberReceiptFromRowPartition(...evidence,
+          rowOwners.length, maxEntryBytes, maxOutcomeNodes, maxOutcomeDepth);
+      }
+      const selected = controlConstruction === undefined
+        ? checked(moon.clientProgramInstalledEffectMemberReceiptConstruction(
+          rowOwners.length, maxEntryBytes, maxOutcomeNodes, maxOutcomeDepth)) : prepared;
+      if (selected === undefined) fail('InvalidEffectMemberReceiptEvidence');
+      const value = checked(moon.strategyIssueEffectMemberReceiptFromRowPartitionFunded(
+        ...evidence, rowOwners.length, maxEntryBytes, maxOutcomeNodes, maxOutcomeDepth,
+        runtimeField(selected, 1), runtimeField(selected, 2), runtimeField(selected, 3)));
+      return Object.freeze({identity: moon.strategyPublicationContractIdentity(value),
+        wire: moon.strategyPublicationContractJson(value)});
     },
     // A sealed Collections response belongs to the original ordered member
     // list. A reordered or partially replaced list cannot borrow its bytes.
@@ -1051,5 +1109,6 @@ export function openEffectLedger({
   // One outer caller frame owns nested original work, never recursive debits.
   // Close remains the original cleanup path even after a constructor failed.
   return bindEffectLedgerConstruction(ledger, controlConstruction,
-    Object.freeze({maxEntries, maxEntryBytes, maxNodes, maxDepth}));
+    Object.freeze({maxEntries, maxEntryBytes, maxNodes, maxDepth, maxOutcomeNodes, maxOutcomeDepth,
+      runtime: moon, receiptConstruction: moon.clientProgramInstalledEffectMemberReceiptConstruction}));
 }

@@ -74,9 +74,19 @@ unknown or corrupt head with absence. There is no additional quantity recipe
 or mode for these two methods. The original wrapper reads only immutable
 member/claim-array lengths through DATA descriptors for the frontier methods. It passes
 those coordinates and the original Ledger policy to MoonBit. Mutable or
-unknown inventories, larger policies and all other methods retain the complete
-generic frame. This is a quantity selection, not Preview membership, current
+unknown inventories and larger policies retain the complete generic frame.
+Other methods use that frame except for the member Receipt construction below. This is a quantity selection, not Preview membership, current
 permission, completed validation or a claim that any durable head is absent.
+
+Member Receipt construction keeps the row Ledger and terminal Receipt codecs unchanged.
+Its aggregate output bounds follow the closed CID/state/index grammar at the
+actual row count. The same managed Effect control funds the fixed quote carrier,
+then grows aggregate writer/parser workspace before the issuer or checker.
+The original per-row retained controls continue to back returned receipts.
+A changed or Proxy row-owner Array or a changed row count refuses that extent
+before constructing evidence; original
+row identities, durable heads, current authority and terminal outcomes remain
+fully checked. Empty members retain their existing codec path.
 
 The captured row-stage constructor freezes only the three structural envelopes
 it newly creates for this inventory: the outer member Array, each member record
