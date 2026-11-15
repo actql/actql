@@ -63,15 +63,25 @@ for (const kind of ['frozen', 'nested', 'primitive']) {
             material: f.tableLimits, reservation: {bytes: 1048576, files: 16}}});
         const identity = moon.clientProgramEffectRequestIdentity(f.prepared, cid('e'), 'table-bind', cid('b'));
         const plan = tableFixturePublicationPlan(f), program = JSON.parse(f.fixture.document);
+        const facts = {moon, control, store: f.physicalStore,
+          execution: f.execution, checkedHost: f.checkedHost, prepared: f.prepared,
+          identity, publicationPlan: plan,
+          unit: {programId: program.id, stageId: program.stages[0].id,
+            stageIndex: 0, effectIds: ['first', 'second']},
+          previewContext: {runDefinition: f.definition, runInvocation: f.invocation,
+            compiledPlan: f.evidence[3]}};
+        if (kind === 'frozen') {
+          await assert.rejects(factory.prepareCaptured({...facts, managedEffect: {}}),
+            {code: 'InstalledEffectControlRuntimeUnavailable'});
+          await assert.rejects(factory.prepareCaptured({...facts,
+            managedEffect: {controlConstruction() { assert.fail('Unregistered constructor cannot run'); }}}),
+          /ForeignInstalledEffectDependencyOriginal/);
+          assert.equal(preparations, 0, 'Original rejection precedes any physical input preparation');
+          assert.equal(cleanupCalls, 0);
+        }
         let failure;
         try {
-          try { await factory.prepareCaptured({moon, control, store: f.physicalStore,
-            execution: f.execution, checkedHost: f.checkedHost, prepared: f.prepared,
-            identity, publicationPlan: plan,
-            unit: {programId: program.id, stageId: program.stages[0].id,
-              stageIndex: 0, effectIds: ['first', 'second']},
-            previewContext: {runDefinition: f.definition, runInvocation: f.invocation,
-              compiledPlan: f.evidence[3]}}); } catch (error) { failure = error; }
+          try { await factory.prepareCaptured(facts); } catch (error) { failure = error; }
           assert.equal(failure?.cause, original);
           assert.equal(failure.primaryFailure, original);
           assert.equal(failure.cleanupPending, true);
@@ -232,10 +242,18 @@ for (const sparseTableInput of [false, true]) for (const empty of [false,true]) 
           stage.apply.members.map(member => member.claims[0].canonicalRequestCid));
           assert.deepEqual(writes, []);
           assert.deepEqual(inspections, []);
-          const changed = await createInstalledTableEffect({...options, runtimeBundleCid: cid('f')});
-          await assert.rejects(changed.prepareRecovered({moon, control, store: f.physicalStore,
+          const changedBinding = await createInstalledTableEffect({...options, bindingCid: cid('f')});
+          await assert.rejects(changedBinding.prepareRecovered({moon, control, store: f.physicalStore,
             recovered: {requestIdentity: identity, requestScope: moon.clientRequestLogicalScope(identity),
               computation: durable}, continuation: {provider}}), {code: 'InstalledTableInstallationChanged'});
+          // A runtime change also changes the capability identity. Refuse at
+          // that actual mapping boundary, before any provider read or write.
+          const changedRuntime = await createInstalledTableEffect({...options, runtimeBundleCid: cid('f')});
+          await assert.rejects(changedRuntime.prepareRecovered({moon, control, store: f.physicalStore,
+            recovered: {requestIdentity: identity, requestScope: moon.clientRequestLogicalScope(identity),
+              computation: durable}, continuation: {provider}}), {code: 'InstalledTableMappingNotInstalled'});
+          assert.deepEqual(writes, []);
+          assert.deepEqual(inspections, []);
           await recoveredStage.dispose();
           await recoveredStage.dispose();
           assert.equal(recoveryOwner.cleanupPending(), false);

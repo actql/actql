@@ -49,6 +49,7 @@ export function tableFixturePublicationPlan(f) {
       barrierAttemptReceiptCids: []},
     captureEvidence: {pendingSourceStateAdvances: [], modelEvidence: []},
     localEvidenceContext: f.options.localEvidenceContext,
+    effectInputRetention: f.options.retention,
     outputLimits: f.outputLimits, contractLimits: f.options.contractLimits,
     request: {namespaceId: 'namespace-a', authorityScopeCid: cid('e'),
       publicationPolicyCid: cid('5'), publicationTargetCid: cid('7'),
