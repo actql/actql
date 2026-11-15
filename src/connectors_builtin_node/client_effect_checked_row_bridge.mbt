@@ -330,3 +330,20 @@ pub fn client_program_effect_notion_writes_json(
   }
   Ok(wire)
 }
+
+///|
+#export_name("clientProgramInstalledEffectMemberReceiptConstruction")
+pub fn client_program_installed_effect_member_receipt_construction(
+  rows : Int,
+  row_bytes : Int,
+  row_nodes : Int,
+  row_depth : Int,
+) -> (@execution.ExecutionCapacity, Int, Int, Int) raise NodeHostFailure {
+  match
+    @client_local_host.installed_effect_member_receipt_construction(
+      rows, row_bytes, row_nodes, row_depth,
+    ) {
+    Some(value) => value
+    None => raise InvalidCommand
+  }
+}

@@ -567,6 +567,8 @@ pub fn installed_effect_managed_source_occurrence(ClientInstalledManagedRun, @ru
 
 pub fn installed_effect_managed_sources_ledger(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity) -> Result[@physical_resources.Ledger, ClientInstalledManagedRunIssue]
 
+pub fn installed_effect_member_receipt_construction(Int, Int, Int, Int) -> (@execution_relation.ExecutionCapacity, Int, Int, Int)?
+
 pub fn installed_effect_mock_model_run_requirements(@run_publication_host.PreparedClientEffectComputation, Array[@client_row_source_host.RowDeclaration], String, String, Array[Int64], Array[Int64], ClientInstalledSequenceContracts, String, String?, String?) -> Result[Array[Int64], ClientInstalledManagedRunIssue]
 
 pub fn installed_effect_model_read_window(ClientInstalledEffectModelDemand) -> Array[Int64]

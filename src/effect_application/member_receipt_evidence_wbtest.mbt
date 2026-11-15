@@ -143,6 +143,30 @@ test "member receipt requires the exact durable terminal row evidence" {
     @publication.publication_contract_identity(issued),
     @publication.publication_contract_identity(member_receipt),
   )
+  let (member_bytes, member_nodes, member_depth) = effect_member_receipt_encoding_limits(
+    1,
+  ).unwrap()
+  let bounded = issue_effect_member_receipt_from_row_partition(
+    preview,
+    0,
+    [scope],
+    [locator],
+    [key],
+    [basis],
+    [Some(terminal)],
+    [false],
+    [Some(row_receipt)],
+    1,
+    member_bytes,
+    member_nodes,
+    member_depth,
+  )
+  @debug.debug_inspect(bounded.map(_ => ()), content="Ok(())")
+  let bounded = bounded.unwrap()
+  assert_eq(
+    @publication.publication_contract_identity(bounded),
+    @publication.publication_contract_identity(issued),
+  )
   assert_true(
     issue_effect_member_receipt_from_row_partition(
       preview,
@@ -360,4 +384,55 @@ test "member receipt requires the exact durable terminal row evidence" {
     )
     is Ok(_),
   )
+}
+
+///|
+test "member grammar bounds the actual multirow canonical encoder" {
+  let number = @encode.writer(25, 1, 1)
+  @encode.number_value(number, 9223372036854775807L.to_double())
+  assert_true(!@encode.finish(number).is_empty())
+  let cid = ledger_test_cid("a")
+  let (bytes, nodes, depth) = effect_member_receipt_encoding_limits(8).unwrap()
+  let writer = @encode.writer(bytes, nodes, depth)
+  @encode.begin_object(writer)
+  for
+    name in [
+      "effect_member_preview_cid", "effect_preview_cid", "run_identity_cid",
+    ] {
+    @encode.key(writer, name)
+    @encode.string_value(writer, cid)
+  }
+  @encode.key(writer, "rows")
+  @encode.begin_array(writer)
+  for index in 0..<8 {
+    @encode.begin_object(writer)
+    @encode.key(writer, "row_index")
+    @encode.number_value(writer, index.to_double())
+    @encode.key(writer, "row_preview_cid")
+    @encode.string_value(writer, ledger_test_cid(index.to_string()))
+    @encode.key(writer, "state")
+    @encode.string_value(writer, "applied")
+    @encode.key(writer, "dispatch_entry_cid")
+    @encode.string_value(writer, cid)
+    @encode.key(writer, "attempt_sequence")
+    @encode.number_value(writer, 1.0)
+    @encode.key(writer, "outcome_receipt_cid")
+    @encode.string_value(writer, cid)
+    @encode.end_object(writer)
+  }
+  @encode.end_array(writer)
+  @encode.key(writer, "status")
+  @encode.string_value(writer, "applied")
+  @encode.key(writer, "version")
+  @encode.string_value(writer, "actql-effect-apply-receipt/0.1")
+  @encode.end_object(writer)
+  let body = @encode.finish(writer)
+  @debug.debug_inspect(
+    @publication.seal_publication_contract(
+      "effect_apply_receipt", body, bytes, nodes, depth,
+    ).map(_ => ()),
+    content="Ok(())",
+  )
+  assert_true(effect_member_receipt_encoding_limits(-1) is None)
+  assert_true(effect_member_receipt_encoding_limits(2147483647) is None)
 }

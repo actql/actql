@@ -1894,6 +1894,8 @@ pub fn client_program_installed_effect_managed_sources_ledger(@client_local_host
 
 pub fn client_program_installed_effect_managed_whole_source_read(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_row_source_host.RowDeclaration, Int) -> Result[(@client_local_host.ClientInstalledSourceRead, @sourceview_resolution.SourceAcquisition, @client_row_source_host.RowInputAcquisition, @client_local_host.ClientInstalledWholeSourceCapacity), @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_installed_effect_member_receipt_construction(Int, Int, Int, Int) -> (@execution_relation.ExecutionCapacity, Int, Int, Int) raise NodeHostFailure
+
 pub fn client_program_installed_effect_model_demand_prepare(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientEffectCompilation, @run_publication.PublicationContract, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph) -> Result[@client_local_host.ClientInstalledEffectModelDemand, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_model_managed_plan_prepare(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, Array[@client_row_source_host.RowDeclaration], String, String, Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Array[@client_local_host.ClientInstalledEffectOperationDemand], @client_local_host.ClientInstalledEffectModelDemand, Array[@local.ManagedProvider], @run_publication_host.ClientQueryTimePreparation?) -> Result[@client_local_host.ClientInstalledEffectManagedPlan, @client_local_host.ClientInstalledManagedRunIssue]
@@ -4914,6 +4916,8 @@ pub fn strategy_captured_run_preparation_limits(@run_publication.CapturedRunIssu
 
 pub fn strategy_check_effect_member_receipt_row_partition_evidence(@run_publication.EffectPreviewIdentity, Int, Array[@logical_request_scope.LogicalRequestScope], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Array[@effect_application.EffectLedgerBasis], Array[@effect_application.EffectLedgerEntry?], Array[Bool], Array[String?], String, Int, Int, Int, Int) -> Bool raise NodeHostFailure
 
+pub fn strategy_check_effect_member_receipt_row_partition_evidence_funded(@run_publication.EffectPreviewIdentity, Int, Array[@logical_request_scope.LogicalRequestScope], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Array[@effect_application.EffectLedgerBasis], Array[@effect_application.EffectLedgerEntry?], Array[Bool], Array[String?], String, Int, Int, Int, Int, Int, Int, Int) -> Bool raise NodeHostFailure
+
 pub fn strategy_committed_publication_finalization_action(@run_publication.PublicationContract?) -> Int
 
 pub fn strategy_credential_authentication_operation_check(@remote_credential.CredentialAuthenticationOperation[OriginalCredentialAuthenticationMaterial], @remote_credential.CredentialAuthenticationRequest[OriginalCredentialAuthenticationMaterial], @remote_credential.RemoteCredentialUse, @remote_credential.RemoteCredentialUse, OriginalCredentialAuthenticationMaterial, String, String, String, Bytes, Int64) -> Unit raise NodeHostFailure
@@ -5355,6 +5359,8 @@ pub fn strategy_issue_effect_free_captured_run(@run_publication.PublicationContr
 pub fn strategy_issue_effect_free_run_receipt(@run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[String], Array[String], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], Array[String], Int, Int, Int, Array[@run_publication.BoundContentGeneration]) -> @run_publication.PublicationContract raise NodeHostFailure
 
 pub fn strategy_issue_effect_member_receipt_from_row_partition(@run_publication.EffectPreviewIdentity, Int, Array[@logical_request_scope.LogicalRequestScope], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Array[@effect_application.EffectLedgerBasis], Array[@effect_application.EffectLedgerEntry?], Array[Bool], Array[String?], Int, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
+pub fn strategy_issue_effect_member_receipt_from_row_partition_funded(@run_publication.EffectPreviewIdentity, Int, Array[@logical_request_scope.LogicalRequestScope], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Array[@effect_application.EffectLedgerBasis], Array[@effect_application.EffectLedgerEntry?], Array[Bool], Array[String?], Int, Int, Int, Int, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
 pub fn strategy_issue_effect_row_outcome_receipt(@run_publication.EffectPreviewIdentity, Int, Int, String, String, Bytes, Int, String, Int, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 

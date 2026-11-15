@@ -85,6 +85,8 @@ pub fn effect_ledger_entry_state_code(EffectLedgerEntry) -> Int
 
 pub fn effect_ledger_entry_wire(EffectLedgerEntry) -> String
 
+pub fn effect_member_receipt_encoding_limits(Int) -> (Int, Int, Int)?
+
 pub fn effect_recovered_claim_basis(EffectRecoveredClaim) -> EffectLedgerBasis
 
 pub fn effect_recovered_claim_canonical_request_cid(EffectRecoveredClaim) -> String

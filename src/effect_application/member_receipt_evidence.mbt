@@ -1,4 +1,67 @@
 ///|
+/// Closed member-receipt grammar, independent of each provider's row outcome.
+/// CIDs have 71 ASCII bytes; indices use at most ten decimal bytes and the
+/// existing finite-number encoder uses at most 25 bytes. No outcome body is
+/// embedded here. Include the seal's receipt_cid field and node as well as
+/// the emitted body. These quantities describe encoding, never grant resources.
+pub fn effect_member_receipt_encoding_limits(rows : Int) -> (Int, Int, Int)? {
+  if rows < 0 {
+    return None
+  }
+  let header = 2 +
+    6 +
+    "effect_member_preview_cid".length() +
+    3 +
+    "effect_preview_cid".length() +
+    3 +
+    "rows".length() +
+    3 +
+    "run_identity_cid".length() +
+    3 +
+    "status".length() +
+    3 +
+    "version".length() +
+    3 +
+    "receipt_cid".length() +
+    3 +
+    4 * (71 + 2) +
+    2 +
+    "partial_failure".length() +
+    2 +
+    "actql-effect-apply-receipt/0.1".length() +
+    2
+  // The terminal partition has the longest field name. Its six fields also
+  // dominate unknown/unattempted partitions; all literal names are ASCII.
+  let row = 2 +
+    5 +
+    "row_index".length() +
+    3 +
+    "row_preview_cid".length() +
+    3 +
+    "state".length() +
+    3 +
+    "dispatch_entry_cid".length() +
+    3 +
+    "attempt_sequence".length() +
+    3 +
+    "outcome_receipt_cid".length() +
+    3 +
+    3 * (71 + 2) +
+    10 +
+    25 +
+    "unattempted".length() +
+    2
+  let bytes = header.to_int64() +
+    rows.to_int64() * row.to_int64() +
+    Int::max(0, rows - 1).to_int64()
+  let nodes = 8L + 7L * rows.to_int64()
+  if bytes > 2147483647L || nodes > 2147483647L {
+    return None
+  }
+  Some((bytes.to_int(), nodes.to_int(), if rows == 0 { 2 } else { 4 }))
+}
+
+///|
 pub(all) enum EffectMemberReceiptEvidenceIssue {
   InvalidInventory
   ActivePhysicalOwner(Int)
