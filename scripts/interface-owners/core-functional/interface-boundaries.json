@@ -7742,6 +7742,114 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "publicationControl/init:recoverInstalledEffectPreviewKeys/init:recoverInstalledEffectPreviewKeys"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_effect_dispatch_keys.mbt",
+                "anchor": "retain_installed_effect_dispatch_key_construction"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "client_program_installed_effect_recovered_preview_keys"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_effect_dispatch_keys.mbt",
+                "anchor": "retain_installed_effect_dispatch_key_construction"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "client_program_installed_effect_recovered_preview_keys"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_effect_dispatch_keys.mbt",
+                "anchor": "retain_installed_effect_dispatch_key_construction"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "client_program_installed_effect_recovered_preview_keys"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_effect_dispatch_keys.mbt",
+                "anchor": "retain_installed_effect_dispatch_key_construction"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "client_program_installed_effect_recovered_preview_keys"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/installed_effect_dispatch_keys.mbt",
+                "anchor": "retain_installed_effect_dispatch_key_construction"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "client_program_installed_effect_recovered_preview_keys"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_effect_dispatch_keys.mbt",
+                "anchor": "retain_installed_effect_dispatch_key_construction"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "client_program_installed_effect_recovered_preview_keys"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/installed_effect_dispatch_keys.mbt",
+                "anchor": "retain_installed_effect_dispatch_key_construction"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "client_program_installed_effect_recovered_preview_keys"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_effect_dispatch_keys.mbt",
+                "anchor": "retain_installed_effect_dispatch_key_construction"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "client_program_installed_effect_recovered_preview_keys"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/installed_effect_dispatch_keys.mbt",
+                "anchor": "retain_installed_effect_dispatch_key_construction"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "client_program_installed_effect_recovered_preview_keys"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_effect_dispatch_keys_js_wbtest.mbt",
+                "anchor": "new command correlation cohort grows the same control before text construction"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "funded key constructors do not exempt foreign substituted extra or executable arguments"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -13816,6 +13924,28 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:recoverInstalledEffectPreviewKeys/init:recoverInstalledEffectPreviewKeys",
+          "parameters": [
+            "run",
+            "prepared",
+            "request",
+            "plan",
+            "allowed",
+            "definition",
+            "invocation",
+            "preview",
+            "scope",
+            "maxMembers",
+            "maxRows",
+            "maxWork",
+            "maxKeyBytes",
+            "maxKeyNodes",
+            "maxKeyDepth",
+            "construction"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:registerCheckedClientInferRawCapture/init:registerCheckedClientInferRawCapture",
           "parameters": [
             "compiled",
@@ -16960,7 +17090,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "e741fb8d342a9bf0e2fbd9678db34e35bdad02124b7cefb0be9b47556ef1cc41"
+      "sha256": "ec5ba4169599ee37d9d386c52515a43ad7a879c41b113e9d0ba8848094d04874"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -47475,7 +47605,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "2eda51ff1502059507da64eda0770c8120894af963a8095218676e7401a2ec6b",
+      "sha256": "b99da75e02cc33fdb6c3a973a7f745855569746beb39b01176296ccb2be69ed5",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -49322,7 +49452,7 @@
           }
         }
       ],
-      "sha256": "23a0c7dbc685c7b2b65db8d751351339f155ba2bc791d9d47e57bb9ebe8b8f43",
+      "sha256": "3e7910c29dbdd332a1852fab76f65bebba8b9c9c4bd54c1de828cc56ddd3f756",
       "exports": [],
       "operations": [
         {
@@ -56090,7 +56220,7 @@
               },
               {
                 "path": "src/connectors/local/driver/dispatch.mbt",
-                "anchor": "@strategy.next_captured_task(installed.run) != Some(task)"
+                "anchor": "@strategy.next_captured_task(installed.run) == Some(task)"
               },
               {
                 "path": "src/connectors/local/driver/managed_dispatch.mbt",
@@ -96039,7 +96169,7 @@
     },
     {
       "module": "src/cmd/native_client/local_publisher_diagnostic.mbt",
-      "sha256": "e37aa1ac8a1d3018512b5ae995ed714d3bc03cbb3efa5d3f32f440ce02e081fe",
+      "sha256": "6c2090cdb5a128de38f4c12e2469ccf119deb25729a13e3f77e679dab03199c4",
       "exports": [],
       "operations": [
         {

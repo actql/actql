@@ -24560,7 +24560,7 @@
     {
       "module": "adapters/host-node/client-effect-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a14ca970633ef5631cc48888cce3d4410ecb35a884017737927c45b88f486980",
+      "sha256": "4862eb4f0df6832f1da4c5762018787ce177af9d59d55656c314fc32dabac90c",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -118871,6 +118871,117 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryManagedInstallation/constructEffectMaterials",
+            "prepareOrdinaryManagedInstallation/constructEffectMaterials/constructEffectMaterials",
+            "prepareOrdinaryManagedInstallation/view/init:admitEffectMaterials/init:admitEffectMaterials",
+            "prepareOrdinaryManagedInstallation/view/init:issueEffectMaterials/init:issueEffectMaterials"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "construct_request_effect_materials"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_update_target_bridge.mbt",
+                "anchor": "client_program_admit_request_effect_run_materials_with_compilation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "construct_request_effect_materials"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_update_target_bridge.mbt",
+                "anchor": "client_program_admit_request_effect_run_materials_with_compilation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "construct_request_effect_materials"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_update_target_bridge.mbt",
+                "anchor": "client_program_admit_request_effect_run_materials_with_compilation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "construct_request_effect_materials"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_update_target_bridge.mbt",
+                "anchor": "client_program_admit_request_effect_run_materials_with_compilation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "construct_request_effect_materials"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_update_target_bridge.mbt",
+                "anchor": "client_program_admit_request_effect_run_materials_with_compilation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "construct_request_effect_materials"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_update_target_bridge.mbt",
+                "anchor": "client_program_admit_request_effect_run_materials_with_compilation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "construct_request_effect_materials"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_update_target_bridge.mbt",
+                "anchor": "client_program_admit_request_effect_run_materials_with_compilation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "construct_request_effect_materials"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_update_target_bridge.mbt",
+                "anchor": "client_program_admit_request_effect_run_materials_with_compilation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_original.mbt",
+                "anchor": "construct_request_effect_materials"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_update_target_bridge.mbt",
+                "anchor": "client_program_admit_request_effect_run_materials_with_compilation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_materials_js_wbtest.mbt",
+                "anchor": "Effect material successful return cannot cut scratch after original current refusal or retire reentry"
+              },
+              {
+                "path": "adapters/host-node/installed-update-originals.test.mjs",
+                "anchor": "ordinary full Effect materials use the same funded Request for issue and inverse"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -118979,6 +119090,21 @@
           "name": "prepareOrdinaryManagedInstallation/closeChild/work/work",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/constructEffectMaterials",
+          "parameters": [
+            "prepared",
+            "request",
+            "method",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/constructEffectMaterials/constructEffectMaterials",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "prepareOrdinaryManagedInstallation/constructRequestDomain",
@@ -119192,6 +119318,19 @@
         {
           "name": "prepareOrdinaryManagedInstallation/status/status",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:admitEffectMaterials/init:admitEffectMaterials",
+          "parameters": [
+            "prepared",
+            "request",
+            "wire",
+            "runDefinitionCid",
+            "compilation",
+            "identity",
+            "features"
+          ],
           "async": false
         },
         {
@@ -119519,6 +119658,17 @@
           "parameters": [
             "receipt",
             "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:issueEffectMaterials/init:issueEffectMaterials",
+          "parameters": [
+            "prepared",
+            "request",
+            "allowed",
+            "definition",
+            "identity"
           ],
           "async": false
         },
@@ -120368,7 +120518,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "fce352a6dbfdb51bda1fe7fa7c02e8917faefa1d255a660114d24d2e34a789a0"
+      "sha256": "479c3c93a279a6e0a2b648a6956945b211f81c2fc35db946a95523af9b2cb6c2"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

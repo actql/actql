@@ -292,6 +292,8 @@ pub fn decision_state_input(DecisionContract) -> String
 
 pub fn default_read_mode(SourceViewModes) -> SourceReadMode
 
+pub fn emission_geometry(WireEnvironment) -> (Int, Int, Int)
+
 pub fn emit(WireEnvironment, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_host_policy(WireEnvironment, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure

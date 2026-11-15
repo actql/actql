@@ -451,6 +451,8 @@ pub fn configure_source_free_effect_local_retained_host(@run_publication_host.Pr
 
 pub fn[I, P] construct_program_json_preparation(ClientProgramJsonPreparation[I, P]) -> Result[Unit, ClientProgramJsonPreparationIssue]
 
+pub fn[I, A] construct_request_effect_materials(ClientRequestPreparation[I], I, @run_publication_host.PreparedClientEffectComputation, codec_owner? : @run_publication_host.PreparedClientEffectComputation?, ((String, Int, Int, Int) -> Bool) -> Result[A, @run_publication_host.ClientEffectRunMaterialsIssue]) -> Result[A, ClientRequestProgramPlanIssue]
+
 pub fn[I] continue_request_effect_preparation(ClientRequestPreparation[I], I) -> Result[@run_publication_host.PreparedClientEffectComputation, ClientRequestPreparationIssue]
 
 pub fn[I] continue_request_program_preparation(ClientRequestPreparation[I], I) -> Result[@run_publication_host.PreparedClientProgram, ClientRequestPreparationIssue]
@@ -1540,6 +1542,7 @@ pub suberror ClientRequestProgramPlanIssue {
   ModelSource(@client_row_source_host.RowHostIssue)
   ContentQuery(ClientLocalQueryIssue)
   ContentSource(@client_row_source_host.RowHostIssue)
+  EffectMaterials(@run_publication_host.ClientEffectRunMaterialsIssue)
 }
 
 pub suberror ClientRequestQueryLoweringIssue {

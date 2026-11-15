@@ -538,7 +538,7 @@
     },
     {
       "module": "adapters/host-node/installed-update-originals.mjs",
-      "sha256": "fce1fe37f2f0531777d9ffea00a590bd7564bf1d80d26cfbcdb8c0b9cb3c863f",
+      "sha256": "9be2f9496128109f4a60fd07850279c9702999c0c5908fda8c3a01d7ea03bce8",
       "exports": [
         "installUpdateTargetOriginals"
       ],
@@ -555,7 +555,9 @@
             "control",
             "installedEffect",
             "limits",
-            "features"
+            "features",
+            "issueMaterials",
+            "admitMaterials"
           ],
           "async": false
         },
@@ -611,6 +613,7 @@
         {
           "name": "installUpdateTargetOriginals/init:captureEffectMaterials/init:captureEffectMaterials",
           "parameters": [
+            "prepared",
             "allowed",
             "definition",
             "identity"
@@ -709,7 +712,8 @@
             "wire",
             "runDefinition",
             "identity",
-            "originalCompilation"
+            "originalCompilation",
+            "originalPrepared"
           ],
           "async": false
         },
@@ -726,7 +730,8 @@
             "original",
             "runDefinition",
             "identity",
-            "originalCompilation"
+            "originalCompilation",
+            "originalPrepared"
           ],
           "async": false
         },
