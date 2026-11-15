@@ -495,8 +495,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       'inspect-native-approval-source', 'inspect-native-approval-cpu-producer',
       'inspect-native-approval-cpu-source', 'inspect-source'].includes(command)) {
       const nativeApproval = command.startsWith('inspect-native-approval-');
-      assert.equal(args.length, ['inspect-native-approval-source', 'inspect-native-approval-cpu-producer',
-      'inspect-native-approval-cpu-source', 'inspect-source'].includes(command) ? 1 : 0);
+      const diagnostic = command.startsWith('inspect-native-approval-cpu-');
+      assert.equal(args.length, command === 'inspect-native-approval-cpu-source' ? 2
+        : ['inspect-native-approval-source', 'inspect-source'].includes(command) ? 1 : 0);
       if (command === 'inspect-source') assert(['node', 'native', 'python'].includes(process.env.PACKAGE_ADAPTER));
       if (command === 'inspect-process-producer') {
         assert(['native', 'python'].includes(process.env.PACKAGE_ADAPTER), 'Exact process adapter is required');

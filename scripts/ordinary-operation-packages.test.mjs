@@ -309,6 +309,56 @@ test('CPU artifact extraction verifies the whole ZIP and takes only original rel
   assert.equal(actual.acceptanceEligible, false); assert.equal(actual.producerJobConclusion, 'failure');
   await assert.rejects(inspectPerformancePackageProducer({...p, token: 'test-only',
     purpose: actual.purpose, nativePackages: output, diagnosticArchive: archive}, fetchMetadata));
+  // Exercise the same real CLI commands and arities used by the workflow.
+  // Only the network transport is substituted; parsing, purpose selection,
+  // artifact extraction and source validation execute their production code.
+  const metadataPath = join(root, 'metadata.json'), preload = join(root, 'fetch-only.mjs');
+  const metadata = () => Object.fromEntries([
+    [`https://api.github.com/repos/${p.repository}/actions/runs/17`, p.run],
+    [`https://api.github.com/repos/${p.repository}/actions/artifacts/23`, p.artifact],
+    [`https://api.github.com/repos/${p.repository}/actions/runs/17/attempts/2/jobs?per_page=100&page=1`,
+      {total_count: 1, jobs: p.jobs}],
+    [`https://api.github.com/repos/${p.repository}/git/commits/${p.sourceSha}`, p.headCommit],
+    [`https://api.github.com/repos/${p.repository}/git/commits/${p.manifest.sourceSha}`, p.sourceCommit],
+  ]);
+  await writeFile(metadataPath, JSON.stringify(metadata()));
+  await writeFile(preload, `import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const metadata = JSON.parse(readFileSync(process.env.ACTQL_NATIVE_CPU_METADATA, 'utf8'));
+globalThis.fetch = async (url, options) => {
+  assert.equal(options.redirect, 'error');
+  assert.equal(options.headers.Authorization, 'Bearer test-only');
+  assert(Object.hasOwn(metadata, url), 'Unexpected metadata request');
+  return {ok: true, text: async () => JSON.stringify(metadata[url])};
+};
+`);
+  const cli = args => spawnSync(process.execPath, ['--import', preload,
+    fileURLToPath(new URL('./ordinary-operation-packages.mjs', import.meta.url)), ...args],
+  {encoding: 'utf8', timeout: 5000, env: {...process.env, ACTQL_NATIVE_CPU_METADATA: metadataPath,
+    GITHUB_REPOSITORY: p.repository, GITHUB_TOKEN: 'test-only', PACKAGE_EVENT_HEAD_SHA: p.sourceSha,
+    PACKAGE_RUN_ID: p.runId, PACKAGE_ARTIFACT_ID: p.artifactId, PACKAGE_PRODUCER_JOB: p.producerJob}});
+  const passed = args => {
+    const result = cli(args); assert.equal(result.status, 0, result.stderr);
+    return JSON.parse(result.stdout);
+  };
+  const cliProducer = passed(['inspect-native-approval-cpu-producer']);
+  assert.equal(cliProducer.acceptanceEligible, false); assert.equal(cliProducer.producerJobConclusion, 'failure');
+  const producerPath = join(root, 'producer.json'), cliOutput = join(root, 'cli-release');
+  await writeFile(producerPath, JSON.stringify(cliProducer));
+  assert.equal(passed(['extract-native-approval-cpu-artifact', archive, producerPath, cliOutput]).archiveSha256, hash(zipped));
+  const cliSource = passed(['inspect-native-approval-cpu-source', cliOutput, archive]);
+  assert.equal(cliSource.purpose, 'native-approval-cpu-diagnostic'); assert.equal(cliSource.acceptanceEligible, false);
+  assert.equal(cliSource.archiveSha256, hash(zipped)); assert.equal(cliSource.sourceSha, p.manifest.sourceSha);
+  for (const args of [['inspect-native-approval-cpu-producer', cliOutput],
+    ['inspect-native-approval-cpu-source', cliOutput], ['inspect-native-approval-cpu-source', cliOutput, archive, archive],
+    ['inspect-native-approval-producer'], ['inspect-native-approval-source', cliOutput]]) {
+    const result = cli(args); assert.notEqual(result.status, 0); assert.equal(result.stdout, '');
+  }
+  p.jobs[0].conclusion = 'success'; await writeFile(metadataPath, JSON.stringify(metadata()));
+  assert.equal(passed(['inspect-native-approval-producer']).acceptanceEligible, true);
+  const formalSource = passed(['inspect-native-approval-source', cliOutput]);
+  assert.equal(formalSource.purpose, 'native-approval-acceptance'); assert.equal(formalSource.acceptanceEligible, true);
+  assert.equal(formalSource.sourceSha, cliSource.sourceSha); assert.equal(formalSource.archiveSha256, undefined);
   await writeFile(join(output, 'release.json'), Buffer.concat([bytes, Buffer.from(' ')]));
   await assert.rejects(inspectNativeApprovalDiagnosticProducer({...p, token: 'test-only',
     nativePackages: output, diagnosticArchive: archive}, fetchMetadata));
