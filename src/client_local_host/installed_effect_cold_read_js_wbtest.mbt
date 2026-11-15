@@ -1,12 +1,20 @@
 ///|
 fn installed_cold_read_fixture(
   current? : () -> Unit = () => (),
+  parent_limit? : Int64 = 536870912L,
 ) -> (
   ClientInstalledManagedRun,
   @resources.Ledger,
   ClientInstalledEffectCaptureRecovery,
 ) raise {
-  let (prepared, request, _, run, ledger) = native_control_fixture(current~)
+  let (prepared, request, plan, run, ledger) = staged_effect_input_fixture(
+    parent_limit=Some(parent_limit),
+    current~,
+  )
+  retain_installed_effect_operation_controls_before_construction(
+    run, prepared, request, plan,
+  ).unwrap()
+  |> ignore
   let compilation = @publication_host.issue_prepared_client_effect_compilation(
     prepared,
     request_program_module_manifests(),
@@ -209,5 +217,86 @@ test "escaped capture scalar reserves once on the original 512MiB Read without p
   assert_true(admit_installed_effect_captured_run(read, wire) is Err(_))
   retire_installed_effect_capture_recovery(read).unwrap()
   retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}
+
+///|
+test "staged capture Read prices original wide binary and byte-bounded writers on its same 1GiB parent" {
+  // The original WIDTH campaign encrypted extent, not a new product limit.
+  // Constructor geometry only: physical AEAD/FD/Saved is tested separately.
+  let bytes = 26579292
+  let prefix = "{\"ciphertext\":\""
+  let suffix = "\"}"
+  let envelope = prefix +
+    "A".repeat(bytes - prefix.length() - suffix.length()) +
+    suffix
+  let (run, ledger, read) = installed_cold_read_fixture(
+    parent_limit=1073741824L,
+  )
+  let before = @resources.ledger_usage(ledger)
+  reserve_installed_effect_capture_encrypted(read, bytes).unwrap()
+  reserve_installed_effect_capture_envelope(read, envelope).unwrap()
+  let wire = "{\"x\":\"" + "a".repeat(18886464) + "\"}"
+  reserve_installed_effect_capture_decoded(read, wire).unwrap()
+  let original = read.material.unwrap()
+  let held = @resources.ledger_usage(ledger)
+  assert_true(held.reserved_execution_bytes <= 1073741824L)
+  assert_true(held.reserved_retention_bytes > before.reserved_retention_bytes)
+  assert_eq(held.attempts, before.attempts)
+  assert_eq(held.transferred_bytes, before.transferred_bytes)
+  // This component completes only the byte/geometry constructor. It claims
+  // neither physical Store ACK nor semantic CapturedRun admission.
+  complete_installed_effect_capture_recovery(read).unwrap()
+  let finished = @resources.ledger_usage(ledger)
+  // All three decoded String domains and returned DATA remain paid; only
+  // completed binary scratch/tree inventory may be cut by this same owner.
+  assert_true(
+    finished.reserved_retention_bytes > before.reserved_retention_bytes,
+  )
+  assert_true(finished.reserved_retention_bytes < held.reserved_retention_bytes)
+  assert_true(physical_equal(read.material.unwrap(), original))
+  // A subsequent real constructor must re-enter its SAME backed peak; this
+  // unrelated JSON cannot become a captured Run just because bytes fit.
+  assert_true(admit_installed_effect_captured_run(read, wire) is Err(_))
+  assert_true(
+    @resources.ledger_usage(ledger).reserved_execution_bytes >
+    finished.reserved_execution_bytes,
+  )
+  assert_true(physical_equal(read.material.unwrap(), original))
+  retire_installed_effect_capture_recovery(read).unwrap()
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}
+
+///|
+test "staged wide Read still refuses the same extent on a real 512MiB parent before body construction" {
+  let bytes = 26579292
+  let (run, ledger, read) = installed_cold_read_fixture()
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    reserve_installed_effect_capture_encrypted(read, bytes)
+    is Err(Ledger(@resources.RetentionLimit)),
+  )
+  assert_true(read.material is None && read.material_envelope_wire is None)
+  // Failed IO grow preserves its newly backed publication Work prefix. A
+  // repeat cannot allocate another control or manufacture capacity/IO credit.
+  let refused = @resources.ledger_usage(ledger)
+  assert_true(
+    refused.reserved_retention_bytes >= before.reserved_retention_bytes,
+  )
+  assert_true(run.effect_operation_controls.unwrap().dependency_work is Some(_))
+  assert_eq(refused.attempts, before.attempts)
+  assert_eq(refused.transferred_bytes, before.transferred_bytes)
+  assert_true(
+    reserve_installed_effect_capture_encrypted(read, bytes)
+    is Err(Ledger(@resources.RetentionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), refused)
+  retire_installed_effect_capture_recovery(read).unwrap()
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
   assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
 }

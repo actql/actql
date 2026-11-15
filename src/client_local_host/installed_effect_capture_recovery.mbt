@@ -562,9 +562,13 @@ fn resize_installed_effect_capture_recovery_material(
           nodes.to_int64() * 2L,
           copies: 1,
         },
-        { unit: CanonicalWireBytes, count: bytes.to_int64(), copies: 4, },
       ])
-      is Some(completed_material) else {
+      is Some(completed_trees) &&
+      request_effect_capture_binary_bytes(bytes, owner.material_staged_envelope)
+      is Some(completed_buffers) &&
+      @execution.checked_preparation_add_product(
+        completed_trees, completed_buffers, 1L,
+      ) is Some(completed_material) else {
       return Err(InsufficientCapacity)
     }
     return @resources.complete_prepared_run_operation_construction_output(

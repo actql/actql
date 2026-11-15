@@ -1,4 +1,62 @@
 ///|
+// SAME staged Store reader only: four dedicated binary backings (encrypted
+// receive, decoded ciphertext, authenticated plaintext, failed/final concat).
+// Each is bounded by the selected immutable encrypted extent. These are raw
+// octets, not four opaque canonical-writer allowances. Keep them through the
+// trusted Store return; failure never cuts this prefix.
+//
+// The staged inverse admits every typed contract with max_wire_bytes=bytes.
+// Its actual text/hash owners therefore price the bounded constructor here.
+// Existing decoded-text, tree, validation and depth inventories stay separate;
+// the legacy wire-only reader retains its original generic quote.
+fn request_effect_capture_staged_wire_capacity(
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+) -> @execution.ExecutionCapacity? {
+  guard bytes >= 0 && nodes >= 0 && depth >= 0 &&
+    @encode.text_writer_construction_inventory(bytes, Int::max(1, nodes), depth)
+      is Some(text) &&
+    @encode.hash_writer_construction_inventory(nodes, depth) is Some(hash) &&
+    request_effect_capture_binary_bytes(bytes, true) is Some(binary) else {
+    return None
+  }
+  @execution.preparation_execution_capacity({
+    retained: {
+      // Dedicated Buffer/backing controls; the native byte domains below
+      // are additional to all three retained decoded String allowances.
+      record_headers: 8L,
+      reference_slots: 8L,
+      scalar_words: 8L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: binary,
+    },
+    workspace: {
+      record_headers: text.record_headers + hash.record_headers,
+      reference_slots: text.reference_slots + hash.reference_slots,
+      scalar_words: text.scalar_words + hash.scalar_words,
+      owned_utf16_units: text.owned_utf16_units + hash.owned_utf16_units,
+      owned_wire_bytes: hash.owned_wire_bytes,
+    },
+    retained_nodes: 0L, workspace_nodes: 0L,
+    retained_bytes: 0L, workspace_bytes: 0L,
+  })
+}
+
+///|
+fn request_effect_capture_binary_bytes(
+  bytes : Int,
+  staged : Bool,
+) -> Int64? {
+  @execution.execution_capacity_inventory_add(
+    0L,
+    if staged { QuotedBytes } else { CanonicalWireBytes },
+    bytes.to_int64(),
+    4,
+  )
+}
+
+///|
 /// Private capture read material on the existing Request reservation. These
 /// are the established executor units, not a new heap tariff or a wire cap.
 /// The actual encrypted extent bounds plaintext and aggregate decoded text;
@@ -89,7 +147,9 @@ fn request_effect_capture_recovery_capacity(
       // bytes coexist during construction. Only successful Store return cuts
       // all four buffers; retained Strings have their separate bounds above.
       // Directory/FD ownership and failed cleanup stay with that Store.
-      { unit: CanonicalWireBytes, count: bytes, copies: 4, },
+      // Staged readers fund the actual dedicated binary backings below.
+      // Legacy readers keep their prior opaque wire-construction envelope.
+      { unit: CanonicalWireBytes, count: bytes, copies: if staged_envelope { 0 } else { 4 }, },
     ],
     [
       // Active bounded Common validation/tree and canonical writer workspace
@@ -99,7 +159,9 @@ fn request_effect_capture_recovery_capacity(
         count: Int::min(tree_nodes, max_nodes).to_int64(),
         copies: 2,
       },
-      { unit: CanonicalWireBytes, count: bytes, copies: 4, },
+      // The staged adapter's exact byte-bounded writer/hash constructor is
+      // below; an opaque legacy caller still needs the original envelope.
+      { unit: CanonicalWireBytes, count: bytes, copies: if staged_envelope { 0 } else { 4 }, },
       {
         unit: CursorRootSlots,
         count: Int::min(encrypted_bytes, max_depth).to_int64(),
@@ -137,10 +199,22 @@ fn request_effect_capture_recovery_capacity(
     is Some(lexical) else {
     return None
   }
-  standard_create_sum_capacities(
-    [base, fixed, lexical],
-    sequential_workspace=false,
-  )
+  if staged_envelope {
+    guard request_effect_capture_staged_wire_capacity(
+        encrypted_bytes,
+        Int::min(tree_nodes, max_nodes),
+        Int::min(encrypted_bytes, max_depth),
+      ) is Some(wire) else {
+      return None
+    }
+    standard_create_sum_capacities(
+      [base, fixed, lexical, wire], sequential_workspace=false,
+    )
+  } else {
+    standard_create_sum_capacities(
+      [base, fixed, lexical], sequential_workspace=false,
+    )
+  }
 }
 
 ///|
