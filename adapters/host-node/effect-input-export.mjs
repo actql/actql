@@ -263,7 +263,6 @@ export async function preparePinnedEffectSourceSet({
       count, maxGroupingWork, hasCommandWorkspace, hasPublishedTarget);
   }
   const groups = [];
-  const duplicateManifestMembers = new Set();
   // Every source Unit Manifest covers all checked Result declarations, even
   // when an ordinary Effect consumes only a subset. These extra exports use
   // the retained capture; they are neither new Effect members nor source reads.
@@ -290,10 +289,8 @@ export async function preparePinnedEffectSourceSet({
   for (let index = 0; index < count; index++) {
     signal?.throwIfAborted();
     if (!shares(index, index)) throw new TypeError('UnavailableEffectSource');
-    let sharedManifest = false;
     const group = groups.find(value => {
       const sameView = shares(value[0], index);
-      if (sameView) sharedManifest = true;
       return sameView && workspaces?.[value[0]] === undefined &&
         workspaces?.[index] === undefined && targets?.[value[0]] === undefined &&
         targets?.[index] === undefined && (bindings === undefined ||
@@ -301,9 +298,6 @@ export async function preparePinnedEffectSourceSet({
     });
     if (group === undefined) {
       groups.push([index]);
-      // Moon's original live Result view proof, never equal content or CID,
-      // permits one logical Manifest entry across independent source custody.
-      if (sharedManifest) duplicateManifestMembers.add(index);
     }
     else group.push(index);
   }
@@ -328,7 +322,7 @@ export async function preparePinnedEffectSourceSet({
         ...(owned.onProposalRow === undefined ? {} : {
           proposalMemberIndexes: indexes,
         }),
-      }, manifestSet, undefined, duplicateManifestMembers.has(indexes[0]));
+      }, manifestSet);
       payloads.push(payload);
       for (const memberIndex of indexes) {
         members[memberIndex] = Object.freeze({memberIndex, payload});
@@ -950,7 +944,7 @@ async function preparePinnedEffectSourcePayloadOwned({
   localEvidenceContext,
   onProposalRow, proposalMemberIndexes, proposalLimits, onOriginalArtifact,
   commandWorkspace, onCommandKey, publishedTarget,
-}, manifestSet, local, duplicateManifestMember = false) {
+}, manifestSet, local) {
   if (typeof store?.createPreparedObjectWriter !== 'function' ||
       typeof store.storeAuthorityCid !== 'string' ||
       typeof moon?.clientProgramIssueCapturedEffectInputLocalResultDefinition !==
@@ -1273,9 +1267,10 @@ async function preparePinnedEffectSourcePayloadOwned({
       tableInput: table,
       contractLimits: Object.freeze({...contractLimits}),
     }));
-    if (!duplicateManifestMember) {
-      manifestSet?.get(unitIndex).artifacts.push(localResultArtifact);
-    }
+    // Preserve every independently issued original for its member's custody.
+    // Common deduplicates only the canonical named entry after checking the
+    // exact live Result origin; it still retains each physical witness.
+    manifestSet?.get(unitIndex).artifacts.push(localResultArtifact);
     return payload;
   } catch (failure) {
     const pendingOwners = [];

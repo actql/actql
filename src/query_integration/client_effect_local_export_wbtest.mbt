@@ -599,7 +599,112 @@ test "shared local Artifact issuer rejects foreign Result export ownership" {
       65536, 4096, 32,
     )
   }
-  assert_true(issue(prepared, out_preparation, out_receipt) is Ok(_))
+  let first_artifact = issue(prepared, out_preparation, out_receipt).unwrap()
+  let second_artifact = issue(prepared, second_preparation, second_receipt).unwrap()
+  let other_definition = @publication_host.issue_client_effect_local_result_definition(
+    prepared, 0, "other", 65536, 4096, 32,
+  ).unwrap()
+  let other_artifact = @publication_host.issue_source_free_client_effect_local_result_artifact(
+    prepared, inputs, 1, other, completed, bridge, other_preparation, other_definition,
+    local_invocation, other_receipt, retention, admission, run_definition, run_invocation,
+    observation, 65536, 4096, 32,
+  ).unwrap()
+  let canonical = @publication_host.issue_client_effect_local_manifest(
+    prepared,
+    local_invocation,
+    [first_artifact, other_artifact],
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  // Independent exports of the SAME original Result need distinct physical
+  // custody witnesses, but contribute one canonical named Result entry.
+  let aliases = @publication_host.issue_client_effect_local_manifest(
+    prepared,
+    local_invocation,
+    [first_artifact, second_artifact, other_artifact],
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let geometry = @publication_host.client_effect_local_manifest_construction_geometry(
+    local_invocation,
+    [first_artifact, second_artifact, other_artifact],
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  assert_eq(
+    geometry,
+    @publication_host.client_effect_local_manifest_construction_geometry(
+      local_invocation,
+      [first_artifact, other_artifact],
+      65536,
+      4096,
+      32,
+    ).unwrap(),
+  )
+  assert_eq(
+    geometry.bytes,
+    @utf8.encode(@publication_host.client_effect_local_manifest_json(aliases)).length(),
+  )
+  assert_eq(
+    @publication_host.client_effect_local_manifest_cid(aliases),
+    @publication_host.client_effect_local_manifest_cid(canonical),
+  )
+  assert_eq(
+    @publication_host.client_effect_local_manifest_json(aliases),
+    @publication_host.client_effect_local_manifest_json(canonical),
+  )
+  assert_true(
+    @publication_host.client_effect_local_manifest_matches(
+      aliases,
+      prepared,
+      local_invocation,
+      [first_artifact, second_artifact, other_artifact],
+    ),
+  )
+  assert_false(
+    @publication_host.client_effect_local_manifest_matches(
+      canonical,
+      prepared,
+      local_invocation,
+      [first_artifact, second_artifact, other_artifact],
+    ),
+  )
+  assert_true(
+    @publication_host.issue_client_effect_local_manifest(
+      prepared,
+      local_invocation,
+      [first_artifact, first_artifact, other_artifact],
+      65536,
+      4096,
+      32,
+    )
+    is Err(@publication_host.DuplicateResult),
+  )
+  assert_true(
+    @publication_host.issue_client_effect_local_manifest(
+      prepared,
+      local_invocation,
+      [first_artifact, second_artifact, second_artifact, other_artifact],
+      65536,
+      4096,
+      32,
+    )
+    is Err(@publication_host.DuplicateResult),
+  )
+  assert_true(
+    @publication_host.issue_client_effect_local_manifest(
+      prepared,
+      local_invocation,
+      [first_artifact, second_artifact],
+      65536,
+      4096,
+      32,
+    )
+    is Err(@publication_host.IncompleteResults),
+  )
   let foreign_run_definition = @publication.issue_run_definition(
     admission,
     "scope",

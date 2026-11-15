@@ -114,6 +114,7 @@ pub fn issue_client_effect_local_manifest(
   }
   let by_name : Map[String, ClientEffectLocalResultArtifact] = Map([])
   let by_table : Map[String, ClientEffectLocalResultArtifact] = Map([])
+  let mut artifact_index = 0
   for artifact in artifacts {
     if !client_effect_local_artifact_matches_computation(artifact, owner) ||
       !physical_equal(artifact.invocation, invocation) {
@@ -122,9 +123,6 @@ pub fn issue_client_effect_local_manifest(
     match artifact.source {
       ResultSource(_, definition) => {
         let name = definition.result_name
-        if by_name.contains(name) {
-          return Err(DuplicateResult)
-        }
         if !client_effect_local_result_definition_matches(
             definition,
             owner,
@@ -133,7 +131,50 @@ pub fn issue_client_effect_local_manifest(
           ) {
           return Err(ForeignArtifact)
         }
-        by_name[name] = artifact
+        if by_name.get(name) is Some(original) {
+          for prior in 0..<artifact_index {
+            if physical_equal(artifacts[prior], artifact) {
+              return Err(DuplicateResult)
+            }
+          }
+          // Separate command captures may export the SAME original Result.
+          // Keep both physical witnesses in artifacts, but emit one named
+          // semantic entry. Equal values/CIDs from another pin or Run cannot
+          // establish this relation, nor can repeating one witness twice.
+          let same_original = match
+            (
+              original.custody,
+              artifact.custody,
+              original.source,
+              artifact.source,
+            ) {
+            (
+              EffectInputs(left),
+              EffectInputs(right),
+              ResultSource(left_borrow, left_definition),
+              ResultSource(right_borrow, right_definition),
+            ) =>
+              !physical_equal(original, artifact) &&
+              physical_equal(left, right) &&
+              physical_equal(left_definition.owner, right_definition.owner) &&
+              left_definition.unit == right_definition.unit &&
+              left_definition.result_name == right_definition.result_name &&
+              @strategy.captured_any_result_borrows_share_view(
+                left_borrow, right_borrow,
+              ) &&
+              physical_equal(original.retention, artifact.retention) &&
+              original.physical_cid == artifact.physical_cid &&
+              original.physical_bytes == artifact.physical_bytes &&
+              @publication.publication_contract_identity(original.artifact) ==
+              @publication.publication_contract_identity(artifact.artifact)
+            _ => false
+          }
+          if !same_original {
+            return Err(DuplicateResult)
+          }
+        } else {
+          by_name[name] = artifact
+        }
       }
       TableSource(_, definition) => {
         let name = definition.name
@@ -150,6 +191,7 @@ pub fn issue_client_effect_local_manifest(
         by_table[name] = artifact
       }
     }
+    artifact_index += 1
   }
   if by_name.length() != expected_count {
     return Err(IncompleteResults)
@@ -284,10 +326,11 @@ pub fn client_effect_local_manifest_construction_geometry(
   let by_table : Map[String, ClientEffectLocalResultArtifact] = Map([])
   for artifact in artifacts {
     match artifact.source {
-      ResultSource(_, definition) => {
-        names.push(definition.result_name)
-        by_name[definition.result_name] = artifact
-      }
+      ResultSource(_, definition) =>
+        if !by_name.contains(definition.result_name) {
+          names.push(definition.result_name)
+          by_name[definition.result_name] = artifact
+        }
       TableSource(_, definition) => {
         tables.push(definition.name)
         by_table[definition.name] = artifact
