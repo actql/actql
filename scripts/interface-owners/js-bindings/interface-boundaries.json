@@ -41218,10 +41218,6 @@
               {
                 "path": "adapters/host-node/client-dispatch-owner.mjs",
                 "anchor": "throw new Error('InstalledManagedComputeHostUnavailable');"
-              },
-              {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
-                "anchor": "actual dispatcher propagates missing/foreign/parked original refusal without fallback"
               }
             ],
             "cancellation": [
@@ -41282,10 +41278,6 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
-              },
-              {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
-                "anchor": "actual dispatcher opens its opaque Run without the legacy accounting constructor"
               },
               {
                 "path": "adapters/host-node/client-dispatch-observation.test.mjs",
@@ -49317,10 +49309,6 @@
                 "anchor": "test('Project Source retains a real reader before current refusal and closes with the captured original receiver'"
               },
               {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
-                "anchor": "test('single Source dispatcher keeps the original managed parent and singleton capacity arrays'"
-              },
-              {
                 "path": "adapters/host-node/client-mock-source-occurrences.test.mjs",
                 "anchor": "test('one Mock Salesforce occurrence retains its original submission', async () => {"
               },
@@ -51094,10 +51082,6 @@
                 "anchor": "if (runtimeIsError(result) && moon.clientProgramInstalledManagedRunIssueIsUnsupported("
               },
               {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
-                "anchor": "test('reused Source retains same-map membership and the original Host current failure'"
-              },
-              {
                 "path": "adapters/host-node/managed-output-mode.test.mjs",
                 "anchor": "test('source-free quote refuses a missing or non-Boolean original mode before construction'"
               },
@@ -51186,10 +51170,6 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
-                "anchor": "actual Host acquires its same Journal before Compute and before publishing the SDK receiver"
-              },
-              {
                 "path": "src/client_local_host/managed_source_free_preparation_wbtest.mbt",
                 "anchor": "managed source-free preparation executes the same generated originals on one diagnostic Ledger"
               },
@@ -51216,10 +51196,6 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
                 "anchor": "Unsupported after Resource or a retained failure never issues a new pure refusal"
-              },
-              {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
-                "anchor": "test('reused Source admission refuses retirement replacement and original failure from its captured current check'"
               },
               {
                 "path": "adapters/host-node/managed-output-mode.test.mjs",
@@ -51801,14 +51777,6 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned captured Source Plan construction"
-              },
-              {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
-                "anchor": "test('ordinary captured Source Host adopts its same Request Plan without detached admission ports'"
-              },
-              {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
-                "anchor": "timed whole Source caller uses the exact transient Core Option at the matching typed port"
               },
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",

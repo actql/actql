@@ -91328,10 +91328,6 @@
               {
                 "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
                 "anchor": "test('Project Source retains a real reader before current refusal and closes with the captured original receiver'"
-              },
-              {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
-                "anchor": "test('single Source dispatcher keeps the original managed parent and singleton capacity arrays'"
               }
             ]
           }
@@ -115307,10 +115303,6 @@
                 "anchor": "test('Project Source retains a real reader before current refusal and closes with the captured original receiver'"
               },
               {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
-                "anchor": "test('single Source dispatcher keeps the original managed parent and singleton capacity arrays'"
-              },
-              {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Selected native Request driver"
               },
@@ -118740,10 +118732,6 @@
               {
                 "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
                 "anchor": "test('Project Source retains a real reader before current refusal and closes with the captured original receiver'"
-              },
-              {
-                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
-                "anchor": "test('single Source dispatcher keeps the original managed parent and singleton capacity arrays'"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
