@@ -40166,7 +40166,7 @@
     {
       "module": "adapters/host-node/effect-ledger.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b5d09a3d5364ed3a3267b5a2597b7cb61eabd8300f7f8409b1877487af0d11a6",
+      "sha256": "0d06f799b1a8d306ec46442666f6827a79ef39ce99b28ec49e9b570113fde119",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -40609,7 +40609,8 @@
             "programId",
             "nodeId",
             "maxRows",
-            "maxWork"
+            "maxWork",
+            "originalKeys"
           ],
           "async": false
         },

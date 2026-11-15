@@ -864,6 +864,8 @@ pub fn client_program_effect_publication_policy_bodies(@run_publication_host.Pre
 
 pub fn client_program_effect_published_store_binding(@physical_strategy_host.CapturedEffectInputs, Int, Int) -> Result[@check_environment.StoreCommandBinding?, @physical_strategy_host.CapturedEffectProposalIssue]
 
+pub fn client_program_effect_recovery_bindings_from_keys(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, String, String, Array[Array[@effect_application.EffectDispatchKey]], Int, Int) -> Result[Array[Array[@effect_application.EffectRecoveryBinding]], @effect_application.EffectRecoveredClaimIssue]
+
 pub fn client_program_effect_request_authority(@logical_request_scope.LogicalRequestScope) -> String
 
 pub fn client_program_effect_request_identity(@run_publication_host.PreparedClientEffectComputation, String, String, String) -> @run_publication_host.ClientRequestIdentity?

@@ -17384,6 +17384,7 @@
             "effectApplicationControl/effectApplicationControl#31",
             "effectApplicationControl/effectApplicationControl#32",
             "effectApplicationControl/effectApplicationControl#33",
+            "effectApplicationControl/effectApplicationControl#34",
             "effectApplicationControl/effectApplicationControl#4",
             "effectApplicationControl/effectApplicationControl#5",
             "effectApplicationControl/effectApplicationControl#6",
@@ -25321,6 +25322,13 @@
         },
         {
           "name": "effectApplicationControl/effectApplicationControl#33",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectApplicationControl/effectApplicationControl#34",
           "parameters": [
             "args"
           ],
@@ -33563,7 +33571,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "ec5ba4169599ee37d9d386c52515a43ad7a879c41b113e9d0ba8848094d04874"
+      "sha256": "99d9353ddf079500cce52ff0cfb0ed74d34ed0f52f40c86dc45a3b9ac985b64a"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -82156,7 +82164,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "a1555d9dc6c84290baf18c5fc6a0adb007db8db761e061fd68f61fc796ea2a50",
+      "sha256": "15d45364d392170850f568c24cc7214c8506f563ecf56d350a774f9477ef4c6c",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [

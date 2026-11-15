@@ -1701,6 +1701,7 @@
             "effectApplicationControl/effectApplicationControl#31",
             "effectApplicationControl/effectApplicationControl#32",
             "effectApplicationControl/effectApplicationControl#33",
+            "effectApplicationControl/effectApplicationControl#34",
             "effectApplicationControl/effectApplicationControl#4",
             "effectApplicationControl/effectApplicationControl#5",
             "effectApplicationControl/effectApplicationControl#6",
@@ -8848,6 +8849,13 @@
         },
         {
           "name": "effectApplicationControl/effectApplicationControl#33",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectApplicationControl/effectApplicationControl#34",
           "parameters": [
             "args"
           ],
@@ -17090,7 +17098,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "ec5ba4169599ee37d9d386c52515a43ad7a879c41b113e9d0ba8848094d04874"
+      "sha256": "99d9353ddf079500cce52ff0cfb0ed74d34ed0f52f40c86dc45a3b9ac985b64a"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
