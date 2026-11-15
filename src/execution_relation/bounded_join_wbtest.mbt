@@ -14,6 +14,8 @@ fn bounded_join_fixture(
   right_name? : String = "r",
   key_name? : String = "id",
   reserve? : ((Int64) -> Result[Unit, WorkspaceGrowthIssue])? = None,
+  left_current? : (() -> Bool)? = None,
+  right_current? : (() -> Bool)? = None,
 ) -> (@bounded.Control, BoundedJoinExecution, Array[ProducerRead]) raise {
   let schema = "{\"id\":{\"type\":\"" +
     key_type +
@@ -31,6 +33,14 @@ fn bounded_join_fixture(
   )
   let (left_owner, left_output) = bounded_cross_source(schema, left_rows)
   let (right_owner, right_output) = bounded_cross_source(schema, right_rows)
+  let left_output = match left_current {
+    None => left_output
+    Some(current) => restrict_completed_output(left_output, current)
+  }
+  let right_output = match right_current {
+    None => right_output
+    Some(current) => restrict_completed_output(right_output, current)
+  }
   let producer = fn(owner) {
     @pipeline.produced_input(
       @lower.pipeline(@lower.bound_preparation(owner)),

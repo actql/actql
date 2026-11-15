@@ -208,14 +208,24 @@ fn bounded_join_step(
 ) -> @bounded.KernelStep[CompletedOutput, BoundedJoinIssue] {
   let mut used = 0
   let mut progress = 0
+  let mut text_current = false
   while used < quantum {
     if @bounded.stop_requested(reader) is Some(reason) {
       return @bounded.Stopped(reason, progress, used)
     }
-    if !bounded_binding_input_available(state.left) ||
-      !bounded_binding_input_available(state.right) {
+    let input_text = state.phase is ChargeInput &&
+      state.input_scan.frames.last() is Some(ScanText(_, _))
+    // Only consecutive immutable text units have no external callback. The
+    // marker is local to this resume; every other frame, cell or phase fences
+    // the original inputs again before it can call an owner or read new data.
+    if (!text_current || !input_text) &&
+      (
+        !bounded_binding_input_available(state.left) ||
+        !bounded_binding_input_available(state.right)
+      ) {
       return bounded_join_failure(InvalidExecution, progress, used)
     }
+    text_current = input_text
     match state.phase {
       PrepareCompletionPort => {
         guard state.port_preparation is Some(cursor) else {
@@ -588,6 +598,13 @@ fn bounded_join_step(
       }
       Terminal => return bounded_join_failure(InvalidExecution, progress, used)
     }
+  }
+  if text_current &&
+    (
+      !bounded_binding_input_available(state.left) ||
+      !bounded_binding_input_available(state.right)
+    ) {
+    return bounded_join_failure(InvalidExecution, progress, used)
   }
   @bounded.Continue(progress, used)
 }
