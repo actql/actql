@@ -169,13 +169,45 @@ test "protocol array ceilings apply before traversing items" {
   assert_true(protocol_test_accepts(nodes, 1, "[]"))
   assert_true(protocol_test_accepts(nodes, 1, "[{},{}]"))
   assert_false(protocol_test_accepts(nodes, 1, "[{},{},{}]"))
-  let (generated, index) = protocol_test_property_node("captured_run", [
+}
+
+///|
+test "CapturedRun inventory shape uses the caller envelope beyond the old entry ceiling" {
+  let (nodes, index) = protocol_test_property_node("captured_run", [
     "effect_context", "effect_dependency_inventory",
   ])
-  guard generated[index] is ArrayRule(_, _, _, maximum) else {
-    fail("Expected bounded dependency inventory")
+  let entries = []
+  for ordinal in 0..<4097 {
+    let suffix = ordinal.to_string()
+    let cid = "sha256:" + "0".repeat(64 - suffix.length()) + suffix
+    entries.push(
+      "{\"body\":{},\"cid\":\"" + cid + "\",\"kind\":\"relation_schema\"}",
+    )
   }
-  assert_eq(maximum, 4096)
+  let wire = "[" + entries.join(",") + "]"
+  let value = parse_contract_wire(wire, 1048576, 65536, 16).unwrap()
+  assert_true(
+    validate_protocol_node(value, index, nodes, {
+      remaining: 2000000,
+      max_wire_bytes: 1048576,
+      max_nodes: 65536,
+      max_depth: 16,
+    }),
+  )
+  assert_false(
+    validate_protocol_node(value, index, nodes, {
+      remaining: 100,
+      max_wire_bytes: 1048576,
+      max_nodes: 65536,
+      max_depth: 16,
+    }),
+  )
+  assert_true(parse_contract_wire(wire, 1048576, 4096, 16) is Err(_))
+  assert_false(
+    protocol_test_accepts(
+      nodes, index, "[{\"body\":{},\"cid\":\"invalid\",\"kind\":\"relation_schema\"}]",
+    ),
+  )
 }
 
 ///|

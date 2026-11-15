@@ -4834,7 +4834,7 @@ fn generated_protocol_schema_nodes_1(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(1773, 0, false, 4096))
+  nodes.push(protocol_array_rule(1773, 0, false, -1))
   nodes.push(nodes[213])
   nodes.push(nodes[2])
   nodes.push(nodes[2])
@@ -6073,7 +6073,7 @@ fn generated_protocol_schema_nodes_2(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
-  nodes.push(protocol_array_rule(2193, 0, false, 4096))
+  nodes.push(protocol_array_rule(2193, 0, false, -1))
   nodes.push(nodes[213])
   nodes.push(nodes[2])
   nodes.push(nodes[2])

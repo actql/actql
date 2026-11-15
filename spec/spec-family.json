@@ -1694,7 +1694,7 @@
         {
           "path": "spec/contracts/actql-protocol-schemas.json",
           "pointer": "/artifact_schemas/captured_run",
-          "cid": "sha256:8dced4c09cfcf30f3275ba05289b41becaee8019848f511bc3ca5dbd0bf5b3a4",
+          "cid": "sha256:70f397acca6b312f31005db54973a195809f4fdd0e04773bb08bd1c462d893ba",
           "version": "actql-protocol-schema-registry/0.1"
         },
         {
@@ -2502,7 +2502,7 @@
         {
           "owner": "actql.protocol.run",
           "version": "actql/0.1",
-          "document_cid": "sha256:5cac4d5f23caa9468ef9cf09f2eee91cfa845fc03a27195dcae8fa3b58c6a4ed"
+          "document_cid": "sha256:01e9c8cc30d65b9f044124f32aee7fbed36ba7083796eb78714f117939892617"
         },
         {
           "owner": "actql.protocol.discovery",

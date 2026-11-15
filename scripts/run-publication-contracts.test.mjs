@@ -228,7 +228,7 @@ test('independent local Effect source inventory binds its Stage Result', () => {
   assert.ok(context.required.includes('effect_dependency_inventory'));
   const dependencies = context.properties.effect_dependency_inventory;
   assert.equal(dependencies.type, 'array');
-  assert.equal(dependencies.maxItems, 4096);
+  assert.equal(Object.hasOwn(dependencies, 'maxItems'), false);
   assert.equal(dependencies.items.additionalProperties, false);
   assert.deepEqual([...dependencies.items.required].sort(),
     ['body', 'cid', 'kind']);
@@ -583,7 +583,7 @@ test('corrected schemas have independently fixed canonical identities', () => {
       run_state:
         'sha256:3fbfc2cc5a79449fd05fce58e0fad25f6eef0ecde8314a222417a2e233db28c2',
       captured_run:
-        'sha256:8dced4c09cfcf30f3275ba05289b41becaee8019848f511bc3ca5dbd0bf5b3a4',
+        'sha256:70f397acca6b312f31005db54973a195809f4fdd0e04773bb08bd1c462d893ba',
     },
   );
 });
