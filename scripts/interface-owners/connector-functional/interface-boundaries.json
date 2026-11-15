@@ -14403,7 +14403,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "a6c82a7993422615db51c4b365beb757d9df27db9889be85f385c7e49982ca91",
+      "sha256": "ace3b7593f5c0882a735005fdcaa3ad35e098d3b99ab57e502ca44dad383a62f",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -14968,6 +14968,7 @@
             "sourceLookup",
             "access",
             "maxWork",
+            "maxNodes",
             "quantum"
           ],
           "async": true
@@ -15225,7 +15226,8 @@
           "name": "createInstalledRowSource/sourceBody/init:keyedLedgerCapacity/init:keyedLedgerCapacity",
           "parameters": [
             "keyedAcquisition",
-            "maxWork"
+            "maxWork",
+            "originalWork"
           ],
           "async": false
         },
@@ -16951,6 +16953,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Declared Source access inventory"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_keyed_lookup.mbt",
+                "anchor": "pub fn installed_effect_keyed_input_work_limit("
               }
             ],
             "extension": [
@@ -17171,6 +17177,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Declared Source access inventory"
+              },
+              {
+                "path": "adapters/host-node/installed-keyed-original-read.test.mjs",
+                "anchor": "test('Source work selector preserves standalone and explicit tighter work and node limits'"
               }
             ]
           }

@@ -93763,7 +93763,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "a6c82a7993422615db51c4b365beb757d9df27db9889be85f385c7e49982ca91",
+      "sha256": "ace3b7593f5c0882a735005fdcaa3ad35e098d3b99ab57e502ca44dad383a62f",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -94341,6 +94341,7 @@
             "sourceLookup",
             "access",
             "maxWork",
+            "maxNodes",
             "quantum"
           ],
           "async": true
@@ -94598,7 +94599,8 @@
           "name": "createInstalledRowSource/sourceBody/init:keyedLedgerCapacity/init:keyedLedgerCapacity",
           "parameters": [
             "keyedAcquisition",
-            "maxWork"
+            "maxWork",
+            "originalWork"
           ],
           "async": false
         },
@@ -96347,6 +96349,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "if (!text(childOperation) || !Number.isSafeInteger(index) || index !== readChildIndex || index >= limits.maxPages) {"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_keyed_lookup.mbt",
+                "anchor": "pub fn installed_effect_keyed_input_work_limit("
               }
             ],
             "extension": [
@@ -96443,6 +96449,10 @@
               {
                 "path": "adapters/host-node/installed-source-child-use.test.mjs",
                 "anchor": "undeclared child authorization consumes its ordinal before reentrant or failed current checks"
+              },
+              {
+                "path": "adapters/host-node/installed-keyed-original-read.test.mjs",
+                "anchor": "test('Source work selector preserves standalone and explicit tighter work and node limits'"
               }
             ]
           }
@@ -162150,7 +162160,7 @@
     {
       "module": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "70c141832cbce8d29f0d3ce095e01a906a2c13dea0b4cd7d4628262588361752",
+      "sha256": "9f3fc78c48515de73ed14360dafff6318a4bac68191eb53e68fe728dab40ab0c",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -162522,6 +162532,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "function originalGenericKeyedLookupPublication("
+              },
+              {
+                "path": "src/client_local_host/installed_effect_keyed_lookup.mbt",
+                "anchor": "pub fn installed_effect_keyed_input_work_limit("
               }
             ],
             "extension": [
@@ -162554,6 +162568,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.test.mjs",
                 "anchor": "test('generic Source-only keyed publication uses original metadata and completion without Native history'"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.test.mjs",
+                "anchor": "test('Source work selector reaches the first capacity quote and the same start/open'"
               }
             ]
           }
