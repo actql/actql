@@ -1024,8 +1024,8 @@ async function prepareCompletedEffectfulCaptureRetirement(store, control, run,
 // encrypted capture record is only a source of bytes; MoonBit re-admits and
 // validates the exact computation chain before any owner is reconstructed.
 export async function recoverCompletedEffectfulComputation(options, recoveryResources) {
-  return withCaptureRecoveryResources(recoveryResources, beforeRead =>
-    recoverCompletedEffectfulComputationOwned(options, beforeRead, recoveryResources));
+  return withCaptureRecoveryResources(recoveryResources, (beforeRead, extent) =>
+    recoverCompletedEffectfulComputationOwned(options, beforeRead, recoveryResources, extent));
 }
 
 // The fixed Host supplies the SAME already admitted Request/Run reservation.
@@ -1033,7 +1033,7 @@ export async function recoverCompletedEffectfulComputation(options, recoveryReso
 // successful returned schema/material owners and any failed physical child
 // remain backed until their original caller's actual retirement continuation.
 async function withCaptureRecoveryResources(resources, consume) {
-  if (resources === undefined) return consume(undefined);
+  if (resources === undefined) return consume(undefined, undefined);
   if (!['begin', 'reserve', 'finish', 'retainCleanup'].every(name => typeof resources?.[name] === 'function')) {
     fail('InvalidCompletedEffectfulRecoveryResources');
   }
@@ -1041,12 +1041,19 @@ async function withCaptureRecoveryResources(resources, consume) {
   Reflect.apply(begin, resources, []);
   let failed = true, cause;
   try {
-    const beforeRead = bytes => Reflect.apply(reserve, resources, [bytes]);
+    // This cell records only the SAME acquired outer Store extent after its
+    // original parent has admitted the reservation. Inner metadata never
+    // supplies this constructor bound or changes the selected resource budget.
+    const extent = {bytes: undefined};
+    const beforeRead = bytes => {
+      Reflect.apply(reserve, resources, [bytes]);
+      extent.bytes = bytes;
+    };
     if (typeof resources.reserveEnvelope === 'function') {
       Object.defineProperty(beforeRead, 'reserveEnvelope', {value: wire =>
         Reflect.apply(resources.reserveEnvelope, resources, [wire])});
     }
-    const value = await consume(beforeRead);
+    const value = await consume(beforeRead, extent);
     failed = false;
     return value;
   } catch (error) {
@@ -1057,7 +1064,7 @@ async function withCaptureRecoveryResources(resources, consume) {
   }
 }
 
-async function recoverCompletedEffectfulComputationOwned(options, beforeRead, recoveryResources) {
+async function recoverCompletedEffectfulComputationOwned(options, beforeRead, recoveryResources, extent) {
   if (!exactKeys(options, [
     'store', 'control', 'runDefinition', 'contractLimits',
   ])) fail('InvalidCompletedEffectfulRecoveryOptions');
@@ -1102,7 +1109,7 @@ async function recoverCompletedEffectfulComputationOwned(options, beforeRead, re
         if (consuming) fail('InvalidCompletedEffectfulCaptureRecord');
         consuming = true;
         return recoverCompletedEffectfulPlaintext(store, control, contractLimits, admittedRun,
-          captureHoldingCid, recordHoldingCid, record, read, recoveryResources);
+          captureHoldingCid, recordHoldingCid, record, read, recoveryResources, extent);
       }, beforeRead);
     if (!consuming) fail('InvalidCompletedEffectfulCaptureRecord');
     return recovered;
@@ -1117,7 +1124,20 @@ async function recoverCompletedEffectfulComputationOwned(options, beforeRead, re
 // One trusted consumer of the same temporary decrypted backing. The Store's
 // original reader spans the complete typed/schema construction and its awaits.
 async function recoverCompletedEffectfulPlaintext(store, control, contractLimits,
-  admittedRun, captureHoldingCid, recordHoldingCid, record, read, recoveryResources) {
+  admittedRun, captureHoldingCid, recordHoldingCid, record, read, recoveryResources, extent) {
+  if (extent !== undefined) {
+    // The acquired original must agree with the inspected immutable holding.
+    // This bounded inverse never needs to emit a metadata wire larger than
+    // the original outer record that contains it. Preserve a smaller policy.
+    const bytes = extent.bytes;
+    if (!Number.isSafeInteger(bytes) || bytes < 1 ||
+        bytes !== record.objects[0].byte_count ||
+        !Number.isSafeInteger(contractLimits?.maxWireBytes) || contractLimits.maxWireBytes < 1) {
+      fail('InvalidCompletedEffectfulCaptureRecord');
+    }
+    contractLimits = Object.freeze({maxWireBytes: Math.min(contractLimits.maxWireBytes, bytes),
+      maxNodes: contractLimits.maxNodes, maxDepth: contractLimits.maxDepth});
+  }
   let captured, captureRecordWire;
   try {
     captureRecordWire = read.releaseBytes();

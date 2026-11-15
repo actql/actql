@@ -5,8 +5,9 @@
 // octets, not four opaque canonical-writer allowances. Keep them through the
 // trusted Store return; failure never cuts this prefix.
 //
-// The staged inverse admits every typed contract with max_wire_bytes=bytes.
-// Its actual text/hash owners therefore price the bounded constructor here.
+// The Core staged inverse uses max_wire_bytes=bytes; the SAME funded Common
+// Read also narrows nested metadata emission to its acquired outer extent.
+// The actual text/hash owners therefore price that bounded constructor here.
 // Existing decoded-text, tree, validation and depth inventories stay separate;
 // the legacy wire-only reader retains its original generic quote.
 fn request_effect_capture_staged_wire_capacity(
@@ -14,9 +15,11 @@ fn request_effect_capture_staged_wire_capacity(
   nodes : Int,
   depth : Int,
 ) -> @execution.ExecutionCapacity? {
-  guard bytes >= 0 && nodes >= 0 && depth >= 0 &&
+  guard bytes >= 0 &&
+    nodes >= 0 &&
+    depth >= 0 &&
     @encode.text_writer_construction_inventory(bytes, Int::max(1, nodes), depth)
-      is Some(text) &&
+    is Some(text) &&
     @encode.hash_writer_construction_inventory(nodes, depth) is Some(hash) &&
     request_effect_capture_binary_bytes(bytes, true) is Some(binary) else {
     return None
@@ -38,19 +41,22 @@ fn request_effect_capture_staged_wire_capacity(
       owned_utf16_units: text.owned_utf16_units + hash.owned_utf16_units,
       owned_wire_bytes: hash.owned_wire_bytes,
     },
-    retained_nodes: 0L, workspace_nodes: 0L,
-    retained_bytes: 0L, workspace_bytes: 0L,
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
   })
 }
 
 ///|
-fn request_effect_capture_binary_bytes(
-  bytes : Int,
-  staged : Bool,
-) -> Int64? {
+fn request_effect_capture_binary_bytes(bytes : Int, staged : Bool) -> Int64? {
   @execution.execution_capacity_inventory_add(
     0L,
-    if staged { QuotedBytes } else { CanonicalWireBytes },
+    if staged {
+      QuotedBytes
+    } else {
+      CanonicalWireBytes
+    },
     bytes.to_int64(),
     4,
   )
@@ -149,7 +155,15 @@ fn request_effect_capture_recovery_capacity(
       // Directory/FD ownership and failed cleanup stay with that Store.
       // Staged readers fund the actual dedicated binary backings below.
       // Legacy readers keep their prior opaque wire-construction envelope.
-      { unit: CanonicalWireBytes, count: bytes, copies: if staged_envelope { 0 } else { 4 }, },
+      {
+        unit: CanonicalWireBytes,
+        count: bytes,
+        copies: if staged_envelope {
+          0
+        } else {
+          4
+        },
+      },
     ],
     [
       // Active bounded Common validation/tree and canonical writer workspace
@@ -161,7 +175,15 @@ fn request_effect_capture_recovery_capacity(
       },
       // The staged adapter's exact byte-bounded writer/hash constructor is
       // below; an opaque legacy caller still needs the original envelope.
-      { unit: CanonicalWireBytes, count: bytes, copies: if staged_envelope { 0 } else { 4 }, },
+      {
+        unit: CanonicalWireBytes,
+        count: bytes,
+        copies: if staged_envelope {
+          0
+        } else {
+          4
+        },
+      },
       {
         unit: CursorRootSlots,
         count: Int::min(encrypted_bytes, max_depth).to_int64(),
@@ -183,11 +205,14 @@ fn request_effect_capture_recovery_capacity(
       // Its synchronous call carrier has one two-reference record plus an
       // argument Array/backing with at most seven references (3H9R). These
       // sequential carriers remain separate from all returned receipt trees.
-      record_headers: work.record_headers + 15L,
-      reference_slots: work.reference_slots + 36L,
+      // The SAME acquired-extent scalar cell and immutable nested limits
+      // record add2H/8R/4W: cell1H1W, limits1H3W; eight references cover the
+      // original Read/consume async frames and their existing closures.
+      record_headers: work.record_headers + 17L,
+      reference_slots: work.reference_slots + 44L,
       // The same Read distinguishes its prepared-token retirement from the
       // ordinary admitted capture's alias release with one retained Bool.
-      scalar_words: work.scalar_words + 13L,
+      scalar_words: work.scalar_words + 17L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })
@@ -204,15 +229,18 @@ fn request_effect_capture_recovery_capacity(
         encrypted_bytes,
         Int::min(tree_nodes, max_nodes),
         Int::min(encrypted_bytes, max_depth),
-      ) is Some(wire) else {
+      )
+      is Some(wire) else {
       return None
     }
     standard_create_sum_capacities(
-      [base, fixed, lexical, wire], sequential_workspace=false,
+      [base, fixed, lexical, wire],
+      sequential_workspace=false,
     )
   } else {
     standard_create_sum_capacities(
-      [base, fixed, lexical], sequential_workspace=false,
+      [base, fixed, lexical],
+      sequential_workspace=false,
     )
   }
 }

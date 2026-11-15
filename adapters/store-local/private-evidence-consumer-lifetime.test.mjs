@@ -74,7 +74,7 @@ test('failed private decode preserves the original cause and retires only its te
   assert.equal((await f.store.retirePhysicalHolding(f.holding)).cleanup.status().pending, false);
 });
 
-function captureOptions(f, cause) {
+function captureOptions(f, cause, onNested) {
   const run = {name: 'run_definition', wire: 'original run', identity: cid('original run')};
   let plaintext, consumers = 0;
   const store = {...f.store,
@@ -86,8 +86,9 @@ function captureOptions(f, cause) {
       }, beforeRead);
     }};
   const control = {
-    admit(name, wire) {
+    admit(name, wire, limits) {
       if (name === run.name && wire === run.wire) return run;
+      onNested?.(name, wire, limits);
       throw cause;
     },
     effectComputationCaptureHoldingCid: () => cid('capture holding'),
@@ -436,4 +437,59 @@ test('same envelope census precedes decryption and plaintext consumer on success
     events.push('plaintext');return JSON.parse(read.releaseBytes());
   },beforeRead);
   assert.deepEqual(events,['extent','envelope','plaintext']);assert.equal(value.items.length,2);
+});
+
+
+for (const selectedMax of [16384, 128]) {
+  test(`actual funded private inverse bounds nested metadata by SAME acquired extent and preserves smaller ${selectedMax} policy`, async t => {
+    const runWire = 'original run';
+    const body = {version:'actql-completed-effectful-capture/0.1',
+      store_authority_cid:cid('consumer authority'), run_definition:runWire,
+      invocation:'original invocation', definitions:['original definition'], artifacts:['artifact'],
+      derivations:['derivation'], orderings:['ordering'], retentions:['retention'],
+      durable_bindings:['binding'], result_schemas:[], manifest:'manifest',
+      computation_receipt:'receipt', captured_run:'captured', preview:'preview', authoring_context:'authoring',
+      effect_source_artifacts:[], connector_recovery:[], effect_dependency_payloads:[]};
+    const f = await fixture(t, JSON.stringify(body));
+    const original = new Error('actual nested admission refusal');
+    let acquired, nested = 0, finished = false;
+    const c = captureOptions(f, original, (_name, _wire, limits) => {
+      nested++;
+      assert.equal(limits.maxWireBytes, Math.min(selectedMax, acquired));
+      assert.equal(limits.maxNodes, 4096); assert.equal(limits.maxDepth, 64);
+      assert(Object.isFrozen(limits));
+    });
+    c.options.contractLimits.maxWireBytes = selectedMax;
+    const holding = await f.store.inspectPhysicalHolding(f.holding);
+    await assert.rejects(recoverCompletedEffectfulComputation(c.options, {
+      begin() {},
+      reserve(bytes) {
+        acquired = bytes; assert.equal(bytes, holding.objects[0].byte_count);
+      },
+      finish(failed, cause) {assert(failed); assert.equal(cause, original); finished = true;},
+      retainCleanup: assert.fail,
+    }), error => error === original);
+    assert.equal(nested, 1); assert(finished);
+    assert.equal(c.options.contractLimits.maxWireBytes, selectedMax);
+    c.assertReleased();
+    assert.notEqual(await f.store.inspectPhysicalHolding(f.holding), undefined);
+  });
+}
+
+test('funded private inverse rejects a different inspected extent before nested admission and releases actual plaintext', async t => {
+  const f = await fixture(t), c = captureOptions(f, new Error('unexpected nested admission'), assert.fail);
+  const inspect = c.options.store.inspectPhysicalHolding;
+  c.options.store.inspectPhysicalHolding = async holding => {
+    const original = await Reflect.apply(inspect, f.store, [holding]);
+    return holding !== f.holding ? original : {...original,
+      objects: original.objects.map(object => ({...object, byte_count: object.byte_count + 1}))};
+  };
+  let acquired, finished = false;
+  await assert.rejects(recoverCompletedEffectfulComputation(c.options, {
+    begin() {}, reserve(bytes) {acquired = bytes;},
+    finish(failed, cause) {assert(failed); assert.equal(cause.code, 'InvalidCompletedEffectfulCaptureRecord'); finished = true;},
+    retainCleanup: assert.fail,
+  }), {code: 'InvalidCompletedEffectfulCaptureRecord'});
+  assert.equal(acquired, (await f.store.inspectPhysicalHolding(f.holding)).objects[0].byte_count);
+  assert(finished); c.assertReleased();
 });

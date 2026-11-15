@@ -2501,7 +2501,8 @@
         {
           "name": "recoverCompletedEffectfulComputation/recoverCompletedEffectfulComputation",
           "parameters": [
-            "beforeRead"
+            "beforeRead",
+            "extent"
           ],
           "async": false
         },
@@ -2510,7 +2511,8 @@
           "parameters": [
             "options",
             "beforeRead",
-            "recoveryResources"
+            "recoveryResources",
+            "extent"
           ],
           "async": true
         },
@@ -2547,7 +2549,8 @@
             "recordHoldingCid",
             "record",
             "read",
-            "recoveryResources"
+            "recoveryResources",
+            "extent"
           ],
           "async": true
         },
