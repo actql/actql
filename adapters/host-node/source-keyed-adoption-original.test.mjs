@@ -7,11 +7,14 @@ import {parse} from 'acorn';
 // Nominal Core ports below check forwarding/order only, never grant a Run.
 const text = readFileSync(new URL('./ordinary-source-managed.mjs', import.meta.url), 'utf8');
 const ast = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
-let method;
+let method, keyedReadMethod;
 function visit(value) {
   if (!value || typeof value !== 'object') return;
   if (value.type === 'Property' && value.method && value.key.name === 'adoptEffectPreparation') {
     assert.equal(method, undefined); method = text.slice(value.start, value.end);
+  }
+  if (value.type === 'Property' && value.method && value.key.name === 'prepareKeyedRead') {
+    assert.equal(keyedReadMethod, undefined); keyedReadMethod = text.slice(value.start, value.end);
   }
   for (const child of Object.values(value)) {
     if (Array.isArray(child)) child.forEach(visit);
@@ -68,4 +71,41 @@ test('keyed Effect adoption retains undefined original bind failure and cannot r
   assert(caught); assert.equal(f.state.preparationFailed, true);
   assert.throws(f.invoke, cause => cause === undefined);
   assert.deepEqual(f.events, ['bind']); assert.equal(f.liveRuns.size, 0);
+});
+
+
+function keyedReadFixture({replace = false} = {}) {
+  const prepared = {}, identity = {}, original = {}, operationPlan = {}, declaration = {}, request = {};
+  const keyedPreparation = Object.freeze({requestIdentity: identity});
+  const run = {effectful: true, purpose: 'source-compute', model: undefined, keyedPreparation,
+    value: original, operationPlan, children: [],
+    producer: {preparation: {effectPlan: operationPlan, context: {runtime: {
+      clientProgramInstalledEffectManagedOperationPlan(value, actual, key) {
+        assert.deepEqual([value, actual, key], [original, prepared, identity]);
+        if (replace) run.keyedPreparation = {};
+        return {_0: operationPlan};
+      },
+    }}}}};
+  const ports = {runFor: actual => {assert.strictEqual(actual, prepared); return run;},
+    project: true, bundle: {sources: [{declaration}]}, checked: result => result._0,
+    fail: code => {throw Object.assign(new Error(code), {code});},
+    closeChild: async child => {child.closed = true; return {pending: false};},
+    captureReader: () => {}, readBytes: () => assert.fail('No file read belongs to control construction')};
+  const invoke = new Function(...Object.keys(ports), 'return ({' + keyedReadMethod + '}).prepareKeyedRead;')(...Object.values(ports));
+  return {run, invoke: () => invoke(prepared, declaration, original, request), request};
+}
+
+test('Source-only keyed child uses the same current managed parent without a Model Scope', async () => {
+  const f = keyedReadFixture(), child = f.invoke();
+  assert.equal(f.run.children.length, 1);
+  assert.strictEqual(f.run.children[0].request, f.request);
+  assert.equal(child.status().pending, true);
+  child.retainChild({});
+  assert.equal((await child.close()).pending, false);
+});
+
+test('Source-only keyed child refuses a replaced parent tuple before retaining a child', () => {
+  const f = keyedReadFixture({replace: true});
+  assert.throws(f.invoke, {code: 'InstalledSourcePreparationMismatch'});
+  assert.deepEqual(f.run.children, []);
 });

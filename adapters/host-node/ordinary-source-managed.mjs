@@ -1983,6 +1983,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         const value = checked(methods.clientProgramAdoptRequestEffectPreparation(state.parent, identity));
         const run = {prepared, request, producer, purpose: 'source-compute', model: undefined,
           effectful: true, content: undefined, operationPlan, original: state.original,
+          ...(keyedPreparation === undefined ? {} : {keyedPreparation}),
           children: [], fileIdentity: undefined, value};
         producer.liveRuns++;
         runs.set(prepared, run); liveRuns.add(run);
@@ -2060,6 +2061,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           state.parent, identity, plural ? retainedRun.modelScopes : retainedRun.modelScope));
         const run = {prepared, request, producer, purpose: 'source-compute', model: retainedRun,
           effectful: true, content: undefined, operationPlan, original: state.original,
+          ...(keyedPreparation === undefined ? {} : {keyedPreparation}),
           children: [], fileIdentity: undefined, value};
         producer.liveRuns++;
         runs.set(prepared, run); liveRuns.add(run);
@@ -2264,9 +2266,16 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     prepareKeyedRead(prepared, declaration, originalRun, request) {
       const run = runFor(prepared);
       const model = run.model;
-      const planned = run.effectful === true && run.purpose === 'source-compute' && model !== undefined;
+      const keyed = run.keyedPreparation;
+      const plannedModel = run.effectful === true && run.purpose === 'source-compute' && model !== undefined;
+      const plannedKeyed = run.effectful === true && run.purpose === 'source-compute' &&
+        model === undefined && keyed !== undefined;
+      const planned = plannedModel || plannedKeyed;
       const originalScope = model?.modelScope, members = model?.modelMembers, scopes = model?.modelScopes;
-      const scopesCurrent = () => members === undefined
+      const scopesCurrent = () => plannedKeyed
+        ? run.keyedPreparation === keyed && run.model === undefined &&
+          keyed.requestIdentity !== undefined && run.producer.preparation?.effectPlan === run.operationPlan
+        : members === undefined
         ? model.modelMembers === undefined && model.modelScope === originalScope && originalScope !== undefined
         : model.modelMembers === members && model.modelScopes === scopes &&
           Array.isArray(members) && Object.isFrozen(members) && members.length >= 2 &&
@@ -2276,7 +2285,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           members.every((member, index) => member.modelScope === scopes[index] && scopes[index] !== undefined &&
             member.model === model.model.components[index] && member.modelSelection === model.modelSelection.components[index] &&
             member.modelScopeFinished !== true);
-      if ((!project && !planned) || (planned ? run.value !== originalRun || model.value !== originalRun ||
+      if ((!project && !planned) || (plannedKeyed ? run.value !== originalRun || !scopesCurrent()
+        : plannedModel ? run.value !== originalRun || model.value !== originalRun ||
           model.closed || model.prepared !== prepared || model.requestInput !== run.request ||
           model.original !== run.original || model.manager !== view || !scopesCurrent() ||
           model.operationPlan !== run.operationPlan || model.modelScopeFinished === true
@@ -2286,10 +2296,12 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           !planned && run.children.length >= run.required.attempts ||
           run.children.some(child => child.request === request)) fail('InstalledSourcePreparationMismatch');
       if (planned) {
-        const plan = checked(Reflect.apply(model.readPlan, model.runtime,
-          [originalRun, prepared, model.request]));
-        if (plan !== run.operationPlan || runFor(prepared) !== run || model !== run.model ||
-            model.value !== originalRun || model.closed || model.modelScopeFinished === true || !scopesCurrent()) {
+        const plan = plannedKeyed
+          ? checked(run.producer.preparation.context.runtime.clientProgramInstalledEffectManagedOperationPlan(
+            originalRun, prepared, keyed.requestIdentity))
+          : checked(Reflect.apply(model.readPlan, model.runtime, [originalRun, prepared, model.request]));
+        if (plan !== run.operationPlan || runFor(prepared) !== run || !scopesCurrent() ||
+            (plannedModel && (model !== run.model || model.value !== originalRun || model.closed || model.modelScopeFinished === true))) {
           fail('InstalledSourcePreparationMismatch');
         }
       }

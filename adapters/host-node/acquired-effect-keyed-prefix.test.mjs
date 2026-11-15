@@ -61,7 +61,10 @@ function fixture({rawProtocol = false, sourceOnly = false} = {}) {
       assert.equal(value.preparedEffect, prepared); assert.equal(value.managedRun, managedRun);
       assert.equal(value.keyedAcquisition, acquisition); assert.equal(value.left, left);
       assert.equal(value.ledger, ledger); assert.equal(value.preparedKeyed, preparedKeyed);
-      assert.deepEqual(value.originalCaptures, captures.map(member => member.capture));
+      if (sourceOnly) {
+        assert.equal(value.originalCaptures, undefined);
+        assert.strictEqual(value.originalCapture, captures[0].capture);
+      } else assert.deepEqual(value.originalCaptures, captures.map(member => member.capture));
       assert.equal(value.sourceAccess, access);
       value.publication.initialize(originalLookup);
       const attempt = value.publication.activate(originalLookup, keyedRequest);

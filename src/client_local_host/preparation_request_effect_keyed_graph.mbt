@@ -59,10 +59,11 @@ pub fn[I] prepare_request_effect_keyed_plan(
           @publication_host.client_effect_allowed_keyed_run_construction_inventory(),
           // Node's compact nominal token (1H1R), its existing WeakMap entry
           // (1H3R1W), and immutable selected tuple (1H5R). Two existing
-          // Request/Run fields borrow those exact selected originals.
+          // Request/Run fields borrow those exact selected originals. The actual
+          // Source identity and managed-parent tuple add two borrowed slots.
           {
             record_headers: 3L,
-            reference_slots: 11L,
+            reference_slots: 13L,
             scalar_words: 1L,
             owned_utf16_units: 0L,
             owned_wire_bytes: 0L,

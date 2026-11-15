@@ -75,7 +75,7 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
           sourceProfile?.fileReadDeclarations);
         const compiled = publicationControl.adoptCheckedClientEffectKeyedRun(
           facts.allowed, fields.runDefinition.value, graph);
-        run.keyedPreparation = Object.freeze({graph, acquisition, compiled,
+        run.keyedPreparation = Object.freeze({graph, acquisition, compiled, requestIdentity: request,
           compilation: facts.compilation, runDefinition: fields.runDefinition.value});
       }
     }

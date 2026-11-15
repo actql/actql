@@ -143,7 +143,9 @@ async function prepareOriginalEffectKeyedInput({moon, acquired, managedRun,
       managedRun, keyedAcquisition: acquisition, left, ledger, signal,
       ...(sourceLookup === undefined ? {} : {sourceLookup}),
       preparedKeyed: prepared.prepared, sourceAccess: access,
-      originalCaptures: captures.map(value => value.capture),
+      ...(sourcePreparation === undefined
+        ? {originalCaptures: captures.map(value => value.capture)}
+        : {originalCapture: captures[0].capture}),
       keyedContent: keyedContent?.frame, maxWork: capacity.maxWork});
   } catch (cause) {
     const end = acquisitionEndHandoff().outcome(cause);

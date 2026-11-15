@@ -490,18 +490,22 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
               retained.read!==undefined&&retained.read.entry!==entry)fail('ForeignLocalFilesSourcePreparation');
           return closeSourceRead(original);
         },
-        prepareKeyedSourceRead({checkedOwner,keyedAcquisition,request,declaration}){
+        prepareKeyedSourceRead({checkedOwner,keyedAcquisition,request,declaration,managedRun,rowLimits}){
           const run=sameRun(checkedOwner);
-          if(run.recipe===undefined||run.keyed!==keyedAcquisition||run.contentEntry!==entry||
+          if((run.effectful ? managedRun!==run.value||
+              moon.clientProgramKeyedAcquisitionMatchesEffectProgram(keyedAcquisition,checkedOwner)!==true
+              : run.recipe===undefined||run.keyed!==keyedAcquisition||run.contentEntry!==entry)||
               declaration!==entry.declaration||run.reads.has(request))fail('LocalFilesSourcePreparationMismatch');
-          const raw=sourceManaged.prepareKeyedRead(checkedOwner,declaration,run.original,request);
+          const raw=sourceManaged.prepareKeyedRead(checkedOwner,declaration,run.effectful?run.value:run.original,request);
           const read={raw,entry,owner:run,index:request,keyed:true,value:undefined,reader:undefined,physical:undefined,
             close:undefined,closeCaptured:false,retain:undefined,closed:false,attempted:false};
           run.reads.set(request,read);sharedReads.add(read);captureClose(read);read.retain=raw.retainChild;
           if(typeof read.retain!=='function')fail('LocalFilesManagedReadUnavailable');
           sameRun(checkedOwner);
-          read.value=checked(moon.clientProgramInstalledManagedKeyedSourceRead(
-            run.value,keyedAcquisition,request,declaration));
+          read.value=checked(run.effectful
+            ? moon.clientProgramInstalledManagedEffectKeyedSourceRead(run.value,keyedAcquisition,request,declaration,
+              rowLimits.maxPageBytes,rowLimits.maxTextBytes,rowLimits.maxWork)
+            : moon.clientProgramInstalledManagedKeyedSourceRead(run.value,keyedAcquisition,request,declaration));
           reads.set(read.value,{run,read});return read.value;
         },
         async closeKeyedSourceRead(original){
