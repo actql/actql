@@ -4704,7 +4704,7 @@ function publicationControl(moon) {
       compilation, admission, definition, lookup, started, completed, limits) {
       issuanceLimits(limits, 'Original installed keyed Source Invocation');
       const issued = checked(moon.clientProgramIssueInstalledEffectKeyedInvocation(
-        parent, prepared, request, plan, host, compilation, admissionToken(admission), definition,
+        parent, prepared, request, plan, host, compilation, admissionToken(admission), token(definition),
         lookup, started, completed, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
       return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
         invocation: inspect(runtimeField(issued, 1), limits), owner: runtimeField(issued, 1)});

@@ -25509,7 +25509,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "d32d93fe643b4b0bf452c63ac956baf0e8ada4a9ebf949f061db75045fa3ba9a",
+      "sha256": "2fcf34ba07642db7c2be824b69dbc5951864c62cbb6db62a78a6e15de414f793",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -26831,6 +26831,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-publication.test.mjs",
                 "anchor": "test('Source-only publication refuses missing original lookup and preserves actual Unit failure'"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-publication.test.mjs",
+                "anchor": "test('Source-only keyed publication retains both original Sources and one combined Unit'"
               }
             ]
           }

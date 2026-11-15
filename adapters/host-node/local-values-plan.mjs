@@ -459,15 +459,17 @@ export function sourceFreeInferEffectPublicationPlan({acquired,
 export function acquiredKeyedEffectPublicationPlan({acquired, sources, keyedFamily,
   captureStartedAt, captureCompletedAt, sourcePlan, managedRun, sourceHost,
   deferCatalogs = false}) {
-  const {moon, control, prepared, compilation, admission, definition,
+  const {moon, control, prepared, compilation, admission,
     runDefinition, compiledPlan, authorityScopeCid, namespaceId, storeAuthorityCid, now} = acquired;
   if (sources.length !== 1 || keyedFamily?.sourceOriginal === undefined ||
-      keyedFamily.lookup === undefined || managedRun === undefined) {
+      keyedFamily.lookup === undefined || managedRun === undefined || sourcePlan?.runDefinition === undefined) {
     throw new TypeError('InvalidOriginalEffectKeyedPublication');
   }
+  // The checked keyed Plan already retains this exact Definition view. The
+  // acquired Run's separately admitted equal body is not its nominal original.
   const {observation, invocation, owner: invocationOwner} =
     control.issueCheckedInstalledEffectKeyedInvocation(managedRun, prepared,
-      acquired.requestIdentity, sourcePlan, sourceHost, compilation, admission, definition,
+      acquired.requestIdentity, sourcePlan, sourceHost, compilation, admission, sourcePlan.runDefinition,
       keyedFamily.lookup, captureStartedAt, captureCompletedAt, limits);
   const run = JSON.parse(runDefinition.wire);
   const {plan, retention, retentionDependencies} = buildLocalPublicationPlan({

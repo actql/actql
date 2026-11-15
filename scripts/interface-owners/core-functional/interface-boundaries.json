@@ -7632,6 +7632,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.test.mjs",
                 "anchor": "test('generic Source-only keyed publication uses original metadata and completion without Native history'"
+              },
+              {
+                "path": "adapters/host-common/keyed-effect-definition-original.test.mjs",
+                "anchor": "test('keyed invocation unwraps the same original checked Definition view and preserves the Core refusal'"
               }
             ]
           }
@@ -17100,7 +17104,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "99d9353ddf079500cce52ff0cfb0ed74d34ed0f52f40c86dc45a3b9ac985b64a"
+      "sha256": "eb91674b244ccc4f4a332e197b563fefdc94a52e53ed3024331db7102b4faacb"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",

@@ -24105,6 +24105,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.test.mjs",
                 "anchor": "test('generic Source-only keyed publication uses original metadata and completion without Native history'"
+              },
+              {
+                "path": "adapters/host-common/keyed-effect-definition-original.test.mjs",
+                "anchor": "test('keyed invocation unwraps the same original checked Definition view and preserves the Core refusal'"
               }
             ]
           }
@@ -33573,7 +33577,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "99d9353ddf079500cce52ff0cfb0ed74d34ed0f52f40c86dc45a3b9ac985b64a"
+      "sha256": "eb91674b244ccc4f4a332e197b563fefdc94a52e53ed3024331db7102b4faacb"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -101157,7 +101161,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "d32d93fe643b4b0bf452c63ac956baf0e8ada4a9ebf949f061db75045fa3ba9a",
+      "sha256": "2fcf34ba07642db7c2be824b69dbc5951864c62cbb6db62a78a6e15de414f793",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -103099,6 +103103,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-publication.test.mjs",
                 "anchor": "test('Source-only publication refuses missing original lookup and preserves actual Unit failure'"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-publication.test.mjs",
+                "anchor": "test('Source-only keyed publication retains both original Sources and one combined Unit'"
               }
             ]
           }

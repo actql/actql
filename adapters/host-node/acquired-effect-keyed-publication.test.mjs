@@ -4,7 +4,7 @@ import {acquiredKeyedEffectPublicationPlan} from './local-values-plan.mjs';
 
 function fixture() {
   const prepared = {}, compilation = {}, admission = {}, definition = {}, request = {};
-  const parent = {}, plan = {}, host = {}, original = {}, lookup = {}, unit = {};
+  const parent = {}, plan = {runDefinition: {sameCheckedPlan: true}}, host = {}, original = {}, lookup = {}, unit = {};
   const left = {wire: 'left source'}, right = {wire: 'right source'};
   const invocation = {}, invocationOwner = {}, observation = {wire: JSON.stringify({data_policy_cid: 'policy'})};
   const events = [];
@@ -21,7 +21,7 @@ function fixture() {
     control: {seal, sealRunEvidence: seal,
       issueCheckedInstalledEffectKeyedInvocation(...args) {
         assert.deepEqual(args.slice(0, 9), [parent, prepared, request, plan, host, compilation,
-          admission, definition, lookup]); events.push('invoke');
+          admission, plan.runDefinition, lookup]); events.push('invoke');
         return {observation, invocation, owner: invocationOwner};
       },
       prepareInstalledEffectKeyedSourceUnit(...args) {
