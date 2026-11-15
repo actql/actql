@@ -245,12 +245,16 @@ fn dependency_boundary_execute_static(
   complete? : Bool = false,
   program_id_width? : Int = 0,
   expect_execution_refusal? : Bool = false,
+  selected_memory? : Int64? = None,
 ) -> Unit raise {
   // The 2050-port component retains its original Request/Source alongside
   // the materializing Compute quote. Complete variants additionally retain
   // fresh and cold inventories. Select the existing finite TEST ceiling at
-  // intake; a separate same-input512MiB case preserves actual budget refusal.
-  let selected_memory = if count == 2050 {
+  // intake. Explicit512MiB also succeeds with the actual managed bindings;
+  // a separate same-input control leaves its real startup quote one byte short.
+  let selected_memory = if selected_memory is Some(_) {
+    selected_memory
+  } else if count == 2050 {
     Some(if expect_execution_refusal { 536870912L } else { 1073741824L })
   } else {
     None
@@ -398,6 +402,55 @@ fn dependency_boundary_execute_static(
       visits + 2 * slots + 1 + io,
     )
   }
+  // Quote the SAME supported managed candidate using its actual original
+  // input bindings. The legacy whole-materializing offer is not this startup.
+  // Another live fixture reservation consumes the original Ledger's remaining
+  // execution capacity; no production policy or byte ceiling changes.
+  let execution_block = if expect_execution_refusal {
+    let installed = @builtin.configured_local_module(
+      @builtin.configured_host_modules(host),
+    ).unwrap()
+    let inputs : Array[@local_driver.LocalManagedAvailableOutput[Int]] = @strategy.captured_next_managed_producers(
+      dag,
+    ).map(producer => {
+      if producer == -1 {
+        @local_driver.local_managed_supplied_relation_input()
+      } else {
+        @local_driver.local_managed_captured_relation_input()
+      }
+    })
+    let obligations = @strategy.captured_next_managed_obligations(
+      dag,
+      @host_driver.compute_host_max_entries(
+        @builtin.configured_host_runtime(host),
+      ),
+    ).unwrap()
+    let candidate = @local_driver.prepare_local_managed_dispatch_with_outputs(
+        installed, inputs, obligations, 0L,
+      )
+      .unwrap()
+      .unwrap()
+    let (_, execution) = @local_driver.local_managed_dispatch_site_capacity(
+      candidate,
+    ).unwrap()
+    let ledger = original.parent.ledger
+    let remaining = @resources.ledger_limits(ledger).execution_bytes -
+      @resources.ledger_usage(ledger).reserved_execution_bytes
+    assert_true(execution > 0L && execution <= remaining)
+    let block = @resources.reserve_capacity(
+      ledger,
+      0L,
+      remaining - execution + 1L,
+    ).unwrap()
+    assert_eq(
+      @resources.ledger_limits(ledger).execution_bytes -
+      @resources.ledger_usage(ledger).reserved_execution_bytes,
+      execution - 1L,
+    )
+    Some(block)
+  } else {
+    None
+  }
   let execution = match
     execute_retained_effect_local_tasks_guarded(host, captured, 256, 100000, () => {
       true
@@ -428,16 +481,13 @@ fn dependency_boundary_execute_static(
           (536870912L, 536870912L),
         )
         assert_true(
-          local_values_execution_failure_issue(failure) is Estimate(NoStrategy),
+          local_values_execution_failure_issue(failure)
+          is Driver(
+            @local_driver.Execution(
+              @strategy.Physical(@resources.ExecutionLimit)
+            )
+          ),
         )
-        assert_true(@strategy.strategy_report_count(dag) > 0)
-        let remaining = selected.execution_bytes - live.reserved_execution_bytes
-        assert_true(remaining >= 0L)
-        for index in 0..<@strategy.strategy_report_count(dag) {
-          let report = @strategy.strategy_report_at(dag, index).unwrap()
-          assert_true(report.rejection is Some(@resources.ExecutionLimit))
-          assert_true(report.execution_bytes > remaining)
-        }
         assert_true(
           physical_equal(
             installed_effect_managed_operation_plan(
@@ -458,6 +508,9 @@ fn dependency_boundary_execute_static(
         }
       }
       assert_false(local_values_execution_failure_cleanup_pending(failure))
+      if execution_block is Some(block) {
+        @resources.settle_capacity(original.parent.ledger, block).unwrap()
+      }
       retire_installed_source_read(read).unwrap()
       retire_installed_managed_run(original.run).unwrap()
       if expect_execution_refusal {
@@ -473,7 +526,7 @@ fn dependency_boundary_execute_static(
           (0L, 0L, 0L),
         )
         println(
-          "DependencyBoundary.ExecutionRefusal same2050 imports; actualquote exceeds same remaining execution; final_live_reservations=0",
+          "DependencyBoundary.ExecutionRefusal same2050 imports; actualmanagedquote one byte short on sameLedger; final_live_reservations=0",
         )
         return
       }
@@ -498,10 +551,11 @@ fn dependency_boundary_execute_static(
       closed = execution.close()
     }
     assert_true(closed)
+    @resources.settle_capacity(original.parent.ledger, execution_block.unwrap()).unwrap()
     retire_installed_source_read(read).unwrap()
     retire_installed_managed_run(original.run).unwrap()
     fail(
-      "the explicit512MiB original must retain its actual execution-budget refusal",
+      "the original managed startup must refuse its actual quote one byte short",
     )
   }
   assert_eq(execution.rows().unwrap(), ["{\"id\":3}", "{\"id\":5}"])
@@ -596,7 +650,8 @@ test "2050 actual imports compile and Compute under finite TEST graph4M without 
 }
 
 ///|
-test "2050 actual imports keep explicit512MiB execution refusal and original cleanup" {
+test "2050 actual imports succeed at512MiB and refuse actual managed startup one byte short" {
+  dependency_boundary_execute_static(2050, selected_memory=Some(536870912L))
   dependency_boundary_execute_static(2050, expect_execution_refusal=true)
 }
 
