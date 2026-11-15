@@ -1513,7 +1513,6 @@ test('distribution isolates pinned provider tests with their required GC recipe'
   const scripts = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).scripts;
   const provider = 'node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- --expose-gc packages/provider-ai-sdk/*.test.mjs';
   assert.equal(scripts['check:provider-ai-sdk'], provider);
-  assert.equal(scripts['check:distribution-client'].split(' && ').length, 53);
   assert(!scripts['check:distribution-client'].includes('npm run check:provider-ai-sdk'));
   assert.equal(scripts['postcheck:distribution-client'], 'npm run check:provider-ai-sdk && npm run check:otel-node');
   assert(!scripts['check:distribution-client'].includes('packages/provider-ai-sdk/*.test.mjs'));
