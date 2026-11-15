@@ -4,6 +4,7 @@ import * as moon from '../../_build/js/release/build/connectors_builtin_node/con
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
 import {ledgerUsageFields} from '../host-common/ledger-contract.generated.mjs';
+import {resultOutputLimitFields} from '../host-common/result-output-limits.mjs';
 
 function fixture({reserved = true, failCleanup = false, unresolved = false} = {}) {
   const ref = {runDefinitionCid: 'source-free-setup-custody'};
@@ -109,13 +110,19 @@ for (const reason of ['reservation', 'resume-gate']) {
 // do not issue a Core Request, Source capture, physical Ledger or permission.
 function originalDispatchFixture({source = false, managed = true, retained = false,
   lease = true, borrow = 'owned', host = 'owned', sourceCapacity = 'owned',
-  sourceLedger = 'owned', cleanupReady = true, physicalStart = false} = {}) {
+  sourceLedger = 'owned', cleanupReady = true, physicalStart = false,
+  whole = false, capture = false, placement = 'owned'} = {}) {
   const prepared = {}, request = {}, run = {}, holder = {}, setup = {}, capacity = {}, ledger = {};
   const ref = {runDefinitionCid: 'original-dispatch-custody'};
   const runDefinition = {wire: 'definition'}, failures = [];
   const calls = {borrowed: 0, returned: 0, opened: 0, closed: 0,
-    leaseRetired: 0, sourceRetired: 0, physicalClaims: 0, managedLedger: 0, legacyLedger: 0};
+    leaseRetired: 0, sourceRetired: 0, physicalClaims: 0, managedLedger: 0, legacyLedger: 0,
+    wholeLedger: 0, captureOpened: 0, sourceClosed: 0, bound: 0, stopped: 0};
   const marker = new Error('OriginalResourceParked');
+  const bindingFailure = new Error('OriginalCaptureBindingStopped');
+  const sourceOriginal = {}, capturedIdentity = {}, compiled = {}, dag = {};
+  const sourceEvidence = {}, publicationPreparation = {};
+  const dataPolicyCid = 'fixture-policy';
   let ready = cleanupReady, failed, entered, resume;
   const failure = new Promise(resolve => { failed = resolve; });
   const physicalEntered = new Promise(resolve => { entered = resolve; });
@@ -125,8 +132,16 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
   let frame = Object.freeze({cancellationRequested: false, revision: 1,
     runDefinition, physicalCloseConfirmed: false});
   const moon = {
-    clientProgramRequiresAcquisitionResultPublication: () => false,
-    clientProgramInstalledManagedRequiresAcquisitionResultPublication: () => ok(false),
+    clientProgramRequiresAcquisitionResultPublication() {
+      assert.equal(whole, false, 'The adopted Whole Plan must not inspect a Query prefix');
+      return false;
+    },
+    clientProgramInstalledManagedRequiresAcquisitionResultPublication(actualRun, value, identity) {
+      assert.equal(this, moon); assert.equal(actualRun, run);
+      assert.equal(value, prepared); assert.equal(identity, request);
+      if (placement === 'parked') throw marker;
+      return ok(placement === 'unsupported');
+    },
     clientProgramInstalledManagedPreparationBorrow(actualRun, value, identity) {
       assert.equal(this, moon); assert.equal(actualRun, run);
       assert.equal(value, prepared); assert.equal(identity, request);
@@ -153,25 +168,54 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
     },
     clientProgramOpenSourceFreeLocalHost() { assert.fail('No accounting fallback for a managed Run'); },
     clientProgramOpenSourceFreeLocalRetainedHost() { assert.fail('No retained accounting fallback for a managed Run'); },
-    strategyHostStop(value) { assert.equal(value, setup); },
+    strategyHostStop(value) { assert.equal(value, setup); calls.stopped++; },
     strategyHostCloseOutputs(value) {
       assert.equal(value, setup); calls.closed++;
+      if (capture) assert.equal(calls.sourceClosed, 1, 'Borrowed Source closes before output reclamation');
       if (!ready) throw new Error('OriginalSetupCleanupPending');
     },
     strategyHostUsage: () => Array(ledgerUsageFields.length).fill(0n),
   };
   if (host === 'missing') delete moon.clientProgramOpenInstalledManagedSourceFreeHost;
   if (borrow === 'missing') delete moon.clientProgramInstalledManagedPreparationBorrow;
+  if (placement === 'missing') delete moon.clientProgramInstalledManagedRequiresAcquisitionResultPublication;
   const sourceAccess = {authorization: {}}, preparedSource = {checkedSource: {sourceRef: 'fixture-source'}};
+  const captureHandle = {
+    source() { assert.equal(calls.sourceClosed, 0); return sourceOriginal; },
+    retainTask(actual, task) {
+      assert.equal(actual, dag); assert.equal(task, 0); assert.equal(calls.opened, 1);
+      calls.bound++;
+      // Exercise the supervisor's real custody after the fallible binding;
+      // no fabricated completed Compute or public Result is issued here.
+      throw bindingFailure;
+    },
+  };
+  const captured = {inputKind: 'whole-input', wholeCapacity: capacity, logicalInput: {},
+    checkedSource: {sourceDataPolicyCid: dataPolicyCid}, identity: capturedIdentity, capture: captureHandle,
+    async prepareSourceEvidenceOriginal(options) {
+      assert.equal(options.authorityScopeCid, 'fixture-scope');
+      assert.equal(options.effectiveDataPolicyCid, dataPolicyCid);
+    },
+    async close() {
+      if (host === 'owned') assert(calls.stopped > 0, 'Stop the borrowed Compute before Source close');
+      calls.sourceClosed++;
+    },
+  };
   const adapter = source ? {sourceAccess, admitsSource: value => value === 'fixture-source',
     ledgerCapacity(value) {
       assert.equal(value, preparedSource);
-      return {capacity, transferBytes: 3n, executionBytes: 5n,
+      return {capacity, transferBytes: whole ? 19n : 3n, executionBytes: whole ? 31n : 5n,
+        ...(whole ? {wholeInput: true} : {}),
         ...(sourceCapacity === 'missing' || !managed ? {} :
           {managedRun: sourceCapacity === 'foreign' ? {} : run})};
     },
     retirePreparedSource(value) { assert.equal(this, adapter); assert.equal(value, preparedSource); calls.sourceRetired++; },
-    open() { assert.fail('Refused physical start must not acquire Source DATA'); },
+    open(options) {
+      assert.equal(capture, true, 'Refused physical start must not acquire Source DATA');
+      assert.equal(options.preparedProgram, prepared); assert.equal(options.preparedSource, preparedSource);
+      assert.equal(options.ledger, ledger); assert.equal(options.sourceAccess, sourceAccess);
+      calls.captureOpened++; return captured;
+    },
   } : undefined;
   if (source) {
     moon.clientProgramAcquisitionCount = value => { assert.equal(value, prepared); return 1; };
@@ -186,6 +230,7 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
     };
     moon.clientProgramPrepareSingleCapturedLocalInstalledLedger = (value, selected, transfer,
       execution, registry, values, fragment, ordered) => {
+      assert.equal(whole, false, 'Whole capacity is not an array of Query capacities');
       assert.equal(managed, false, 'A missing managed original cannot select accounting');
       assert.equal(value, prepared); assert.equal(selected, capacity);
       assert.deepEqual([transfer, execution], [3n, 5n]);
@@ -193,10 +238,55 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
       calls.legacyLedger++; return ledger;
     };
     if (sourceLedger === 'missing') delete moon.clientProgramInstalledManagedRunPrepareLedger;
+    moon.clientProgramInstalledManagedWholeSourceLedger = function(actualRun, value, identity,
+      selected, transfer, execution) {
+      assert.equal(this, moon); assert.equal(actualRun, run);
+      assert.equal(value, prepared); assert.equal(identity, request); assert.equal(selected, capacity);
+      assert.deepEqual([transfer, execution], [19n, 31n]); calls.wholeLedger++;
+      if (sourceLedger === 'parked') throw marker;
+      return ok(ledger);
+    };
+    if (sourceLedger === 'missing') delete moon.clientProgramInstalledManagedWholeSourceLedger;
+  }
+  const control = {runDefinitionRunId: () => 'original-run',
+    runCancellationConfirmed: runtimeCore(moonRuntime).publicationControl.runCancellationConfirmed};
+  if (capture) {
+    moon.clientProgramPublicationDataPolicyCid = value => { assert.equal(value, prepared); return dataPolicyCid; };
+    moon.clientProgramCapturedSourceMatches = (value, original) => {
+      assert.equal(value, prepared); assert.equal(original, sourceOriginal); return true;
+    };
+    moon.clientProgramDefinitionCid = value => { assert.equal(value, prepared); return 'fixture-program'; };
+    moon.clientProgramCapturedSourceLogicalCid = identity => { assert.equal(identity, capturedIdentity); return 'fixture-logical'; };
+    moon.clientProgramResultCount = () => 1;
+    moon.clientProgramInstalledManagedPublicationLimits = actualRun => {
+      assert.equal(actualRun, run); return resultOutputLimitFields.map(() => 1000);
+    };
+    moon.clientProgramOpenInstalledManagedCaptureHost = function(actualRun, value, identity, originals) {
+      assert.equal(this, moon); assert.equal(actualRun, run);
+      assert.equal(value, prepared); assert.equal(identity, request); assert.deepEqual(originals, [sourceOriginal]);
+      calls.opened++;
+      if (host === 'parked') throw marker;
+      return ok(setup);
+    };
+    moon.clientProgramOpenSingleCapturedLocalHost = () => assert.fail('No independent captured Host fallback');
+    moon.strategyHostRun = value => { assert.equal(value, setup); return dag; };
+    if (host === 'missing') delete moon.clientProgramOpenInstalledManagedCaptureHost;
+    Object.assign(control, {
+      takeSourceEvidenceOriginal(original) { assert.equal(original, captureHandle); return sourceEvidence; },
+      checkClientCompiledRunOwner(original, value) { assert.equal(original, compiled); assert.equal(value, prepared); },
+      issueCheckedClientCompiledInvocation(original, definition, options, _limits, preparation, value) {
+        assert.equal(original, compiled); assert.equal(definition, runDefinition); assert.equal(value, prepared);
+        assert.equal(preparation, publicationPreparation); assert.equal(options.source.captured, captured);
+        assert.equal(options.source.sourceEvidence, sourceEvidence);
+        return {observation: {}, invocation: {}};
+      },
+      seal: (_kind, wire) => Object.freeze({wire}),
+      sealRunEvidence: (_kind, wire) => Object.freeze({wire}),
+      compiledRunResultTransformation: () => undefined,
+    });
   }
   const owner = installNodeClientDispatchOwner({moon,
-    control: {runDefinitionRunId: () => 'original-run',
-      runCancellationConfirmed: runtimeCore(moonRuntime).publicationControl.runCancellationConfirmed},
+    control,
     journal: {
       reservePhysicalStart() { calls.physicalClaims++; return physicalStart; },
       lookupRunDefinition: () => frame,
@@ -216,7 +306,9 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
     store: {confirmCommittedIndex: async () => undefined},
     startRun: async () => ({kind: 'reserved', ref}),
     hostConnection: () => true,
-    planFor: () => ({kind: source ? 'tasks' : 'values'}),
+    planFor: () => ({kind: source ? 'tasks' : 'values', compiled, runDefinition,
+      publicationPreparation, admission: {}, compiledPlan: {identity: 'fixture-compiled'},
+      createdAt: '2026-11-15T00:00:00.000Z'}),
     sourceProfile: adapter,
     prepareAcquisition() { assert.fail('The same prepared Source must not be reacquired'); },
     observed(name, detail) { if (name === 'dispatch_failed') { failures.push(detail); failed(detail); } },
@@ -226,7 +318,8 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
     registry: 'registry', values: 'values', fragment: 'fragment', ordered: 'ordered',
     managedComputeRequired: true, retainedRelationOutput: retained,
     runPublished() { assert.fail('Refused physical start must not enter Compute'); },
-    namespaceId: 'fixture-namespace', now: () => '2026-11-15T00:00:00.000Z',
+    namespaceId: 'fixture-namespace', authorityScopeCid: 'fixture-scope',
+    now: () => '2026-11-15T00:00:00.000Z',
   });
   const held = {...(managed ? {managedRun: run} : {}),
     ...(source ? {preparedSource, preparedSourceAccess: sourceAccess} : {})};
@@ -354,4 +447,59 @@ test('imported unprepared single Source keeps its finite accounting constructor 
   assert.equal(f.calls.physicalClaims, 1); assert.equal(f.calls.sourceRetired, 1);
   assert.equal(f.calls.leaseRetired, 1); assert.deepEqual(f.failures, []);
   assert.equal(f.owner.operation(f.ref), undefined);
+});
+
+test('imported Whole dispatcher retains the opened original Host when capture binding refuses and closes both original owners', async () => {
+  const f = originalDispatchFixture({source: true, whole: true, capture: true, physicalStart: true});
+  assert.equal(await f.start(), 'started'); await f.physicalEntered; f.resume();
+  await f.owner.operation(f.ref); await f.owner.drain();
+  assert.equal((await f.failure).code, 'OriginalCaptureBindingStopped');
+  assert.equal(f.calls.wholeLedger, 1); assert.equal(f.calls.managedLedger, 0); assert.equal(f.calls.legacyLedger, 0);
+  assert.equal(f.calls.captureOpened, 1); assert.equal(f.calls.opened, 1); assert.equal(f.calls.bound, 1);
+  assert.equal(f.calls.sourceClosed, 1); assert.equal(f.calls.closed, 1);
+  assert.equal(f.calls.borrowed, 1); assert.equal(f.calls.returned, 1); assert.equal(f.calls.leaseRetired, 1);
+  assert.deepEqual(f.stops, ['failed']); assert.equal(f.owner.operation(f.ref), undefined);
+  await f.owner.drain(); assert.equal(f.calls.bound, 1); assert.equal(f.calls.closed, 1);
+});
+
+test('imported Whole dispatcher preserves missing or parked original opener refusal without fabricating a pending Host', async () => {
+  for (const host of ['missing', 'parked']) {
+    const f = originalDispatchFixture({source: true, whole: true, capture: true, physicalStart: true, host});
+    assert.equal(await f.start(), 'started'); await f.physicalEntered; f.resume();
+    await f.owner.operation(f.ref); await f.owner.drain();
+    assert.equal((await f.failure).code, host === 'missing'
+      ? 'InstalledManagedComputeHostUnavailable' : 'OriginalResourceParked');
+    assert.equal(f.calls.captureOpened, 1); assert.equal(f.calls.bound, 0);
+    assert.equal(f.calls.sourceClosed, 1); assert.equal(f.calls.closed, 0); assert.equal(f.calls.stopped, 0);
+    assert.equal(f.calls.returned, 1); assert.equal(f.calls.leaseRetired, 1);
+    assert.deepEqual(f.stops, ['failed']); assert.equal(f.owner.operation(f.ref), undefined);
+  }
+});
+
+test('imported Whole ledger selection uses only its same original Run and capacity and preserves current refusals', async () => {
+  for (const options of [{}, {sourceCapacity: 'foreign'}, {sourceLedger: 'missing'}, {sourceLedger: 'parked'}]) {
+    const f = originalDispatchFixture({source: true, whole: true, ...options});
+    assert.equal(await f.start(), 'not_started'); await f.owner.drain();
+    if (Object.keys(options).length) assert.equal((await f.failure).code,
+      options.sourceLedger === 'parked' ? 'OriginalResourceParked' : 'InstalledSingleSourceOriginalRunUnavailable');
+    else assert.deepEqual(f.failures, []);
+    assert.equal(f.calls.managedLedger, 0); assert.equal(f.calls.legacyLedger, 0);
+    assert.equal(f.calls.captureOpened, 0); assert.equal(f.calls.sourceRetired, 1);
+    assert.equal(f.calls.leaseRetired, 1); assert.equal(f.owner.operation(f.ref), undefined);
+  }
+});
+
+test('imported Whole Result-placement check consumes the adopted original Plan and refuses before Source work', async () => {
+  for (const [placement, expected] of [['owned', undefined],
+    ['unsupported', 'InstalledAcquisitionResultPublicationUnsupported'],
+    ['missing', 'InstalledManagedSourcePlanUnavailable'], ['parked', 'OriginalResourceParked']]) {
+    const f = originalDispatchFixture({source: true, whole: true, placement});
+    assert.equal(await f.start(), 'not_started'); await f.owner.drain();
+    if (expected === undefined) assert.deepEqual(f.failures, []);
+    else assert.equal((await f.failure).code, expected);
+    assert.equal(f.calls.wholeLedger, expected === undefined ? 1 : 0);
+    assert.equal(f.calls.physicalClaims, expected === undefined ? 1 : 0);
+    assert.equal(f.calls.captureOpened, 0); assert.equal(f.calls.sourceRetired, 1);
+    assert.equal(f.calls.leaseRetired, 1); assert.equal(f.owner.operation(f.ref), undefined);
+  }
 });
