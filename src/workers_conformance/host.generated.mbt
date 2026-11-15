@@ -2654,6 +2654,48 @@ pub fn strategy_prepare_durable_result_row_frames(
 }
 
 ///|
+#export_name("strategyPrepareGrowingDurableResultRowFrames")
+pub fn strategy_prepare_growing_durable_result_row_frames(
+  max_bytes : Int,
+  max_rows : Int,
+  max_row_bytes : Int,
+  max_depth : Int,
+  max_frame_bytes : Int,
+) -> @publication.DurableResultRowFrames raise NodeHostFailure {
+  match
+    @publication.prepare_growing_durable_result_row_frames(
+      max_bytes, max_rows, max_row_bytes, max_depth, max_frame_bytes,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyDurableResultRowFrameGrowth")
+pub fn strategy_durable_result_row_frame_growth(
+  frames : @publication.DurableResultRowFrames,
+  bytes : Int,
+) -> Int raise NodeHostFailure {
+  match @publication.durable_result_row_frame_growth(frames, bytes) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyGrowDurableResultRowFrameBuffer")
+pub fn strategy_grow_durable_result_row_frame_buffer(
+  frames : @publication.DurableResultRowFrames,
+  bytes : Int,
+) -> Unit raise NodeHostFailure {
+  match @publication.grow_durable_result_row_frame_buffer(frames, bytes) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("strategyFeedDurableResultRowFrames")
 pub fn strategy_feed_durable_result_row_frames(
   frames : @publication.DurableResultRowFrames,
@@ -12860,6 +12902,48 @@ pub fn async_strategy_prepare_durable_result_row_frames(
     @publication.prepare_durable_result_row_frames(
       max_bytes, max_rows, max_row_bytes, max_depth, max_frame_bytes,
     ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyPrepareGrowingDurableResultRowFrames")
+pub fn async_strategy_prepare_growing_durable_result_row_frames(
+  max_bytes : Int,
+  max_rows : Int,
+  max_row_bytes : Int,
+  max_depth : Int,
+  max_frame_bytes : Int,
+) -> @publication.DurableResultRowFrames raise AsyncHostFailure {
+  match
+    @publication.prepare_growing_durable_result_row_frames(
+      max_bytes, max_rows, max_row_bytes, max_depth, max_frame_bytes,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyDurableResultRowFrameGrowth")
+pub fn async_strategy_durable_result_row_frame_growth(
+  frames : @publication.DurableResultRowFrames,
+  bytes : Int,
+) -> Int raise AsyncHostFailure {
+  match @publication.durable_result_row_frame_growth(frames, bytes) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyGrowDurableResultRowFrameBuffer")
+pub fn async_strategy_grow_durable_result_row_frame_buffer(
+  frames : @publication.DurableResultRowFrames,
+  bytes : Int,
+) -> Unit raise AsyncHostFailure {
+  match @publication.grow_durable_result_row_frame_buffer(frames, bytes) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
