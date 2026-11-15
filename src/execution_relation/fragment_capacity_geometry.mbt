@@ -48,8 +48,9 @@ fn bounded_primitive_fragment_nodes(context : FragmentRuntimeContext) -> Int? {
 // This is not a bound inferred from an AST's encoded size. The accepted
 // evaluator paths (expression.mbt) return an input/prior-slot alias, capture an
 // immutable admitted literal (scalar.mbt), return inline Null, or select a
-// checked property of an original input/prior-slot value. None builds
-// a new value tree. A separately inventoried scalar pipeline below admits
+// checked property of an original input/prior-slot value. LENGTH of a direct
+// original Text field also returns an inline Number without a new Text root.
+// None builds a new value tree. A separately inventoried scalar pipeline admits
 // Number CAST of a two-argument SUBSTRING over one original Text field and
 // an admitted numeric literal. Logical live-byte guards execute unchanged.
 //
@@ -90,6 +91,7 @@ fn bounded_leaf_fragment_capacity(
   }
   let ordered = bindings.map(@lower.bindings_ordered).unwrap_or(false)
   let mut text_number = false
+  let mut text_length = false
   let mut properties = 0L
   // A proven primitive predicate retains all original roots/continuations;
   // other predicates keep the complete generic live-value DATA envelope.
@@ -131,6 +133,18 @@ fn bounded_leaf_fragment_capacity(
         if !bounded_leaf_prior_slot_supported(ordered, index, slot) {
           return None
         }
+      @lower.Unary(@lower.Length, child) => {
+        // Length walks the SAME admitted Text and returns an inline Number
+        // (or Null); it has no output Text root or builder. Constructed and
+        // nested receivers retain the complete generic envelope.
+        guard @lower.expression_contract(expression).shape is @contract.Number &&
+          @lower.expression_contract(child).shape is @contract.Text(_) &&
+          @lower.expression_body(child)
+          is @lower.Field(_, @relation.InputField(_)) else {
+          return None
+        }
+        text_length = true
+      }
       @lower.Cast(child) => {
         // This exact evaluator path allocates scalar text, not a value tree.
         // General CAST, nested expressions and dynamic substring positions
@@ -174,9 +188,23 @@ fn bounded_leaf_fragment_capacity(
     // Traversal cursor/emit/writer backing remains in the physical envelope.
     // Only the independently checked immediate-scalar constructor omits an
     // unused body/forest; references and tagged JSON retain their full quote.
-    record_headers: 64L + 8L * roots + 2L * aliases,
-    reference_slots: 128L + 16L * roots + 4L * aliases,
-    scalar_words: 128L + 16L * roots + 2L * aliases,
+    // LENGTH additionally holds two one-element operand/root arrays, the
+    // TextFunctionState (borrowed strings, no builder/output root), its
+    // Unary/TextFunction/Return continuations, and the scalar decoder's
+    // tuple/Some/Ok/Number carriers. Only one text function is active: bindings
+    // run sequentially and their retained results are already in roots above.
+    record_headers: 64L +
+    8L * roots +
+    2L * aliases +
+    (if text_length { 16L } else { 0L }),
+    reference_slots: 128L +
+    16L * roots +
+    4L * aliases +
+    (if text_length { 24L } else { 0L }),
+    scalar_words: 128L +
+    16L * roots +
+    2L * aliases +
+    (if text_length { 64L } else { 0L }),
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   })

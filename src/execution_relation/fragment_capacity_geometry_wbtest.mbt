@@ -671,3 +671,152 @@ test "bounded primitive Filter scans every original typed intermediate including
     assert_eq(larger.physical.max_body_bytes, context.physical.max_body_bytes)
   }
 }
+
+///|
+fn original_text_length_geometry(
+  expression : String,
+) -> (GeneratedSequence, FragmentRuntimeContext) raise {
+  let owner = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"document\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[]},\"as\":\"seed\"},{\"derive\":{\"document_chars\":" +
+    expression +
+    "}}]",
+  )
+  let sequence = prepared_sequence(owner)
+  let original = sequence_fragment_context(sequence, 1, 1L)
+  let context = {
+    ..original,
+    limits: {
+      ..original.limits,
+      max_value_bytes: 100000L,
+      max_live_value_bytes: 200000L,
+      max_work: 1000000L,
+    },
+  }
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    sequence,
+    [context],
+    ["derive_1"],
+    100000,
+    10000,
+  ).unwrap()
+  (select_generated_sequence_step(generated, 1).unwrap(), context)
+}
+
+///|
+test "direct original Text LENGTH has bounded scalar construction and preserves actual value guards" {
+  let document = "x".repeat(49152)
+  let (selected, context) = original_text_length_geometry(
+    "{\"len\":{\"field\":\"document\"}}",
+  )
+  let limits = { ..leaf_geometry_limits(2), max_work: 1000000, }
+  assert_true(
+    bounded_leaf_fragment_capacity(selected, context, limits) is Some(_),
+  )
+  let physical : FixedInputGuardMeasureLimits = {
+    max_work: 1000000,
+    max_nodes: 10000,
+    max_bytes: 100000,
+    max_depth: 100,
+  }
+  let quoted = generated_bounded_sequence_capacity(selected, limits, physical).unwrap()
+  let widened = generated_bounded_sequence_capacity(
+    {
+      ..selected,
+      contexts: [
+        {
+          ..context,
+          limits: {
+            ..context.limits,
+            max_live_value_bytes: context.limits.max_live_value_bytes + 1L,
+          },
+        },
+      ],
+    },
+    limits,
+    physical,
+  ).unwrap()
+  assert_eq(widened.execution_bytes, quoted.execution_bytes)
+  let input : Table = {
+    owner: @lower.kernel_owner(context.kernel),
+    id: @lower.kernel_input(context.kernel),
+    names: ["document"],
+    rows: [[Text(document)]],
+  }
+  let execute = fn(original, workspace) {
+    let budget = fragment_runtime_for_kernel(original, original.kernel).unwrap()
+    evaluate_rows_with_workspace(
+      original.kernel,
+      input,
+      1,
+      { remaining: 1000000, max_frames: 100, },
+      value_budget(limits.rows.output_values).unwrap(),
+      workspace,
+      ordered_budget=Some(budget),
+    )
+  }
+  let observed = row_workspace(1000000)
+  let rows = execute(context, observed).unwrap()
+  assert_eq(rows.names, ["document", "document_chars"])
+  assert_eq(rows.rows.length(), 1)
+  assert_true(rows.rows[0][0] is Text(actual) && actual == document)
+  assert_true(rows.rows[0][1] is Number(49152.0))
+  assert_true(observed.peak > 0)
+  assert_eq(
+    execute(context, row_workspace(observed.peak)).unwrap().rows.length(),
+    1,
+  )
+  assert_true(
+    execute(context, row_workspace(observed.peak - 1)) is Err(RowLimit),
+  )
+  let unavailable = {
+    ..context,
+    limits: { ..context.limits, max_input_rows: 0L, },
+  }
+  assert_true(
+    execute(unavailable, row_workspace(observed.peak))
+    is Err(LogicalRows(InputRowLimit)),
+  )
+}
+
+///|
+test "LENGTH constructor proof refuses computed receivers and retains generic demand" {
+  for
+    expression in [
+      "\"len(concat(document, 'x'))\"", "\"len(substring(document, 2))\"", "\"len('constant')\"",
+    ] {
+    let (selected, context) = original_text_length_geometry(expression)
+    let limits = leaf_geometry_limits(2)
+    assert_true(
+      bounded_leaf_fragment_capacity(selected, context, limits) is None,
+    )
+    let physical : FixedInputGuardMeasureLimits = {
+      max_work: 100000,
+      max_nodes: 10000,
+      max_bytes: 100000,
+      max_depth: 100,
+    }
+    let bounded = generated_bounded_sequence_capacity(
+      selected, limits, physical,
+    ).unwrap()
+    let widened = generated_bounded_sequence_capacity(
+      {
+        ..selected,
+        contexts: [
+          {
+            ..context,
+            limits: {
+              ..context.limits,
+              max_live_value_bytes: context.limits.max_live_value_bytes + 1L,
+            },
+          },
+        ],
+      },
+      limits,
+      physical,
+    ).unwrap()
+    // Other existing physical refinements remain valid. This non-leaf path
+    // still pays the complete original logical live-value premium.
+    assert_eq(widened.execution_bytes - bounded.execution_bytes, 264L)
+  }
+}
