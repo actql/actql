@@ -19,7 +19,9 @@ const [phase, caseId, handoffPath] = process.argv.slice(2);
 assert(['capture', 'approve', 'saved'].includes(phase));
 assert(['small', 'count'].includes(caseId));
 assert.equal(typeof handoffPath, 'string');
-const selection = caseId === 'small' ? {ports: 2, groups: 2} : {ports: 2050, groups: 8};
+// The small case has two groups with two actual RRF peers each. It exercises
+// the same operator and exact-score demand as the large case, with two writes.
+const selection = caseId === 'small' ? {ports: 4, groups: 2} : {ports: 2050, groups: 8};
 const selected = projectFileDependencyBoundary(selection);
 const directory = process.cwd(), stateDir = join(directory, 'state');
 const sourceRoot = join(directory, 'source-data'), destinationRoot = join(directory, 'destination-data');

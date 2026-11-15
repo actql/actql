@@ -2,11 +2,12 @@ import assert from 'node:assert/strict';
 
 // Real Local files acquisition, serialization, checked Result imports and an
 // ordinary approved STORE row for every group Result.
-// Each group's declared ports remain independently observed imports of the same
-// completed producer; none is replaced by a fabricated dependency DATA body.
+// Every declared port is a real RRF input occurrence. Omitting any occurrence
+// changes its exact score and removes the corresponding actual STORE row.
 export function projectFileDependencyBoundary({ports = 2050, groups = 8} = {}) {
-  assert(Number.isSafeInteger(ports) && ports > 0);
+  assert(Number.isSafeInteger(ports) && ports >= 2);
   assert(Number.isSafeInteger(groups) && groups > 0 && groups <= ports && groups <= 30);
+  assert(ports >= 2 * groups, 'Each small or large group exercises a genuine nonempty peer list');
   const path = 'original.jsonl';
   const body = '{"actual":"source"}\n';
   const inputBytes = Buffer.byteLength(body);
@@ -25,6 +26,7 @@ export function projectFileDependencyBoundary({ports = 2050, groups = 8} = {}) {
   const groupSizes = Array.from({length: groups}, (_, index) =>
     Math.floor(ports / groups) + (index < ports % groups ? 1 : 0));
   const finalInputs = {};
+  const observedFields = [...contentFields, 'score', 'rank', 'path'];
   const results = {producer: {from: {stage: acquisition.id, result: 'rows'}},
     serialized: {from: {stage: producer.id, result: 'rows'}}};
   for (let group = 0; group < groups; group++) {
@@ -33,10 +35,18 @@ export function projectFileDependencyBoundary({ports = 2050, groups = 8} = {}) {
     // Unit. Distinct real input names keep all checked interfaces distinct.
     const inputs = Object.fromEntries(Array.from({length: groupSizes[group]}, (_, index) =>
       [`g${group}_i${index}`, {result: {stage: producer.id, result: 'rows'}}]));
-    stages.push({id, inputs, from: `g${group}_i0`, steps: [
-      {select: contentFields, as: 'imported'},
-      {from: 'imported', derive: {path: {literal: `dependency-${String(group).padStart(2, '0')}.jsonl`}}, as: 'marked'},
-    ], results: {rows: {from: 'marked', fields: [...contentFields, 'path']}}});
+    const first = `g${group}_i0`, expectedScore = groupSizes[group] / 2;
+    stages.push({id, inputs, from: first, steps: [
+      {merge_rankings: {with: Object.keys(inputs).slice(1), by: [], candidate: 'name',
+        rank: 'row_count', k: 1, score_policy: {rrf: {rank_constant: 1,
+          weights: Array.from({length: groupSizes[group]}, () => 1), rank_window: 1}}}, as: 'fused'},
+      {from: 'fused', filter: {eq: [{field: 'score'}, {literal: expectedScore}]}, as: 'complete'},
+      {from: 'complete', join: {with: first, kind: 'inner',
+        on: [{left: 'name', right: 'name'}], max_output_rows: 1,
+        select: {...Object.fromEntries(contentFields.map(field => [field, `right.${field}`])),
+          score: 'left.score', rank: 'left.rank'}}, as: 'attached'},
+      {from: 'attached', derive: {path: {literal: `dependency-${String(group).padStart(2, '0')}.jsonl`}}, as: 'marked'},
+    ], results: {rows: {from: 'marked', fields: observedFields}}});
     finalInputs[`g${group}`] = {result: {stage: id, result: 'rows'}};
     results[id] = {from: {stage: id, result: 'rows'}};
   }
@@ -50,7 +60,7 @@ export function projectFileDependencyBoundary({ports = 2050, groups = 8} = {}) {
   steps.push({from: current,
     sort: [{field: 'path', dir: 'asc', nulls: 'last'}], as: 'ordered'});
   stages.push({id: 'apply', inputs: finalInputs, steps,
-    results: {content: {from: 'ordered', fields: [...contentFields, 'path']}},
+    results: {content: {from: 'ordered', fields: observedFields}},
     effects: {save: {command: {from: {result: 'content'},
       target: {published_store: {target_ref: 'connector://destination/files',
         mapping_ref: 'mapping:destination.local.files.store.v1'}},
@@ -63,7 +73,8 @@ export function projectFileDependencyBoundary({ports = 2050, groups = 8} = {}) {
   const expectedSerialized = {name: 'boundary.jsonl', media_type: 'application/x-ndjson',
     size_bytes: Buffer.byteLength(expectedBody), row_count: 1};
   const expectedRows = Array.from({length: groups}, (_, index) =>
-    ({...expectedSerialized, path: `dependency-${String(index).padStart(2, '0')}.jsonl`}));
+    ({...expectedSerialized, score: groupSizes[index] / 2, rank: 1,
+      path: `dependency-${String(index).padStart(2, '0')}.jsonl`}));
   return Object.freeze({name: 'project-file-complete-dependency', format: 'json',
     source: JSON.stringify(program), program, groupSizes: Object.freeze(groupSizes),
     imports: 1 + ports + groups, expectedDefinitions: 1, expectedWrites: groups,
