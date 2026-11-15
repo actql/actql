@@ -37,6 +37,14 @@ test "ordinary listing101 residual uses the original finite policy while explici
     let acquisition = @row_source_host.prepare_row_acquisition(
       declaration, requirement, original_row_query_contract_fixture, original_row_evidence_contract_fixture,
     ).unwrap()
+    assert_eq(
+      @row_source_host.row_acquisition_max_rows(acquisition),
+      if explicit {
+        100
+      } else {
+        1000
+      },
+    )
     // Same physical original stays1000 in both cases; a larger physical
     // ceiling cannot override the explicitly selected logical100 guard.
     assert_eq(

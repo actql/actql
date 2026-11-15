@@ -417,6 +417,12 @@ pub fn row_acquisition_columns(value : RowAcquisition) -> Array[String] {
 }
 
 ///|
+/// The selected residual row limit used by this same acquisition's execution.
+pub fn row_acquisition_max_rows(value : RowAcquisition) -> Int {
+  value.configuration.limits.execution.rows.max_rows
+}
+
+///|
 /// The selected Source's actual parameter-bound Request. It is not a separate
 /// selector interpretation, new authority or proof of acquisition completion.
 pub fn row_acquisition_request_wire(
