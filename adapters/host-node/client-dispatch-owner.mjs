@@ -1,6 +1,7 @@
 // One installed Host owner for an admitted Run's physical dispatch, stop
 // observation, and recoverable cleanup. The journal and MoonBit control keep
 // their existing authority; this owner does not decide whether to retry.
+import {types as nodeTypes} from 'node:util';
 import {runtimeField, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';
 import {CapturedRunPublicationError,
   runPublishedCapturedStrategy} from './entry.mjs';
@@ -126,6 +127,57 @@ function dispatchFailureSnapshot(error) {
     message: typeof error === 'string' ? error : text('message'),
     ...(primaryDiagnostic === undefined ? {} : {primaryDiagnostic}),
     ...(cleanupDiagnostic === undefined ? {} : {cleanupDiagnostic})});
+}
+
+// Resolve only the engine's own lazy Error stack. An observer receives code
+// locations, never the original exception, its message, or its cause/owners.
+function dispatchFailureCodeSite(error, errorType, formatter) {
+  try {
+    if (nodeTypes.isProxy(error) || !nodeTypes.isNativeError(error)) return undefined;
+    if (Object.getPrototypeOf(error) !== errorType.prototype) return undefined;
+    const currentFormatter = Object.getOwnPropertyDescriptor(errorType, 'prepareStackTrace');
+    if (currentFormatter !== undefined && !Object.hasOwn(currentFormatter, 'value') ||
+        currentFormatter?.value !== formatter) return undefined;
+    const heading = {};
+    const code = Object.getOwnPropertyDescriptor(error, 'code');
+    if (!code || !Object.hasOwn(code, 'value') || code.value !== 'MoonBitHostFailure') return undefined;
+    for (const key of ['name', 'message']) {
+      const own = Object.getOwnPropertyDescriptor(error, key);
+      const inherited = Object.getOwnPropertyDescriptor(errorType.prototype, key);
+      if (own !== undefined && (!Object.hasOwn(own, 'value') || typeof own.value !== 'string') ||
+          inherited === undefined || !Object.hasOwn(inherited, 'value')) return undefined;
+      heading[key] = own?.value ?? inherited.value;
+    }
+    // The generic Core Result guard has this fixed inert heading. Arbitrary
+    // exception text is neither resolved nor copied by this fallback.
+    if (heading.name !== 'Error' || heading.message !== 'MoonBitHostFailure') return undefined;
+    const field = Object.getOwnPropertyDescriptor(error, 'stack');
+    if (field === undefined) return undefined;
+    let stack;
+    if (Object.hasOwn(field, 'value')) stack = field.value;
+    else {
+      const native = Object.getOwnPropertyDescriptor(new errorType(), 'stack');
+      if (typeof native?.get !== 'function' || field.get !== native.get || field.set !== native.set) return undefined;
+      stack = native.get.call(error);
+    }
+    if (typeof stack !== 'string') return undefined;
+    const header = heading.name === '' ? heading.message : heading.message === ''
+      ? heading.name : `${heading.name}: ${heading.message}`;
+    if (!stack.startsWith(`${header}\n`)) return undefined;
+    const sites = [];
+    for (const line of stack.slice(header.length + 1, header.length + 16385).split('\n').slice(0, 16)) {
+      // Drop function names and absolute installation/state prefixes. These
+      // are optional source locations, not artifact or provenance evidence.
+      const site = /^\s+at [^\n]*\/((?:adapters|packages)\/[A-Za-z0-9_./-]+\.[cm]?js|_build\/js\/release\/build\/[A-Za-z0-9_./-]+\.js):([1-9][0-9]{0,8}):([1-9][0-9]{0,8})\)?$/u.exec(line);
+      if (site !== null && !site[1].split('/').includes('..')) {
+        sites.push(`${site[1]}:${site[2]}:${site[3]}`);
+        if (sites.length === 8) break;
+      }
+    }
+    if (sites.length !== 0) return Object.freeze({phase: 'dispatch', kind: 'code_site',
+      message: sites.join('\n').slice(0, 2048)});
+  } catch { /* Optional diagnostics cannot replace a failure or its cleanup. */ }
+  return undefined;
 }
 
 // This message extends the existing failed Run observation, not its status,
@@ -334,6 +386,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   runPublished = runPublishedCapturedStrategy}) {
   const entries = new Map();
   const diagnostic = diagnosticObserver(observed);
+  const diagnosticErrorType = Error;
+  const diagnosticStackFormatter = Object.getOwnPropertyDescriptor(Error, 'prepareStackTrace')?.value;
   const step = async (name, detail) => {
     diagnostic(name, detail);
     await faultInjection?.(name, detail);
@@ -1436,7 +1490,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         diagnostic('dispatch_failed', {ref: accepted.ref,
           code: cause?.code ?? cause?.message ?? 'ClientDispatchFailed',
           primaryCode: primaryFailure?.code,
-          primaryDiagnostic: dispatchFailureSnapshot(primaryFailure)?.primaryDiagnostic,
+          primaryDiagnostic: dispatchFailureSnapshot(primaryFailure)?.primaryDiagnostic ??
+            dispatchFailureCodeSite(primaryFailure, diagnosticErrorType, diagnosticStackFormatter),
           cleanupDiagnostic: dispatchFailureSnapshot(primaryFailure)?.cleanupDiagnostic,
           issueTag: runtimeTag(primaryFailure?.cause),
           nestedIssueTag: runtimeTag(runtimeOptionalField(primaryFailure?.cause, 0))});
@@ -1554,7 +1609,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         diagnostic('dispatch_failed', {ref: entry.ref,
           code: cause?.code ?? 'ClientDispatchFailed',
           primaryCode: primaryFailure?.code,
-          primaryDiagnostic: dispatchFailureSnapshot(primaryFailure)?.primaryDiagnostic,
+          primaryDiagnostic: dispatchFailureSnapshot(primaryFailure)?.primaryDiagnostic ??
+            dispatchFailureCodeSite(primaryFailure, diagnosticErrorType, diagnosticStackFormatter),
           issueTag: runtimeTag(primaryFailure?.cause),
           nestedIssueTag: runtimeTag(runtimeOptionalField(primaryFailure?.cause, 0))});
       } catch { /* Optional diagnostics cannot interrupt original cleanup. */ }

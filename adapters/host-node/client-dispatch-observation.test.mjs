@@ -7,6 +7,114 @@ import {parse} from 'acorn';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {createHostObservationConnection, installHostObservation} from '../host-common/observation.mjs';
 import {fileURLToPath} from 'node:url';
+import {installNodeClientDispatchOwner as installActualDispatchOwner} from './client-dispatch-owner.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
+import {types as nodeTypes} from 'node:util';
+
+// This boundary uses the actual owner and Result guard, not a copied catch.
+async function observeActualDispatchFailure(failure, {afterInstall, observerThrows = false} = {}) {
+  const records = [], stopped = [];
+  let closes = 0, cleanups = 0;
+  const owner = installActualDispatchOwner({observed(name, detail) {
+    if (name === 'dispatch_failed') records.push(detail);
+    if (observerThrows) throw new Error('OptionalObserverRefusal');
+  }});
+  afterInstall?.();
+  const physical = {async close() {closes++;}, cleanup() {cleanups++; return true;},
+    cleanupPending: () => false};
+  const ref = {runDefinitionCid: 'actual-dispatch-diagnostic'};
+  const operation = owner.track(ref, {run({beginPhysicalWork, retainExecution}) {
+    beginPhysicalWork(); retainExecution(physical); throw failure;
+  }, observeStopped: outcome => stopped.push(outcome)});
+  await assert.rejects(operation, actual => actual === failure);
+  await owner.drain();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(closes, 1);
+  assert.equal(cleanups, 1);
+  assert.deepEqual(stopped, [null]);
+  assert.equal(owner.operation(ref), undefined);
+  assert.equal(records.length, 1);
+  return records[0];
+}
+
+test('dispatch code-site diagnostic preserves the actual Result failure and physical cleanup', async () => {
+  let failure;
+  try { checked({$tag: 0, _0: {$tag: 4, _0: {$tag: 4}}}); }
+  catch (error) { failure = error; }
+  const detail = await observeActualDispatchFailure(failure, {observerThrows: true});
+  assert.equal(detail.code, 'MoonBitHostFailure');
+  assert.equal(detail.issueTag, 4);
+  assert.equal(detail.nestedIssueTag, 4);
+  assert.equal(detail.primaryDiagnostic.phase, 'dispatch');
+  assert.equal(detail.primaryDiagnostic.kind, 'code_site');
+  assert.match(detail.primaryDiagnostic.message, /^adapters\/host-common\/runtime-result\.mjs:\d+:\d+/u);
+  assert.equal(Object.isFrozen(detail.primaryDiagnostic), true);
+  assert.deepEqual(Object.keys(detail.primaryDiagnostic).sort(), ['kind', 'message', 'phase']);
+  assert.equal(detail.primaryDiagnostic.message.includes('MoonBitHostFailure'), false);
+  assert.equal(detail.primaryDiagnostic.message.includes('file://'), false);
+  assert.equal(detail.primaryDiagnostic.message.includes(process.cwd()), false);
+});
+
+test('dispatch code-site diagnostic prefers the original typed phase', async () => {
+  const failure = Object.assign(new Error('private message'), {code: 'MoonBitHostFailure',
+    primaryDiagnostic: Object.freeze({code: 'MoonBitHostFailure',
+      phase: 'local_managed_advance', kind: 'control_work', task: 3, controlWorkLimit: 17})});
+  const detail = await observeActualDispatchFailure(failure);
+  assert.deepEqual(detail.primaryDiagnostic, failure.primaryDiagnostic);
+});
+
+test('dispatch code-site diagnostic never invokes overridden or inherited stack getters', async () => {
+  let reads = 0;
+  for (const missing of [false, true]) {
+    const failure = Object.assign(new Error('MoonBitHostFailure'), {code: 'MoonBitHostFailure'});
+    if (missing) delete failure.stack;
+    else Object.defineProperty(failure, 'stack', {get() {reads++; throw new Error('UntrustedStack');}});
+    const detail = await observeActualDispatchFailure(failure);
+    assert.equal(detail.primaryDiagnostic, undefined);
+  }
+  assert.equal(reads, 0);
+});
+
+test('dispatch code-site diagnostic skips a changed stack formatter without invoking it', async () => {
+  const original = Object.getOwnPropertyDescriptor(Error, 'prepareStackTrace');
+  const failure = Object.assign(new Error('MoonBitHostFailure'), {code: 'MoonBitHostFailure'});
+  let calls = 0;
+  try {
+    const detail = await observeActualDispatchFailure(failure, {afterInstall() {
+      Object.defineProperty(Error, 'prepareStackTrace', {configurable: true, writable: true,
+        value() {calls++; throw new Error('UntrustedFormatter');}});
+    }});
+    assert.equal(detail.primaryDiagnostic, undefined);
+    assert.equal(calls, 0);
+  } finally {
+    if (original === undefined) delete Error.prepareStackTrace;
+    else Object.defineProperty(Error, 'prepareStackTrace', original);
+  }
+});
+
+test('dispatch code-site diagnostic rejects proxy and Error-prototype DATA before prototype inspection', async () => {
+  let ownKeys = 0, prototypeReads = 0, stackReads = 0;
+  const native = Object.assign(new Error('MoonBitHostFailure'), {code: 'MoonBitHostFailure'});
+  const proxy = new Proxy(native, {ownKeys() {ownKeys++; return Reflect.ownKeys(native);}});
+  const fake = Object.assign(Object.create(Error.prototype), {message: 'MoonBitHostFailure',
+    code: 'MoonBitHostFailure'});
+  Object.defineProperty(fake, 'stack', {get() {stackReads++; throw new Error('UntrustedStack');}});
+  const getPrototypeOf = Object.getPrototypeOf;
+  try {
+    // Existing instanceof handling can use [[GetPrototypeOf]] internally.
+    // Count only the explicit reflection performed by the optional locator.
+    Object.getPrototypeOf = value => {
+      if (value === proxy || value === fake) prototypeReads++;
+      return getPrototypeOf(value);
+    };
+    for (const failure of [proxy, fake]) {
+      assert.equal((await observeActualDispatchFailure(failure)).primaryDiagnostic, undefined);
+    }
+  } finally { Object.getPrototypeOf = getPrototypeOf; }
+  assert.equal(prototypeReads, 0);
+  assert.equal(ownKeys, 0);
+  assert.equal(stackReads, 0);
+});
 
 const commonRuntimePath=process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME ??
   fileURLToPath(new URL(
@@ -28,9 +136,9 @@ const declarations = ast.body.flatMap(node => {
 });
 const installNodeClientDispatchOwner = compileFunction(
   declarations.join('\n') + '\nreturn installNodeClientDispatchOwner;',
-  ['diagnosticObserver', 'CapturedRunPublicationError', 'runtimeTag', 'runPublishedCapturedStrategy'])(
+  ['diagnosticObserver', 'CapturedRunPublicationError', 'runtimeTag', 'runPublishedCapturedStrategy', 'nodeTypes'])(
   diagnosticObserver, class ExplicitPublicationError extends Error {}, () => undefined,
-  () => assert.fail('No fixture Relation execution'));
+  () => assert.fail('No fixture Relation execution'), nodeTypes);
 const observation = retained => ({emit() {}, retainOperation(promise) {retained.push(promise);}});
 
 // This distinct component uses the selected original Common namespace and real
