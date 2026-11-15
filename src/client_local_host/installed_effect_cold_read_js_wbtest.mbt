@@ -129,7 +129,7 @@ test "cold installed Read cannot restart spent Work or evade its original curren
 test "capture node bounds cover literal and multiply escaped Unicode trees with the real parser" {
   let cases = [
     "null", "true", "1", "\"scalar\"", "[]", "{}", "[0,true,null,{},[]]", "{\"a\":[1,true,null],\"b\":{\"x\":\"quoted\"}}",
-    "\"\\u007b\\u0022x\\u0022\\u003a\\u005b1\\u002c\\u007b\\u007d\\u005d\\u007d\"",
+    "\"\\u005b0\\u002c\\u005b0]]\"", "\"\\u007b\\u0022x\\u0022\\u003a\\u005b1\\u002c\\u007b\\u007d\\u005d\\u007d\"",
     "{\"text\":\"\\u005c\\u005c\\u005c\\u0022\\n\\t\\ud83d\\ude00\"}",
   ]
   for original in cases {
@@ -146,9 +146,11 @@ test "capture node bounds cover literal and multiply escaped Unicode trees with 
         assert_true(parsed.usage.nodes <= upper)
         match parsed.node.value {
           @source.String(inner) =>
+            // Independent loose admission distinguishes non-JSON text from
+            // a nested tree that MUST fit the tested upper on the next parse.
             if @source.parse_json(inner, {
                 max_input_bytes: 2000000,
-                max_nodes: upper,
+                max_nodes: 1000,
                 max_depth: 64,
               })
               is Ok(_) {
