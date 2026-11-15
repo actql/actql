@@ -5,12 +5,18 @@
 struct ClientEffectKeyedSourceUnit {
   parent : ClientEffectKeyedOriginal
   lookup : ClientKeyedLookupInput
-  completed : ClientKeyedNativeCompletion
+  completed : ClientEffectKeyedCompletion
   host : @strategy.CapturedEffectRunDAG
   invocation : ClientEffectLocalInvocation
   scope : @publication.PublicationContract
   relations : Array[String]
   retention : @publication.PublicationContract
+}
+
+///|
+priv enum ClientEffectKeyedCompletion {
+  NativeSourceCompleted(ClientKeyedNativeCompletion)
+  GenericSourceCompleted(ClientEffectKeyedGenericCompletion)
 }
 
 ///|
@@ -20,9 +26,9 @@ struct ClientEffectKeyedSourceUnit {
 pub fn client_effect_keyed_source_unit_construction_inventory() -> @execution.PreparationRepresentationUnits {
   let arrays = @execution.preparation_array_representation(3L, 6L, true).unwrap()
   {
-    record_headers: arrays.record_headers + 4L,
-    reference_slots: arrays.reference_slots + 12L,
-    scalar_words: arrays.scalar_words + 3L,
+    record_headers: arrays.record_headers + 5L,
+    reference_slots: arrays.reference_slots + 13L,
+    scalar_words: arrays.scalar_words + 4L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
@@ -33,6 +39,9 @@ fn client_effect_keyed_source_completed(
   parent : ClientEffectKeyedOriginal,
   lookup : ClientKeyedLookupInput,
 ) -> Bool {
+  if parent.generic is Some(state) {
+    return client_effect_keyed_generic_completed(parent, lookup, state)
+  }
   client_effect_keyed_lookup_matches_parent(lookup, parent, parent.ledger) &&
   lookup.native_completion is Some(completed) &&
   lookup.identity is Some(_) &&
@@ -116,18 +125,29 @@ fn emit_client_effect_keyed_observation(
   }
   @encode.key(writer, "source_evidence_cids")
   @encode.begin_array(writer)
-  for source in lookup.native_sources.unwrap().sources {
+  if parent.generic is Some(state) && state.completed is Some(completed) {
     @encode.string_value(
       writer,
-      @publication.run_evidence_value_identity(source.observation),
+      @publication.run_evidence_value_identity(state.source.observation),
+    )
+    @encode.string_value(
+      writer,
+      @publication.run_evidence_value_identity(completed.observation.source),
+    )
+  } else {
+    for source in lookup.native_sources.unwrap().sources {
+      @encode.string_value(
+        writer,
+        @publication.run_evidence_value_identity(source.observation),
+      )
+    }
+    @encode.string_value(
+      writer,
+      @publication.run_evidence_value_identity(
+        lookup.native_completion.unwrap().source,
+      ),
     )
   }
-  @encode.string_value(
-    writer,
-    @publication.run_evidence_value_identity(
-      lookup.native_completion.unwrap().source,
-    ),
-  )
   @encode.end_array(writer)
   @encode.key(writer, "version")
   @encode.string_value(writer, "actql-observation-set/0.1")
@@ -279,6 +299,19 @@ pub fn prepare_client_effect_keyed_source_unit(
   max_depth : Int,
   before_body? : ((String, @encode.EncodingConstructionGeometry) -> Bool)? = None,
 ) -> Result[ClientEffectKeyedSourceUnit, ClientEffectAcquiredEvidenceIssue] {
+  if parent.generic is Some(state) {
+    return prepare_client_effect_generic_keyed_source_unit(
+      parent,
+      lookup,
+      state,
+      host,
+      retention,
+      max_bytes,
+      max_nodes,
+      max_depth,
+      before_body~,
+    )
+  }
   guard client_effect_keyed_source_host_matches(parent, lookup, host) &&
     lookup.native_completion is Some(completed) &&
     lookup.native_sources is Some(sources) &&
@@ -348,7 +381,7 @@ pub fn prepare_client_effect_keyed_source_unit(
   Ok({
     parent,
     lookup,
-    completed,
+    completed: NativeSourceCompleted(completed),
     host,
     invocation,
     scope,
@@ -380,8 +413,15 @@ fn client_effect_keyed_source_unit_current(
     value.lookup,
     value.host,
   ) &&
-  value.lookup.native_completion is Some(completed) &&
-  physical_equal(completed, value.completed)
+  (match value.completed {
+    NativeSourceCompleted(completed) =>
+      value.lookup.native_completion is Some(same) &&
+      physical_equal(completed, same)
+    GenericSourceCompleted(completed) =>
+      value.parent.generic is Some(state) &&
+      state.completed is Some(same) &&
+      physical_equal(completed, same)
+  })
 }
 
 ///|
@@ -415,6 +455,11 @@ pub fn client_effect_keyed_cached_dependency_bodies(
   lookup : ClientKeyedLookupInput,
   retention : @publication.PublicationContract,
 ) -> Array[@publication.CapturedEffectDependencyBody]? {
+  if parent.generic is Some(state) {
+    return client_effect_keyed_generic_cached_dependency_bodies(
+      parent, lookup, state, retention,
+    )
+  }
   // Refuse incomplete/foreign-time metadata before any Source callback. The
   // one current boundary follows the existing immutable completed inventory.
   guard !lookup.closed &&

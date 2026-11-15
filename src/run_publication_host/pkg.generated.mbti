@@ -1765,11 +1765,13 @@ pub fn fail_client_keyed_request_io(ClientKeyedRequest) -> Unit
 
 pub fn find_client_keyed_lookup_response(ClientKeyedLookupInput, ClientKeyedRequest) -> Result[Int, ClientKeyedRequestIssue]
 
+pub fn finish_client_effect_keyed_generic_publication_input(ClientEffectKeyedOriginal, ClientKeyedLookupInput, String, Int, Int, Int) -> Result[@execution_relation.SuppliedRelationRead, ClientKeyedRequestIssue]
+
 pub fn finish_client_keyed_capture_request_plan(ClientKeyedLookupInput, Int, Int, Int) -> Result[Unit, ClientKeyedRequestIssue]
 
 pub fn finish_client_keyed_lookup_input(ClientKeyedLookupInput) -> Result[@execution_relation.SuppliedRelationRead, ClientKeyedRequestIssue]
 
-pub fn finish_client_keyed_lookup_publication_input(ClientKeyedLookupInput, Int, Int, Int, retain_body? : Bool, native_completion? : (String, Int64)?, defer_catalog? : Bool) -> Result[@execution_relation.SuppliedRelationRead, ClientKeyedRequestIssue]
+pub fn finish_client_keyed_lookup_publication_input(ClientKeyedLookupInput, Int, Int, Int, retain_body? : Bool, native_completion? : (String, Int64)?, generic_completion? : (String, Int, Int, Int)?, defer_catalog? : Bool) -> Result[@execution_relation.SuppliedRelationRead, ClientKeyedRequestIssue]
 
 pub fn finish_client_keyed_lookup_request_plan(ClientKeyedLookupInput, Int, Int, Int) -> Result[ClientKeyedLookupRequestIdentity, ClientKeyedRequestIssue]
 
@@ -2228,6 +2230,8 @@ pub fn prepare_client_effect_keyed_acquisition(PreparedClientEffectComputation, 
 pub fn prepare_client_effect_keyed_declared_file_activation_record(ClientKeyedNativeActivation, ClientRequestIdentity, ClientEffectKeyedOriginal, Int) -> Result[String, ClientKeyedRequestIssue]
 
 pub fn prepare_client_effect_keyed_declared_file_page_record(ClientKeyedNativeCapturedPage, ClientKeyedRequest, ClientRequestIdentity, ClientEffectKeyedOriginal, Int) -> Result[String, ClientKeyedRequestIssue]
+
+pub fn prepare_client_effect_keyed_generic_source_metadata(ClientEffectKeyedOriginal, ClientKeyedLookupInput, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, String, String, String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, ClientKeyedRequestIssue]
 
 pub fn prepare_client_effect_keyed_plan_graph(PreparedClientEffectComputation, ClientKeyedAcquisition, @run_publication.PublicationContract, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientEffectKeyedPlanGraph, ClientInferPlanGraphIssue]
 

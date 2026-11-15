@@ -56,6 +56,7 @@ fn keyed_lookup_body_grow(
 fn finish_keyed_lookup_identity_bodies(
   lookup : ClientKeyedLookupInput,
   native_completion? : (String, Int64, Int, Int, Int)? = None,
+  generic_completion? : (String, Int, Int, Int)? = None,
   defer_catalog? : Bool = false,
 ) -> Result[@execution.SuppliedRelationRead, ClientKeyedRequestIssue] {
   if lookup.identity_receipt is Some(_) {
@@ -64,6 +65,13 @@ fn finish_keyed_lookup_identity_bodies(
     }
     if native_completion is Some(_) && lookup.native_completion is None {
       return Err(Assembly("late_native_completion_purpose"))
+    }
+    if generic_completion is Some(_) &&
+      !(lookup.left.composed is Some(original) &&
+      original.origin is SourceEffectOrigin(parent) &&
+      parent.generic is Some(state) &&
+      state.completed is Some(_)) {
+      return Err(Assembly("late_generic_completion_purpose"))
     }
     return finish_client_keyed_lookup_input(lookup)
   }
@@ -79,6 +87,7 @@ fn finish_keyed_lookup_identity_bodies(
   let result = build_keyed_lookup_identity_bodies(
     lookup,
     native_completion~,
+    generic_completion~,
     defer_catalog~,
   )
   lookup.identifying = false
@@ -95,6 +104,7 @@ fn finish_keyed_lookup_identity_bodies(
 fn build_keyed_lookup_identity_bodies(
   lookup : ClientKeyedLookupInput,
   native_completion? : (String, Int64, Int, Int, Int)? = None,
+  generic_completion? : (String, Int, Int, Int)? = None,
   defer_catalog? : Bool = false,
 ) -> Result[Unit, ClientKeyedRequestIssue] {
   guard lookup.completed is Some(rows) && lookup.left.composed is Some(original) else {
@@ -273,6 +283,15 @@ fn build_keyed_lookup_identity_bodies(
       Ok(_) => ()
     }
   }
+  if generic_completion is Some((at, max_bytes, max_nodes, max_depth)) {
+    match
+      prepare_client_effect_keyed_generic_completion(
+        lookup, at, max_bytes, max_nodes, max_depth,
+      ) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
   if lookup.closed || lookup.left.lookup_issue is Some(_) {
     return Err(Assembly("retired_publication_input"))
   }
@@ -296,6 +315,15 @@ fn build_keyed_lookup_identity_bodies(
 
 ///|
 fn clear_keyed_lookup_identity_bodies(lookup : ClientKeyedLookupInput) -> Unit {
+  if lookup.left.composed is Some(original) &&
+    original.origin is SourceEffectOrigin(parent) &&
+    parent.generic is Some(state) &&
+    physical_equal(state.lookup, lookup) {
+    state.bodies = None
+    state.completed = None
+    state.observed_at = None
+    parent.generic = None
+  }
   for (_, _, history) in lookup.known {
     if history is Some(history) && history._retained_native_page is Some(page) {
       if page.scan is Some(scan) {

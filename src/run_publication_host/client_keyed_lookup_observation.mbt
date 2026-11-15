@@ -73,6 +73,17 @@ pub fn issue_client_keyed_lookup_observation(
       logical_relation_cid: logical_cid,
     })
   }
+  if lookup.left.composed is Some(original) &&
+    original.origin is SourceEffectOrigin(parent) &&
+    parent.generic is Some(state) &&
+    state.completed is Some(completed) {
+    guard physical_equal(state.lookup, lookup) &&
+      authority_scope_cid == client_request_authority_scope_cid(parent.request) &&
+      completed.observation.logical_relation_cid == logical_cid else {
+      return Err(Assembly("foreign_generic_observation_authority"))
+    }
+    return Ok(completed.observation)
+  }
   let (input, source) = match
     build_keyed_lookup_source_observation(
       lookup, logical_cid, schema_cid, snapshot, authority_scope_cid, observed_at,

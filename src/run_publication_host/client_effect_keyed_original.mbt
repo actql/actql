@@ -12,15 +12,16 @@ struct ClientEffectKeyedOriginal {
   ledger : @resources.Ledger
   identity : @resources.OriginalLedgerIdentity
   mut started : Bool
+  mut generic : ClientEffectKeyedGenericState?
 }
 
 ///|
 pub fn client_effect_keyed_original_construction_inventory() -> @execution.PreparationRepresentationUnits {
-  // Retained binding H1/R9/W1 (consumed start), owner Some H1/R1/W1
+  // Retained binding H1/R10/W1 (consumed start and generic state), owner Some H1/R1/W1
   // and transient Result H1/R1/W1.
   {
     record_headers: 3L,
-    reference_slots: 11L,
+    reference_slots: 12L,
     scalar_words: 3L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
@@ -63,6 +64,7 @@ pub fn bind_client_effect_keyed_original(
     ledger,
     identity,
     started: false,
+    generic: None,
   })
 }
 

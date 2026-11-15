@@ -199,10 +199,15 @@ pub fn finish_client_keyed_lookup_publication_input(
   max_depth : Int,
   retain_body? : Bool = false,
   native_completion? : (String, Int64)? = None,
+  generic_completion? : (String, Int, Int, Int)? = None,
   defer_catalog? : Bool = false,
 ) -> Result[@execution.SuppliedRelationRead, ClientKeyedRequestIssue] {
-  if native_completion is Some(_) && !retain_body {
+  if (native_completion is Some(_) || generic_completion is Some(_)) &&
+    !retain_body {
     return Err(Assembly("native_completion_requires_original_body"))
+  }
+  if native_completion is Some(_) && generic_completion is Some(_) {
+    return Err(Assembly("mixed_lookup_completion_purpose"))
   }
   if lookup.publication_identity is Some(_) {
     if lookup.planned_requests is Some(_) && lookup.completed is None {
@@ -240,6 +245,7 @@ pub fn finish_client_keyed_lookup_publication_input(
       finish_keyed_lookup_identity_bodies(
         lookup,
         defer_catalog~,
+        generic_completion~,
         native_completion=native_completion.map(value => {
           (value.0, value.1, max_bytes, max_nodes, max_depth)
         }),
@@ -286,6 +292,7 @@ pub fn finish_client_keyed_lookup_publication_input(
     finish_keyed_lookup_identity_bodies(
       lookup,
       defer_catalog~,
+      generic_completion~,
       native_completion=native_completion.map(value => {
         (value.0, value.1, max_bytes, max_nodes, max_depth)
       }),

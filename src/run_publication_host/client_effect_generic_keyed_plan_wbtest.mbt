@@ -1,7 +1,9 @@
 ///|
 // Real checked file-content Source declaration with content_ref Carrier DATA.
 // No Native read profile or provider/Store success is manufactured here.
-fn generic_file_effect_fixture() -> (
+fn generic_file_effect_fixture(
+  whole? : Bool = false,
+) -> (
   PreparedClientEffectComputation,
   ClientKeyedAcquisition,
   @row_host.RowDeclaration,
@@ -77,6 +79,14 @@ fn generic_file_effect_fixture() -> (
   ).unwrap()
   let document =
     #|{"version":"actql/0.1","id":"generic-file-effect","stages":[{"id":"capture","inputs":{"files":{"connector":"local-files","resource":"files"},"remote":{"connector":"local-files","resource":"contents"}},"steps":[{"from":"files","filter":"path <> ''"},{"select":["resource","version","path"],"as":"left"},{"from":"left","join":{"with":"remote","kind":"inner","on":[{"left":"resource","right":"resource"},{"left":"version","right":"version"}],"select":{"path":"left.path","content":"right.content"}},"as":"joined"},{"derive":{"value":{"literal":1}},"as":"selected"}],"results":{"out":{"from":"selected","fields":["value"]}},"effects":{"save":{"create":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"out"}}}}}],"results":{"published":{"from":{"stage":"capture","result":"out"}}}}
+  let document = if whole {
+    document.replace(
+      old="\"steps\":[{\"from\":\"files\",\"filter\":\"path <> ''\"},{\"select\":[\"resource\",\"version\",\"path\"],\"as\":\"left\"},{\"from\":\"left\",\"join\":",
+      new="\"steps\":[{\"from\":\"files\",\"join\":",
+    )
+  } else {
+    document
+  }
   let base = whole_row_environment(declaration)
   let emitted = @encode.writer(1000000, 100000, 100)
   @environment.emit(@checked.checking_environment_wire(base), emitted)
