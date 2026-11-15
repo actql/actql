@@ -506,13 +506,15 @@ export function acquiredEffectPublicationPlan({acquired, captured,
   const {moon, control, prepared, compilation, definition, admission,
     runDefinition, compiledPlan, authorityScopeCid,
     namespaceId, storeAuthorityCid, now} = acquired;
+  const whole = captured?.inputKind === 'whole-input';
   if (typeof sourceEvidenceWire !== 'string' ||
       typeof captureStartedAt !== 'string' ||
       typeof captureCompletedAt !== 'string' ||
       captured?.logicalInput === undefined ||
       captured?.checkedSource === undefined ||
       captured?.identity === undefined ||
-      captured?.requirement === undefined ||
+      (whole ? captured.wholeCapacity === undefined || sourcePlan === undefined ||
+        acquired.requestIdentity === undefined : captured?.requirement === undefined) ||
       captured?.capture === undefined ||
       moon.clientProgramEffectCapturedSourceMatches(prepared,
         captured.capture.source()) !== true) {
@@ -554,16 +556,20 @@ export function acquiredEffectPublicationPlan({acquired, captured,
     moon, effectCompilation: compilation, preparedEffect: prepared,
     retentionSelection: acquired.selectRetention?.()});
   let sourceRetention = retention;
-  if (content !== undefined) {
+  if (content !== undefined && !whole) {
     const body = JSON.parse(retention.wire);
     delete body.effective_retention_policy_cid;
     body.effective_data_policy_cid = source.sourceDataPolicyCid;
     sourceRetention = control.seal('result_retention_policy', JSON.stringify(body), limits);
   }
-  const acquiredEvidence = control.issueCheckedAcquiredEffectEvidence(
-    prepared, captured.capture.source(), captured.identity,
-    captured.requirement, captured.logicalInput, sourceEvidence,
-    authorityScopeCid, source.sourceDataPolicyCid, sourceRetention, limits, 0, retention, deferCatalogs);
+  const acquiredEvidence = whole
+    ? control.issueCheckedWholeEffectSourceUnit(sourcePlan, prepared, acquired.requestIdentity,
+      0, captured.capture.source(), captured.identity, captured.wholeCapacity,
+      captured.logicalInput, sourceEvidence, authorityScopeCid, retention, limits, deferCatalogs)
+    : control.issueCheckedAcquiredEffectEvidence(
+      prepared, captured.capture.source(), captured.identity,
+      captured.requirement, captured.logicalInput, sourceEvidence,
+      authorityScopeCid, source.sourceDataPolicyCid, sourceRetention, limits, 0, retention, deferCatalogs);
   const inputBodies = moon.clientProgramCapturedSourceDependencyBodies(
     captured.identity, captured.capture.source());
   if (typeof runtimeOptionalField(inputBodies, 0) !== 'string' ||

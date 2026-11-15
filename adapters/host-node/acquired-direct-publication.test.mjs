@@ -16,7 +16,7 @@ const body = name => {
 };
 const limits = {maxWireBytes: 16384, maxNodes: 1024, maxDepth: 20};
 
-function fixture({mixed = false, refusal, typed = true, managed = false} = {}) {
+function fixture({mixed = false, refusal, typed = true, managed = false, content = false} = {}) {
   const calls = [], sourcePlan = {}, sourceObjects = [{}, {}], managedRun = {}, sourceHost = {};
   const originals = sourceObjects.map(() => ({}));
   const sources = sourceObjects.slice(0, mixed ? 2 : 1).map((source, index) => ({
@@ -25,9 +25,12 @@ function fixture({mixed = false, refusal, typed = true, managed = false} = {}) {
       ...(index === 0 ? {inputKind: 'whole-input', wholeCapacity: {}} : {requirement: {}}),
       capture: {source: () => source}, checkedSource: {sourceDataPolicyCid: `policy-${index}`}},
   }));
+  const contentOriginal = content ? {compiled: {}, generation: {}} : undefined;
   const owner = {}, retention = {wire: '{"effective_data_policy_cid":"joined"}'};
   const acquired = {moon: {
     clientProgramEffectPublicationDataPolicyCid: () => 'joined',
+    clientProgramEffectCapturedSourceMatches: () => true,
+    strategyRunEvidenceJson: () => '{}',
     clientProgramEffectDefinitionCid: () => 'definition',
     clientProgramEffectCompilationResultNames: () => ['result'],
     clientProgramCapturedSourceLogicalCid: identity => `logical-${identity.index}`,
@@ -70,6 +73,16 @@ function fixture({mixed = false, refusal, typed = true, managed = false} = {}) {
       assert.strictEqual(bounds, limits); calls.push('whole-unit');
       return {catalogBodies: []};
     },
+    issueCheckedInstalledEffectContentInvocation(parent, prepared, request, plan, host,
+      compilation, admission, definition, compiled, generation, bounds) {
+      assert.strictEqual(parent, managedRun); assert.strictEqual(prepared, acquired.prepared);
+      assert.strictEqual(request, acquired.requestIdentity); assert.strictEqual(plan, sourcePlan);
+      assert.strictEqual(host, sourceHost); assert.strictEqual(compilation, acquired.compilation);
+      assert.strictEqual(admission, acquired.admission); assert.strictEqual(definition, acquired.definition);
+      assert.strictEqual(compiled, contentOriginal.compiled); assert.strictEqual(generation, contentOriginal.generation);
+      assert.strictEqual(bounds, limits); calls.push('content-invocation');
+      return {observation: {wire: '{"data_policy_cid":"joined"}'}, invocation: {}, owner};
+    },
     seal() { calls.push('query-retention'); return {}; },
     issueCheckedAcquiredEffectEvidence(...args) {
       assert.strictEqual(args[3], sources[1].captured.requirement);
@@ -97,6 +110,7 @@ function fixture({mixed = false, refusal, typed = true, managed = false} = {}) {
   const invoke = () => mixed ? methods.acquiredMultiEffectPublicationPlan({acquired, sources,
     sourcePlan, ...(managed ? {managedRun, sourceHost} : {}), captureStartedAt: 'start', captureCompletedAt: 'end'})
     : methods.acquiredEffectPublicationPlan({acquired, ...sources[0], sourcePlan,
+      ...(contentOriginal === undefined ? {} : {content: contentOriginal}),
       ...(managed ? {managedRun, sourceHost} : {}), captureStartedAt: 'start', captureCompletedAt: 'end'});
   return {invoke, calls, owner, sources, acquired, sourcePlan};
 }
@@ -106,6 +120,23 @@ test('single Whole Effect uses its original invocation and Whole Unit ports', ()
   assert.strictEqual(plan.invocationOwner, f.owner);
   assert.deepEqual(f.calls, ['original-invocation', 'plan', 'whole-unit']);
   assert.equal(Object.hasOwn(f.sources[0].captured, 'requirement'), false);
+});
+
+test('managed Whole Content publication keeps its original Whole producer without a Query requirement', () => {
+  const f = fixture({managed: true, content: true});
+  Object.defineProperty(f.sources[0].captured, 'requirement', {
+    get() {assert.fail('Whole Content must not read a Query requirement');},
+  });
+  const plan = f.invoke();
+  assert.strictEqual(plan.invocationOwner, f.owner);
+  assert.deepEqual(f.calls, ['content-invocation', 'admit', 'plan', 'whole-unit']);
+});
+
+test('Whole Content missing its original capacity refuses before an invocation or evidence', () => {
+  const f = fixture({managed: true, content: true});
+  delete f.sources[0].captured.wholeCapacity;
+  assert.throws(f.invoke, /InvalidAcquiredEffectPublication/);
+  assert.deepEqual(f.calls, []);
 });
 
 test('managed Direct publication binds its same Run and actual retained Host before producer evidence', () => {

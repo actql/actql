@@ -1579,6 +1579,7 @@ test('normal distribution keeps original Request resource and cleanup regression
   "adapters/host-node/request-keyed-prefix-execution.test.mjs",
   "adapters/host-node/acquired-effect-keyed-prefix.test.mjs",
   "adapters/host-node/acquired-effect-keyed-publication.test.mjs",
+  "adapters/host-node/acquired-direct-publication.test.mjs",
   "adapters/host-node/request-model-material-resources.test.mjs",
   "adapters/host-node/request-model-source-ledger.test.mjs",
   "adapters/store-local/private-evidence-consumer-lifetime.test.mjs",
@@ -1595,7 +1596,8 @@ test('normal distribution keeps original Request resource and cleanup regression
   assert.equal(captureSteps[0].run.split(/\s+/u).filter(value => value === 'adapters/host-node/effect-publication-binding.test.mjs').length, 1);
   assert.equal(captureSteps[0].run.split(/\s+/u).filter(value => value === 'adapters/host-common/deferred-catalog-control.test.mjs').length, 1);
   for (const file of ['adapters/host-node/acquired-effect-keyed-prefix.test.mjs',
-    'adapters/host-node/acquired-effect-keyed-publication.test.mjs']) {
+    'adapters/host-node/acquired-effect-keyed-publication.test.mjs',
+    'adapters/host-node/acquired-direct-publication.test.mjs']) {
     assert.equal(captureSteps[0].run.split(/\s+/u).filter(value => value === file).length, 1);
   }
   assert.equal(captureSteps[0].if, "${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}");
