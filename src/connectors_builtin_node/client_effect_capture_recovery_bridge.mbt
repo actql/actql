@@ -189,3 +189,118 @@ pub fn client_program_recovered_effect_captured_run_sources(
     max_bytes, max_nodes, max_depth,
   )
 }
+
+///|
+/// Issue the final Effectful Receipt only from an admitted computation chain
+/// and the exact private Preview and Effect Set receipts. This is not apply
+/// authority or a durable publication commit.
+#export_name("clientProgramIssuePreparedEffectfulFinalRunReceipt")
+pub fn client_program_issue_prepared_effectful_final_run_receipt(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  computation_receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  prepared : @publication.PreparedCapturedEffectRun,
+  preview : @publication.EffectPreviewIdentity,
+  set_receipt_wire : String,
+  member_receipt_wires : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  let final_receipt = match
+    @publication.issue_effectful_final_run_receipt(
+      run_definition,
+      computation_receipt,
+      captured_run,
+      preview,
+      set_receipt_wire,
+      member_receipt_wires,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      prepared_capture=Some(prepared),
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+  match
+    @publication.admit_effectful_final_run_evidence_chain(
+      run_definition,
+      invocation,
+      definitions,
+      artifacts,
+      manifest,
+      computation_receipt,
+      captured_run,
+      preview,
+      set_receipt_wire,
+      member_receipt_wires,
+      @publication.publication_contract_json(final_receipt),
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      prepared_capture=Some(prepared),
+    ) {
+    Ok(_) => final_receipt
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+/// The final Effectful Receipt, not its computation Receipt, is indexed.
+/// The Host must separately prove checked kind and current apply authority.
+#export_name("clientProgramPreparedEffectfulPublicationCommitValid")
+pub fn client_program_prepared_effectful_publication_commit_valid(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  derivations : Array[@publication.PublicationContract],
+  orderings : Array[@publication.PublicationContract],
+  retentions : Array[@publication.PublicationContract],
+  durable_bindings : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  computation_receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  prepared : @publication.PreparedCapturedEffectRun,
+  preview : @publication.EffectPreviewIdentity,
+  set_receipt_wire : String,
+  member_receipt_wires : Array[String],
+  final_receipt_wire : String,
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  index_entry : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  @publication.validate_effectful_publication_commit_with_result_evidence(
+    run_definition,
+    invocation,
+    definitions,
+    artifacts,
+    derivations,
+    orderings,
+    retentions,
+    durable_bindings,
+    manifest,
+    computation_receipt,
+    captured_run,
+    preview,
+    set_receipt_wire,
+    member_receipt_wires,
+    final_receipt_wire,
+    request,
+    attempt,
+    index_entry,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    prepared_capture=Some(prepared),
+  )
+  is Ok(_)
+}

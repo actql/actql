@@ -73952,19 +73952,19 @@
       "operations": [
         {
           "name": "admit_effectful_final_receipt_evidence",
-          "declaration": "admit_effectful_final_receipt_evidence ( run_definition : PublicationContract , computation_receipt : PublicationContract , captured_run : PublicationContract , preview : EffectPreviewIdentity , set_receipt_wire : String , member_receipt_wires : Array [ String ] , final_receipt_wire : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( PublicationContract , EffectSetApplyReceiptEvidence ) , EffectfulFinalReferenceIssue , ]"
+          "declaration": "admit_effectful_final_receipt_evidence ( run_definition : PublicationContract , computation_receipt : PublicationContract , captured_run : PublicationContract , preview : EffectPreviewIdentity , set_receipt_wire : String , member_receipt_wires : Array [ String ] , final_receipt_wire : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , prepared_capture ? : PreparedCapturedEffectRun ?"
         },
         {
           "name": "admit_effectful_final_receipt_references",
-          "declaration": "admit_effectful_final_receipt_references ( run_definition : PublicationContract , computation_receipt : PublicationContract , captured_run : PublicationContract , preview : EffectPreviewIdentity , set_receipt_wire : String , member_receipt_wires : Array [ String ] , final_receipt_wire : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ PublicationContract , EffectfulFinalReferenceIssue ]"
+          "declaration": "admit_effectful_final_receipt_references ( run_definition : PublicationContract , computation_receipt : PublicationContract , captured_run : PublicationContract , preview : EffectPreviewIdentity , set_receipt_wire : String , member_receipt_wires : Array [ String ] , final_receipt_wire : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , prepared_capture ? : PreparedCapturedEffectRun ?"
         },
         {
           "name": "admit_effectful_final_run_evidence_chain",
-          "declaration": "admit_effectful_final_run_evidence_chain ( run_definition : PublicationContract , invocation : PublicationContract , definitions : Array [ PublicationContract ] , artifacts : Array [ PublicationContract ] , manifest : PublicationContract , computation_receipt : PublicationContract , captured_run : PublicationContract , preview : EffectPreviewIdentity , set_receipt_wire : String , member_receipt_wires : Array [ String ] , final_receipt_wire : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ PublicationContract , EffectfulFinalChainIssue ]"
+          "declaration": "admit_effectful_final_run_evidence_chain ( run_definition : PublicationContract , invocation : PublicationContract , definitions : Array [ PublicationContract ] , artifacts : Array [ PublicationContract ] , manifest : PublicationContract , computation_receipt : PublicationContract , captured_run : PublicationContract , preview : EffectPreviewIdentity , set_receipt_wire : String , member_receipt_wires : Array [ String ] , final_receipt_wire : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , prepared_capture ? : PreparedCapturedEffectRun ?"
         },
         {
           "name": "admit_effectful_final_run_evidence_with_outcomes",
-          "declaration": "admit_effectful_final_run_evidence_with_outcomes ( run_definition : PublicationContract , invocation : PublicationContract , definitions : Array [ PublicationContract ] , artifacts : Array [ PublicationContract ] , manifest : PublicationContract , computation_receipt : PublicationContract , captured_run : PublicationContract , preview : EffectPreviewIdentity , set_receipt_wire : String , member_receipt_wires : Array [ String ] , final_receipt_wire : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( PublicationContract , EffectSetApplyReceiptEvidence ) , EffectfulFinalChainIssue , ]"
+          "declaration": "admit_effectful_final_run_evidence_with_outcomes ( run_definition : PublicationContract , invocation : PublicationContract , definitions : Array [ PublicationContract ] , artifacts : Array [ PublicationContract ] , manifest : PublicationContract , computation_receipt : PublicationContract , captured_run : PublicationContract , preview : EffectPreviewIdentity , set_receipt_wire : String , member_receipt_wires : Array [ String ] , final_receipt_wire : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , prepared_capture ? : PreparedCapturedEffectRun ?"
         },
         {
           "name": "admit_retained_effectful_final_run_evidence",
@@ -73992,15 +73992,15 @@
         },
         {
           "name": "issue_effectful_final_run_receipt",
-          "declaration": "issue_effectful_final_run_receipt ( run_definition : PublicationContract , computation_receipt : PublicationContract , captured_run : PublicationContract , preview : EffectPreviewIdentity , set_receipt_wire : String , member_receipt_wires : Array [ String ] , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ PublicationContract , EffectfulFinalReceiptIssuanceIssue ]"
+          "declaration": "issue_effectful_final_run_receipt ( run_definition : PublicationContract , computation_receipt : PublicationContract , captured_run : PublicationContract , preview : EffectPreviewIdentity , set_receipt_wire : String , member_receipt_wires : Array [ String ] , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , prepared_capture ? : PreparedCapturedEffectRun ?"
         },
         {
           "name": "validate_effectful_publication_commit",
-          "declaration": "validate_effectful_publication_commit ( run_definition : PublicationContract , invocation : PublicationContract , definitions : Array [ PublicationContract ] , artifacts : Array [ PublicationContract ] , manifest : PublicationContract , computation_receipt : PublicationContract , captured_run : PublicationContract , preview : EffectPreviewIdentity , set_receipt_wire : String , member_receipt_wires : Array [ String ] , final_receipt_wire : String , request : PublicationContract , attempt : PublicationContract , index_entry : PublicationContract , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Unit , EffectfulPublicationCommitIssue ]"
+          "declaration": "validate_effectful_publication_commit ( run_definition : PublicationContract , invocation : PublicationContract , definitions : Array [ PublicationContract ] , artifacts : Array [ PublicationContract ] , manifest : PublicationContract , computation_receipt : PublicationContract , captured_run : PublicationContract , preview : EffectPreviewIdentity , set_receipt_wire : String , member_receipt_wires : Array [ String ] , final_receipt_wire : String , request : PublicationContract , attempt : PublicationContract , index_entry : PublicationContract , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , prepared_capture ? : PreparedCapturedEffectRun ?"
         },
         {
           "name": "validate_effectful_publication_commit_with_result_evidence",
-          "declaration": "validate_effectful_publication_commit_with_result_evidence ( run_definition : PublicationContract , invocation : PublicationContract , definitions : Array [ PublicationContract ] , artifacts : Array [ PublicationContract ] , derivations : Array [ PublicationContract ] , orderings : Array [ PublicationContract ] , retentions : Array [ PublicationContract ] , bindings : Array [ PublicationContract ] , manifest : PublicationContract , computation_receipt : PublicationContract , captured_run : PublicationContract , preview : EffectPreviewIdentity , set_receipt_wire : String , member_receipt_wires : Array [ String ] , final_receipt_wire : String , request : PublicationContract , attempt : PublicationContract , index_entry : PublicationContract , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Unit , EffectfulPublicationCommitIssue ]"
+          "declaration": "validate_effectful_publication_commit_with_result_evidence ( run_definition : PublicationContract , invocation : PublicationContract , definitions : Array [ PublicationContract ] , artifacts : Array [ PublicationContract ] , derivations : Array [ PublicationContract ] , orderings : Array [ PublicationContract ] , retentions : Array [ PublicationContract ] , bindings : Array [ PublicationContract ] , manifest : PublicationContract , computation_receipt : PublicationContract , captured_run : PublicationContract , preview : EffectPreviewIdentity , set_receipt_wire : String , member_receipt_wires : Array [ String ] , final_receipt_wire : String , request : PublicationContract , attempt : PublicationContract , index_entry : PublicationContract , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , prepared_capture ? : PreparedCapturedEffectRun ?"
         },
         {
           "name": "validate_retained_effectful_publication_commit",
@@ -74020,6 +74020,7 @@
             "admit_effectful_final_run_evidence_chain",
             "admit_effectful_final_run_evidence_with_outcomes",
             "admit_retained_effectful_final_run_evidence",
+            "effectful_final_run_evidence_failed_state",
             "effectful_final_run_evidence_matches_definition",
             "effectful_final_run_evidence_outcomes",
             "effectful_final_run_evidence_receipt",
@@ -74027,8 +74028,7 @@
             "issue_effectful_final_run_receipt",
             "validate_effectful_publication_commit",
             "validate_effectful_publication_commit_with_result_evidence",
-            "validate_retained_effectful_publication_commit",
-            "effectful_final_run_evidence_failed_state"
+            "validate_retained_effectful_publication_commit"
           ],
           "exports": [],
           "attributes": {

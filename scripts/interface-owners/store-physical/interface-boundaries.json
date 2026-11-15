@@ -9038,6 +9038,7 @@
             "receipts",
             "privateBinding",
             "effectSources",
+            "recoveryResources",
             "readOriginal",
             "retainedIndex"
           ],

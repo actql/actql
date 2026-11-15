@@ -6512,11 +6512,19 @@ function publicationControl(moon) {
       if (ownedPreview === undefined) {
         throw new TypeError('Foreign Effect computation Preview');
       }
-      return inspect(checked(moon.strategyIssueEffectfulFinalRunReceipt(
+      const prepared = recoveredEffectCaptures.get(chain.capturedRun);
+      return inspect(checked(prepared === undefined ? moon.strategyIssueEffectfulFinalRunReceipt(
         token(chain.runDefinition), token(chain.invocation),
         chain.definitions.map(token), chain.artifacts.map(token),
         token(chain.manifest), token(chain.computationReceipt),
         token(chain.capturedRun), ownedPreview, receipts.setWire,
+        receipts.memberWires, limits.maxWireBytes, limits.maxNodes,
+        limits.maxDepth,
+      ) : moon.clientProgramIssuePreparedEffectfulFinalRunReceipt(
+        token(chain.runDefinition), token(chain.invocation),
+        chain.definitions.map(token), chain.artifacts.map(token),
+        token(chain.manifest), token(chain.computationReceipt),
+        token(chain.capturedRun), prepared, ownedPreview, receipts.setWire,
         receipts.memberWires, limits.maxWireBytes, limits.maxNodes,
         limits.maxDepth,
       )), limits);
@@ -7087,13 +7095,24 @@ function publicationControl(moon) {
       if (ownedPreview === undefined) {
         throw new TypeError('Foreign Effect computation Preview');
       }
-      return moon.strategyEffectfulPublicationCommitValid(
+      const prepared = recoveredEffectCaptures.get(chain.capturedRun);
+      return prepared === undefined ? moon.strategyEffectfulPublicationCommitValid(
         token(chain.runDefinition), token(chain.invocation),
         chain.definitions.map(token), chain.artifacts.map(token),
         chain.derivations.map(token), chain.orderings.map(token),
         chain.retentions.map(token), chain.durableBindings.map(token),
         token(chain.manifest), token(chain.computationReceipt),
         token(chain.capturedRun), ownedPreview, receipts.setWire,
+        receipts.memberWires, receipts.finalWire, token(request),
+        token(attempt), token(indexEntry), limits.maxWireBytes,
+        limits.maxNodes, limits.maxDepth,
+      ) : moon.clientProgramPreparedEffectfulPublicationCommitValid(
+        token(chain.runDefinition), token(chain.invocation),
+        chain.definitions.map(token), chain.artifacts.map(token),
+        chain.derivations.map(token), chain.orderings.map(token),
+        chain.retentions.map(token), chain.durableBindings.map(token),
+        token(chain.manifest), token(chain.computationReceipt),
+        token(chain.capturedRun), prepared, ownedPreview, receipts.setWire,
         receipts.memberWires, receipts.finalWire, token(request),
         token(attempt), token(indexEntry), limits.maxWireBytes,
         limits.maxNodes, limits.maxDepth,

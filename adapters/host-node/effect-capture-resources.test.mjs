@@ -1,3 +1,4 @@
+import {constructEffectfulPublication} from '../host-common/run-publication.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import resources from './ordinary-node-resource-runtime.cjs';
@@ -445,4 +446,37 @@ test('cold admission failure preserves primary and unknown physical cleanup neve
   assert.throws(()=>view.admitCapturedRun('original captured'),e=>e===primary);view.finish(true,primary);
   assert.equal(await view.close(),false);assert.equal(f.events.includes('abort'),false);
   assert.equal(f.events.includes('cold-retire-data'),false);assert.equal(f.retired,0);
+});
+
+
+test('final publication validator uses the same captured Read, exact receiver and original argument inventory', async () => {
+  const f = fixture({live:true}), view = f.open();
+  view.begin(); view.reserve(123); view.reserveDecoded('{"original":true}');
+  assert.strictEqual(view.admitCapturedRun(f.captured.wire), f.captured);
+  view.finish(false);
+  const receiver = {}, args = [{}, {}, {}, {}, {}, {}, {}], result = {};
+  const before = f.events.length;
+  assert.strictEqual(constructEffectfulPublication(view, f.captured, receiver, function (...actual) {
+    assert.strictEqual(this, receiver); assert.deepEqual(actual, args);
+    actual.forEach((value, index) => assert.strictEqual(value, args[index]));
+    assert.equal(view.status().busy, true);
+    return result;
+  }, args), result);
+  assert.deepEqual(f.events.slice(before), ['live-begin', 'live-complete']);
+  assert.throws(() => constructEffectfulPublication(view, {...f.captured}, receiver,
+    () => assert.fail('Foreign capture cannot validate'), args), {code:'EffectCaptureResourceUnavailable'});
+  assert.equal(await view.close(), true);
+  assert.throws(() => constructEffectfulPublication(view, f.captured, receiver,
+    () => assert.fail('Retired Read cannot validate'), args), {code:'EffectCaptureResourceUnavailable'});
+});
+test('final publication funding refusal keeps the original primary before validator work', async () => {
+  const primary = Object.freeze(new Error('current lost')); let armed = false;
+  const f = fixture({live:true, begin() {if (armed) throw primary;}}), view = f.open();
+  view.begin(); view.reserve(123); view.reserveDecoded('{"original":true}');
+  assert.strictEqual(view.admitCapturedRun(f.captured.wire), f.captured);
+  view.finish(false); armed = true;
+  assert.throws(() => constructEffectfulPublication(view, f.captured, {},
+    () => assert.fail('No validation before funding'), []), error => error === primary);
+  assert.equal(view.status().busy, false);
+  assert.equal(await view.close(), true);
 });

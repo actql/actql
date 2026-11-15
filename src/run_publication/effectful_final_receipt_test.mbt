@@ -1350,6 +1350,36 @@ test "Effectful publication index binds the final Receipt, not computation" {
     )
     is Ok(_),
   )
+  let prepared = prepare_recovered_captured_effect_run(
+    captured,
+    65536,
+    4096,
+    32,
+    _ => true,
+  ).unwrap()
+  assert_true(
+    validate_effectful_publication_commit(
+      chain.run,
+      chain.invocation,
+      [chain.definition],
+      [chain.artifact],
+      chain.manifest,
+      chain.receipt,
+      captured,
+      preview,
+      set_wire,
+      member_wires,
+      final_wire,
+      request,
+      attempt,
+      index,
+      final_wire.length(),
+      4096,
+      32,
+      prepared_capture=Some(prepared),
+    )
+    is Ok(_),
+  )
   let wrong_index = issue_public_index_entry(
     chain.run,
     chain.invocation,
@@ -1383,6 +1413,29 @@ test "Effectful publication index binds the final Receipt, not computation" {
       65536,
       4096,
       32,
+    )
+    is Err(Index(CommitReferenceMismatch("index.run_receipt_cid"))),
+  )
+  assert_true(
+    validate_effectful_publication_commit(
+      chain.run,
+      chain.invocation,
+      [chain.definition],
+      [chain.artifact],
+      chain.manifest,
+      chain.receipt,
+      captured,
+      preview,
+      set_wire,
+      member_wires,
+      final_wire,
+      request,
+      attempt,
+      wrong_index,
+      final_wire.length(),
+      4096,
+      32,
+      prepared_capture=Some(prepared),
     )
     is Err(Index(CommitReferenceMismatch("index.run_receipt_cid"))),
   )
@@ -2417,4 +2470,114 @@ test "retained Effectful commit loans the existing observed state protocol and r
     owner.begin_observed_commit(view, other, attempt, index) is Err(_),
   )
   owner.release_view(view).unwrap()
+}
+
+///|
+test "final Receipt codec extent is independent of its already captured computation context" {
+  let chain = captured_run_test_chain()
+  let preview = final_test_preview(chain)
+  let captured = final_test_captured(chain)
+  let (set_wire, members, set_cid) = final_test_receipts(preview)
+  let final_wire = final_test_receipt_wire(
+    chain.receipt,
+    preview,
+    set_cid,
+    captured,
+  )
+  let context = @json.object_field(
+    captured_test_value(publication_contract_json(captured)),
+    "effect_context",
+  ).unwrap()
+  let context_wire = captured_test_wire(context)
+  let receipt_bytes = final_wire.length()
+  assert_true(context_wire.length() > receipt_bytes)
+  assert_true(
+    issue_effectful_final_run_receipt(
+      chain.run,
+      chain.receipt,
+      captured,
+      preview,
+      set_wire,
+      members,
+      receipt_bytes,
+      4096,
+      32,
+    )
+    is Err(References(ForeignEffectContext)),
+  )
+  let prepared = prepare_recovered_captured_effect_run(
+    captured,
+    65536,
+    4096,
+    32,
+    _ => true,
+  ).unwrap()
+  let issued = issue_effectful_final_run_receipt(
+    chain.run,
+    chain.receipt,
+    captured,
+    preview,
+    set_wire,
+    members,
+    receipt_bytes,
+    4096,
+    32,
+    prepared_capture=Some(prepared),
+  ).unwrap()
+  assert_eq(publication_contract_json(issued), final_wire)
+  assert_true(
+    admit_effectful_final_run_evidence_chain(
+      chain.run,
+      chain.invocation,
+      [chain.definition],
+      [chain.artifact],
+      chain.manifest,
+      chain.receipt,
+      captured,
+      preview,
+      set_wire,
+      members,
+      final_wire,
+      receipt_bytes,
+      4096,
+      32,
+      prepared_capture=Some(prepared),
+    )
+    is Ok(_),
+  )
+  let equal_body_foreign = final_test_captured(chain)
+  assert_eq(
+    publication_contract_json(equal_body_foreign),
+    publication_contract_json(captured),
+  )
+  assert_true(
+    issue_effectful_final_run_receipt(
+      chain.run,
+      chain.receipt,
+      equal_body_foreign,
+      preview,
+      set_wire,
+      members,
+      receipt_bytes,
+      4096,
+      32,
+      prepared_capture=Some(prepared),
+    )
+    is Err(References(ForeignComputation)),
+  )
+  assert_true(
+    issue_effectful_final_run_receipt(
+      chain.run,
+      chain.receipt,
+      captured,
+      preview,
+      set_wire,
+      members,
+      receipt_bytes - 1,
+      4096,
+      32,
+      prepared_capture=Some(prepared),
+    )
+    is Err(References(FinalReceipt(_))),
+  )
 }

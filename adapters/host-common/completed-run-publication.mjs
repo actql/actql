@@ -1337,7 +1337,7 @@ async function recoverCompletedEffectfulPlaintext(store, control, contractLimits
   completedEffectfulOwners.set(computation, Object.freeze({
     execution: null, store, storedResults, control, preview,
     runDefinition: admittedRun, invocation, captureHolding,
-    effectSourceHoldings: Object.freeze(sourceHoldings),
+    effectSourceHoldings: Object.freeze(sourceHoldings), recoveryResources,
   }));
   if (recoveryResources !== undefined) {
     recoveryResources.retainCleanup(async () => {
@@ -1541,10 +1541,11 @@ export async function publishCompletedEffectfulRun(options) {
   let publication;
   try {
     await privateOwner.commit();
-    publication = await publishEffectfulRun({
-      store, control, ...inventory, ledger, issuedSet,
-      request, attempt, limits: contractLimits, now, signal,
-    });
+    const publicationOptions = {store, control, ...inventory, ledger, issuedSet,
+      request, attempt, limits: contractLimits, now, signal};
+    const resources = completedEffectfulOwners.get(computation).recoveryResources;
+    if (resources !== undefined) publicationOptions.recoveryResources = resources;
+    publication = await publishEffectfulRun(publicationOptions);
   } catch (error) {
     // Preserve the exact original, including any same-Store cleanup receiver,
     // before an outer caller can attempt interrupted Effect completion.

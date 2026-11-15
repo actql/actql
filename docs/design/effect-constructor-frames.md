@@ -92,6 +92,13 @@ before constructing evidence; original
 row identities, durable heads, current authority and terminal outcomes remain
 fully checked. Empty members retain their existing codec path.
 
+Cold final publication re-enters its original captured Read for the synchronous
+final-Receipt and commit validators. Its exact typed captured Run supplies the
+complete context extent; member, Set and final Receipt codecs retain their
+separate original limits. The completed owner lends that same Read through
+publication and Store inspection, then severs it at the original cleanup.
+No new owner, permission cache, or asynchronous I/O scope is introduced.
+
 The captured row-stage constructor freezes only the three structural envelopes
 it newly creates for this inventory: the outer member Array, each member record
 and each claims Array. They are final DATA before the original captured-input

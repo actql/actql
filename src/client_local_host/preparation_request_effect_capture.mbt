@@ -116,8 +116,13 @@ fn request_effect_capture_recovery_capacity(
       // and one Reflect.apply Array/backing (2H2R).
       // Fund these before the Read view escapes; no later callback borrows
       // spare decode workspace for these still-live fixed control cells.
-      record_headers: work.record_headers + 12L,
-      reference_slots: work.reference_slots + 23L,
+      // Final publication borrows this SAME Read through its completed owner,
+      // publication options, private preparation and current Store call (4R).
+      // Its synchronous call carrier has one two-reference record plus an
+      // argument Array/backing with at most seven references (3H9R). These
+      // sequential carriers remain separate from all returned receipt trees.
+      record_headers: work.record_headers + 15L,
+      reference_slots: work.reference_slots + 36L,
       // The same Read distinguishes its prepared-token retirement from the
       // ordinary admitted capture's alias release with one retained Bool.
       scalar_words: work.scalar_words + 13L,

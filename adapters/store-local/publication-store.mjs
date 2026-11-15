@@ -1,3 +1,4 @@
+import {constructEffectfulPublication} from '../host-common/run-publication.mjs';
 // Durable local publication storage. Prepared objects are content-addressed
 // but remain invisible to ordinary Result lookup until an authority-scoped
 // public index entry is installed with an exclusive atomic link.
@@ -6377,7 +6378,7 @@ async function openOriginalLocalPublicationStore(
   // chain; the Store confirms its public bodies and private physical holdings.
   // A caller cannot use this result as an apply or commit permit.
   const inspectEffectfulStoredEvidence = async ({index, chain, preview,
-    receipts, privateBinding, effectSources},
+    receipts, privateBinding, effectSources, recoveryResources},
     readOriginal = (cid, includeNative) => readSemanticOriginal(cid, includeNative), retainedIndex) => {
     active();
     if (typeof contractControl.effectfulCommitValid !== 'function' ||
@@ -6440,10 +6441,11 @@ async function openOriginalLocalPublicationStore(
         fail('EffectfulCommitEvidenceMismatch');
       }
     }
-    if (contractControl.effectfulCommitValid(
-      chain, preview, receipts, request, attempt, admittedIndex,
-      contractLimits,
-    ) !== true) {
+    const validCommit = recoveryResources === undefined
+      ? contractControl.effectfulCommitValid(chain, preview, receipts, request, attempt, admittedIndex, contractLimits)
+      : constructEffectfulPublication(recoveryResources, chain.capturedRun, contractControl,
+        contractControl.effectfulCommitValid, [chain, preview, receipts, request, attempt, admittedIndex, contractLimits]);
+    if (validCommit !== true) {
       fail('InvalidEffectfulCommitChain');
     }
     const expectedPrivate = contractControl.effectPrivateEvidenceBinding(
@@ -6864,10 +6866,9 @@ async function openOriginalLocalPublicationStore(
   };
 
   const commitEffectfulIndex = (preparation, requiredObjectCids) => {
-    if (!exactKeys(preparation, [
-      'index', 'chain', 'preview', 'receipts', 'privateBinding',
-      'effectSources',
-    ]) || typeof preparation.index?.wire !== 'string') {
+    const keys = ['index', 'chain', 'preview', 'receipts', 'privateBinding', 'effectSources'];
+    if (preparation != null && Object.hasOwn(preparation, 'recoveryResources')) keys.push('recoveryResources');
+    if (!exactKeys(preparation, keys) || typeof preparation.index?.wire !== 'string') {
       fail('InvalidEffectfulStoredEvidence');
     }
     return withSemanticCommit(() => commitIndexInternal(

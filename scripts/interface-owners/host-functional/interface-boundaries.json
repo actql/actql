@@ -12854,6 +12854,7 @@
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
         "RunPublicationError",
+        "constructEffectfulPublication",
         "publishEffectFreeRun",
         "publishEffectfulRun"
       ],
@@ -12920,6 +12921,17 @@
           "name": "commitEvidence",
           "parameters": [
             "evidence"
+          ],
+          "async": false
+        },
+        {
+          "name": "constructEffectfulPublication",
+          "parameters": [
+            "resources",
+            "captured",
+            "receiver",
+            "method",
+            "args"
           ],
           "async": false
         },
@@ -12998,6 +13010,13 @@
             "signal",
             "now",
             "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "invokeEffectfulPublication",
+          "parameters": [
+            "original"
           ],
           "async": false
         },
@@ -13281,6 +13300,7 @@
             "capturedComputationLifetime/init:retire/init:retire",
             "cleanupState",
             "commitEvidence",
+            "constructEffectfulPublication",
             "contractShape/contractShape",
             "exactKeys/exactKeys",
             "fail/fail",
@@ -13289,6 +13309,7 @@
             "finishSupersededAttempt",
             "indexKey",
             "initialPublicationStates",
+            "invokeEffectfulPublication",
             "lookupOriginalCommit",
             "member/member",
             "persistContracts",
@@ -13327,6 +13348,7 @@
           ],
           "exports": [
             "RunPublicationError",
+            "constructEffectfulPublication",
             "publishEffectFreeRun",
             "publishEffectfulRun"
           ],
@@ -29075,7 +29097,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -29238,7 +29260,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -29870,7 +29892,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -129202,7 +129224,7 @@
       "sha256": "0f21a15f4e54ee8d1535938be8ea3e9518bfe52745f976d2aa29cc6d366bcf8c",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -130427,7 +130449,7 @@
       "sha256": "a986599d7066f62edb2f8a22b90f718bce55a0433fddcc98e4100f3b8b6203a6",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "fundedEffectModelGroupCount",
@@ -131729,7 +131751,7 @@
       "sha256": "2e9af9a7b14412e5530980737467614bf9c89f0f256a7560b83709ab8b8454e3",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledPublishedSourceInitialization",
@@ -139178,7 +139200,7 @@
       "unresolvedSyntax": [],
       "role": "common-semantics",
       "responsibilityFacet": "primary",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -139576,7 +139598,7 @@
       "unresolvedSyntax": [],
       "role": "common-semantics",
       "responsibilityFacet": "primary",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -140307,7 +140329,7 @@
       "unresolvedSyntax": [],
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
