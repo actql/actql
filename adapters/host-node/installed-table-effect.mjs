@@ -1,4 +1,5 @@
 import {installedEffectDependencyOriginal} from '../host-common/installed-effect-dependency-original.mjs';
+import {prepareInstalledEffectResultProgress} from './effect-result-work.mjs';
 // Whole-Relation Table projections for the existing installed Effect Site.
 // The common Run, Checkpoint, capture, Ledger, apply and publication owners
 // remain authoritative. A Table member is one operation, including zero rows.
@@ -366,9 +367,12 @@ export async function createInstalledTableEffect({moon, environmentWire, sourceI
       compiledPlan: checked(moon.strategyPublicationAdmit('compiled_plan',
         moon.clientProgramEffectCompilationCompiledPlanWire(compilation),
         plan.contractLimits.maxWireBytes, plan.contractLimits.maxNodes, plan.contractLimits.maxDepth))};
+    const resultProgress = managedEffect === undefined ? undefined
+      : prepareInstalledEffectResultProgress(managedEffect, checkedHost);
     const storedResults = await storeCompletedRunResultSet({execution, store, control,
       runDefinition: plan.runDefinition, invocation: plan.invocation, results: plan.results,
-      outputLimits: plan.outputLimits, contractLimits: plan.contractLimits});
+      outputLimits: plan.outputLimits, contractLimits: plan.contractLimits,
+      signal, resultProgress});
     const owner = cleanupOwner();
     let inputs, sources, releasedInputs = false;
     const releaseInputs = () => {

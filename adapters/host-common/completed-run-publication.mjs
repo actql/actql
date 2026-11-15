@@ -273,6 +273,7 @@ export async function releasePreparedResults(exported, primary, control) {
 async function exportCompletedRunResultSet({
   execution, store, control, runDefinition, invocation, results,
   outputLimits, contractLimits, signal,
+  resultProgress,
 }, exported, publicationResource) {
   validateExecution(execution);
   if (!Array.isArray(results) ||
@@ -297,6 +298,7 @@ async function exportCompletedRunResultSet({
       retention: result.retention,
       evidenceContext: result.evidenceContext,
       transformation: result.transformation,
+      resultProgress,
     }, signal, publicationResource);
     const expected = execution.publicationInventory.occurrences[index];
     if (stored?.occurrence?.name !== expected.name ||

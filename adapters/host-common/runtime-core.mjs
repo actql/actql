@@ -7606,13 +7606,16 @@ function publicationControl(moon) {
 }
 
 function outputExportControl(moon, publications) {
-  async function finishTransformation(preparation, signal) {
+  async function finishTransformation(preparation, signal, resultProgress) {
     let finished = false;
     try {
       while (true) {
         signal?.throwIfAborted();
-        if (checked(moon.strategyHostResultTransformationAdvance(
-          preparation, 256))) break;
+        const ready = resultProgress === undefined
+          ? checked(moon.strategyHostResultTransformationAdvance(preparation, 256))
+          : resultProgress(preparation, 256);
+        if (typeof ready !== 'boolean') throw new TypeError('Invalid Result transformation progress');
+        if (ready) break;
         await new Promise(resolve => setTimeout(resolve, 0));
       }
       signal?.throwIfAborted();
@@ -7675,7 +7678,7 @@ function outputExportControl(moon, publications) {
         limits.maxBatchBytes,
       ));
     },
-    beginResult(host, result, limits, convertedOutput, selection, signal) {
+    beginResult(host, result, limits, convertedOutput, selection, signal, resultProgress) {
       if (!Number.isSafeInteger(result) || result < 0 ||
           !validResultOutputLimits(limits)) {
         throw new TypeError('Invalid Result output export request');
@@ -7709,7 +7712,7 @@ function outputExportControl(moon, publications) {
         convertedOutput,
         selection,
       ));
-      return finishTransformation(value, signal);
+      return finishTransformation(value, signal, resultProgress);
     },
     beginManagedResultImport(host, result, output, material, limits) {
       if (!Number.isSafeInteger(result) || result < 0 || output == null ||
@@ -7758,17 +7761,17 @@ function outputExportControl(moon, publications) {
         limits.maxValueTextBytes,
       ));
     },
-    finishManagedResultImport(value, signal) {
+    finishManagedResultImport(value, signal, resultProgress) {
       signal?.throwIfAborted();
       const preparation = checked(
         moon.strategyHostManagedResultTransformationBegin(value, undefined));
-      return finishTransformation(preparation, signal);
+      return finishTransformation(preparation, signal, resultProgress);
     },
-    async transformManagedResultImport(value, selection, signal) {
+    async transformManagedResultImport(value, selection, signal, resultProgress) {
       signal?.throwIfAborted();
       const preparation = checked(
         moon.strategyHostManagedResultTransformationBegin(value, selection));
-      return finishTransformation(preparation, signal);
+      return finishTransformation(preparation, signal, resultProgress);
     },
     cancelManagedResultImport: moon.strategyHostManagedResultImportCancel,
     next: value => checked(moon.strategyHostOutputExportNext(value)),

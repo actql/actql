@@ -1,4 +1,5 @@
 import {installedEffectDependencyOriginal} from '../host-common/installed-effect-dependency-original.mjs';
+import {prepareInstalledEffectResultProgress} from './effect-result-work.mjs';
 import {prepareInstalledEffectOwnedPhysicalChild} from './installed-effect-owned-operation.mjs';
 // The standard Host's provider-neutral installed Effect for connectors whose
 // writes change one provider object per row through a checked execution
@@ -3038,10 +3039,13 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       memberDispatch(runInvocationCid, member));
     const requestScope = moon.clientProgramEffectRequestScope(prepared,
       identity);
+    const resultProgress = facts.managedEffect === undefined ? undefined
+      : prepareInstalledEffectResultProgress(facts.managedEffect, checkedHost);
     const storedResults = await storeCompletedRunResultSet({execution,
       store, control, runDefinition: plan.runDefinition,
       invocation: plan.invocation, results: plan.results,
-      outputLimits: plan.outputLimits, contractLimits: plan.contractLimits});
+      outputLimits: plan.outputLimits, contractLimits: plan.contractLimits,
+      signal, resultProgress});
     let sourceSet;
     let releaseInputs;
     let requestChildren, finishCapture;

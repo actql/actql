@@ -42,9 +42,36 @@ function fixture({advance, finish = () => ok(exported), unselected = false} = {}
       assert.fail('no fallback to synchronous/unselected export');
     },
   }).outputExportControl;
-  return {control, input, selection, calls};
+  return {control, input, selection, preparation, calls};
 }
 const exported = {};
+
+for (const managed of [false, true]) {
+  test(`owned ${managed ? 'managed' : 'cell-backed'} Result uses its original metered poll without fallback`, async () => {
+    const f = fixture();
+    let polls = 0;
+    const progress = (actual, quantum) => {
+      assert.equal(actual, f.preparation);
+      assert.equal(quantum, 256);
+      return ++polls === 2;
+    };
+    const result = managed
+      ? await f.control.transformManagedResultImport(f.input, f.selection, undefined, progress)
+      : await f.control.beginResult(f.input, 0, localOutputLimits, undefined,
+        f.selection, undefined, progress);
+    assert.equal(result, exported);
+    assert.equal(polls, 2);
+    assert.deepEqual(f.calls, {begin: 1, advance: 0, finish: 1, cancel: 0});
+  });
+}
+
+test('owned work failure cancels the same transformation and preserves the original cause', async () => {
+  const f = fixture();
+  const cause = new Error('actual metered refusal');
+  await assert.rejects(f.control.transformManagedResultImport(f.input, f.selection,
+    undefined, () => {throw cause;}), error => error === cause);
+  assert.deepEqual(f.calls, {begin: 1, advance: 0, finish: 0, cancel: 1});
+});
 
 test('cell-backed Result uses bounded selected transformation', async () => {
   const f = fixture();
