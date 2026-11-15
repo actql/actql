@@ -31,17 +31,25 @@ export function projectFileDependencyBoundary({ports = 2050, groups = 8} = {}) {
     serialized: {from: {stage: producer.id, result: 'rows'}}};
   for (let group = 0; group < groups; group++) {
     const id = `group${group}`;
+    const rankingId = `ranking${group}`;
     // The interface preimage names the input and producer, not the consumer
     // Unit. Distinct real input names keep all checked interfaces distinct.
     const inputs = Object.fromEntries(Array.from({length: groupSizes[group]}, (_, index) =>
       [`g${group}_i${index}`, {result: {stage: producer.id, result: 'rows'}}]));
     const first = `g${group}_i0`, expectedScore = groupSizes[group] / 2;
-    stages.push({id, inputs, from: first, steps: [
+    // The installed Vector provider owns the exact ranking occurrence. Its
+    // completed Result feeds the ordinary row provider in a separate Unit.
+    stages.push({id: rankingId, inputs, from: first, steps: [
       {merge_rankings: {with: Object.keys(inputs).slice(1), by: [], candidate: 'name',
         rank: 'row_count', k: 1, score_policy: {rrf: {rank_constant: 1,
           weights: Array.from({length: groupSizes[group]}, () => 1), rank_window: 1}}}, as: 'fused'},
-      {from: 'fused', filter: {eq: [{field: 'score'}, {literal: expectedScore}]}, as: 'complete'},
-      {from: 'complete', join: {with: first, kind: 'inner',
+    ], results: {rows: {from: 'fused', fields: ['name', 'score', 'rank']}}});
+    stages.push({id, inputs: {
+      ranked: {result: {stage: rankingId, result: 'rows'}},
+      attachment: {result: {stage: producer.id, result: 'rows'}},
+    }, from: 'ranked', steps: [
+      {filter: {eq: [{field: 'score'}, {literal: expectedScore}]}, as: 'complete'},
+      {from: 'complete', join: {with: 'attachment', kind: 'inner',
         on: [{left: 'name', right: 'name'}], max_output_rows: 1,
         select: {...Object.fromEntries(contentFields.map(field => [field, `right.${field}`])),
           score: 'left.score', rank: 'left.rank'}}, as: 'attached'},
@@ -77,7 +85,7 @@ export function projectFileDependencyBoundary({ports = 2050, groups = 8} = {}) {
       path: `dependency-${String(index).padStart(2, '0')}.jsonl`}));
   return Object.freeze({name: 'project-file-complete-dependency', format: 'json',
     source: JSON.stringify(program), program, groupSizes: Object.freeze(groupSizes),
-    imports: 1 + ports + groups, expectedDefinitions: 1, expectedWrites: groups,
+    imports: 1 + ports + 3 * groups, expectedDefinitions: 1, expectedWrites: groups,
     inputs: Object.freeze([Object.freeze({path, body})]),
     expectedRows: Object.freeze(expectedRows.map(Object.freeze)),
     expectedProducer: Object.freeze([Object.freeze({path, size_bytes: inputBytes})]),
