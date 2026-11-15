@@ -1192,6 +1192,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
               'clientProgramAdoptRequestEffectModelsPreparation',
               'clientProgramPrepareRequestEffectKeyedPlan',
               'clientProgramPrepareRequestEffectKeyedOriginal',
+              'clientProgramIssueRequestEffectPreparedOriginal',
               'clientProgramIssueRequestEffectRunMaterials',
               'clientProgramAdmitRequestEffectRunMaterialsWithCompilation']) {
               names.push(name);
@@ -1284,8 +1285,12 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         originalInputs: Object.freeze({environment, parameters: undefined,
           parametersCursor: state.parametersCursor})});
     },
-    issueEffectMaterials(prepared, request, allowed, definition, identity) {
+    issueEffectMaterials(prepared, request, allowed, definition, identity, compilation) {
       current();
+      if (compilation !== undefined) {
+        return constructEffectMaterials(prepared, request, 'clientProgramIssueRequestEffectPreparedOriginal',
+          [compilation]);
+      }
       return constructEffectMaterials(prepared, request, 'clientProgramIssueRequestEffectRunMaterials',
         [allowed, definition, identity ?? null]);
     },

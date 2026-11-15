@@ -288,9 +288,13 @@ let request_preparation_fixed_control_envelope : @execution.PreparationRepresent
   // Coheld return wrapper for the shared post-lowering default selection.
   // Original selected limits remain retained on the same Request.
   // HTTP controls3H/4R/7W and one original normalization reference1R coexist.
-  record_headers: 246L,
-  reference_slots: 442L,
-  scalar_words: 517L,
+  // The prepared-original issuer adds one captured Effect method before the
+  // Plan borrow: proxy1H/3R, its fixed pair Array/backing2H/2R/2W,
+  // three growing names/methods/result backings3R each, and the retained
+  // object's key/value2R. Fund that3H/16R/2W here before the JS inventory.
+  record_headers: 249L,
+  reference_slots: 458L,
+  scalar_words: 519L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }

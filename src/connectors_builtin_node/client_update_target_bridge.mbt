@@ -407,6 +407,32 @@ pub fn client_program_effect_target_selection_members_current(
 /// The ordinary installed Request funds its actual original projections before
 /// Core starts each writer. The bridge closes over original typed inputs;
 /// no caller-supplied policy or alternate resource owner enters the codec.
+#export_name("clientProgramIssueRequestEffectPreparedOriginal")
+pub fn client_program_issue_request_effect_prepared_original(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  compilation : @publication_host.ClientEffectCompilation,
+) -> Result[String, ClientRequestProgramModuleBridgeIssue] {
+  @client_local_host.construct_request_effect_materials(
+    parent,
+    input,
+    prepared,
+    codec_owner=Some(
+      @publication_host.client_effect_compilation_owner(compilation),
+    ),
+    before_body => {
+      @publication_host.issue_client_effect_prepared_original(
+        compilation,
+        before_body=Some(before_body),
+      )
+    },
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
 #export_name("clientProgramIssueRequestEffectRunMaterials")
 pub fn client_program_issue_request_effect_run_materials(
   parent : @client_local_host.ClientRequestPreparation[

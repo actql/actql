@@ -1167,6 +1167,12 @@ test('Effect materials use captured same-Request codec methods for issuance and 
   const environment = Object.freeze({body: 'same original environment'});
   const f = await originalEffectRequest({environment}), allowed = {}, definition = {}, compilation = {}, restored = {};
   const features = [false, true, true, true, true, false, false];
+  f.moon.clientProgramIssueRequestEffectPreparedOriginal = function(parent, input, prepared, originalCompilation) {
+    assert.strictEqual(this, f.moon); assert.strictEqual(parent, f.requestParent);
+    assert.strictEqual(input, f.receipt); assert.strictEqual(prepared, f.prepared);
+    assert.strictEqual(originalCompilation, compilation);
+    return ok('complete prepared original');
+  };
   f.moon.clientProgramIssueRequestEffectRunMaterials = function(parent, input, prepared, a, d, identity) {
     assert.strictEqual(this, f.moon); assert.strictEqual(parent, f.requestParent);
     assert.strictEqual(input, f.receipt); assert.strictEqual(prepared, f.prepared);
@@ -1188,6 +1194,12 @@ test('Effect materials use captured same-Request codec methods for issuance and 
   await f.view.fundedPreparation(f.sdkRequest, environment);
   f.moon.clientProgramIssueRequestEffectRunMaterials = f.moon.clientProgramAdmitRequestEffectRunMaterialsWithCompilation =
     () => assert.fail('Do not replace captured original codec methods');
+  f.moon.clientProgramIssueRequestEffectPreparedOriginal =
+    () => assert.fail('Do not replace the captured prepared-original codec');
+  assert.throws(() => f.view.issueEffectMaterials(f.prepared, {}, undefined, undefined, undefined, compilation),
+    {code: 'ForeignInstalledSourceProducer'});
+  assert.equal(f.view.issueEffectMaterials(f.prepared, f.sdkRequest, undefined, undefined, undefined, compilation),
+    'complete prepared original');
   assert.throws(() => f.view.issueEffectMaterials(f.prepared, {}, allowed, definition, f.identity),
     {code: 'ForeignInstalledSourceProducer'});
   assert.equal(f.view.issueEffectMaterials(f.prepared, f.sdkRequest, allowed, definition, f.identity), 'complete original');

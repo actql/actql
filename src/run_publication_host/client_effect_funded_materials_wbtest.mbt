@@ -52,6 +52,37 @@ fn funded_materials_large_environment() -> @checked.CheckEnvironment raise {
 }
 
 ///|
+test "funded prepared original preserves complete bytes and refuses before each projection" {
+  let (_, allowed, _, _) = target_selection_fixture()
+  let ordinary = issue_client_effect_prepared_original(allowed.compilation).unwrap()
+  let seen : Array[String] = []
+  let funded = issue_client_effect_prepared_original(
+    allowed.compilation,
+    before_body=Some(fn(purpose, bytes, nodes, depth) {
+      seen.push(purpose)
+      bytes > 0 && nodes > 0 && depth > 0
+    }),
+  ).unwrap()
+  assert_eq(funded, ordinary)
+  assert_eq(seen, ["program", "environment", "run_materials"])
+  for refused in ["program", "environment", "run_materials"] {
+    seen.clear()
+    assert_true(
+      issue_client_effect_prepared_original(
+        allowed.compilation,
+        before_body=Some(fn(purpose, _, _, _) {
+          seen.push(purpose)
+          purpose != refused
+        }),
+      )
+      is Err(Input(MaterialsConstructionRefused(reason))) &&
+      reason == refused,
+    )
+    assert_eq(seen[seen.length() - 1], refused)
+  }
+}
+
+///|
 test "funded material projection preserves exact small bytes and refuses before the next writer" {
   let (prepared, allowed, definition) = original_effect_materials_fixture()
   assert_true(

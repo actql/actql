@@ -80,7 +80,9 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
     const installations = current(selections);
     const compiled = control.admit('compiled_plan',
       moon.clientProgramEffectCompilationCompiledPlanWire(compilation), limits);
-    const original = {preparedWire: checked(moon.clientProgramIssueEffectPreparedOriginal(compilation)),
+    const original = {preparedWire: issueMaterials === undefined || reserveOriginal === undefined
+      ? checked(moon.clientProgramIssueEffectPreparedOriginal(compilation))
+      : issueMaterials({prepared, compilation}),
       compiledPlanCid: compiled.identity, installations: Object.freeze(installations)};
     reserveOriginal?.(prepared, original.preparedWire, original.installations);
     if (!updateTargetPreparedOriginalShape(original, moon)) fail();

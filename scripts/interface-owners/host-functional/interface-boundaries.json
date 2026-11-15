@@ -119799,7 +119799,8 @@
             "request",
             "allowed",
             "definition",
-            "identity"
+            "identity",
+            "compilation"
           ],
           "async": false
         },

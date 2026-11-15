@@ -2693,7 +2693,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     features: [textTimeEnabled, true, true, true, true, calendarArtifact !== undefined, false],
     limits: localContractLimits,
     issueMaterials: facts => preparation.issueManagedEffectMaterials(moon, facts.prepared,
-      facts.allowed, facts.definition, facts.identity),
+      facts.allowed, facts.definition, facts.identity, facts.compilation),
     admitMaterials: facts => preparation.admitManagedEffectMaterials(moon, facts.prepared,
       facts.wire, facts.runDefinitionCid, facts.compilation, facts.identity, facts.features)});
   const prepareSubmit = installNodeClientProgramPreparation({moon,
@@ -8105,7 +8105,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
         (parent, input, originalGraph, contracts) => control.prepareCheckedClientRequestSerializationCompilation(
           parent, input, originalGraph, contracts));
     },
-    issueManagedEffectMaterials(runtime, prepared, allowed, definition, identity) {
+    issueManagedEffectMaterials(runtime, prepared, allowed, definition, identity, compilation) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.issueEffectMaterials !== 'function') {
         throw clientOperationError('NodeManagedRunCompilationUnavailable');
@@ -8113,7 +8113,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
       (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
         : assertSourceManagedInstallationCurrent)(manager, originals);
       return manager.issueEffectMaterials(prepared,
-        originalSourceManagedHostRequest(originals, prepared), allowed, definition, identity);
+        originalSourceManagedHostRequest(originals, prepared), allowed, definition, identity, compilation);
     },
     admitManagedEffectMaterials(runtime, prepared, wire, runDefinitionCid, compilation, identity, features) {
       const manager = sourceManaged ?? computeManaged;
