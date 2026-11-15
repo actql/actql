@@ -2585,22 +2585,25 @@ export async function createInstalledRowSource({moon, declaration, commands,
     const recovery = Object.freeze({close: stop, cleanup, cleanupPending: () => !closed});
     try {
       const publicationInput = preparedEffect !== undefined;
+      // Generic content_ref Sources use their actual Store/Row capture, not a
+      // Native declared-JSON activation, raw-response Journal or page history.
+      const nativePublication = publicationInput && publication?.protocol !== 'generic-source';
       const publicationDepth = (managedPageLimits ?? pageLimits)?.maxDepth ?? 32;
       if (publicationInput) {
-        if (typeof publication?.initialize !== 'function' || typeof publication?.activate !== 'function' ||
-            typeof publication?.retainRawResponse !== 'function' || typeof publication?.adopt !== 'function' ||
-            typeof publication?.finishInput !== 'function') {
+        if (typeof publication?.initialize !== 'function' || typeof publication?.finishInput !== 'function' ||
+            nativePublication && (typeof publication?.activate !== 'function' ||
+              typeof publication?.retainRawResponse !== 'function' || typeof publication?.adopt !== 'function')) {
           fail('OriginalKeyedLookupPublicationUnavailable');
         }
         publication.initialize(lookup);
       }
       // Prepare each original request once, then dispatch those SAME originals.
       // No response or Model read can precede the closed typed key inventory.
-      for (let phase = 0; phase < (publicationInput ? 2 : 1); phase++) {
+      for (let phase = 0; phase < (nativePublication ? 2 : 1); phase++) {
         for (let row = 0; row < rows; row++) {
           signal?.throwIfAborted();
           let request;
-          if (publicationInput && phase === 1) {
+          if (nativePublication && phase === 1) {
             const originalRow = checked(moon.clientProgramKeyedLookupNextPlannedRow(lookup));
             request = checked(moon.clientProgramKeyedLookupPlannedRequest(lookup, originalRow));
           } else {
@@ -2618,7 +2621,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
             }
             preparation = undefined;
           }
-          if (publicationInput && phase === 0) {
+          if (nativePublication && phase === 0) {
             checked(moon.clientProgramKeyedLookupRequestPlanRetain(lookup, request));
             continue;
           }
@@ -2633,7 +2636,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
           try {
             acquired = await openKeyed({preparedProgram, preparedEffect,
               keyedContent, managedRun,
-              lookupPublication: publicationInput ? publication : undefined, lookupOriginal: lookup,
+              lookupPublication: nativePublication ? publication : undefined, lookupOriginal: lookup,
               keyedAcquisition, request, ledger, signal, preparedKeyed, sourceAccess: access,
               capturedResourcePath: async (verifyRead, activeSignal) => {
                 let locator;
@@ -2685,7 +2688,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
             await yieldEventLoop();
           }
         }
-        if (publicationInput && phase === 0) {
+        if (nativePublication && phase === 0) {
           checked(moon.clientProgramKeyedLookupRequestPlanFinish(lookup,
             limits.maxPageBytes, maxWork, publicationDepth));
         }

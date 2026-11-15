@@ -7,7 +7,7 @@ import {runtimeTupleFromFields} from '../host-common/compiler-binding.generated.
 // Explicit Core/physical ports exercise the actual installed adapter. They do
 // not supply a nominal Common admission or qualify an installed filesystem Run.
 const ok = value => ({$tag: 1, _0: value});
-async function fixture({failCurrent = false, failReader = false, transport, effect = false, failPlan = false, selectedRows} = {}) {
+async function fixture({failCurrent = false, failReader = false, transport, effect = false, generic = false, failGenericFinish = false, failPlan = false, selectedRows} = {}) {
   const preparedProgram = effect ? undefined : {}, preparedEffect = effect ? {} : undefined;
   const keyedAcquisition = {}, request = {}, declaration = {}, ledger = {}, managedRun = {};
   const duplicate = {}, originalRequests = [request, duplicate], lookup = {};
@@ -137,7 +137,7 @@ async function fixture({failCurrent = false, failReader = false, transport, effe
     environmentWire: '{}', connectorId: 'local', connectorRegistration: 'local', connectorRevision: 'local/0.1',
     bindingCid: 'sha256:' + 'c'.repeat(64), readOperation: 'read',
     site: {connection: 'local', issueReadGrant() {
-      if (effect) assert.equal(planReady, true, 'All original requests precede the first grant');
+      if (effect && !generic) assert.equal(planReady, true, 'All Native original requests precede the first grant');
       calls.push('grant'); return {};}, close() {}},
     authorization: {authorize: async () => ({action: 'dispatch'}), context: {contextCid: 'context'}},
     physicalTarget: () => ({root: 'original'}),
@@ -169,9 +169,11 @@ async function fixture({failCurrent = false, failReader = false, transport, effe
     }});
   const selected = await adapter.prepareKeyed({preparedProgram, preparedEffect, keyedAcquisition, requestIdentity: {}});
   const publication = {
+    ...(generic ? {protocol: 'generic-source'} : {}),
     initialize(value) {assert.strictEqual(value, lookup); calls.push('plan-start');},
     activate(value, selected) {
       assert.strictEqual(value, lookup); assert.strictEqual(selected, physicalRequest);
+      assert.equal(generic, false, 'Generic content_ref has no Native activation');
       calls.push('journal-activation'); return {activation, record:activationRecord};
     },
     async retainRawResponse(value, selected, attempt, bytes) {
@@ -186,7 +188,9 @@ async function fixture({failCurrent = false, failReader = false, transport, effe
     },
     finishInput(value) {
       assert.strictEqual(value, lookup); assert.equal(responseRetained, true);
-      calls.push('retain-original-right-body'); return {};
+      calls.push('retain-original-right-body');
+      if (failGenericFinish) throw planFailure;
+      return {};
     },
   };
   return {calls, publication, currentFailure, readerFailure, planFailure, get finished() {return finished;},
@@ -292,4 +296,29 @@ test('canonical Effect lookup borrows the original row selected by Core rather t
   assert.equal(f.calls.filter(name => name === 'journal-activation').length, 2);
   assert.equal(f.calls.filter(name => name === 'reuse-original-response').length, 0);
   await acquired.close();
+});
+
+
+test('generic Effect keyed capture retains the actual right body without Native transport history', async () => {
+  const f = await fixture({effect: true, generic: true});
+  const lookup = await f.openLookup();
+  assert.equal(f.calls.filter(value => value === 'grant').length, 1);
+  assert.equal(f.calls.filter(value => value === 'reuse-original-response').length, 1);
+  assert.equal(f.calls.filter(value => value === 'retain-original-right-body').length, 1);
+  for (const name of ['plan-retain', 'plan-finish', 'journal-activation', 'raw-store', 'journal-page']) {
+    assert.equal(f.calls.includes(name), false, name);
+  }
+  assert.equal(lookup.cleanupPending(), true);
+  await lookup.close();
+  assert.equal(lookup.cleanupPending(), false);
+});
+
+test('generic Effect keyed completion failure keeps its original error and closes actual children', async () => {
+  const f = await fixture({effect: true, generic: true, failGenericFinish: true});
+  await assert.rejects(f.openLookup, error => error.cause === f.planFailure || error === f.planFailure);
+  assert.equal(f.calls.filter(value => value === 'grant').length, 1);
+  assert.equal(f.calls.filter(value => value === 'retain-original-right-body').length, 1);
+  assert(f.calls.includes('row-close'));
+  assert(f.calls.includes('lookup-cleanup'));
+  assert.equal(f.calls.includes('journal-activation'), false);
 });
