@@ -11,6 +11,7 @@ import {fileURLToPath} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {nativeMockAcceptanceObservations} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {verifyNativeLocalCheckEnvironmentOriginal} from './test-native-local-source-result.mjs';
+import {nativeLauncherEnvelope} from './native-cli-mock-scenario.mjs';
 
 const executable=process.env.ACTQL_TEST_NATIVE_CLIENT_BINARY;
 assert(executable && process.env.ACTQL_TEST_NATIVE_CLIENT_LAUNCHER,
@@ -229,7 +230,10 @@ test('Native Local initial Read refuses an oversized Project and completes its f
     {ACTQL_NATIVE_TIMINGS:'1',ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS:'1'});
   assert.equal(result.status,1);assert.equal(result.stdout,'');
   assert.match(result.stderr,/ProjectConfigurationReadUnavailable/u);
-  const rows=result.stderr.trimEnd().split('\n').filter(line=>line.startsWith('ACTQL_NATIVE_'));
+  // The launcher owns its timing trailer; it is not a Native child event.
+  // Validate that envelope before checking the complete child diagnostics.
+  const child=nativeLauncherEnvelope(result.stderr,'required').native;
+  const rows=child.trimEnd().split('\n').filter(line=>line.startsWith('ACTQL_NATIVE_'));
   const groups=nativeMockAcceptanceObservations(rows.join('\n')+'\n');
   assert.equal(groups.length,1);
   const values=prefix=>rows.filter(line=>line.startsWith(prefix)).map(line=>JSON.parse(line.slice(prefix.length)));
