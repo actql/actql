@@ -10,6 +10,8 @@ import {userInfo} from 'node:os';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import * as sdk from '../../../../packages/sdk/index.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from '../../../host-node/embedded-local.mjs';
+import {effectBoundaryFailureData, effectCheckpointTerminalData} from
+  '../../../../scripts/fixtures/packed-infer-preparation-diagnostic.mjs';
 
 const [step, installationPath] = process.argv.slice(2);
 const installation = JSON.parse(readFileSync(installationPath, 'utf8'));
@@ -31,6 +33,7 @@ if (faultModule !== undefined) {
 }
 const secret = async () => 'test-only-secret';
 const diagnostics = [];
+let firstEffectFailure;
 const installed = {
   directory: installation.directory,
   sourceProfilePath: installation.sourceProfilePath,
@@ -39,6 +42,11 @@ const installed = {
   resolveEffectSecret: secret,
   authorization: {...installation.authorization,
     observe: (name, detail) => {
+      const failure = effectBoundaryFailureData(name, detail);
+      if (failure !== undefined && firstEffectFailure === undefined) {
+        firstEffectFailure = failure;
+        console.error(JSON.stringify(failure));
+      }
       const event = {pid: process.pid, name, code: detail?.code};
       diagnostics.push({name, code: detail?.code});
       // Test observations are separate from the Owner's durable receipts.
@@ -90,8 +98,17 @@ try {
       }
       throw error;
     }
-    await waitFor(async () => (await execution.status()).status ===
-      'waiting_checkpoint');
+    await waitFor(async () => {
+      const state = await execution.status();
+      const terminal = effectCheckpointTerminalData(state);
+      if (terminal !== undefined) {
+        const report = {...terminal, firstEffectFailure};
+        const failure = new Error('EmbeddedCheckpointTerminal: ' + JSON.stringify(report));
+        try {console.error('embedded Effect capture terminal ' + JSON.stringify(report));} catch {}
+        throw failure;
+      }
+      return state.status === 'waiting_checkpoint';
+    });
     writeFileSync(refPath, JSON.stringify(execution.ref), {flag: 'wx', mode: 0o600});
     console.log(JSON.stringify({held: true}));
   } else if (step === 'answer') {
