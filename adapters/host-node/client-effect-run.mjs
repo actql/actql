@@ -278,7 +278,7 @@ export function installNodeClientEffectRun({moon,
           const runDefinition = control.admit('run_definition',
             moon.strategyPublicationContractJson(definition), limits);
           const updateTargetRunOriginal = updateTargetOriginals?.captureRun({prepared,
-            allowed, definition, identity}, reserveOriginal);
+            allowed, definition, identity, compilation: compiled(), runDefinition}, reserveOriginal);
           // Selected UPDATE/STORE custody already contains this exact codec;
           // do not retain a second serialized copy. Other requested stops need
           // the same original materials before acceptance, not current config

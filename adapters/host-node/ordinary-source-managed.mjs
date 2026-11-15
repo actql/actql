@@ -375,7 +375,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     } finally {state.preparing = false;}
   }
   function constructEffectMaterials(prepared, request, method, args) {
-    current();
+    // Each private caller has just run its one original current fence.
     const producer = producerForRequest(request), state = producer?.preparation;
     if (state?.preparationFailed) throw state.preparationFailure;
     if (state === undefined || state.prepared !== prepared || state.compilationKind !== 'effectful' ||
@@ -1285,12 +1285,54 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           parametersCursor: state.parametersCursor})});
     },
     issueEffectMaterials(prepared, request, allowed, definition, identity) {
+      current();
       return constructEffectMaterials(prepared, request, 'clientProgramIssueRequestEffectRunMaterials',
         [allowed, definition, identity ?? null]);
     },
     admitEffectMaterials(prepared, request, wire, runDefinitionCid, compilation, identity, features) {
-      return constructEffectMaterials(prepared, request, 'clientProgramAdmitRequestEffectRunMaterialsWithCompilation',
-        [wire, runDefinitionCid, compilation, identity, ...features]);
+      current();
+      const run = runs.get(prepared), producer = run?.producer ?? producerForRequest(request);
+      const state = producer?.preparation;
+      if (state?.preparationFailed) throw state.preparationFailure;
+      if (state === undefined || state.prepared !== prepared ||
+          state.compilationKind !== 'effectful' || state.preparing || state.holder === undefined ||
+          state.effectBorrowMethods?.clientProgramEffectPreparationInputRead(state.holder) !== prepared ||
+          !Array.isArray(features) || types.isProxy(features) || features.length !== 7) fail('ForeignInstalledSourceProducer');
+      // Fixed scalar locals preserve the exact flags passed through callbacks
+      // without allocating the retained snapshot before its funded constructor.
+      const f0=features[0], f1=features[1], f2=features[2], f3=features[3],
+        f4=features[4], f5=features[5], f6=features[6], environment=state.context.environment;
+      if (typeof f0 !== 'boolean' || typeof f1 !== 'boolean' || typeof f2 !== 'boolean' ||
+          typeof f3 !== 'boolean' || typeof f4 !== 'boolean' || typeof f5 !== 'boolean' ||
+          typeof f6 !== 'boolean') fail('ForeignInstalledSourceProducer');
+      const retained = state.effectMaterials;
+      if (retained !== undefined) {
+        // Immutable codec DATA is not a cached Allow. The actual adopted
+        // owner/current fence still runs before each borrowed read.
+        if (state.adopting) {
+          retainedRunCurrent(run);
+          if (run.request !== request) fail('ForeignInstalledSourceProducer');
+        } else if (producerForRequest(request) !== producer) fail('ForeignInstalledSourceProducer');
+        if (retained.request !== request || retained.wire !== wire ||
+            retained.runDefinitionCid !== runDefinitionCid || retained.compilation !== compilation ||
+            retained.identity !== identity || retained.environment !== state.context.environment ||
+            state.effectMaterials !== retained) fail('ForeignInstalledSourceProducer');
+        if (f0 !== retained.features[0] || f1 !== retained.features[1] || f2 !== retained.features[2] ||
+            f3 !== retained.features[3] || f4 !== retained.features[4] || f5 !== retained.features[5] ||
+            f6 !== retained.features[6]) fail('ForeignInstalledSourceProducer');
+        return retained.value;
+      }
+      // A new inverse remains preparation-only; no parsing can enter through
+      // an adopted or retired Request, or recreate its compiler from DATA.
+      const value = constructEffectMaterials(prepared, request, 'clientProgramAdmitRequestEffectRunMaterialsWithCompilation',
+        [wire, runDefinitionCid, compilation, identity, f0, f1, f2, f3, f4, f5, f6]);
+      if (state.adopting || producer.preparation !== state || state.prepared !== prepared ||
+          state.context.environment !== environment) fail('ForeignInstalledSourceProducer');
+      // The funded codec control reserves this fixed record and seven flags
+      // before construction. Typed DATA retains its complete role inventory.
+      state.effectMaterials = Object.freeze({request, wire, runDefinitionCid, compilation, identity,
+        environment, features: Object.freeze([f0, f1, f2, f3, f4, f5, f6]), value});
+      return value;
     },
     reserveEffectOriginal(prepared, request, material, installations) {
       current();
@@ -1994,6 +2036,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           liveRuns.size + pendingRunRegistrations.size >= 4096 || operationPlan === null || typeof operationPlan !== 'object') {
         fail('ForeignInstalledSourceProducer');
       }
+      if (state.effectMaterials !== undefined && (state.effectMaterials.request !== request ||
+          state.effectMaterials.identity !== identity)) fail('ForeignInstalledSourceProducer');
       const moon = state.context.runtime, methods = state.effectBorrowMethods;
       if (methods.clientProgramEffectPreparationInputRead(state.holder) !== prepared) {
         fail('ForeignInstalledSourceProducer');
@@ -2052,6 +2096,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         if (!Object.hasOwn(fields[name] ?? {}, 'value') ||
             fields[name]?.value !== original) fail('ForeignInstalledSourceProducer');
       }
+      if (state.effectMaterials !== undefined && (state.effectMaterials.request !== request ||
+          state.effectMaterials.identity !== identity)) fail('ForeignInstalledSourceProducer');
       const methods = state.effectBorrowMethods;
       const quantityLimits = retainedRun.modelSelection?.quantityCapacity?.limits;
       const plural = Array.isArray(retainedRun.modelMembers);
@@ -2142,6 +2188,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       run.prepared = run.request = undefined;
       state.prepared = state.snapshot = state.snapshotDocument = state.parametersCursor = undefined;
       state.capturePlan = state.effectPlan = run.operationPlan = run.content = undefined;
+      state.effectMaterials = undefined;
       state.modelProviderBinding = state.modelSourceCoordinates = undefined;
       state.preparationFailure = state.originalCheckResult = state.projectOriginalCheck = undefined;
       state.preparationFailed = false;

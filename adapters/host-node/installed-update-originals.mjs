@@ -181,7 +181,7 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
       current(selections);
       return selections;
     },
-    captureRun({prepared, allowed, definition, identity}, reserveOriginal) {
+    captureRun({prepared, allowed, definition, identity, compilation, runDefinition}, reserveOriginal) {
       const selections = selectionsOf(prepared);
       if (selections === undefined) return undefined;
       if (!updateTargetSelectionMatchesRun(selections, prepared, definition)) fail();
@@ -191,6 +191,14 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
       const original = {materialsWire, installations: Object.freeze(current(selections))};
       reserveOriginal?.(prepared, original.materialsWire, original.installations);
       if (!updateTargetRunOriginalShape(original, undefined, moon)) fail();
+      if (admitMaterials !== undefined) {
+        // Move the one required wire-to-typed admission before adoption.
+        // The live Run later reuses this exact result and retains all of its
+        // independent current selection and installation checks.
+        if (compilation === undefined || runDefinition === undefined) fail();
+        const restored = restoreEffectMaterials(materialsWire, runDefinition, identity, compilation, prepared);
+        if (restored.prepared !== prepared || restored.compilation !== compilation) fail();
+      }
       return Object.freeze(original);
     },
     validateRun({prepared, compilation, evidence, runDefinition, identity}) {

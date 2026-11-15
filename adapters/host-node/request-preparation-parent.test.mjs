@@ -1114,8 +1114,8 @@ test('ordinary Effect Plan adopts the same Request input and typed compiler borr
     {code: 'ForeignInstalledSourceProducer'});
 });
 
-async function originalEffectRequest({completeFailure, adoptFailure, reserveFailure, environment} = {}) {
-  const f = await fixture({environment}), moon = f.context.runtime, sdkRequest = {}, prepared = {}, holder = {}, identity = {}, plan = {}, parent = {};
+async function originalEffectRequest({completeFailure, adoptFailure, reserveFailure, environment, validateRetained} = {}) {
+  const f = await fixture({environment, validateRetained}), moon = f.context.runtime, sdkRequest = {}, prepared = {}, holder = {}, identity = {}, plan = {}, parent = {};
   const receipt = f.view.beforeSourceSnapshot('program', input(), {}, connection);
   const body = f.view.captureSourceSnapshot(receipt, {kind: 'program', input: input()}, snapshotClientRequest);
   f.view.bindSourceSnapshot(receipt, body); f.view.bindSourceRequest(receipt, body, sdkRequest);
@@ -2368,4 +2368,71 @@ test('HTTP manager refuses missing Core ports copied receipts and changed curren
   allowed = true;
   f.view.finishSourceProducer(receipt, 'failed');
   assert.deepEqual(await f.view.close(), {pending: false});
+});
+
+test('Effect materials inverse is retained before adoption and borrowed only by the exact live owner', async () => {
+  let current=true, reenter=false;
+  const f=await originalEffectRequest({validateRetained(){if(!current)throw new Error('original-current');if(reenter){f.markRetiring();f.view.severPreparation(f.prepared,f.original);}}});
+  const compilation={}, value={}, flags=[false,true,true,true,true,false,false];
+  let calls=0;
+  f.moon.clientProgramAdmitRequestEffectRunMaterialsWithCompilation=function(){
+    assert.strictEqual(this,f.moon);calls++;return ok(value);
+  };
+  await f.view.fundedPreparation(f.sdkRequest,undefined);
+  const admit=(wire='original-materials',run='same-run',c=compilation,id=f.identity,features=flags,request=f.sdkRequest)=>
+    f.view.admitEffectMaterials(f.prepared,request,wire,run,c,id,features);
+  assert.strictEqual(admit(),value);
+  assert.equal(calls,1);
+  f.view.adoptEffectPreparation(f.prepared,f.sdkRequest,f.identity,f.plan);
+  f.view.finishSourceProducer(f.receipt,'returned');
+  f.moon.clientProgramAdmitRequestEffectRunMaterialsWithCompilation=()=>assert.fail('No post-adoption inverse');
+  assert.strictEqual(admit(),value);
+  for(const args of [
+    ['changed-materials'],['original-materials','other-run'],
+    ['original-materials','same-run',{}],['original-materials','same-run',compilation,{}],
+    ['original-materials','same-run',compilation,f.identity,[true,...flags.slice(1)]],
+    ['original-materials','same-run',compilation,f.identity,Array(7)],
+    ['original-materials','same-run',compilation,f.identity,[false,true,undefined,true,true,false,false]],
+    ['original-materials','same-run',compilation,f.identity,flags,{}],
+  ])assert.throws(()=>admit(...args),{code:'ForeignInstalledSourceProducer'});
+  assert.equal(calls,1);
+  current=false;assert.throws(()=>admit(),/original-current/);current=true;
+  assert.strictEqual(admit(),value);
+  reenter=true;
+  assert.throws(()=>admit(),{code:'ForeignInstalledSourceProducer'});
+  reenter=false;
+  assert.throws(()=>admit(),{code:'ForeignInstalledSourceProducer'});
+  assert.equal(calls,1);
+});
+
+test('an adopted Effect without retained materials cannot run a new inverse and mismatched Run adoption refuses', async () => {
+  for(const retain of [false,true]){
+    const f=await originalEffectRequest(),compilation={},flags=[false,true,true,true,true,false,false];let calls=0;
+    f.moon.clientProgramAdmitRequestEffectRunMaterialsWithCompilation=()=>{calls++;return ok({});};
+    await f.view.fundedPreparation(f.sdkRequest,undefined);
+    if(retain){
+      f.view.admitEffectMaterials(f.prepared,f.sdkRequest,'original-materials','same-run',compilation,f.identity,flags);
+      assert.throws(()=>f.view.adoptEffectPreparation(f.prepared,f.sdkRequest,{},f.plan),{code:'ForeignInstalledSourceProducer'});
+      assert.equal(calls,1);await f.failedCleanup();
+    }else{
+      f.view.adoptEffectPreparation(f.prepared,f.sdkRequest,f.identity,f.plan);
+      assert.throws(()=>f.view.admitEffectMaterials(f.prepared,f.sdkRequest,'original-materials','same-run',compilation,f.identity,flags),{code:'ForeignInstalledSourceProducer'});
+      assert.equal(calls,0);f.markRetiring();f.view.severPreparation(f.prepared,f.original);
+    }
+  }
+});
+
+test('Effect retained flags are the exact pre-callback inverse arguments, not a mutable later array', async () => {
+  const f=await originalEffectRequest(),c={},value={},original=[false,true,true,true,true,false,false],flags=original.slice();
+  let calls=0;
+  f.moon.clientProgramAdmitRequestEffectRunMaterialsWithCompilation=function(...args){
+    calls++;assert.deepEqual(args.slice(-8,-1),original);flags[0]=true;return ok(value);
+  };
+  await f.view.fundedPreparation(f.sdkRequest,undefined);
+  assert.strictEqual(f.view.admitEffectMaterials(f.prepared,f.sdkRequest,'wire','run',c,f.identity,flags),value);
+  f.view.adoptEffectPreparation(f.prepared,f.sdkRequest,f.identity,f.plan);
+  assert.throws(()=>f.view.admitEffectMaterials(f.prepared,f.sdkRequest,'wire','run',c,f.identity,flags),
+    {code:'ForeignInstalledSourceProducer'});
+  assert.strictEqual(f.view.admitEffectMaterials(f.prepared,f.sdkRequest,'wire','run',c,f.identity,original),value);
+  assert.equal(calls,1);f.markRetiring();f.view.severPreparation(f.prepared,f.original);
 });

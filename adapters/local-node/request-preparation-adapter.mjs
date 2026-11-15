@@ -216,6 +216,7 @@ export function cleanupRequestInput(state, retireInitialPreparation) {
       state.contentPreparation = undefined;
       state.contentPlan = state.contentCompilation = state.contentGraph = undefined;
     }
+    state.effectMaterials=undefined;
     state.prepared=state.parametersCursor=undefined;
     // A failed family selection handoff can retain its original inventory
     // borrower as well. Core consumes each holder before attempting owner

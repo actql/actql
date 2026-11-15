@@ -1390,6 +1390,7 @@ function ordinaryEffectDefinitionFixture({target = false, stop = false} = {}) {
       assert.strictEqual(reserve, reserveOriginal);
       assert.strictEqual(facts.prepared, prepared); assert.strictEqual(facts.allowed, allowed);
       assert.strictEqual(facts.definition, definition); assert.strictEqual(facts.identity, identity);
+      assert.strictEqual(facts.compilation, compilation); assert.strictEqual(facts.runDefinition, runDefinition);
       calls.push('capture-target'); return target ? targetOriginal : undefined;
     }, captureEffectMaterials(facts) {
       assert.strictEqual(facts.allowed, allowed); assert.strictEqual(facts.definition, definition);
@@ -1705,4 +1706,26 @@ test('cold Model Effect resume refuses a different original Run before capture o
   assert(!f.calls.includes('fresh-funded-capture')); assert(!f.calls.includes('execute-original'));
   assert.equal(f.calls.at(-1), 'finish-failed');
   assert.strictEqual(f.snapshot.updateTargetPreparedOriginal, f.savedOriginal);
+});
+
+test('target material inverse is admitted once before the original Request is adopted', () => {
+  const prepared={},compilation={},allowed={},definition={},identity={},runDefinition={identity:'same-run'};
+  const events=[],installations=Object.freeze([{cid:'same-installation',wire:'same-installation-wire'}]);
+  const ports={moon:{},checked,issueMaterials(facts){
+    assert.strictEqual(facts.prepared,prepared);assert.strictEqual(facts.allowed,allowed);events.push('issue');return 'full-materials';
+  },admitMaterials(){assert.fail('Only the existing inverse helper calls this port');},
+  selectionsOf:value=>{assert.strictEqual(value,prepared);return [];},
+  updateTargetSelectionMatchesRun:(selections,p,d)=>p===prepared&&d===definition,
+  current:()=>installations,updateTargetRunOriginalShape:()=>true,
+  restoreEffectMaterials(wire,run,request,c,p){
+    assert.deepEqual([wire,run,request,c,p],['full-materials',runDefinition,identity,compilation,prepared]);
+    events.push('inverse');return {prepared,compilation};
+  },fail:()=>assert.fail('Original capture must remain valid')};
+  const body=retainedRequestSourceMember('./installed-update-originals.mjs','captureRun');
+  const owner=new Function(...Object.keys(ports),'return ({'+body+'});')(...Object.values(ports));
+  const actual=owner.captureRun({prepared,allowed,definition,identity,compilation,runDefinition},
+    (p,wire,installed)=>{assert.strictEqual(p,prepared);assert.equal(wire,'full-materials');assert.strictEqual(installed,installations);events.push('reserve');});
+  events.push('adopt');
+  assert.equal(actual.materialsWire,'full-materials');assert(Object.isFrozen(actual));
+  assert.deepEqual(events,['issue','reserve','inverse','adopt']);
 });

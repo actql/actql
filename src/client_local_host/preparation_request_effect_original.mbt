@@ -83,14 +83,20 @@ pub fn[I] reserve_request_effect_original_material(
 // (12H/32R/16W); role/extent/checked-arithmetic tuples and Options
 // (13H/24R/24W); one active metadata-only parser/emitter/validator recipe
 // family, its composition Arrays and result (32H/69R/58W). The sum is
-// 64H/128R/128W. Original entry arguments/codec closure precede this grow
+// 64H/128R/128W. The fixed retained installed record below adds
+// 3H/9R/7W, for 67H/137R/135W in this same reservation.
+// Original entry arguments/codec closure precede this grow
 // within the Request's existing exclusive 4096-byte control group. These
 // arrays and variable body constructors begin only after this grow succeeds.
 // No variable body or policy maximum is hidden in this control extent.
 let request_effect_material_control_bytes : Int64 = @execution.preparation_representation_cost({
-    record_headers: 64L,
-    reference_slots: 128L,
-    scalar_words: 128L,
+    // Same installed owner's retained codec-result record (1H/8R), its
+    // existing state's additional alias (1R), and the
+    // seven frozen Bool flags (Array/backing: 2H/7W). Aliases end before the
+    // original holder returns; no second owner or body copy is created.
+    record_headers: 67L,
+    reference_slots: 137L,
+    scalar_words: 135L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   },
