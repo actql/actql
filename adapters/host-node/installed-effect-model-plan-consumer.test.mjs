@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
+import {installedHostShutdown} from './embedded-local-lifecycle.mjs';
 import {prepareInstalledEffectManagedPlanRun, readInstalledEffectManagedPlanRun,
   finishInstalledEffectModelScope, installedEffectModelPreparation, fundedEffectModelGroupCount} from './installed-effect-managed-run.mjs';
 
@@ -204,6 +205,66 @@ test('partial Model adoption retains its same Request Scope and never reissues o
     {code: 'InstalledEffectModelScopeCleanupPending'});
   f.settle(); finishInstalledEffectModelScope(run, true, checked);
   assert.deepEqual(f.calls, ['demand', 'plan', 'adopt-request-model', 'finish-scope', 'finish-scope']);
+});
+
+// Use the actual Scope owner and shutdown consumer. The explicit manager
+// finalizer below does not establish native Resource admission or a physical ACK.
+function modelScopeShutdown(f) {
+  const run = f.runs.get(f.prepared);
+  let managerCloses = 0;
+  const host = {dispatchOwner: {drain() {}}, retireTerminalEffects() {},
+    journal: {close() {}}, store: {close() {}},
+    installedEffect: {close() {finishInstalledEffectModelScope(run, true, checked);}},
+    retireModelRuntime() {
+      assert.equal(run.modelScopeFinished, true);
+      managerCloses++;
+    }};
+  return {shutdown: installedHostShutdown(host), run, managerCloses: () => managerCloses};
+}
+
+test('Model Scope pending cleanup keeps its original parent before Host manager retirement', async () => {
+  const f = fixture();
+  prepareInstalledEffectManagedPlanRun(f.options);
+  const {shutdown, run, managerCloses} = modelScopeShutdown(f);
+  const original = {scope: run.modelScope, parent: run.value, manager: run.manager};
+  await assert.rejects(shutdown.close(), error => {
+    assert.equal(error.code, 'InstalledHostCleanupPending');
+    assert.equal(error.cleanupErrors.length, 1);
+    assert.equal(error.cleanupErrors[0].owner, 'effect');
+    assert.equal(error.cleanupErrors[0].error.code, 'InstalledEffectModelScopeCleanupPending');
+    return true;
+  });
+  assert.equal(run.modelScope, original.scope); assert.equal(run.value, original.parent);
+  assert.equal(run.manager, original.manager); assert.equal(managerCloses(), 0);
+  assert.equal(run.modelScopeFinished, undefined);
+  f.settle(); await shutdown.close();
+  assert.equal(run.modelScopeFinished, true); assert.equal(managerCloses(), 1);
+  await shutdown.close(); assert.equal(managerCloses(), 1);
+});
+
+test('partial Model adoption keeps its same failure and Scope through Host cleanup retry', async () => {
+  for (const failure of [undefined, new Error('OriginalModelAdoptionFailure')]) {
+    const f = fixture();
+    // A thrown undefined remains an original failure, not a missing result.
+    f.options.manager.adoptEffectModelPreparation = function(p, input, request, plan, run) {
+      assert.equal(this, f.options.manager); assert.equal(p, f.prepared);
+      assert.equal(input, f.options.requestInput); assert.equal(request, f.options.request);
+      assert.equal(plan, f.plan); assert.equal(run, f.runs.get(p));
+      run.original = {}; run.modelScope = f.scope;
+      throw failure;
+    };
+    assert.throws(() => prepareInstalledEffectManagedPlanRun(f.options), error => error === failure);
+    const {shutdown, run, managerCloses} = modelScopeShutdown(f);
+    assert.equal(run.value, undefined); assert.equal(run.modelScope, f.scope);
+    assert(Object.hasOwn(run, 'failure')); assert.equal(run.failure, failure);
+    assert.throws(() => prepareInstalledEffectManagedPlanRun(f.options), error => error === failure);
+    await assert.rejects(shutdown.close(), {code: 'InstalledHostCleanupPending'});
+    assert.equal(run.modelScope, f.scope); assert.equal(managerCloses(), 0);
+    f.settle(); await shutdown.close();
+    assert.equal(run.modelScopeFinished, true); assert.equal(managerCloses(), 1);
+    assert.equal(run.failure, failure);
+    await shutdown.close(); assert.equal(managerCloses(), 1);
+  }
 });
 
 test('Model Scope cleanup joins reentry and refuses an original replaced by its callback', () => {
