@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {runInNewContext} from 'node:vm';
 import {readFile, writeFile, copyFile, symlink, unlink, readlink, mkdir, mkdtemp, readdir, rm} from 'node:fs/promises';
@@ -20,6 +21,7 @@ import {createCommandEvidence, checkCommandEvidenceUpload} from './packed-query-
 import {nativeCoreScopedTestEnvironment} from './native-core-test-selection.mjs';
 import {projectFileStoreRows101, projectFileStoreMembers17} from './fixtures/project-file-store-inventory-cases.mjs';
 import {packedDependencyBoundaryCases, packedDependencyBoundaryPhases} from './packed-project-dependency-boundary.mjs';
+import {readWholeResults, checkJoinedSourceRows, readJoinedWholeResults, assertRecordWorkflowWork} from '../adapters/host-node/fixtures/work-observation.fixture.mjs';
 
 const workflow = parse(await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const name = 'client-readme-packed', job = workflow.jobs[name];
@@ -126,10 +128,6 @@ test('distinct Whole producer fixture retains both Model Units and all public Re
   assert.deepEqual(program.stages[3].inputs.confirmed, {result: {stage: 'confirm', result: 'rows'}});
   assert.deepEqual(program.results?.updates, {from: {stage: 'apply', result: 'rows'}});
   assert.deepEqual(Object.keys(program.results), ['answer', 'main', 'updates']);
-  const source = await readFile(new URL('../adapters/host-node/fixtures/mock-project-effect-public.mjs', import.meta.url), 'utf8');
-  const original = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
-    .find(node => node.id?.name === 'readWholeResults');
-  const read = new Function('assert', `return (${source.slice(original.start, original.end)});`)(assert);
   const sourceRows = [
     {id: '006Acme', name: 'Acme Corp - Renewal', StageName: 'Proposal', NextStep: null},
     {id: '006Globex', name: 'Globex - Expansion', StageName: 'Negotiation', NextStep: 'Legal review'},
@@ -139,10 +137,10 @@ test('distinct Whole producer fixture retains both Model Units and all public Re
   const reviewed = updates.map(({confirmation, ...row}) => row);
   const roots = {answer: sourceRows, main: reviewed}, calls = [];
   const execution = {result(name) {calls.push(name); return {all: async () => roots[name]};}};
-  assert.deepEqual(await read(execution, updates), roots);
+  assert.deepEqual(await readWholeResults(execution, updates), roots);
   assert.deepEqual(calls, ['answer', 'main']);
   roots.main = [];
-  await assert.rejects(read(execution, updates), {code: 'ERR_ASSERTION'});
+  await assert.rejects(readWholeResults(execution, updates), {code: 'ERR_ASSERTION'});
 });
 
 test('existing collector keeps the distinct Whole fixture and original cold inputs separate', async t => {
@@ -167,11 +165,8 @@ test('existing collector keeps the distinct Whole fixture and original cold inpu
   assert.equal(metric.samples[0].verified, true);
 });
 
-test('record fixture bounds use authored Whole binary and three-Source occurrences on the original Run only', async () => {
-  const source = await readFile(new URL('../adapters/host-node/fixtures/work-observation.fixture.mjs', import.meta.url), 'utf8');
-  const node = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
-    .find(value => value.type === 'ExportNamedDeclaration' && value.declaration?.id?.name === 'assertRecordWorkflowWork').declaration;
-  const check = Function('assert', `return (${source.slice(node.start, node.end)});`)(assert);
+test('record fixture bounds use authored Whole binary and three-Source occurrences on the original Run only', () => {
+  const check = assertRecordWorkflowWork;
   for (const [variant, starts] of [['whole-input', 1], ['binary-source', 2], ['three-source', 3]]) {
     for (const phase of ['capture', 'approve', 'recover']) {
       const writes = phase === 'approve' ? 1 : 0;
@@ -189,6 +184,23 @@ test('record fixture bounds use authored Whole binary and three-Source occurrenc
       assert.throws(() => check(work, {phase, variant: 'inferred-from-observation'}));
     }
   }
+});
+
+test('workflow DATA oracles execute before an installed runtime is available', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-workflow-data-'));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const helper = join(directory, 'oracles.mjs');
+  await copyFile(new URL('../adapters/host-node/fixtures/work-observation.fixture.mjs', import.meta.url), helper);
+  const env = {...process.env}; delete env.NODE_OPTIONS; delete env.NODE_PATH;
+  const output = execFileSync(process.execPath, ['--input-type=module', '-e', `
+    const {assertRecordWorkflowWork} = await import(${JSON.stringify(new URL('file://' + helper).href)});
+    assertRecordWorkflowWork({complete: true, sourceAcquisitionStarts: 3,
+      modelCallStarts: 0, effectReplacementReturns: 0,
+      totals: {modelCallStarts: 0, effectReplacementReturns: 0}},
+      {phase: 'capture', variant: 'three-source'});
+    console.log('data-only');
+  `], {cwd: directory, env, encoding: 'utf8', timeout: 5000});
+  assert.equal(output.trim(), 'data-only');
 });
 
 test('record ordinary runner binds the exact selected fixture variant before the existing installed child', async () => {
@@ -1346,13 +1358,20 @@ test('small policy and oracle units run during Draft while normal required gates
   const policy = steps.find(value => value.name === 'Test ordinary operation performance policy oracles');
   const rest = steps.find(value => value.name === 'Test ordinary operation performance assessment');
   assert(rest.if.includes('draft'));
+  const recipes = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).scripts;
+  const scheduled = [policy, rest].flatMap(step => {
+    const alias = /^npm run ([\w:-]+)$/u.exec(step.run.trim());
+    const command = alias ? recipes[alias[1]] : step.run;
+    assert.equal(typeof command, 'string', 'Scheduled recipe must exist');
+    return command.trim().split(/\s+/u);
+  });
   for (const file of ['scripts/operation-performance.test.mjs', 'scripts/benchmark-node-operations.test.mjs',
     'scripts/operation-performance-policy.test.mjs', 'scripts/operation-performance-native-control.test.mjs',
     'scripts/benchmark-node-process-operations.test.mjs', 'scripts/benchmark-node-sqlite.test.mjs',
     'scripts/benchmark-node-boundaries.test.mjs', 'scripts/node-operation-fs-trace.test.mjs',
     'scripts/operation-performance-priority-transition.test.mjs', 'scripts/operation-performance-transition-ci.test.mjs',
     'scripts/native-approval-performance.test.mjs']) {
-    const occurrences = [...policy.run.split(/\s+/u), ...rest.run.split(/\s+/u)].filter(value => value === file);
+    const occurrences = scheduled.filter(value => value === file);
     assert.equal(occurrences.length, 1, file);
   }
   assert(gateJobs.includes('client-readme-packed')); assert.deepEqual(workflow.jobs.check.needs, gateJobs);
@@ -2182,10 +2201,7 @@ test('joined Whole composition has one genuine six-field Result and preserves bo
   assert.deepEqual(infer.input.notes, {field: 'notes'});
   assert.deepEqual(program.results.answer, {from: {stage: source.id, result: 'rows'}});
   assert.deepEqual(Object.keys(program.results), ['answer', 'main', 'updates']);
-  const workflow = await readFile(new URL('../adapters/host-node/fixtures/mock-project-effect-public.mjs', import.meta.url), 'utf8');
-  const node = parseJavaScript(workflow, {ecmaVersion: 'latest', sourceType: 'module'}).body
-    .find(value => value.id?.name === 'checkJoinedSourceRows');
-  const check = Function('assert', 'createHash', `return (${workflow.slice(node.start, node.end)});`)(assert, createHash);
+  const check = checkJoinedSourceRows;
   const resource = identity => ({$actql_ref: 'resource', version: 'actql-resource-ref/0.1',
     provider_namespace: 'drive', resource_kind: 'file', provider_identity_cid: 'sha256:' + 'a'.repeat(64),
     authority_scope_cid: 'sha256:' + 'b'.repeat(64), boundary_cid: 'sha256:' + 'a'.repeat(64),
@@ -2206,20 +2222,17 @@ test('joined Whole composition has one genuine six-field Result and preserves bo
   assert.throws(() => check(rows.slice(0, 1)));
   assert.throws(() => check([rows[0], rows[0]]));
   assert.throws(() => check([{...rows[0], extra: 'undeclared'}, rows[1]]));
-  const reader = parseJavaScript(workflow, {ecmaVersion: 'latest', sourceType: 'module'}).body
-    .find(value => value.id?.name === 'readJoinedWholeResults');
-  const read = Function('assert', 'checkJoinedSourceRows', `return (${workflow.slice(reader.start, reader.end)});`)(assert, check);
   const updates = rows.map(({id, StageName, NextStep}) => ({id, StageName, NextStep,
     review: {outcome: 'ok', value: {}}, confirmation: {outcome: 'ok', value: {confirmed: true}}}));
   const reviewed = updates.map(({confirmation, ...row}) => row);
   const roots = {answer: rows, main: reviewed}, calls = [];
   const execution = {result(name) {calls.push(name); return {all: async () => roots[name]};}};
-  assert.deepEqual(await read(execution, updates), roots);
+  assert.deepEqual(await readJoinedWholeResults(execution, updates), roots);
   assert.deepEqual(calls, ['answer', 'main']);
   roots.answer = [{...rows[0], version: 'wrong'}, rows[1]];
-  await assert.rejects(read(execution, updates), {code: 'ERR_ASSERTION'});
+  await assert.rejects(readJoinedWholeResults(execution, updates), {code: 'ERR_ASSERTION'});
   roots.answer = rows; roots.main = reviewed.slice(0, 1);
-  await assert.rejects(read(execution, updates), {code: 'ERR_ASSERTION'});
+  await assert.rejects(readJoinedWholeResults(execution, updates), {code: 'ERR_ASSERTION'});
 });
 
 for (const variant of ['two-models-joined-inputs', 'two-models-joined-whole']) {
