@@ -3,6 +3,7 @@
 // No Native read profile or provider/Store success is manufactured here.
 fn generic_file_effect_fixture(
   whole? : Bool = false,
+  lookup_bytes? : Int = 32768,
 ) -> (
   PreparedClientEffectComputation,
   ClientKeyedAcquisition,
@@ -115,7 +116,7 @@ fn generic_file_effect_fixture(
     ),
   )
   policy["lookup_execution"] = @json.parse(
-    "{\"max_network_attempts_per_request\":3,\"max_request_bytes_per_attempt\":4096,\"max_total_decoded_response_bytes\":32768,\"max_total_duration_ms\":30000,\"max_total_request_bytes\":32768,\"max_total_response_bytes\":32768,\"version\":\"actql-lookup-execution-policy/0.1\"}",
+    "{\"max_network_attempts_per_request\":3,\"max_request_bytes_per_attempt\":4096,\"max_total_decoded_response_bytes\":" + lookup_bytes.to_string() + ",\"max_total_duration_ms\":30000,\"max_total_request_bytes\":" + lookup_bytes.to_string() + ",\"max_total_response_bytes\":" + lookup_bytes.to_string() + ",\"version\":\"actql-lookup-execution-policy/0.1\"}",
   )
   let unsigned = @canonical.from_json(
     Json::object(fields),

@@ -47,10 +47,11 @@ fn build_client_effect_keyed_generic_dependency_bodies(
   // The shared parser reserves its end position; actual cumulative bytes
   // remain funded by the original finite lookup reservation.
   let mut remaining = 2147483646
-  fn append(
+  fn append_measured(
     kind : String,
     cid : String,
     wire : String,
+    wire_extent : (Int, Int)?,
   ) -> Unit raise GenericKeyedDependencyStop {
     let key = kind + "\u0000" + cid
     if seen.get(key) is Some(previous) {
@@ -81,11 +82,19 @@ fn build_client_effect_keyed_generic_dependency_bodies(
           .map(value => physical_equal(value, completed))
           .unwrap_or(false)
         },
+        wire_extent~,
       ),
     )
     bodies.push(body)
     seen[key] = wire
     remaining -= bytes
+  }
+  fn append(
+    kind : String,
+    cid : String,
+    wire : String,
+  ) -> Unit raise GenericKeyedDependencyStop {
+    append_measured(kind, cid, wire, None)
   }
   fn append_original(
     kind : String,
@@ -284,17 +293,23 @@ fn build_client_effect_keyed_generic_dependency_bodies(
     let right_schema = @execution.completed_relation_export_schema_identity(
       right_receipt,
     )
-    append(
+    let logical_usage = @execution.logical_relation_usage(
+      @execution.completed_relation_export_identity(right_receipt),
+    )
+    append_measured(
       "relation_value",
       @execution.logical_relation_cid(
         @execution.completed_relation_export_identity(right_receipt),
       ),
       right_bodies.0,
+      Some((logical_usage.0, logical_usage.1)),
     )
-    append(
+    let schema_usage = @execution.relation_schema_usage(right_schema)
+    append_measured(
       "relation_schema",
       @execution.relation_schema_cid(right_schema),
       right_bodies.1,
+      Some((schema_usage.0, schema_usage.1)),
     )
     append(
       "lookup_barrier",

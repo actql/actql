@@ -27,9 +27,35 @@ fn keyed_lookup_order_capacity(count : Int) -> Int64? {
 }
 
 ///|
-// Every actual binary probe pays the existing complete canonical-comparison
-// debit BEFORE comparing. This removes repeated probes, not work accounting,
-// semantic key fields, original request checks or a finite lookup limit.
+// Match the pinned String.compare exactly: length first, then UTF-16 units.
+// Charge each actual inspected pair before reading it. An unexamined suffix
+// has neither been scanned nor compared; no key field, normalization or hash
+// replaces the complete original canonical Request's equality/order.
+fn keyed_lookup_order_compare(
+  state : ClientKeyedLookupInput,
+  left : String,
+  right : String,
+) -> Result[Int, ClientKeyedRequestIssue] {
+  if !charge_keyed_lookup_input_work(state, 1) {
+    return Err(LookupLimit("work"))
+  }
+  let order = left.length().compare(right.length())
+  if order != 0 {
+    return Ok(order)
+  }
+  for index in 0..<left.length() {
+    if !charge_keyed_lookup_input_work(state, 2) {
+      return Err(LookupLimit("work"))
+    }
+    let order = left[index].compare(right[index])
+    if order != 0 {
+      return Ok(order)
+    }
+  }
+  Ok(0)
+}
+
+///|
 fn keyed_lookup_order_find(
   state : ClientKeyedLookupInput,
   wire : String,
@@ -45,12 +71,10 @@ fn keyed_lookup_order_find(
     guard state.known.get(slot) is Some((key, _, _)) else {
       return Err(Assembly("key_order_unavailable"))
     }
-    let work = key.length().to_int64() + wire.length().to_int64() + 1L
-    if work > 2147483647L ||
-      !charge_keyed_lookup_input_work(state, work.to_int()) {
-      return Err(LookupLimit("work"))
+    let compared = match keyed_lookup_order_compare(state, key, wire) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
     }
-    let compared = key.compare(wire)
     if compared == 0 {
       return Ok((slot, middle))
     }

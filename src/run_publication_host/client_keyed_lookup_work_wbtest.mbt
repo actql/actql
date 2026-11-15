@@ -11,8 +11,10 @@ fn keyed_work_original_fixture(
   rows_wire : String,
   max_rows : Int,
   max_work : Int,
-) -> (ClientKeyedLookupInput, () -> Bool) raise {
-  let (prepared, keyed, declaration) = generic_file_effect_fixture(whole=true)
+  completion? : Bool = false,
+  resources? : Array[String]? = None,
+) -> (ClientKeyedLookupInput, () -> Bool, @row_host.RowDeclaration) raise {
+  let (prepared, keyed, declaration) = generic_file_effect_fixture(whole=true, lookup_bytes=if completion { 1000000 } else { 32768 })
   let measured = measure_client_effect_generic_keyed_plan_construction(
     prepared,
     keyed,
@@ -64,15 +66,49 @@ fn keyed_work_original_fixture(
   ).unwrap()
   let ledger = @resources.create_ledger({
     planning_work: 1000000,
-    attempts: 100,
-    holdings: 100,
-    transfer_bytes: 1000000L,
-    retained_bytes: 67108864L,
-    execution_bytes: 67108864L,
+    attempts: if completion {
+      1024
+    } else {
+      100
+    },
+    holdings: if completion {
+      1024
+    } else {
+      100
+    },
+    // The Source still owns its 1MiB transfer reservation while the 101
+    // component children each retain their existing 8192-byte envelope.
+    transfer_bytes: if completion {
+      2000000L
+    } else {
+      1000000L
+    },
+    retained_bytes: if completion {
+      536870912L
+    } else {
+      67108864L
+    },
+    execution_bytes: if completion {
+      536870912L
+    } else {
+      67108864L
+    },
   }).unwrap()
   let bootstrap = @resources.reserve_capacity(ledger, 100000L, 100000L).unwrap()
   let inventory = @resources.begin_original_ledger_inventory(
-    ledger, bootstrap, 50, 50, 0,
+    ledger,
+    bootstrap,
+    if completion {
+      1024
+    } else {
+      50
+    },
+    if completion {
+      1024
+    } else {
+      50
+    },
+    0,
   ).unwrap()
   let parent = bind_client_effect_keyed_original(
     prepared, compilation, compiled, definition, request, graph, keyed, ledger, inventory,
@@ -128,7 +164,7 @@ fn keyed_work_original_fixture(
     max_rows,
     reference_issuer=Some(
       @values.bind_reference_issuer(
-        (_, wire) => wire == keyed_work_resource(),
+        (_, wire) => resources.map(values => values.contains(wire)).unwrap_or(wire == keyed_work_resource()),
         _ => true,
       ),
     ),
@@ -176,7 +212,7 @@ fn keyed_work_original_fixture(
     original,
     task=0,
   ).unwrap()
-  let _observation = @row_host.issue_row_input_source_evidence(
+  let observation = @row_host.issue_row_input_source_evidence(
     selected,
     capture,
     identity,
@@ -194,6 +230,25 @@ fn keyed_work_original_fixture(
     max_work,
     source_sequence=Some(generated),
   ).unwrap()
+  if completion {
+    prepare_client_effect_keyed_generic_source_metadata(
+      parent,
+      lookup,
+      identity,
+      logical,
+      observation,
+      "sha256:" + "d".repeat(64),
+      "2099-01-01T00:00:00.000Z",
+      "2099-01-02T00:00:00.000Z",
+      "2099-01-03T00:00:00.000Z",
+      "sha256:" + "e".repeat(64),
+      "sha256:" + "f".repeat(64),
+      1000000,
+      100000,
+      100,
+    ).unwrap()
+    |> ignore
+  }
   let closed = Ref(false)
   let cleanup = fn() {
     if closed.val {
@@ -212,7 +267,7 @@ fn keyed_work_original_fixture(
       usage.reserved_execution_bytes == 0L
     closed.val
   }
-  (lookup, cleanup)
+  (lookup, cleanup, declaration)
 }
 
 ///|
@@ -227,7 +282,7 @@ test "keyed canonical request search fits original finite work for 101 distinct 
     index.to_string() +
     "\"}"
   })
-  let (lookup, cleanup) = keyed_work_original_fixture(
+  let (lookup, cleanup, _) = keyed_work_original_fixture(
     "[" + rows.join(",") + "]",
     101,
     1000000,
@@ -298,7 +353,7 @@ fn keyed_work_rows(count : Int) -> String {
 
 ///|
 test "keyed canonical slot comparison preserves one-short original work refusal" {
-  let (lookup, cleanup) = keyed_work_original_fixture(
+  let (lookup, cleanup, _) = keyed_work_original_fixture(
     keyed_work_rows(2),
     2,
     1000000,
@@ -311,7 +366,9 @@ test "keyed canonical slot comparison preserves one-short original work refusal"
   // Independently authored canonical request body. Planning encodes it once
   // and charges those bytes before its actual slot comparison.
   let wire = "{\"resource\":" + keyed_work_resource() + ",\"version\":\"v1\"}"
-  let probe = lookup.known[0].0.length() + wire.length() + 1
+  // The fixed canonical versions first differ at the digit before the final
+  // two delimiters. Length is compared once; each inspected UTF-16 pair costs2.
+  let probe = 1 + 2 * (wire.length() - 2)
   let spent = client_keyed_lookup_input_work(lookup).to_int()
   assert_true(
     charge_keyed_lookup_input_work(
@@ -326,7 +383,7 @@ test "keyed canonical slot comparison preserves one-short original work refusal"
   )
   assert_eq(
     client_keyed_lookup_input_work(lookup),
-    before + wire.length().to_int64(),
+    before + wire.length().to_int64() + probe.to_int64() - 2L,
   )
   assert_eq(lookup.known.length(), 1)
   assert_eq(lookup.key_order, [0])
@@ -336,7 +393,7 @@ test "keyed canonical slot comparison preserves one-short original work refusal"
 
 ///|
 test "keyed canonical slot insertion requires original retained backing before mutation" {
-  let (lookup, cleanup) = keyed_work_original_fixture(
+  let (lookup, cleanup, _) = keyed_work_original_fixture(
     keyed_work_rows(1),
     1,
     1000000,
@@ -360,13 +417,13 @@ test "keyed canonical slot insertion requires original retained backing before m
 
 ///|
 test "keyed canonical slot index cannot admit foreign or stopped Request originals" {
-  let (lookup, cleanup) = keyed_work_original_fixture(
+  let (lookup, cleanup, _) = keyed_work_original_fixture(
     keyed_work_rows(1),
     1,
     1000000,
   )
   defer cleanup() |> ignore
-  let (foreign, cleanup_foreign) = keyed_work_original_fixture(
+  let (foreign, cleanup_foreign, _) = keyed_work_original_fixture(
     keyed_work_rows(1),
     1,
     1000000,
