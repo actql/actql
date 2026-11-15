@@ -200,6 +200,29 @@ fn build_client_effect_keyed_generic_dependency_bodies(
       },
     )
   }
+  fn receive_policy_body(
+    body : @publication.CapturedEffectDependencyBody,
+    bytes : Int,
+  ) -> Result[Unit, @checked.LocalDependencyBodyIssue] {
+    let kind = @publication.captured_effect_dependency_body_kind(body)
+    let cid = @publication.captured_effect_dependency_body_cid(body)
+    let wire = @publication.captured_effect_dependency_body_json(body)
+    let key = kind + "\u0000" + cid
+    if lookup.closed || lookup.left.lookup_issue is Some(_) {
+      return Err(ForeignBody)
+    }
+    if seen.get(key) is Some(previous) {
+      return if previous == wire { Ok(()) } else { Err(ForeignBody) }
+    }
+    if bytes < 0 || bytes > remaining || bodies.length() >= lookup.max_work {
+      return Err(BudgetExceeded)
+    }
+    bodies.push(body)
+    seen[key] = wire
+    remaining -= bytes
+    Ok(())
+  }
+  let policy_receiver = Some(receive_policy_body)
   fn emit(
     kind : String,
     cid : String,
@@ -220,14 +243,14 @@ fn build_client_effect_keyed_generic_dependency_bodies(
         raise GenericKeyedDependencyStop(ForeignInput)
       }
     }
-    let wire = try {
+    let (wire, bytes, nodes, _) = try {
       let writer = @encode.writer(remaining, max_nodes, max_depth)
       produce(writer)
-      @encode.finish(writer)
+      @encode.finish_text_usage(writer)
     } catch {
       _ => raise GenericKeyedDependencyStop(Dependency(InvalidBody))
     }
-    append(kind, cid, wire)
+    append_measured(kind, cid, wire, Some((bytes, nodes)))
   }
   fn carrier(
     original : @carrier.Carrier,
@@ -402,6 +425,7 @@ fn build_client_effect_keyed_generic_dependency_bodies(
             retain_catalog=true,
             retained_body_keys=Some(seen),
             before_body~,
+            admitted_body=policy_receiver,
           ).map_err(issue => Static(issue)),
         )
         for (kind, cid, wire) in selected {
@@ -436,7 +460,7 @@ fn build_client_effect_keyed_generic_dependency_bodies(
             "carrier_schema", "schema_evidence", "capability_evidence",
           ].contains(kind) {
           let body = require_generic_keyed_dependency(
-            @checked.checked_local_catalog_dependency_body(
+            capture_checked_client_catalog_dependency(
               program,
               client_composed_keyed_original_stage(original),
               kind,
@@ -444,10 +468,12 @@ fn build_client_effect_keyed_generic_dependency_bodies(
               remaining,
               max_nodes,
               max_depth,
-              before_body~,
+              before_body,
             ).map_err(issue => Static(issue)),
           )
-          append(kind, cid, @checked.checked_local_dependency_body_json(body))
+          require_generic_keyed_dependency(
+            receive_policy_body(body.0, body.1).map_err(issue => Static(issue)),
+          )
         }
       }
     }
@@ -484,6 +510,23 @@ fn prepare_client_effect_keyed_generic_dependencies(
     state.completed is Some(same) &&
     physical_equal(same, completed) else {
     return Err(Assembly("foreign_generic_dependency_entry"))
+  }
+  // New temporary receiver H1/R4 + Some H1/R1/W1; Catalog geometry
+  // callback H1/R4 + Some H1/R1/W1 + three scalar Refs H3/W3;
+  // returned body/byte tuple and Result H2/R2/W2. Total H9/R12/W7.
+  // The same original reservation covers this peak before any closure/Ref.
+  let controls = @execution.preparation_representation_cost({
+    record_headers: 9L,
+    reference_slots: 12L,
+    scalar_words: 7L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  match keyed_lookup_body_grow(
+    lookup, lookup.retained_bytes, lookup.execution_bytes, controls, None,
+  ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   match
     grow_keyed_lookup_protocol_metadata(
