@@ -449,13 +449,16 @@ test('local Core keeps the original serial scoped profile despite hosted paralle
     env: {ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS:
       "${{ matrix.target == 'native' && matrix.partition == 'scoped' && '2' || '1' }}"},
     run: 'node -e "require(\'node:assert/strict\').equal(process.env.ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS,\'1\')"; printf "%s\\n" "$ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS" >> calls'}];
-  writeFileSync(path, JSON.stringify(workflow));
-  for (const target of ['native', 'js', 'wasm']) {
-    const result = f.run(['run', 'core', '--target', target, '--allow-heavy'],
-      {ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS: '2'});
-    assert.equal(result.status, 0, result.stderr);
+  for (const value of [workflow.jobs.core.steps[0].env.ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS, '1']) {
+    workflow.jobs.core.steps[0].env.ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS = value;
+    writeFileSync(path, JSON.stringify(workflow));
+    for (const target of ['native', 'js', 'wasm']) {
+      const result = f.run(['run', 'core', '--target', target, '--allow-heavy'],
+        {ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS: '2'});
+      assert.equal(result.status, 0, result.stderr);
+    }
   }
-  assert.equal(readFileSync(join(f.root, 'calls'), 'utf8'), '1\n1\n1\n');
+  assert.equal(readFileSync(join(f.root, 'calls'), 'utf8'), '1\n'.repeat(6));
   for (const value of ['2', '${{ matrix.scoped_jobs }}', '']) {
     workflow.jobs.core.steps[0].env.ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS = value;
     writeFileSync(path, JSON.stringify(workflow));

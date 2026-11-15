@@ -26,6 +26,17 @@ function sourceTokens(source) {
 // Include the original descriptor/object bindings in the exact statement match;
 // changing a callee/object/property or adding a selector remains a violation.
 const measurementChecks = new Map([
+  // This closed transport envelope guard only refuses a foreign original.
+  // The modes do not select a connector, implementation or provider call.
+  ['adapters/host-node/ordinary-source-managed.mjs', `
+    if (producer.finished || producer.kind !== undefined || producer.body !== undefined ||
+        state?.parent === undefined || state.snapshotting || state.snapshot !== undefined ||
+        !['program', 'aql'].includes(kind) || !Object.isFrozen(connection) ||
+        !['local', 'remote'].includes(connection.mode) || connection.owner !== connection.mode ||
+        !Array.isArray(connection.consentRefs) || !Array.isArray(connection.runners)) {
+      fail('ForeignInstalledSourceProducer');
+    }
+  `],
   ['adapters/host-node/client-request-journal.mjs', `
     const facilityDescriptor = Object.getOwnPropertyDescriptor;
     const facilityRealpath = realpathSync;

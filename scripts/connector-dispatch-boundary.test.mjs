@@ -29,6 +29,28 @@ test('common implementation files reject concrete dispatch identities', () => {
   assert.ok(checkConnectorDispatchBoundary(process.cwd()) > 0);
 });
 
+test('HTTP transport custody guard only admits its complete refusal in the original owner', () => {
+  const source = `
+    if (producer.finished || producer.kind !== undefined || producer.body !== undefined ||
+        state?.parent === undefined || state.snapshotting || state.snapshot !== undefined ||
+        !['program', 'aql'].includes(kind) || !Object.isFrozen(connection) ||
+        !['local', 'remote'].includes(connection.mode) || connection.owner !== connection.mode ||
+        !Array.isArray(connection.consentRefs) || !Array.isArray(connection.runners)) {
+      fail('ForeignInstalledSourceProducer');
+    }
+  `;
+  const owner = 'adapters/host-node/ordinary-source-managed.mjs';
+  assert.deepEqual(connectorDispatchViolations(source, names, owner), []);
+  for (const changed of [source.replace("fail('ForeignInstalledSourceProducer')", 'dispatch()'),
+    source.replace('connection.mode', 'connection.connector'),
+    source.replace('connection.owner !== connection.mode', 'true'),
+    source + "\nif (provider === 'local') dispatch();"]) {
+    assert.ok(connectorDispatchViolations(changed, names, owner).length > 0);
+  }
+  assert.ok(connectorDispatchViolations(source, names,
+    'adapters/host-common/strategy.mjs').length > 0);
+});
+
 test('concrete comparisons variants and dispatch tables are rejected', () => {
   for (const source of [
     'if id == "duckdb" { run() }',

@@ -140,7 +140,8 @@ function commands(name, target, raw = false) {
       return [key, ''];
     }
     if (!raw && name === 'core' && key === 'ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS') {
-      if (value !== "${{ matrix.target == 'native' && matrix.partition == 'scoped' && '2' || '1' }}") {
+      if (!["${{ matrix.target == 'native' && matrix.partition == 'scoped' && '2' || '1' }}",
+        '1'].includes(value)) {
         fail('Unsupported Native Core scheduling expression; local CI must retain the serial scoped profile');
       }
       return [key, '1'];
