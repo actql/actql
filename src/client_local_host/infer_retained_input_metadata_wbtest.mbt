@@ -16,11 +16,14 @@ fn retained_metadata_test_cursor(text : String) -> @decode.Cursor {
 }
 
 ///|
-fn retained_metadata_test_output() -> @execution.CompletedOutput raise {
+fn retained_metadata_test_output() -> (
+  @execution.GeneratedSequence,
+  @execution.CompletedOutput,
+) raise {
   let contract = @contract.read_author(
     retained_metadata_test_cursor(
       (
-        #|{"type":"object","nullable":false,"fields":{"id":{"type":"number","nullable":false}}}
+        #|{"type":"object","nullable":false,"fields":{"id":{"type":"number","nullable":false},"bonus":{"type":"number","nullable":false}}}
       ),
     ),
     { max_nodes: 100, max_depth: 10, max_text_bytes: 1000, },
@@ -29,7 +32,7 @@ fn retained_metadata_test_output() -> @execution.CompletedOutput raise {
   let checked = @pipeline.check(
     retained_metadata_test_cursor(
       (
-        #|[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1},{"id":2}]},"as":"seed"}]
+        #|[{"from":"opportunities","join":{"kind":"inner","with":"files","on":[{"left":"id","right":"id"}],"select":{"id":"left.id","a":"left.bonus","b":"right.bonus"},"max_output_rows":2},"as":"pair"},{"from":"pair","join":{"kind":"inner","with":"contents","on":[{"left":"id","right":"id"}],"select":{"a":"left.a","b":"left.b","c":"right.bonus"},"max_output_rows":2},"as":"joined"}]
       ),
     ),
     [("opportunities", schema), ("files", schema), ("contents", schema)],
@@ -68,22 +71,29 @@ fn retained_metadata_test_output() -> @execution.CompletedOutput raise {
     [],
     [
       @lower.node_id(
-        @lower.node_at(@lower.bound_preparation(owner), 0).unwrap(),
+        @lower.node_at(@lower.bound_preparation(owner), 1).unwrap(),
       ),
     ],
     100000,
     10000,
   ).unwrap()
+  // All three checked input ports contribute independently visible values.
+  // These are explicit captured inputs, not physical Connector acquisitions.
+  let supplied = [
+    ["{\"id\":1,\"bonus\":1}", "{\"id\":2,\"bonus\":2}"],
+    ["{\"id\":1,\"bonus\":10}", "{\"id\":2,\"bonus\":20}"],
+    ["{\"id\":1,\"bonus\":100}", "{\"id\":2,\"bonus\":200}"],
+  ]
   let inputs = [0, 1, 2].map(index => {
     @execution.capture_input(
       owner,
       index,
-      [],
-      max_rows=0,
+      supplied[index].map(retained_metadata_test_cursor),
+      max_rows=2,
       source_capture_values(),
     ).unwrap()
   })
-  @execution.completed_output(
+  let output = @execution.completed_output(
     @execution.execute_generated_sequence(generated, inputs, {
       rows: {
         max_rows: 100,
@@ -96,20 +106,24 @@ fn retained_metadata_test_output() -> @execution.CompletedOutput raise {
       max_work: 100000,
       max_frames: 100,
     }).unwrap(),
-    @pipeline.Step(0),
+    @pipeline.Step(1),
   ).unwrap()
+  (generated, output)
 }
 
 ///|
 test "retained input export keeps input metadata independent of actual output rows" {
-  let input = retained_metadata_test_output()
+  let (_, input) = retained_metadata_test_output()
   let exported = export_client_infer_retained_input_owned(input, "metadata", 2).unwrap()
   let descriptor = read_client_infer_retained_input_descriptor(
     exported.descriptor_wire,
   ).unwrap()
   assert_eq(descriptor.input_count, 3)
   assert_eq(descriptor.rows, 2)
-  assert_eq(exported.rows, ["{\"id\":1}", "{\"id\":2}"])
+  assert_eq(descriptor.columns, 3)
+  assert_eq(exported.rows.length(), 2)
+  assert_true(exported.rows.contains("{\"a\":1,\"b\":10,\"c\":100}"))
+  assert_true(exported.rows.contains("{\"a\":2,\"b\":20,\"c\":200}"))
   assert_true(client_infer_retained_input_export_matches(exported, input))
   // The selected row bound and standalone export retain their old behavior.
   assert_true(
@@ -117,4 +131,47 @@ test "retained input export keeps input metadata independent of actual output ro
     is Err(Export(_)),
   )
   assert_true(export_client_infer_retained_input(input, "metadata") is Ok(_))
+}
+
+///|
+test "all three input inventories survive export and restore with only two rows" {
+  let (generated, input) = retained_metadata_test_output()
+  let exported = export_client_infer_retained_input_owned(input, "metadata", 2).unwrap()
+  let descriptor = read_client_infer_retained_input_descriptor(
+    exported.descriptor_wire,
+  ).unwrap()
+  assert_eq(descriptor.input_count, 3)
+  assert_eq(descriptor.rows, 2)
+  assert_eq(descriptor.columns, 3)
+  let custody = Ref(true)
+  let restored = restore_client_retained_completion(
+    @execution.generated_completion_preparation(generated),
+    1,
+    "metadata",
+    exported.binding,
+    exported.descriptor_wire,
+    exported.rows,
+    () => custody.val,
+  ).unwrap()
+  assert_eq(@execution.completed_row_count(restored.output), 2)
+  assert_eq(@execution.completed_column_count(restored.output), 3)
+  let names = ["a", "b", "c"]
+  for index in 0..<names.length() {
+    assert_eq(
+      @execution.completed_column_name(restored.output, index),
+      Some(names[index]),
+    )
+  }
+  let roundtrip = export_client_infer_retained_input(
+    restored.output,
+    "restored-metadata",
+  ).unwrap()
+  assert_eq(roundtrip.rows, exported.rows)
+  assert_true(roundtrip.rows.contains("{\"a\":1,\"b\":10,\"c\":100}"))
+  assert_true(roundtrip.rows.contains("{\"a\":2,\"b\":20,\"c\":200}"))
+  assert_true(@execution.completed_output_available(restored.output))
+  custody.val = false
+  assert_false(@execution.completed_output_available(restored.output))
+  assert_true(close_client_infer_retained_input(restored))
+  assert_true(@execution.completed_output_available(input))
 }
