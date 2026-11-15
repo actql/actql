@@ -30032,7 +30032,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1a23bf93c664493be1efda75d139ecf5c7fa414ed2c9c34765842c54c9d9cb54",
+      "sha256": "285082669ea8e3a0e84d1ee1cbd64030e51374708284d39c0fb9e8db3224ef36",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -31572,6 +31572,7 @@
             "runDefinition",
             "graph",
             "limits",
+            "sourceOriginal",
             "requestControl",
             "publicationControl"
           ],
@@ -31608,6 +31609,7 @@
             "graph",
             "limits",
             "activationRecord",
+            "sourceOriginal",
             "requestControl",
             "publicationControl"
           ],
@@ -73945,7 +73947,7 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock.mjs",
-      "sha256": "5ef79b38a87d4f823e4cfc56c6d830d876a070710ed3d8973a4cea6f89904e93",
+      "sha256": "2b47abe682fc43a5e45088ce1f69a5e08849529d356de59866d4fd77d2ee3d6d",
       "exports": [
         "inspectProjectMockDeclarations",
         "installPreparedProjectMockSources",
@@ -116131,6 +116133,8 @@
             "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates",
             "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph",
             "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph/init:prepareContentGraph",
+            "prepareOrdinaryManagedInstallation/view/init:prepareEffectKeyedPlan/init:prepareEffectKeyedPlan",
+            "prepareOrdinaryManagedInstallation/view/init:prepareEffectKeyedPlan/init:prepareEffectKeyedPlan/init:prepareEffectKeyedPlan",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelGraph/init:prepareModelGraph",
@@ -116168,6 +116172,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "prepareEffectKeyedPlan(prepared, request, keyed, declarations)"
               }
             ],
             "inputsOutputs": [
@@ -116198,6 +116206,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "prepareEffectKeyedPlan(prepared, request, keyed, declarations)"
               }
             ],
             "identity": [
@@ -116224,6 +116236,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "prepareEffectKeyedPlan(prepared, request, keyed, declarations)"
               }
             ],
             "ownership": [
@@ -116250,6 +116266,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "prepareEffectKeyedPlan(prepared, request, keyed, declarations)"
               }
             ],
             "synchronization": [
@@ -116276,6 +116296,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "prepareEffectKeyedPlan(prepared, request, keyed, declarations)"
               }
             ],
             "failure": [
@@ -116302,6 +116326,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "prepareEffectKeyedPlan(prepared, request, keyed, declarations)"
               }
             ],
             "cancellation": [
@@ -116328,6 +116356,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "prepareEffectKeyedPlan(prepared, request, keyed, declarations)"
               }
             ],
             "resources": [
@@ -116354,6 +116386,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "prepareEffectKeyedPlan(prepared, request, keyed, declarations)"
               }
             ],
             "extension": [
@@ -116380,6 +116416,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "prepareEffectKeyedPlan(prepared, request, keyed, declarations)"
               }
             ],
             "verification": [
@@ -116430,6 +116470,10 @@
               {
                 "path": "adapters/host-node/request-model-material-resources.test.mjs",
                 "anchor": "test('Effect Model actual Host reserves execution and dependency materials through its same Request before readers'"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_keyed_js_wbtest.mbt",
+                "anchor": "fn request_source_keyed_graph_fixture()"
               }
             ]
           }
@@ -119213,7 +119257,8 @@
             "prepared",
             "request",
             "identity",
-            "operationPlan"
+            "operationPlan",
+            "keyedPreparation"
           ],
           "async": false
         },
@@ -119578,6 +119623,21 @@
         },
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph/init:prepareContentGraph",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareEffectKeyedPlan/init:prepareEffectKeyedPlan",
+          "parameters": [
+            "prepared",
+            "request",
+            "keyed",
+            "declarations"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareEffectKeyedPlan/init:prepareEffectKeyedPlan/init:prepareEffectKeyedPlan",
           "parameters": [],
           "async": false
         },
@@ -120308,7 +120368,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "8081bb54afed558b563fbc4d082aac0520668f1068aa913e1766183e601cc1ee"
+      "sha256": "bbda3fe02f0e58d7bc61152fd5ae5e6fa384d6386b2406f0dde1335de0eeeba3"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
@@ -129971,10 +130031,10 @@
     },
     {
       "module": "adapters/host-node/installed-effect-managed-run.mjs",
-      "sha256": "83a00a1bc68d19e218ed16c9abfe18046d53ff94a87c8fdb69247868d0b3b03b",
+      "sha256": "389d09d37517085f0f49e477e805fc7b40a7f9056a0b61588a4e274790458f0f",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "fundedEffectModelGroupCount",

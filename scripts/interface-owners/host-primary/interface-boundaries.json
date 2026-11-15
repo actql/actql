@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "0870b070db7865af690bcbe33f1e29a4581f127b0de2dade170522c72140fb75",
+      "sha256": "af8b54898ab056b51782df5296e3c8b1ed2132362939d283bba2865580751848",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -565,6 +565,7 @@
             "originalContent",
             "sourceSelection",
             "sourceSelectionPlan",
+            "sourceKeyedPreparation",
             "requestJournal",
             "runRef"
           ],
@@ -655,6 +656,13 @@
         },
         {
           "name": "openAcquiredEffectComputation/init:retain/init:retain",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "openAcquiredEffectComputation/init:retain/init:retain#2",
           "parameters": [
             "child"
           ],
@@ -1092,6 +1100,7 @@
             "openAcquiredEffectComputation/inferCleanupPending/inferCleanupPending",
             "openAcquiredEffectComputation/init:observeAccount/init:observeAccount",
             "openAcquiredEffectComputation/init:retain/init:retain",
+            "openAcquiredEffectComputation/init:retain/init:retain#2",
             "openAcquiredEffectComputation/init:retainExecution/init:retainExecution",
             "openAcquiredEffectComputation/observeUsage/observeUsage",
             "openAcquiredEffectComputation/openAcquiredEffectComputation",
@@ -1138,6 +1147,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-computation.mjs",
                 "anchor": "const result = assertUpdateSelectionCurrent();"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "keyedFamily = await prepareAcquiredEffectKeyedCapture("
               }
             ],
             "inputsOutputs": [
@@ -1160,6 +1173,10 @@
               {
                 "path": "adapters/host-node/installed-content-family-custody.test.mjs",
                 "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "keyedFamily = await prepareAcquiredEffectKeyedCapture("
               }
             ],
             "identity": [
@@ -1186,6 +1203,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "keyedFamily = await prepareAcquiredEffectKeyedCapture("
               }
             ],
             "ownership": [
@@ -1216,6 +1237,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "keyedFamily = await prepareAcquiredEffectKeyedCapture("
               }
             ],
             "synchronization": [
@@ -1238,6 +1263,10 @@
               {
                 "path": "adapters/host-node/acquired-model-failed-publication-close.test.mjs",
                 "anchor": "enclosing close awaits the same unfinished publication"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "keyedFamily = await prepareAcquiredEffectKeyedCapture("
               }
             ],
             "failure": [
@@ -1272,6 +1301,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "keyedFamily = await prepareAcquiredEffectKeyedCapture("
               }
             ],
             "cancellation": [
@@ -1294,6 +1327,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "keyedFamily = await prepareAcquiredEffectKeyedCapture("
               }
             ],
             "resources": [
@@ -1316,6 +1353,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "keyedFamily = await prepareAcquiredEffectKeyedCapture("
               }
             ],
             "extension": [
@@ -1326,6 +1367,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-computation.mjs",
                 "anchor": "const result = assertUpdateSelectionCurrent();"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "keyedFamily = await prepareAcquiredEffectKeyedCapture("
               }
             ],
             "verification": [
@@ -1356,6 +1401,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-before-compute-custody.test.mjs",
                 "anchor": "a pre-Compute binding failure retires the same parent before its first Source close"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.test.mjs",
+                "anchor": "test('Source-only current loss retains its original capture cleanup without opening a Source'"
               }
             ]
           }
@@ -24516,7 +24565,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "5a4e211672d7d4dfa2191b2749780e3413f2149e6c1bd884a49ca567fa951737"
+      "sha256": "3c7c9a6bc4a6f6360528c10877dbecaa40e44f8c9a9e5b73836b3cc3d0bc778e"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
@@ -25466,11 +25515,12 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "5a6f1d499f4f302b3af796a4ec2f398eb386c31d80f5f59c55c43218661ba5de",
+      "sha256": "7e3eb68ce6c246cc89bb296fdb20c7f121e2f3c7f66b730efe53749ba56a91d6",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
         "acquiredInferEffectPublicationPlan",
+        "acquiredKeyedEffectPublicationPlan",
         "acquiredKeyedTaskPublicationPlan",
         "acquiredMultiEffectPublicationPlan",
         "acquiredMultiTaskPublicationPlan",
@@ -25615,6 +25665,21 @@
           "parameters": [
             "sum",
             "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredKeyedEffectPublicationPlan",
+          "parameters": [
+            "acquired",
+            "sources",
+            "keyedFamily",
+            "captureStartedAt",
+            "captureCompletedAt",
+            "sourcePlan",
+            "managedRun",
+            "sourceHost",
+            "deferCatalogs"
           ],
           "async": false
         },
@@ -26326,6 +26391,7 @@
             "acquiredInferEffectPublicationPlan/generations/generations",
             "acquiredInferEffectPublicationPlan/model/model",
             "acquiredInferEffectPublicationPlan/retainedBase/retainedBase",
+            "acquiredKeyedEffectPublicationPlan",
             "acquiredKeyedTaskPublicationPlan",
             "acquiredMultiEffectPublicationPlan",
             "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan",
@@ -26382,6 +26448,7 @@
             "acquiredEffectPublicationAdmission",
             "acquiredEffectPublicationPlan",
             "acquiredInferEffectPublicationPlan",
+            "acquiredKeyedEffectPublicationPlan",
             "acquiredKeyedTaskPublicationPlan",
             "acquiredMultiEffectPublicationPlan",
             "acquiredMultiTaskPublicationPlan",
@@ -26428,6 +26495,10 @@
               {
                 "path": "adapters/host-node/effect-publication-binding.test.mjs",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function acquiredKeyedEffectPublicationPlan("
               }
             ],
             "inputsOutputs": [
@@ -26466,6 +26537,10 @@
               {
                 "path": "adapters/host-node/effect-publication-binding.test.mjs",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function acquiredKeyedEffectPublicationPlan("
               }
             ],
             "identity": [
@@ -26496,6 +26571,10 @@
               {
                 "path": "adapters/host-node/effect-publication-binding.test.mjs",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function acquiredKeyedEffectPublicationPlan("
               }
             ],
             "ownership": [
@@ -26526,6 +26605,10 @@
               {
                 "path": "adapters/host-node/effect-publication-binding.test.mjs",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function acquiredKeyedEffectPublicationPlan("
               }
             ],
             "synchronization": [
@@ -26556,6 +26639,10 @@
               {
                 "path": "adapters/host-node/effect-publication-binding.test.mjs",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function acquiredKeyedEffectPublicationPlan("
               }
             ],
             "failure": [
@@ -26586,6 +26673,10 @@
               {
                 "path": "adapters/host-node/effect-publication-binding.test.mjs",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function acquiredKeyedEffectPublicationPlan("
               }
             ],
             "cancellation": [
@@ -26612,6 +26703,10 @@
               {
                 "path": "adapters/host-node/effect-publication-binding.test.mjs",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function acquiredKeyedEffectPublicationPlan("
               }
             ],
             "resources": [
@@ -26646,6 +26741,10 @@
               {
                 "path": "adapters/host-node/effect-publication-binding.test.mjs",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function acquiredKeyedEffectPublicationPlan("
               }
             ],
             "extension": [
@@ -26676,6 +26775,10 @@
               {
                 "path": "adapters/host-node/effect-publication-binding.test.mjs",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function acquiredKeyedEffectPublicationPlan("
               }
             ],
             "verification": [
@@ -26730,6 +26833,10 @@
               {
                 "path": "adapters/host-node/effect-publication-binding.test.mjs",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-publication.test.mjs",
+                "anchor": "test('Source-only publication refuses missing original lookup and preserves actual Unit failure'"
               }
             ]
           }
@@ -28735,8 +28842,9 @@
     },
     {
       "module": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
-      "sha256": "45f40ffd4aa8cab4e1554b2e42e1e020cd0f378375c153571e333e05e96b144f",
+      "sha256": "36a01553f6d46af9ebb79ae53703dd87a8c6ebe0efc842f9b6b128fdbe0651f8",
       "exports": [
+        "prepareAcquiredEffectKeyedCapture",
         "prepareAcquiredEffectKeyedPrefix"
       ],
       "operations": [
@@ -28747,6 +28855,7 @@
             "acquired",
             "plan",
             "infer",
+            "sourceOriginal",
             "captures",
             "sources",
             "requestJournal",
@@ -28821,7 +28930,21 @@
           "async": false
         },
         {
+          "name": "prepareAcquiredEffectKeyedCapture",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
           "name": "prepareAcquiredEffectKeyedPrefix",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareOriginalEffectKeyedInput",
           "parameters": [
             "moon",
             "acquired",
@@ -28843,34 +28966,35 @@
             "retain",
             "requestJournal",
             "runRef",
-            "originalHost"
+            "originalHost",
+            "sourcePreparation"
           ],
           "async": true
         },
         {
-          "name": "prepareAcquiredEffectKeyedPrefix/cleanup/cleanup",
+          "name": "prepareOriginalEffectKeyedInput/cleanup/cleanup",
           "parameters": [],
           "async": true
         },
         {
-          "name": "prepareAcquiredEffectKeyedPrefix/frame/frame",
+          "name": "prepareOriginalEffectKeyedInput/frame/frame",
           "parameters": [],
           "async": false
         },
         {
-          "name": "prepareAcquiredEffectKeyedPrefix/frame/frame#2",
+          "name": "prepareOriginalEffectKeyedInput/frame/frame#2",
           "parameters": [
             "child"
           ],
           "async": false
         },
         {
-          "name": "prepareAcquiredEffectKeyedPrefix/prepareAcquiredEffectKeyedPrefix",
+          "name": "prepareOriginalEffectKeyedInput/prepareOriginalEffectKeyedInput",
           "parameters": [],
           "async": false
         },
         {
-          "name": "prepareAcquiredEffectKeyedPrefix/prepareAcquiredEffectKeyedPrefix#2",
+          "name": "prepareOriginalEffectKeyedInput/prepareOriginalEffectKeyedInput#2",
           "parameters": [
             "value"
           ],
@@ -28884,12 +29008,6 @@
         {
           "operations": [
             "<module>",
-            "prepareAcquiredEffectKeyedPrefix",
-            "prepareAcquiredEffectKeyedPrefix/cleanup/cleanup",
-            "prepareAcquiredEffectKeyedPrefix/frame/frame",
-            "prepareAcquiredEffectKeyedPrefix/frame/frame#2",
-            "prepareAcquiredEffectKeyedPrefix/prepareAcquiredEffectKeyedPrefix",
-            "prepareAcquiredEffectKeyedPrefix/prepareAcquiredEffectKeyedPrefix#2",
             "originalKeyedLookupPublication",
             "originalKeyedLookupPublication/init:activate/init:activate",
             "originalKeyedLookupPublication/init:adopt/init:adopt",
@@ -28898,9 +29016,18 @@
             "originalKeyedLookupPublication/init:finishInput/init:finishInput/init:finishInput",
             "originalKeyedLookupPublication/init:initialize/init:initialize",
             "originalKeyedLookupPublication/init:retainRawResponse/init:retainRawResponse",
-            "originalKeyedLookupPublication/originalCurrent/originalCurrent"
+            "originalKeyedLookupPublication/originalCurrent/originalCurrent",
+            "prepareAcquiredEffectKeyedCapture",
+            "prepareAcquiredEffectKeyedPrefix",
+            "prepareOriginalEffectKeyedInput",
+            "prepareOriginalEffectKeyedInput/cleanup/cleanup",
+            "prepareOriginalEffectKeyedInput/frame/frame",
+            "prepareOriginalEffectKeyedInput/frame/frame#2",
+            "prepareOriginalEffectKeyedInput/prepareOriginalEffectKeyedInput",
+            "prepareOriginalEffectKeyedInput/prepareOriginalEffectKeyedInput#2"
           ],
           "exports": [
+            "prepareAcquiredEffectKeyedCapture",
             "prepareAcquiredEffectKeyedPrefix"
           ],
           "attributes": {
@@ -28912,6 +29039,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "export async function prepareAcquiredEffectKeyedPrefix"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "async function prepareOriginalEffectKeyedInput("
               }
             ],
             "inputsOutputs": [
@@ -28922,6 +29053,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "export async function prepareAcquiredEffectKeyedPrefix"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "async function prepareOriginalEffectKeyedInput("
               }
             ],
             "identity": [
@@ -28932,6 +29067,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "export async function prepareAcquiredEffectKeyedPrefix"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "async function prepareOriginalEffectKeyedInput("
               }
             ],
             "ownership": [
@@ -28942,6 +29081,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "export async function prepareAcquiredEffectKeyedPrefix"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "async function prepareOriginalEffectKeyedInput("
               }
             ],
             "synchronization": [
@@ -28952,6 +29095,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "export async function prepareAcquiredEffectKeyedPrefix"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "async function prepareOriginalEffectKeyedInput("
               }
             ],
             "failure": [
@@ -28962,6 +29109,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "export async function prepareAcquiredEffectKeyedPrefix"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "async function prepareOriginalEffectKeyedInput("
               }
             ],
             "cancellation": [
@@ -28972,6 +29123,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "export async function prepareAcquiredEffectKeyedPrefix"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "async function prepareOriginalEffectKeyedInput("
               }
             ],
             "resources": [
@@ -28982,6 +29137,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "export async function prepareAcquiredEffectKeyedPrefix"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "async function prepareOriginalEffectKeyedInput("
               }
             ],
             "extension": [
@@ -28992,12 +29151,20 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "export async function prepareAcquiredEffectKeyedPrefix"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "async function prepareOriginalEffectKeyedInput("
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.test.mjs",
                 "anchor": "test('same two captured originals execute one prefix and one keyed observation before Model'"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.test.mjs",
+                "anchor": "test('Source-only keyed capture uses the same original lookup without Model or prefix execution'"
               }
             ]
           }

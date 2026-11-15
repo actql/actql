@@ -306,6 +306,8 @@ pub fn client_program_admit_effect_run_materials_with_compilation(String, String
 
 pub fn client_program_admit_effect_serialization_captured_input(@run_publication_host.ClientCompiledRun, @run_publication_host.PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, String, String, String, String) -> Result[@run_publication_host.ClientSerializationCapturedInput, @run_publication.RunEvidenceValueIssue]
 
+pub fn client_program_admit_effect_serialization_whole_captured_input(@run_publication_host.ClientCompiledRun, @run_publication_host.PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @client_local_host.ClientInstalledWholeSourceCapacity, @run_publication.RunEvidenceValue, String, String, String, String) -> Result[@run_publication_host.ClientSerializationCapturedInput, @run_publication.RunEvidenceValueIssue]
+
 pub fn client_program_admit_infer_captured_input(@run_publication_host.PreparedClientProgram, Int, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, String, String) -> Result[@run_publication_host.ClientInferCapturedInput, @run_publication_host.ClientInferCallScopeIssue]
 
 pub fn client_program_admit_infer_egress(@run_publication_host.PreparedClientProgram, Int, @check_environment.ModelExecutionContract, () -> (String, String, Bool, Bool)?) -> Result[@run_publication_host.ClientInferEgressAdmission, @run_publication_host.ClientInferEgressIssue]
@@ -347,6 +349,8 @@ pub fn client_program_admit_request_effect_captured_run(@client_local_host.Clien
 pub fn client_program_admit_result_plan(@run_publication_host.PreparedClientProgram, Int, String) -> Result[@run_publication_host.ClientResultPlanIdentity, @run_publication_host.ClientResultPlanAdmissionIssue]
 
 pub fn client_program_admit_serialization_captured_input(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientSerializationPlanGraph, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, String, String, String, String, @run_publication_host.ClientKeyedLookupObservation?) -> Result[@run_publication_host.ClientSerializationCapturedInput, @run_publication.RunEvidenceValueIssue]
+
+pub fn client_program_admit_serialization_whole_captured_input(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientSerializationPlanGraph, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @client_local_host.ClientInstalledWholeSourceCapacity, @run_publication.RunEvidenceValue, String, String, String, String) -> Result[@run_publication_host.ClientSerializationCapturedInput, @run_publication.RunEvidenceValueIssue]
 
 pub fn client_program_admit_source_free_result_policy_body(String, String, Int, Int, Int) -> Result[(String, String, String), @run_publication_host.ClientCompiledRunIssue]
 

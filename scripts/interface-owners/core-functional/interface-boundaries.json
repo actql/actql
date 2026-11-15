@@ -3123,7 +3123,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -4205,7 +4205,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -6714,7 +6714,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -7427,11 +7427,14 @@
         },
         {
           "operations": [
+            "publicationControl/init:adoptCheckedClientEffectKeyedRun/init:adoptCheckedClientEffectKeyedRun",
+            "publicationControl/init:bindCheckedClientRequestEffectKeyedOriginal/init:bindCheckedClientRequestEffectKeyedOriginal",
             "publicationControl/init:bindCheckedInstalledEffectModelInvocation/init:bindCheckedInstalledEffectModelInvocation",
             "publicationControl/init:bindCheckedInstalledEffectSourceFreeInvocation/init:bindCheckedInstalledEffectSourceFreeInvocation",
             "publicationControl/init:issueCheckedClientEffectSourceFreeInvocationOriginal/init:issueCheckedClientEffectSourceFreeInvocationOriginal",
             "publicationControl/init:issueCheckedInstalledEffectCapturedInvocation/init:issueCheckedInstalledEffectCapturedInvocation",
             "publicationControl/init:issueCheckedInstalledEffectContentInvocation/init:issueCheckedInstalledEffectContentInvocation",
+            "publicationControl/init:issueCheckedInstalledEffectKeyedInvocation/init:issueCheckedInstalledEffectKeyedInvocation",
             "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation",
             "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued",
             "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#2",
@@ -7442,7 +7445,13 @@
             "publicationControl/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation/issued/issued",
             "publicationControl/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation/issued/issued#2",
             "publicationControl/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation/issued/issued#3",
-            "publicationControl/init:originalCheckedClientEffectPublication/init:originalCheckedClientEffectPublication"
+            "publicationControl/init:originalCheckedClientEffectPublication/init:originalCheckedClientEffectPublication",
+            "publicationControl/init:prepareInstalledEffectKeyedSourceUnit/init:prepareInstalledEffectKeyedSourceUnit",
+            "publicationControl/init:prepareInstalledEffectKeyedSourceUnit/init:prepareInstalledEffectKeyedSourceUnit/bodies/bodies",
+            "publicationControl/init:prepareInstalledEffectKeyedSourceUnit/init:prepareInstalledEffectKeyedSourceUnit/value/value",
+            "publicationControl/init:startInstalledEffectKeyedCaptureInput/init:startInstalledEffectKeyedCaptureInput",
+            "publicationControl/init:startInstalledEffectKeyedCaptureInput/init:startInstalledEffectKeyedCaptureInput/init:startInstalledEffectKeyedCaptureInput",
+            "publicationControl/init:startInstalledEffectKeyedCaptureInput/init:startInstalledEffectKeyedCaptureInput/init:startInstalledEffectKeyedCaptureInput#2"
           ],
           "exports": [],
           "attributes": {
@@ -7454,6 +7463,10 @@
               {
                 "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
                 "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent, prepared, request, plan, host,"
               }
             ],
             "inputsOutputs": [
@@ -7464,6 +7477,10 @@
               {
                 "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
                 "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent, prepared, request, plan, host,"
               }
             ],
             "identity": [
@@ -7474,6 +7491,10 @@
               {
                 "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
                 "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent, prepared, request, plan, host,"
               }
             ],
             "ownership": [
@@ -7484,6 +7505,10 @@
               {
                 "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
                 "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent, prepared, request, plan, host,"
               }
             ],
             "synchronization": [
@@ -7494,6 +7519,10 @@
               {
                 "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
                 "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent, prepared, request, plan, host,"
               }
             ],
             "failure": [
@@ -7504,6 +7533,10 @@
               {
                 "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
                 "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent, prepared, request, plan, host,"
               }
             ],
             "cancellation": [
@@ -7514,6 +7547,10 @@
               {
                 "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
                 "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent, prepared, request, plan, host,"
               }
             ],
             "resources": [
@@ -7524,6 +7561,10 @@
               {
                 "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
                 "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent, prepared, request, plan, host,"
               }
             ],
             "extension": [
@@ -7534,12 +7575,20 @@
               {
                 "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
                 "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent, prepared, request, plan, host,"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/effect-publication-binding.test.mjs",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-publication.test.mjs",
+                "anchor": "test('Source-only keyed publication retains both original Sources and one combined Unit'"
               }
             ]
           }
@@ -9501,6 +9550,15 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:adoptCheckedClientEffectKeyedRun/init:adoptCheckedClientEffectKeyedRun",
+          "parameters": [
+            "allowed",
+            "definition",
+            "keyedPlan"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:adoptCheckedClientEffectSerializationRun/init:adoptCheckedClientEffectSerializationRun",
           "parameters": [
             "allowed",
@@ -9659,6 +9717,21 @@
             "occurrence",
             "graph",
             "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:bindCheckedClientRequestEffectKeyedOriginal/init:bindCheckedClientRequestEffectKeyedOriginal",
+          "parameters": [
+            "parent",
+            "input",
+            "operationPlan",
+            "compilation",
+            "compiled",
+            "definition",
+            "keyedPlan",
+            "keyed",
+            "construct"
           ],
           "async": false
         },
@@ -11321,6 +11394,24 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:issueCheckedInstalledEffectKeyedInvocation/init:issueCheckedInstalledEffectKeyedInvocation",
+          "parameters": [
+            "parent",
+            "prepared",
+            "request",
+            "plan",
+            "host",
+            "compilation",
+            "admission",
+            "definition",
+            "lookup",
+            "started",
+            "completed",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation",
           "parameters": [
             "parent",
@@ -11983,7 +12074,8 @@
             "request",
             "compiled",
             "definition",
-            "graph"
+            "graph",
+            "sourceOriginal"
           ],
           "async": false
         },
@@ -11995,7 +12087,8 @@
             "compiled",
             "definition",
             "graph",
-            "limits"
+            "limits",
+            "sourceOriginal"
           ],
           "async": false
         },
@@ -12007,7 +12100,8 @@
             "request",
             "compiled",
             "definition",
-            "graph"
+            "graph",
+            "sourceOriginal"
           ],
           "async": false
         },
@@ -12020,7 +12114,8 @@
             "compiled",
             "definition",
             "graph",
-            "limits"
+            "limits",
+            "sourceOriginal"
           ],
           "async": false
         },
@@ -12962,6 +13057,36 @@
           "name": "publicationControl/init:prepareGrowingDurableResultRowFrames/init:prepareGrowingDurableResultRowFrames",
           "parameters": [
             "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareInstalledEffectKeyedSourceUnit/init:prepareInstalledEffectKeyedSourceUnit",
+          "parameters": [
+            "parent",
+            "prepared",
+            "request",
+            "plan",
+            "host",
+            "original",
+            "lookup",
+            "retention",
+            "limits",
+            "deferCatalogs"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareInstalledEffectKeyedSourceUnit/init:prepareInstalledEffectKeyedSourceUnit/bodies/bodies",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareInstalledEffectKeyedSourceUnit/init:prepareInstalledEffectKeyedSourceUnit/value/value",
+          "parameters": [
+            "body"
           ],
           "async": false
         },
@@ -14233,6 +14358,35 @@
             "provider",
             "snapshot",
             "available"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:startInstalledEffectKeyedCaptureInput/init:startInstalledEffectKeyedCaptureInput",
+          "parameters": [
+            "managedRun",
+            "prepared",
+            "request",
+            "compiled",
+            "definition",
+            "keyedPlan",
+            "keyed",
+            "captures",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:startInstalledEffectKeyedCaptureInput/init:startInstalledEffectKeyedCaptureInput/init:startInstalledEffectKeyedCaptureInput",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:startInstalledEffectKeyedCaptureInput/init:startInstalledEffectKeyedCaptureInput/init:startInstalledEffectKeyedCaptureInput#2",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -16742,7 +16896,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "e5fc381ed80165ce074226f7a7224907daddc62f172bc7a6012bf7d1f56e3f10"
+      "sha256": "7275bcc94d1f990d5dc760b8bebe8e766436a57328f62320b631c22886008922"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -37856,7 +38010,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
-      "sha256": "2a7ab6bdf6cbf631345b25419ee944eefa98ef9fc05a38f41d931595288c3a45",
+      "sha256": "0534f1dee70043f004088f00e6e574c4cf61d822b83b0889e6eb2915f86ed18e",
       "exports": [],
       "operations": [
         {
@@ -45127,7 +45281,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "59621b21e0b7b5837f018d91037dc039232be3536f20c7b42c458e864a5aa6a7",
+      "sha256": "515aec8b431bb4d4297a26d5bc9670b700eca7f40f5c27504d0117b04f4089d0",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Effect Plan owners",
       "exports": [],
@@ -47257,7 +47411,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "bdcfb1970235b08ee46e2fe737a6795a63754392fa2621f580b7edf230efc6b0",
+      "sha256": "2eda51ff1502059507da64eda0770c8120894af963a8095218676e7401a2ec6b",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -49104,7 +49258,7 @@
           }
         }
       ],
-      "sha256": "74ae4d8b70d9a6529337c0495d109ccca5e321fd65499c686ea55dae698a1c1e",
+      "sha256": "23a0c7dbc685c7b2b65db8d751351339f155ba2bc791d9d47e57bb9ebe8b8f43",
       "exports": [],
       "operations": [
         {

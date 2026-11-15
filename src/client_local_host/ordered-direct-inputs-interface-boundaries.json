@@ -555,7 +555,7 @@
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "2a7ab6bdf6cbf631345b25419ee944eefa98ef9fc05a38f41d931595288c3a45",
+      "sha256": "0534f1dee70043f004088f00e6e574c4cf61d822b83b0889e6eb2915f86ed18e",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -1734,7 +1734,7 @@
     {
       "module": "src/client_local_host/preparation_request_program_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "74ae4d8b70d9a6529337c0495d109ccca5e321fd65499c686ea55dae698a1c1e",
+      "sha256": "23a0c7dbc685c7b2b65db8d751351339f155ba2bc791d9d47e57bb9ebe8b8f43",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -2012,7 +2012,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "59621b21e0b7b5837f018d91037dc039232be3536f20c7b42c458e864a5aa6a7",
+      "sha256": "515aec8b431bb4d4297a26d5bc9670b700eca7f40f5c27504d0117b04f4089d0",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],

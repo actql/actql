@@ -117,7 +117,9 @@ export const currentPackageConfigurations = Object.freeze({
   // complete prior six-selector descriptor and its history stay retained.
   // One literal JS-only genuine dependency boundary fixture; removing it
   // restores the complete seven-selector descriptor, with all history retained.
-  'src/client_local_host/moon.pkg': Object.freeze({digest: '1dafa5a92162e813d027789a92b51a3aa6914fafac1620c9fe56fbac3b88e9b3', rule: 'literal-target-selectors-with-bound-source-membership', revision: 'd8be5aba2a44c0048eb3df10dc2b2e5042de11a9'}),
+  // One further literal JS-only original keyed Effect Request fixture; its
+  // complete eight-selector preimage and every earlier review remain retained.
+  'src/client_local_host/moon.pkg': Object.freeze({digest: '0ea67c9c98fa22a08bcdae852e769a110d869fdc33ec22ecc15b834f56c3c38d', rule: 'literal-target-selectors-with-bound-source-membership', revision: '8825e5777cd385f1facf8046b636cd5b7842fd56'}),
   'src/connectors_builtin_node/moon.pkg': Object.freeze({digest: 'd515c9868140c30ef68b5778b71863813cad0d53cc7300e4ba8fcc3e00405d9d', rule: 'literal-js-foreign-library-with-bound-source-membership', revision: '6f27dfdf10aa232977277ec8580557463e44e81f'}),
   'src/execution_relation/moon.pkg': Object.freeze({digest: '2a223e06a52cbb8c01280e9d5c5132485434728f59271ff02900f74ea582d079', rule: 'literal-target-selectors-with-bound-source-membership', revision: '6813ab0330a17f99c8eef5c9f4a70480ecc7e96c'}),
   'src/native_values_integration/moon.pkg': Object.freeze({digest: 'aa3777f1835f552da0ea34a13bbcb0de9afeb6c96adeadfbb26b483ce683c54f', rule: 'literal-native-options-with-bound-source-membership'}),
