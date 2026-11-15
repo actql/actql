@@ -430,44 +430,6 @@ test('same Host Compute preparation is one sticky flight and retains its origina
   assert.equal(closes, 1); assert.equal(controls, 1);
 });
 
-test('captured Compute close cannot be replaced during a preceding child await', async () => {
-  let release, entered, replacementCalls = 0, originalCloses = 0;
-  const wait = new Promise(resolve => {release = resolve;});
-  const enteredFlight = new Promise(resolve => {entered = resolve;});
-  const raw = {close() {assert.strictEqual(this, raw); originalCloses++; return {pending: false};}};
-  const f = lifecycle({factory: async () => raw, beforeChild: {},
-    beforeChildClose: async () => {entered(); await wait; return {pending: false};}});
-  await f.preparation.prepareManagedCompute();
-  const closing = f.initialControl.close();
-  await enteredFlight;
-  raw.close = () => {replacementCalls++; return {pending: false};};
-  release(); await closing;
-  assert.equal(originalCloses, 1); assert.equal(replacementCalls, 0);
-});
-
-test('unobserved close getter failure retains the original and permits its same cleanup retry', async () => {
-  const marker = new Error('UnobservedClose'); let reads = 0, closes = 0;
-  const raw = {get close() {
-    if (++reads === 1) throw marker;
-    return function() {assert.strictEqual(this, raw); closes++; return {pending: false};};
-  }};
-  const f = lifecycle({factory: async () => raw});
-  await assert.rejects(f.preparation.prepareManagedCompute(), error => error === marker);
-  assert.strictEqual(f.record.computeManaged, raw);
-  await f.initialControl.close();
-  assert.equal(reads, 2); assert.equal(closes, 1);
-});
-
-test('pending Compute close retains its original and blocks final control retirement', async () => {
-  let closes = 0, controls = 0;
-  const raw = {close() {closes++; return {pending: closes === 1};}};
-  const f = lifecycle({factory: async () => raw, controlClose: () => {controls++; return {pending: false};}});
-  await f.preparation.prepareManagedCompute();
-  await assert.rejects(f.initialControl.close(), error => error.code === 'InstalledComputePreparationCleanupPending');
-  assert.equal(controls, 0); assert.strictEqual(f.record.computeManaged, raw);
-  await f.initialControl.close();
-  assert.equal(closes, 2); assert.equal(controls, 1);
-});
 
 test('pending Result READ cleanup retains the same workspace before final control retirement', async () => {
   let reads = 0, computes = 0, controls = 0, retirements = 0;

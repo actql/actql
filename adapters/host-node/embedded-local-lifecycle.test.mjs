@@ -70,6 +70,67 @@ test('Host reference retirement retries its original failed callback without rep
   }
 });
 
+test('Host shutdown captures the original control close before a preceding child await', async () => {
+  const entered = deferred(), release = deferred();
+  let originalCloses = 0, replacements = 0, finalizers = 0;
+  const control = {close() {
+    assert.strictEqual(this, control); originalCloses++; return {pending: false};
+  }};
+  const host = {dispatchOwner: {drain() {}}, retireTerminalEffects() {},
+    journal: {async close() {entered.resolve(); await release.promise;}}, store: {close() {}},
+    initialControl: control, retireModelRuntime() {finalizers++;}};
+  const shutdown = installedHostShutdown(host), closing = shutdown.close();
+  await entered.promise;
+  control.close = () => {replacements++; return {pending: false};};
+  release.resolve(); await closing;
+  assert.equal(originalCloses, 1); assert.equal(replacements, 0); assert.equal(finalizers, 1);
+  await shutdown.close(); assert.equal(originalCloses, 1); assert.equal(finalizers, 1);
+});
+
+test('Host shutdown retries only its still-unobserved control close getter', async () => {
+  for (const primary of [undefined, new Error('OriginalCloseGetterFailure')]) {
+    let reads = 0, closes = 0, finalizers = 0;
+    const control = {get close() {
+      reads++;
+      if (reads < 3) throw primary;
+      return function() {assert.strictEqual(this, control); closes++; return {pending: false};};
+    }};
+    const shutdown = installedHostShutdown({dispatchOwner: {drain() {}}, retireTerminalEffects() {},
+      journal: {close() {}}, store: {close() {}}, initialControl: control,
+      retireModelRuntime() {finalizers++;}});
+    assert.equal(reads, 1); assert.equal(closes, 0);
+    await assert.rejects(shutdown.close(), error => {
+      if (error !== primary) {
+        assert(Object.hasOwn(error, 'cause')); assert.strictEqual(error.cause, primary);
+      }
+      return true;
+    });
+    assert.equal(reads, 2); assert.equal(closes, 0); assert.equal(finalizers, 0);
+    await shutdown.close();
+    assert.equal(reads, 3); assert.equal(closes, 1); assert.equal(finalizers, 1);
+    await shutdown.close(); assert.equal(reads, 3); assert.equal(closes, 1);
+  }
+});
+
+test('Host shutdown retains a pending original control and defers its finalizer until acknowledgement', async () => {
+  let closes = 0, replacements = 0, finalizers = 0;
+  const control = {close() {assert.strictEqual(this, control); return {pending: ++closes === 1};}};
+  const shutdown = installedHostShutdown({dispatchOwner: {drain() {}}, retireTerminalEffects() {},
+    journal: {close() {}}, store: {close() {}}, initialControl: control,
+    retireModelRuntime() {finalizers++;}});
+  await assert.rejects(shutdown.close(), error => {
+    assert.equal(error.message, 'InstalledHostInitialControlCleanupPending');
+    assert.equal(error.cleanupPending, true);
+    assert(error.cleanupHandle.status().pending.includes('initialControl'));
+    return true;
+  });
+  assert.equal(closes, 1); assert.equal(finalizers, 0);
+  control.close = () => {replacements++; return {pending: false};};
+  await shutdown.close();
+  assert.equal(closes, 2); assert.equal(replacements, 0); assert.equal(finalizers, 1);
+  await shutdown.close(); assert.equal(closes, 2); assert.equal(finalizers, 1);
+});
+
 test('selected Local lifecycle cannot omit its same own preparation receiver before connect', async () => {
   // Explicit shutdown ports observe refusal/cleanup order only. No Source
   // receipt, Root, Account, physical resource or ordinary Run is issued.
