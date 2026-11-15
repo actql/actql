@@ -9,7 +9,7 @@ import {isDeepStrictEqual} from 'node:util';
 import {setTimeout as delay} from 'node:timers/promises';
 import {open} from '@actql/node';
 import {projectFileDependencyBoundary} from './project-file-dependency-boundary-cases.mjs';
-import {observeProjectEffectDependencies} from './project-effect-dependency-observation.mjs';
+import {observeProjectEffectDependencies, dependencyBoundaryFailureData as diagnostic} from './project-effect-dependency-observation.mjs';
 import {observeProjectFileStoreLedger, observeProjectFileStoreAttempts}
   from './project-file-store-ledger-observation.mjs';
 import {observeRecordApprovalDescriptors} from './record-approval/scoped-fds.fixture.mjs';
@@ -36,29 +36,6 @@ const report = {case: caseId, phase, pid: process.pid, submits: 0, approvals: 0,
   firstClose: 'unobserved', firstCloseCalls: 0, complete: false,
   diagnostics: [],
   requestMemory: {retainedBytes: 1073741824, executionBytes: 1073741824}, sourceFreeMaxWork: 30000000};
-const diagnostic = (value, depth = 8) => {
-  if (depth === 0 || value === null || typeof value !== 'object') return undefined;
-  const data = key => {
-    try {
-      for (let owner = value, level = 0; owner !== null && typeof owner === 'object' && level < 4;
-        owner = Object.getPrototypeOf(owner), level++) {
-        const property = Object.getOwnPropertyDescriptor(owner, key);
-        if (property) return Object.hasOwn(property, 'value') ? property.value : undefined;
-      }
-    } catch { /* Diagnostic inspection cannot replace the original failure. */ }
-  };
-  const result = {};
-  for (const key of ['name', 'code', 'phase', 'kind', 'boundary', 'dimension',
-    'issueTag', 'nestedIssueTag', 'required', 'available', 'limit', '$tag',
-    'cause', 'primaryDiagnostic', 'issue', '_0', '_1', '_2', '_3']) {
-    const field = data(key);
-    if (typeof field === 'number' || typeof field === 'boolean') result[key] = field;
-    else if (!key.startsWith('_') && typeof field === 'string' &&
-      field.length <= 192 && /^[A-Za-z0-9_.:/-]+$/u.test(field)) result[key] = field;
-    else if (field !== null && typeof field === 'object') result[key] = diagnostic(field, depth - 1);
-  }
-  return result;
-};
 const progress = async name => {
   report.activePhase = name;
   report.phaseStartedAt = new Date().toISOString();

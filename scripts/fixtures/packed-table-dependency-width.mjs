@@ -15,7 +15,7 @@ import {tableTestAsset, tableTestModule} from '../../adapters/host-node/fixtures
 import {withFixtureConnector} from '../../adapters/host-common/connector-manifest.fixture.mjs';
 import {tableDependencyWidthCase, tableDependencyWidthAccount,
   tableDependencyWidthProfiles} from './table-dependency-width-cases.mjs';
-import {observeProjectEffectDependencies} from './project-effect-dependency-observation.mjs';
+import {observeProjectEffectDependencies, dependencyBoundaryFailureData} from './project-effect-dependency-observation.mjs';
 import {observeRecordApprovalDescriptors} from './record-approval/scoped-fds.fixture.mjs';
 import {workflowWorkObservation} from '../../adapters/host-node/fixtures/work-observation.fixture.mjs';
 
@@ -61,29 +61,7 @@ const retainSourceProgress = (name, detail) => {
     writeFileSync(sourceProgressPath, wire + '\n', {mode: 0o600});
   } catch (error) {sourceProgressFailure ??= error;}
 };
-const safe = (value, depth = 10) => {
-  if (depth === 0 || value === null || typeof value !== 'object') return undefined;
-  const data = key => {
-    try {
-      for (let owner = value, level = 0; owner !== null && typeof owner === 'object' && level < 4;
-        owner = Object.getPrototypeOf(owner), level++) {
-        const property = Object.getOwnPropertyDescriptor(owner, key);
-        if (property) return Object.hasOwn(property, 'value') ? property.value : undefined;
-      }
-    } catch { /* Diagnostic inspection cannot replace the original failure. */ }
-  };
-  const result = {};
-  for (const key of ['name', 'code', 'phase', 'kind', 'boundary', 'dimension',
-    'issueTag', 'nestedIssueTag', 'required', 'available', 'limit', '$tag',
-    'cause', 'primaryDiagnostic', 'issue', '_0', '_1', '_2', '_3']) {
-    const field = data(key);
-    if (typeof field === 'number' || typeof field === 'boolean') result[key] = field;
-    else if (!key.startsWith('_') && typeof field === 'string' &&
-      field.length <= 192 && /^[A-Za-z0-9_.:/-]+$/u.test(field)) result[key] = field;
-    else if (field !== null && typeof field === 'object') result[key] = safe(field, depth - 1);
-  }
-  return result;
-};
+const safe = value => dependencyBoundaryFailureData(value, 10);
 const progress = async name => {
   report.activePhase = name; report.phaseStartedAt = new Date().toISOString();
   await save(pendingPath, report);

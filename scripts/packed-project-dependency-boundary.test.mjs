@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
 import test from 'node:test';
-import {parse} from 'acorn';
+import {dependencyBoundaryFailureData} from './fixtures/project-effect-dependency-observation.mjs';
 import {assertPackedDependencyBoundaryPhase, packedDependencyBoundaryCases,
   packedDependencyBoundaryPhases} from './packed-project-dependency-boundary.mjs';
 
@@ -85,15 +84,9 @@ test('a pending first close, live descriptor, incomplete phase or missing Source
   }
 });
 
-for (const [file, name] of [['packed-table-dependency-width.mjs', 'safe'],
-  ['packed-project-dependency-boundary.mjs', 'diagnostic']]) {
-  test(`${name} preserves bounded prototype enum DATA without evaluating diagnostic getters`, () => {
-    const source = readFileSync(new URL(`./fixtures/${file}`, import.meta.url), 'utf8');
-    const declaration = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
-      .flatMap(node => node.type === 'VariableDeclaration' ? node.declarations : [])
-      .find(node => node.id.name === name);
-    assert(declaration);
-    const inspect = new Function(`const ${name} = ${source.slice(declaration.init.start, declaration.init.end)};return ${name};`)();
+for (const depth of [8, 10]) {
+  test(`dependency diagnostics preserve bounded prototype enum DATA at depth ${depth} without getters`, () => {
+    const inspect = value => dependencyBoundaryFailureData(value, depth);
     let getters = 0;
     const leaf = Object.assign(Object.create({$tag: 7}), {_0: 11, required: 19, available: 8});
     const cause = Object.assign(Object.create({$tag: 3}), {_0: leaf, _1: true});

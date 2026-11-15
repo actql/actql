@@ -122,3 +122,28 @@ export async function observeProjectEffectDependencies(stateDir, ref, maximumByt
       snapshotCid: digest(canonical(snapshot))}, snapshot};
   } finally {plaintext?.fill(0);}
 }
+
+// The real children and tests share this bounded diagnostic projection.
+export const dependencyBoundaryFailureData = (value, depth = 8) => {
+  if (depth === 0 || value === null || typeof value !== 'object') return undefined;
+  const data = key => {
+    try {
+      for (let owner = value, level = 0; owner !== null && typeof owner === 'object' && level < 4;
+        owner = Object.getPrototypeOf(owner), level++) {
+        const property = Object.getOwnPropertyDescriptor(owner, key);
+        if (property) return Object.hasOwn(property, 'value') ? property.value : undefined;
+      }
+    } catch { /* Diagnostic inspection cannot replace the original failure. */ }
+  };
+  const result = {};
+  for (const key of ['name', 'code', 'phase', 'kind', 'boundary', 'dimension',
+    'issueTag', 'nestedIssueTag', 'required', 'available', 'limit', '$tag',
+    'cause', 'primaryDiagnostic', 'issue', '_0', '_1', '_2', '_3']) {
+    const field = data(key);
+    if (typeof field === 'number' || typeof field === 'boolean') result[key] = field;
+    else if (!key.startsWith('_') && typeof field === 'string' &&
+      field.length <= 192 && /^[A-Za-z0-9_.:/-]+$/u.test(field)) result[key] = field;
+    else if (field !== null && typeof field === 'object') result[key] = dependencyBoundaryFailureData(field, depth - 1);
+  }
+  return result;
+};
