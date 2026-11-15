@@ -168,7 +168,10 @@ test "generic captured 101 Ref lookup completes dependency closure within the or
     Err(Assembly(reason)) => "assembly:" + reason
     Err(_) => "other_refusal"
   }
-  let input_work = lookup.work.to_int64() + lookup.input.map(value => @execution.admitted_input_work(value).to_int64()).unwrap_or(0L)
+  let input_work = lookup.work.to_int64() +
+    lookup.input
+    .map(value => @execution.admitted_input_work(value).to_int64())
+    .unwrap_or(0L)
   println(
     "KEYED_COMPLETION work_before=\{before} work_after=\{client_keyed_lookup_input_work(lookup)} input_work=\{input_work} identity_work=\{lookup.identity_work} input_bound=1000000 stage=\{stage}",
   )

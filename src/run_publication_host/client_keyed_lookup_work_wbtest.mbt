@@ -14,7 +14,10 @@ fn keyed_work_original_fixture(
   completion? : Bool = false,
   resources? : Array[String]? = None,
 ) -> (ClientKeyedLookupInput, () -> Bool, @row_host.RowDeclaration) raise {
-  let (prepared, keyed, declaration) = generic_file_effect_fixture(whole=true, lookup_bytes=if completion { 1000000 } else { 32768 })
+  let (prepared, keyed, declaration) = generic_file_effect_fixture(
+    whole=true,
+    lookup_bytes=if completion { 1000000 } else { 32768 },
+  )
   let measured = measure_client_effect_generic_keyed_plan_construction(
     prepared,
     keyed,
@@ -164,7 +167,11 @@ fn keyed_work_original_fixture(
     max_rows,
     reference_issuer=Some(
       @values.bind_reference_issuer(
-        (_, wire) => resources.map(values => values.contains(wire)).unwrap_or(wire == keyed_work_resource()),
+        (_, wire) => {
+          resources
+          .map(values => values.contains(wire))
+          .unwrap_or(wire == keyed_work_resource())
+        },
         _ => true,
       ),
     ),

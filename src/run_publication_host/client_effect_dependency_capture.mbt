@@ -262,10 +262,11 @@ fn admit_client_effect_dependency_capture_body(
       // usage field is row/field count). Preserve the parser's depth ceiling.
       (nodes, Int::min(max_depth, nodes))
     }
-    None => (
-      Int::min(max_nodes, Int::max(1, bytes)),
-      Int::min(max_depth, Int::min(max_nodes, Int::max(1, bytes))),
-    )
+    None =>
+      (
+        Int::min(max_nodes, Int::max(1, bytes)),
+        Int::min(max_depth, Int::min(max_nodes, Int::max(1, bytes))),
+      )
   }
   if before_body is Some(prepare) {
     // Every JSON node consumes at least one original input byte. These are
