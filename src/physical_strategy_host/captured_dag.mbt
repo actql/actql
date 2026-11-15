@@ -443,6 +443,37 @@ pub fn open_multi_captured_effect_run_keyed_dag(
     is Some(graph) else {
     return Err(ForeignCapture)
   }
+  open_original_effect_keyed_read(checked, graph, sources, ledger, task, read)
+}
+
+///|
+/// Bind a completed Source read into its already-declared checked input slot.
+/// Unlike a deferred Model input, this original graph needs no added slot or
+/// graph rewrite. The same DAG opener checks all other ordered inputs and
+/// owns execution; this entry creates no Source observation or permission.
+pub fn open_captured_effect_keyed_source_run_dag(
+  checked : CheckedEffectRunDAG,
+  sources : Array[(Int, @query.CapturedInputSource)],
+  ledger : @resources.Ledger,
+  task : Int,
+  read : @execution.SuppliedRelationRead,
+) -> Result[CapturedEffectRunDAG, RunIssue] {
+  open_original_effect_keyed_read(
+    checked, checked.computation.graph_value(), sources, ledger, task, read,
+  )
+}
+
+///|
+// Both callers supply an actual live original read. Only the Model caller may
+// add its checked deferred slot; Source-only consumes the declared graph.
+fn open_original_effect_keyed_read(
+  checked : CheckedEffectRunDAG,
+  graph : CheckedDAG,
+  sources : Array[(Int, @query.CapturedInputSource)],
+  ledger : @resources.Ledger,
+  task : Int,
+  read : @execution.SuppliedRelationRead,
+) -> Result[CapturedEffectRunDAG, RunIssue] {
   let mut slot = None
   for value in graph.supplied_slots_iter() {
     if value.consumer == task &&
@@ -479,6 +510,36 @@ pub fn open_multi_captured_effect_run_keyed_dag(
 ///|
 pub fn captured_effect_run_dag(value : CapturedEffectRunDAG) -> CapturedDAG {
   value.captured
+}
+
+///|
+/// Exact retained keyed-input binding, including after its task completed.
+/// This observes no Source callback and grants no input read or execution.
+/// The caller separately binds this DAG's original checked graph and Ledger.
+pub fn captured_effect_keyed_supplied_input_matches(
+  run : CapturedDAG,
+  task : Int,
+  input : Int,
+  read : @execution.SuppliedRelationRead,
+) -> Bool {
+  guard !run.stopped && run.failure is None &&
+    task >= run.graph.captured_prefix_value() &&
+    task < run.supplied_reads.length() &&
+    task < run.lifetimes.length() && run.lifetimes[task].live &&
+    input >= 0 && input < run.supplied_reads[task].length() &&
+    run.supplied_reads[task][input] is Some(original) &&
+    @execution.supplied_relation_read_same_binding(original, read) &&
+    run.graph.owners_at(task) is Some(owner) else {
+    return false
+  }
+  for slot in run.graph.supplied_slots_iter() {
+    if slot.consumer == task && slot.input == input {
+      return @execution.supplied_relation_read_matches_input(
+        read, owner, slot.source_input,
+      )
+    }
+  }
+  false
 }
 
 ///|
