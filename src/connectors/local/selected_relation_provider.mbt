@@ -29,11 +29,11 @@ fn selected_binding_rows_supported(kernel : @lower.PreparedKernel) -> Bool {
 }
 
 ///|
-// These evaluator leaves return an existing input/prior value or capture an
-// immutable admitted literal, including checked property selection rooted in
-// an input/prior slot. They build no text/container forest. Keep the
-// complete fragment/traversal workspace and fund persistent output on the
-// original bounded row budget before CommitOutputRow transfers it.
+// These evaluator leaves borrow an input/prior value or admitted literal,
+// including checked property selection rooted in an input/prior slot. Inline
+// Number/Boolean results likewise build no persistent text/container forest.
+// Keep the complete fragment/traversal workspace and fund persistent output on
+// the original bounded row budget before CommitOutputRow transfers it.
 fn selected_binding_outputs_borrowed(kernel : @lower.PreparedKernel) -> Bool {
   guard (
       @lower.kernel_body(kernel) is @lower.SnapshotMap(_) ||
@@ -47,6 +47,14 @@ fn selected_binding_outputs_borrowed(kernel : @lower.PreparedKernel) -> Bool {
   for index in 0..<@lower.bindings_count(bindings) {
     guard @lower.binding_at(bindings, index) is Some((_, expression)) else {
       return false
+    }
+    // An inline Number/Boolean result builds no persistent value forest.
+    // Keep the COMPLETE original Fragment scratch for every intermediate,
+    // including dormant Text/container children. Only accepted output DATA
+    // is deferred to this same bounded row's before-commit growth owner.
+    match @lower.expression_contract(expression).shape {
+      @contract.Number | @contract.Boolean => continue
+      _ => ()
     }
     let mut leaf = expression
     let mut property = false

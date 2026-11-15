@@ -305,6 +305,9 @@ pub fn generated_bounded_sequence_capacity(
             // predicate, stepped input/output rechecks and occurrence charge.
             // Its complete independent Fragment workspace remains below.
             @lower.kernel_body(kernel) is @lower.Filter(_) ||
+            // LIMIT measures every original cell and forwards checked cells;
+            // its range/order metadata constructs no copied input forest.
+            @lower.kernel_body(kernel) is @lower.Limit(_, _, _) ||
             // UNNEST scans original arrays and rechecks the same immutable
             // carried/element values. Its maps, row arrays, complete input
             // charge and recheck/measurement cursors remain funded below.

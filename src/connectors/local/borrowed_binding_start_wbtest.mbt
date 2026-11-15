@@ -3,6 +3,8 @@ test "singleton borrowed binding leaves meter output DATA without admitting cons
   for
     (expression, borrowed) in [
       ("{\"literal\":\"ÿ\"}", true),
+      ("\"1 + 2\"", true),
+      ("\"1 = 2\"", true),
       ("{\"field\":\"payload\"}", true),
       ("{\"literal\":[1,2]}", true),
       ("{\"literal\":{\"x\":1}}", true),

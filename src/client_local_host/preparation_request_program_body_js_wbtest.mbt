@@ -1900,7 +1900,17 @@ test "public array actual task metadata exhaustion retains the same parent attem
   guard execution is Err(failure) else {
     fail("Actual exhausted metadata must refuse before row-index allocation")
   }
-  assert_true(failure.issue is Driver(Execution(Physical(ExecutionLimit))))
+  // Preserve the exact original quota refusal and its charged request,
+  // rather than accepting the older generic physical failure projection.
+  guard failure.issue
+    is Driver(
+      ExecutionCapacityRefusal(ExecutionLimit, needed, available, policy)
+    ) else {
+    fail("Actual metadata exhaustion must retain its capacity demand")
+  }
+  assert_true(needed > 0L)
+  assert_eq(available, 0L)
+  assert_eq(policy, limits.execution_bytes)
   assert_true(retry_local_values_execution_failure_cleanup(failure))
   assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
   @resources.settle_capacity(ledger, block.val.unwrap()).unwrap()
