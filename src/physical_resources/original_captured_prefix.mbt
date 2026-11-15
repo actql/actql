@@ -129,6 +129,44 @@ fn original_captured_inputs_live(
 // preparation/reader/control tokens remain with their own existing owners.
 // Serial DATA only selects; exact token identity authenticates each member.
 // This read-only view issues no capacity, permission or cleanup acknowledgement.
+pub fn original_borrowed_captured_allocation_available(
+  ledger : Ledger,
+  reservation : Reservation,
+  holding : Holding,
+) -> Bool {
+  guard ledger.original_inventory is Some(inventory) &&
+    original_ledger_inventory_available(inventory.identity) else {
+    return false
+  }
+  original_borrowed_captured_allocation_member_available(
+    ledger, inventory, reservation, holding,
+  )
+}
+
+///|
+// The caller has checked this SAME synchronous inventory once. No current or
+// foreign callback can change its lifetime while these member checks run.
+fn original_borrowed_captured_allocation_member_available(
+  ledger : Ledger,
+  inventory : LedgerOriginalInventory,
+  reservation : Reservation,
+  holding : Holding,
+) -> Bool {
+  physical_equal(reservation.owner, ledger) &&
+  holding_available(ledger, holding) &&
+  !reservation_pending(reservation) &&
+  holding.reservation_serial == reservation.serial &&
+  (match inventory.reservations.by_serial(reservation.serial) {
+    Some(actual) => physical_equal(actual, reservation)
+    None => false
+  }) &&
+  (match inventory.holdings.by_serial(holding.serial) {
+    Some(actual) => physical_equal(actual, holding)
+    None => false
+  })
+}
+
+///|
 pub fn original_borrowed_captured_inputs_available(
   ledger : Ledger,
   originals : Array[(Reservation, Holding)],
@@ -139,15 +177,9 @@ pub fn original_borrowed_captured_inputs_available(
     return false
   }
   for index, (reservation, holding) in originals {
-    guard physical_equal(reservation.owner, ledger) &&
-      holding_available(ledger, holding) &&
-      !reservation_pending(reservation) &&
-      holding.reservation_serial == reservation.serial &&
-      inventory.reservations.by_serial(reservation.serial)
-      is Some(actual_reservation) &&
-      physical_equal(actual_reservation, reservation) &&
-      inventory.holdings.by_serial(holding.serial) is Some(actual_holding) &&
-      physical_equal(actual_holding, holding) else {
+    if !original_borrowed_captured_allocation_member_available(
+        ledger, inventory, reservation, holding,
+      ) {
       return false
     }
     if index > 0 &&

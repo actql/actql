@@ -97,7 +97,7 @@ pub fn start_installed_effect_keyed_capture_input(
   }
   let mut left_rows = None
   for index, capture in captures {
-    guard @row_source_host.row_capture_original_prefix_requirement(
+    guard @row_source_host.row_capture_original_borrowed_requirement(
         capture, ledger,
       )
       is Some(requirement) &&

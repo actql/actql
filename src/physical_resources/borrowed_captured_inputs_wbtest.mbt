@@ -120,3 +120,70 @@ test "shared captured inputs borrow exact originals after retained preparation w
   assert_eq(quantity_usage(ledger), quantities)
   original_captured_inputs_release(foreign, other)
 }
+
+///|
+test "borrowed capture allocation rejects dead foreign copied and pending originals" {
+  let (ledger, _, originals) = original_captured_inputs_fixture(settled=false)
+  let (foreign, _, others) = original_captured_inputs_fixture()
+  let (reservation, holding) = originals[0]
+  let before = ledger_usage(ledger)
+  assert_true(
+    original_borrowed_captured_allocation_available(
+      ledger, reservation, holding,
+    ),
+  )
+  assert_false(
+    original_borrowed_captured_allocation_available(
+      foreign, reservation, holding,
+    ),
+  )
+  assert_false(
+    original_borrowed_captured_allocation_available(
+      ledger,
+      others[0].0,
+      others[0].1,
+    ),
+  )
+  assert_false(
+    original_borrowed_captured_allocation_available(ledger, reservation, {
+      ..holding,
+    }),
+  )
+  assert_false(
+    original_borrowed_captured_allocation_available(
+      ledger,
+      { ..reservation, },
+      holding,
+    ),
+  )
+  assert_false(
+    original_borrowed_captured_allocation_available(
+      ledger,
+      reservation,
+      originals[1].1,
+    ),
+  )
+  assert_eq(ledger_usage(ledger), before)
+  mark_cleanup_pending(ledger, reservation).unwrap()
+  assert_false(
+    original_borrowed_captured_allocation_available(
+      ledger, reservation, holding,
+    ),
+  )
+  settle_reservation(ledger, reservation).unwrap()
+  assert_true(
+    original_borrowed_captured_allocation_available(
+      ledger, reservation, holding,
+    ),
+  )
+  release_allocation(ledger, holding).unwrap()
+  assert_false(
+    original_borrowed_captured_allocation_available(
+      ledger, reservation, holding,
+    ),
+  )
+  release_allocation(ledger, originals[1].1).unwrap()
+  settle_reservation(ledger, originals[1].0).unwrap()
+  assert_true(finish_original_ledger_inventory(ledger, true).unwrap())
+  original_captured_inputs_release(foreign, others)
+}

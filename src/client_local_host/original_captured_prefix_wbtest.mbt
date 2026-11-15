@@ -452,3 +452,61 @@ test "original captured prefix cancellation keeps the source until both existing
   original_captured_prefix_close(value)
   assert_true(@row_source_host.row_capture_source(value.capture) is Err(_))
 }
+
+///|
+test "borrowed Row requirement keeps its exact live allocation beside a same Run child" {
+  let value = original_captured_prefix_fixture()
+  let original = @row_source_host.row_capture_original_prefix_requirement(
+    value.capture,
+    value.ledger,
+  ).unwrap()
+  let sibling = @resources.reserve_attempt(value.ledger, 0L, 0L, 0L).unwrap()
+  let before = @resources.ledger_usage(value.ledger)
+  assert_true(
+    @row_source_host.row_capture_original_prefix_requirement(
+      value.capture,
+      value.ledger,
+    )
+    is None,
+  )
+  let borrowed = @row_source_host.row_capture_original_borrowed_requirement(
+    value.capture,
+    value.ledger,
+  ).unwrap()
+  assert_true(physical_equal(borrowed, original))
+  assert_eq(@resources.ledger_usage(value.ledger), before)
+  @resources.settle_reservation(value.ledger, sibling).unwrap()
+  original_captured_prefix_close(value)
+  assert_true(
+    @row_source_host.row_capture_original_borrowed_requirement(
+      value.capture,
+      value.ledger,
+    )
+    is None,
+  )
+}
+
+///|
+test "borrowed Row requirement refuses foreign Ledger and current callback cleanup" {
+  let value = original_captured_prefix_fixture()
+  let other = original_captured_prefix_fixture()
+  assert_true(
+    @row_source_host.row_capture_original_borrowed_requirement(
+      value.capture,
+      other.ledger,
+    )
+    is None,
+  )
+  value.verify_hook.val = Some(fn() {
+    @row_source_host.close_row_run(value.run)
+  })
+  assert_true(
+    @row_source_host.row_capture_original_borrowed_requirement(
+      value.capture,
+      value.ledger,
+    )
+    is None,
+  )
+  original_captured_prefix_close(value)
+  original_captured_prefix_close(other)
+}
