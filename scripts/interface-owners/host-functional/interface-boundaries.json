@@ -24560,7 +24560,7 @@
     {
       "module": "adapters/host-node/client-effect-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4862eb4f0df6832f1da4c5762018787ce177af9d59d55656c314fc32dabac90c",
+      "sha256": "0ed5980fa2c0a5384b46396d4d09fcd266f3edfc56972d144afe6223087f1d35",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -25215,6 +25215,10 @@
               {
                 "path": "adapters/host-node/installed-update-originals.test.mjs",
                 "anchor": "held caller reuses its complete original only after existing nominal current and full-byte validation"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "target material inverse is admitted once before the original Request is adopted"
               }
             ]
           }
@@ -118979,6 +118983,14 @@
               {
                 "path": "adapters/host-node/installed-update-originals.test.mjs",
                 "anchor": "ordinary full Effect materials use the same funded Request for issue and inverse"
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "Effect materials inverse is retained before adoption and borrowed only by the exact live owner"
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "an adopted Effect without retained materials cannot run a new inverse and mismatched Run adoption refuses"
               }
             ]
           }
@@ -120518,7 +120530,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "479c3c93a279a6e0a2b648a6956945b211f81c2fc35db946a95523af9b2cb6c2"
+      "sha256": "6799199301b13e4e2f71845aef781cfe8eaf221b5a384e573c24de0fa3489f94"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
@@ -125151,7 +125163,7 @@
     },
     {
       "module": "adapters/local-node/request-preparation-adapter.mjs",
-      "sha256": "7e1c20a77c636dda18983bae2a1a37d12265aabf8d1985c63d04fef6ddfdbbc0",
+      "sha256": "bb6bc0dc9d340adad44514751cde95614eacdf6768d83087be8674e6739815c5",
       "exports": [
         "assertRequestPreparationControl",
         "beginHttpRequestInput",
@@ -125626,6 +125638,10 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "an adopted Effect without retained materials cannot run a new inverse and mismatched Run adoption refuses"
               }
             ]
           }

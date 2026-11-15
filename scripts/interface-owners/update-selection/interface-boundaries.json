@@ -538,7 +538,7 @@
     },
     {
       "module": "adapters/host-node/installed-update-originals.mjs",
-      "sha256": "9be2f9496128109f4a60fd07850279c9702999c0c5908fda8c3a01d7ea03bce8",
+      "sha256": "6d0490c61f85fdb1d79b3f2062b63321b56a0223991350a8a905957586766f0b",
       "exports": [
         "installUpdateTargetOriginals"
       ],
@@ -627,6 +627,8 @@
             "allowed",
             "definition",
             "identity",
+            "compilation",
+            "runDefinition",
             "reserveOriginal"
           ],
           "async": false
@@ -1001,6 +1003,10 @@
               {
                 "path": "adapters/host-node/installed-update-targets.test.mjs",
                 "anchor": "test('same physical current uses real typed installation DATA without transporting its immutable wire again', async t => {"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "target material inverse is admitted once before the original Request is adopted"
               }
             ]
           }
