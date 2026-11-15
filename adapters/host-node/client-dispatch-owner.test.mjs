@@ -22,6 +22,7 @@ import './two-source-capture-boundaries.test.mjs';
 import './two-source-public-host.test.mjs';
 import './client-dispatch-observation.test.mjs';
 import './embedded-local-operation-observation.test.mjs';
+import './client-source-free-setup-custody.test.mjs';
 
 const stopControl = {runDefinitionRunId: () => 'fixture-run',
   runCancellationConfirmed: runtimeCore(cancellationMoon).publicationControl.runCancellationConfirmed};
