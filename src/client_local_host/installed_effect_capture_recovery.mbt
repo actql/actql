@@ -196,12 +196,84 @@ pub fn reserve_installed_effect_capture_encrypted(
   owner : ClientInstalledEffectCaptureRecovery,
   bytes : Int,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
-  if owner.material is None && !owner.transitioning && !owner.closing {
-    owner.material_staged_envelope = owner.parent is Some(parent) &&
-      parent.effect_operation_controls is Some(control) &&
-      control.dependency_work is Some(_)
+  if owner.material is None {
+    if owner.transitioning || owner.closing || owner.fixed is None {
+      return Err(Retired)
+    }
+    owner.transitioning = true
+    let started = preparation_module_call(
+      () => prepare_installed_effect_capture_recovery_work(owner),
+      () => owner.transitioning = false,
+    )
+    match started {
+      Err(issue) => return Err(issue)
+      Ok(_) => owner.material_staged_envelope = true
+    }
   }
   reserve_installed_effect_capture_recovery(owner, bytes)
+}
+
+///|
+// Cold recovery has the SAME adopted Plan but no fresh Source pin's Work
+// continuation. Start that existing publication phase once on its original
+// control before funding bytes, lexical geometry and authenticated plaintext.
+// The nominal continuation remains backed by the parent after this Read ends;
+// the Read's fixed recipe already funds its lexical construction workspace.
+fn prepare_installed_effect_capture_recovery_work(
+  owner : ClientInstalledEffectCaptureRecovery,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  guard owner.transitioning &&
+    !owner.closing &&
+    owner.fixed is Some(_) &&
+    owner.parent is Some(parent) &&
+    owner.prepared is Some(prepared) &&
+    owner.request is Some(request) &&
+    owner.ledger is Some(ledger) &&
+    parent.ledger is Some(original_ledger) &&
+    physical_equal(ledger, original_ledger) &&
+    parent.preparation is Some(preparation) &&
+    preparation is PlannedEffectManaged(admission, plan) else {
+    return Err(ForeignOriginal)
+  }
+  match check_installed_effect_managed_run(parent, prepared, request) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if parent.effect_operation_controls is None {
+    match
+      retain_installed_effect_operation_controls_before_construction(
+        parent, prepared, request, plan,
+      ) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
+  guard parent.effect_operation_controls is Some(control) else {
+    return Err(ForeignOriginal)
+  }
+  if control.dependency_work is Some(_) {
+    return Ok(())
+  }
+  let phase = @resources.preparation_phase_work_continuation64_construction_inventory()
+  guard @execution.preparation_representation_cost({
+      record_headers: phase.record_headers,
+      reference_slots: phase.reference_slots,
+      scalar_words: phase.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(bytes) &&
+    @execution.execution_capacity(bytes, bytes) is Some(capacity) else {
+    return Err(InsufficientCapacity)
+  }
+  match
+    retain_installed_effect_dependency_capacity(
+      parent, preparation, admission, plan, ledger, control, capacity,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  begin_installed_effect_dependency_work(admission, plan, ledger, control)
 }
 
 ///|

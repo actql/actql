@@ -1,7 +1,7 @@
 ///|
-/// An existing live recovery child may reuse only its parent original's still
-/// retained PublicationProof receipt. Legacy/restored parents without it keep
-/// their original full-envelope parser quote; no second phase is issued here.
+/// The recovery child uses its SAME parent's retained PublicationProof receipt.
+/// The encrypted entrance prepares that phase for cold parents too; the legacy
+/// generic entrance keeps its original full-envelope quote.
 pub fn reserve_installed_effect_capture_envelope(
   owner : ClientInstalledEffectCaptureRecovery,
   wire : String,
@@ -169,8 +169,7 @@ pub fn installed_effect_capture_prepared_available(
   !owner.transitioning &&
   owner.parent is Some(parent) &&
   parent.effect_operation_controls is Some(control) &&
-  control.dependency_work is Some(_) &&
-  control.dependency_inventory is Some(_)
+  control.dependency_work is Some(_)
 }
 
 ///|
@@ -196,8 +195,7 @@ pub fn admit_installed_effect_captured_run(
     owner.ledger is Some(ledger) &&
     parent.preparation is Some(preparation) &&
     preparation is PlannedEffectManaged(admission, plan) &&
-    parent.effect_operation_controls is Some(control) &&
-    control.dependency_inventory is Some(inventory) else {
+    parent.effect_operation_controls is Some(control) else {
     return Err(ForeignOriginal)
   }
   owner.transitioning = true
@@ -303,10 +301,51 @@ pub fn admit_installed_effect_captured_run(
                 )
               Ok(value) => value
             }
-            @publication.bind_prepared_captured_effect_run(captured, inventory).map_err(_ => {
-                @resources.NodeManagedRunOperationIssue::Original(Unsupported)
-              },
-            )
+            match control.dependency_inventory {
+              Some(inventory) =>
+                @publication.bind_prepared_captured_effect_run(
+                  captured, inventory,
+                ).map_err(_ => {
+                  @resources.NodeManagedRunOperationIssue::Original(Unsupported)
+                })
+              None => {
+                // A different process owns no prior typed inventory. Admit the
+                // complete closure under THIS authenticated Read's real extent,
+                // never a metadata/row codec limit or a supplied inventory.
+                let refused : Ref[@resources.LedgerIssue?] = Ref(None)
+                let recovered = @publication.prepare_recovered_captured_effect_run(
+                  captured,
+                  bytes,
+                  nodes,
+                  owner.max_depth,
+                  units => {
+                    match spend(units) {
+                      Ok(_) => true
+                      Err(issue) => {
+                        refused.val = Some(issue)
+                        false
+                      }
+                    }
+                  },
+                )
+                match recovered {
+                  Ok(value) => Ok(value)
+                  Err(_) =>
+                    Err(
+                      match refused.val {
+                        Some(issue) =>
+                          @resources.NodeManagedRunOperationIssue::Control(
+                            issue,
+                          )
+                        None =>
+                          @resources.NodeManagedRunOperationIssue::Original(
+                            Unsupported,
+                          )
+                      },
+                    )
+                }
+              }
+            }
           },
         ) {
         Err(issue) =>
