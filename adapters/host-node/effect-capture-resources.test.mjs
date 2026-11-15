@@ -165,6 +165,34 @@ test('live capture uses SAME adopted Run and never opens a second Request Resour
   assert.equal(f.events.filter(value => value === 'live-retire').length, 1);
 });
 
+test('adopted recovery selects the encrypted envelope and prepared admission ports on the SAME Read', async () => {
+  const f = fixture({live:true}), encrypted = f.moon.clientProgramReserveInstalledEffectCaptureRecovery;
+  let readOwner;
+  f.moon.clientProgramReserveInstalledEffectCaptureEncrypted = function (owner, bytes) {
+    assert.equal(this, f.moon); readOwner = owner; f.events.push('encrypted-port');
+    return Reflect.apply(encrypted, this, [owner, bytes]);
+  };
+  f.moon.clientProgramReserveInstalledEffectCaptureRecovery = () => assert.fail('legacy reserve selected');
+  f.moon.clientProgramReserveInstalledEffectCaptureEnvelope = function (owner, wire) {
+    assert.equal(this, f.moon); assert.equal(wire, 'authenticated envelope');
+    assert.strictEqual(owner, readOwner); f.events.push('envelope-port');
+    return ok(undefined);
+  };
+  const view = f.open();
+  view.begin(); view.reserve(10001); view.reserveEnvelope('authenticated envelope');
+  view.reserveDecoded('{"captured_run":"original captured"}');
+  assert.strictEqual(view.admitCapturedRun(f.captured.wire), f.captured);
+  assert.equal(f.events.filter(value => value === 'encrypted-port').length, 1);
+  assert.equal(f.events.filter(value => value === 'envelope-port').length, 1);
+  assert.equal(f.events.filter(value => value === 'live-admit').length, 1);
+  assert.equal(f.events.includes('ordinary-admit'), false);
+  assert.equal(f.events.includes('initial'), false);
+  view.finish(false);
+  assert.equal(await view.close(), true);
+  assert.equal(f.events.filter(value => value === 'cold-retire-data').length, 1);
+  assert.equal(f.events.filter(value => value === 'live-retire').length, 1);
+});
+
 test('captured inverse re-enters the SAME Read before validation and cuts only after return', async () => {
   const f = fixture({live:true}), view = f.open();
   view.begin(); view.reserve(123); view.reserveDecoded('{"original":true}');
