@@ -1504,7 +1504,35 @@ fn managed_capture_fixture_work(
       None,
       retained_output=true,
       provider_factory=_ => [],
-    ).managed_capture_stage("original stage 211")
+      // This lifecycle enters the SAME real Request below. Its providers,
+      // imports and output grow that finite Ledger before construction; the
+      // legacy whole-Run maximum is not this entrance's startup reservation.
+      runtime_admission=true,
+    )
+    let plan = match plan {
+      Ok(value) => value
+      Err(issue) => {
+        let reason = match issue {
+          SourceAcquisition(_) => "SourceAcquisition"
+          SourceRoute(_) => "SourceRoute"
+          ForeignOriginal => "ForeignOriginal"
+          Unsupported => "Unsupported"
+          AlreadyBound => "AlreadyBound"
+          Retired => "Retired"
+          CleanupPending => "CleanupPending"
+          InsufficientCapacity => "InsufficientCapacity"
+          Resource(_) => "Resource"
+          Preparation(_) => "Preparation"
+          Ledger(_) => "Ledger"
+          ModelRead(_) => "ModelRead"
+          ModelLayout(_) => "ModelLayout"
+          Sequence(_) => "Sequence"
+          SerializationPrefix(_) => "SerializationPrefix"
+          MetadataCapacityUnavailable => "MetadataCapacityUnavailable"
+        }
+        fail("original stage 211: \{reason}")
+      }
+    }
     (plan, Some(selected), None)
   }
   @local.prepare_request_capture_module_body(
