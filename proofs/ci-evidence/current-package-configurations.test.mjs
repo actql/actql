@@ -321,7 +321,20 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
   assert.deepEqual(packageImports(captureBody).imports, packageImports(httpBody).imports);
   execFileSync('git', ['merge-base', '--is-ancestor', httpRevision, captureRevision], {cwd: root});
   execFileSync('git', ['merge-base', '--is-ancestor', captureRevision, 'HEAD'], {cwd: root});
-  assert.deepEqual(currentPackageConfigurations[path], {revision: captureRevision, digest: captureDigest, rule});
+  const wireRevision = 'f47b8a230c622b3a7b07cb6c9604851ea1bbd615';
+  const wireDigest = '2b7b68b49d3382abec0f16d4cb6ea8128c2726a6dbcee65da8517502ad492549';
+  const wireSelector = '    "preparation_request_result_read_wire_js_wbtest.mbt": [ "js" ],\n';
+  const wireBody = gitTree(root, wireRevision).read(path).toString();
+  assert.equal(hash(wireBody), wireDigest);
+  assert.equal(Buffer.byteLength(wireBody), 11493);
+  assert.equal(Buffer.byteLength(wireSelector), 68);
+  assert.equal(wireBody.split(wireSelector).length, 2);
+  assert.equal(wireBody.replace(wireSelector, ''), captureBody,
+    'only one literal JS Result wire fixture extends the complete b7db descriptor');
+  assert.deepEqual(packageImports(wireBody).imports, packageImports(captureBody).imports);
+  execFileSync('git', ['merge-base', '--is-ancestor', captureRevision, wireRevision], {cwd: root});
+  execFileSync('git', ['merge-base', '--is-ancestor', wireRevision, 'HEAD'], {cwd: root});
+  assert.deepEqual(currentPackageConfigurations[path], {revision: wireRevision, digest: wireDigest, rule});
   assert.equal(hash(fileBody), fileDigest);
   assert.equal(fileBody.split(fileSelector).length, 2);
   execFileSync('git', ['merge-base', '--is-ancestor', readRevision, fileRevision], {cwd: root});
@@ -522,9 +535,11 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
   assert.equal(currentPackageConfigurationReviewFor(request(path, hash(intakeRevision))), null);
   assert.deepEqual(packageImports(body).imports,
     [...packageImports(previous).imports, 'actql/actql/capacity_policy'].sort());
-  assert.equal(currentTree.read(path).toString(), captureBody);
+  assert.equal(currentTree.read(path).toString(), wireBody);
   assert.equal(hash(currentTree.read('toolchain.json')), toolchainDigest);
-  assert.equal(currentPackageConfigurationReviewFor(request(path, captureDigest))?.revision, captureRevision);
+  assert.equal(currentPackageConfigurationReviewFor(request(path, wireDigest))?.revision, wireRevision);
+  assert.equal(currentPackageConfigurationReviewFor(request(path, captureDigest)), null,
+    'the complete six-selector b7db preimage remains historical, not current evidence');
   assert.equal(currentPackageConfigurationReviewFor(request(path, httpDigest)), null,
     'the complete 45906 preimage remains historical, not current evidence');
   assert.equal(currentPackageConfigurationReviewFor(request(path, unionDigest)), null);
@@ -552,7 +567,7 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
   assert.deepEqual(selected.directories.find(entry => entry.path === 'src/logical_request_scope/*')?.members, scopeMembers);
   assert.deepEqual(packageImports(currentTree.read('src/logical_request_scope/moon.pkg').toString()).imports,
     ['actql/actql/canonical_value', 'actql/actql/encode_core', 'actql/actql/sha256', 'moonbitlang/core/encoding/utf8'].sort());
-  for (const member of [...members, ...catalogMembers, ...scopeMembers, ...[reentrySelector, keyedSelector, originalSelector, valuesSelector, provenanceSelector, ...selectors, ...successorSelectors, ...completionSelectors, ...workSelectors, ...readSelectors, fileSelector, unionSelector, httpSelector, ...captureSelectors].map(selector =>
+  for (const member of [...members, ...catalogMembers, ...scopeMembers, ...[reentrySelector, keyedSelector, originalSelector, valuesSelector, provenanceSelector, ...selectors, ...successorSelectors, ...completionSelectors, ...workSelectors, ...readSelectors, fileSelector, unionSelector, httpSelector, ...captureSelectors, wireSelector].map(selector =>
     'src/client_local_host/' + JSON.parse(selector.trim().split(':')[0]))]) {
     assert(selected.paths.includes(member), member);
     assert.equal(currentTree.entries.get(member)?.kind, 'blob');
@@ -567,15 +582,17 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
     !member.slice('src/client_local_host/'.length).includes('/')).sort();
   assert(localMembers.includes('src/client_local_host/preparation_request_direct_union_js_wbtest.mbt'));
   assert(localMembers.includes('src/client_local_host/preparation_request_http_input_js_wbtest.mbt'));
-  for (const selector of captureSelectors)
+  for (const selector of [...captureSelectors, wireSelector])
     assert(localMembers.includes('src/client_local_host/' + JSON.parse(selector.trim().split(':')[0])));
   assert.deepEqual(selected.directories.find(entry => entry.path === 'src/client_local_host/*')?.members, localMembers);
   for (const changed of [previous, callbackBody, valuesBody, effectBody, body, reentryBody, catalogBody, fourSelectorBody, currentBody, modelBody, requestSelectorBody, selectorBody, readBody,
-    fileBody, unionBody, httpBody,
-    ...captureSelectors.flatMap(selector => [captureBody.replace(selector, ''),
-      captureBody.replace(selector, selector.replace('"js"', '"native"')),
-      captureBody.replace(selector, selector.replace('"js"', '"wasm"')),
-      captureBody.replace(selector, selector.replace('.mbt', '_unreviewed.mbt'))]),
+    fileBody, unionBody, httpBody, captureBody,
+    ...[...captureSelectors, wireSelector].flatMap(selector => [wireBody.replace(selector, ''),
+      wireBody.replace(selector, selector.replace('"js"', '"native"')),
+      wireBody.replace(selector, selector.replace('"js"', '"wasm"')),
+      wireBody.replace(selector, selector.replace('.mbt', '_unreviewed.mbt'))]),
+    wireBody.replace(wireSelector, wireSelector + wireSelector),
+    wireBody + '\noptions(pre_build: {command: "unreviewed"})\n',
     captureBody.replace(captureSelectors[0], captureSelectors[0] + captureSelectors[0]),
     captureBody + '\noptions(pre_build: {command: "unreviewed"})\n',
     httpBody.replace(httpSelector, httpSelector.replace('"js"', '"native"')),
@@ -613,6 +630,8 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
     assert.equal(currentPackageConfigurationReviewFor({...request(path, httpDigest), ...delta}), null);
   for (const delta of [{target: 'native'}, {target: 'wasm'}, {toolchainDigest: '0'.repeat(64)}])
     assert.equal(currentPackageConfigurationReviewFor({...request(path, captureDigest), ...delta}), null);
+  for (const delta of [{target: 'native'}, {target: 'wasm'}, {toolchainDigest: '0'.repeat(64)}])
+    assert.equal(currentPackageConfigurationReviewFor({...request(path, wireDigest), ...delta}), null);
 });
 
 test('historical Local Host review preserves the original carrier, Source builder and Model completion preimages', () => {
