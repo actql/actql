@@ -9,8 +9,11 @@ fn reserve_installed_effect_keyed_encoding(
   identity : String,
   name : String,
   geometry : @encode.EncodingConstructionGeometry,
+  complete_body? : Bool = false,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
-  guard effect_unit_publication_capacity([(name, geometry)], identity)
+  guard effect_unit_publication_capacity(
+      [(name, geometry)], identity, complete_body~,
+    )
     is Some(capacity) else {
     return Err(InsufficientCapacity)
   }
@@ -96,6 +99,9 @@ pub fn issue_installed_effect_keyed_invocation(
         @publication.publication_contract_identity(definition),
         name,
         geometry,
+        // Only these two invocation emitters measured their self-CID field.
+        // Source Unit scope/local-invocation callbacks remain preimages.
+        complete_body=true,
       ) {
       Ok(_) => true
       Err(issue) => {

@@ -202,6 +202,7 @@ fn effect_unit_sealed_geometry(
 fn effect_unit_publication_capacity(
   bodies : Array[(String, @encode.EncodingConstructionGeometry)],
   identity : String,
+  complete_body? : Bool = false,
 ) -> @execution.ExecutionCapacity? {
   let mut held : @execution.PreparationRepresentationUnits = {
     record_headers: 0L,
@@ -251,8 +252,16 @@ fn effect_unit_publication_capacity(
       name != "local_result_definition" &&
       name != "local_manifest" &&
       name != "result_import_observation" {
-      guard effect_unit_sealed_geometry(name, geometry, identity)
-        is Some(sealed_body) &&
+      // Keyed invocation's two closed emitters measure the complete body,
+      // including its canonical-width self CID. Reuse that larger geometry
+      // for BOTH preimage and final parse/codec overlap. It is not a contract
+      // registry lookup (observation_set is RunEvidence), nor a second CID.
+      let sealed_body = if complete_body {
+        Some(geometry)
+      } else {
+        effect_unit_sealed_geometry(name, geometry, identity)
+      }
+      guard sealed_body is Some(sealed_body) &&
         program_artifact_parse_layout(
           @encode.construction_geometry_usage(geometry),
           structure=Some(geometry),
