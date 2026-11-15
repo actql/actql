@@ -585,6 +585,8 @@ pub fn installed_effect_plan_matches_model_demand(ClientInstalledEffectManagedPl
 
 pub fn installed_effect_response_buffer_construction_capacity(Int, response_read_quantum? : Int) -> @execution_relation.ExecutionCapacity?
 
+pub fn installed_effect_row_input_policy(@run_publication_host.PreparedClientEffectComputation, Int, Int, Int, Int, Int) -> Result[@client_row_source_host.RowInputLimits, ClientInstalledManagedRunIssue]
+
 pub fn installed_file_effect_constructor_capacity(@execution_relation.ExecutionCapacity, Int, Int, Int) -> Result[@execution_relation.ExecutionCapacity, ClientInstalledManagedRunIssue]
 
 pub fn installed_gmail_thread_reader_capacity(Array[Int], Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?

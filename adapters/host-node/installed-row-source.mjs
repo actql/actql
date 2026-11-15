@@ -3153,7 +3153,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
       ? {managedCaptureCapacity: managedProviderCaptureCapacity} : {}),
     ...(originalReader !== undefined || typeof prepareSourceRead === 'function'
       ? {managedWholeSourceCapacity} : {}),
-      managedEffectPlanSelection() {
+      managedEffectPlanSelection(selection) {
         // This entry selects the common original acquisition constructor.
         // A compatibility preparer/policy or earlier physical callback cannot
         // be replaced by that default merely because its column counts match.
@@ -3166,11 +3166,23 @@ export async function createInstalledRowSource({moon, declaration, commands,
         }
         if (originalReader !== undefined && (typeof providerSiteCurrent !== 'function' ||
             Reflect.apply(providerSiteCurrent, site, []) !== true)) fail('InstalledSourceReaderNotCurrent');
-        if (typeof moon.clientProgramInstalledRowInputPolicy !== 'function') fail('InstalledSourcePlanConstructorUnavailable');
         const selectedPageLimits = managedPageLimits ?? pageLimits;
-        const inputLimits = moon.clientProgramInstalledRowInputPolicy(
-          limits.maxCaptureRows, limits.maxPageBytes, selectedPageLimits?.maxNodes ?? 400000,
-          selectedPageLimits?.maxDepth ?? 32, limits.maxPageRows);
+        let inputLimits;
+        if (selection === undefined) {
+          if (typeof moon.clientProgramInstalledRowInputPolicy !== 'function') fail('InstalledSourcePlanConstructorUnavailable');
+          inputLimits = moon.clientProgramInstalledRowInputPolicy(
+            limits.maxCaptureRows, limits.maxPageBytes, selectedPageLimits?.maxNodes ?? 400000,
+            selectedPageLimits?.maxDepth ?? 32, limits.maxPageRows);
+        } else {
+          const prepared = Object.getOwnPropertyDescriptor(selection, 'preparedEffect');
+          if (!Object.isFrozen(selection) || prepared === undefined || !Object.hasOwn(prepared, 'value') ||
+              prepared.value === undefined || typeof moon.clientProgramInstalledEffectRowInputPolicy !== 'function') {
+            fail('InstalledSourcePlanConstructorUnavailable');
+          }
+          inputLimits = checked(moon.clientProgramInstalledEffectRowInputPolicy(
+            prepared.value, limits.maxCaptureRows, limits.maxPageBytes,
+            selectedPageLimits?.maxNodes ?? 400000, selectedPageLimits?.maxDepth ?? 32, limits.maxPageRows));
+        }
         return Object.freeze({declaration, provider: originalReader?.capacity,
           inputLimits,
           transferBytes: maxTransferBytes, executionBytes: BigInt(limits.maxPageBytes)});

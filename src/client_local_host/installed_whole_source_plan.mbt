@@ -155,9 +155,48 @@ pub fn installed_prepared_row_input_policy(
   max_page_depth : Int,
   max_page_rows : Int,
 ) -> Result[@row_source_host.RowInputLimits, ClientInstalledManagedRunIssue] {
-  let policy = installed_source_listing_policy(
+  installed_graph_row_input_policy(
     @publication_host.prepared_client_graph(prepared),
+    max_rows,
+    max_page_bytes,
+    max_page_nodes,
+    max_page_depth,
+    max_page_rows,
   )
+}
+
+///|
+/// The same projection for an actual Effect's retained checked Program.
+/// Neither a row-provider choice nor an explicit compatibility policy selects
+/// another Host's capacity or creates a new permission/resource owner.
+pub fn installed_effect_row_input_policy(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  max_rows : Int,
+  max_page_bytes : Int,
+  max_page_nodes : Int,
+  max_page_depth : Int,
+  max_page_rows : Int,
+) -> Result[@row_source_host.RowInputLimits, ClientInstalledManagedRunIssue] {
+  installed_graph_row_input_policy(
+    installed_managed_owner_graph(Effect(prepared)),
+    max_rows,
+    max_page_bytes,
+    max_page_nodes,
+    max_page_depth,
+    max_page_rows,
+  )
+}
+
+///|
+fn installed_graph_row_input_policy(
+  graph : @strategy.CheckedDAG,
+  max_rows : Int,
+  max_page_bytes : Int,
+  max_page_nodes : Int,
+  max_page_depth : Int,
+  max_page_rows : Int,
+) -> Result[@row_source_host.RowInputLimits, ClientInstalledManagedRunIssue] {
+  let policy = installed_source_listing_policy(graph)
   guard @capacity.ceiling(policy, "max_artifact_bytes") is Some(ceiling) else {
     return Err(Unsupported)
   }

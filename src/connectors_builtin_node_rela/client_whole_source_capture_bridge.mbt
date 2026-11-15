@@ -34,6 +34,25 @@ pub fn client_program_select_installed_effect_source_input(
 }
 
 ///|
+/// Normal Effect Whole capture borrows its actual checked Host byte policy.
+#export_name("clientProgramInstalledEffectRowInputPolicy")
+pub fn client_program_installed_effect_row_input_policy(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  max_rows : Int,
+  max_page_bytes : Int,
+  max_page_nodes : Int,
+  max_page_depth : Int,
+  max_page_rows : Int,
+) -> Result[
+  @client_row_source_host.RowInputLimits,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.installed_effect_row_input_policy(
+    prepared, max_rows, max_page_bytes, max_page_nodes, max_page_depth, max_page_rows,
+  )
+}
+
+///|
 #export_name("clientProgramPrepareWholeSourceCapacity")
 pub fn client_program_prepare_whole_source_capacity(
   prepared : @publication_host.PreparedClientProgram,

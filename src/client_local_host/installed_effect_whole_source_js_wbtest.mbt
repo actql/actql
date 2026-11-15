@@ -959,3 +959,185 @@ test "managed Effect public Result keeps its captured pin after a refused bridge
 test "whole Source Effect provenance keeps original supplied inputs outside completed Source slots" {
   retained_effect_whole_source_export_control(verify_provenance=true)
 }
+
+///|
+// Actual Effect Plan and original RowRun; physical Source and Compute-provider
+// ports remain explicit. Ordinary Table A/B/C is a separate qualification.
+#cfg(target="js")
+fn effect_whole_selected_capture_bytes_fixture(
+  selected_bytes : Int,
+  explicit_small? : Bool = false,
+) -> Unit raise {
+  let declaration = @row_source_host.generate_row_declaration(
+    "operation-source",
+    "fixture",
+    "fixture/0.1",
+    [
+      {
+        resource: "r",
+        resource_kind: "record",
+        fields: [
+          { name: "id", value_type: "number", nullable: false, },
+          { name: "document", value_type: "string", nullable: false, },
+        ],
+      },
+    ],
+    {
+      max_bytes: 1000000,
+      max_nodes: 100000,
+      max_depth: 100,
+      max_views: 1,
+      max_fields: 2,
+    },
+  ).unwrap()
+  let plan = effect_operation_source_plan_fixture(
+    whole_inputs=true,
+    source_declaration=Some(declaration),
+    host_artifact_bytes=Some(selected_bytes),
+    whole_policy=if explicit_small {
+      Some(installed_row_input_policy(16, 4194304, 400000, 32, 16))
+    } else {
+      None
+    },
+    whole_policy_for=if explicit_small {
+      None
+    } else {
+      Some(prepared => {
+        installed_effect_row_input_policy(prepared, 16, 4194304, 400000, 32, 16).unwrap()
+      })
+    },
+    runtime_admission=true,
+  )
+  let (input, initial, ledger, capacity) = effect_parent_test_preparation(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial,
+    input,
+    capacity,
+    plan.prepared,
+    plan.request,
+    plan,
+  ).unwrap()
+  let (read, original, acquisition, selected) = begin_installed_effect_managed_whole_source_read(
+    owner,
+    plan.prepared,
+    plan.request,
+    declaration,
+    0,
+  ).unwrap()
+  assert_true(physical_equal(original, selected.original))
+  let policy = @row_source_host.row_input_acquisition_limits(acquisition)
+  assert_eq(
+    policy.retention.max_text_bytes,
+    if explicit_small {
+      500000
+    } else {
+      selected_bytes
+    },
+  )
+  assert_eq(policy.page.max_bytes, 4194304)
+  let run = start_installed_whole_source_read_rows(
+    read,
+    acquisition,
+    "same-original-Effect-Whole-policy",
+    _ => true,
+    4194304L,
+    4194304L,
+  ).unwrap()
+  @row_source_host.begin_row_run_with_page_limits(run, policy.page, 16).unwrap()
+  let rows = Array::makei(16, index => {
+    "{\"id\":" +
+    index.to_string() +
+    ",\"document\":\"" +
+    "x".repeat(49152 + index) +
+    "\"}"
+  })
+  let body = @utf8.encode("[" + rows.join(",") + "]")
+  assert_eq(16 * 49152 + 16 * 15 / 2, 786552)
+  assert_true(body.length() < policy.page.max_bytes)
+  let charged = @row_source_host.charge_row_run_page(run, body).unwrap()
+  let mut refused = false
+  match @row_source_host.accept_charged_row_run_page(run, charged, body) {
+    Ok(count) => assert_eq(count, 16)
+    Err(Source(Capture(CaptureLimit))) => refused = true
+    Err(_) => fail("unexpected Whole Effect page refusal")
+  }
+  let mut ready = false
+  if !refused {
+    @row_source_host.finish_row_run(run).unwrap()
+    @row_source_host.begin_row_capture(run).unwrap()
+    for _ in 0..<10000 {
+      match @row_source_host.advance_row_capture(run, 256) {
+        Ok((done, _)) =>
+          if done {
+            ready = true
+            break
+          }
+        Err(Source(Capture(CaptureLimit))) => {
+          refused = true
+          break
+        }
+        Err(_) => fail("unexpected Whole Effect capture refusal")
+      }
+    }
+  }
+  if explicit_small || selected_bytes < 786552 {
+    assert_true(refused)
+    assert_false(ready)
+    assert_true(@row_source_host.capture_row_run(run) is Err(_))
+  } else {
+    assert_true(ready)
+    assert_false(refused)
+    let captured = @row_source_host.row_capture_source(
+      @row_source_host.capture_row_run(run).unwrap(),
+    ).unwrap()
+    assert_eq(@query.captured_source_row_count(captured), Some(16))
+    let original_read = @query.captured_source_original_input_read(captured).unwrap()
+    for index in 0..<16 {
+      let decoded = @json.parse(
+        @execution.supplied_relation_read_row_wire(
+          original_read,
+          index,
+          policy.wire,
+        ).unwrap(),
+      )
+      guard decoded is Object(row) else {
+        fail("original Whole Effect row wire")
+      }
+      assert_eq(row["document"], Json::string("x".repeat(49152 + index)))
+      assert_eq(row["id"], Json::number(index.to_double()))
+    }
+  }
+  let mut retired = false
+  for _ in 0..<10000 {
+    match retire_installed_source_read(read) {
+      Ok(_) => {
+        retired = true
+        break
+      }
+      Err(CleanupPending) => ()
+      Err(_) => fail("Whole Effect Source cleanup")
+    }
+  }
+  assert_true(retired)
+  retire_installed_managed_run(owner).unwrap()
+  let usage = @resources.ledger_usage(ledger)
+  assert_eq(usage.live_reservations, 0)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.reserved_execution_bytes, 0L)
+}
+
+///|
+#cfg(target="js")
+test "Effect Whole Source captures 786552 text bytes from its exact selected Host policy" {
+  effect_whole_selected_capture_bytes_fixture(2097152)
+}
+
+///|
+#cfg(target="js")
+test "Effect Whole Source preserves selected and explicit small byte refusal and cleanup" {
+  effect_whole_selected_capture_bytes_fixture(500000)
+  effect_whole_selected_capture_bytes_fixture(2097152, explicit_small=true)
+}

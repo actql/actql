@@ -41515,7 +41515,7 @@
     },
     {
       "module": "src/client_local_host/installed_whole_source_plan.mbt",
-      "sha256": "fcd2c3d7ca0181a9e40d066a0a3b6c755bf3dc4a02d662468e2438ce399fad1b",
+      "sha256": "079672498a010b9feb0aa37334ea68b4ab8ddf9104a920210aa8f54883ea6fad",
       "exports": [],
       "operations": [
         {
@@ -41541,6 +41541,14 @@
         {
           "name": "check_installed_whole_source_capacity",
           "declaration": "check_installed_whole_source_capacity ( value : ClientInstalledWholeSourceCapacity , acquisition : @ row_source_host . RowInputAcquisition , provider : @ execution . ExecutionCapacity , ) - > Bool"
+        },
+        {
+          "name": "installed_effect_row_input_policy",
+          "declaration": "installed_effect_row_input_policy ( prepared : @ publication_host . PreparedClientEffectComputation , max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , ) - > Result [ @ row_source_host . RowInputLimits , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_graph_row_input_policy",
+          "declaration": "installed_graph_row_input_policy ( graph : @ strategy . CheckedDAG , max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , ) - > Result [ @ row_source_host . RowInputLimits , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "installed_managed_acquisition_result_publication",
@@ -41672,7 +41680,9 @@
             "select_installed_source_input_graph",
             "start_installed_whole_source_read_rows",
             "begin_installed_managed_whole_source_read_on_ledger",
-            "installed_prepared_row_input_policy"
+            "installed_prepared_row_input_policy",
+            "installed_effect_row_input_policy",
+            "installed_graph_row_input_policy"
           ],
           "exports": [],
           "attributes": {
@@ -41834,6 +41844,14 @@
               {
                 "path": "src/client_local_host/installed_whole_source_plan_js_wbtest.mbt",
                 "anchor": "Whole Source keeps selected Host and explicit small capture refusal with cleanup"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_whole_source_js_wbtest.mbt",
+                "anchor": "Effect Whole Source captures 786552 text bytes from its exact selected Host policy"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_whole_source_js_wbtest.mbt",
+                "anchor": "Effect Whole Source preserves selected and explicit small byte refusal and cleanup"
               }
             ]
           }
@@ -66316,7 +66334,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_whole_source_capture_bridge.mbt",
-      "sha256": "6edbd410b2dc7c158e3d32230fadc3cbd3edd5553903edc9658e859c2260257c",
+      "sha256": "e202431a9079c86f57721fa2ec60fc350b7632779156de163bda039d00b4acc8",
       "exports": [],
       "operations": [
         {
@@ -66390,6 +66408,10 @@
         {
           "name": "client_program_installed_effect_managed_whole_source_read",
           "declaration": "client_program_installed_effect_managed_whole_source_read ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declaration : @ client_row_source_host . RowDeclaration , occurrence : Int , ) - > Result [ ( @ client_local_host . ClientInstalledSourceRead , @ acquisition . SourceAcquisition , @ client_row_source_host . RowInputAcquisition , @ client_local_host . ClientInstalledWholeSourceCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_row_input_policy",
+          "declaration": "client_program_installed_effect_row_input_policy ( prepared : @ publication_host . PreparedClientEffectComputation , max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , ) - > Result [ @ client_row_source_host . RowInputLimits , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_installed_managed_duckdb_whole_source_read",
@@ -66633,7 +66655,8 @@
             "client_program_whole_source_request_wire",
             "client_program_whole_source_target",
             "client_program_issue_installed_whole_effect_source_unit",
-            "client_program_issue_installed_effect_direct_sources_invocation"
+            "client_program_issue_installed_effect_direct_sources_invocation",
+            "client_program_installed_effect_row_input_policy"
           ],
           "exports": [],
           "attributes": {
@@ -66703,6 +66726,14 @@
               {
                 "path": "src/client_local_host/installed_whole_source_plan_js_wbtest.mbt",
                 "anchor": "Whole Source keeps selected Host and explicit small capture refusal with cleanup"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_whole_source_js_wbtest.mbt",
+                "anchor": "Effect Whole Source captures 786552 text bytes from its exact selected Host policy"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_whole_source_js_wbtest.mbt",
+                "anchor": "Effect Whole Source preserves selected and explicit small byte refusal and cleanup"
               }
             ]
           }
@@ -67514,7 +67545,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_whole_source_capture_bridge.mbt",
-      "sha256": "998c5026109272fdc9d5b7ac7210d81f9beb46b53292ae70e91feff76d06d139",
+      "sha256": "dbc6cfab4199cd084f97780f70534e71febe8721640c0fb5928ec6d7aa0fe87a",
       "exports": [],
       "operations": [
         {
@@ -67588,6 +67619,10 @@
         {
           "name": "client_program_installed_effect_managed_whole_source_read",
           "declaration": "client_program_installed_effect_managed_whole_source_read ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declaration : @ client_row_source_host . RowDeclaration , occurrence : Int , ) - > Result [ ( @ client_local_host . ClientInstalledSourceRead , @ acquisition . SourceAcquisition , @ client_row_source_host . RowInputAcquisition , @ client_local_host . ClientInstalledWholeSourceCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_row_input_policy",
+          "declaration": "client_program_installed_effect_row_input_policy ( prepared : @ publication_host . PreparedClientEffectComputation , max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , ) - > Result [ @ client_row_source_host . RowInputLimits , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_installed_managed_duckdb_whole_source_read",
@@ -67831,7 +67866,8 @@
             "client_program_whole_source_request_wire",
             "client_program_whole_source_target",
             "client_program_issue_installed_whole_effect_source_unit",
-            "client_program_issue_installed_effect_direct_sources_invocation"
+            "client_program_issue_installed_effect_direct_sources_invocation",
+            "client_program_installed_effect_row_input_policy"
           ],
           "exports": [],
           "attributes": {
@@ -67901,6 +67937,14 @@
               {
                 "path": "src/client_local_host/installed_whole_source_plan_js_wbtest.mbt",
                 "anchor": "Whole Source keeps selected Host and explicit small capture refusal with cleanup"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_whole_source_js_wbtest.mbt",
+                "anchor": "Effect Whole Source captures 786552 text bytes from its exact selected Host policy"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_whole_source_js_wbtest.mbt",
+                "anchor": "Effect Whole Source preserves selected and explicit small byte refusal and cleanup"
               }
             ]
           }

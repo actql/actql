@@ -93889,7 +93889,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "7ac0388edbc939e6711c511cee2992e06e43759cc7ee82906bb46fc5570b8bfd",
+      "sha256": "8a8c73dc6c040060ba2ac6fd46c69fa5a71e0db69ae8f5a175f26a45e64f2ed8",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -94737,7 +94737,9 @@
         },
         {
           "name": "createInstalledRowSource/sourceBody/init:managedEffectPlanSelection/init:managedEffectPlanSelection",
-          "parameters": [],
+          "parameters": [
+            "selection"
+          ],
           "async": false
         },
         {
@@ -96969,6 +96971,10 @@
               {
                 "path": "adapters/connectors/github/test/github-standard-host.integration.test.mjs",
                 "anchor": "test('a parser-refused GitHub raw response remains charged without a Result'"
+              },
+              {
+                "path": "adapters/host-node/installed-managed-source.test.mjs",
+                "anchor": "normal Whole Effect selection borrows the exact prepared policy and keeps legacy and typed refusal"
               }
             ]
           }

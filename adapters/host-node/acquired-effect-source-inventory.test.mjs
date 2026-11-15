@@ -11,6 +11,7 @@ function fixture({coordinates = [[2, 1, 0, 4], [2, 3, 1, 4], [6, 0, 2, 9]], coun
   prepareFailure} = {}) {
   const prepared = {}, request = {}, parent = {}, plan = {}, calls = [];
   const counters = {fullSelections: 0, planProjections: 0, preparations: 0};
+  const policySelections = [];
   const declaration = {}, provider = {}, inputLimits = {};
   const adapter = Object.freeze({realizationKey: 'row-source-acquired',
     supportsRetainedRelationOutput: true,
@@ -21,7 +22,13 @@ function fixture({coordinates = [[2, 1, 0, 4], [2, 3, 1, 4], [6, 0, 2, 9]], coun
       assert.fail('Selection is not physical acquisition');
     },
     open() {assert.fail('Selection is not physical acquisition');},
-    managedEffectPlanSelection() {
+    managedEffectPlanSelection(selection) {
+      policySelections.push(selection);
+      if (selection !== undefined) {
+        assert(Object.isFrozen(selection));
+        assert.deepEqual(Object.keys(selection), ['preparedEffect']);
+        assert.strictEqual(selection.preparedEffect, prepared);
+      }
       return {declaration, provider, inputLimits, transferBytes: 7n, executionBytes: 11n};
     },
     ledgerCapacity(original) {calls.push(['capacity', original]);return original;},
@@ -52,7 +59,7 @@ function fixture({coordinates = [[2, 1, 0, 4], [2, 3, 1, 4], [6, 0, 2, 9]], coun
       return ok({parent});
     },
   };
-  return {moon, prepared, request, parent, plan, adapter, calls, counters,
+  return {moon, prepared, request, parent, plan, adapter, calls, counters, policySelections,
     options: {moon, preparedEffect: prepared, requestIdentity: request, sourceProfile: {sources: [adapter]}}};
 }
 
@@ -60,6 +67,7 @@ test('three mixed Source occurrences preserve repeated backing, exact ports and 
   const f = fixture();
   const plan = selectAcquiredEffectPlanInputs(f.options);
   assert.equal(plan.inputs.length, 3);
+  assert.deepEqual(f.policySelections.map(value => value?.preparedEffect), [f.prepared, f.prepared, undefined]);
   assert.deepEqual(plan.transferBytes, [7n, 7n, 7n]);
   assert.deepEqual(plan.executionBytes, [11n, 11n, 11n]);
   const selected = selectAcquiredEffectSources(f.options);

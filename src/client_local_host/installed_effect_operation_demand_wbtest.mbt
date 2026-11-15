@@ -275,6 +275,8 @@ fn effect_operation_source_plan_fixture(
   source_declaration? : @row_source_host.RowDeclaration? = None,
   whole_policy? : @row_source_host.RowInputLimits? = None,
   host_listing_items? : Int? = None,
+  host_artifact_bytes? : Int? = None,
+  whole_policy_for? : ((@publication_host.PreparedClientEffectComputation) -> @row_source_host.RowInputLimits)? = None,
   query_time_for? : ((
     @publication_host.PreparedClientEffectComputation,
     @publication_host.ClientRequestIdentity,
@@ -313,6 +315,13 @@ fn effect_operation_source_plan_fixture(
   let parsed = @json.parse(source_query_original_environment)
   guard parsed is Object(base) else { fail("fixture Environment object") }
   base.remove("evidence_bundle_cid")
+  if host_artifact_bytes is Some(maximum) {
+    guard base["host_policy_profile"] is Object(profile) &&
+      profile["capacity"] is Object(capacity) else {
+      fail("fixture original Host artifact policy")
+    }
+    capacity["max_artifact_bytes"] = Json::number(maximum.to_double())
+  }
   if host_listing_items is Some(maximum) {
     guard base["host_policy_profile"] is Object(profile) &&
       profile["capacity"] is Object(capacity) else {
@@ -550,9 +559,11 @@ fn effect_operation_source_plan_fixture(
     [demand]
   }
   if whole_inputs {
-    let policy = whole_policy.unwrap_or(
-      installed_row_input_policy(3, 2048, 1000, 20, 3),
-    )
+    let policy = match whole_policy_for {
+      Some(select) => select(prepared)
+      None =>
+        whole_policy.unwrap_or(installed_row_input_policy(3, 2048, 1000, 20, 3))
+    }
     let whole_plan = prepare_installed_effect_managed_source_plan(
       prepared,
       request,
