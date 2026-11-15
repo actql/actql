@@ -83,9 +83,9 @@ test('same managed service reader demand supplies original whole page bounds wit
     const start=source.indexOf('  function managedWholeSourceCapacity('),end=source.indexOf('  const captureCapacity = owner =>',start);
     const prepared={},selection={},declaration={},contracts={},capacity={};
     const moon={clientProgramPrepareWholeSourceCapacity(...args){
-      assert.deepEqual(args,[prepared,selection,declaration,contracts,f.capacity,4,256,64,6,2]);return ok(capacity);}};
+      assert.deepEqual(args,[prepared,selection,declaration,contracts,f.capacity,4,256,64,6,2,3]);return ok(capacity);}};
     const ports={moon,checked,fail,declaration,originalReader:selected.originalReader,
-      providerSiteCurrent(){return true;},site:{},limits:{maxCaptureRows:4,maxPageBytes:256,maxPageRows:2},
+      providerSiteCurrent(){return true;},site:{},limits:{maxPages:3,maxCaptureRows:4,maxPageBytes:256,maxPageRows:2},
       pageLimits:selected.pageLimits,managedPageLimits:selected.managedPageLimits,maxTransferBytes:768n};
     const select=Function(...Object.keys(ports),source.slice(start,end)+'\nreturn managedWholeSourceCapacity;')(...Object.values(ports));
     assert.equal(select({preparedProgram:prepared,sourceSelection:selection,installedContracts:contracts}).capacity,capacity);
@@ -383,11 +383,11 @@ function tableBoundConstructionFixture({refuseInitial=false}={}) {
     reserveInstalledTableConstruction(a,b,c){assert.equal(a,original);assert.equal(b,material);assert.equal(c,profile);events.push('profile-reserve');return profileCapacity;},
     installedTableReaderConstruction(a,b,c,_construction,selectedBridge){assert.equal(a,original);assert.equal(b,material);assert.equal(c,profile);assert.equal(selectedBridge,bridge);events.push('reader-profile-quote');return profileCapacity;},
     requireSynchronousSourceConstruction:(_m,value)=>value,
-    async installRowSourceAuthorization(){events.push('account');return account;},
+    async installRowSourceAuthorization(options){assert.equal(options.gateOptions.accountConstruction,undefined);events.push('account');return account;},
     installedTableReadSite({authorization,ownAuthorization}){assert.equal(authorization,account);assert.equal(ownAuthorization,true);return {connection:'table-original',issueReadGrant(){assert.fail('no grant during construction');}};},
     reserveSource(a,b){assert.equal(a,original);assert.equal(b,material);assert.equal(material.providers.at(-1),capacity);events.push('reserve-reader');},
     createInstalledTableSource:factory};
-  const bind=Function(...Object.keys(hostPorts),body(host,'bindInstalledSourceConstruction')+'\nreturn bindInstalledSourceConstruction;')(...Object.values(hostPorts));
+  const bind=Function(...Object.keys(hostPorts),body(host,'installedAccountConstruction')+'\n'+body(host,'bindInstalledSourceConstruction')+'\nreturn bindInstalledSourceConstruction;')(...Object.values(hostPorts));
   const bound=bind(services,context,profile);
   const options={connection:'table-original',targets,limits:{maxPages:3,maxPageBytes:65536,maxPageRows:16,maxCaptureRows:16},accountConfiguration:'original-account',
     createBridge(){events.push('bridge');return bridge;}};

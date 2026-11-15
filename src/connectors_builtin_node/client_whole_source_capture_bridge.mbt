@@ -32,10 +32,10 @@ pub fn client_program_select_installed_effect_source_input(
 }
 
 ///|
-/// Normal Effect Whole capture borrows its actual checked Host byte policy.
+/// Normal Effect Whole capture uses its trusted Source page envelope.
 #export_name("clientProgramInstalledEffectRowInputPolicy")
 pub fn client_program_installed_effect_row_input_policy(
-  prepared : @publication_host.PreparedClientEffectComputation,
+  max_pages : Int,
   max_rows : Int,
   max_page_bytes : Int,
   max_page_nodes : Int,
@@ -45,8 +45,8 @@ pub fn client_program_installed_effect_row_input_policy(
   @client_row_source_host.RowInputLimits,
   @client_local_host.ClientInstalledManagedRunIssue,
 ] {
-  @client_local_host.installed_effect_row_input_policy(
-    prepared, max_rows, max_page_bytes, max_page_nodes, max_page_depth, max_page_rows,
+  @client_local_host.installed_source_row_input_policy(
+    max_pages, max_rows, max_page_bytes, max_page_nodes, max_page_depth, max_page_rows,
   )
 }
 
@@ -63,6 +63,7 @@ pub fn client_program_prepare_whole_source_capacity(
   max_page_nodes : Int,
   max_page_depth : Int,
   max_page_rows : Int,
+  max_pages : Int,
 ) -> Result[
   @client_local_host.ClientInstalledWholeSourceCapacity,
   @client_local_host.ClientInstalledManagedRunIssue,
@@ -71,8 +72,8 @@ pub fn client_program_prepare_whole_source_capacity(
     return Err(@client_local_host.Unsupported)
   }
   let limits = match
-    @client_local_host.installed_prepared_row_input_policy(
-      prepared, max_rows, max_page_bytes, max_page_nodes, max_page_depth, max_page_rows,
+    @client_local_host.installed_source_row_input_policy(
+      max_pages, max_rows, max_page_bytes, max_page_nodes, max_page_depth, max_page_rows,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)

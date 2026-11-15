@@ -41523,7 +41523,7 @@
     },
     {
       "module": "src/client_local_host/installed_whole_source_plan.mbt",
-      "sha256": "079672498a010b9feb0aa37334ea68b4ab8ddf9104a920210aa8f54883ea6fad",
+      "sha256": "663e77173b3ba722fd5133c543e1bb053a3c676c9982b922004c591405a9eb82",
       "exports": [],
       "operations": [
         {
@@ -41551,14 +41551,6 @@
           "declaration": "check_installed_whole_source_capacity ( value : ClientInstalledWholeSourceCapacity , acquisition : @ row_source_host . RowInputAcquisition , provider : @ execution . ExecutionCapacity , ) - > Bool"
         },
         {
-          "name": "installed_effect_row_input_policy",
-          "declaration": "installed_effect_row_input_policy ( prepared : @ publication_host . PreparedClientEffectComputation , max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , ) - > Result [ @ row_source_host . RowInputLimits , ClientInstalledManagedRunIssue ]"
-        },
-        {
-          "name": "installed_graph_row_input_policy",
-          "declaration": "installed_graph_row_input_policy ( graph : @ strategy . CheckedDAG , max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , ) - > Result [ @ row_source_host . RowInputLimits , ClientInstalledManagedRunIssue ]"
-        },
-        {
           "name": "installed_managed_acquisition_result_publication",
           "declaration": "installed_managed_acquisition_result_publication ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ) - > Result [ Bool , ClientInstalledManagedRunIssue ]"
         },
@@ -41575,16 +41567,16 @@
           "declaration": "installed_managed_whole_sources_ledger ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , capacities : Array [ ClientInstalledWholeSourceCapacity ] , transfer : Array [ Int64 ] , scratch : Array [ Int64 ] , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
         },
         {
-          "name": "installed_prepared_row_input_policy",
-          "declaration": "installed_prepared_row_input_policy ( prepared : @ publication_host . PreparedClientProgram , max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , ) - > Result [ @ row_source_host . RowInputLimits , ClientInstalledManagedRunIssue ]"
-        },
-        {
           "name": "installed_row_input_policy",
           "declaration": "installed_row_input_policy ( max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , ) - > @ row_source_host . RowInputLimits"
         },
         {
           "name": "installed_source_listing_policy",
           "declaration": "installed_source_listing_policy ( graph : @ strategy . CheckedDAG , ) - > @ capacity . Policy"
+        },
+        {
+          "name": "installed_source_row_input_policy",
+          "declaration": "installed_source_row_input_policy ( max_pages : Int , max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , ) - > Result [ @ row_source_host . RowInputLimits , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "installed_whole_source_acquisition",
@@ -41688,9 +41680,7 @@
             "select_installed_source_input_graph",
             "start_installed_whole_source_read_rows",
             "begin_installed_managed_whole_source_read_on_ledger",
-            "installed_prepared_row_input_policy",
-            "installed_effect_row_input_policy",
-            "installed_graph_row_input_policy"
+            "installed_source_row_input_policy"
           ],
           "exports": [],
           "attributes": {
@@ -66342,7 +66332,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_whole_source_capture_bridge.mbt",
-      "sha256": "e202431a9079c86f57721fa2ec60fc350b7632779156de163bda039d00b4acc8",
+      "sha256": "42c4a811aaaf1ddc8222c6cbab2db0745aee177723a94fd9252e2765f2a7d550",
       "exports": [],
       "operations": [
         {
@@ -66419,7 +66409,7 @@
         },
         {
           "name": "client_program_installed_effect_row_input_policy",
-          "declaration": "client_program_installed_effect_row_input_policy ( prepared : @ publication_host . PreparedClientEffectComputation , max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , ) - > Result [ @ client_row_source_host . RowInputLimits , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+          "declaration": "client_program_installed_effect_row_input_policy ( max_pages : Int , max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , ) - > Result [ @ client_row_source_host . RowInputLimits , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_installed_managed_duckdb_whole_source_read",
@@ -66519,7 +66509,7 @@
         },
         {
           "name": "client_program_prepare_whole_source_capacity",
-          "declaration": "client_program_prepare_whole_source_capacity ( prepared : @ publication_host . PreparedClientProgram , selection : @ acquisition . SourceAcquisitionRoute , declaration : @ client_row_source_host . RowDeclaration , contracts : @ client_local_host . ClientInstalledSequenceContracts , provider : @ execution . ExecutionCapacity ? , max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , ) - > Result [ @ client_local_host . ClientInstalledWholeSourceCapacity , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+          "declaration": "client_program_prepare_whole_source_capacity ( prepared : @ publication_host . PreparedClientProgram , selection : @ acquisition . SourceAcquisitionRoute , declaration : @ client_row_source_host . RowDeclaration , contracts : @ client_local_host . ClientInstalledSequenceContracts , provider : @ execution . ExecutionCapacity ? , max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , max_pages : Int , ) - > Result [ @ client_local_host . ClientInstalledWholeSourceCapacity , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_prepared_installed_whole_source_requirements",
@@ -67553,7 +67543,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_whole_source_capture_bridge.mbt",
-      "sha256": "dbc6cfab4199cd084f97780f70534e71febe8721640c0fb5928ec6d7aa0fe87a",
+      "sha256": "5b233db387b86ac8aa57f49a262694f4e0b462f0a8fb2f80782786ed47b6e6b9",
       "exports": [],
       "operations": [
         {
@@ -67630,7 +67620,7 @@
         },
         {
           "name": "client_program_installed_effect_row_input_policy",
-          "declaration": "client_program_installed_effect_row_input_policy ( prepared : @ publication_host . PreparedClientEffectComputation , max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , ) - > Result [ @ client_row_source_host . RowInputLimits , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+          "declaration": "client_program_installed_effect_row_input_policy ( max_pages : Int , max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , ) - > Result [ @ client_row_source_host . RowInputLimits , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_installed_managed_duckdb_whole_source_read",
@@ -67730,7 +67720,7 @@
         },
         {
           "name": "client_program_prepare_whole_source_capacity",
-          "declaration": "client_program_prepare_whole_source_capacity ( prepared : @ publication_host . PreparedClientProgram , selection : @ acquisition . SourceAcquisitionRoute , declaration : @ client_row_source_host . RowDeclaration , contracts : @ client_local_host . ClientInstalledSequenceContracts , provider : @ execution . ExecutionCapacity ? , max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , ) - > Result [ @ client_local_host . ClientInstalledWholeSourceCapacity , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+          "declaration": "client_program_prepare_whole_source_capacity ( prepared : @ publication_host . PreparedClientProgram , selection : @ acquisition . SourceAcquisitionRoute , declaration : @ client_row_source_host . RowDeclaration , contracts : @ client_local_host . ClientInstalledSequenceContracts , provider : @ execution . ExecutionCapacity ? , max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , max_pages : Int , ) - > Result [ @ client_local_host . ClientInstalledWholeSourceCapacity , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_prepared_installed_whole_source_requirements",

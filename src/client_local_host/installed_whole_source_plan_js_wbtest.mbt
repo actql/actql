@@ -231,6 +231,7 @@ test "one original Request Plan captures whole unfiltered Source and leaves auth
 // This isolates cumulative capture policy; it is not ordinary Table acceptance.
 fn whole_source_selected_capture_bytes_fixture(
   selected_bytes : Int,
+  max_pages? : Int = 3,
   explicit_small? : Bool = false,
 ) -> Unit raise {
   let declaration = @row_source_host.generate_row_declaration(
@@ -260,10 +261,7 @@ fn whole_source_selected_capture_bytes_fixture(
   let (parent, child, _, input) = registration_parent_fixture(
     text=document,
     environment=Some(
-      pure_provider_environment(
-        declaration,
-        artifact_bytes=Some(selected_bytes),
-      ),
+      pure_provider_environment(declaration, artifact_bytes=Some(1000)),
     ),
   )
   guard finish_program_check_preparation(child).unwrap() is @checked.Checked(_) else {
@@ -289,12 +287,27 @@ fn whole_source_selected_capture_bytes_fixture(
     is @sourceviews.WholeInputRoute(original) else {
     fail("unfiltered Source must retain whole input")
   }
-  let physical_bytes = 4194304
+  let physical_bytes = selected_bytes
+  assert_true(
+    @resources.ledger_limits(parent.ledger).retained_bytes <= 536870912L,
+  )
+  assert_true(
+    @resources.ledger_limits(parent.ledger).execution_bytes <= 536870912L,
+  )
+  let output_policy = installed_source_listing_policy(
+    @publication_host.prepared_client_graph(prepared),
+  )
+  assert_eq(
+    @capacity.ceiling_value(
+      @capacity.ceiling(output_policy, "max_artifact_bytes").unwrap(),
+    ),
+    1000L,
+  )
   let limits = if explicit_small {
     installed_row_input_policy(16, physical_bytes, 400000, 32, 16)
   } else {
-    installed_prepared_row_input_policy(
-      prepared, 16, physical_bytes, 400000, 32, 16,
+    installed_source_row_input_policy(
+      max_pages, 16, physical_bytes, 400000, 32, 16,
     ).unwrap()
   }
   assert_eq(limits.page.max_bytes, physical_bytes)
@@ -304,11 +317,11 @@ fn whole_source_selected_capture_bytes_fixture(
     if explicit_small {
       500000
     } else {
-      selected_bytes
+      max_pages * selected_bytes
     },
   )
   if !explicit_small {
-    assert_eq(limits.wire.max_bytes, selected_bytes)
+    assert_eq(limits.wire.max_bytes, max_pages * selected_bytes)
   }
   let contracts = request_program_module_contracts()
   let source = prepare_installed_whole_source_capacity(
@@ -319,6 +332,18 @@ fn whole_source_selected_capture_bytes_fixture(
     limits,
     None,
   ).unwrap()
+  let initial = @row_source_host.row_input_acquisition_capacity(
+    source.acquisition,
+    None,
+  ).unwrap()
+  assert_true(
+    @execution.execution_capacity_retained_bytes(initial) <
+    limits.retention.max_text_bytes.to_int64(),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(initial) <
+    limits.retention.max_text_bytes.to_int64(),
+  )
   let plan = match
     prepare_installed_managed_whole_source_plan(
       prepared,
@@ -365,14 +390,19 @@ fn whole_source_selected_capture_bytes_fixture(
   let body = @utf8.encode("[" + rows.join(",") + "]")
   let total_text = 16 * 49152 + 16 * 15 / 2
   assert_eq(total_text, 786552)
-  assert_true(body.length() < limits.page.max_bytes)
+  assert_eq(body.length() < limits.page.max_bytes, selected_bytes > 786552)
   let before = @resources.ledger_usage(parent.ledger)
-  let charge = @row_source_host.charge_row_run_page(run, body).unwrap()
   let mut refused = false
-  match @row_source_host.accept_charged_row_run_page(run, charge, body) {
-    Ok(count) => assert_eq(count, 16)
-    Err(Source(Capture(CaptureLimit))) => refused = true
-    Err(_) => fail("unexpected page admission refusal")
+  match @row_source_host.charge_row_run_page(run, body) {
+    Err(Physical(TransferLimit)) if selected_bytes < body.length() =>
+      refused = true
+    Err(_) => fail("unexpected Source charge refusal")
+    Ok(charge) =>
+      match @row_source_host.accept_charged_row_run_page(run, charge, body) {
+        Ok(count) => assert_eq(count, 16)
+        Err(Source(Capture(CaptureLimit))) if explicit_small => refused = true
+        Err(_) => fail("unexpected page admission refusal")
+      }
   }
   assert_true(
     @resources.ledger_usage(parent.ledger).reserved_retention_bytes >
@@ -455,11 +485,11 @@ fn whole_source_selected_capture_bytes_fixture(
 
 ///|
 test "Whole Source captures 786552 text bytes under the same selected Host policy" {
-  whole_source_selected_capture_bytes_fixture(2097152)
+  whole_source_selected_capture_bytes_fixture(4194304)
 }
 
 ///|
 test "Whole Source keeps selected Host and explicit small capture refusal with cleanup" {
-  whole_source_selected_capture_bytes_fixture(500000)
-  whole_source_selected_capture_bytes_fixture(2097152, explicit_small=true)
+  whole_source_selected_capture_bytes_fixture(500000, max_pages=1)
+  whole_source_selected_capture_bytes_fixture(4194304, explicit_small=true)
 }

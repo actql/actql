@@ -143,74 +143,40 @@ pub fn installed_row_input_policy(
 }
 
 ///|
-/// Select cumulative capture and canonical row bytes from this Program's
-/// retained Host policy. Page limits remain physical transport bounds; actual
-/// capture construction grows the original Request reservation before use.
+/// Bound complete input by the trusted Source installation's selected page
+/// envelope. The Host's output-artifact ceiling is a different semantic scope.
+/// These are maximum DATA sizes, not initial demand or a Resource grant: every
+/// actual page and retained input still grows the SAME Request reservation.
 /// Explicit RowInputLimits callers keep their independently selected bounds.
-pub fn installed_prepared_row_input_policy(
-  prepared : @publication_host.PreparedClientProgram,
+pub fn installed_source_row_input_policy(
+  max_pages : Int,
   max_rows : Int,
   max_page_bytes : Int,
   max_page_nodes : Int,
   max_page_depth : Int,
   max_page_rows : Int,
 ) -> Result[@row_source_host.RowInputLimits, ClientInstalledManagedRunIssue] {
-  installed_graph_row_input_policy(
-    @publication_host.prepared_client_graph(prepared),
-    max_rows,
-    max_page_bytes,
-    max_page_nodes,
-    max_page_depth,
-    max_page_rows,
-  )
-}
-
-///|
-/// The same projection for an actual Effect's retained checked Program.
-/// Neither a row-provider choice nor an explicit compatibility policy selects
-/// another Host's capacity or creates a new permission/resource owner.
-pub fn installed_effect_row_input_policy(
-  prepared : @publication_host.PreparedClientEffectComputation,
-  max_rows : Int,
-  max_page_bytes : Int,
-  max_page_nodes : Int,
-  max_page_depth : Int,
-  max_page_rows : Int,
-) -> Result[@row_source_host.RowInputLimits, ClientInstalledManagedRunIssue] {
-  installed_graph_row_input_policy(
-    installed_managed_owner_graph(Effect(prepared)),
-    max_rows,
-    max_page_bytes,
-    max_page_nodes,
-    max_page_depth,
-    max_page_rows,
-  )
-}
-
-///|
-fn installed_graph_row_input_policy(
-  graph : @strategy.CheckedDAG,
-  max_rows : Int,
-  max_page_bytes : Int,
-  max_page_nodes : Int,
-  max_page_depth : Int,
-  max_page_rows : Int,
-) -> Result[@row_source_host.RowInputLimits, ClientInstalledManagedRunIssue] {
-  let policy = installed_source_listing_policy(graph)
-  guard @capacity.ceiling(policy, "max_artifact_bytes") is Some(ceiling) else {
+  if max_pages <= 0 || max_page_bytes <= 0 {
     return Err(Unsupported)
   }
-  let bytes = @capacity.ceiling_value(ceiling)
-  if bytes < 0L || bytes > 2147483647L {
+  guard @execution.checked_preparation_add_product(
+      0L,
+      max_pages.to_int64(),
+      max_page_bytes.to_int64(),
+    )
+    is Some(aggregate) else {
     return Err(Unsupported)
   }
+  // Complete row/identity codecs use Int byte counts. A larger service envelope
+  // does not make small actual inputs invalid and does not change that ABI.
+  let bytes = Int64::min(aggregate, 2147483647L).to_int()
   let original = installed_row_input_policy(
     max_rows, max_page_bytes, max_page_nodes, max_page_depth, max_page_rows,
   )
   Ok({
     ..original,
-    retention: { ..original.retention, max_text_bytes: bytes.to_int(), },
-    wire: { ..original.wire, max_bytes: bytes.to_int(), },
+    retention: { ..original.retention, max_text_bytes: bytes, },
+    wire: { ..original.wire, max_bytes: bytes, },
   })
 }
 

@@ -585,8 +585,6 @@ pub fn installed_effect_plan_matches_model_demand(ClientInstalledEffectManagedPl
 
 pub fn installed_effect_response_buffer_construction_capacity(Int, response_read_quantum? : Int) -> @execution_relation.ExecutionCapacity?
 
-pub fn installed_effect_row_input_policy(@run_publication_host.PreparedClientEffectComputation, Int, Int, Int, Int, Int) -> Result[@client_row_source_host.RowInputLimits, ClientInstalledManagedRunIssue]
-
 pub fn installed_file_effect_constructor_capacity(@execution_relation.ExecutionCapacity, Int, Int, Int) -> Result[@execution_relation.ExecutionCapacity, ClientInstalledManagedRunIssue]
 
 pub fn installed_gmail_thread_reader_capacity(Array[Int], Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
@@ -671,8 +669,6 @@ pub fn installed_physical_write_recipe_capacities(Int, Int, Int, Int, Int, Int, 
 
 pub fn installed_preparation_payload_severed(ClientInstalledManagedRun, @run_publication_host.ClientRequestIdentity) -> Bool
 
-pub fn installed_prepared_row_input_policy(@run_publication_host.PreparedClientProgram, Int, Int, Int, Int, Int) -> Result[@client_row_source_host.RowInputLimits, ClientInstalledManagedRunIssue]
-
 pub fn installed_preserving_json_source_reader_capacity_with_request(Array[Int], Int, Int, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?
 
 pub fn installed_profile_construction_capacities(Int64, Int64) -> Array[@execution_relation.ExecutionCapacity]?
@@ -700,6 +696,8 @@ pub fn installed_source_json_construction_capacity(Int64, Int64, Int64, Int64, I
 pub fn installed_source_read_provider_matches(ClientInstalledSourceRead, @client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity) -> Bool
 
 pub fn installed_source_reader_policy() -> Array[Int]
+
+pub fn installed_source_row_input_policy(Int, Int, Int, Int, Int, Int) -> Result[@client_row_source_host.RowInputLimits, ClientInstalledManagedRunIssue]
 
 pub fn installed_standard_create_constructor_capacities(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?) -> Result[Array[@execution_relation.ExecutionCapacity], ClientInstalledManagedRunIssue]
 

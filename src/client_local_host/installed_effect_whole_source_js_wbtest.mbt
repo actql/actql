@@ -966,6 +966,7 @@ test "whole Source Effect provenance keeps original supplied inputs outside comp
 #cfg(target="js")
 fn effect_whole_selected_capture_bytes_fixture(
   selected_bytes : Int,
+  max_pages? : Int = 3,
   explicit_small? : Bool = false,
 ) -> Unit raise {
   let declaration = @row_source_host.generate_row_declaration(
@@ -993,17 +994,19 @@ fn effect_whole_selected_capture_bytes_fixture(
   let plan = effect_operation_source_plan_fixture(
     whole_inputs=true,
     source_declaration=Some(declaration),
-    host_artifact_bytes=Some(selected_bytes),
+    host_artifact_bytes=Some(1000),
     whole_policy=if explicit_small {
-      Some(installed_row_input_policy(16, 4194304, 400000, 32, 16))
+      Some(installed_row_input_policy(16, selected_bytes, 400000, 32, 16))
     } else {
       None
     },
     whole_policy_for=if explicit_small {
       None
     } else {
-      Some(prepared => {
-        installed_effect_row_input_policy(prepared, 16, 4194304, 400000, 32, 16).unwrap()
+      Some(_ => {
+        installed_source_row_input_policy(
+          max_pages, 16, selected_bytes, 400000, 32, 16,
+        ).unwrap()
       })
     },
     runtime_admission=true,
@@ -1011,6 +1014,24 @@ fn effect_whole_selected_capture_bytes_fixture(
   let (input, initial, ledger, capacity) = effect_parent_test_preparation(
     plan,
     prepared_installed_effect_managed_requirements(plan),
+  )
+  // Preserve the existing checked component recipe and its documented staged
+  // carrier. This fixture's wide JOIN recipe is not a 512 MiB ledger proof;
+  // the independent Pure Source case verifies that actual selected budget.
+  assert_eq(
+    @resources.ledger_limits(ledger).retained_bytes,
+    plan.limits.retained_bytes + 10L,
+  )
+  assert_eq(
+    @resources.ledger_limits(ledger).execution_bytes,
+    plan.limits.execution_bytes + 10L,
+  )
+  let output_policy = installed_source_listing_policy(plan.graph)
+  assert_eq(
+    @capacity.ceiling_value(
+      @capacity.ceiling(output_policy, "max_artifact_bytes").unwrap(),
+    ),
+    1000L,
   )
   let owner = begin_preparation_owned_installed_effect_managed_run(
     initial,
@@ -1034,17 +1055,29 @@ fn effect_whole_selected_capture_bytes_fixture(
     if explicit_small {
       500000
     } else {
-      selected_bytes
+      max_pages * selected_bytes
     },
   )
-  assert_eq(policy.page.max_bytes, 4194304)
+  assert_eq(policy.page.max_bytes, selected_bytes)
+  let initial = @row_source_host.row_input_acquisition_capacity(
+    acquisition,
+    None,
+  ).unwrap()
+  assert_true(
+    @execution.execution_capacity_retained_bytes(initial) <
+    policy.retention.max_text_bytes.to_int64(),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(initial) <
+    policy.retention.max_text_bytes.to_int64(),
+  )
   let run = start_installed_whole_source_read_rows(
     read,
     acquisition,
     "same-original-Effect-Whole-policy",
     _ => true,
-    4194304L,
-    4194304L,
+    selected_bytes.to_int64(),
+    selected_bytes.to_int64(),
   ).unwrap()
   @row_source_host.begin_row_run_with_page_limits(run, policy.page, 16).unwrap()
   let rows = Array::makei(16, index => {
@@ -1056,13 +1089,18 @@ fn effect_whole_selected_capture_bytes_fixture(
   })
   let body = @utf8.encode("[" + rows.join(",") + "]")
   assert_eq(16 * 49152 + 16 * 15 / 2, 786552)
-  assert_true(body.length() < policy.page.max_bytes)
-  let charged = @row_source_host.charge_row_run_page(run, body).unwrap()
+  assert_eq(body.length() < policy.page.max_bytes, selected_bytes > 786552)
   let mut refused = false
-  match @row_source_host.accept_charged_row_run_page(run, charged, body) {
-    Ok(count) => assert_eq(count, 16)
-    Err(Source(Capture(CaptureLimit))) => refused = true
-    Err(_) => fail("unexpected Whole Effect page refusal")
+  match @row_source_host.charge_row_run_page(run, body) {
+    Err(Physical(TransferLimit)) if selected_bytes < body.length() =>
+      refused = true
+    Err(_) => fail("unexpected Whole Effect charge refusal")
+    Ok(charged) =>
+      match @row_source_host.accept_charged_row_run_page(run, charged, body) {
+        Ok(count) => assert_eq(count, 16)
+        Err(Source(Capture(CaptureLimit))) if explicit_small => refused = true
+        Err(_) => fail("unexpected Whole Effect page refusal")
+      }
   }
   let mut ready = false
   if !refused {
@@ -1132,12 +1170,12 @@ fn effect_whole_selected_capture_bytes_fixture(
 ///|
 #cfg(target="js")
 test "Effect Whole Source captures 786552 text bytes from its exact selected Host policy" {
-  effect_whole_selected_capture_bytes_fixture(2097152)
+  effect_whole_selected_capture_bytes_fixture(4194304)
 }
 
 ///|
 #cfg(target="js")
 test "Effect Whole Source preserves selected and explicit small byte refusal and cleanup" {
-  effect_whole_selected_capture_bytes_fixture(500000)
-  effect_whole_selected_capture_bytes_fixture(2097152, explicit_small=true)
+  effect_whole_selected_capture_bytes_fixture(500000, max_pages=1)
+  effect_whole_selected_capture_bytes_fixture(4194304, explicit_small=true)
 }

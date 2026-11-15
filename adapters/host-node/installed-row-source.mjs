@@ -1730,7 +1730,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
     const capacity = checked(moon.clientProgramPrepareWholeSourceCapacity(
       preparedProgram, sourceSelection, declaration, installedContracts, originalReader?.capacity,
       limits.maxCaptureRows, limits.maxPageBytes, selectedPageLimits?.maxNodes ?? 400000,
-      selectedPageLimits?.maxDepth ?? 32, limits.maxPageRows));
+      selectedPageLimits?.maxDepth ?? 32, limits.maxPageRows, limits.maxPages));
     return Object.freeze({capacity, wholeInput: true, transferBytes: maxTransferBytes,
       executionBytes: BigInt(limits.maxPageBytes)});
   }
@@ -3180,7 +3180,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
             fail('InstalledSourcePlanConstructorUnavailable');
           }
           inputLimits = checked(moon.clientProgramInstalledEffectRowInputPolicy(
-            prepared.value, limits.maxCaptureRows, limits.maxPageBytes,
+            limits.maxPages, limits.maxCaptureRows, limits.maxPageBytes,
             selectedPageLimits?.maxNodes ?? 400000, selectedPageLimits?.maxDepth ?? 32, limits.maxPageRows));
         }
         return Object.freeze({declaration, provider: originalReader?.capacity,

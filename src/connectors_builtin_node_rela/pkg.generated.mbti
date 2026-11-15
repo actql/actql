@@ -1058,7 +1058,7 @@ pub fn client_program_installed_effect_models_demand_prepare(Array[@client_local
 
 pub fn client_program_installed_effect_recovered_preview_keys(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledEffectManagedPlan, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, Int, Int, Int, Int, Int, Int) -> Result[Array[Array[@effect_application.EffectDispatchKey]], ClientInstalledEffectPreviewKeyIssue]
 
-pub fn client_program_installed_effect_row_input_policy(@run_publication_host.PreparedClientEffectComputation, Int, Int, Int, Int, Int) -> Result[@client_row_source_host.RowInputLimits, @client_local_host.ClientInstalledManagedRunIssue]
+pub fn client_program_installed_effect_row_input_policy(Int, Int, Int, Int, Int, Int) -> Result[@client_row_source_host.RowInputLimits, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_listing_row_capture_capacity(@client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?) -> @client_local_host.ClientInstalledCaptureCapacity?
 
@@ -1944,7 +1944,7 @@ pub fn client_program_prepare_source_computation_with_parameters(String, String,
 
 pub fn client_program_prepare_source_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, String?) -> ClientProgramBridgeOutcome
 
-pub fn client_program_prepare_whole_source_capacity(@run_publication_host.PreparedClientProgram, @sourceview_resolution.SourceAcquisitionRoute, @client_row_source_host.RowDeclaration, @client_local_host.ClientInstalledSequenceContracts, @execution_relation.ExecutionCapacity?, Int, Int, Int, Int, Int) -> Result[@client_local_host.ClientInstalledWholeSourceCapacity, @client_local_host.ClientInstalledManagedRunIssue]
+pub fn client_program_prepare_whole_source_capacity(@run_publication_host.PreparedClientProgram, @sourceview_resolution.SourceAcquisitionRoute, @client_row_source_host.RowDeclaration, @client_local_host.ClientInstalledSequenceContracts, @execution_relation.ExecutionCapacity?, Int, Int, Int, Int, Int, Int) -> Result[@client_local_host.ClientInstalledWholeSourceCapacity, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_prepared_installed_managed_model_requirements(@client_local_host.ClientInstalledManagedModelPlan) -> Array[Int64]
 

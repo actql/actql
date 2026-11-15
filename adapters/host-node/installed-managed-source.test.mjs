@@ -749,7 +749,7 @@ test('normal Whole Effect selection borrows the exact prepared policy and keeps 
   visit(tree, node => {if (node.type === 'Property' && node.method &&
     node.key.name === 'managedEffectPlanSelection') {assert.equal(method, undefined); method = node;}});
   assert(method);
-  const prepared = {}, limits = {maxCaptureRows: 16, maxPageBytes: 4194304, maxPageRows: 16};
+  const prepared = {}, limits = {maxPages: 3, maxCaptureRows: 16, maxPageBytes: 4194304, maxPageRows: 16};
   const declaration = {}, normal = {}, legacy = {}, cause = {};
   const calls = [], checked = result => {
     if (result.$tag === 1) return result._0;
@@ -757,8 +757,8 @@ test('normal Whole Effect selection borrows the exact prepared policy and keeps 
   };
   const moon = {
     clientProgramInstalledRowInputPolicy(...args) {calls.push(['legacy', ...args]);return legacy;},
-    clientProgramInstalledEffectRowInputPolicy(actual, ...args) {
-      assert.strictEqual(actual, prepared); calls.push(['normal', ...args]);
+    clientProgramInstalledEffectRowInputPolicy(...args) {
+      calls.push(['normal', ...args]);
       return this.refuse ? {$tag: 0, _0: cause} : {$tag: 1, _0: normal};
     },
   };
@@ -775,7 +775,7 @@ test('normal Whole Effect selection borrows the exact prepared policy and keeps 
   assert.equal(selected.executionBytes, 4194304n);
   assert.strictEqual(select().inputLimits, legacy);
   assert.deepEqual(calls, [
-    ['normal', 16, 4194304, 400000, 32, 16], ['legacy', 16, 4194304, 400000, 32, 16],
+    ['normal', 3, 16, 4194304, 400000, 32, 16], ['legacy', 16, 4194304, 400000, 32, 16],
   ]);
   moon.refuse = true;
   assert.throws(() => select(Object.freeze({preparedEffect: prepared})), error => error.cause === cause);
