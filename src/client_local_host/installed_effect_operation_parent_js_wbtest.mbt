@@ -1018,7 +1018,12 @@ fn unknown_effect_capture_controls(
     )
     is Err(Ledger(RetentionLimit)),
   )
-  assert_eq(@resources.ledger_usage(ledger), blocked)
+  // The actual two-entry dependency walk happened before the row-control
+  // grow refused. Keep that spent work while preserving every physical debit.
+  assert_eq(@resources.ledger_usage(ledger), {
+    ..blocked,
+    planning_work: blocked.planning_work + 2,
+  })
   assert_true(control.captured_rows is None)
   assert_true(physical_equal(control.reservation, token))
   @resources.settle_capacity(ledger, blocker).unwrap()
