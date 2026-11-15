@@ -5,10 +5,11 @@
 fn keyed_lookup_plan_storage(occurrences : Int, keys : Int) -> Int64? {
   guard @shape.collection_construction_extent({
       // Per occurrence: Request1H3R4W/accounting Some1H1R1W/map tuple1H1R1W.
-      // Per key: cache tuple1H3R/history1H4R/history Some1H1R1W.
+      // Per key: cache tuple1H3R/history1H4R2W/history Some1H1R1W.
+      // The two history words are the original encoder's byte/node facts.
       records: 3L * occurrences.to_int64() + 3L * keys.to_int64(),
       record_references: 5L * occurrences.to_int64() + 8L * keys.to_int64(),
-      record_words: 6L * occurrences.to_int64() + keys.to_int64(),
+      record_words: 6L * occurrences.to_int64() + 3L * keys.to_int64(),
       reference_arrays: 2L,
       reference_items: occurrences.to_int64() + keys.to_int64(),
       scalar_arrays: 0L,
@@ -227,6 +228,8 @@ pub fn retain_client_keyed_lookup_planned_request(
         None,
         Some({
           request,
+          wire_bytes: state.selected_wire_bytes,
+          wire_nodes: state.selected_wire_nodes,
           _retained_capture: None,
           _retained_activation: None,
           _retained_native_page: None,
@@ -237,6 +240,8 @@ pub fn retain_client_keyed_lookup_planned_request(
   }
   requests.push((request, slot))
   state.selected_request = None
+  state.selected_wire_bytes = 0
+  state.selected_wire_nodes = 0
   Ok(())
 }
 
@@ -260,7 +265,7 @@ pub fn client_keyed_lookup_planned_request(
     !state.closed &&
     state.planned_requests is Some(requests) &&
     requests.get(row) is Some((request, slot)) &&
-    state.known.get(slot) is Some((key, read, _)) else {
+    state.known.get(slot) is Some((key, read, Some(history))) else {
     return Err(Assembly("unavailable_planned_request"))
   }
   if state.selected_request is Some(original) &&
@@ -269,6 +274,8 @@ pub fn client_keyed_lookup_planned_request(
   }
   state.selected_request = Some(request)
   state.selected_key = Some(key)
+  state.selected_wire_bytes = history.wire_bytes
+  state.selected_wire_nodes = history.wire_nodes
   state.selected_index = Some(if read is Some(_) { slot } else { -1 })
   Ok(request)
 }

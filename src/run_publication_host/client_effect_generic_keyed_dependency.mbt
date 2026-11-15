@@ -299,7 +299,7 @@ fn build_client_effect_keyed_generic_dependency_bodies(
     let right_schema = @execution.completed_relation_export_schema_identity(
       right_receipt,
     )
-    let logical_usage = @execution.logical_relation_usage(
+    let (right_bytes, right_nodes, _) = @execution.logical_relation_usage(
       @execution.completed_relation_export_identity(right_receipt),
     )
     append_measured(
@@ -308,14 +308,14 @@ fn build_client_effect_keyed_generic_dependency_bodies(
         @execution.completed_relation_export_identity(right_receipt),
       ),
       right_bodies.0,
-      Some((logical_usage.0, logical_usage.1)),
+      Some((right_bytes, right_nodes)),
     )
-    let schema_usage = @execution.relation_schema_usage(right_schema)
+    let (right_schema_bytes, right_schema_nodes, _) = @execution.relation_schema_usage(right_schema)
     append_measured(
       "relation_schema",
       @execution.relation_schema_cid(right_schema),
       right_bodies.1,
-      Some((schema_usage.0, schema_usage.1)),
+      Some((right_schema_bytes, right_schema_nodes)),
     )
     append(
       "lookup_barrier",
@@ -349,12 +349,20 @@ fn build_client_effect_keyed_generic_dependency_bodies(
     // Each original Request is DATA of the actual generic RowRun. Its opaque
     // attempt/capture remains borrowed on lookup.known; there is no archive,
     // Native call-slot, activation, attempt-event or adoption to manufacture.
-    for (wire, _, _) in lookup.known {
+    for (wire, _, original_history) in lookup.known {
+      guard original_history is Some(history) &&
+        history.wire_bytes > 0 && history.wire_nodes > 0 &&
+        physical_equal(history.request.left, lookup.left) else {
+        return Err(ForeignInput)
+      }
       let cid = match @sha.text_hex(wire) {
         Ok(value) => "sha256:" + value
         Err(_) => return Err(Dependency(InvalidBody))
       }
-      append("request_values", cid, wire)
+      append_measured(
+        "request_values", cid, wire,
+        Some((history.wire_bytes, history.wire_nodes)),
+      )
     }
     guard @environment.lookup_execution_policy(
         @acquisition.lookup_bounds_policy(original.keyed.binding.bounds),

@@ -5,6 +5,8 @@
 // its physical owner. The later protocol issuer must validate that original.
 priv struct ClientKeyedResponseHistory {
   request : ClientKeyedRequest
+  wire_bytes : Int
+  wire_nodes : Int
   mut _retained_capture : @row_host.RowKeyedSourceCapture?
   mut _retained_activation : ClientKeyedNativeActivation?
   mut _retained_native_page : ClientKeyedNativePageState?
@@ -64,6 +66,8 @@ struct ClientKeyedLookupInput {
   mut pending_history : ClientKeyedResponseHistory?
   mut selected_request : ClientKeyedRequest?
   mut selected_key : String?
+  mut selected_wire_bytes : Int
+  mut selected_wire_nodes : Int
   mut selected_index : Int?
   mut completed : @execution.CapturedRows?
   mut read : @execution.SuppliedRelationRead?
@@ -89,9 +93,12 @@ fn keyed_lookup_layout_capacity(
       // Original left receipt/identity and optional Source cache fields, plus
       // consumed identity work. The Native-only cache body is funded on use.
       // Their later Some/token payloads are funded before construction below.
-      record_headers: 0L,
-      reference_slots: 6L,
-      scalar_words: 1L,
+      // Two selected-wire scalar facts and one transient measured-extent
+      // tuple/Some (H2/R3/W1) coexist at dependency admission. The old
+      // selected key slot itself is unchanged; no Request gains a field.
+      record_headers: 2L,
+      reference_slots: 9L,
+      scalar_words: 4L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })
@@ -268,6 +275,8 @@ fn start_client_keyed_lookup_input_owned(
     pending_history: None,
     selected_request: None,
     selected_key: None,
+    selected_wire_bytes: 0,
+    selected_wire_nodes: 0,
     selected_index: None,
     completed: None,
     read: None,
@@ -317,7 +326,18 @@ fn keyed_lookup_request_wire(
     match @acquisition.advance_keyed_request_wire(cursor) {
       @acquisition.WireContinue => ()
       @acquisition.WireFragment(fragment) => wire += fragment
-      @acquisition.WireComplete(_, _, _) => return Ok(wire)
+      @acquisition.WireComplete(bytes, nodes, _) => {
+        if state.closed || state.left.lookup_issue is Some(_) ||
+          !client_keyed_request_matches_acquisition(request, state.left.acquisition) {
+          return Err(Assembly("wire_unavailable"))
+        }
+        // The SAME original wire cursor measured this completed preimage.
+        // These are DATA only, retained on this lookup until its exact
+        // selected Request is transferred to the already-funded history.
+        state.selected_wire_bytes = bytes
+        state.selected_wire_nodes = nodes
+        return Ok(wire)
+      }
       @acquisition.WireFailed(issue) => return Err(Wire(issue))
     }
   } nobreak {
@@ -603,6 +623,8 @@ pub fn reuse_client_keyed_lookup_response(
   request.io_complete = true
   state.selected_request = None
   state.selected_key = None
+  state.selected_wire_bytes = 0
+  state.selected_wire_nodes = 0
   state.selected_index = None
   state.selected_key_position = -1
   Ok(())
@@ -730,7 +752,7 @@ pub fn begin_client_keyed_lookup_response(
       (if planned_slot >= 0 {
         1L + (if capture is Some(_) { 1L } else { 0L })
       } else {
-        request_layout.scalar_words + 7L
+        request_layout.scalar_words + 9L
       }),
       owned_utf16_units: if planned_slot >= 0 {
         0L
@@ -786,6 +808,8 @@ pub fn begin_client_keyed_lookup_response(
   } else {
     Some({
       request,
+      wire_bytes: state.selected_wire_bytes,
+      wire_nodes: state.selected_wire_nodes,
       _retained_capture: capture,
       _retained_activation: None,
       _retained_native_page: None,
@@ -806,6 +830,8 @@ pub fn begin_client_keyed_lookup_response(
   // RowRun capture; no second per-key request/capture table is introduced.
   state.selected_request = None
   state.selected_key = None
+  state.selected_wire_bytes = 0
+  state.selected_wire_nodes = 0
   state.selected_index = None
   Ok(())
 }
@@ -1216,6 +1242,8 @@ pub fn cleanup_client_keyed_lookup_input(
   state.pending_slot = -1
   state.selected_request = None
   state.selected_key = None
+  state.selected_wire_bytes = 0
+  state.selected_wire_nodes = 0
   state.selected_index = None
   state.selected_key_position = -1
   if state.input is Some(input) &&
