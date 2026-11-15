@@ -38,13 +38,20 @@ const report = {case: caseId, phase, pid: process.pid, submits: 0, approvals: 0,
   requestMemory: {retainedBytes: 1073741824, executionBytes: 1073741824}, sourceFreeMaxWork: 30000000};
 const diagnostic = (value, depth = 8) => {
   if (depth === 0 || value === null || typeof value !== 'object') return undefined;
+  const data = key => {
+    try {
+      for (let owner = value, level = 0; owner !== null && typeof owner === 'object' && level < 4;
+        owner = Object.getPrototypeOf(owner), level++) {
+        const property = Object.getOwnPropertyDescriptor(owner, key);
+        if (property) return Object.hasOwn(property, 'value') ? property.value : undefined;
+      }
+    } catch { /* Diagnostic inspection cannot replace the original failure. */ }
+  };
   const result = {};
   for (const key of ['name', 'code', 'phase', 'kind', 'boundary', 'dimension',
     'issueTag', 'nestedIssueTag', 'required', 'available', 'limit', '$tag',
     'cause', 'primaryDiagnostic', 'issue', '_0', '_1', '_2', '_3']) {
-    const property = Object.getOwnPropertyDescriptor(value, key);
-    if (!property || !Object.hasOwn(property, 'value')) continue;
-    const field = property.value;
+    const field = data(key);
     if (typeof field === 'number' || typeof field === 'boolean') result[key] = field;
     else if (!key.startsWith('_') && typeof field === 'string' &&
       field.length <= 192 && /^[A-Za-z0-9_.:/-]+$/u.test(field)) result[key] = field;

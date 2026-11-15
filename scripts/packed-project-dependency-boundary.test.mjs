@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
+import {parse} from 'acorn';
 import {assertPackedDependencyBoundaryPhase, packedDependencyBoundaryCases,
   packedDependencyBoundaryPhases} from './packed-project-dependency-boundary.mjs';
 
@@ -82,3 +84,35 @@ test('a pending first close, live descriptor, incomplete phase or missing Source
     const f = fixture('width'); mutate(f); assert.throws(f.verify, {code: 'ERR_ASSERTION'});
   }
 });
+
+for (const [file, name] of [['packed-table-dependency-width.mjs', 'safe'],
+  ['packed-project-dependency-boundary.mjs', 'diagnostic']]) {
+  test(`${name} preserves bounded prototype enum DATA without evaluating diagnostic getters`, () => {
+    const source = readFileSync(new URL(`./fixtures/${file}`, import.meta.url), 'utf8');
+    const declaration = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
+      .flatMap(node => node.type === 'VariableDeclaration' ? node.declarations : [])
+      .find(node => node.id.name === name);
+    assert(declaration);
+    const inspect = new Function(`const ${name} = ${source.slice(declaration.init.start, declaration.init.end)};return ${name};`)();
+    let getters = 0;
+    const leaf = Object.assign(Object.create({$tag: 7}), {_0: 11, required: 19, available: 8});
+    const cause = Object.assign(Object.create({$tag: 3}), {_0: leaf, _1: true});
+    Object.defineProperty(cause, 'issue', {get() {getters++; throw new Error('unexpected getter');}});
+    const primary = {code: 'MoonBitHostFailure', phase: 'source', cause,
+      message: 'private body', schema: {private: true}};
+    assert.deepEqual(inspect(primary), {code: 'MoonBitHostFailure', phase: 'source',
+      cause: {$tag: 3, _0: {$tag: 7, required: 19, available: 8, _0: 11}, _1: true}});
+    assert.equal(getters, 0);
+    const shadowed = Object.create({$tag: 5});
+    Object.defineProperty(shadowed, '$tag', {get() {getters++; return 9;}});
+    assert.deepEqual(inspect(shadowed), {});
+    let within = {$tag: 13};
+    for (let index = 0; index < 3; index++) within = Object.create(within);
+    assert.equal(inspect(within).$tag, 13);
+    assert.deepEqual(inspect(Object.create(within)), {});
+    const unreadable = new Proxy({}, {getPrototypeOf() {throw new Error('unreadable diagnostic');}});
+    assert.deepEqual(inspect({code: 'OriginalFailure', cause: unreadable}),
+      {code: 'OriginalFailure', cause: {}});
+    assert.equal(getters, 0);
+  });
+}
