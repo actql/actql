@@ -39,6 +39,7 @@ import {effectProgram} from './installed-salesforce-effect.fixture.mjs';
 import {writeSyntheticHistoricalHeldSalesforce}
   from '../../../../scripts/fixtures/synthetic-historical-held-salesforce.mjs';
 import {syntheticHeldSnapshot} from '../../../../scripts/fixtures/synthetic-historical-held-values.mjs';
+import {assertRetainedRelationSnapshots} from '../../../host-node/fixtures/retained-relation-snapshot.mjs';
 
 const repository = fileURLToPath(new URL('../../../../', import.meta.url));
 const scratch = join(repository, '_build', 'salesforce-standard-host');
@@ -405,10 +406,14 @@ test('non-first Salesforce source view retains two public consumer Results',
     assert.equal(setup.queries().length, 1);
     assert.match(decodeURIComponent(setup.queries()[0].path),
       / FROM Other_Record__c(?:&|$)/u);
-    assert.deepEqual(observations.filter(([name]) => name === 'computed')
-      .at(-1)?.[1].outputRepresentations, [
-      {task: 1, representation: 'retained-file'},
-      {task: 2, representation: 'retained-file'},
+    const snapshots = observations.filter(([name]) => name === 'computed')
+      .at(-1)?.[1].relationSnapshots;
+    assertRetainedRelationSnapshots(snapshots, [
+      {External_Key__c: 'key-1', Name: 'record-1'},
+      {External_Key__c: 'key-3', Name: 'record-3'},
+    ]);
+    assertRetainedRelationSnapshots(snapshots, [
+      {Name: 'record-1'}, {Name: 'record-3'},
     ]);
     const reads = setup.queries().length;
     const resent = await client.startSource(JSON.stringify(document),

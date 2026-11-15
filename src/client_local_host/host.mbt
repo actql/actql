@@ -715,7 +715,6 @@ fn bind_client_local_configuration(
   let graph = original.graph
   let capacity_plan = original.capacity_plan
   let first_compute = capacity_plan.graph_offset
-  let task_count = @strategy.graph_task_count(graph)
   let registry = original.registry
   let capacity = original.capacity
   let same_graph = match captured_effect {
@@ -805,8 +804,13 @@ fn bind_client_local_configuration(
     ) {
     Ok(value) => {
       if first_compute == 1 ||
+        first_compute == 2 ||
         (first_compute == 0 && !@strategy.graph_program_has_effects(graph)) {
-        // Plain query dispatch can use its legacy row-file fallback. A typed
+        // Plain query dispatch can use its legacy row-file fallback. Two
+        // independent captures retain unknown root estimates until that
+        // fallback is actually requested; their managed candidate uses both
+        // original ready inputs without preselecting future materialization.
+        // A typed
         // Source-free Effect entry keeps its existing managed-only setup;
         // installing an unused fallback would claim this same Run's search.
         // Managed preparation selects its actual candidate without refreshing
@@ -823,7 +827,11 @@ fn bind_client_local_configuration(
               max_offers: 100,
               max_strategies: 100,
               max_work: 10000,
-              max_revisions: client_local_adaptive_revisions,
+              max_revisions: if first_compute == 2 {
+                100
+              } else {
+                client_local_adaptive_revisions
+              },
             },
             // This closed Local estimator charges its exact ready-input
             // scan and offer slots directly to the same Ledger. Other
@@ -832,58 +840,6 @@ fn bind_client_local_configuration(
           ) {
           Ok(_) => ()
           Err(_) => return reject_client_local_run(run)
-        }
-      } else if first_compute == 2 {
-        // Bounded multiple-root Hosts keep their existing installed offers.
-        // Do not pretend that one capture's statistics describe independent
-        // roots. Source-free managed tasks select their original registration
-        // with actual live inputs below, not a whole future DATA envelope.
-        let offers = []
-        for task in first_compute..<task_count {
-          if @strategy.captured_task_completed(run, task) {
-            // A borrowed completed Model task has already spent its work.
-            // Offer only its actual downstream tasks, never rerun the prefix.
-            continue
-          }
-          let proposed = match
-            @local_driver.estimate_local_installed_offers(installed, task, {
-              rows: None,
-              wire_bytes: None,
-              pairs: None,
-            }) {
-            Ok(value) => value
-            Err(_) => return reject_client_local_run(run)
-          }
-          guard !proposed.is_empty() else {
-            return reject_client_local_run(run)
-          }
-          for offer in proposed {
-            offers.push(offer)
-          }
-        }
-        if offers.is_empty() {
-          // Every remaining task is an actual typed completion. This Host
-          // still owns Result/Effect consumers, but has no Compute to select.
-          return Some(value)
-        }
-        match
-          @strategy.configure_strategy_search(run, {
-            max_offers: 100,
-            max_strategies: 100,
-            max_work: 10000,
-            max_revisions: 100,
-          }) {
-          Ok(_) => ()
-          Err(_) => return reject_client_local_run(run)
-        }
-        let choices = match
-          @strategy.prepare_strategy_choices(run, offers, registry, None) {
-          Ok(value) => value
-          Err(_) => return reject_client_local_run(run)
-        }
-        match @strategy.commit_strategy_choice(choices, None) {
-          Ok(@strategy.Selected(_)) => ()
-          _ => return reject_client_local_run(run)
         }
       }
       Some(value)

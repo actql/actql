@@ -3499,8 +3499,9 @@ test "captured reusable inputs retain one owner and fund only missing import cop
       ),
     )
   }
-  assert_eq(@strategy.strategy_report_count(dag), 1)
-  assert_true(@strategy.strategy_report_at(dag, 0).unwrap().rejection is None)
+  // Host binding preserves the original two-input candidate without running
+  // the legacy future-materialization selector before an actual dispatch.
+  assert_eq(@strategy.strategy_report_count(dag), 0)
   let installed = @builtin.configured_local_module(
     @builtin.configured_host_modules(host),
   ).unwrap()
@@ -3522,6 +3523,33 @@ test "captured reusable inputs retain one owner and fund only missing import cop
   assert_eq(starts.val, 0)
   assert_eq(@resources.ledger_usage(ledger).attempts, usage.attempts)
   @resources.settle_capacity(ledger, other).unwrap()
+  // Both actual borrowed bindings reduced startup; they do not exempt it
+  // from the SAME Ledger. Leave its exact managed quote one byte short and
+  // refuse before the injected provider or another physical attempt starts.
+  let before_start = @resources.ledger_usage(ledger)
+  let remaining = @resources.ledger_admission_limits(ledger).execution_bytes -
+    before_start.reserved_execution_bytes
+  assert_true(execution > 0L && execution <= remaining)
+  let blocker = @resources.reserve_capacity(
+    ledger,
+    0L,
+    remaining - execution + 1L,
+  ).unwrap()
+  @strategy.select_captured_managed_registration(
+    dag,
+    task,
+    @local_driver.local_dispatch_registration(installed),
+  ).unwrap()
+  assert_true(
+    @local_driver.start_local_managed_dispatch_node(setup)
+    is Err(
+      @local_driver.Execution(@strategy.Physical(@resources.ExecutionLimit))
+    ),
+  )
+  assert_eq(starts.val, 0)
+  assert_eq(@resources.ledger_usage(ledger).attempts, before_start.attempts)
+  @resources.settle_capacity(ledger, blocker).unwrap()
+  assert_eq(@resources.ledger_usage(ledger), before_start)
   ignore(reject_client_local_run(dag))
   for read in reads {
     retire_installed_source_read(read).unwrap()

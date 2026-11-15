@@ -42,7 +42,7 @@ pub fn[E] open_adaptive_dispatch(
   let run = driver.owner.run
   let first = @strategy.captured_compute_first_task(run)
   if dispatch_driver_pending(driver) ||
-    (first != 0 && first != 1) ||
+    (first != 0 && first != 1 && first != 2) ||
     limits.max_work < 0 ||
     limits.max_offers < 0 ||
     limits.max_strategies < 1 ||
@@ -54,9 +54,10 @@ pub fn[E] open_adaptive_dispatch(
     @strategy.graph_task_count(@strategy.captured_dag_graph(run)) - first {
     return Err(InvalidConfiguration)
   }
-  // A Source-free task has no acquired root statistics. Keep those future
-  // quantities unknown; its real completed inputs refine later planning.
-  let root = if first == 0 {
+  // Source-free and two-capture tasks have no single acquired root statistic.
+  // Preserve unknown quantities; never substitute one independent capture's
+  // rows/bytes for both. Exact ready inputs refine their Local offer later.
+  let root = if first != 1 {
     None
   } else {
     guard @strategy.captured_execution_root_statistics(run) is Some(root) else {
