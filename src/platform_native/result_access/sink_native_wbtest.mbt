@@ -34,13 +34,7 @@ test "Native Result service rejects unsupported frame limits before admission or
     calls.val += 1
     "2026-09-20T01:00:00.000Z"
   }
-  for
-    limits in [
-      (0, 128, 3),
-      (65, 128, 3),
-      (32, 16777217, 3),
-      (32, 128, 16777217),
-    ] {
+  for limits in [(0, 128, 3), (65, 128, 3), (32, 0, 3), (32, 128, 16777217)] {
     let (depth, row_bytes, chunk_bytes) = limits
     assert_true(
       install_native_result_access_service(
@@ -52,6 +46,14 @@ test "Native Result service rejects unsupported frame limits before admission or
   assert_true(
     install_native_result_access_service(
       store, authority, now, 65536, 4096, 64, 128, 3,
+    )
+    is Ok(_),
+  )
+  // A logical row ceiling does not allocate that row or enlarge the physical
+  // chunk. Actual delivery still needs its original byte/Store admission.
+  assert_true(
+    install_native_result_access_service(
+      store, authority, now, 65536, 4096, 64, 16777217, 3,
     )
     is Ok(_),
   )
