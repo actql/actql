@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {writeFile as writeReceiptFile} from 'node:fs/promises';
 import {latencySummary, resourceSummary, nativeApprovalTarget} from './operation-performance.mjs';
 import {peakRssBytes} from './layout-measurement-support.mjs';
 import {mockTemplates} from './native-cli-mock-scenario.mjs';
@@ -34,6 +35,17 @@ export function assessOrdinaryNativeApprovalSmoke(scenarios) {
   }
   return {purpose: 'ordinary-small-fixture-maximum', maximumMs, samples,
     status: failures.length ? 'failed' : 'passed', failures, formalAcceptance: false};
+}
+
+// The caller has already closed its children and registry. Persist the original
+// observations before a slow smoke fails, and acknowledge scratch only on pass.
+export async function publishNativeApprovalReceipt({receipt, receiptFile, measureResources,
+  scratch, writeFile = writeReceiptFile, log = console.log}) {
+  if (!measureResources) receipt.approvalSmoke = assessOrdinaryNativeApprovalSmoke(receipt.scenarios);
+  await writeFile(receiptFile, `${JSON.stringify(receipt, null, 2)}\n`, {flag: 'wx'});
+  if (!measureResources) assert.equal(receipt.approvalSmoke.status, 'passed', receipt.approvalSmoke.failures.join('; '));
+  scratch.passed();
+  log(`Installed Native mock approval/recovery passed: ${receiptFile}`);
 }
 
 // The original sampler writes to its own file, leaving Native stderr intact.
