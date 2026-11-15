@@ -1163,7 +1163,9 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
               'clientProgramAdoptRequestEffectModelPreparation',
               'clientProgramPrepareRequestEffectModelsReadScopes',
               'clientProgramPrepareRequestEffectModelsReadScopesWithQuantities',
-              'clientProgramAdoptRequestEffectModelsPreparation']) {
+              'clientProgramAdoptRequestEffectModelsPreparation',
+              'clientProgramPrepareRequestEffectKeyedPlan',
+              'clientProgramPrepareRequestEffectKeyedOriginal']) {
               names.push(name);
               methods.push(Object.getOwnPropertyDescriptor(moon, name)?.value);
             }
@@ -1353,6 +1355,32 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         if (producer.finished || producer.preparation !== state || state.prepared !== prepared ||
             Reflect.apply(readOriginal, moon, [state.holder]) !== prepared) fail('ForeignInstalledSourceProducer');
         return state.modelProviderBinding;
+      });
+    },
+    prepareEffectKeyedPlan(prepared, request, keyed, declarations) {
+      current();
+      const producer = producerForRequest(request), state = producer?.preparation;
+      if (state?.preparationFailed) throw state.preparationFailure;
+      if (state === undefined || state.prepared !== prepared ||
+          state.compilationKind !== 'effectful' || state.effectBorrowMethods === undefined ||
+          state.holder === undefined || state.inventoryHolder !== undefined || state.adopting ||
+          state.preparing || state.effectKeyedPlan !== undefined ||
+          !Array.isArray(declarations) || types.isProxy(declarations) || !Object.isFrozen(declarations)) {
+        fail('ForeignInstalledSourceProducer');
+      }
+      const moon = state.context.runtime, contracts = originals.installation.sequenceContractOriginal;
+      const read = state.effectBorrowMethods.clientProgramEffectPreparationInputRead;
+      const construct = state.effectBorrowMethods.clientProgramPrepareRequestEffectKeyedPlan;
+      const issue = moon.clientProgramRequestProgramModuleIssueCode;
+      if (contracts?.moon !== moon || typeof construct !== 'function' || typeof issue !== 'function' ||
+          read(state.holder) !== prepared) fail('NodeManagedRunRuntimeUnavailable');
+      return constructRequestDomain(state, () => {
+        state.effectKeyedPlan = checkedRequestProgramPreparation(moon,
+          construct(state.parent, producer.receipt, keyed, contracts.admission, declarations), issue);
+        current();
+        if (producer.finished || producer.preparation !== state || state.prepared !== prepared ||
+            read(state.holder) !== prepared) fail('ForeignInstalledSourceProducer');
+        return state.effectKeyedPlan;
       });
     },
     prepareModelGraph(prepared, request, occurrence, execution, serializationGraph, constructSerialized, fileReadDeclarations) {
@@ -1918,7 +1946,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         throw cause;
       }
     },
-    adoptEffectPreparation(prepared, request, identity, operationPlan) {
+    adoptEffectPreparation(prepared, request, identity, operationPlan, keyedPreparation) {
       current();
       const producer = producerForRequest(request), state = producer?.preparation;
       if (state?.preparationFailed) throw state.preparationFailure;
@@ -1938,6 +1966,19 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       state.effectPlan = operationPlan;
       state.adopting = true;
       try {
+        if (keyedPreparation !== undefined) {
+          if (keyedPreparation.graph !== state.effectKeyedPlan ||
+              typeof state.effectBorrowMethods.clientProgramPrepareRequestEffectKeyedOriginal !== 'function') {
+            fail('ForeignInstalledSourceProducer');
+          }
+          // Bind before completion/adoption can discard an unused census.
+          // The control unwraps only its own actual compiled/Definition pair.
+          runtimeCore(moon).publicationControl.bindCheckedClientRequestEffectKeyedOriginal(
+            state.parent, producer.receipt, operationPlan, keyedPreparation.compilation,
+            keyedPreparation.compiled, keyedPreparation.runDefinition,
+            keyedPreparation.graph, keyedPreparation.acquisition,
+            methods.clientProgramPrepareRequestEffectKeyedOriginal);
+        }
         checked(methods.clientProgramCompleteRequestEffectPreparation(state.parent, producer.receipt, operationPlan));
         const value = checked(methods.clientProgramAdoptRequestEffectPreparation(state.parent, identity));
         const run = {prepared, request, producer, purpose: 'source-compute', model: undefined,

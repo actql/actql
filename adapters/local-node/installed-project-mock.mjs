@@ -668,7 +668,9 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
           if (typeof read.close !== 'function' || typeof read.bytes !== 'function') fail('InstalledMockSourceUnavailable');
           sameRun(checkedOwner);
           read.value = originalRead ?? checked(run.preparationKind === 'effect-plan'
-            ? moon.clientProgramInstalledManagedModelKeyedSourceRead(run.value,
+            ? (run.model === undefined
+              ? moon.clientProgramInstalledManagedEffectKeyedSourceRead
+              : moon.clientProgramInstalledManagedModelKeyedSourceRead)(run.value,
               keyedAcquisition, request, declaration,
               rowLimits.maxPageBytes, rowLimits.maxTextBytes, rowLimits.maxWork)
             : moon.clientProgramInstalledManagedKeyedSourceRead(run.value, keyedAcquisition, request, declaration));

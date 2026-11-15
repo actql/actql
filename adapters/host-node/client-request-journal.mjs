@@ -3966,7 +3966,7 @@ export function openClientRequestJournal(directory, {
     // Persist the original checked activation BEFORE its first physical
     // attempt. An existing/uncertain entry never authorizes another send.
     persistOriginalKeyedLookupActivation(ref, {activation, identity, preparedEffect,
-      compilation, compiled, runDefinition, graph, limits}, requestControl, publicationControl) {
+      compilation, compiled, runDefinition, graph, limits, sourceOriginal}, requestControl, publicationControl) {
       ensureOpen();
       if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) || !cid(ref?.runDefinitionCid) ||
           runDefinition?.identity !== ref.runDefinitionCid ||
@@ -3977,7 +3977,7 @@ export function openClientRequestJournal(directory, {
       publicationControl.checkClientCompiledEffectRunOwner(compiled, preparedEffect, compilation);
       publicationControl.checkClientCompiledRunDefinition(compiled, runDefinition);
       const record = publicationControl.keyedLookupActivationJournalRecord(
-        activation, identity, compiled, runDefinition, graph, limits);
+        activation, identity, compiled, runDefinition, graph, limits, sourceOriginal);
       if (!cid(record?.batchCid) || !cid(record?.slotCid) ||
           !Number.isSafeInteger(record?.batchIndex) || record.batchIndex < 0 ||
           !Number.isSafeInteger(record?.batchCount) || record.batchCount < 1 ||
@@ -3987,7 +3987,7 @@ export function openClientRequestJournal(directory, {
       const current = () => {
         ensureOpen();
         if (publicationControl.keyedLookupActivationJournalCurrent(
-          activation, identity, compiled, runDefinition, graph) !== true) {
+          activation, identity, compiled, runDefinition, graph, sourceOriginal) !== true) {
           fail('ForeignClientKeyedLookupOriginal');
         }
       };
@@ -4033,7 +4033,7 @@ export function openClientRequestJournal(directory, {
     // Exact original wires and the checked nominal page are both required;
     // neither row absence nor a lost commit permits another physical read.
     persistOriginalKeyedLookupPage(ref, {page, keyedRequest, identity, preparedEffect,
-      compilation, compiled, runDefinition, graph, limits, activationRecord}, requestControl, publicationControl) {
+      compilation, compiled, runDefinition, graph, limits, activationRecord, sourceOriginal}, requestControl, publicationControl) {
       ensureOpen();
       if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) || !cid(ref?.runDefinitionCid) ||
           runDefinition?.identity !== ref.runDefinitionCid ||
@@ -4045,7 +4045,7 @@ export function openClientRequestJournal(directory, {
       publicationControl.checkClientCompiledEffectRunOwner(compiled, preparedEffect, compilation);
       publicationControl.checkClientCompiledRunDefinition(compiled, runDefinition);
       const record = publicationControl.keyedLookupPageJournalRecord(page, keyedRequest,
-        identity, compiled, runDefinition, graph, limits);
+        identity, compiled, runDefinition, graph, limits, sourceOriginal);
       if (!cid(record?.batchCid) || !cid(record?.slotCid) || !cid(record?.activationCid) ||
           typeof record.wire !== 'string' || record.batchCid !== activationRecord.batchCid ||
           record.slotCid !== activationRecord.slotCid || record.batchIndex !== activationRecord.batchIndex ||
@@ -4056,7 +4056,7 @@ export function openClientRequestJournal(directory, {
       const current = () => {
         ensureOpen();
         if (publicationControl.keyedLookupPageJournalCurrent(page, keyedRequest, identity,
-            compiled, runDefinition, graph) !== true) fail('ForeignClientKeyedLookupPage');
+            compiled, runDefinition, graph, sourceOriginal) !== true) fail('ForeignClientKeyedLookupPage');
       };
       current();
       transact('keyed_lookup_page', 'ClientKeyedLookupPageUnknown',

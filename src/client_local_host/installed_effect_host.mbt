@@ -159,7 +159,30 @@ fn open_installed_effect_managed_host_original(
     !installed_effect_managed_limits_fit(owner, plan, ledger) {
     return Err(ForeignOriginal)
   }
-  let opened = if whole {
+  let opened = if plan.model is None && keyed is Some(lookup) {
+    guard !whole &&
+      plan.keyed_original is Some(original) &&
+      @publication_host.client_effect_keyed_lookup_matches_parent(
+        lookup, original, ledger,
+      ) &&
+      @publication_host.client_effect_keyed_lookup_sources_match(
+        lookup, original, sources,
+      ) &&
+      @publication_host.client_keyed_acquisition_coordinates(
+        @publication_host.client_keyed_lookup_acquisition(lookup),
+      )
+      is Some((_, task, _)) &&
+      @publication_host.finish_client_keyed_lookup_input(lookup) is Ok(read) else {
+      return Err(ForeignOriginal)
+    }
+    @strategy.open_captured_effect_keyed_source_run_dag(
+      checked,
+      Array::makei(first, index => (index, sources[index])),
+      ledger,
+      task,
+      read,
+    )
+  } else if whole {
     if sources.length() != plan.whole_sources.length() {
       return Err(ForeignOriginal)
     }

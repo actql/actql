@@ -908,6 +908,8 @@ fn[I] prepare_request_compilation_owned(
   let domain = owner.program_domain_compilation_inputs
   let continuation_phase = match domain {
     Some(RequestEffectCaptureRecovery(_, _, _))
+    | Some(RequestEffectKeyedGraphConstruction(_, _, _, _))
+    | Some(RequestEffectKeyedGraph(_, _, _, _))
     | Some(RequestModelRecovery(_, _))
     | Some(RequestSerializationGraph(_, _, _, _))
     | Some(RequestModelGraphConstruction(_, _, _, _))
@@ -942,6 +944,8 @@ fn[I] prepare_request_compilation_owned(
           let units = match
             (match domain {
               Some(RequestEffectCaptureRecovery(_, _, _))
+              | Some(RequestEffectKeyedGraphConstruction(_, _, _, _))
+              | Some(RequestEffectKeyedGraph(_, _, _, _))
               | Some(RequestModelRecovery(_, _))
               | Some(RequestSerializationGraph(_, _, _, _))
               | Some(RequestModelGraphConstruction(_, _, _, _))
@@ -999,6 +1003,8 @@ fn[I] prepare_request_compilation_owned(
       match
         (match domain {
           Some(RequestEffectCaptureRecovery(_, _, _))
+          | Some(RequestEffectKeyedGraphConstruction(_, _, _, _))
+          | Some(RequestEffectKeyedGraph(_, _, _, _))
           | Some(RequestModelRecovery(_, _))
           | Some(RequestSerializationGraph(_, _, _, _))
           | Some(RequestModelGraphConstruction(_, _, _, _))
@@ -1108,6 +1114,8 @@ fn[I] prepare_request_compilation_owned(
     ClientRequestProgramPlanIssue,
   ] = match domain {
     Some(RequestEffectCaptureRecovery(_, _, _))
+    | Some(RequestEffectKeyedGraphConstruction(_, _, _, _))
+    | Some(RequestEffectKeyedGraph(_, _, _, _))
     | Some(RequestModelRecovery(_, _))
     | Some(RequestSerializationGraph(_, _, _, _))
     | Some(RequestModelGraphConstruction(_, _, _, _))

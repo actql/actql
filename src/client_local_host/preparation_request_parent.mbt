@@ -84,6 +84,18 @@ priv enum ClientRequestDomainCompilationInputs {
     ClientInstalledSequenceContracts,
     @publication_host.ClientInferGraphConstruction
   )
+  RequestEffectKeyedGraphConstruction(
+    @publication_host.PreparedClientEffectComputation,
+    @publication_host.ClientKeyedAcquisition,
+    ClientInstalledSequenceContracts,
+    @publication_host.ClientEffectKeyedPlanConstruction
+  )
+  RequestEffectKeyedGraph(
+    @publication_host.PreparedClientEffectComputation,
+    @publication_host.ClientKeyedAcquisition,
+    ClientInstalledSequenceContracts,
+    @publication_host.ClientEffectKeyedPlanGraph
+  )
   RequestModelGraph(
     @publication_host.ClientCompilationManifests,
     @publication_host.ClientPureCompilationLimits,

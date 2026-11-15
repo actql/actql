@@ -4,14 +4,14 @@ import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 import {localStrategyContribution} from '../local-node/strategy-bundle.mjs';
 import {withLocalExecutionPauseHandler} from '../local-node/retained-store.mjs';
-import {prepareAcquiredEffectKeyedPrefix} from './acquired-effect-keyed-prefix.mjs';
+import {prepareAcquiredEffectKeyedCapture, prepareAcquiredEffectKeyedPrefix} from './acquired-effect-keyed-prefix.mjs';
 import {acquisitionFailure} from '../host-common/acquisition-outcome.mjs';
 
 const ok = value => ({$tag: 1, _0: value});
 
 // Explicit nominal ports exercise the actual shared composition. They do not
 // issue a Run, Source evidence, capacity, permission or physical cleanup ACK.
-function fixture({rawProtocol = false} = {}) {
+function fixture({rawProtocol = false, sourceOnly = false} = {}) {
   const prepared = {}, managedRun = {}, graph = {}, scope = {}, compiled = {};
   const definition = {identity: 'sha256:' + '1'.repeat(64),
     wire: '{"valid_until":"2027-01-01T00:00:00.000Z"}'};
@@ -43,7 +43,7 @@ function fixture({rawProtocol = false} = {}) {
     },
   };
   const sourceRef = {}, access = {}, preparedKeyed = {}, ledger = {}, observation = {}, original = {}, evidence = {};
-  const captures = [{capture: {}}, {capture: {}}], events = [];
+  const captures = (sourceOnly ? [{}] : [{}, {}]).map(() => ({capture: {}})), events = [];
   let duty, current = true, acquired = 0, prepares = 0, advances = 0, closes = 0, cleanups = 0, ack = true;
   const lookup = {async close() {events.push('lookup-close'); closes++;},
     async cleanup() {events.push('lookup-cleanup'); cleanups++; return ack;},
@@ -75,7 +75,13 @@ function fixture({rawProtocol = false} = {}) {
       acquired++; return lookup;
     }};
   const request = {};
-  const control = {startInstalledOriginalComposedKeyedPrefix(...args) {
+  const sourceOriginal = {};
+  const control = {startInstalledEffectKeyedCaptureInput(...args) {
+    assert(sourceOnly); assert(duty, 'cleanup retained before the original constructor');
+    assert.deepEqual(args.slice(0, 8), [managedRun, prepared, request, compiled,
+      definition, graph, acquisition, captures]);
+    events.push('source-start'); return originalLookup;
+  }, startInstalledOriginalComposedKeyedPrefix(...args) {
     assert(duty, 'retain cleanup before the actual constructor');
     assert.deepEqual(args, [managedRun, compiled, definition, graph, scope, acquisition, captures]);
     events.push('prefix-start'); return prefix;
@@ -96,6 +102,14 @@ function fixture({rawProtocol = false} = {}) {
     assert(physicalRecord); events.push('page-prepare'); return page;
   }, keyedLookupPublicationEvidence(value) {assert.equal(value, observation); return evidence;}};
   const moon = {
+    clientProgramInstalledEffectKeyedOriginal(parent, owner, identity) {
+      assert(sourceOnly); assert.strictEqual(parent, managedRun);
+      assert.strictEqual(owner, prepared); assert.strictEqual(identity, request);
+      return ok(sourceOriginal);
+    },
+    clientProgramKeyedLookupLeft(value) {assert.strictEqual(value, originalLookup); return left;},
+    clientProgramKeyedLookupStop(value) {assert.strictEqual(value, originalLookup); events.push('source-stop');},
+    clientProgramKeyedLookupCleanup(value) {assert.strictEqual(value, originalLookup); events.push('source-cleanup'); return ok(true);},
     clientProgramKeyedLookupDeclaredFilePublicationInputDeferredCatalog(value) {
       assert.strictEqual(value,originalLookup); events.push('lookup-completion'); return ok(original);
     },
@@ -128,7 +142,8 @@ function fixture({rawProtocol = false} = {}) {
     assert.strictEqual(ref, runRef); assert.equal(value.activation, activation);
     assert.equal(value.identity, request); assert.equal(value.preparedEffect, prepared);
     assert.equal(value.compilation, compilation); assert.equal(value.compiled, compiled);
-    assert.equal(value.runDefinition, definition); assert.equal(value.graph, graph);
+    assert.equal(value.runDefinition, definition); assert.equal(value.graph, sourceOnly ? undefined : graph);
+    if (sourceOnly) assert.strictEqual(value.sourceOriginal, sourceOriginal);
     assert.equal(actualMoon, moon); assert.equal(actualControl, control);
     events.push('journal'); return activationRecord;
   }};
@@ -142,7 +157,11 @@ function fixture({rawProtocol = false} = {}) {
     captures, sourceProfile:adapter, ledger, now: () => '2026-11-05T00:00:00.000Z',
     current() {if (!current) throw new Error('OriginalNotCurrent');},
     retain(value) {assert.equal(duty, undefined); duty = value;}};
-  return {options, moon, adapter, events, lookup, original, observation, evidence, left,
+  if (sourceOnly) {
+    delete options.infer; delete options.selected; delete options.originalPreparation; delete options.plan;
+    options.sourcePreparation = {graph, acquisition, compiled, runDefinition: definition};
+  }
+  return {options, moon, adapter, events, lookup, original, observation, evidence, left, sourceOriginal,
     duty: () => duty, counts: () => ({acquired, prepares, advances, closes, cleanups}),
     setCurrent: value => {current = value;}, acknowledge: value => {ack = value;}};
 }
@@ -434,4 +453,28 @@ test('actual Local prebound selection preserves the Core dispatch refusal and pr
     if (refused) await assert.rejects(entry.prepareNext(new Map()), error => error === failure);
     else assert.equal(await entry.prepareNext(new Map()), undefined);
   }
+});
+
+
+test('Source-only keyed capture uses the same original lookup without Model or prefix execution', async () => {
+  const f = fixture({sourceOnly: true, rawProtocol: true});
+  const value = await prepareAcquiredEffectKeyedCapture(f.options);
+  assert.strictEqual(value.lookup, f.original);
+  assert.strictEqual(value.sourceOriginal, f.sourceOriginal);
+  assert.strictEqual(value.evidence, f.evidence);
+  assert.equal(f.counts().advances, 0);
+  assert.equal(f.counts().acquired, 1);
+  assert(!f.events.includes('prefix-start'));
+  assert.equal(await f.duty().cleanup(), true);
+  assert(f.events.indexOf('lookup-cleanup') < f.events.indexOf('source-stop'));
+  assert.deepEqual(f.events.slice(-2), ['source-stop', 'source-cleanup']);
+});
+
+test('Source-only current loss retains its original capture cleanup without opening a Source', async () => {
+  const f = fixture({sourceOnly: true});
+  f.adapter.prepareKeyed = async () => {f.setCurrent(false); return {prepared: {}};};
+  await assert.rejects(prepareAcquiredEffectKeyedCapture(f.options), /OriginalNotCurrent/);
+  assert.equal(f.counts().acquired, 0);
+  assert.equal(await f.duty().cleanup(), true);
+  assert.deepEqual(f.events, ['source-start', 'source-stop', 'source-cleanup']);
 });

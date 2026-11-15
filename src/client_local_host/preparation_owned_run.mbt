@@ -209,11 +209,14 @@ fn[I] begin_preparation_owned_installed_effect_managed_run_original(
     Ok(_) => ()
   }
   // The original plan.model guard above already selected this non-Model
-  // constructor. No operation-name or graph reconstruction is needed.
-  match
-    @resources.discard_unbound_preparation_capacity_inventory(capacity, input) {
-    Err(issue) => return Err(Preparation(issue))
-    Ok(_) => ()
+  // constructor. A checked keyed Source retains its same original census;
+  // all other non-Model Plans still discard only unused census metadata.
+  if plan.keyed_original is None {
+    match
+      @resources.discard_unbound_preparation_capacity_inventory(capacity, input) {
+      Err(issue) => return Err(Preparation(issue))
+      Ok(_) => ()
+    }
   }
   adopt_preparation_owned_installed_effect_plan(
     initial, input, capacity, request, plan,

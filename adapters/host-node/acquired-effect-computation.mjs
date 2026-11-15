@@ -3,7 +3,7 @@ import {fundedEffectModelGroupCount} from './installed-effect-managed-run.mjs';
 // computes. This does not retry acquisition, Compute, or an Effect dispatch.
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
-import {acquiredEffectPublicationPlan, acquiredMultiEffectPublicationPlan, prepareAcquiredEffectSourceUnits,
+import {acquiredKeyedEffectPublicationPlan, acquiredEffectPublicationPlan, acquiredMultiEffectPublicationPlan, prepareAcquiredEffectSourceUnits,
   acquiredInferEffectPublicationPlan, sourceFreeInferEffectPublicationPlan,
   sourceFreeContentEffectPublicationPlan, localContractLimits} from './local-values-plan.mjs';
 import {selectAcquiredEffectSources} from './acquired-effect-sources.mjs';
@@ -17,7 +17,7 @@ import {refusedEffectPreparation} from '../host-common/effect-preparation-result
 import {ledgerUsageDiagnostic} from '../host-common/runtime-core.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {preparePrivatePublicationHolding} from '../host-common/private-publication-holding.mjs';
-import {prepareAcquiredEffectKeyedPrefix} from './acquired-effect-keyed-prefix.mjs';
+import {prepareAcquiredEffectKeyedPrefix, prepareAcquiredEffectKeyedCapture} from './acquired-effect-keyed-prefix.mjs';
 import {projectInferEvidence} from './infer-evaluation-evidence.mjs';
 
 export async function openAcquiredEffectComputation({moon, owner, acquired, managedRun,
@@ -27,7 +27,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
   submission, existingModel, modelClaim, parentResume, modelJournalPort, contentRun,
   assertUpdateSelectionCurrent, assertContinuationCurrent, originalPreparation, originalModelPlan,
   originalModelComponent, originalModelComponents, originalModelSelection, originalContent,
-  sourceSelection, sourceSelectionPlan, requestJournal, runRef}) {
+  sourceSelection, sourceSelectionPlan, sourceKeyedPreparation, requestJournal, runRef}) {
   const preparedOriginal = acquired.prepared, requestOriginal = acquired.requestIdentity;
   const count = moon?.clientProgramEffectAcquisitionCount?.(acquired.prepared);
   const sourceFree = count === 0;
@@ -620,6 +620,18 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
         }});
       current();
       if (keyedFamily !== undefined) captureCompletedAt = now();
+    } else if (infer === undefined && serializations.length === 0 &&
+        sourceKeyedPreparation !== undefined) {
+      keyedFamily = await prepareAcquiredEffectKeyedCapture({moon, acquired, managedRun,
+        sourcePreparation: sourceKeyedPreparation, captures, sources: evidence,
+        requestJournal, runRef, sourceProfile, ledger, contentRun, store, principalId,
+        signal, now, current,
+        retain(child) {
+          if (keyedCleanup !== undefined) throw new Error('InstalledComposedKeyedAlreadyRetained');
+          keyedCleanup = child;
+        }});
+      current();
+      captureCompletedAt = now();
     }
     async function handleModelPause(boundary) {
       current();
@@ -729,7 +741,12 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
     // The existing custody was retained before Host construction. Issue once
     // on its actual DAG; an issuer failure keeps that same cleanup owner.
     if (infer === undefined && serializations.length === 0) {
-      publicationPlan = multiple
+      publicationPlan = keyedFamily?.sourceOriginal !== undefined
+        ? acquiredKeyedEffectPublicationPlan({acquired, sources: evidence, keyedFamily,
+          captureStartedAt, captureCompletedAt, sourcePlan: operationPlan,
+          managedRun, sourceHost: checkedHost,
+          deferCatalogs: managedRun !== undefined && operationPlan !== undefined})
+        : multiple
         ? acquiredMultiEffectPublicationPlan({acquired, sources: evidence,
           captureStartedAt, captureCompletedAt, sourcePlan: operationPlan,
           managedRun, sourceHost: checkedHost,

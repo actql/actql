@@ -63,6 +63,22 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
     run.definitionOriginal = Object.freeze(Object.fromEntries(
       ['prepared', 'identity', 'compilation', 'allowed', 'definition', 'queryTimePreparation', 'modelCompiled']
         .map(name => [name, facts[name]])));
+    if (model === undefined && runtime.clientProgramEffectAcquisitionCount?.(prepared) > 0) {
+      const selectKeyed = runtime.clientProgramEffectSingleKeyedAcquisition;
+      if (typeof selectKeyed !== 'function') fail('InstalledEffectKeyedRuntimeUnavailable');
+      const acquisition = checked(Reflect.apply(selectKeyed, runtime, [prepared]));
+      if (acquisition !== undefined) {
+        if (typeof manager.prepareEffectKeyedPlan !== 'function' ||
+            typeof publicationControl?.adoptCheckedClientEffectKeyedRun !== 'function' ||
+            fields.runDefinition?.value === undefined) fail('InstalledEffectKeyedRuntimeUnavailable');
+        const graph = manager.prepareEffectKeyedPlan(prepared, requestInput, acquisition,
+          sourceProfile?.fileReadDeclarations);
+        const compiled = publicationControl.adoptCheckedClientEffectKeyedRun(
+          facts.allowed, fields.runDefinition.value, graph);
+        run.keyedPreparation = Object.freeze({graph, acquisition, compiled,
+          compilation: facts.compilation, runDefinition: fields.runDefinition.value});
+      }
+    }
     if (model !== undefined) {
       const plural = Array.isArray(model.components);
       if (plural && (!Object.isFrozen(model) || types.isProxy(model) ||
@@ -137,7 +153,8 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
       // manager Root for the selected Plan.
       const adopt = Object.getOwnPropertyDescriptor(manager, 'adoptEffectPreparation')?.value;
       if (typeof adopt !== 'function' || requestInput === undefined) fail('InstalledEffectRequestPreparationUnavailable');
-      const adopted = Reflect.apply(adopt, manager, [prepared, requestInput, request, operationPlan]);
+      const adopted = Reflect.apply(adopt, manager,
+        [prepared, requestInput, request, operationPlan, run.keyedPreparation]);
       run.original = adopted.original;
       run.value = adopted.value;
       run.preparationFunded = true;

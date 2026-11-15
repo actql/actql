@@ -2962,6 +2962,44 @@ function publicationControl(moon) {
       return result;
     },
     compiledSourceFreeResultPolicy,
+    // Borrow the checked Source-only Effect component from this exact keyed
+    // plan and admitted Definition. A Model graph or an equal wire cannot
+    // supply this nominal association, and this projection issues no Run.
+    adoptCheckedClientEffectKeyedRun(allowed, definition, keyedPlan) {
+      const value = compiledRunResult(moon.clientProgramEffectAllowedKeyedRun(
+        allowed, keyedPlan, token(definition)), 'RunHostEffectKeyedAdmissionRejected');
+      if (!moon.clientProgramCheckCompiledRunDefinition(value, token(definition))) {
+        throw new TypeError('Effect keyed Run Definition differs from admission');
+      }
+      // The original acquired tuple already retains all publication bodies.
+      // This private adapter token only borrows the nominal component; avoid
+      // decoding those same immutable bodies to manufacture another tuple.
+      const result = Object.freeze({kind: 'effect-keyed'});
+      compiledRunTokens.set(result, value);
+      return result;
+    },
+    bindCheckedClientRequestEffectKeyedOriginal(parent, input, operationPlan, compilation,
+      compiled, definition, keyedPlan, keyed, construct) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'effect-keyed' || typeof construct !== 'function') {
+        throw new TypeError('Foreign Client compiled keyed Effect preparation');
+      }
+      return checked(construct(parent, input, operationPlan, compilation,
+        value, token(definition), keyedPlan, keyed));
+    },
+    startInstalledEffectKeyedCaptureInput(managedRun, prepared, request, compiled,
+      definition, keyedPlan, keyed, captures, limits) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'effect-keyed' ||
+          !Array.isArray(captures) || captures.some(value =>
+            value.inputKind === 'whole-input' || typeof value.capture?.originalRowCapture !== 'function')) {
+        throw new TypeError('Foreign original keyed Effect capture');
+      }
+      return checked(moon.clientProgramStartInstalledEffectKeyedCaptureInput(
+        managedRun, prepared, request, value, token(definition), keyedPlan, keyed,
+        captures.map(value => value.capture.originalRowCapture()),
+        limits.maxEntries, limits.maxNameBytes, limits.maxBytes, limits.maxWork));
+    },
     // Borrow the original admitted Effect compilation. No fresh Program,
     // authorization, Source observation or Command approval is issued here.
     adoptCheckedClientEffectSerializationRun(allowed, definition) {
@@ -3548,29 +3586,36 @@ function publicationControl(moon) {
       checked(moon.clientProgramKeyedLookupBindDeclaredFilePhysicalSource(lookup, fileReadDeclarations));
       return inspect(retention, limits);
     },
-    keyedLookupActivationJournalRecord(original, request, compiled, definition, graph, limits) {
+    keyedLookupActivationJournalRecord(original, request, compiled, definition, graph, limits, sourceOriginal) {
       limits = captureContractLimits(limits, 'keyed lookup activation');
       const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
+      if (value === undefined || (compiled.kind !== 'infer' &&
+          (compiled.kind !== 'effect-keyed' || sourceOriginal === undefined))) {
         throw new TypeError('Foreign Client compiled Infer preparation');
       }
-      const wire = checked(moon.clientProgramKeyedLookupDeclaredFileActivationRecord(
-        original, request, value, token(definition), graph, limits.maxWireBytes));
+      const wire = checked(compiled.kind === 'effect-keyed'
+        ? moon.clientProgramEffectKeyedDeclaredFileActivationRecord(
+          original, request, sourceOriginal, limits.maxWireBytes)
+        : moon.clientProgramKeyedLookupDeclaredFileActivationRecord(
+          original, request, value, token(definition), graph, limits.maxWireBytes));
       const fields = moon.clientProgramKeyedLookupActivationFields(original);
       return Object.freeze({wire, batchCid: runtimeField(fields, 0),
         slotCid: runtimeField(fields, 1), batchIndex: runtimeField(fields, 2),
         batchCount: runtimeField(fields, 3)});
     },
-    keyedLookupActivationJournalCurrent(original, request, compiled, definition, graph) {
+    keyedLookupActivationJournalCurrent(original, request, compiled, definition, graph, sourceOriginal) {
       const value = compiledRunTokens.get(compiled);
-      return value !== undefined && compiled.kind === 'infer' &&
-        moon.clientProgramKeyedLookupActivationMatches(original, request, value,
-          token(definition), graph) === true;
+      if (value === undefined) return false;
+      return compiled.kind === 'effect-keyed'
+        ? sourceOriginal !== undefined && moon.clientProgramEffectKeyedNativeActivationMatches(
+          original, request, sourceOriginal) === true
+        : compiled.kind === 'infer' && moon.clientProgramKeyedLookupActivationMatches(
+          original, request, value, token(definition), graph) === true;
     },
     prepareKeyedLookupRawCapture(keyedRequest, compiled, definition, retention,
       storage, contentCid, bytes, at, nowMs, limits) {
       const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
+      if (value === undefined || (compiled.kind !== 'infer' && compiled.kind !== 'effect-keyed')) {
         throw new TypeError('Foreign Client compiled Infer preparation');
       }
       const raw = checked(moon.clientProgramKeyedLookupPrepareDeclaredFileRawCapture(
@@ -3593,24 +3638,31 @@ function publicationControl(moon) {
       return checked(moon.clientProgramKeyedLookupPrepareCapturedPage(keyedRequest, capture,
         raw, at, exported, maxWork, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
     },
-    keyedLookupPageJournalRecord(page, keyedRequest, request, compiled, definition, graph, limits) {
+    keyedLookupPageJournalRecord(page, keyedRequest, request, compiled, definition, graph, limits, sourceOriginal) {
       limits = captureContractLimits(limits, 'keyed lookup page');
       const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
+      if (value === undefined || (compiled.kind !== 'infer' &&
+          (compiled.kind !== 'effect-keyed' || sourceOriginal === undefined))) {
         throw new TypeError('Foreign Client compiled Infer preparation');
       }
-      const wire = checked(moon.clientProgramKeyedLookupDeclaredFilePageRecord(
-        page, keyedRequest, request, value, token(definition), graph, limits.maxWireBytes));
+      const wire = checked(compiled.kind === 'effect-keyed'
+        ? moon.clientProgramEffectKeyedDeclaredFilePageRecord(
+          page, keyedRequest, request, sourceOriginal, limits.maxWireBytes)
+        : moon.clientProgramKeyedLookupDeclaredFilePageRecord(
+          page, keyedRequest, request, value, token(definition), graph, limits.maxWireBytes));
       const fields = moon.clientProgramKeyedLookupCapturedPageFields(page);
       return Object.freeze({wire, batchCid: runtimeField(fields, 0),
         slotCid: runtimeField(fields, 1), activationCid: runtimeField(fields, 2),
         batchIndex: runtimeField(fields, 3)});
     },
-    keyedLookupPageJournalCurrent(page, keyedRequest, request, compiled, definition, graph) {
+    keyedLookupPageJournalCurrent(page, keyedRequest, request, compiled, definition, graph, sourceOriginal) {
       const value = compiledRunTokens.get(compiled);
-      return value !== undefined && compiled.kind === 'infer' &&
-        moon.clientProgramKeyedLookupCapturedPageMatches(page, keyedRequest,
-          request, value, token(definition), graph) === true;
+      if (value === undefined) return false;
+      return compiled.kind === 'effect-keyed'
+        ? sourceOriginal !== undefined && moon.clientProgramEffectKeyedNativeCapturedPageMatches(
+          page, keyedRequest, request, sourceOriginal) === true
+        : compiled.kind === 'infer' && moon.clientProgramKeyedLookupCapturedPageMatches(
+          page, keyedRequest, request, value, token(definition), graph) === true;
     },
     takeSourceEvidenceOriginal(capture) {
       const take = Object.getOwnPropertyDescriptor(capture ?? {}, 'takeSourceEvidenceOriginal')?.value;
@@ -4622,6 +4674,46 @@ function publicationControl(moon) {
       checked(moon.clientProgramBindInstalledEffectSourceFreeInvocation(
         parent, prepared, request, plan, host, admissionToken(admission), token(definition), original));
     },
+    issueCheckedInstalledEffectKeyedInvocation(parent, prepared, request, plan, host,
+      compilation, admission, definition, lookup, started, completed, limits) {
+      issuanceLimits(limits, 'Original installed keyed Source Invocation');
+      const issued = checked(moon.clientProgramIssueInstalledEffectKeyedInvocation(
+        parent, prepared, request, plan, host, compilation, admissionToken(admission), definition,
+        lookup, started, completed, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
+        invocation: inspect(runtimeField(issued, 1), limits), owner: runtimeField(issued, 1)});
+    },
+    prepareInstalledEffectKeyedSourceUnit(parent, prepared, request, plan, host,
+      original, lookup, retention, limits, deferCatalogs = false) {
+      issuanceLimits(limits, 'Original installed keyed Source Unit');
+      const issued = checked(moon.clientProgramPrepareInstalledEffectKeyedSourceUnit(
+        parent, prepared, request, plan, host, lookup, token(retention),
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      // Borrow exactly the completed inventory. Core performs current and
+      // retention-bound checks; this never exports or admits lookup DATA again.
+      const cached = moon.clientProgramEffectKeyedCachedDependencyBodies(original, lookup, token(retention));
+      if (!Array.isArray(cached)) throw new TypeError('OriginalEffectKeyedInventoryUnavailable');
+      const bodies = cached.map(body => Object.freeze({
+        kind: moon.clientProgramEffectDependencyBodyKind(body),
+        cid: moon.clientProgramEffectDependencyBodyCid(body),
+        wire: moon.clientProgramEffectDependencyBodyJson(body)}));
+      for (const body of moon.clientProgramEffectKeyedSourceUnitMetadataBodies(issued)) {
+        bodies.push(Object.freeze({kind: runtimeField(body, 0),
+          cid: runtimeField(body, 1), wire: runtimeField(body, 2)}));
+      }
+      const value = Object.freeze({invocation: moon.clientProgramEffectKeyedSourceUnitInvocation(issued),
+        ...(deferCatalogs ? {catalogDeferred: true} : {}), bodies: Object.freeze(bodies),
+        catalogBodies: Object.freeze(bodies.filter(body => {
+          switch (body.kind) {
+            case 'source_contract': case 'source_view_contract': case 'data_policy':
+            case 'request_schema': case 'carrier_schema': case 'schema_evidence':
+            case 'capability_evidence': return true;
+            default: return false;
+          }
+        }))});
+      localEffectDependencyTokens.set(value, {kind: 'keyed_source', issued, parent, plan, request});
+      return value;
+    },
     issueCheckedInstalledEffectCapturedInvocation(parent, prepared, request, plan, host,
       compilation, admission, definition, capturedSource, source, limits) {
       issuanceLimits(limits, 'Original installed Effect Invocation');
@@ -5144,7 +5236,11 @@ function publicationControl(moon) {
         throw new TypeError('Foreign local Effect dependency evidence');
       }
       const exactContext = localEffectContext(context);
-      const result = owned.kind === 'combined_source'
+      const result = owned.kind === 'keyed_source'
+        ? moon.clientProgramIssueInstalledKeyedSourceEffectLocalResultArtifact(
+          owned.parent, owned.plan, owned.request, inputs, exported, owned.issued, definition, receipt,
+          ...exactContext, limits.maxWireBytes, limits.maxNodes, limits.maxDepth)
+        : owned.kind === 'combined_source'
         ? moon.clientProgramIssueCombinedSourceEffectLocalResultArtifact(
           owner, inputs, exported, owned.issued, definition, receipt,
           ...exactContext, limits.maxWireBytes, limits.maxNodes, limits.maxDepth)

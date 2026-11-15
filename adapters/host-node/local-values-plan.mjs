@@ -454,6 +454,47 @@ export function sourceFreeInferEffectPublicationPlan({acquired,
   }
 }
 
+// One real captured Source and its completed keyed right input form the same
+// checked Unit. Neither side is relabeled as Model or a single-Source result.
+export function acquiredKeyedEffectPublicationPlan({acquired, sources, keyedFamily,
+  captureStartedAt, captureCompletedAt, sourcePlan, managedRun, sourceHost,
+  deferCatalogs = false}) {
+  const {moon, control, prepared, compilation, admission, definition,
+    runDefinition, compiledPlan, authorityScopeCid, namespaceId, storeAuthorityCid, now} = acquired;
+  if (sources.length !== 1 || keyedFamily?.sourceOriginal === undefined ||
+      keyedFamily.lookup === undefined || managedRun === undefined) {
+    throw new TypeError('InvalidOriginalEffectKeyedPublication');
+  }
+  const {observation, invocation, owner: invocationOwner} =
+    control.issueCheckedInstalledEffectKeyedInvocation(managedRun, prepared,
+      acquired.requestIdentity, sourcePlan, sourceHost, compilation, admission, definition,
+      keyedFamily.lookup, captureStartedAt, captureCompletedAt, limits);
+  const run = JSON.parse(runDefinition.wire);
+  const {plan, retention, retentionDependencies} = buildLocalPublicationPlan({
+    control, admission, runDefinition, invocation, observation,
+    compiledPlanCid: compiledPlan.identity,
+    programDefinitionCid: moon.clientProgramEffectDefinitionCid(prepared),
+    inputRelationCids: [...new Set([
+      moon.clientProgramCapturedSourceLogicalCid(sources[0].captured.identity),
+      keyedFamily.evidence.logicalRelationCid])],
+    sourceEvidence: [sources[0].sourceEvidence, keyedFamily.evidence.source],
+    authorityScopeCid, namespaceId, storeAuthorityCid,
+    dataPolicyCid: JSON.parse(observation.wire).data_policy_cid,
+    createdAt: run.created_at, now, retainUntil: run.valid_until,
+    resultCount: moon.clientProgramEffectCompilationResultNames(compilation).length,
+    moon, effectCompilation: compilation, preparedEffect: prepared,
+    retentionSelection: acquired.selectRetention?.()});
+  const acquiredEvidence = control.prepareInstalledEffectKeyedSourceUnit(managedRun,
+    prepared, acquired.requestIdentity, sourcePlan, sourceHost, keyedFamily.sourceOriginal,
+    keyedFamily.lookup, retention, limits, deferCatalogs);
+  return Object.freeze({...plan, effectInputRetention: retention, invocationOwner,
+    localEvidenceContext: Object.freeze({admission, runDefinition,
+      ...(deferCatalogs ? {catalogDeferred: true} : {}),
+      acquiredEvidence, retentionDependencies, acquisitionDependencies: Object.freeze([]),
+      sourceLocalInvocation: acquiredEvidence.invocation,
+      runInvocation: invocation, observation})});
+}
+
 export function acquiredEffectPublicationPlan({acquired, captured,
   sourceEvidence: originalSourceEvidence, sourceEvidenceWire,
   captureStartedAt, captureCompletedAt, content, sourcePlan, managedRun, sourceHost, deferCatalogs = false}) {

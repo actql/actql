@@ -146,6 +146,12 @@ fn[I] request_effect_plan_quote(
       is Some(e) else {
       return Err(Policy)
     }
+    let keyed_field = installed_effect_keyed_plan_field_bytes()
+    guard @execution.checked_preparation_add_product(r, keyed_field, 1L)
+      is Some(r) &&
+      @execution.checked_preparation_add_product(e, keyed_field, 1L) is Some(e) else {
+      return Err(Policy)
+    }
     let control_phase = installed_effect_control_phase_quote_capacity()
     guard @execution.checked_preparation_add_product(
         r,

@@ -2511,7 +2511,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
   // This assembles a right Relation input; it is not Source/task evidence.
   async function openKeyedLookup({preparedProgram, preparedEffect,
     keyedAcquisition, left, ledger, signal, preparedKeyed, originalCapture, originalCaptures, managedRun,
-    keyedContent, publication,
+    keyedContent, publication, sourceLookup,
     sourceAccess: access = sourceAccess, maxWork = 1000000, quantum = 64}) {
     if (originalReader !== undefined) fail('InstalledProviderSourceUnavailable');
     keyedContent = selectedKeyedContent(keyedContent);
@@ -2529,8 +2529,15 @@ export async function createInstalledRowSource({moon, declaration, commands,
       fail('InstalledSourceProgramMismatch');
     }
     signal?.throwIfAborted();
-    const lookup = checked(moon.clientProgramKeyedLookupStart(left, ledger,
-      limits.maxPageBytes, maxWork));
+    const lookup = sourceLookup === undefined
+      ? checked(moon.clientProgramKeyedLookupStart(left, ledger, limits.maxPageBytes, maxWork))
+      : preparedEffect === undefined || managedRun === undefined
+        ? fail('InstalledSourceProgramMismatch')
+        : checked(moon.clientProgramInstalledEffectKeyedLookupOriginal(managedRun,
+          preparedEffect, sourceLookup));
+    if (sourceLookup !== undefined && moon.clientProgramKeyedLookupLeft(lookup) !== left) {
+      fail('InstalledSourceProgramMismatch');
+    }
     const children = [];
     const released = new Set();
     let pendingRecovery;
