@@ -66,6 +66,10 @@ export async function runCollectionPhase({collection, command, record, capturePi
       const original = JSON.parse(await readFile(join(collection, 'large-row-original.json'), 'utf8'));
       assert.deepEqual(actual.cases, original.cases);
       if (phase === 'large-row-capture') {
+        assert.deepEqual(actual.largeRowTerminals, [
+          {id: 'one-row', status: 'succeeded', resultAvailable: true, physicalStop: 'confirmed'},
+          {id: 'many-rows', status: 'succeeded', resultAvailable: true, physicalStop: 'confirmed'},
+        ]);
         assert.equal(actual.explicitRefusal, 'ResultRowWireLimit'); assert.equal(actual.sameRunRecovery, true);
         assert.equal(actual.originalProgramsRemovedAfterFirstClose, 2);
       } else {

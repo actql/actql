@@ -2681,7 +2681,7 @@ test('16MiB fixture captures once per SQL, refuses a smaller reader, closes then
     assert(files.has('large-row16-ref-before-wait-'+id+'.json'));
     const progress = JSON.parse(files.get(selectedPhase+'.progress.json'));
     assert.equal(progress.event, 'start'); assert.equal(progress.step, 'wait-large-row16-'+id);
-    return failedTerminal ?? {status: 'succeeded', next_action: {results: ['answer']}};
+    return failedTerminal ?? {status: 'succeeded', result_available: true, control: {physical_stop: 'confirmed'}, next_action: {results: ['answer']}};
   }, result(name) {assert.equal(name, 'answer'); return {async all(options) {
     if (options) {assert.deepEqual(options, {maxRowWireBytes: 16777216});
       events.push('refusal:'+id); throw Object.assign(new Error('Explicit smaller reader'), {code: 'ResultRowWireLimit'});}
@@ -2725,6 +2725,10 @@ test('16MiB fixture captures once per SQL, refuses a smaller reader, closes then
     assert.equal(actual.firstCloseCalls, 1); assert.equal(actual.firstClose, 'returned');
     assert.deepEqual(actual.aliveScopedFD, {before: 0, after: 0}); assert.deepEqual(actual.cleanup, []);
   }
+  assert.deepEqual(observations[0].largeRowTerminals, [
+    {id:'one-row',status:'succeeded',resultAvailable:true,physicalStop:'confirmed'},
+    {id:'many-rows',status:'succeeded',resultAvailable:true,physicalStop:'confirmed'},
+  ]);
   assert.equal(observations[0].explicitRefusal, 'ResultRowWireLimit'); assert.equal(observations[0].sameRunRecovery, true);
   assert.equal(observations[0].originalProgramsRemovedAfterFirstClose, 2);
   assert.equal(observations[1].originalProgramsAbsent, true); assert.deepEqual(observations[1].cases, observations[0].cases);
@@ -2790,7 +2794,9 @@ test('16MiB collection routing uses SAME staged artifact and separate Saved PID 
     const actual = {phase,pid:phase==='large-row-capture'?123:456,sourceFreeMaxWork:100000000,
       requestMemory:{retainedBytes:1073741824,executionBytes:1073741824},submits:phase==='large-row-capture'?2:0,
       firstClose:'returned',firstCloseCalls:1,aliveScopedFD:{before:0,after:0},cleanup:[],complete:true,cases,
-      ...(phase==='large-row-capture'?{explicitRefusal:'ResultRowWireLimit',sameRunRecovery:true,originalProgramsRemovedAfterFirstClose:2}
+      ...(phase==='large-row-capture'?{largeRowTerminals:[
+        {id:'one-row',status:'succeeded',resultAvailable:true,physicalStop:'confirmed'},
+        {id:'many-rows',status:'succeeded',resultAvailable:true,physicalStop:'confirmed'}],explicitRefusal:'ResultRowWireLimit',sameRunRecovery:true,originalProgramsRemovedAfterFirstClose:2}
         :{originalProgramsAbsent:true})};
     await writeFile(args[2],JSON.stringify({cases}));
     await writeFile(join(options.cwd,phase+'.observation.json'),JSON.stringify(actual));

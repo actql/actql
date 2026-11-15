@@ -423,6 +423,8 @@ try {
           ...(terminal.terminal_error ? {terminal_error: {code: terminal.terminal_error.code,
             message: terminal.terminal_error.message?.slice(0, 8192),
             messageTruncated: (terminal.terminal_error.message?.length ?? 0) > 8192}} : {})};
+        (report.largeRowTerminals ??= []).push({id, status: terminal.status, resultAvailable: terminal.result_available, physicalStop: terminal.control?.physical_stop});
+        assert.equal(terminal.control?.physical_stop, 'confirmed');
         assert.equal(terminal.status, 'succeeded');
         const names = terminal.next_action?.results;
         assert(Array.isArray(names) && names.length === 1); resultName = names[0];
