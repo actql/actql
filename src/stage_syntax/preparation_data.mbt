@@ -85,6 +85,13 @@ fn preparation_step(
       // and all other operands on their original conservative subtree bound.
       state.possible_growth += if key == "derive" {
         fields
+      } else if key == "merge_rankings" &&
+        preparation_member(value, "by") is Some(by) &&
+        @wire.array_length(by) is Some(groups) {
+        // Fusion emits the selected grouping fields, candidate, score and
+        // rank, independently of its input/weight count. The original source
+        // node/text envelope still backs every option and input reference.
+        groups + 3
       } else {
         @wire.observe_subtree_size(value).0
       }
