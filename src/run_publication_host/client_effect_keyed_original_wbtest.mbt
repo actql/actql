@@ -518,7 +518,21 @@ test "Source-only keyed DAG retains the actual supplied binding and refuses fore
       read,
     ),
   )
+  assert_false(
+    @strategy.captured_effect_keyed_completed_input_matches(host, task, 1, read),
+  )
+  assert_false(
+    @strategy.captured_effect_keyed_completed_input_matches(
+      host, task, 1, foreign_read,
+    ),
+  )
+  assert_false(
+    @strategy.captured_effect_keyed_completed_input_matches(host, task, 0, read),
+  )
   @strategy.stop_captured_dag(run)
+  assert_false(
+    @strategy.captured_effect_keyed_completed_input_matches(host, task, 1, read),
+  )
   assert_false(
     @strategy.captured_effect_keyed_supplied_input_matches(run, task, 1, read),
   )

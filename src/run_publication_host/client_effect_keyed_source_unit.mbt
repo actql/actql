@@ -408,11 +408,30 @@ pub fn client_effect_keyed_source_unit_scope_json(
 fn client_effect_keyed_source_unit_current(
   value : ClientEffectKeyedSourceUnit,
 ) -> Bool {
-  client_effect_keyed_source_host_matches(
-    value.parent,
-    value.lookup,
+  // Artifact publication follows Compute. Its Source closure retains the
+  // exact successful completion even after the internal JOIN output port is
+  // reclaimed. Active execution/read eligibility remains a separate gate.
+  guard client_effect_keyed_source_completed(value.parent, value.lookup) &&
+    client_keyed_acquisition_coordinates(value.parent.keyed)
+    is Some((_, task, _)) &&
+    value.lookup.read is Some(read) &&
+    value.lookup.holding is Some(holding) &&
+    client_keyed_lookup_dag_matches(
+      value.lookup,
+      @strategy.captured_effect_run_dag(value.host),
+    ) else {
+    return false
+  }
+  @strategy.captured_effect_keyed_completed_input_matches(
     value.host,
+    task,
+    @acquisition.keyed_join_input(value.parent.keyed.binding.join),
+    read,
   ) &&
+  !value.lookup.closed &&
+  (value.lookup.read is Some(same) && physical_equal(same, read)) &&
+  (value.lookup.holding is Some(same) && physical_equal(same, holding)) &&
+  @resources.holding_available(value.parent.ledger, holding) &&
   (match value.completed {
     NativeSourceCompleted(completed) =>
       value.lookup.native_completion is Some(same) &&

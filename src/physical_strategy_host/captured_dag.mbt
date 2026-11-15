@@ -553,6 +553,87 @@ pub fn captured_effect_keyed_supplied_input_matches(
 }
 
 ///|
+/// Historical correspondence for an already committed Effect task. The
+/// original supplied read remains owned by its Source; closing the ordinary
+/// intermediate output port does not erase this Run's successful completion.
+/// This metadata predicate issues neither an execution read nor a new pin.
+pub fn captured_effect_keyed_completed_input_matches(
+  value : CapturedEffectRunDAG,
+  task : Int,
+  input : Int,
+  read : @execution.SuppliedRelationRead,
+) -> Bool {
+  let run = value.captured
+  let graph = run.graph
+  guard !run.stopped &&
+    run.failure is None &&
+    task >= graph.captured_prefix_value() &&
+    task < run.done.length() &&
+    task < run.supplied_reads.length() &&
+    task < run.lifetimes.length() &&
+    run.done[task] &&
+    input >= 0 &&
+    input < run.supplied_reads[task].length() &&
+    run.supplied_reads[task][input] is Some(original) &&
+    @execution.supplied_relation_read_same_binding(original, read) &&
+    graph.owners_at(task) is Some(owner) else {
+    return false
+  }
+  let completion = run.lifetimes[task].completion
+  let output = run.outputs[task]
+  if completion is None && !(run.lifetimes[task].live && output is Some(_)) {
+    return false
+  }
+  for slot in graph.supplied_slots_iter() {
+    if slot.consumer == task && slot.input == input {
+      let output_available = match completion {
+        Some(_) => true
+        None =>
+          match output {
+            Some(Materialized(value)) =>
+              @execution.completed_output_available(value)
+            Some(Managed(value)) =>
+              @execution.managed_completed_reference_available(value)
+            Some(CarrierManaged(value)) =>
+              @execution.carrier_managed_completed_reference_available(value)
+            None => false
+          }
+      }
+      if !output_available {
+        return false
+      }
+      let available = @execution.supplied_relation_read_matches_input(
+        read,
+        owner,
+        slot.source_input,
+      )
+      // Availability can stop/replace this original. Keep the SAME committed
+      // record and cached binding after the callback, without re-reading it.
+      return available &&
+        !run.stopped &&
+        run.failure is None &&
+        physical_equal(run.graph, graph) &&
+        run.done[task] &&
+        (match completion {
+          Some(expected) =>
+            run.lifetimes[task].completion is Some(same) &&
+            physical_equal(same, expected)
+          None =>
+            run.lifetimes[task].live &&
+            run.lifetimes[task].completion is None &&
+            (match (output, run.outputs[task]) {
+              (Some(expected), Some(same)) => physical_equal(same, expected)
+              _ => false
+            })
+        }) &&
+        run.supplied_reads[task][input] is Some(same) &&
+        physical_equal(same, original)
+    }
+  }
+  false
+}
+
+///|
 // The runtime keyed-input view is constructed from this exact checked Effect
 // graph. Its added live input slot does not replace the preparation original.
 // This nominal association conveys no input liveness, capacity or permission.

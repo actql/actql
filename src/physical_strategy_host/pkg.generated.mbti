@@ -197,6 +197,8 @@ pub fn captured_effect_inputs_share_view(CapturedEffectInputs, Int, Int) -> Bool
 
 pub fn captured_effect_inputs_shared_capacity_current(CapturedEffectInputs, @physical_resources.SharedCapacity) -> Bool
 
+pub fn captured_effect_keyed_completed_input_matches(CapturedEffectRunDAG, Int, Int, @execution_relation.SuppliedRelationRead) -> Bool
+
 pub fn captured_effect_keyed_prefix_input_matches(CapturedEffectRunDAG, Int, Int, Int, @execution_relation.ProducerRead) -> Bool
 
 pub fn captured_effect_keyed_supplied_input_matches(CapturedDAG, Int, Int, @execution_relation.SuppliedRelationRead) -> Bool
