@@ -210,7 +210,9 @@ test('Salesforce warm capture and requests use their own full original extents w
     const capture = recipe.captureConstruction.inputExtent(proposals);
     const request = recipe.requestConstruction.inputExtent(proposals[0]);
     assert.strictEqual(capture, recipe.memberOperations[0].extent.initial);
-    assert.strictEqual(request, recipe.rowOperations[0].extent);
+    assert.strictEqual(request, recipe.rowOperations[0].extent.initial);
+    assert.strictEqual(request, recipe.rowOperations[0].extent.maximum,
+      'InputBegin has an explicit original maximum without changing the full request quantity');
     assert.strictEqual(request.capacity, f.capacities[2]);
     assert.equal(request.physical, false);
     assert.equal(request.transferBytes, 0n);

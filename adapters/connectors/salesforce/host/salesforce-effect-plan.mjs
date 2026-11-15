@@ -194,7 +194,7 @@ export function captureSalesforceEffectPlanRecipeBuilder({moon, salesforceMoon})
           checked(captureExtentFor(operation, maximum.slice(0, 6),
             limits.preview.maxWireBytes, limits.preview.maxNodes, limits.preview.maxDepth))))})];
       const rowOperations = [Object.freeze({operation,
-        extent: warmRequestExtent})];
+        extent: checked(stageFor(warmRequestExtent, warmRequestExtent))})];
       const credentialOperations = [];
       const physical = (phase, perRow, selectedOperation, capacity, requestBytes, responseBytes, maximumCapacity, originalResponseExtent) => {
         const selected = perRow ? rowOperations : memberOperations;
