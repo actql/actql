@@ -8122,8 +8122,30 @@ async function openPreparedInstalledHost(options, initialEntry) {
       }
       (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
         : assertSourceManagedInstallationCurrent)(manager, originals);
-      return manager.admitEffectMaterials(prepared,
-        originalSourceManagedHostRequest(originals, prepared), wire, runDefinitionCid, compilation, identity, features);
+      const run = record.computeRuns?.get(prepared);
+      let requestInput;
+      if (run === undefined) {
+        requestInput = originalSourceManagedHostRequest(originals, prepared);
+      } else {
+        // Signing's pending call may have ended while its SAME adopted Run
+        // still owns these immutable materials. Borrow that retained input;
+        // the manager keeps its exact original/current and complete bindings.
+        if (run.preparationKind !== 'effect-plan' || run.runtime !== runtime ||
+            run.manager !== manager || run.prepared !== prepared || run.closed ||
+            !record.computeLiveRuns?.has(run) || run.requestInput === undefined) {
+          throw clientOperationError('ForeignInstalledEffectManagedRun');
+        }
+        requestInput = run.requestInput;
+      }
+      const materials = manager.admitEffectMaterials(prepared,
+        requestInput, wire, runDefinitionCid, compilation, identity, features);
+      if (run !== undefined && (record.computeRuns?.get(prepared) !== run ||
+          !record.computeLiveRuns?.has(run) || run.closed || run.runtime !== runtime ||
+          run.preparationKind !== 'effect-plan' || run.manager !== manager ||
+          run.prepared !== prepared || run.requestInput !== requestInput)) {
+        throw clientOperationError('ForeignInstalledEffectManagedRun');
+      }
+      return materials;
     },
     reserveManagedEffectOriginal(runtime, prepared, material, installations) {
       const manager = sourceManaged ?? computeManaged;
