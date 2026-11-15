@@ -560,25 +560,28 @@ const recoveryNode = recoveryRowNodes.find(node => node.type === 'FunctionDeclar
 const recoveryRouteNode = recoveryRowNodes.find(node => node.id.name === 'physicalRoute').init;
 const recoveryEntriesNode = recoveryRowNodes.find(node => node.id.name === 'prepareRecoveredEntries').init;
 const recoveryRunLimitsNode = recoveryRowNodes.find(node => node.id.name === 'runLimits').init;
+const recoveryKeysSource = retainedRequestSourceMember('../host-common/runtime-core.mjs', 'recoverInstalledEffectPreviewKeys');
 
 function recoveredPhysicalFixture({managed = true, pending = false, failPrepare = false, prepareFailure, reenter, closeDuringRetain = false, storedResponse} = {}) {
   const prepared = {}, request = {}, value = {}, operationPlan = {}, preview = {}, computation = {}, storedResults = {},
-    definition = {identity: 'original-definition'};
+    definition = {identity: 'original-definition'}, compilation = {}, allowed = {}, invocation = {}, invocationOriginal = {}, requestScope = {};
   const events = [], child = {}, originalCurrent = {}, current = {}, entry = {request: {}}, member = {memberIndex: 0};
+  const keyWire = '"original-row"', keys = Object.freeze([Object.freeze([Object.freeze({correlationWire: keyWire})])]);
   const body = {invocation_cid: 'original-invocation', run_identity_cid: 'original-run',
-    authoring_context: {authoring_context_cid: 'original-authoring'}, effects: [{capability_evidence_cid: 'original-capability', changes: [{}]}]};
+    authoring_context: {authoring_context_cid: 'original-authoring'}, effects: [{capability_evidence_cid: 'original-capability', changes: [{target_row_identity: 'original-row'}]}]};
   const owner = {managedPlanRecipe: {credentialOperations: [{}],
     captureConstruction: {operationIndex: 0}, recoveryConstruction: {operationIndex: 1},
     memberOperations: [{operation: 'capture'}, {operation: 'recovery-input'}]}, owned: {}};
-  const run = {prepared, request, value, operationPlan, definitionOriginal: {definition}, closed: false, controlConstruction: (receiver, method, args) => Reflect.apply(method, receiver, args)};
-  const previewWire = JSON.stringify(body), token = {}, protocol = {retains: 0, constructions: 0, retired: false};
+  const run = {prepared, request, value, operationPlan, definitionOriginal: {definition, compilation, allowed}, closed: false, controlConstruction: (receiver, method, args) => Reflect.apply(method, receiver, args)};
+  const previewWire = JSON.stringify(body), token = {}, protocol = {retains: 0, constructions: 0, keys: 0, retired: false};
   let constructing = false;
   run.controlConstruction.parsePreview = (wire, retain) => {
     assert.equal(wire, previewWire); assert.equal(retain, true); return body;
   };
-  run.controlConstruction.retainRecoveredInputs = (control, allowed, originalDefinition, invocation, originalPreview) => {
+  run.controlConstruction.retainRecoveredInputs = (control, allowed, originalDefinition, originalInvocation, originalPreview) => {
     assert.strictEqual(originalDefinition, definition);
     assert.strictEqual(allowed, run.definitionOriginal.allowed);
+    assert.strictEqual(originalInvocation, invocation);
     assert.strictEqual(originalPreview, preview);
     assert.equal(protocol.retains, 0, 'inventory precedes recovered request retention');
   };
@@ -595,6 +598,18 @@ function recoveredPhysicalFixture({managed = true, pending = false, failPrepare 
     clientProgramInstalledEffectManagedOperationPlan(parent, p, identity) {
       assert.strictEqual(this, moon); assert.strictEqual(parent, value);
       assert.strictEqual(p, prepared); assert.strictEqual(identity, request); return ok(operationPlan);
+    },
+    clientProgramInstalledEffectRecoveredPreviewKeys(parent, p, identity, plan,
+      originalAllowed, originalDefinition, originalInvocation, admitted, scope, ...limits) {
+      assert.strictEqual(this, moon); assert.strictEqual(parent, value); assert.strictEqual(p, prepared);
+      assert.strictEqual(identity, request); assert.strictEqual(plan, operationPlan);
+      assert.strictEqual(originalAllowed, allowed); assert.strictEqual(originalDefinition, definition);
+      assert.strictEqual(originalInvocation, invocationOriginal); assert.strictEqual(admitted, originalCurrent);
+      assert.strictEqual(scope, requestScope); assert.deepEqual(limits, [1, 1, 1, 4096, 64, 8]);
+      assert.equal(protocol.keys++, 0, 'the same original funds recovered keys once before opening its Ledger');
+      assert.equal(protocol.retains, 0); assert.equal(closed, false);
+      assert.equal(keys[0][0].correlationWire, JSON.stringify(body.effects[0].changes[0].target_row_identity));
+      return ok(keys);
     },
     clientProgramInstalledEffectOperationConstructionRetain(parent, p, identity, plan, index, perRow, slot, row, operation) {
       assert.strictEqual(this, moon); assert.strictEqual(parent, value); assert.strictEqual(p, prepared);
@@ -626,16 +641,30 @@ function recoveredPhysicalFixture({managed = true, pending = false, failPrepare 
   const control = {effectComputationPreviewWire: () => previewWire,
     effectComputationPreviewLedgerIdentity: () => originalCurrent,
     effectComputationPreviewSemanticCid: () => 'original-preview'};
-  const limits = {preview: {}, key: {}, maxRows: 1, maxWork: 1, maxFrontierWork: 1};
+  // Execute the real Common wrapper with explicit native ports. The fixture's
+  // key DATA tests forwarding, not Common admission or physical authority.
+  control.recoverInstalledEffectPreviewKeys = new Function('moon', 'checked', 'computationPreviewTokens', 'token',
+    'return ({' + recoveryKeysSource + '}).recoverInstalledEffectPreviewKeys;')(
+    moon, checked, new WeakMap([[preview, originalCurrent]]), original => {
+      assert.strictEqual(original, invocation); return invocationOriginal;
+    });
+  const limits = {preview: {}, key: {maxBytes: 4096, maxNodes: 64, maxDepth: 8}, maxRows: 1, maxWork: 1, maxFrontierWork: 1};
   const limitPorts = {limits, moon, readManagedShape: moon.clientProgramInstalledEffectManagedPlanShape,
     owners: [owner], fail, runtimeField};
   const runLimits = new Function(...Object.keys(limitPorts), 'return (' +
     recoveryRowSource.slice(recoveryRunLimitsNode.start, recoveryRunLimitsNode.end) + ');')(...Object.values(limitPorts));
   const ports = {moon, localContractLimits: {}, singular: undefined, ROUTING_VERSION: 'original-version',
     text: value => typeof value === 'string' && value.length > 0, selectionChanged: () => assert.fail('No target selection'),
-    recoveredMembers: () => [member], bindRunResources() {}, selectionFence: () => () => {},
+    recoveredMembers: () => [member], ownerOf, bindRunResources() {}, selectionFence: () => () => {},
     memberDispatch: () => 'original-dispatch', limits, runLimits,
-    effect: {recoveredPreviewKeys: () => [], admitPreviewIdentity: () => ({})},
+    effect: {recoveredPreviewKeys(admitted, scope) {
+      assert.equal(managed, false); assert.strictEqual(admitted, originalCurrent); assert.strictEqual(scope, requestScope); return keys;
+    }, admitPreviewIdentity(wire, runIdentity, authoring, scope, recoveredKeys) {
+      assert.equal(wire, previewWire); assert.equal(runIdentity, body.run_identity_cid);
+      assert.equal(authoring, body.authoring_context.authoring_context_cid);
+      assert.strictEqual(scope, requestScope); assert.strictEqual(recoveredKeys, keys);
+      return {};
+    }},
     openLedger() {events.push('ledger-open'); return ledger;},
     admitCapability: () => ({identity: 'original-capability'}), orderedSourceIndexes: () => [0],
     physicalRoute(options) {routeOptions = options; return realRoute(options);},
@@ -675,8 +704,8 @@ function recoveredPhysicalFixture({managed = true, pending = false, failPrepare 
     recoveryRowSource.slice(recoveryEntriesNode.start, recoveryEntriesNode.end) + ');')(...Object.values(entryPorts));
   const prepare = new Function(...Object.keys(ports), 'return ' +
     recoveryRowSource.slice(recoveryNode.start, recoveryNode.end))(...Object.values(ports));
-  const facts = {moon, control, store: {}, recovered: {prepared, runDefinition: definition, requestIdentity: request, requestScope: {},
-    computation: {computation, preview, storedResults}}, continuation: {version: 'original-version',
+  const facts = {moon, control, store: {}, recovered: {prepared, runDefinition: definition, requestIdentity: request, requestScope,
+    computation: {computation, preview, storedResults, invocation}}, continuation: {version: 'original-version',
     program_id: 'original-program', stage_id: 'original-stage', members: [{dispatch_request_cid: 'original-dispatch'}]},
     managedEffect: managed ? run : undefined, retainRecoveryOwner(value) {retained = value; if (closeDuringRetain) void value.cleanup();}};
   return {facts, run, child, events, entry, current, ledger, protocol, get owner() {return retained;},
