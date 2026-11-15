@@ -509,18 +509,19 @@ async function initialHostFixture({beginFailure = false} = {}) {
     await import('../local-node/request-preparation-adapter.mjs');
   const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
   const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
-  let method, selectionMethod, servicesMethod;
+  let method, identityMethod, selectionMethod, servicesMethod;
   function visit(node) {
     if (!node || typeof node !== 'object') return;
     if (node.type === 'Property' && node.key?.name === 'hostInitializationPreparation') method = node.value;
     if (node.type === 'Property' && node.key?.name === 'sourceInitializationServices') servicesMethod = node.value;
+    if (node.type === 'FunctionDeclaration' && node.id?.name === 'assertSourceInitializationIdentity') identityMethod = node;
     if (node.type === 'FunctionDeclaration' && node.id?.name === 'assertSourceInitializationSelection') selectionMethod = node;
     for (const value of Object.values(node)) {
       if (Array.isArray(value)) value.forEach(visit);
       else if (value && typeof value === 'object') visit(value);
     }
   }
-  visit(ast); assert.ok(method); assert.ok(selectionMethod); assert.ok(servicesMethod);
+  visit(ast); assert.ok(method); assert.ok(identityMethod); assert.ok(selectionMethod); assert.ok(servicesMethod);
   const policy = {}, parent = {}, record = {}, installation = {}, calls = [];
   let admission;
   const stop = () => {
@@ -550,12 +551,13 @@ async function initialHostFixture({beginFailure = false} = {}) {
   const invoke = new Function('record','moon','originalInstallation','openHostInitializationPreparation',
     'assertInitialControlHostPreparation','assertInitialControlInstallationCurrent','clientOperationError',
     `let hostInitialization, sourceManaged, sourceInitializationSelection, project, control={}, originals={};
+      ${source.slice(identityMethod.start,identityMethod.end)}
       ${source.slice(selectionMethod.start,selectionMethod.end)}
       return (${code});`)(
       record,moon,installation,openHostInitializationPreparation,()=>{},()=>{},
       code=>Object.assign(new Error(code),{code}));
   return {invoke,moon,parent,record,calls,close:()=>closeHostInitializationPreparation(record.hostInitialization),
-    get original() {return admission.original;},source,ast,servicesMethod};
+    get original() {return admission.original;},source,ast,identityMethod,selectionMethod,servicesMethod};
 }
 
 test('actual Host initialization retains the original before construction and reuses it across Requests', async () => {
@@ -586,8 +588,51 @@ test('actual Host passes its early original to installation services before Sour
   const initial = servicesBody.indexOf('const initialPreparation = preparation.hostInitializationPreparation(runtime);');
   const create = servicesBody.indexOf('sourceInitializationServices = createInstalledHostServices(',initial);
   assert.ok(initial >= 0 && create > initial);
-  const servicesEnd = servicesBody.indexOf(';',create);
-  assert.match(servicesBody.slice(create,servicesEnd),/moon: runtime, initialPreparation, assertCurrent/);
+  let servicesOptions;
+  function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'CallExpression' && node.callee?.name === 'createInstalledHostServices') {
+      assert.equal(servicesOptions, undefined, 'One actual services constructor owns the early parent');
+      servicesOptions = node.arguments[0];
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  }
+  visit(f.servicesMethod); assert.equal(servicesOptions?.type, 'ObjectExpression');
+  const runtime = {}, root = '/original-source-root', principalId = 'original-operator';
+  const initialPreparation = {}, control = {}, originals = {}, events = [];
+  const selection = {runtime, root, hostCurrent() {events.push('source-current');}};
+  const installation = {root};
+  let controlCurrent = true;
+  const ports = {root, principalId, runtime, moon: runtime, initialPreparation,
+    sourceInitializationSelection: selection, originalInstallation: installation,
+    project: undefined, control, originals,
+    installedProjectOriginalsForRuntime() {assert.fail('This fixture has no Project original');},
+    assertInitialControlInstallationCurrent(actualControl, actualOriginals) {
+      assert.strictEqual(actualControl, control); assert.strictEqual(actualOriginals, originals);
+      events.push('control-current');
+      if (!controlCurrent) throw new Error('OriginalInitialControlChanged');
+    }, clientOperationError: code => Object.assign(new Error(code), {code})};
+  const services = new Function(...Object.keys(ports),
+    `${f.source.slice(f.identityMethod.start,f.identityMethod.end)}
+     ${f.source.slice(f.selectionMethod.start,f.selectionMethod.end)}
+     return (${f.source.slice(servicesOptions.start,servicesOptions.end)});`)(...Object.values(ports));
+  assert.strictEqual(services.moon, runtime); assert.strictEqual(services.initialPreparation, initialPreparation);
+  assert.equal(services.root, root); assert.equal(services.principalId, principalId);
+  services.accountCurrent(); assert.deepEqual(events.splice(0), ['control-current']);
+  services.assertCurrent(); assert.deepEqual(events.splice(0), ['control-current', 'source-current']);
+  selection.root = '/foreign-source-root';
+  for (const current of [services.accountCurrent, services.assertCurrent]) {
+    assert.throws(current, {code: 'ForeignInstalledSourceInitialization'});
+    assert.deepEqual(events.splice(0), ['control-current']);
+  }
+  selection.root = root; controlCurrent = false;
+  for (const current of [services.accountCurrent, services.assertCurrent]) {
+    assert.throws(current, /OriginalInitialControlChanged/);
+    assert.deepEqual(events.splice(0), ['control-current']);
+  }
   const start = f.source.indexOf('const installationServices = preparation === undefined');
   const service = f.source.indexOf('preparation.sourceInitializationServices(moon, root, principalId, assertProjectRuntime)',start);
   const load = f.source.indexOf('await loadInstalledSources(', service);
