@@ -19,6 +19,7 @@ import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.
 import {createCommandEvidence, checkCommandEvidenceUpload} from './packed-query-evidence.mjs';
 import {nativeCoreScopedTestEnvironment} from './native-core-test-selection.mjs';
 import {projectFileStoreRows101, projectFileStoreMembers17} from './fixtures/project-file-store-inventory-cases.mjs';
+import {packedDependencyBoundaryCases, packedDependencyBoundaryPhases} from './packed-project-dependency-boundary.mjs';
 
 const workflow = parse(await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const name = 'client-readme-packed', job = workflow.jobs[name];
@@ -29,9 +30,37 @@ const explicitWork = (phase, variant = 'readme') => ({complete: true,
   sourceAcquisitionStarts: phase === 'capture' ? 2 : 0,
   modelCallStarts: phase === 'capture' ? variant === 'readme' ? 2 : 4 : 0,
   effectReplacementReturns: phase === 'approve' ? 2 : 0});
+const explicitDependencySuccess = async ({report}) => {
+  report.cases.push(...packedDependencyBoundaryCases.flatMap(selected =>
+    packedDependencyBoundaryPhases.map(phase => ({case: selected.case, phase, status: 'passed', completed: true}))));
+  report.complete = true;
+};
 const explicitStep = (phase, step) => ({phase, step, status: 'passed', timing: {
   startedAt: '2026-01-01T00:00:00.000Z', endedAt: '2026-01-01T00:00:00.001Z',
   wallNs: 1000000, cpuUserUs: 0, cpuSystemUs: 0, scope: 'Explicit test port, not a runtime measurement'}});
+
+test('required packed dependency boundaries keep cold approval, locked physical setup and timeout diagnostics', async () => {
+  assert.deepEqual(packedDependencyBoundaryCases.map(value => value.case), ['count', 'width']);
+  assert.deepEqual(packedDependencyBoundaryPhases, ['capture', 'approve', 'saved']);
+  assert.deepEqual(job.strategy.matrix.node, ['22.22.0', '24']);
+  const setup = job.steps.find(step => step.name === 'Select the existing locked Table fixture interpreter');
+  assert.equal(setup.uses, 'actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1');
+  assert.equal(setup.with['python-version'], '3.12');
+  const dependencies = job.steps.find(step => step.name === 'Prepare locked physical dependencies for cold Effect restoration');
+  assert.match(dependencies.run, /pip install --require-hashes -r adapters\/connectors\/local\/iceberg\/requirements\.lock/u);
+  const functional = job.steps.find(step => step.run === 'node scripts/test-packed-readme-workflows.mjs "$RUNNER_TEMP/client-readme-packed"');
+  assert.equal(functional.env.ACTQL_TABLE_PYTHON, '${{ runner.temp }}/readme-table-python/bin/python');
+  assert.equal(functional.env.PYTHONDONTWRITEBYTECODE, '1');
+  const upload = job.steps.find(step => step.name === 'Preserve actual functional outcomes and failures');
+  assert.equal(upload.if, 'always()');
+  for (const suffix of ['*.observation.json', '*.pending.json', '*.source-progress.json']) {
+    assert(upload.with.path.split('\n').includes('${{ runner.temp }}/client-readme-packed/dependency-boundary/*/' + suffix));
+  }
+  assert(!upload.with.path.includes('original.json'), 'Private signing originals are not public diagnostics');
+  const source = await readFile(new URL('./test-packed-readme-workflows.mjs', import.meta.url), 'utf8');
+  assert.match(source, /await runPackedDependencyBoundaries\(\{prepared,/u);
+  assert.match(source, /report\.complete = failures\.length === 0 && report\.account\.completed &&\s*report\.dependencyBoundaries\.complete &&/u);
+});
 
 test('README call bounds come from authored joined rows and declared per-row Tasks rather than prior observations', () => {
   for (const template of ['churn-risk-mock', 'deal-review-mock']) {
@@ -998,6 +1027,7 @@ test('independent normal consumers continue after collection and variant failure
     URL, checkoutState: () => before, execFileSync: () => 'b'.repeat(40), mkdir, join, writeFile,
     packedReadmeCases, packedCompositionCases, packedEffectControlCases,
     runPackedAccountControls: async ({report}) => {report.account.completed = true; report.account.status = 'passed';},
+    runPackedDependencyBoundaries: explicitDependencySuccess,
     runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 6}, (_, index) => ({case: index < 3 ? 'rows101' : 'members17', phase: ['capture', 'approve', 'saved'][index % 3], completed: true, status: 'passed'})));},
     packedModelControlPhases, runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
     runMockEffectControls: async ({records}) => records.forEach(record => {record.completed = true; record.status = 'passed';}),
@@ -1054,6 +1084,7 @@ test('each required Model composition is distinct from README three and cannot p
       URL, checkoutState: () => before, execFileSync: () => 'b'.repeat(40), mkdir, join, writeFile,
       packedReadmeCases, packedCompositionCases, packedEffectControlCases,
       runPackedAccountControls: async ({report}) => {report.account.completed = true; report.account.status = 'passed';},
+    runPackedDependencyBoundaries: explicitDependencySuccess,
     runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 6}, (_, index) => ({case: index < 3 ? 'rows101' : 'members17', phase: ['capture', 'approve', 'saved'][index % 3], completed: true, status: 'passed'})));},
     packedModelControlPhases, runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
       runMockEffectControls: async ({records}) => records.forEach(record => {record.completed = true; record.status = 'passed';}),
@@ -1126,6 +1157,7 @@ test('failed shared package preparation records every dependent as unexecuted an
     checkoutState: () => before, execFileSync: () => 'b'.repeat(40), mkdir, join, writeFile,
     packedReadmeCases, packedCompositionCases, packedEffectControlCases,
     runPackedAccountControls: async ({report}) => {report.account.completed = true; report.account.status = 'passed';},
+    runPackedDependencyBoundaries: explicitDependencySuccess,
     runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 6}, (_, index) => ({case: index < 3 ? 'rows101' : 'members17', phase: ['capture', 'approve', 'saved'][index % 3], completed: true, status: 'passed'})));},
     packedModelControlPhases, runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
     runMockEffectControls: async ({records}) => records.forEach(record => {record.completed = true; record.status = 'passed';}),
@@ -1567,6 +1599,7 @@ test('required normal controls preserve original errors and cannot pass an unexe
     runProjectFileJoinConsumer: async ({report}) => report.projectFiles.forEach(row => row.completed = true),
     runReadmeCases: async ({report, cases = report.cases}) => cases.forEach(row => row.completed = true),
     runPackedAccountControls: async ({report}) => {report.account.completed = true; report.account.status = 'passed';},
+    runPackedDependencyBoundaries: explicitDependencySuccess,
     runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 6}, (_, index) => ({case: index < 3 ? 'rows101' : 'members17', phase: ['capture', 'approve', 'saved'][index % 3], completed: true, status: 'passed'})));},
     packedModelControlPhases, runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
     runMockEffectControls: async ({records}) => records.filter(row => row.mode !== 'publication-io-failure')
@@ -2521,6 +2554,7 @@ test('normal Project file JOIN cannot pass with an unexecuted capture or Saved',
         .forEach(row => {row.completed = true; row.status = 'passed';}),
       runReadmeCases: async ({report, cases = report.cases}) => cases.forEach(row => row.completed = true),
       runPackedAccountControls: async ({report}) => {report.account.completed = true; report.account.status = 'passed';},
+    runPackedDependencyBoundaries: explicitDependencySuccess,
     runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 6}, (_, index) => ({case: index < 3 ? 'rows101' : 'members17', phase: ['capture', 'approve', 'saved'][index % 3], completed: true, status: 'passed'})));},
     packedModelControlPhases, runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
       runMockEffectControls: async ({records}) => records.forEach(row => row.completed = true),
@@ -2821,6 +2855,7 @@ test('required Account control uses SAME prepared artifact once and cannot pass 
       fileURLToPath:()=>repository,URL,checkoutState:()=>before,execFileSync:()=>'b'.repeat(40),mkdir,join,writeFile,
       packedReadmeCases,packedCompositionCases,packedEffectControlCases,nodeBenchmarkFailure,
       execute:async()=>assert.fail('No product command'),prepareHealthPackages:async()=>prepared,
+      runPackedDependencyBoundaries: explicitDependencySuccess,
       runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 6}, (_, index) => ({case: index < 3 ? 'rows101' : 'members17', phase: ['capture', 'approve', 'saved'][index % 3], completed: true, status: 'passed'})));},
     packedModelControlPhases, runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
       async runPackedAccountControls(options) {
@@ -2854,6 +2889,7 @@ test('required Model controls use the same artifact and every phase must complet
       packedModelControlPhases, nodeBenchmarkFailure, execute: async () => assert.fail('No product command'),
       prepareHealthPackages: async () => prepared,
       runPackedAccountControls: async ({report}) => {report.account.completed = true;},
+      runPackedDependencyBoundaries: explicitDependencySuccess,
       runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 6}, (_, index) => ({case: index < 3 ? 'rows101' : 'members17', phase: ['capture', 'approve', 'saved'][index % 3], completed: true, status: 'passed'})));},
       async runPackedModelControls(options) {
         calls++; assert.strictEqual(options.prepared, prepared); assert.equal(options.repository, repository);
@@ -2892,6 +2928,7 @@ test('required packed File boundaries reject missing, failed or duplicate phases
       prepareHealthPackages: async () => prepared,
       runPackedAccountControls: async ({report}) => {report.account.completed = true;},
       runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
+      runPackedDependencyBoundaries: explicitDependencySuccess,
       async runPackedProjectFileStoreInventory(options) {
         calls++; assert.strictEqual(options.prepared, prepared); assert.equal(options.repository, repository);
         assert.equal(options.root, join(output, 'project-store-inventory')); assert.equal(typeof options.command, 'function');
@@ -2914,6 +2951,41 @@ test('required packed File boundaries reject missing, failed or duplicate phases
   }
 });
 
+
+test('required dependency restoration cannot pass an unexecuted consumer and retains its original failure', async t => {
+  for (const mode of ['passed', 'failed', 'unexecuted']) {
+    const {root, consumer} = await scratch(t), output = join(root, 'out'), load = await runnerFunctions();
+    const before = {clean: true, revision: 'a'.repeat(40)}, prepared = {consumer, manifest: {}, manifestPath: '/same-normal'};
+    const primary = new Error('OriginalDependencyFailure'); let calls = 0;
+    const run = load('runPackedReadmeWorkflows', {assert, isAbsolute: value => value.startsWith('/'),
+      process: {env: {ACTQL_PACKED_CLIENT_PACKAGES: '/same-normal'}, version: 'explicit-test'},
+      fileURLToPath: () => repository, URL, checkoutState: () => before, execFileSync: () => 'b'.repeat(40),
+      mkdir, join, writeFile, packedReadmeCases, packedCompositionCases, packedEffectControlCases,
+      packedModelControlPhases, nodeBenchmarkFailure, execute: async () => assert.fail('No product command'),
+      prepareHealthPackages: async () => prepared,
+      runPackedAccountControls: async ({report}) => {report.account.completed = true;},
+      runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
+      runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 6}, (_, index) => ({
+        case: index < 3 ? 'rows101' : 'members17', phase: ['capture', 'approve', 'saved'][index % 3], completed: true, status: 'passed'})));},
+      async runPackedDependencyBoundaries(options) {
+        calls++; assert.strictEqual(options.prepared, prepared); assert.equal(options.repository, repository);
+        assert.equal(options.root, join(output, 'dependency-boundary')); assert.equal(typeof options.command, 'function');
+        if (mode === 'failed') throw primary;
+        if (mode === 'passed') await explicitDependencySuccess(options);
+      },
+      runCollectionConsumer: async ({report}) => report.collection.forEach(row => {row.completed = true;}),
+      runProjectFileJoinConsumer: async ({report}) => report.projectFiles.forEach(row => {row.completed = true;}),
+      runReadmeCases: async ({report, cases = report.cases}) => cases.forEach(row => {row.completed = true;}),
+      runMockEffectControls: async ({records}) => records.forEach(row => {row.completed = true;}),
+      verifyNodeBenchmarkPackages: async () => {}});
+    if (mode === 'passed') assert.equal((await run(output)).complete, true);
+    else await assert.rejects(run(output), error => mode === 'failed' ? error === primary : error.code === 'ERR_ASSERTION');
+    assert.equal(calls, 1);
+    const summary = JSON.parse(await readFile(join(output, 'summary.json'), 'utf8'));
+    assert.equal(summary.complete, mode === 'passed');
+    assert(summary.cases.every(row => row.completed), 'Independent README consumers still execute after this refusal');
+  }
+});
 
 test('File inventory phase oracle requires three cold processes and no completed work replay', async () => {
   const load = await runnerFunctions('./packed-project-file-store-inventory.mjs');

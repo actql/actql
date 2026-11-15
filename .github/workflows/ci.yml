@@ -255,7 +255,7 @@ jobs:
       - name: Test conservative CI target selection
         run: node --test scripts/ci-targets.test.mjs scripts/ci-main-base.test.mjs
       - name: Test collection budget and required packed README selection
-        run: node --test adapters/host-node/local-result-read-policy.test.mjs adapters/host-node/client-result-collection-policy.test.mjs adapters/host-node/request-memory-policy.test.mjs adapters/local-node/managed-advance-diagnostic.test.mjs scripts/packed-readme-ci.test.mjs scripts/packed-model-controls.test.mjs scripts/project-file-store-ledger-observation.test.mjs
+        run: node --test adapters/host-node/local-result-read-policy.test.mjs adapters/host-node/client-result-collection-policy.test.mjs adapters/host-node/request-memory-policy.test.mjs adapters/local-node/managed-advance-diagnostic.test.mjs scripts/packed-readme-ci.test.mjs scripts/packed-project-dependency-boundary.test.mjs scripts/packed-model-controls.test.mjs scripts/project-file-store-ledger-observation.test.mjs
       - name: Test original Model failure and workflow observation
         run: node --test adapters/host-node/infer-model-effect-control.test.mjs adapters/host-node/acquired-effect-unknown-primary.test.mjs adapters/host-node/mock-project-effect-public.test.mjs adapters/host-common/observation.test.mjs adapters/host-common/sqlite-transaction.test.mjs scripts/owner-fault-mutations.test.mjs
       - name: Test fast health monitor harness without Runtime build
@@ -1572,7 +1572,18 @@ jobs:
         with:
           artifact-id: ${{ needs.client-packages.outputs.artifact-id }}
           path: ${{ runner.temp }}/client-readme-input
+      - name: Select the existing locked Table fixture interpreter
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Prepare locked physical dependencies for cold Effect restoration
+        run: |
+          python -m venv "$RUNNER_TEMP/readme-table-python"
+          "$RUNNER_TEMP/readme-table-python/bin/python" -m pip install --require-hashes -r adapters/connectors/local/iceberg/requirements.lock
       - name: Test collection, original README workflows and Effect denial/cancel/current controls
+        env:
+          ACTQL_TABLE_PYTHON: ${{ runner.temp }}/readme-table-python/bin/python
+          PYTHONDONTWRITEBYTECODE: '1'
         run: node scripts/test-packed-readme-workflows.mjs "$RUNNER_TEMP/client-readme-packed"
       - name: Test direct and CTE UNION budgets through original Results and cold Saved
         id: packed-union-budget
@@ -1602,6 +1613,9 @@ jobs:
             ${{ runner.temp }}/client-readme-packed/collection/*.pending.json
             ${{ runner.temp }}/client-readme-packed/collection/*.progress.json
             ${{ runner.temp }}/client-readme-packed/collection/*ref-before-wait*.json
+            ${{ runner.temp }}/client-readme-packed/dependency-boundary/*/*.observation.json
+            ${{ runner.temp }}/client-readme-packed/dependency-boundary/*/*.pending.json
+            ${{ runner.temp }}/client-readme-packed/dependency-boundary/*/*.source-progress.json
           if-no-files-found: error
           retention-days: 7
   # Require the existing push-only monitor result; its timing warnings remain nonblocking.
@@ -1991,7 +2005,7 @@ jobs:
         if: ${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}
         env:
           TMPDIR: ${{ github.workspace }}/_build
-        run: node scripts/local-checks.mjs test node -- adapters/host-node/managed-output-mode.test.mjs adapters/host-node/request-program-module-body-callers.test.mjs adapters/host-node/request-domain-preparation.test.mjs adapters/host-node/request-model-plan.test.mjs adapters/host-node/request-model-source-ledger.test.mjs adapters/host-node/request-model-caller-lifetime.test.mjs adapters/host-node/request-content-caller.test.mjs adapters/host-node/content-pre-record-retirement.test.mjs adapters/host-node/effect-capture-connection.test.mjs adapters/host-node/effect-capture-resources.test.mjs adapters/host-common/recovered-effect-capture-control.test.mjs adapters/host-node/effect-publication-binding.test.mjs adapters/host-common/deferred-catalog-control.test.mjs adapters/host-node/request-content-graph-resources.test.mjs adapters/host-node/request-keyed-prefix-execution.test.mjs adapters/host-node/acquired-effect-keyed-prefix.test.mjs adapters/host-node/acquired-effect-keyed-publication.test.mjs adapters/host-node/acquired-direct-publication.test.mjs adapters/host-node/source-keyed-adoption-original.test.mjs adapters/host-node/request-model-material-resources.test.mjs adapters/store-local/private-evidence-consumer-lifetime.test.mjs adapters/host-node/request-domain-source-preflight.test.mjs adapters/host-node/content-execution-alias-retirement.test.mjs adapters/host-node/request-keyed-content-caller.test.mjs adapters/host-node/content-preparation-retirement.test.mjs adapters/host-node/installed-infer-compilation-selection.test.mjs adapters/host-node/request-preparation-parent.test.mjs
+        run: node scripts/local-checks.mjs test node -- adapters/host-node/managed-output-mode.test.mjs adapters/host-node/request-program-module-body-callers.test.mjs adapters/host-node/request-domain-preparation.test.mjs adapters/host-node/request-model-plan.test.mjs adapters/host-node/request-model-source-ledger.test.mjs adapters/host-node/request-model-caller-lifetime.test.mjs adapters/host-node/request-content-caller.test.mjs adapters/host-node/content-pre-record-retirement.test.mjs adapters/host-node/effect-capture-connection.test.mjs adapters/host-node/effect-capture-resources.test.mjs adapters/host-common/recovered-effect-capture-control.test.mjs adapters/host-node/effect-publication-binding.test.mjs adapters/host-common/deferred-catalog-control.test.mjs adapters/host-node/request-content-graph-resources.test.mjs adapters/host-node/request-keyed-prefix-execution.test.mjs adapters/host-node/acquired-effect-keyed-prefix.test.mjs adapters/host-node/acquired-effect-keyed-publication.test.mjs adapters/host-node/acquired-direct-publication.test.mjs adapters/host-node/source-keyed-adoption-original.test.mjs adapters/host-node/local-file-keyed-effect-current.test.mjs adapters/host-node/request-model-material-resources.test.mjs adapters/store-local/private-evidence-consumer-lifetime.test.mjs adapters/host-node/request-domain-source-preflight.test.mjs adapters/host-node/content-execution-alias-retirement.test.mjs adapters/host-node/request-keyed-content-caller.test.mjs adapters/host-node/content-preparation-retirement.test.mjs adapters/host-node/installed-infer-compilation-selection.test.mjs adapters/host-node/request-preparation-parent.test.mjs
       - name: Test distribution caller source-response-custody.test.mjs
         if: ${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}
         env:

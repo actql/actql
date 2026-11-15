@@ -11,6 +11,7 @@ import {packedEffectControlCases, runMockEffectControls} from './packed-mock-eff
 import {runPackedAccountControls} from './packed-account-controls.mjs';
 import {packedModelControlPhases, runPackedModelControls} from './packed-model-controls.mjs';
 import {runPackedProjectFileStoreInventory} from './packed-project-file-store-inventory.mjs';
+import {runPackedDependencyBoundaries} from './packed-project-dependency-boundary.mjs';
 import {verifyNodeBenchmarkPackages, nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
 
 export const packedReadmeCases = Object.freeze([
@@ -444,6 +445,7 @@ export async function runPackedReadmeWorkflows(root) {
       unexecutedReason: phase === 'saved' ? 'Requires completed original 100000 Result, matching handoff and FIRST close'
         : phase === 'large-row-saved' ? 'Requires both original large Results, SQL removal and FIRST close' : 'Requires verified normal packages'})),
     fileInventory: {cases: []},
+    dependencyBoundaries: {cases: [], complete: false},
     account: {completed: false, status: 'unexecuted', unexecutedReason: 'Requires verified normal packages'},
     model: packedModelControlPhases.map(phase => ({phase, completed: false, status: 'unexecuted',
       unexecutedReason: 'Requires the same verified normal packages and original capture'})),
@@ -474,12 +476,17 @@ export async function runPackedReadmeWorkflows(root) {
       repository, command, report: report.fileInventory, cleanup});}
     catch (error) {failures.push(error);}
     try {
+      await runPackedDependencyBoundaries({prepared, root: join(root, 'dependency-boundary'),
+        repository, command, report: report.dependencyBoundaries, cleanup});
+    } catch (error) {failures.push(error);}
+    try {
       await runProjectFileJoinConsumer({prepared, root, repository, command, report, cleanup});
     } catch (error) {failures.push(error);}
     await runReadmeCases({prepared, root, repository, command, report, failures});
     await runReadmeCases({prepared, root, repository, command, report, failures, cases: report.compositions});
     await runMockEffectControls({prepared, root, repository, command, records: report.controls, failures});
     report.complete = failures.length === 0 && report.account.completed &&
+      report.dependencyBoundaries.complete &&
       report.fileInventory.cases.length === 6 &&
       report.fileInventory.cases.every((row, index) => row.completed && row.status === 'passed' &&
         row.case === (index < 3 ? 'rows101' : 'members17') && row.phase === ['capture', 'approve', 'saved'][index % 3]) &&
