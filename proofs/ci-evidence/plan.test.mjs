@@ -46,9 +46,9 @@ function fixture() {
     resolveBaseline: async request => {
       assert.equal(request.testedSha, current);
       assert(request.requiredJobs.includes('check'));
-      for (const name of ['core (native 1/2)', 'core (native 2/2)',
-        'core (native source)', 'core (native scoped)'])
-        assert(request.requiredJobs.includes(name));
+      assert.deepEqual(request.requiredJobs.filter(name => name.startsWith('core (native ')).sort(),
+        ['core (native 1/2)', 'core (native 2/2)', 'core (native source)',
+          'core (native scoped-runtime)', 'core (native scoped-review)'].sort());
       return state.checkpoint;
     },
     request: async path => {
