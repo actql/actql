@@ -1020,12 +1020,12 @@ test "chained Join output funding retains recursive and injected provider fallba
 }
 
 ///|
-test "Count chains retain text recursive and injected provider funding" {
+test "Count chains borrow Text but retain recursive and injected provider funding" {
   for
     (contract, literal, immediate) in [
       ("{\"type\":\"number\",\"nullable\":false}", "1", true),
       ("{\"type\":\"boolean\",\"nullable\":false}", "true", true),
-      ("{\"type\":\"string\",\"nullable\":false}", "\"text\"", false),
+      ("{\"type\":\"string\",\"nullable\":false}", "\"text\"", true),
       (
         "{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}",
         "[1,2]", false,
