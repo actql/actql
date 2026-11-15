@@ -13,7 +13,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {setTimeout as delay} from 'node:timers/promises';
 import {tableTestAsset, tableTestModule} from '../../adapters/host-node/fixtures/table-test-modules.mjs';
 import {withFixtureConnector} from '../../adapters/host-common/connector-manifest.fixture.mjs';
-import {tableDependencyWidthCase, tableDependencyWidthAccount,
+import {tableDependencyWidthCase, tableDependencyWidthAccount, observeTableWidthDataRecord,
   tableDependencyWidthProfiles} from './table-dependency-width-cases.mjs';
 import {observeProjectEffectDependencies, dependencyBoundaryFailureData} from './project-effect-dependency-observation.mjs';
 import {observeRecordApprovalDescriptors} from './record-approval/scoped-fds.fixture.mjs';
@@ -133,8 +133,12 @@ const summaryObservation = async () => {
   const frozen = await bridge.resolveGeneration(selector);
   assert.equal(frozen.ok, true);
   const read = await bridge.read(frozen.result.receipt, frozen.result.mapping);
-  assert.equal(read.ok, true); assert.deepEqual(read.result, selected.expected);
-  return {record: actual, rows: read.result, generation: frozen.result.receipt};
+  assert.equal(read.ok, true); assert(Array.isArray(read.result));
+  assert.equal(read.result.length, selected.expected.length);
+  const rows = read.result.map((row, index) =>
+    observeTableWidthDataRecord(row, selected.expected[index]));
+  return {record: actual, rows,
+    generation: observeTableWidthDataRecord(frozen.result.receipt, actual.receipt)};
 };
 try {
   const local = await tableTestModule(new URL('../../packages/local-node/index.mjs', import.meta.url), '@actql/local-node');
@@ -320,7 +324,9 @@ try {
     assert.equal(report.workObservation.sourceAcquisitionStarts,
       phase === 'capture' ? selected.expectedSourceStarts : 0);
     assert.equal(report.workObservation.modelCallStarts, 0);
-    assert.equal(report.workObservation.effectReplacementReturns, phase === 'approve' ? 1 : 0);
+    // Returned File/row replacements are not Table commit observations. The
+    // actual Catalog baseline, one target publication and full physical read
+    // above establish Table apply and Saved's unchanged original generation.
     assert.deepEqual(report.workObservation.unbound,
       {sourceAcquisitionStarts: 0, modelCallStarts: 0, effectReplacementReturns: 0});
     await census();

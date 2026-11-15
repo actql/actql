@@ -2,6 +2,7 @@
 // checked Program consumes each document through len(), then persists one small
 // approved Table operation. No extra body is added to the dependency inventory.
 import assert from 'node:assert/strict';
+import {types} from 'node:util';
 import {createHash} from 'node:crypto';
 
 const canonical = value => {
@@ -13,6 +14,30 @@ const canonical = value => {
 const cid = value => 'sha256:' + createHash('sha256').update(canonical(value)).digest('hex');
 const number = {nullable: false, type: 'number'};
 const string = {nullable: false, type: 'string'};
+
+// Physical JSON replies deliberately allow null-prototype DATA records. Match
+// every authored key and exact scalar without conflating representation with
+// content; getters, proxies and unknown properties are not observed values.
+export function observeTableWidthDataRecord(actual, expected) {
+  assert(actual !== null && typeof actual === 'object' &&
+    !Array.isArray(actual) && !types.isProxy(actual));
+  assert(Object.getPrototypeOf(actual) === null ||
+    Object.getPrototypeOf(actual) === Object.prototype);
+  const keys = Reflect.ownKeys(actual), expectedKeys = Object.keys(expected);
+  assert.equal(keys.length, expectedKeys.length);
+  assert(keys.every(key => typeof key === 'string' && expectedKeys.includes(key)));
+  return Object.fromEntries(expectedKeys.map(key => {
+    const original = Object.getOwnPropertyDescriptor(expected, key);
+    const observed = Object.getOwnPropertyDescriptor(actual, key);
+    assert(original && Object.hasOwn(original, 'value') && observed &&
+      Object.hasOwn(observed, 'value') && observed.enumerable);
+    const value = observed.value;
+    assert(value === null || typeof value === 'string' || typeof value === 'boolean' ||
+      typeof value === 'number' && Number.isFinite(value));
+    assert.equal(value, original.value);
+    return [key, value];
+  }));
+}
 
 export function tableDependencyWidthAccount(principalId, resources) {
   assert.equal(typeof principalId, 'string');

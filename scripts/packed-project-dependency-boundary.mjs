@@ -86,8 +86,35 @@ export function assertPackedDependencyBoundaryPhase({selected, phase, actual, pi
     assert.equal(actual.wholeSources.length, selected.sourceStarts);
     assert.equal(new Set(actual.wholeSources.map(value => value.relationCid)).size, selected.sourceStarts);
     assert.equal(original.unavailableDataFiles.length, selected.sourceStarts);
-    assert.equal(work.effectReplacementReturns, phase === 'approve' ? selected.writes : 0);
-    if (phase !== 'capture') assert.deepEqual(actual.target, original.target);
+    if (phase !== 'capture') {
+      // A Table write is its actual new Catalog operation and generation,
+      // not a File replacement diagnostic. Preserve every seed record and
+      // bind the one authored target's complete read to that same operation.
+      assert.equal(original.seedRecords.length, selected.sourceStarts);
+      const seeds = new Map(original.seedRecords.map(record =>
+        [record.operation.request_cid, record]));
+      assert.equal(seeds.size, selected.sourceStarts);
+      assert.equal(original.allCommits.length, seeds.size + selected.writes);
+      assert.equal(new Set(original.allCommits.map(record => record.operation.request_cid)).size,
+        original.allCommits.length);
+      const writes = [];
+      for (const record of original.allCommits) {
+        assert.equal(record.receipt.request_cid, record.operation.request_cid);
+        const seed = seeds.get(record.operation.request_cid);
+        if (seed !== undefined) assert.deepEqual(record, seed);
+        else writes.push(record);
+      }
+      assert.equal(writes.length, selected.writes);
+      assert.deepEqual(actual.target.record, writes[0]);
+      assert.equal(actual.target.record.operation.action, 'create');
+      assert.equal(actual.target.record.operation.catalog_identity_cid, original.catalog.catalogCid);
+      assert.deepEqual(actual.target.record.operation.namespace, ['test']);
+      assert.equal(actual.target.record.operation.table_name, 'summary');
+      assert.equal(actual.target.record.receipt.row_count, actual.target.rows.length);
+      assert.deepEqual(actual.target.rows, actual.results.answer);
+      assert.deepEqual(actual.target.generation, actual.target.record.receipt);
+      assert.deepEqual(actual.target, original.target);
+    }
   }
   if (phase === 'saved') {
     assert.deepEqual(actual.results, previous[1].results);

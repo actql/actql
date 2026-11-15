@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {createHash} from 'node:crypto';
 import {dependencyBoundaryFailureData} from './fixtures/project-effect-dependency-observation.mjs';
+import {observeTableWidthDataRecord} from './fixtures/table-dependency-width-cases.mjs';
 import {assertPackedDependencyBoundaryPhase, packedDependencyBoundaryCases,
   packedDependencyBoundaryPhases} from './packed-project-dependency-boundary.mjs';
 
@@ -15,10 +17,17 @@ function fixture(caseId = 'count', phase = 'saved') {
   const ref = {runDefinitionCid: cid('b'), authorityScopeCid: cid('c')};
   const results = {answer: [{n: 7}]}, targets = Array.from({length: selected.writes},
     (_, index) => ({path: `${index}.jsonl`, contentCid: cid('d')}));
-  const target = {generation: 'original-generation', rows: [{n: 7}]};
+  const requestCid = name => 'sha256:' + createHash('sha256').update(name).digest('hex');
+  const seedRecords = Array.from({length: selected.sourceStarts}, (_, index) => ({
+    operation: {request_cid: requestCid(`seed-${index}`)},
+    receipt: {request_cid: requestCid(`seed-${index}`)}}));
+  const stored = {operation: {request_cid: requestCid('summary'), action: 'create',
+    catalog_identity_cid: cid('8'), namespace: ['test'], table_name: 'summary'},
+  receipt: {request_cid: requestCid('summary'), row_count: 1}};
+  const target = {record: stored, generation: stored.receipt, rows: [{n: 7}]};
   const make = (name, pid) => {
     const work = {complete: true, sourceAcquisitionStarts: name === 'capture' ? selected.sourceStarts : 0,
-      modelCallStarts: 0, effectReplacementReturns: name === 'approve' ? 1 : 0};
+      modelCallStarts: 0, effectReplacementReturns: caseId === 'width' ? 0 : name === 'approve' ? 1 : 0};
     return {case: caseId, phase: name, pid, ref, complete: true,
       firstClose: 'returned', firstCloseCalls: 1, aliveScopedFD: {before: 0, after: 0}, cleanup: [],
       submits: name === 'capture' ? 1 : 0, approvals: name === 'approve' ? 1 : 0,
@@ -35,10 +44,44 @@ function fixture(caseId = 'count', phase = 'saved') {
   const original = {ref, captureComplete: true, capturePid: 100,
     approveComplete: phase !== 'capture', approvePid: phase === 'capture' ? undefined : 101,
     dependencies: structuredClone(dependencies), results, targets, target,
+    catalog: {catalogCid: cid('8')}, seedRecords, allCommits: [...seedRecords, stored],
     ledger: {successfulStores: selected.writes}, unavailableDataFiles: Array(selected.sourceStarts).fill({})};
   const input = {selected, phase, actual, pid: actual.pid, original, previous};
   return {input, verify: () => assertPackedDependencyBoundaryPhase(input)};
 }
+
+test('physical WIDTH oracle compares complete own DATA across JSON representations without invoking getters', () => {
+  const expected = {document_chars: 18886464, id_sum: 73536, row_count: 384};
+  const actual = Object.assign(Object.create(null), expected);
+  assert.deepEqual(observeTableWidthDataRecord(actual, expected), expected);
+  assert.deepEqual(observeTableWidthDataRecord({...expected}, expected), expected);
+  let getterCalls = 0, proxyCalls = 0;
+  const accessor = {...actual};
+  Object.defineProperty(accessor, 'id_sum', {enumerable: true,
+    get() { getterCalls++; return expected.id_sum; }});
+  const proxy = new Proxy(actual, {getPrototypeOf() { proxyCalls++; return null; }});
+  for (const value of [accessor, proxy, {...expected, row_count: 383},
+    {...expected, unexpected: 0}, {id_sum: expected.id_sum, row_count: expected.row_count},
+    Object.assign(Object.create({foreign: true}), expected), {...expected, id_sum: Infinity}]) {
+    assert.throws(() => observeTableWidthDataRecord(value, expected), {code: 'ERR_ASSERTION'});
+  }
+  assert.equal(getterCalls, 0); assert.equal(proxyCalls, 0);
+});
+
+test('Table dependency acceptance uses the exact new Catalog target rather than File replacement diagnostics', () => {
+  fixture('width', 'approve').verify();
+  for (const mutate of [
+    f => f.input.original.allCommits.pop(),
+    f => f.input.original.allCommits.push(f.input.original.allCommits.at(-1)),
+    f => f.input.original.allCommits[0].receipt.request_cid = cid('f'),
+    f => f.input.actual.target.record.operation.table_name = 'other',
+    f => f.input.actual.target.rows[0].n = 8,
+    f => f.input.actual.target.generation.request_cid = cid('f'),
+  ]) {
+    const f = fixture('width', 'saved'); mutate(f);
+    assert.throws(f.verify, {code: 'ERR_ASSERTION'});
+  }
+});
 
 test('dependency acceptance requires both distinct boundaries through capture, cold approval and Saved', () => {
   assert.deepEqual(packedDependencyBoundaryCases.map(value => value.case), ['count', 'width']);
