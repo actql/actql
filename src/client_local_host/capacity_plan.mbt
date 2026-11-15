@@ -398,7 +398,10 @@ fn client_local_capacity_plan(
     Some(original) =>
       Some(
         client_local_result_publication_plan(
-          original, max_rows, result_envelope,
+          original,
+          max_rows,
+          result_envelope,
+          execution.max_work,
         ),
       )
     None => None

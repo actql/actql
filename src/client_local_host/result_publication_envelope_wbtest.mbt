@@ -1,6 +1,7 @@
 ///|
 fn publication_plan_fixture(
   prepared : @publication_host.PreparedClientProgram,
+  source_free_max_work? : Int? = None,
 ) -> ClientInstalledManagedSourceFreePreparation {
   let assets = @publication_host.client_local_product_assets()
   prepare_installed_managed_source_free_with_contracts(
@@ -16,6 +17,7 @@ fn publication_plan_fixture(
     assets.ordered,
     retained_output=true,
     provider_factory=_ => [],
+    source_free_max_work~,
   ).unwrap()
 }
 
@@ -88,7 +90,10 @@ test "result publication limits reuse the checked graph envelope and payload cap
   assert_eq(limits.values.max_work, exported.values.max_work)
   assert_eq(limits.values.max_nodes, exported.values.max_nodes)
   assert_eq(limits.values.max_text_bytes, exported.values.max_text_bytes)
-  assert_eq(limits.max_result_order_work, 10000)
+  assert_eq(
+    limits.max_result_order_work,
+    original.capacity_plan.execution.max_work,
+  )
   assert_eq(limits.payload_wire.max_nodes, exported.wire.max_nodes)
   assert_eq(
     limits.payload_wire.max_depth,
@@ -123,6 +128,31 @@ test "result publication limits reuse the checked graph envelope and payload cap
     )
     is None,
   )
+}
+
+///|
+test "ordered Result phase ceiling follows original selected work instead of a fixed guard" {
+  let prepared = result_envelope_fixture()
+  for work in [9999, 10001, 30000000] {
+    let original = publication_plan_fixture(
+      prepared,
+      source_free_max_work=Some(work),
+    )
+    let limits = prepared_installed_managed_publication_limits(
+      original, prepared, 4096,
+    ).unwrap()
+    assert_eq(original.capacity_plan.execution.max_work, work)
+    assert_eq(limits.max_result_order_work, work)
+    // A different prepared graph cannot borrow this original's policy.
+    assert_true(
+      prepared_installed_managed_publication_limits(
+        original,
+        result_envelope_fixture(),
+        4096,
+      )
+      is None,
+    )
+  }
 }
 
 ///|

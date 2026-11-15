@@ -1,6 +1,8 @@
 ///|
-fn long_result_text_fixture() -> (CompletedOutput, ManagedResultOccurrence) raise {
-  let prefix = "x".repeat(1024) + "😀"
+fn long_result_text_fixture(
+  prefix_bytes? : Int = 1024,
+) -> (CompletedOutput, ManagedResultOccurrence) raise {
+  let prefix = "x".repeat(prefix_bytes) + "😀"
   let owner = bound_pipeline(
     "[{\"values\":{\"schema\":{\"n\":{\"type\":\"number\",\"nullable\":false},\"s\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"n\":1,\"s\":\"" +
     prefix +
@@ -8,12 +10,88 @@ fn long_result_text_fixture() -> (CompletedOutput, ManagedResultOccurrence) rais
     prefix +
     "a\"}]},\"as\":\"v\"},{\"select\":[\"s\",\"n\"],\"as\":\"selected\"}]",
   )
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    prepared_sequence(owner),
+    [],
+    ["select_1"],
+    100000,
+    10000,
+  ).unwrap()
+  let ordinary = compute_test_limits()
+  let text_bytes = if prefix_bytes <= 1024 { 10000 } else { 100000 }
+  let limits = {
+    ..ordinary,
+    rows: {
+      ..ordinary.rows,
+      input_values: {
+        ..ordinary.rows.input_values,
+        max_text_bytes: text_bytes,
+      },
+      output_values: {
+        ..ordinary.rows.output_values,
+        max_text_bytes: text_bytes,
+      },
+    },
+  }
   (
-    export_fixture(owner),
+    completed_output(
+      execute_generated_sequence(generated, [], limits).unwrap(),
+      Step(1),
+    ).unwrap(),
     result_export_occurrence(
       owner, "answer", "{\"answer\":{\"from\":\"selected\",\"fields\":[\"s\"],\"order_by\":[{\"s\":\"asc\"}]}}",
     ),
   )
+}
+
+///|
+test "Named Result Text ordering exceeds the former guard with finite exact work" {
+  // Two 8197-byte Text cells require 16403 order units: four initialized
+  // indices, four emitted indices, one comparison, and both full UTF-8 keys.
+  for order_work in [10000, 16402, 16403] {
+    let (source, occurrence) = long_result_text_fixture(prefix_bytes=8192)
+    let cursor = start_completed_result_rows(source, occurrence, {
+      ..long_result_view_limits(),
+      max_order_work: order_work,
+    }).unwrap()
+    let mut done = false
+    let mut refused = false
+    for _ in 0..<1000 {
+      match advance_completed_result_rows(cursor, 64) {
+        Ok((ready, work)) => {
+          assert_true(work >= 0 && work <= 64)
+          if ready {
+            done = true
+            break
+          }
+        }
+        Err(Limit) => {
+          refused = true
+          break
+        }
+        _ => fail("wrong finite Result ordering boundary")
+      }
+    }
+    if order_work == 16403 {
+      assert_true(done && !refused)
+      let rows = finish_completed_result_rows(cursor).unwrap()
+      assert_eq(rows.rows, Some([1, 0]))
+      assert_true(
+        IndexedRows::read_cell(rows, 0, 0) is Text(value) &&
+        value == "x".repeat(8192) + "😀a",
+      )
+      assert_true(
+        IndexedRows::read_cell(rows, 1, 0) is Text(value) &&
+        value == "x".repeat(8192) + "😀b",
+      )
+    } else {
+      assert_true(refused && !done && cursor.closed)
+      assert_true(cursor.rows.is_empty() && cursor.scratch.is_empty())
+      assert_true(cursor.terms.is_empty() && cursor.columns.is_empty())
+    }
+    assert_true(completed_output_available(source))
+  }
 }
 
 ///|
