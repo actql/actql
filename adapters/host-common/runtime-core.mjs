@@ -2992,12 +2992,14 @@ function publicationControl(moon) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'effect-keyed' ||
           !Array.isArray(captures) || captures.some(value =>
-            value.inputKind === 'whole-input' || typeof value.capture?.originalRowCapture !== 'function')) {
+            typeof (value.inputKind === 'whole-input'
+              ? value.capture?.originalWholeInput : value.capture?.originalRowCapture) !== 'function')) {
         throw new TypeError('Foreign original keyed Effect capture');
       }
       return checked(moon.clientProgramStartInstalledEffectKeyedCaptureInput(
         managedRun, prepared, request, value, token(definition), keyedPlan, keyed,
-        captures.map(value => value.capture.originalRowCapture()),
+        captures.map(value => value.inputKind === 'whole-input'
+          ? value.capture.originalWholeInput() : value.capture.originalRowCapture()),
         limits.maxEntries, limits.maxNameBytes, limits.maxBytes, limits.maxWork));
     },
     // Borrow the original admitted Effect compilation. No fresh Program,
