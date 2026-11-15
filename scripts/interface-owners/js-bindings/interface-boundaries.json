@@ -50851,6 +50851,10 @@
               {
                 "path": "adapters/host-node/local-file-effect-host-original.test.mjs",
                 "anchor": "test('Local Effect Host binds the winning original Journal"
+              },
+              {
+                "path": "adapters/host-node/local-file-effect-host-original.test.mjs",
+                "anchor": "test('Local Effect cold binding preserves its authenticated physical Request across Journal readmission'"
               }
             ]
           }
@@ -67214,7 +67218,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "5a12a0d5db8dd26a1d5e77655375e1adff2e415997435843339c9a743e35ba67"
+      "sha256": "a59fd6ba2fa26b7e148e87297fbd63318a34a44a6023b59e3d433436cd1b5d6a"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
