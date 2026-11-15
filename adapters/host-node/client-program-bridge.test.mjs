@@ -2806,8 +2806,7 @@ async function effectFixture({splitSource = false,
     mappingCid: mapping.mapping_contract_cid};
 }
 
-test('one acquired Effect Program captures and computes from its owner',
-  async t => {
+async function acquiredEffectOwnerFixture(t, phase) {
     const effect = await effectFixture({writeKind: 'update'});
     const baseWire = await readFile(new URL(
       '../../spec/local-check-environment.json', import.meta.url), 'utf8');
@@ -3202,7 +3201,10 @@ test('one acquired Effect Program captures and computes from its owner',
         // inventory from the checked graph, not a caller dependency list.
         assert.throws(() => checked(moon.clientProgramPinEffectSources(host,
           1)), 'the upstream Result also consumes a bounded pin');
-        const pinResult = moon.clientProgramPinEffectSources(host, 2);
+        // Managed Catalog export consumes this Run's original funded pin and
+        // Work continuation, rather than a separately bounded legacy pin.
+        const pinResult = moon.clientProgramInstalledEffectDependencySourcesPin(
+          managedRun, prepared, request, managedRecord.operationPlan, host, 2);
         assert.equal(pinResult.$tag, 1,
           pinResult.$tag === 0 ? `RunIssue ${pinResult._0.$tag}: ${JSON.stringify(pinResult._0)}` : undefined);
         const pins = checked(pinResult);
@@ -3389,13 +3391,14 @@ test('one acquired Effect Program captures and computes from its owner',
           }});
           const plan = computed.publicationPlan;
           const options = {moon, checkedOwner: prepared, execution, inputs: pins,
+            dependencyConstruction: managedRecord.controlConstruction,
             maxMembers: 1, maxGroupingWork: 100, limits,
             store, maxBytes: outputLimits.maxWireBytes, control,
             invocation: plan.invocation, retention: plan.results[0].retention,
             sourceBindingCid: cid('c'), contractLimits: plan.contractLimits,
             localEvidenceContext: plan.localEvidenceContext};
           let sources;
-          try {
+          const exercisePayloadCustody = async () => {
             sources = await preparePinnedEffectSourceSet(options);
             assert.equal(sources.members.length, 1);
             assert.deepEqual(sources.dependencies.map(entry =>
@@ -3543,11 +3546,21 @@ test('one acquired Effect Program captures and computes from its owner',
               invocation: plan.invocation, results: plan.results,
               outputLimits, contractLimits: plan.contractLimits,
             });
-            const adopt = sourceSet => retainPinnedEffectDependencyPayloads({
-              sources: sourceSet, execution, store, storedResults: retainedResults,
-              control, runDefinition: plan.runDefinition,
+            // Borrow the already issued inventory; this cleanup experiment
+            // must not invoke the one-shot group constructor a second time.
+            const adopt = sourceSet => retainCompletedEffectDependencyPayloads({
+              execution, store, storedResults: retainedResults, control,
+              runDefinition: plan.runDefinition, dependencyInventoryWire,
+              dependencyConstruction: managedRecord.controlConstruction,
+              dependencies: sourceSet.dependencies.map(({payload}) => ({
+                artifact: payload.localResultArtifact,
+                physical: payload.physical, prepared: payload.prepared,
+              })),
             });
-            assert.throws(() => adopt({...sources}), /InvalidEffectDependencySetOwner/);
+            assert.throws(() => retainPinnedEffectDependencyPayloads({
+              sources: {...sources}, execution, store, storedResults: retainedResults,
+              control, runDefinition: plan.runDefinition,
+            }), /InvalidEffectDependencySetOwner/);
             assert.throws(() => retainCompletedEffectDependencyPayloads({
               execution, store, storedResults: retainedResults, control,
               runDefinition: plan.runDefinition,
@@ -3589,8 +3602,10 @@ test('one acquired Effect Program captures and computes from its owner',
             assert.equal(await releaseCompletedRunPreparedPayloads(
               retainedResults, control), false);
             sources = undefined;
-            // A later reservation failure must retain an earlier producer's
-            // failed deletion owner, not leak it or rerun Compute on retry.
+          };
+          const exerciseFailedExport = async () => {
+            // A consumer reservation failure retains this fresh original's
+            // earlier producer cleanup owner without replaying Compute.
             const reserveFailure = new Error('ConsumerReservationFailed');
             const releaseFailure = new Error('ProducerReleaseFailed');
             let reservations = 0;
@@ -3632,8 +3647,18 @@ test('one acquired Effect Program captures and computes from its owner',
             assert.equal(reservations, 2,
               'cleanup never prepares a new consumer or recomputes input');
 
-            // Re-export the same retained computation for durable custody;
-            // no Source query or Compute is executed by capture or recovery.
+          };
+          try {
+            if (phase === 'payload-custody') {
+              await exercisePayloadCustody();
+              return;
+            }
+            if (phase === 'failed-export') {
+              await exerciseFailedExport();
+              return;
+            }
+            // The independent durable case has its own original Run. Issue
+            // its inventory once through the ordinary adoption boundary.
             sources = await preparePinnedEffectSourceSet(options);
             const durableResults = await storeCompletedRunResultSet({
               execution, store, control, runDefinition: plan.runDefinition,
@@ -3686,7 +3711,10 @@ test('one acquired Effect Program captures and computes from its owner',
             });
             const savedInventory = JSON.parse(computation.capturedRun.wire)
               .effect_context.effect_dependency_inventory;
-            assert.deepEqual(savedInventory, dependencyInventory);
+            assert.deepEqual(savedInventory.filter(entry =>
+              entry.kind === 'relation_value').map(entry =>
+              JSON.stringify(entry.body.value)).sort(),
+            [JSON.stringify([{id: 2}, {id: 3}]), JSON.stringify([{id: 3}])].sort());
             await suspendCompletedEffectfulComputation({execution, store,
               storedResults: durableResults, control, computation, preview});
             for (const payload of sources.payloads) {
@@ -3730,7 +3758,16 @@ test('one acquired Effect Program captures and computes from its owner',
         checked(moon.clientProgramInstalledEffectOperationConstructionComplete(componentConstruction));
       }
     }
-  });
+}
+
+test('one acquired Effect Program captures and computes from its owner', async t => {
+  await t.test('same original inventory retains payload cleanup custody', t =>
+    acquiredEffectOwnerFixture(t, 'payload-custody'));
+  await t.test('fresh original keeps producer custody after consumer export failure', t =>
+    acquiredEffectOwnerFixture(t, 'failed-export'));
+  await t.test('fresh original inventory captures and restores durable dependencies', t =>
+    acquiredEffectOwnerFixture(t, 'durable-capture'));
+});
 
 function effectInputPreview(prepared, evidence, definition, invocation,
   mappingCid, artifactCid, writeKind = 'create',
