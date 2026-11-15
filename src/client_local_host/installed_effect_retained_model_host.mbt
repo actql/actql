@@ -270,7 +270,7 @@ pub fn retire_installed_effect_captured_consumers(
   }
   Ok(
     match owner.source_free_captured {
-      Some(run) => @strategy.retire_captured_task_outputs(run)
+      Some(run) => @strategy.retire_captured_task_consumers(run)
       None => true
     },
   )

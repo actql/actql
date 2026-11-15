@@ -40,14 +40,47 @@ pub fn open_multi_captured_effect_run_retained_model_dag(
 ///|
 /// Retire the actual captured consumers, including a partially opened Host.
 /// This says nothing about its borrowed Model output or parent Run retirement.
-pub fn retire_captured_task_outputs(run : CapturedDAG) -> Bool {
+fn retire_captured_task_ports(run : CapturedDAG) -> Unit {
   stop_captured_dag(run)
   let count = graph_task_count(captured_dag_graph(run))
   for task = count - 1; task >= 0; task = task - 1 {
     close_captured_task_output(run, task)
   }
   refresh_captured_retention(run)
+}
+
+///|
+pub fn retire_captured_task_outputs(run : CapturedDAG) -> Bool {
+  retire_captured_task_ports(run)
   !captured_task_retirement_pending(run)
+}
+
+///|
+/// Revoke the same consumers before their caller closes captured Sources.
+/// Captured-prefix backing still needs its original physical release callback;
+/// returning true here neither releases that backing nor retires the Run.
+pub fn retire_captured_task_consumers(run : CapturedDAG) -> Bool {
+  retire_captured_task_ports(run)
+  if !run.stopped ||
+    run.running is Some(_) ||
+    run.executions.any(execution => execution is Some(_)) ||
+    run.lifetimes.any(lifetime => lifetime.pins != 0) {
+    return false
+  }
+  let captured = run.graph.captured_prefix_value()
+  for task in 0..<run.resources.length() {
+    if run.resources[task] is Some(_) &&
+      (
+        task >= captured ||
+        run.lifetimes[task].live ||
+        run.outputs[task] is Some(_) ||
+        run.sources[task] is Some(_) ||
+        run.original_sources[task] is Some(_)
+      ) {
+      return false
+    }
+  }
+  true
 }
 
 ///|

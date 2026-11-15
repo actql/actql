@@ -901,6 +901,8 @@ pub fn retained_task_projection_target(@physical_strategy.RetainedTaskProjection
 
 pub fn retire_captured_effect_checked_proposal_row(CapturedEffectCheckedProposalRow) -> Unit
 
+pub fn retire_captured_task_consumers(CapturedDAG) -> Bool
+
 pub fn retire_captured_task_outputs(CapturedDAG) -> Bool
 
 pub fn retire_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, @physical_resources.LedgerIssue]

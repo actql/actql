@@ -51,6 +51,9 @@ test "real Common park preserves disposed Strategy cleanup custody" {
   assert_false(
     @strategy.refresh_task_execution_cleanup(run, execution).unwrap(),
   )
+  // Consumer-only retirement cannot stand in for this Compute child's
+  // still-pending physical cleanup; only captured Source backing is separate.
+  assert_false(@strategy.retire_captured_task_consumers(run))
   let origin = Ref(7)
   let descriptor = @resources.issue_recorded_original_ledger_descriptor(
     identity, origin,
