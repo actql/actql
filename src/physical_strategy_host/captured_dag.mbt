@@ -2752,11 +2752,13 @@ pub fn captured_source_input_original_matches(
     input < run.supplied_reads[task].length() &&
     run.supplied_reads[task][input] is Some(original) &&
     @query.captured_source_original_input_read(source) is Some(read) &&
-    physical_equal(original, read) &&
+    @execution.supplied_relation_read_same_binding(original, read) &&
+    @execution.supplied_relation_read_available(original) &&
+    @execution.supplied_relation_read_available(read) &&
     @query.captured_source_available(source) else {
     return false
   }
   !run.stopped &&
   run.supplied_reads[task][input] is Some(current) &&
-  physical_equal(current, read)
+  physical_equal(current, original)
 }

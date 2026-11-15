@@ -711,3 +711,43 @@ test "supplied relation read rejects foreign owners and input positions" {
     is Err(ProducerUnavailable),
   )
 }
+
+///|
+test "restricted Source read wrappers keep opaque binding without granting availability" {
+  let owner = input_owner()
+  let rows = capture_input(
+    owner,
+    0,
+    [input_cursor("{\"s\":\"same\",\"n\":3}")],
+    max_rows=1,
+    { max_nodes: 10, max_text_bytes: 100, max_depth: 10, max_work: 100, },
+  ).unwrap()
+  let original_live = Ref(true)
+  let narrowed_live = Ref(true)
+  let original = prepare_supplied_relation_read(owner, 0, rows, () => {
+    original_live.val
+  }).unwrap()
+  let first = restrict_supplied_relation_read(original, () => narrowed_live.val)
+  let second = restrict_supplied_relation_read(original, () => true)
+  assert_false(physical_equal(first, second))
+  assert_true(supplied_relation_read_same_binding(first, second))
+  let another = prepare_supplied_relation_read(owner, 0, rows, () => true).unwrap()
+  assert_false(supplied_relation_read_same_binding(first, another))
+  assert_false(
+    supplied_relation_read_same_binding(first, {
+      ..second,
+      receiver: input_owner(),
+    }),
+  )
+  assert_false(
+    supplied_relation_read_same_binding(first, { ..second, input_index: 1, }),
+  )
+  narrowed_live.val = false
+  assert_false(supplied_relation_read_available(first))
+  assert_true(supplied_relation_read_available(second))
+  // Immutable binding correspondence is DATA; it never caches an Allow.
+  assert_true(supplied_relation_read_same_binding(first, second))
+  original_live.val = false
+  assert_false(supplied_relation_read_available(second))
+  assert_false(supplied_relation_read_available(original))
+}

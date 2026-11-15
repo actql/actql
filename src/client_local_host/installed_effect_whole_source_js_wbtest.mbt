@@ -132,6 +132,30 @@ test "Effect whole inputs keep distinct Source slots and execute their original 
     .unwrap()
     .unwrap()
   let dag = @strategy.captured_effect_run_dag(captured)
+  let first_read = @query.captured_source_original_input_read(sources[0]).unwrap()
+  let fresh_read = @query.captured_source_original_input_read(sources[0]).unwrap()
+  assert_false(physical_equal(first_read, fresh_read))
+  assert_true(
+    @execution.supplied_relation_read_same_binding(first_read, fresh_read),
+  )
+  assert_true(
+    @strategy.captured_source_input_original_matches(dag, 0, 0, sources[0]),
+  )
+  assert_true(
+    @strategy.captured_source_input_original_matches(dag, 0, 1, sources[1]),
+  )
+  assert_false(
+    @strategy.captured_source_input_original_matches(dag, 0, 0, sources[1]),
+  )
+  assert_false(
+    @strategy.captured_source_input_original_matches(dag, 0, 1, sources[0]),
+  )
+  assert_false(
+    @strategy.captured_source_input_original_matches(dag, 1, 0, sources[0]),
+  )
+  assert_false(
+    @strategy.captured_source_input_original_matches(dag, 0, 2, sources[0]),
+  )
   assert_false(@strategy.captured_task_completed(dag, 0))
   assert_eq(@strategy.next_captured_task(dag), Some(0))
   for capture in rows {
@@ -291,6 +315,9 @@ test "Effect whole inputs keep distinct Source slots and execute their original 
     @strategy.source_input_dag_retains_completed_read_at(dag, source_read, 0),
   )
   assert_false(stop_on_output_check.val)
+  assert_false(
+    @strategy.captured_source_input_original_matches(dag, 0, 0, sources[0]),
+  )
   output_live.val = false
   for original in operations {
     (original.close)()
