@@ -38,11 +38,45 @@ async function observeActualDispatchFailure(failure, {afterInstall, observerThro
   return records[0];
 }
 
-function fieldlessLedgerFailure(issue) {
-  try { checked({$tag: 0, _0: {$tag: 10, _0: issue}}); }
+function fieldlessFailure(issue) {
+  try { checked({$tag: 0, _0: issue}); }
   catch (error) { return error; }
   assert.fail('Expected the actual Result guard to reject');
 }
+
+function fieldlessLedgerFailure(issue) {
+  return fieldlessFailure({$tag: 10, _0: issue});
+}
+
+test('dispatch top issue forwards fieldless tags through the actual owner', async () => {
+  for (const issue of [0, 1, 6, 65535]) {
+    const detail = await observeActualDispatchFailure(fieldlessFailure(issue));
+    assert.equal(detail.issueTag, issue);
+    assert.equal(detail.nestedIssueTag, undefined);
+    assert.equal(detail.primaryCode, 'MoonBitHostFailure');
+    assert.equal(Object.hasOwn(detail, 'cause'), false);
+  }
+});
+
+test('dispatch top issue omits malformed primitive tags and preserves boxed tags', async () => {
+  for (const issue of [-1, 65536, 1.5, NaN, Infinity, -Infinity, '6', null, undefined, true, 6n, {}]) {
+    const detail = await observeActualDispatchFailure(fieldlessFailure(issue));
+    assert.equal(detail.issueTag, undefined);
+    assert.equal(Object.hasOwn(JSON.parse(JSON.stringify(detail)), 'issueTag'), false);
+  }
+  const detail = await observeActualDispatchFailure(fieldlessFailure({$tag: 6}));
+  assert.equal(detail.issueTag, 6);
+});
+
+test('dispatch top issue preserves wrapped primary failure ahead of later cleanup failure', async () => {
+  const primary = fieldlessFailure(0), cleanup = fieldlessFailure(6);
+  const failure = new CapturedRunPublicationError(primary, undefined);
+  const detail = await observeActualDispatchFailure(failure, {closeFailure: cleanup, observerThrows: true});
+  assert.equal(detail.code, 'CapturedRunPublicationFailed');
+  assert.equal(detail.primaryCode, 'MoonBitHostFailure');
+  assert.equal(detail.issueTag, 0);
+  assert.equal(detail.nestedIssueTag, undefined);
+});
 
 test('dispatch nested issue forwards fieldless Ledger tags through the actual owner', async () => {
   // Pinned LedgerIssue variants: PlanningLimit1, RetentionLimit5, ExecutionLimit6.
@@ -77,8 +111,8 @@ test('dispatch nested issue preserves wrapped primary failure ahead of later cle
   assert.equal(detail.nestedIssueTag, 5);
 });
 
-test('dispatch nested issue forwards the fieldless cause from the configured start owner', async () => {
-  const failure = fieldlessLedgerFailure(6), records = [], stopped = [];
+async function observeActualStartDispatchFailure(failure) {
+  const records = [], stopped = [];
   let closes = 0, cleanups = 0;
   const ref = {runDefinitionCid: 'actual-start-fieldless-diagnostic'};
   const definition = {wire: 'same-original-definition'};
@@ -101,11 +135,24 @@ test('dispatch nested issue forwards the fieldless cause from the configured sta
     dispatchReserved: false, cancellationRequested: false}, {}), 'started');
   await owner.drain();
   assert.equal(records.length, 1);
-  assert.equal(records[0].issueTag, 10);
-  assert.equal(records[0].nestedIssueTag, 6);
   assert.equal(records[0].primaryCode, 'MoonBitHostFailure');
   assert.equal(closes, 1); assert.equal(cleanups, 1); assert.equal(stopped.length, 1);
   assert.equal(owner.operation(ref), undefined);
+  return records[0];
+}
+
+test('dispatch nested issue forwards the fieldless cause from the configured start owner', async () => {
+  const detail = await observeActualStartDispatchFailure(fieldlessLedgerFailure(6));
+  assert.equal(detail.issueTag, 10);
+  assert.equal(detail.nestedIssueTag, 6);
+});
+
+test('dispatch top issue forwards fieldless tags from the configured start owner', async () => {
+  for (const issue of [0, 1, 6]) {
+    const detail = await observeActualStartDispatchFailure(fieldlessFailure(issue));
+    assert.equal(detail.issueTag, issue);
+    assert.equal(detail.nestedIssueTag, undefined);
+  }
 });
 
 test('dispatch code-site diagnostic preserves the actual Result failure and physical cleanup', async () => {

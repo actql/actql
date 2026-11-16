@@ -1490,7 +1490,9 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         const original = entry.primaryFailure;
         const primaryFailure = original instanceof CapturedRunPublicationError
           ? original.primaryFailure : original;
-        const nestedIssue = runtimeOptionalField(primaryFailure?.cause, 0);
+        const issue = primaryFailure?.cause;
+        const issueTag = runtimeTag(issue);
+        const nestedIssue = runtimeOptionalField(issue, 0);
         const nestedTag = runtimeTag(nestedIssue);
         diagnostic('dispatch_failed', {ref: accepted.ref,
           code: cause?.code ?? cause?.message ?? 'ClientDispatchFailed',
@@ -1498,7 +1500,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           primaryDiagnostic: dispatchFailureSnapshot(primaryFailure)?.primaryDiagnostic ??
             dispatchFailureCodeSite(primaryFailure, diagnosticErrorType, diagnosticStackFormatter),
           cleanupDiagnostic: dispatchFailureSnapshot(primaryFailure)?.cleanupDiagnostic,
-          issueTag: runtimeTag(primaryFailure?.cause),
+          issueTag: issueTag === undefined && Number.isSafeInteger(issue) &&
+            issue >= 0 && issue <= 65535 ? issue : issueTag,
           nestedIssueTag: nestedTag === undefined && Number.isSafeInteger(nestedIssue) &&
             nestedIssue >= 0 && nestedIssue <= 65535 ? nestedIssue : nestedTag});
       } catch { /* Optional diagnostics cannot interrupt cleanup. */ }
@@ -1612,14 +1615,17 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         const original = entry.primaryFailure;
         const primaryFailure = original instanceof CapturedRunPublicationError
           ? original.primaryFailure : original;
-        const nestedIssue = runtimeOptionalField(primaryFailure?.cause, 0);
+        const issue = primaryFailure?.cause;
+        const issueTag = runtimeTag(issue);
+        const nestedIssue = runtimeOptionalField(issue, 0);
         const nestedTag = runtimeTag(nestedIssue);
         diagnostic('dispatch_failed', {ref: entry.ref,
           code: cause?.code ?? 'ClientDispatchFailed',
           primaryCode: primaryFailure?.code,
           primaryDiagnostic: dispatchFailureSnapshot(primaryFailure)?.primaryDiagnostic ??
             dispatchFailureCodeSite(primaryFailure, diagnosticErrorType, diagnosticStackFormatter),
-          issueTag: runtimeTag(primaryFailure?.cause),
+          issueTag: issueTag === undefined && Number.isSafeInteger(issue) &&
+            issue >= 0 && issue <= 65535 ? issue : issueTag,
           nestedIssueTag: nestedTag === undefined && Number.isSafeInteger(nestedIssue) &&
             nestedIssue >= 0 && nestedIssue <= 65535 ? nestedIssue : nestedTag});
       } catch { /* Optional diagnostics cannot interrupt original cleanup. */ }
