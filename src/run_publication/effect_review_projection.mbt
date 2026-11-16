@@ -385,7 +385,10 @@ fn review_construction_inventory_parts(
   output_nodes : Int,
   output_depth : Int,
   geometry? : @encode.EncodingConstructionGeometry? = None,
-) -> (EffectPreviewIdentityConstructionInventory, EffectPreviewIdentityConstructionInventory)? {
+) -> (
+  EffectPreviewIdentityConstructionInventory,
+  EffectPreviewIdentityConstructionInventory,
+)? {
   let n = output_nodes.to_int64()
   let d = output_depth.to_int64()
   // Two Common RunEvidence values (issued and Checkpoint-admitted), the
@@ -393,25 +396,31 @@ fn review_construction_inventory_parts(
   // views/arrays and the response bytes may coexist through evidence.hold.
   // Keep these returned DATA on the SAME Run control until retirement.
   let canonical = match geometry {
-    None => @shape.collection_construction_extent({
-      records: 2L * (3L * n + 3L * d + 1L) + 24L,
-      record_references: 2L * (4L * n + 6L * d) + 64L,
-      record_words: 2L * (2L * n + 4L * d + 3L) + 24L,
-      reference_arrays: 4L * n + 8L,
-      reference_items: 6L * n + 24L,
-      scalar_arrays: 0L,
-      scalar_items: 0L,
-      maps: 2L * n,
-      map_entries: 2L * n,
-    })
-
-    Some(value) => @json.source_conversion_construction_extent(
-      output_nodes, value.fields, value.objects, value.arrays, output_depth, 0,
-    ).map(value => {
-      record_headers: 2L * value.retained.record_headers + 24L,
-      reference_slots: 2L * value.retained.reference_slots + 64L,
-      scalar_words: 2L * value.retained.scalar_words + 24L,
-    })
+    None =>
+      @shape.collection_construction_extent({
+        records: 2L * (3L * n + 3L * d + 1L) + 24L,
+        record_references: 2L * (4L * n + 6L * d) + 64L,
+        record_words: 2L * (2L * n + 4L * d + 3L) + 24L,
+        reference_arrays: 4L * n + 8L,
+        reference_items: 6L * n + 24L,
+        scalar_arrays: 0L,
+        scalar_items: 0L,
+        maps: 2L * n,
+        map_entries: 2L * n,
+      })
+    Some(value) =>
+      @json.source_conversion_construction_extent(
+        output_nodes,
+        value.fields,
+        value.objects,
+        value.arrays,
+        output_depth,
+        0,
+      ).map(value => {
+        record_headers: 2L * value.retained.record_headers + 24L,
+        reference_slots: 2L * value.retained.reference_slots + 64L,
+        scalar_words: 2L * value.retained.scalar_words + 24L,
+      })
   }
   guard canonical is Some(canonical) &&
     @source.json_tree_retained_construction_extent(

@@ -9,12 +9,22 @@ fn installed_effect_ledger_row_workspace(
   depth : Int,
   response_bytes : Int,
 ) -> Int64? {
-  if (kind != "entry" && kind != "response" && kind != "receipt" &&
-    kind != "quantity") || response_bytes < 1 || response_bytes > 1000000 {
+  if (
+      kind != "entry" &&
+      kind != "response" &&
+      kind != "receipt" &&
+      kind != "quantity"
+    ) ||
+    response_bytes < 1 ||
+    response_bytes > 1000000 {
     return None
   }
   guard installed_effect_ledger_family_workspace(
-      [1], 100000, bytes, nodes, depth,
+      [1],
+      100000,
+      bytes,
+      nodes,
+      depth,
     )
     is Some(entry) else {
     return None
@@ -76,7 +86,11 @@ fn installed_effect_receipt_codec_capacity(
     return None
   }
   let observed = installed_effect_dependency_wire_geometry(
-    wire, 1000000, nodes, depth, _ => true,
+    wire,
+    1000000,
+    nodes,
+    depth,
+    _ => true,
   )
   // Keep the old conservative family when this lexical scan itself refuses.
   // The actual semantic parser remains the only admission and still runs once.
@@ -93,16 +107,26 @@ fn installed_effect_receipt_codec_capacity(
   let bound_nodes = geometry.node_upper + envelope_nodes
   let _ = receipt_wire
   let keys = "credential_use_ciddispatch_entry_cideffect_member_preview_cideffect_preview_cidhttp_status_coderesponse_byte_countresponse_physical_sha256row_preview_cidtyped_outcometyped_outcome_cidversionreceipt_cid"
-  let envelope_bytes = keys.length() + 7 * 71 + 64 + 20 +
-    "actql-effect-row-outcome-receipt/0.1".length() + 7 * 12 + 2
+  let envelope_bytes = keys.length() +
+    7 * 71 +
+    64 +
+    20 +
+    "actql-effect-row-outcome-receipt/0.1".length() +
+    7 * 12 +
+    2
   guard @execution.checked_preparation_add_product(
-      bytes.to_int64(), envelope_bytes.to_int64(), 1L,
+      bytes.to_int64(),
+      envelope_bytes.to_int64(),
+      1L,
     )
-    is Some(bound_bytes) && bound_bytes <= 2147483647L else {
+    is Some(bound_bytes) &&
+    bound_bytes <= 2147483647L else {
     return None
   }
   standard_create_saved_receipt_capacity(
-    bound_bytes.to_int(), bound_nodes, depth,
+    bound_bytes.to_int(),
+    bound_nodes,
+    depth,
   )
 }
 
@@ -133,7 +157,9 @@ fn installed_effect_ledger_history_workspace(
     })
     is Some(history) &&
     @execution.checked_preparation_add_product(
-      20L * 71L * n + 76L * n, wire_units, 3L,
+      20L * 71L * n + 76L * n,
+      wire_units,
+      3L,
     )
     is Some(text) else {
     return None

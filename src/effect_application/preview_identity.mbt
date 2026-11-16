@@ -215,10 +215,7 @@ pub fn recover_effect_preview_apply_keys(
   max_key_nodes : Int,
   max_key_depth : Int,
 ) -> Result[Array[Array[EffectDispatchKey]], EffectPreviewRecoveryKeysIssue] {
-  if max_members < 1 ||
-    max_members > 1000 ||
-    max_rows < 1 ||
-    max_work < 1 {
+  if max_members < 1 || max_members > 1000 || max_rows < 1 || max_work < 1 {
     return Err(InvalidLimits)
   }
   let count = @publication.effect_preview_member_count(preview)

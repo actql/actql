@@ -298,7 +298,11 @@ fn keyed_lookup_native_dependency_bodies_from_original(
     contract("acquisition_scope", identity.scope)
     // The keyed scope names this SAME checked template's static request.
     // Each Whole Source request below is an independent scope obligation.
-    append("request_values", identity.static_request_cid, identity.static_request)
+    append(
+      "request_values",
+      identity.static_request_cid,
+      identity.static_request,
+    )
     append(
       "lookup_barrier",
       component.barrier.logical_cid,

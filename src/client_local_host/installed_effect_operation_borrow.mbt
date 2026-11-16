@@ -1214,23 +1214,27 @@ fn complete_installed_effect_response_projection(
     // Unlike Unit/header-specific projection entrances this completion never
     // lowers R, even if its original extent declares another later remainder.
     None
-  } else { match value.extent {
-    Some(extent) =>
-      match extent.empty_response_headers {
-        None => remaining
-        Some((_, returned)) => {
-          guard value.empty_headers_checked else { return Err(ForeignOriginal) }
-          let retained = remaining.unwrap_or(
-            @execution.execution_capacity_retained_bytes(extent.capacity),
-          )
-          if retained < returned {
-            return Err(InsufficientCapacity)
+  } else {
+    match value.extent {
+      Some(extent) =>
+        match extent.empty_response_headers {
+          None => remaining
+          Some((_, returned)) => {
+            guard value.empty_headers_checked else {
+              return Err(ForeignOriginal)
+            }
+            let retained = remaining.unwrap_or(
+              @execution.execution_capacity_retained_bytes(extent.capacity),
+            )
+            if retained < returned {
+              return Err(InsufficientCapacity)
+            }
+            Some(retained - returned)
           }
-          Some(retained - returned)
         }
-      }
-    None => return Err(Retired)
-  } }
+      None => return Err(Retired)
+    }
+  }
   @resources.complete_prepared_run_operation_response_projection(
     admission,
     plan,

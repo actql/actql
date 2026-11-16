@@ -40,7 +40,9 @@ pub fn text_writer_live_key_inventory(
   max_live_keys : Int,
   depth : Int,
 ) -> TextWriterConstructionInventory? {
-  if output_bytes < 0 || max_live_keys < 0 || depth < 0 { return None }
+  if output_bytes < 0 || max_live_keys < 0 || depth < 0 {
+    return None
+  }
   let frames = writer_frame_construction_extent(max_live_keys, depth)
   // TextOutput1H1R1W, builder1H1R1W; two old/new fixed buffers and three
   // old/new/current String headers5H. These target alternatives co-count.
