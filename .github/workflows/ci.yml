@@ -1608,6 +1608,8 @@ jobs:
             ${{ runner.temp }}/client-readme-packed/collection/*.pending.json
             ${{ runner.temp }}/client-readme-packed/collection/*.progress.json
             ${{ runner.temp }}/client-readme-packed/collection/*ref-before-wait*.json
+            ${{ runner.temp }}/client-readme-packed/project-store-inventory/*/*.observation.json
+            ${{ runner.temp }}/client-readme-packed/project-store-inventory/*/*.pending.json
             ${{ runner.temp }}/client-readme-packed/dependency-boundary/*/*.observation.json
             ${{ runner.temp }}/client-readme-packed/dependency-boundary/*/*.pending.json
             ${{ runner.temp }}/client-readme-packed/dependency-boundary/*/*.source-progress.json

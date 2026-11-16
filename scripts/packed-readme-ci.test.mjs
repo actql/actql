@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {runInNewContext} from 'node:vm';
-import {readFile, writeFile, copyFile, symlink, unlink, readlink, mkdir, mkdtemp, readdir, rm} from 'node:fs/promises';
+import {readFile, writeFile, copyFile, symlink, unlink, readlink, mkdir, mkdtemp, readdir, rm, glob} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
@@ -21,6 +21,7 @@ import {createCommandEvidence, checkCommandEvidenceUpload} from './packed-query-
 import {nativeCoreScopedTestEnvironment} from './native-core-test-selection.mjs';
 import {projectFileStoreRows101, projectFileStoreMembers17} from './fixtures/project-file-store-inventory-cases.mjs';
 import {packedDependencyBoundaryCases, packedDependencyBoundaryPhases} from './packed-project-dependency-boundary.mjs';
+import {packedProjectFileStoreInventoryCases} from './packed-project-file-store-inventory.mjs';
 import {readWholeResults, checkJoinedSourceRows, readJoinedWholeResults, assertRecordWorkflowWork} from '../adapters/host-node/fixtures/work-observation.fixture.mjs';
 
 const workflow = parse(await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
@@ -62,6 +63,40 @@ test('required packed dependency boundaries keep cold approval, locked physical 
   const source = await readFile(new URL('./test-packed-readme-workflows.mjs', import.meta.url), 'utf8');
   assert.match(source, /await runPackedDependencyBoundaries\(\{prepared,/u);
   assert.match(source, /report\.complete = failures\.length === 0 && report\.account\.completed &&\s*report\.dependencyBoundaries\.complete &&/u);
+});
+
+test('README artifact retains File STORE partial and final observations without private application state', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-readme-upload-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const upload = job.steps.find(step => step.name === 'Preserve actual functional outcomes and failures');
+  assert.equal(upload.if, 'always()');
+  const prefix = '${{ runner.temp }}/client-readme-packed/';
+  const patterns = upload.with.path.trim().split('\n').map(path => {
+    assert(path.startsWith(prefix)); return path.slice(prefix.length);
+  });
+  const expected = [];
+  const privateFiles = [];
+  for (const selected of packedProjectFileStoreInventoryCases) {
+    const directory = `project-store-inventory/${selected.case}`;
+    for (const phase of ['capture', 'approve', 'saved']) {
+      for (const suffix of ['pending', 'observation']) {
+        expected.push(`${directory}/${selected.case}-${phase}.${suffix}.json`);
+      }
+    }
+    privateFiles.push(...['original.json', 'approval.json', 'state/ledger.sqlite',
+      'state/service-private.pem', 'source-data/input.pending.json',
+      'destination-data/output.observation.json'].map(path => `${directory}/${path}`));
+  }
+  // These are path-selection fixtures, not runtime outcomes or credentials.
+  // The real fixture writes only its bounded report to these diagnostic names.
+  for (const path of [...expected, ...privateFiles]) {
+    await mkdir(dirname(join(root, path)), {recursive: true});
+    await writeFile(join(root, path), '{}\n');
+  }
+  const selected = [];
+  for await (const path of glob(patterns, {cwd: root})) selected.push(path);
+  assert.deepEqual(selected.sort(), expected.sort(),
+    'Keep both sides of FIRST-close, including a failed approval, without uploading signing originals or Store state');
 });
 
 test('README call bounds come from authored joined rows and declared per-row Tasks rather than prior observations', () => {
