@@ -889,6 +889,8 @@ pub fn retain_captured_effect_local_unit_result_pending_inputs(CapturedEffectLoc
 
 pub fn retain_captured_task_allocation(CapturedDAG, Int, @physical_resources.Holding, release_confirmed? : () -> Bool) -> Result[Unit, @physical_resources.LedgerIssue]
 
+pub fn retain_materializing_task_execution_capacity(CapturedDAG, TaskExecution) -> Result[Unit, @physical_resources.LedgerIssue]
+
 pub fn retain_task_execution_allocation(CapturedDAG, TaskExecution, Int64) -> Result[TaskRetainedAllocation, @physical_resources.LedgerIssue]
 
 pub fn retained_task_projection_consumer(@physical_strategy.RetainedTaskProjection) -> Int

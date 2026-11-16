@@ -134,22 +134,33 @@ fn local_effective_import_limits(
 }
 
 ///|
-// Legacy FixedComputeRequest dispatch always constructs the materializing
-// provider. Its full constructor quote is distinct from the managed entry's
-// metered startup quote; both borrow the same installed original. Ready
-// cell-access inputs refine only the import copies that actually exist.
+// The file-output materializing provider keeps its full import/export backing.
+// Only an original default provider with before-commit growth can select its
+// smaller startup. Injected/unsupported constructors retain the full quote.
 fn local_dispatch_ready_input_capacity(
   installed : LocalDispatchModule,
   task : Int,
   max_work : Int,
 ) -> Result[@strategy.PhysicalEnvelope, LocalDispatchIssue] {
-  guard local_dispatch_preparation_task_capacity(installed.preparation, task)
-    is Some(_) &&
-    @local.local_module_capacity(
+  let startup = @local.local_module_materializing_start_capacity(
+    installed.implementation,
+    local_task_slot(installed, task),
+  )
+  let base = match
+    @local.local_module_materializing_start_capacity(
       installed.implementation,
       local_task_slot(installed, task),
-    )
-    is Some(base) &&
+    ) {
+    Some((value, _)) => Some(value)
+    None =>
+      @local.local_module_capacity(
+        installed.implementation,
+        local_task_slot(installed, task),
+      )
+  }
+  guard local_dispatch_preparation_task_capacity(installed.preparation, task)
+    is Some(_) &&
+    base is Some(base) &&
     installed.preparation.input_counts.get(local_task_slot(installed, task))
     is Some(total) else {
     return Err(Configuration(InvalidLimits))
@@ -200,11 +211,21 @@ fn local_dispatch_ready_input_capacity(
   }
   let imported = match installed.import_policy {
     None => Some(0L)
-    Some((limits, _)) => @local.local_import_retention_capacity(limits)
+    Some((limits, _)) =>
+      if startup is Some(_) {
+        @local.local_materializing_import_start_capacity(limits)
+      } else {
+        @local.local_import_retention_capacity(limits)
+      }
   }
   let exported = match installed.output_policy {
     None => Some(0L)
-    Some((limits, _)) => @local.local_export_retention_capacity(limits)
+    Some((limits, _)) =>
+      if startup is Some(_) {
+        @local.local_materializing_export_start_capacity(limits)
+      } else {
+        @local.local_export_retention_capacity(limits)
+      }
   }
   guard imported is Some(imported) &&
     exported is Some(exported) &&

@@ -120,12 +120,243 @@ pub fn[C, E] start_local_dispatch(
         @strategy.fail_task_execution(run, ticket, ForeignCandidate) |> ignore
         return Err(Execution(ForeignCandidate))
       }
+      let startup = @local.local_module_materializing_start_capacity(
+        installed.implementation,
+        local_task_slot(installed, index),
+      )
+      let growth_failure : Ref[LocalDispatchIssue?]? = startup.map(_ => {
+        Ref(None)
+      })
+      let mut import_growth : ((Int64) -> Result[Unit, LocalDispatchIssue])? = None
+      let mut export_growth : ((Int64, Int64) -> Result[
+        Unit,
+        LocalDispatchIssue,
+      ])? = None
+      if (startup, growth_failure)
+        is (Some((_, meter_retention)), Some(growth_failure)) {
+        let capacity = @connector.prepared_execution_capacity(prepared)
+        let working_extra = Ref(0L)
+        let retained_extra = Ref(0L)
+        let provider_working = Ref(0L)
+        let provider_retained = Ref(0L)
+        let imported = Ref(0L)
+        let exported_working = Ref(0L)
+        let exported_retained = Ref(0L)
+        let growing = Ref(false)
+        let grow = fn(extra : Int64, retained : Int64) {
+          if growing.val {
+            return Err(@execution.WorkspaceUnavailable)
+          }
+          growing.val = true
+          defer {
+            growing.val = false
+          }
+
+          if extra < working_extra.val ||
+            retained < retained_extra.val ||
+            extra > 9223372036854775807L - capacity.scratch_bytes ||
+            retained > 9223372036854775807L - capacity.retained_bytes {
+            growth_failure.val = Some(Execution(Stopped))
+            return Err(@execution.WorkspaceUnavailable)
+          }
+          // Only this pure pre-mutation refusal permits the existing growth
+          // owner to retry its exact minimum instead of a spare funding page.
+          let ledger = @strategy.captured_dag_ledger(run)
+          let limits = @resources.ledger_admission_limits(ledger)
+          let usage = @resources.ledger_usage(ledger)
+          let available_retention = limits.retained_bytes -
+            usage.held_bytes -
+            usage.reserved_retention_bytes
+          let available_execution = limits.execution_bytes -
+            usage.reserved_execution_bytes
+          let requested_retention = retained - retained_extra.val
+          let requested_execution = extra - working_extra.val
+          if requested_retention > available_retention ||
+            requested_execution > available_execution {
+            growth_failure.val = Some(
+              if requested_retention > available_retention {
+                ExecutionCapacityRefusal(
+                  RetentionLimit,
+                  requested_retention,
+                  available_retention,
+                  limits.retained_bytes,
+                )
+              } else {
+                ExecutionCapacityRefusal(
+                  ExecutionLimit,
+                  requested_execution,
+                  available_execution,
+                  limits.execution_bytes,
+                )
+              },
+            )
+            return Err(@execution.WorkspaceBudgetUnavailable)
+          }
+          match
+            @strategy.grow_task_execution_workspace(
+              run,
+              ticket,
+              capacity.scratch_bytes + extra,
+              retained=Some(capacity.retained_bytes + retained),
+            ) {
+            Err(issue) => {
+              growth_failure.val = Some(Execution(Physical(issue)))
+              Err(@execution.WorkspaceUnavailable)
+            }
+            Ok(_) => {
+              working_extra.val = extra
+              retained_extra.val = retained
+              growth_failure.val = None
+              Ok(())
+            }
+          }
+        }
+        let totals = fn(
+          provider_w : Int64,
+          provider_r : Int64,
+          input : Int64,
+          export_w : Int64,
+          export_r : Int64,
+        ) {
+          guard @execution.checked_preparation_add_product(
+              provider_w, input, 1L,
+            )
+            is Some(w) &&
+            @execution.checked_preparation_add_product(w, export_w, 1L)
+            is Some(w) &&
+            @execution.checked_preparation_add_product(provider_r, input, 1L)
+            is Some(r) &&
+            @execution.checked_preparation_add_product(r, export_r, 1L)
+            is Some(r) else {
+            return Err(@execution.WorkspaceUnavailable)
+          }
+          grow(w, r)
+        }
+        let reserve = fn(extra : Int64, retained : Int64) {
+          totals(
+            extra,
+            retained,
+            imported.val,
+            exported_working.val,
+            exported_retained.val,
+          ).map(_ => {
+            provider_working.val = extra
+            provider_retained.val = retained
+          })
+        }
+        let transport_issue = fn(_) {
+          growth_failure.val.unwrap_or(Configuration(InputUnavailable))
+        }
+        import_growth = Some(fn(extra) {
+          totals(
+            provider_working.val,
+            provider_retained.val,
+            extra,
+            exported_working.val,
+            exported_retained.val,
+          )
+          .map(_ => imported.val = extra)
+          .map_err(transport_issue)
+        })
+        export_growth = Some(fn(extra, retained) {
+          totals(
+            provider_working.val,
+            provider_retained.val,
+            imported.val,
+            extra,
+            retained,
+          )
+          .map(_ => {
+            exported_working.val = extra
+            exported_retained.val = retained
+          })
+          .map_err(transport_issue)
+        })
+        // Imported copies and written file DATA also survive completion, even
+        // when the provider's own retained output was already fully funded.
+        let retained = @strategy.retain_materializing_task_execution_capacity(
+          run, ticket,
+        ).map_err(issue => Execution(Physical(issue)))
+        let installed_growth = retained.bind(_ => {
+          @local.bind_local_materializing_workspace_growth(
+            attempt,
+            @resources.ledger_admission_limits(
+              @strategy.captured_dag_ledger(run),
+            ).execution_bytes,
+            reserve,
+            meter_retention,
+          ).map_err(issue => Preparation(Materializing(issue)))
+        })
+        if installed_growth is Err(issue) {
+          @local.close_local_materializing_attempt(attempt)
+          @strategy.fail_task_execution(run, ticket, Stopped) |> ignore
+          return Err(issue)
+        }
+      }
       let inputs = []
+      let imported_extent = startup.map(_ => Ref(0L))
       for port in 0..<@local.local_materializing_input_count(attempt) {
         let position = port
         if @local.local_materializing_input(attempt, port) is Some(input) &&
           @execution.producer_read_retained_material(input) is Some(material) &&
           !@execution.producer_read_has_cell_access(input) {
+          let append = if import_growth is Some(_) {
+            let copied_rows = Ref(0L)
+            let copied_nodes = Ref(0L)
+            let copied_text = Ref(0L)
+            let copied_extent = Ref(0L)
+            fn(row) {
+              if (import_growth, imported_extent)
+                is (Some(reserve), Some(imported_extent)) {
+                let bytes = match
+                  managed_row_transfer_bytes(row, limits.wire.max_bytes) {
+                  Ok(bytes) => bytes
+                  Err(issue) => return Err(issue)
+                }
+                guard @local.local_import_next_retention_extent(
+                    limits,
+                    copied_rows.val,
+                    copied_nodes.val,
+                    copied_text.val,
+                    bytes,
+                  )
+                  is Some((rows, nodes, text, quoted)) else {
+                  return Err(Configuration(InvalidLimits))
+                }
+                let extent = Int64::max(copied_extent.val, quoted)
+                guard @execution.checked_preparation_add_product(
+                    imported_extent.val,
+                    extent - copied_extent.val,
+                    1L,
+                  )
+                  is Some(next) else {
+                  return Err(Configuration(InvalidLimits))
+                }
+                match reserve(next) {
+                  Err(issue) => return Err(issue)
+                  Ok(_) => ()
+                }
+                // Grow rechecks the same Task currentness before this original
+                // importer can parse; a stopped attempt still rejects append.
+                copied_rows.val = rows
+                copied_nodes.val = nodes
+                copied_text.val = text
+                copied_extent.val = extent
+                imported_extent.val = next
+              }
+              @local.append_local_materializing_input(attempt, position, row).map_err(issue => {
+                  Preparation(Materializing(issue))
+                },
+              )
+            }
+          } else {
+            fn(row) {
+              @local.append_local_materializing_input(attempt, position, row).map_err(issue => {
+                  Preparation(Materializing(issue))
+                },
+              )
+            }
+          }
           inputs.push({
             material,
             input,
@@ -148,12 +379,7 @@ pub fn[C, E] start_local_dispatch(
                 },
               )
             },
-            append: row => {
-              @local.append_local_materializing_input(attempt, position, row).map_err(issue => {
-                  Preparation(Materializing(issue))
-                },
-              )
-            },
+            append,
             finish: () => {
               @local.finish_local_materializing_input(attempt, position).map_err(issue => {
                   Preparation(Materializing(issue))
@@ -166,7 +392,14 @@ pub fn[C, E] start_local_dispatch(
       Ok({
         inputs,
         output: output_limits.map(limits => {
-          local_output_transfer(run, ticket, attempt, index, limits)
+          local_output_transfer(
+            run,
+            ticket,
+            attempt,
+            index,
+            limits,
+            reserve=export_growth,
+          )
         }),
         execute: () => {
           if !@local.local_materializing_started(attempt) {
@@ -177,7 +410,15 @@ pub fn[C, E] start_local_dispatch(
           }
           match @local.execute_local_materializing_attempt(attempt) {
             Err(issue) =>
-              Err(local_materializing_failure(run, ticket, attempt, issue))
+              Err(
+                local_materializing_failure(
+                  run,
+                  ticket,
+                  attempt,
+                  issue,
+                  primary=growth_failure.bind(value => value.val),
+                ),
+              )
             Ok(_) =>
               seal_local_materializing_numeric_completion(
                 run, ticket, attempt, numeric_count,
@@ -195,7 +436,15 @@ pub fn[C, E] start_local_dispatch(
           }
           match @local.advance_local_materializing_attempt(attempt, quantum) {
             Err(issue) =>
-              Err(local_materializing_failure(run, ticket, attempt, issue))
+              Err(
+                local_materializing_failure(
+                  run,
+                  ticket,
+                  attempt,
+                  issue,
+                  primary=growth_failure.bind(value => value.val),
+                ),
+              )
             Ok(value) => {
               if value.complete {
                 match
@@ -297,11 +546,18 @@ fn local_materializing_failure(
   ticket : @strategy.TaskExecution,
   attempt : @local.LocalMaterializingAttempt,
   issue : @local.LocalMaterializingIssue,
+  primary? : LocalDispatchIssue? = None,
 ) -> LocalDispatchIssue {
-  if issue is Candidate(computation) {
-    @strategy.fail_task_execution(run, ticket, Compute(computation)) |> ignore
+  match primary {
+    Some(Execution(failure)) =>
+      @strategy.fail_task_execution(run, ticket, failure) |> ignore
+    _ =>
+      if issue is Candidate(computation) {
+        @strategy.fail_task_execution(run, ticket, Compute(computation))
+        |> ignore
+      }
   }
-  local_materializing_issue(attempt, issue)
+  primary.unwrap_or(local_materializing_issue(attempt, issue))
 }
 
 ///|

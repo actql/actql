@@ -1902,7 +1902,8 @@ pub fn[E] prepare_local_module_materializing_compute(
     Ok(value) => value
     Err(error) => return Err(error)
   }
-  prepare_local_materializing_execution(
+  let startup = local_module_materializing_start_capacity(installed, slot)
+  prepare_local_materializing_execution_with_startup(
     choice,
     candidate,
     installed.execution,
@@ -1921,7 +1922,63 @@ pub fn[E] prepare_local_module_materializing_compute(
     analytic_envelopes~,
     family_providers=installed.managed_providers,
     provider_capacity=Some(installed.managed_capacity),
+    startup~,
   ).map_err(error => Materializing(error))
+}
+
+///|
+/// Only this module's original default constructor can fund variable output
+/// before its buffer commits. Its importer and file writer use the same Task
+/// reservation before decoding or emitting each actual bounded prefix. Unknown and injected providers keep the full
+/// constructor, including its original completion accounting.
+pub fn local_module_materializing_start_capacity(
+  installed : LocalComputeModule,
+  slot : Int,
+) -> (@execution.ExecutionCapacity, Bool)? {
+  guard installed.sequences.get(slot) is Some(sequence) &&
+    local_module_metered_output_start_capacity(installed, slot, sequence)
+    is Some(startup) &&
+    local_module_capacity(installed, slot) is Some(full) else {
+    return None
+  }
+  // Standing growth: the copied GeneratedSequence (22 borrowed references),
+  // WorkspaceGrowth and its option/counter, reserve closures, typed failure
+  // Ref and same-task completion closure. The transport link adds seven
+  // peak/reentry/cumulative Refs, the summed-growth and importer/exporter
+  // callbacks and their options. Include old/new Result/Some and quantity
+  // carriers at the refusal/current fence. Per-port/export state is quoted
+  // separately before those original transfer closures are constructed.
+  guard @execution.preparation_representation_cost({
+      record_headers: 42L,
+      reference_slots: 84L,
+      scalar_words: 48L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(controls) &&
+    @execution.checked_preparation_add_product(
+      startup.retained_bytes,
+      controls,
+      1L,
+    )
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(
+      startup.execution_bytes,
+      controls,
+      1L,
+    )
+    is Some(execution) &&
+    startup.retained_bytes <= full.retained_bytes &&
+    startup.execution_bytes <= full.execution_bytes &&
+    (
+      startup.retained_bytes < full.retained_bytes ||
+      startup.execution_bytes < full.execution_bytes
+    ) else {
+    return None
+  }
+  @execution.execution_capacity(retained, execution).map(capacity => {
+    (capacity, startup.retained_bytes < full.retained_bytes)
+  })
 }
 
 ///|

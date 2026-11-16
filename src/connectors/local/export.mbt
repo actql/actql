@@ -156,6 +156,7 @@ pub fn next_local_output_export(
 pub fn advance_local_output_export(
   attempt : LocalMaterializingAttempt,
   quantum : Int,
+  before_batch_growth? : ((Int) -> Result[Bool, @execution.CompletedExportIssue])? = None,
 ) -> Result[@execution.CompletedOutputExportAdvance, LocalMaterializingIssue] {
   guard !attempt.closed &&
     attempt.export_stream is Some(stream) &&
@@ -169,9 +170,12 @@ pub fn advance_local_output_export(
     is Some(slots) else {
     return Err(Capacity)
   }
-  @execution.advance_completed_output_export(stream, quantum, slots).map_err(issue => {
-    Export(issue)
-  })
+  @execution.advance_completed_output_export(
+    stream,
+    quantum,
+    slots,
+    before_batch_growth~,
+  ).map_err(issue => Export(issue))
 }
 
 ///|

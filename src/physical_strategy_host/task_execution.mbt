@@ -815,6 +815,45 @@ pub fn grow_task_execution_workspace(
 }
 
 ///|
+/// A materializing constructor which grows this SAME task before committing
+/// output keeps that physically funded retention through ordinary completion.
+/// No caller-supplied quantity replaces the reservation. Managed and resident
+/// executions retain their separate existing completion contracts.
+pub fn retain_materializing_task_execution_capacity(
+  run : CapturedDAG,
+  execution : TaskExecution,
+) -> Result[Unit, @resources.LedgerIssue] {
+  if !task_execution_matches(run, execution) {
+    return Err(ForeignOwner)
+  }
+  if run.stopped ||
+    execution.disposed ||
+    execution.execution_settled ||
+    execution.admitted_managed_inputs is Some(_) ||
+    execution.resident is Some(_) ||
+    execution.retained_bytes is None ||
+    !@resources.reservation_open(execution.reservation) {
+    return Err(ClosedReservation)
+  }
+  match
+    @resources.reservation_capacity_amounts(run.ledger, execution.reservation) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  execution.retained_bytes = Some(fn() {
+    if !task_execution_matches(run, execution) ||
+      execution.disposed ||
+      !@resources.reservation_open(execution.reservation) {
+      return Err(Physical(ForeignOwner))
+    }
+    @resources.reservation_capacity_amounts(run.ledger, execution.reservation)
+    .map(value => value.0)
+    .map_err(issue => Physical(issue))
+  })
+  Ok(())
+}
+
+///|
 /// Convert part of this task's existing retention reservation into one exact
 /// auxiliary physical allocation. This is used for bounded retained metadata
 /// that is distinct from the task's primary output allocation. Capacity must

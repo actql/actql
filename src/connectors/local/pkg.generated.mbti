@@ -14,7 +14,7 @@ pub fn advance_local_materializing_attempt(LocalMaterializingAttempt, Int) -> Re
 
 pub fn advance_local_materializing_cleanup(LocalMaterializingAttempt, Int) -> Bool
 
-pub fn advance_local_output_export(LocalMaterializingAttempt, Int) -> Result[@execution_relation.CompletedOutputExportAdvance, LocalMaterializingIssue]
+pub fn advance_local_output_export(LocalMaterializingAttempt, Int, before_batch_growth? : ((Int) -> Result[Bool, @execution_relation.CompletedExportIssue])?) -> Result[@execution_relation.CompletedOutputExportAdvance, LocalMaterializingIssue]
 
 pub fn advance_local_output_export_preparation(LocalMaterializingAttempt, Int) -> Result[(Bool, Int), LocalMaterializingIssue]
 
@@ -27,6 +27,8 @@ pub fn begin_local_materializing_input(LocalMaterializingAttempt, Int) -> Result
 pub fn begin_local_output_export(LocalMaterializingAttempt) -> Result[Unit, LocalMaterializingIssue]
 
 pub fn bind_local_materializing_numeric_execution(LocalMaterializingAttempt, @execution_relation.NumericAggregateExecution) -> Bool
+
+pub fn bind_local_materializing_workspace_growth(LocalMaterializingAttempt, Int64, (Int64, Int64) -> Result[Unit, @execution_relation.WorkspaceGrowthIssue], Bool) -> Result[Unit, LocalMaterializingIssue]
 
 pub fn bind_local_output_export(LocalMaterializingAttempt, @execution_relation.RetainedOutputMaterial) -> Result[Unit, LocalMaterializingIssue]
 
@@ -64,7 +66,11 @@ pub fn local_export_retention_capacity(LocalExportLimits) -> Int64?
 
 pub fn local_fixed_compute_candidate(@connector_sdk.CapabilityRegistration, @connector_sdk.FixedComputeRequest, @execution_relation.GeneratedSequence, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int) -> Result[@connector_sdk.PreparedCompute[@execution_relation.GeneratedSequence], @connector_sdk.FixedComputeIssue]
 
+pub fn local_import_next_retention_extent(LocalImportLimits, Int64, Int64, Int64, Int64) -> (Int64, Int64, Int64, Int64)?
+
 pub fn local_import_retention_capacity(LocalImportLimits) -> Int64?
+
+pub fn local_import_start_retention_capacity(LocalImportLimits) -> Int64?
 
 pub fn[T] local_managed_fixed_compute_candidate(@connector_sdk.CapabilityRegistration, @connector_sdk.ManagedFixedComputeRequest[T], @execution_relation.GeneratedSequence, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int, provider_supported? : Bool) -> Result[@connector_sdk.PreparedManagedCompute[T, @execution_relation.GeneratedSequence], @connector_sdk.FixedComputeIssue]
 
@@ -74,7 +80,11 @@ pub fn local_materializing_completed_output(LocalMaterializingAttempt) -> @execu
 
 pub fn local_materializing_cumulative_work(LocalMaterializingAttempt) -> Result[Int64, ManagedProviderWorkIssue]
 
+pub fn local_materializing_export_start_capacity(LocalExportLimits) -> Int64?
+
 pub fn local_materializing_guard_usage(LocalMaterializingAttempt) -> (Int, Int, Int)?
+
+pub fn local_materializing_import_start_capacity(LocalImportLimits) -> Int64?
 
 pub fn local_materializing_input(LocalMaterializingAttempt, Int) -> @execution_relation.ProducerRead?
 
@@ -123,6 +133,8 @@ pub fn local_module_managed_capacity(LocalComputeModule) -> @connector_sdk.Fixed
 pub fn local_module_managed_provider(LocalComputeModule, Int, @execution_relation.GeneratedSequence) -> ManagedProvider?
 
 pub fn local_module_managed_sequence_supported(LocalComputeModule, Int) -> Bool
+
+pub fn local_module_materializing_start_capacity(LocalComputeModule, Int) -> (@execution_relation.ExecutionCapacity, Bool)?
 
 pub fn local_module_max_work(LocalComputeModule) -> Int
 

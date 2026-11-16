@@ -284,19 +284,10 @@ fn managed_row_transfer_bytes(
 fn local_managed_import_start_bytes(
   limits : @local.LocalImportLimits,
 ) -> Int64? {
-  @local.local_import_retention_capacity({
-    max_rows: 0,
-    values: { ..limits.values, max_nodes: 0, max_text_bytes: 0, },
-    wire: { ..limits.wire, max_bytes: 0, max_nodes: 0, },
-    row: { ..limits.row, max_bytes: 1, max_nodes: 0, max_text_bytes: 0, },
-    max_batch_bytes: 1,
-  })
+  @local.local_import_start_retention_capacity(limits)
 }
 
 ///|
-// A complete incoming row wire bounds every newly decoded value node and
-// text byte, including columns outside the receiving projection. Each bridge
-// accumulates its own bound: equal producers never share a parsed copy.
 fn local_managed_import_next_extent(
   limits : @local.LocalImportLimits,
   rows : Int64,
@@ -304,59 +295,9 @@ fn local_managed_import_next_extent(
   text : Int64,
   wire_bytes : Int64,
 ) -> (Int64, Int64, Int64, Int64)? {
-  let max_rows = limits.max_rows.to_int64()
-  let max_nodes = limits.values.max_nodes.to_int64()
-  let max_text = limits.values.max_text_bytes.to_int64()
-  guard rows >= 0L &&
-    rows <= max_rows &&
-    nodes >= 0L &&
-    nodes <= max_nodes &&
-    text >= 0L &&
-    text <= max_text &&
-    wire_bytes >= 0L else {
-    return None
-  }
-  let next_rows = rows + Int64::min(1L, max_rows - rows)
-  let next_nodes = nodes + Int64::min(wire_bytes, max_nodes - nodes)
-  let next_text = text + Int64::min(wire_bytes, max_text - text)
-  guard local_managed_import_start_bytes(limits) is Some(start) &&
-    @local.local_import_retention_capacity({
-      max_rows: next_rows.to_int(),
-      values: {
-        ..limits.values,
-        max_nodes: next_nodes.to_int(),
-        max_text_bytes: next_text.to_int(),
-      },
-      // Every parser node, text byte and provisional reference is bounded by
-      // this complete UTF-8 row. These are funding extents only; append still
-      // receives all original parser, wire and cumulative admission limits.
-      wire: {
-        ..limits.wire,
-        max_bytes: Int64::min(limits.wire.max_bytes.to_int64(), wire_bytes).to_int(),
-        max_nodes: Int64::min(limits.wire.max_nodes.to_int64(), wire_bytes).to_int(),
-      },
-      row: {
-        ..limits.row,
-        max_bytes: Int64::max(
-          1L,
-          Int64::min(limits.row.max_bytes.to_int64(), wire_bytes),
-        ).to_int(),
-        max_nodes: Int64::min(limits.row.max_nodes.to_int64(), wire_bytes).to_int(),
-        max_text_bytes: Int64::min(
-          limits.row.max_text_bytes.to_int64(),
-          wire_bytes,
-        ).to_int(),
-      },
-      max_batch_bytes: Int64::max(
-        1L,
-        Int64::min(limits.max_batch_bytes.to_int64(), wire_bytes),
-      ).to_int(),
-    })
-    is Some(quoted) &&
-    quoted >= start else {
-    return None
-  }
-  Some((next_rows, next_nodes, next_text, quoted - start))
+  @local.local_import_next_retention_extent(
+    limits, rows, nodes, text, wire_bytes,
+  )
 }
 
 ///|

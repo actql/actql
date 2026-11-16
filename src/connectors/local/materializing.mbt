@@ -27,7 +27,7 @@ struct LocalMaterializingAttempt {
   // The computation runs only through its bounded provider, one quantum per
   // advance, over the constrained sequence.
   provider : ManagedProvider
-  sequence : @execution.GeneratedSequence
+  mut sequence : @execution.GeneratedSequence
   execution : @execution.SequenceExecutionLimits
   mut numeric : @execution.NumericAggregateExecution?
   max_rows : Int
@@ -165,6 +165,53 @@ pub fn[E] prepare_local_materializing_execution(
   @connector.PreparedExecution[LocalMaterializingAttempt, E],
   LocalMaterializingIssue,
 ] {
+  prepare_local_materializing_execution_with_startup(
+    choice,
+    prepared,
+    execution,
+    measurement,
+    imports,
+    issue,
+    join_output_ceiling~,
+    output_limits~,
+    join_output_ceilings~,
+    expansion_output_ceilings~,
+    session_output_ceilings~,
+    interval_search_ceilings~,
+    asof_search_ceilings~,
+    sequence_match_ceilings~,
+    aggregate_output_ceilings~,
+    analytic_envelopes~,
+    family_providers~,
+    provider_capacity~,
+  )
+}
+
+///|
+fn[E] prepare_local_materializing_execution_with_startup(
+  choice : @connector.FixedComputeChoice,
+  prepared : @connector.PreparedCompute[@execution.GeneratedSequence],
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+  imports : LocalImportLimits,
+  issue : (LocalMaterializingIssue) -> E,
+  join_output_ceiling? : (Int, Int64)? = None,
+  output_limits? : LocalExportLimits? = None,
+  join_output_ceilings? : Array[(Int, Int64)] = [],
+  expansion_output_ceilings? : Array[(Int, Int64)] = [],
+  session_output_ceilings? : Array[(Int, Int64)] = [],
+  interval_search_ceilings? : Array[(Int, Int64)] = [],
+  asof_search_ceilings? : Array[(Int, Int64)] = [],
+  sequence_match_ceilings? : Array[(Int, Int64, Int64)] = [],
+  aggregate_output_ceilings? : Array[@connector.AggregateOutputCeiling] = [],
+  analytic_envelopes? : Array[@connector.AnalyticEnvelope] = [],
+  family_providers? : Array[ManagedProvider] = [],
+  provider_capacity? : @connector.FixedComputeCapacity? = None,
+  startup? : (@execution.ExecutionCapacity, Bool)? = None,
+) -> Result[
+  @connector.PreparedExecution[LocalMaterializingAttempt, E],
+  LocalMaterializingIssue,
+] {
   guard @connector.fixed_compute_choice_payload(choice, prepared)
     is Some(sequence) else {
     return Err(Candidate(NotSelected))
@@ -177,8 +224,17 @@ pub fn[E] prepare_local_materializing_execution(
     is Some(provider) else {
     return Err(Candidate(ComputeUnsupported))
   }
-  guard managed_provider_capacity(provider, sequence) is Some(base) &&
-    local_import_retention_capacity(imports) is Some(per_input) else {
+  let base = match startup {
+    Some((value, _)) => Some(value)
+    None => managed_provider_capacity(provider, sequence)
+  }
+  guard base is Some(base) &&
+    (if startup is Some(_) {
+      local_materializing_import_start_capacity(imports)
+    } else {
+      local_import_retention_capacity(imports)
+    })
+    is Some(per_input) else {
     return Err(Capacity)
   }
   let request = @connector.fixed_compute_candidate_request(
@@ -187,7 +243,12 @@ pub fn[E] prepare_local_materializing_execution(
   let inputs = @connector.fixed_compute_request_inputs(request)
   let mut retention = base.retained_bytes
   if output_limits is Some(limits) {
-    guard local_export_retention_capacity(limits) is Some(extra) &&
+    guard (if startup is Some(_) {
+        local_materializing_export_start_capacity(limits)
+      } else {
+        local_export_retention_capacity(limits)
+      })
+      is Some(extra) &&
       extra <= 9223372036854775807L - retention else {
       return Err(Capacity)
     }
@@ -235,6 +296,19 @@ pub fn[E] prepare_local_materializing_execution(
   let request_capacity = provider_capacity.unwrap_or(
     @connector.fixed_compute_request_capacity(request),
   )
+  let execution_bytes = if startup is Some(_) {
+    guard @execution.checked_preparation_add_product(
+        retention,
+        base.execution_bytes,
+        1L,
+      )
+      is Some(bytes) else {
+      return Err(Capacity)
+    }
+    bytes
+  } else {
+    base.execution_bytes
+  }
   @connector.bind_prepared_materializing_execution(
     choice,
     prepared,
@@ -242,7 +316,7 @@ pub fn[E] prepare_local_materializing_execution(
       transfer_bytes: transfer,
       retained_bytes: retention,
       scratch_bytes: base.execution_bytes,
-      execution_bytes: base.execution_bytes,
+      execution_bytes,
     },
     ceilings,
     fn(_) {
@@ -416,6 +490,38 @@ pub fn finish_local_materializing_input(
     Err(error) => {
       close_local_materializing_attempt(attempt)
       Err(Import(error))
+    }
+  }
+}
+
+///|
+/// Bind only before provider start on the original materializing attempt.
+/// Its caller grows the SAME task before each output buffer commit.
+pub fn bind_local_materializing_workspace_growth(
+  attempt : LocalMaterializingAttempt,
+  live_ceiling : Int64,
+  reserve : (Int64, Int64) -> Result[Unit, @execution.WorkspaceGrowthIssue],
+  meter_retention : Bool,
+) -> Result[Unit, LocalMaterializingIssue] {
+  if attempt.closed ||
+    attempt.started ||
+    attempt.provider_execution is Some(_) ||
+    attempt.output is Some(_) {
+    return Err(State)
+  }
+  match
+    @execution.bind_generated_workspace_growth(
+      attempt.sequence,
+      attempt.execution,
+      live_ceiling,
+      extra => reserve(extra, 0L),
+      meter_retained_outputs=true,
+      reserve_retained=if meter_retention { Some(reserve) } else { None },
+    ) {
+    Err(issue) => Err(Candidate(Execution(issue)))
+    Ok(sequence) => {
+      attempt.sequence = sequence
+      Ok(())
     }
   }
 }

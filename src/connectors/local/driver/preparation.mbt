@@ -237,7 +237,33 @@ fn local_dispatch_preparation_policies(
   let task_capacity : Array[@strategy.PhysicalEnvelope?] = Array::makei(
     original.capacities.length(),
     slot => {
-      guard original.capacities[slot] is Some(base) &&
+      let startup = @local.local_module_materializing_start_capacity(
+        original.implementation,
+        slot,
+      )
+      let import_bytes = if startup is Some(_) {
+        match inputs {
+          None => Some(0L)
+          Some((limits, _)) =>
+            @local.local_materializing_import_start_capacity(limits)
+        }
+      } else {
+        import_bytes
+      }
+      let export_bytes = if startup is Some(_) {
+        match output {
+          None => Some(0L)
+          Some((limits, _)) =>
+            @local.local_materializing_export_start_capacity(limits)
+        }
+      } else {
+        export_bytes
+      }
+      let base = match startup {
+        Some((value, _)) => Some(value)
+        None => original.capacities[slot]
+      }
+      guard base is Some(base) &&
         import_bytes is Some(imported) &&
         export_bytes is Some(exported) else {
         return None
