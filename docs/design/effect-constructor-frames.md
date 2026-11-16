@@ -308,3 +308,20 @@ their original responsibility, and attempts, transfer, spent coordinates and
 historical peaks remain unchanged. JavaScript selects no price or shrink amount.
 The added policy, original method, phase word and argument/name carriers are
 funded by the existing installation, Plan and operation-control inventories.
+
+## Immutable frontier claim checks
+
+A progress query compares each opaque Ledger basis with its actual scope,
+locator, dispatch key, request and intent. For the closed entry format, a pure
+Core check can establish the same facts without constructing and hashing
+temporary Prepared and Dispatching entries. It first proves that both complete
+entry encodings fit the selected byte, node and depth policy. Unsupported or
+tighter policies retain the original codec and its refusal precedence. This
+check issues no entry, permission, cached frontier or physical completion.
+
+Every query still reads the current durable heads, admits their exact bytes,
+checks active physical owners, and asks the existing Core frontier and recovery
+guards to decide progress. Sending still requires its current checks and grant.
+The direct scalar check stays inside the same existing construction envelope;
+the fixed copied-control reference and sequential status word are prepaid. No
+entry forests or cross-query cache survive this comparison.
