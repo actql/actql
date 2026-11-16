@@ -35703,6 +35703,7 @@
             "maxEntries",
             "maxEntryBytes",
             "maxResponseBytes",
+            "maxReadResponseBytes",
             "maxStoredBytes",
             "maxBatchRows",
             "maxNodes",
@@ -36750,6 +36751,151 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/installed-effect-ledger-open.mjs",
+      "sha256": "5349bac0dab6b7644da7db2863dfeff8db60e6ee7e09654b8f65b17990e2d22d",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
+      "referenceQualification": "The existing original Request/control-frame Ledger opening boundary; references are not new authority, funding or runtime acceptance.",
+      "exports": [
+        "openInstalledEffectLedger"
+      ],
+      "operations": [
+        {
+          "name": "openInstalledEffectLedger",
+          "parameters": [
+            "moon",
+            "root",
+            "identity",
+            "maxEntryBytes",
+            "maxReadResponseBytes",
+            "controlConstruction",
+            "open"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./effect-ledger.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "openInstalledEffectLedger"
+          ],
+          "exports": [
+            "openInstalledEffectLedger"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/effect-refusal-settlement.md",
+                "anchor": "# Settling Effect evidence after a resume refusal"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-ledger-open.mjs",
+                "anchor": "export function openInstalledEffectLedger(moon, root, identity, maxEntryBytes,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-effect-ledger-open.mjs",
+                "anchor": "export function openInstalledEffectLedger(moon, root, identity, maxEntryBytes,"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-ledger-open.test.mjs",
+                "anchor": "test('installed Ledger open retains the original request, receiver bounds and control frame'"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/effect-refusal-settlement.md",
+                "anchor": "# Settling Effect evidence after a resume refusal"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-ledger-open.test.mjs",
+                "anchor": "test('installed Ledger open retains the original request, receiver bounds and control frame'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-ledger-open.test.mjs",
+                "anchor": "test('installed Ledger open retains the original request, receiver bounds and control frame'"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/effect-refusal-settlement.md",
+                "anchor": "# Settling Effect evidence after a resume refusal"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-ledger-open.test.mjs",
+                "anchor": "test('installed Ledger open retains the original request, receiver bounds and control frame'"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect-ledger-open.test.mjs",
+                "anchor": "test('installed Ledger open keeps legacy construction and its primary failure'"
+              },
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "anchor": "test('invalid response receiver budgets are rejected before opening a connection'"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous forwarding to the same existing Ledger/control frame introduces no task or independent stop or cleanup owner."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "anchor": "test('invalid response receiver budgets are rejected before opening a connection'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('shared control readers retain each plugin bound and restore full capacity for mixed receivers'"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/effect-refusal-settlement.md",
+                "anchor": "# Settling Effect evidence after a resume refusal"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('shared control readers retain each plugin bound and restore full capacity for mixed receivers'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-ledger-open.test.mjs",
+                "anchor": "test('installed Ledger open retains the original request, receiver bounds and control frame'"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-ledger-open.test.mjs",
+                "anchor": "test('installed Ledger open keeps legacy construction and its primary failure'"
+              },
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "anchor": "test('invalid response receiver budgets are rejected before opening a connection'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('shared control readers retain each plugin bound and restore full capacity for mixed receivers'"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/host-node/effect-physical-dispatch.mjs",
@@ -90695,6 +90841,7 @@
             "maxEntries",
             "maxEntryBytes",
             "maxResponseBytes",
+            "maxReadResponseBytes",
             "maxStoredBytes"
           ],
           "async": false

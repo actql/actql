@@ -19545,6 +19545,7 @@
         "effectRecoveryPreviewBounds",
         "installedEffectRecipeForControlEntryLimit",
         "installedEffectSavedControlEntryLimit",
+        "installedEffectSavedControlResponseLimit",
         "prepareInstalledEffectCaptureChild",
         "prepareInstalledEffectControlConstruction",
         "prepareInstalledEffectCredentialChild",
@@ -19636,7 +19637,8 @@
           "name": "installedEffectRecipeForControlEntryLimit",
           "parameters": [
             "recipe",
-            "maxEntryBytes"
+            "maxEntryBytes",
+            "maxResponseBytes"
           ],
           "async": false
         },
@@ -19649,6 +19651,20 @@
         },
         {
           "name": "installedEffectSavedControlEntryLimit/installedEffectSavedControlEntryLimit",
+          "parameters": [
+            "recipe"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectSavedControlResponseLimit",
+          "parameters": [
+            "recipes"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectSavedControlResponseLimit/installedEffectSavedControlResponseLimit",
           "parameters": [
             "recipe"
           ],
@@ -20642,6 +20658,8 @@
             "installedEffectRecipeForControlEntryLimit",
             "installedEffectSavedControlEntryLimit",
             "installedEffectSavedControlEntryLimit/installedEffectSavedControlEntryLimit",
+            "installedEffectSavedControlResponseLimit",
+            "installedEffectSavedControlResponseLimit/installedEffectSavedControlResponseLimit",
             "prepareInstalledPhysicalWritePlanRecipe",
             "prepareInstalledPhysicalWritePlanRecipe/extent/extent",
             "prepareInstalledPhysicalWritePlanRecipe/prepareInstalledPhysicalWritePlanRecipe",
@@ -20653,6 +20671,7 @@
           "exports": [
             "installedEffectRecipeForControlEntryLimit",
             "installedEffectSavedControlEntryLimit",
+            "installedEffectSavedControlResponseLimit",
             "prepareInstalledPhysicalWritePlanRecipe",
             "effectRecoveryPreviewBounds"
           ],
@@ -20721,8 +20740,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-effect-plan.mjs",
-                "anchor": "const codec = own(fields.savedControlCodec.value, ['maxEntryBytes', 'fallbackCapacity']);"
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('shared control readers retain each plugin bound and restore full capacity for mixed receivers'"
               },
               {
                 "path": "adapters/host-node/installed-physical-write-plan.test.mjs",
@@ -20776,6 +20795,10 @@
               {
                 "path": "adapters/connectors/salesforce/test/effect-target-read-inventory.test.mjs",
                 "anchor": "Salesforce recovered Preview allocation uses its own wire"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('shared control readers retain each plugin bound and restore full capacity for mixed receivers'"
               }
             ]
           }
