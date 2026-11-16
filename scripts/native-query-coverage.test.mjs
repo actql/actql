@@ -24,9 +24,13 @@ const select = (owner = 'http-client', input = sources, env = environment(owner)
   manifest = nativeQueryCoverage) => selectNativeQueryTests(owner, input, env, manifest);
 const query = 'src/query_integration/';
 const jsOnlyNames = ['strategy_cleanup_current_js_wbtest.mbt', 'row_stream_current_js_wbtest.mbt'];
+const caseTargetExclusions = input => Object.entries(input)
+  .filter(([path]) => path.startsWith(query) || path.startsWith('src/native_values_integration/'))
+  .reduce((sum, [, source]) => sum + [...source.matchAll(
+    /^#cfg\(\s*target\s*=\s*"(?:js|wasm|wasm-gc)"\s*\)\s*\r?\ntest "/gmu)].length, 0);
 const currentNativeCases = () => declaredQueryCases(repositorySources) -
   declaredQueryCases(Object.fromEntries(jsOnlyNames.map(name =>
-    [query + name, repositorySources[query + name]])));
+    [query + name, repositorySources[query + name]]))) - caseTargetExclusions(repositorySources);
 const summary = count => ({status: 0, signal: null,
   stdout: `Total tests: ${count}, passed: ${count}, failed: 0.\n`, stderr: ''});
 
@@ -383,6 +387,39 @@ test('required Native ownership cannot be hidden through package or file targets
   }
 });
 
+test('Native fallback counts compiler-selected test attributes without omitting unknown readers', () => {
+  const path = query + 'targeted_wbtest.mbt';
+  for (const backend of ['js', 'wasm', 'wasm-gc', 'native']) {
+    const source = `#cfg(target="${backend}")\ntest "new reader" { @env.get_env_var("ACTQL_TEST_NEW") }`;
+    const selected = select('http-client', {...sources, [path]: source});
+    assert.equal(selected.mode, 'full-fallback');
+    assert.equal(selected.expected, declaredQueryCases(sources) + (backend === 'native' ? 1 : 0));
+    assert.deepEqual(selected.paths, ['src/query_integration', 'src/native_values_integration']);
+    assertNativeQueryExecution(selected, summary(selected.expected));
+    assert.throws(() => assertNativeQueryExecution(selected, summary(selected.expected - 1)), /coverage mismatch/u);
+  }
+  // A helper's attribute and literal/comment lookalikes cannot hide its test.
+  for (const prefix of ['#cfg(target="js")\nfn helper() {}\n',
+    '// #cfg(target="js")\n', 'let description = "#cfg(target=\\"js\\")"\n']) {
+    const selected = select('http-client', {...sources,
+      [path]: prefix + 'test "new reader" { @env.get_env_var("ACTQL_TEST_NEW") }'});
+    assert.equal(selected.expected, declaredQueryCases(sources) + 1);
+  }
+});
+
+test('required Native cases cannot be cfg-excluded and unknown attributes fail closed', () => {
+  const path = query + 'duckdb_native_runtime_wbtest.mbt';
+  assert.throws(() => select('http-client', {...sources,
+    [path]: sources[path].replace('test "', '#cfg(target="js")\ntest "')}),
+  /Required native query case target is excluded/u);
+  for (const attribute of ['#cfg(not(target="native"))', '#cfg(target="unknown")',
+    '#cfg(target="js")\n#cfg(target="native")', '#cfg(target="js")\n#unknown()']) {
+    assert.throws(() => select('http-client', {...sources,
+      [query + 'targeted_wbtest.mbt']: attribute + '\ntest "new reader" { @env.get_env_var("ACTQL_TEST_NEW") }'}),
+    /Unsupported or ambiguous Native query test target attribute/u);
+  }
+});
+
 test('unfamiliar and ambiguous target metadata never lower the required count', () => {
   for (const list of ['[]', '["not js"]', '["native", "native"]']) {
     assert.throws(() => select('http-client', {...sources,
@@ -415,7 +452,8 @@ test('the actual fallback retains Native Values and excludes exactly both declar
   const forced = {...repositorySources, [query + 'force_full_stub.c']: 'getenv("ACTQL_TEST_FORCE_FULL");'};
   const selection = select('http-client', forced);
   assert.equal(selection.mode, 'full-fallback');
-  assert.equal(selection.expected, declarations - Object.values(jsOnly).reduce((sum, count) => sum + count, 0));
+  assert.equal(selection.expected, declarations - Object.values(jsOnly).reduce((sum, count) => sum + count, 0) -
+    caseTargetExclusions(repositorySources));
   assert.ok(selection.paths.includes('src/native_values_integration'));
   // Re-admitting either file adds all its cases; it cannot hide another file.
   for (const [file, expected] of Object.entries(jsOnly)) {

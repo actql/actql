@@ -18,6 +18,39 @@ const environmentReader = /\b(?:get_env_var|(?:secure_)?getenv|environ)\b|ACTQL_
 const queryReader = /get_env_var|native_duckdb_test_library|native_resident_test_prerequisites|native_duckdb_test_variable|actql_native_sqlite_test_unclosed_coordinator/u;
 const testNames = source => [...source.matchAll(/^test "([^"]+)"/gmu)]
   .map(match => match[1]);
+// Reuse the reviewed Moon source lexer only when target attributes occur.
+// Strings/comments cannot attach an attribute, and unknown conditions refuse
+// counting rather than silently removing a required Native case.
+function nativeTestNames(source) {
+  if (!/#\s*cfg\b/u.test(source)) return testNames(source);
+  const input = tokens(source, true), names = [];
+  const backends = new Set(['js', 'wasm', 'wasm-gc', 'native']);
+  let depth = 0, target;
+  for (let index = 0; index < input.length; index++) {
+    const item = input[index];
+    if (depth === 0 && item.kind === 'symbol' && item.value === '#') {
+      const clause = input.slice(index, index + 7);
+      if (target !== undefined || clause[1]?.value !== 'cfg' ||
+          clause[2]?.value !== '(' || clause[3]?.value !== 'target' ||
+          clause[4]?.value !== '=' || clause[5]?.kind !== 'string' ||
+          !backends.has(clause[5].value) || clause[6]?.value !== ')') {
+        throw new Error('Unsupported or ambiguous Native query test target attribute');
+      }
+      target = clause[5].value; index += 6; continue;
+    }
+    if (depth === 0 && item.kind === 'word') {
+      if (item.value === 'test' && input[index + 1]?.kind === 'string' &&
+          (target === undefined || target === 'native')) names.push(input[index + 1].value);
+      // A cfg on a helper belongs to that declaration, never its next test.
+      target = undefined;
+    }
+    if (item.kind === 'symbol' && item.value === '{') depth++;
+    else if (item.kind === 'symbol' && item.value === '}') depth--;
+    if (depth < 0) throw new Error('Unbalanced Native query test source');
+  }
+  if (depth !== 0) throw new Error('Unbalanced Native query test source');
+  return names;
+}
 const variables = source => [...new Set([
   ...source.matchAll(/"(ACTQL_[A-Z_0-9]+)"/gu),
   ...source.matchAll(/get_env_var\s*\(\s*"([^"]+)"/gu),
@@ -279,14 +312,17 @@ export function selectNativeQueryTests(owner, sources, env,
       reasons.push(`changed native query cases or environment: ${file}`);
     }
     if (!native(file)) throw new Error(`Required native query target is excluded: ${file}`);
+    const eligible = nativeTestNames(source);
+    if (entry.tests.some(name => !eligible.includes(name)))
+      throw new Error(`Required native query case target is excluded: ${file}`);
     if (entry.owners.includes(owner)) {
       selected.push(file);
-      expected += found.length;
+      expected += eligible.length;
     }
   }
   for (const [path, source] of Object.entries(dependencies)) {
     if (inHarnessPackage(path)) {
-      if (native(path)) total += testNames(source).length;
+      if (native(path)) total += nativeTestNames(source).length;
       const file = path;
       // An existing file registration owns its declared fixture variables,
       // never a newly bound libc reader or the exec-only Journal WB producer.
