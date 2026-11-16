@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import {generateKeyPairSync} from 'node:crypto';
-import {mkdtemp, rm} from 'node:fs/promises';
+import {mkdtemp, readdir, rm} from 'node:fs/promises';
 import {tmpdir, userInfo} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {connectEmbeddedLocal} from './embedded-local.mjs';
 import {canonicalJson} from './local-account-config.mjs';
-import {assertRetainedRelationSnapshots} from './fixtures/retained-relation-snapshot.mjs';
+import {createRetainedRowStoreProbe} from './fixtures/retained-row-store.mjs';
 
 // Independent JSON Programs also provide controls for Frontend REPLACE and
 // LENGTH spelling acceptance. No prepared handle or internal state is forged.
@@ -43,16 +43,18 @@ test('public retained REPLACE and LENGTH publish independent Unicode and NULL ro
     let client;
     let dispatches = 0;
     let advances = 0;
-    let computed;
+    const store = createRetainedRowStoreProbe(directory);
     t.after(async () => {
       await client?.close();
+      if (client !== undefined) await store.assertReclaimed();
       await rm(directory, {recursive: true, force: true});
     });
     client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory, retainedRelationOutput: true,
         authorization: authority((name, detail) => {
-          if (name === 'computed') computed = detail;
-        }, name => {
+          store.observe(name, detail);
+        }, async (name, detail) => {
+          await store.faultInjection(name, detail);
           if (name === 'dispatch_reserved') dispatches++;
           if (name === 'local_compute_advanced') advances++;
         })}});
@@ -70,6 +72,7 @@ test('public retained REPLACE and LENGTH publish independent Unicode and NULL ro
     ]) {
       const source = JSON.stringify(program(id, rows, search, replacement));
       const priorAdvances = advances;
+      const priorStore = store.checkpoint();
       const options = {format: 'json', submissionRef: client.newSubmission({nonce: 'text-' + id})};
       const run = await client.startSource(source, options);
       const state = await run.wait({signal: AbortSignal.timeout(45_000)});
@@ -79,12 +82,14 @@ test('public retained REPLACE and LENGTH publish independent Unicode and NULL ro
         [{name: 'id', contract: {type: 'number', nullable: false}},
           {name: 'replaced', contract: {type: 'string', nullable: true}},
           {name: 'length', contract: {type: 'number', nullable: true}}]);
-      assertRetainedRelationSnapshots(computed.relationSnapshots, expected);
+      store.assertCompleted(expected, {since: priorStore});
       assert.ok(advances > priorAdvances, 'ordinary Program used bounded Local dispatch');
       const before = dispatches;
+      const stored = store.checkpoint();
       assert.deepEqual((await client.startSource(source, options)).ref, run.ref);
       assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(), expected);
       assert.equal(dispatches, before);
+      store.assertUnchanged(stored);
     }
   });
 
@@ -97,19 +102,26 @@ test('public Text call cancellation is delivered after charged progress',
     let advances = 0;
     let dispatches = 0;
     let completions = 0;
+    const store = createRetainedRowStoreProbe(directory);
     t.after(async () => {
       resume.resolve();
       await client?.close();
+      // This case confirms physical stop below and awaits its original Host
+      // close above. It cancels before any Store generation is acquired; an
+      // absent namespace is checked separately and is not a retirement ACK.
+      await assert.rejects(readdir(join(directory, 'carrier-snapshots')), {code: 'ENOENT'});
       await rm(directory, {recursive: true, force: true});
     });
     client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory, retainedRelationOutput: true,
-        authorization: authority(name => {
+        authorization: authority((name, detail) => {
+          store.observe(name, detail);
           if (name === 'computed') {
             completions++;
             reached.reject(new Error('Text call completed before progress barrier'));
           }
         }, async (name, detail) => {
+          await store.faultInjection(name, detail);
           if (name === 'dispatch_reserved') dispatches++;
           if (name !== 'local_compute_advanced' || BigInt(detail.work) === 0n) return;
           if (++advances === 10) {
@@ -133,11 +145,14 @@ test('public Text call cancellation is delivered after charged progress',
     const stopped = await run.wait({signal: AbortSignal.timeout(15_000)});
     assert.equal(stopped.status, 'cancelled', JSON.stringify(stopped));
     assert.equal(stopped.control.physical_stop, 'confirmed');
+    assert.deepEqual(store.checkpoint(), {appends: 0, seals: 0});
     assert.equal(stopped.result_availability.answer.state, 'unavailable');
     await assert.rejects(run.result('answer').all());
     assert.equal(completions, 0);
     assert.equal(advances, before);
     assert.equal(dispatches, 1);
+    const stoppedStore = store.checkpoint();
     assert.deepEqual((await client.startSource(source, options)).ref, run.ref);
     assert.equal(dispatches, 1);
+    store.assertUnchanged(stoppedStore);
   });
