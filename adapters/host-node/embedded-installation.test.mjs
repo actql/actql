@@ -200,9 +200,10 @@ test('public source-free Program uses installed retained Relation output',
 
 test('public Events Bridge publishes managed producer and two consumer Results', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-public-retained-events-'));
-  let outputRepresentations;
+  let outputRepresentations, primaryFailure;
   const authorization = retainedAuthorization('retained-events',
     ['published', 'consumed_a', 'consumed_b'], (name, detail) => {
+    if (name === 'dispatch_failed') primaryFailure = {code: detail.code, issueTag: detail.issueTag, nestedIssueTag: detail.nestedIssueTag};
     if (name === 'computed') outputRepresentations = detail.outputRepresentations;
   });
   const client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
@@ -246,7 +247,7 @@ test('public Events Bridge publishes managed producer and two consumer Results',
   const execution = await client.startSource(JSON.stringify(program), {format: 'json',
     submissionRef: client.newSubmission({nonce: 'public-retained-events'})});
   const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
-  assert.equal(state.status, 'succeeded', JSON.stringify(state));
+  assert.equal(state.status, 'succeeded', JSON.stringify({state, primaryFailure}));
   assert.deepEqual(await execution.result('published').all(), [
     {event_id: 1, occurred_at: 5, payload: 'first', watermark_ms: 10,
       late: true, watermark_decision: 'mark'},
