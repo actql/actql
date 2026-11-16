@@ -63,8 +63,20 @@ export function checkRetirementConnection(read) {
   const route = compact(source.slice(end));
   assert(route.includes('ifcancelled.val&&state.pending{terminal.val=truereturnOk(managed_provider_stopped_poll(0L,0L))}'),
     'Missing scoped pending cancellation');
-  assert(route.includes('ifstate.pending{matchreclaim_relation_chain_child(state){Ok(true)=>()Ok(false)=>returnOk(managed_provider_waiting(0L,0L))Err(issue)=>{terminal.val=truereturnOk(managed_provider_failed(issue,0L,0L))}}'),
+  // Review the pending-custody region rather than requiring the fallback match
+  // to be its first statement. Owned finite cleanup can now make one funded
+  // continuation and return; it must not admit a successor in that poll.
+  const pendingStart = route.indexOf('ifstate.pending{');
+  const inputStart = route.indexOf('letnext_inputs=', pendingStart);
+  assert(pendingStart >= 0 && inputStart > pendingStart, 'Missing pending retirement boundary');
+  const pending = route.slice(pendingStart, inputStart);
+  assert(pending.includes('matchreclaim_relation_chain_child(state){Ok(true)=>()Ok(false)=>returnOk(managed_provider_waiting(0L,0L))Err(issue)=>{terminal.val=truereturnOk(managed_provider_failed(issue,0L,0L))}}'),
     'Missing pending reclamation custody before successor admission');
+  assert(pending.includes('letfinite=ifstate.reclaiming{state.current.map(managed_provider_cleanup_continuation).unwrap_or(-1L)}else{-1L}') &&
+    pending.includes('used.val+=1Lletchild=state.current.unwrap()matchreclaim_relation_chain_child(state)') &&
+    pending.includes('ifmanaged_provider_cleanup_continuation(child)<=finite{') &&
+    pending.includes('returnOk(managed_provider_continue(0L,1L))'),
+  'Missing funded finite retirement continuation and successor boundary');
   assert(route.includes('letreclaimed_prefix=relation_chain_reclaimed_prefix(sequence,execution,measurement,family)'),
     'Missing reviewed retirement prefix selection');
   // Keep the all-eligible model scope. The adopted prefix selector is local to

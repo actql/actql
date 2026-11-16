@@ -86,8 +86,8 @@ test('Node CPU mode is explicit and keeps default and Native job selection uncha
   assert.equal(job.steps.find(step => step.uses?.startsWith('actions/setup-node@')).with['node-version'], '22.22.0');
   assert(!job.steps.some(step => step.uses?.includes('performance-matrix')));
   assert.doesNotMatch(job.steps.map(step => step.run ?? '').join('\n'), /moon build|npm (?:pack|run)|operation-performance\.mjs/u);
-  const ci = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
-  assert(ci.jobs.lint.steps.some(step => step.run?.includes('scripts/node-wait-cpu-diagnostic.test.mjs')));
+  // CI registration, including npm script expansion and non-optional execution,
+  // is checked by ordinary-operation-packages.test.mjs's shared inventory.
 });
 
 test('Node mode needs no placeholder Native input while selected Native validators still require original fields', () => {
