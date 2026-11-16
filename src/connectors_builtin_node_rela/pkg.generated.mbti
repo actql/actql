@@ -2878,6 +2878,8 @@ pub fn strategy_effect_issue_prepared_ledger_entry(@effect_application.EffectLed
 
 pub fn strategy_effect_ledger_basis(@logical_request_scope.LogicalRequestScope, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, String, String, String, String, String, String, String, String) -> @effect_application.EffectLedgerBasis raise NodeHostFailure
 
+pub fn strategy_effect_ledger_claim_facts_status(@effect_application.EffectLedgerBasis, @logical_request_scope.LogicalRequestScope, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, String, String, String, Int, Int, Int) -> Int
+
 pub fn strategy_effect_ledger_entry_admits_dispatch(@effect_application.EffectLedgerEntry, @logical_request_scope.LogicalRequestScope, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, String) -> Bool
 
 pub fn strategy_effect_ledger_entry_cid(@effect_application.EffectLedgerEntry) -> String

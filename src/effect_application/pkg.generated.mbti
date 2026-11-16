@@ -69,6 +69,8 @@ pub fn effect_dispatch_key_preview_cid(EffectDispatchKey) -> String
 
 pub fn effect_dispatch_key_scope_cid(EffectDispatchKey) -> String
 
+pub fn effect_ledger_claim_facts_status(EffectLedgerBasis, @logical_request_scope.LogicalRequestScope, LogicalItemLocator, EffectDispatchKey, String, String, String, Int, Int, Int) -> Int
+
 pub fn effect_ledger_entry_admits_dispatch(EffectLedgerEntry, @logical_request_scope.LogicalRequestScope, LogicalItemLocator, EffectDispatchKey, String) -> Bool
 
 pub fn effect_ledger_entry_cid(EffectLedgerEntry) -> String
