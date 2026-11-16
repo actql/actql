@@ -1,7 +1,7 @@
 // Installed transport for the original checked Content component. Compute,
 // byte laws, identity and publication remain in their existing common owners.
 import {checked} from '../host-common/runtime-result.mjs';
-import {contentCid} from './local-account-config.mjs';
+import {contentCid, originalLocalContentStoragePolicy} from './local-account-config.mjs';
 import {localOutputLimits, localContractLimits,
   serializationTaskPublicationPlan} from './local-values-plan.mjs';
 import {runGeneratedContentPrefix, identifyGeneratedContentInput,
@@ -11,6 +11,7 @@ import {serializationPublicationExecution} from './serialization-result-publicat
 import {publishCompletedEffectFreeRun} from '../host-common/completed-run-publication.mjs';
 import {installEffectContentFamily} from './installed-content-family.mjs';
 import {prepareRecoveredCommandContent} from './recovered-command-content.mjs';
+import {prepareRecoveredSourceCommandContent} from './recovered-source-command-content.mjs';
 import {installRunKeyedContentCapture} from './installed-keyed-content-capture.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 
@@ -619,9 +620,85 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       namespaceId, authorityScopeCid, storeAuthorityCid, installedBinding,
       referenceLimits, completionLimits,
       outputLimits: localOutputLimits, faultInjection, restored, retainCleanup});
-  run.prepareRecoveredCommandContent = options => prepareRecoveredCommandContent({
-    ...options, moon, publications, control, ownerPrincipal, storeAuthorityCid,
-    authorityScopeCid, now, authorize, installedBinding, referenceLimits});
+  run.prepareRecoveredCommandContent = options => {
+    const referenceWire = options.referenceWire, definition = options.definition;
+    const generated = compiled => prepareRecoveredCommandContent({
+      ...options, referenceWire, definition, compiled, moon, publications, control, ownerPrincipal, storeAuthorityCid,
+      authorityScopeCid, now, authorize, installedBinding, referenceLimits});
+    // Explicit compiled callers retain the existing generated-only entrance.
+    // A restored mixed Program selects each actual Command Reference family;
+    // absence of a serialization component is never a fallback signal.
+    if (options.compiled !== undefined) return generated(options.compiled);
+    const managed = options.managedContext, prepared = options.prepared;
+    const request = managed?.request, construct = managed?.controlConstruction;
+    const assertCurrent = options.assertCurrent, signal = options.signal;
+    if (managed?.runtime !== moon || managed.prepared !== prepared || managed.value === undefined ||
+        request === undefined || typeof construct !== 'function' ||
+        typeof assertCurrent !== 'function') {
+      throw new TypeError('Foreign recovered Effect Source original');
+    }
+    const current = () => {
+      signal?.throwIfAborted();
+      const value = Reflect.apply(assertCurrent, options, []);
+      if (value !== undefined) {
+        if (value instanceof Promise) void value.catch(() => {});
+        throw new TypeError('InvalidRecoveredContentCurrentFence');
+      }
+      if (managed.closed || managed.runtime !== moon || managed.prepared !== prepared ||
+          managed.request !== request || managed.controlConstruction !== construct) {
+        throw new TypeError('Foreign recovered Effect Source original');
+      }
+    };
+    const sourceConstruction = (receiver, method, args, bindingWire = '', role = 'metadata') => {
+      current();
+      const quote = publications.recoveredSourceContentConstructionCapacity(
+        referenceWire, bindingWire, referenceLimits, role);
+      const result = Reflect.apply(construct, undefined, [receiver, method, args, quote]);
+      current();
+      return result;
+    };
+    const kind = sourceConstruction(publications, publications.recoveredContentIssuerKind,
+      [referenceWire, referenceLimits], '', 'classify');
+    if (kind === 'content_derivation') {
+      return generated(publications.adoptCheckedClientEffectSerializationRun(
+        options.allowed, definition));
+    }
+    if (kind !== 'connector_capture') throw new TypeError('InvalidRecoveredContentIssuer');
+    // The caller's SAME capture Read funds full wire/row admission. This native
+    // constructor additionally retains the returned Source carriers until its
+    // original control retires; it never spans a Store await.
+    return sourceConstruction(undefined, () => {
+      const sourceOriginal = publications.installedEffectKeyedOriginal(managed, prepared);
+      const facts = publications.effectKeyedOriginalSourceEvidenceFacts(
+        sourceOriginal, prepared, request);
+      const expiresAt = JSON.parse(definition.wire).valid_until;
+      // Core just validated this exact immutable full Reference. Borrow only
+      // its original capture authority; policy/classification come from the
+      // independent checked Source occurrence, not the saved envelope.
+      const reference = JSON.parse(referenceWire);
+      if (reference.metadata.content_store_id !== namespaceId ||
+          reference.metadata.issuer_evidence.content_store_cid !== storeAuthorityCid ||
+          reference.metadata.issuer_evidence.workspace_scope_cid !== authorityScopeCid ||
+          reference.metadata.expires_at !== expiresAt) {
+        throw new TypeError('RecoveredSourceContentBindingMismatch');
+      }
+      const policy = originalLocalContentStoragePolicy({storeAuthorityCid,
+        authorityScopeCid, runDefinitionCid: definition.identity, expiresAt});
+      const binding = {content_store_id: namespaceId, content_store_cid: storeAuthorityCid,
+        workspace_scope_cid: authorityScopeCid, storage_scope: 'workspace',
+        retention_class: 'local-content', expires_at: expiresAt,
+        availability_evidence_cid: policy.availabilityEvidenceCid,
+        effective_data_policy_cid: facts[3], data_classification: facts[4],
+        issuer_contract_cid: policy.issuerContractCid,
+        capture_authority_cid: reference.metadata.issuer_evidence.capture_authority_cid};
+      const child = prepareRecoveredSourceCommandContent({...options, referenceWire, definition, sourceOriginal, request,
+        binding, sourcePolicyCid: facts[3], sourceConstruction, assertCurrent: current, signal, moon, publications,
+        control: core.contentCaptureControl, ownerPrincipal, storeAuthorityCid,
+        authorityScopeCid, now, authorize, referenceLimits});
+      current();
+      return child;
+    }, []);
+  };
   // Resolve this before physical acquisition. The selected Source capacity is
   // opaque and requirement-bound in the common owner, never estimated from rows.
   run.prepareAcquiredLedger = ({preparedProgram, plan, sourceCapacity}) => {

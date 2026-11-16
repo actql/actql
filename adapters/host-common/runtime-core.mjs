@@ -3335,6 +3335,49 @@ function publicationControl(moon) {
       return checked(moon.clientProgramStoredRunCapturedContentCandidate(value,
         token(definition), acquisition, originalWire, bindingWire, ...limits));
     },
+    recoveredContentIssuerKind(wire, limits) {
+      if (typeof wire !== 'string' || !['maxBytes', 'maxNodes', 'maxDepth', 'maxTextUnits']
+        .every(key => Number.isInteger(limits?.[key]) && limits[key] > 0 && limits[key] <= 2147483647)) {
+        throw new TypeError('Invalid recovered Content reference limits');
+      }
+      return checked(moon.clientProgramRecoveredContentIssuerKind(wire,
+        limits.maxBytes, limits.maxNodes, limits.maxDepth, limits.maxTextUnits));
+    },
+    recoveredSourceContentConstructionCapacity(wire, bindingWire, limits, role = 'metadata') {
+      if (typeof wire !== 'string' || typeof bindingWire !== 'string' ||
+          typeof role !== 'string' ||
+          !['maxBytes', 'maxNodes', 'maxDepth', 'maxTextUnits'].every(key =>
+            Number.isInteger(limits?.[key]) && limits[key] > 0 && limits[key] <= 2147483647)) {
+        throw new TypeError('Invalid recovered Source Content construction limits');
+      }
+      const capacity = moon.clientProgramRecoveredSourceContentConstructionCapacity(
+        wire, bindingWire, limits.maxBytes, limits.maxNodes, limits.maxDepth, limits.maxTextUnits, role);
+      if (capacity === undefined) throw new TypeError('Recovered Source Content construction unavailable');
+      return capacity;
+    },
+    installedEffectKeyedOriginal(managedContext, prepared) {
+      if (managedContext?.runtime !== moon || managedContext.closed ||
+          managedContext.prepared !== prepared || managedContext.value === undefined ||
+          managedContext.request === undefined) {
+        throw new TypeError('Foreign recovered Effect Source original');
+      }
+      return checked(moon.clientProgramInstalledEffectKeyedOriginal(
+        managedContext.value, prepared, managedContext.request));
+    },
+    effectKeyedOriginalSourceEvidenceFacts(original, prepared, request) {
+      const facts = checked(moon.clientProgramEffectKeyedOriginalSourceEvidenceFacts(
+        original, prepared, request));
+      if (!Array.isArray(facts) || facts.length !== 6 ||
+          !facts.every(value => typeof value === 'string')) {
+        throw new TypeError('Invalid recovered Effect Source facts');
+      }
+      return facts;
+    },
+    checkedRecoveredSourceContentCandidate(original, prepared, request,
+      referenceWire, bindingWire, limits) {
+      return checked(moon.clientProgramRecoveredSourceContentCandidate(original,
+        prepared, request, referenceWire, bindingWire, ...limits));
+    },
     compiledRunResultTransformation(compiled, checkedProgram, result) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || !Number.isSafeInteger(result) || result < 0) {
@@ -5736,6 +5779,45 @@ function publicationControl(moon) {
         release() {
           if (retained === undefined) return;
           moon.clientProgramRecoveredEffectCommandContentRelease(view);
+          retained = undefined;
+        }});
+    },
+    recoverSourceEffectCommandContent({sourceOriginal, prepared, request, definition,
+      captured, preview, invocation, source, storeAuthorityCid, memberIndex, row,
+      inputName, candidate, issued, limits}) {
+      issuanceLimits(limits, 'Recovered Source Effect Content');
+      const admittedPreview = computationPreviewTokens.get(preview);
+      if (admittedPreview === undefined || typeof inputName !== 'string' ||
+          ![memberIndex, row, limits.maxFields, limits.maxWork]
+            .every(value => Number.isSafeInteger(value) && value >= 0)) {
+        throw new TypeError('Invalid recovered Source Effect Content input');
+      }
+      const original = {sourceOriginal, prepared, request, definition: token(definition),
+        captured: token(captured), preview: admittedPreview, memberIndex, row, inputName};
+      const view = checked(moon.clientProgramRecoverSourceEffectCommandContent(sourceOriginal,
+        prepared, request, original.definition, original.captured, admittedPreview,
+        token(invocation), effectSourceToken(source), storeAuthorityCid, memberIndex,
+        row, inputName, candidate, issued, limits.maxFields, limits.maxWork,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      let retained = original;
+      const current = () => retained !== undefined &&
+        moon.clientProgramRecoveredSourceEffectCommandContentMatches(view,
+          original.sourceOriginal, original.prepared, original.request, original.definition,
+          original.captured, original.preview, original.memberIndex, original.row,
+          original.inputName) && retained === original;
+      return Object.freeze({binding: view, current,
+        matchesIssued(value) {
+          return retained !== undefined &&
+            moon.clientProgramRecoveredSourceEffectCommandContentMatchesIssued(view, value) &&
+            retained === original;
+        },
+        wire() {
+          if (!current()) throw new TypeError('Recovered Source Effect Content unavailable');
+          return checked(moon.clientProgramRecoveredSourceEffectCommandContentWire(view));
+        },
+        release() {
+          if (retained === undefined) return;
+          moon.clientProgramRecoveredSourceEffectCommandContentRelease(view);
           retained = undefined;
         }});
     },
@@ -8432,6 +8514,13 @@ export function contentCaptureControl(moon, publications) {
     recoveryCandidateForRun(compiled, definition, acquisition, originalWire, binding, limits) {
       const value = publications.checkedClientStoredRunCapturedContentCandidate(
         compiled, definition, acquisition, originalWire, JSON.stringify(binding), args(limits));
+      candidates.add(value);
+      return value;
+    },
+    recoveryCandidateForEffectOriginal(original, prepared, request, originalWire, bindingWire, limits) {
+      if (typeof bindingWire !== 'string') throw new TypeError('Invalid recovered Source Content binding wire');
+      const value = publications.checkedRecoveredSourceContentCandidate(original,
+        prepared, request, originalWire, bindingWire, args(limits));
       candidates.add(value);
       return value;
     },
