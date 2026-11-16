@@ -2232,7 +2232,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           const grant = controlConstruction === undefined ? site.issueEffectGrant(grantFacts)
             : grantConstructor !== undefined && grantConstructor.receiver === site &&
                 grantConstructor.method === site.issueEffectGrant
-              ? controlConstruction(site, site.issueEffectGrant, [grantFacts], grantConstructor.capacity)
+              ? controlConstruction(site, grantConstructor.method, [grantFacts], grantConstructor.capacity)
               : (controlConstruction.grant ?? controlConstruction)(site, site.issueEffectGrant, [grantFacts]);
           const captured = await captureClaimedEffectResponse({ledger,
             claim: ownedClaim, requestCid: entry.requestCid,
