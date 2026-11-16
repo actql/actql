@@ -492,12 +492,45 @@ test('Source-only keyed capture uses the same original lookup without Model or p
   assert.strictEqual(value.lookup, f.original);
   assert.strictEqual(value.sourceOriginal, f.sourceOriginal);
   assert.strictEqual(value.evidence, f.evidence);
+  assert.equal(Object.hasOwn(value, 'contentOwner'), false, 'No frame has no owner alias');
   assert.equal(f.counts().advances, 0);
   assert.equal(f.counts().acquired, 1);
   assert(!f.events.includes('prefix-start'));
   assert.equal(await f.duty().cleanup(), true);
   assert(f.events.indexOf('lookup-cleanup') < f.events.indexOf('source-stop'));
   assert.deepEqual(f.events.slice(-2), ['source-stop', 'source-cleanup']);
+});
+
+test('Source-only keyed capture forwards the same retained Content owner to its consumer', async () => {
+  const f = fixture({sourceOnly: true, generic: true});
+  const binding = {}, bytes = Buffer.from('original'), sourceBinding = {};
+  let live = true, consumed = 0, cleanups = 0;
+  // Explicit producer ports: this frame represents no Common admission or
+  // physical holding. Actual original/Store consumption is covered separately.
+  const frame = Object.freeze({sourceBinding, recoveryInventory: () => ({}),
+    consumeContent(actual, accept) {
+      assert.strictEqual(actual, binding);
+      assert(live, 'retirement cannot be replaced by the exported owner alias');
+      consumed++; return accept(bytes);
+    }});
+  f.adapter.requiresRunContentCapture = true;
+  f.adapter.keyedRecoveryBinding = () => sourceBinding;
+  f.options.contentRun = {captureKeyed(options) {
+    assert.strictEqual(options.preparedEffect, f.options.acquired.prepared);
+    assert.strictEqual(options.plan, f.options.sourcePreparation);
+    options.retainExecution({async cleanup() {live = false; cleanups++; return true;},
+      cleanupPending: () => false});
+    return frame;
+  }};
+  const result = await prepareAcquiredEffectKeyedCapture(f.options);
+  assert.strictEqual(result.contentOwner, frame);
+  assert.strictEqual(result.lookup, f.original);
+  assert(Object.isFrozen(result));
+  await result.contentOwner.consumeContent(binding, actual => assert.strictEqual(actual, bytes));
+  assert.equal(consumed, 1);
+  assert.equal(await f.duty().cleanup(), true);
+  assert.equal(cleanups, 1);
+  assert.throws(() => result.contentOwner.consumeContent(binding, () => assert.fail('Retired Content')));
 });
 
 test('Source-only current loss retains its original capture cleanup without opening a Source', async () => {

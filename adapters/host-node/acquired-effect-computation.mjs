@@ -923,11 +923,13 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       throw new Error('InstalledContentGenerationEvidenceUnavailable');
     }
     current();
-    return Object.freeze({execution, checkedHost, publicationPlan,
-      // The original family owns both the issued Reference and its Store
-      // bytes through approval. Do not reconstruct a consumer from saved CIDs.
-      ...(contentFamily === undefined ? {} : {contentOwner: contentFamily}),
-      cleanupOwner: custody});
+    const result = {execution, checkedHost, publicationPlan, cleanupOwner: custody};
+    // The serialization family keeps priority. A Source-only keyed frame owns
+    // its original Reference/Store bytes even when there is no such family.
+    // Both are borrowed from their retained cleanup owner, never rebuilt CIDs.
+    const contentOwner = contentFamily ?? keyedFamily?.contentOwner;
+    if (contentOwner !== undefined) result.contentOwner = contentOwner;
+    return Object.freeze(result);
   } finally {
     settled = true;
   }

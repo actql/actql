@@ -250,7 +250,11 @@ pub fn client_captured_content_workspace_capacity(
   }
   let wires = max_bytes.to_int64() * 8L
   let trees = 256L * 64L
-  let control_slots = 32L * 8L
+  // Two returned-object reference slots forward the SAME keyed frame through
+  // the prefix and completed-computation projections. They coexist with the
+  // frame until its original cleanup; no wrapper, capability or bytes copy.
+  let owner_handoff = 2L * 8L
+  let control_slots = 32L * 8L + owner_handoff
   // One full bounded constructor frame coexists with every retained Ref.
   // Installed measured inventories supply actual canonical UTF-16 extents;
   // unseen policy maxima are not allocated once per completed reference.
@@ -268,7 +272,7 @@ pub fn client_captured_content_workspace_capacity(
   Some(
     (
       wires + trees + control_slots + inventory,
-      wires + trees + 4096L + inventory,
+      wires + trees + 4096L + owner_handoff + inventory,
     ),
   )
 }

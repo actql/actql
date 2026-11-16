@@ -173,10 +173,14 @@ async function prepareOriginalEffectKeyedInput({moon, acquired, managedRun,
   const original = await lookup.borrowSerializationInput();
   current();
   const evidence = acquired.control.keyedLookupPublicationEvidence(observation.observation);
-  return Object.freeze({lookup: original, observation: observation.observation, evidence,
+  const result = {lookup: original, observation: observation.observation, evidence,
     ...(sourceOriginal === undefined ? {} : {sourceOriginal}),
     ...(keyedContent === undefined ? {} : {capturedInput: Object.freeze({
-      recovery: keyedContent.frame.recoveryInventory(), binding: keyedContent.frame.sourceBinding})})});
+      recovery: keyedContent.frame.recoveryInventory(), binding: keyedContent.frame.sourceBinding})})};
+  // Borrow the operational frame already retained by this same cleanup owner.
+  // Recovery metadata cannot reconstruct its original Store/Reference custody.
+  if (keyedContent !== undefined) result.contentOwner = keyedContent.frame;
+  return Object.freeze(result);
 }
 
 // Same lookup/Source/Journal originals, not a second acquisition owner. The
