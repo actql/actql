@@ -1939,20 +1939,33 @@ pub fn[E] prepare_local_module_materializing_compute(
 }
 
 ///|
-/// Only this module's original default constructor can fund variable output
-/// before its buffer commits. Its importer and file writer use the same Task
-/// reservation before decoding or emitting each actual bounded prefix. Unknown and injected providers keep the full
-/// constructor, including its original completion accounting.
+/// Local transport funds each actual prefix independently of the provider.
+/// Only the original default constructor receives the optional before-commit
+/// output recipe; all injected/unknown providers keep their entire full quote.
 pub fn local_module_materializing_start_capacity(
   installed : LocalComputeModule,
   slot : Int,
-) -> (@execution.ExecutionCapacity, Bool)? {
+) -> (@execution.ExecutionCapacity, Bool?)? {
   guard installed.sequences.get(slot) is Some(sequence) &&
-    local_module_metered_output_start_capacity(installed, slot, sequence)
-    is Some(startup) &&
     local_module_capacity(installed, slot) is Some(full) else {
     return None
   }
+  let quoted = local_module_metered_output_start_capacity(
+    installed, slot, sequence,
+  )
+  let startup = match quoted {
+    Some(value) if value.retained_bytes <= full.retained_bytes &&
+      value.execution_bytes <= full.execution_bytes &&
+      (
+        value.retained_bytes < full.retained_bytes ||
+        value.execution_bytes < full.execution_bytes
+      ) => Some(value)
+    _ => None
+  }
+  // The importer and file writer are this module's own constructors even
+  // when computation is an injected family. Keep that provider's ENTIRE
+  // original quote and do not attach a provider output-growth capability.
+  let base = startup.unwrap_or(full)
   // Standing growth: the copied GeneratedSequence (22 borrowed references),
   // WorkspaceGrowth and its option/counter, reserve closures, typed failure
   // Ref and same-task completion closure. The transport link adds seven
@@ -1961,35 +1974,29 @@ pub fn local_module_materializing_start_capacity(
   // carriers at the refusal/current fence. Per-port/export state is quoted
   // separately before those original transfer closures are constructed.
   guard @execution.preparation_representation_cost({
-      record_headers: 42L,
+      record_headers: 43L,
       reference_slots: 84L,
-      scalar_words: 48L,
+      scalar_words: 49L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })
     is Some(controls) &&
     @execution.checked_preparation_add_product(
-      startup.retained_bytes,
+      base.retained_bytes,
       controls,
       1L,
     )
     is Some(retained) &&
     @execution.checked_preparation_add_product(
-      startup.execution_bytes,
+      base.execution_bytes,
       controls,
       1L,
     )
-    is Some(execution) &&
-    startup.retained_bytes <= full.retained_bytes &&
-    startup.execution_bytes <= full.execution_bytes &&
-    (
-      startup.retained_bytes < full.retained_bytes ||
-      startup.execution_bytes < full.execution_bytes
-    ) else {
+    is Some(execution) else {
     return None
   }
   @execution.execution_capacity(retained, execution).map(capacity => {
-    (capacity, startup.retained_bytes < full.retained_bytes)
+    (capacity, startup.map(value => value.retained_bytes < full.retained_bytes))
   })
 }
 

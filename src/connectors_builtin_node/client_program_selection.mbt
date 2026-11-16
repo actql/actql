@@ -168,7 +168,13 @@ fn construct_installed_client_family(
         capacity,
         bounded_constructor=true,
       )
-    Vectors => @local_veca_provider.provider(records, 100000L, capacity)
+    Vectors =>
+      @local_veca_provider.provider(
+        records,
+        100000L,
+        capacity,
+        bounded_constructor=true,
+      )
   }
 }
 

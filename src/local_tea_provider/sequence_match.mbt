@@ -137,6 +137,27 @@ pub fn sequence_match_provider(
   capacity : @execution.ExecutionCapacity,
   bounded_constructor? : Bool = false,
 ) -> @local.ManagedProvider {
+  // One private reference-removal counter and the continuation Some/closure
+  // survive until this same execution is reclaimed: 2H/2R/1W = 56 bytes.
+  let capacity = @execution.preparation_representation_cost({
+    record_headers: 2L,
+    reference_slots: 2L,
+    scalar_words: 1L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).bind(controls => {
+    @execution.checked_preparation_add_product(
+      capacity.retained_bytes,
+      controls,
+      1L,
+    ).bind(r => {
+      @execution.checked_preparation_add_product(
+        capacity.execution_bytes,
+        controls,
+        1L,
+      ).bind(e => @execution.execution_capacity(r, e))
+    })
+  })
   let bounded_relation_capacity = if bounded_constructor {
     // A scalar capture only; the selected module supplies its SAME actual
     // execution/measurement profile when this pure recipe is invoked.
@@ -153,7 +174,7 @@ pub fn sequence_match_provider(
     sequence_match_provider_accepts,
     sequence => {
       if sequence_match_provider_accepts(sequence) {
-        Some(capacity)
+        capacity
       } else {
         None
       }
@@ -210,11 +231,14 @@ pub fn sequence_match_provider(
         reclaimed: false,
       }
       Ok(
-        @local.managed_provider_execution(
+        @local.managed_provider_execution_with_cleanup_continuation(
           quantum => sequence_match_provider_poll(state, quantum),
           fn() { @bounded.request_cancel(state.control) },
           fn() { state.terminal },
           fn() { cleanup_sequence_match_provider(state) },
+          () => {
+            @execution.bounded_sequence_match_cleanup_continuation(state.active)
+          },
         ),
       )
     },

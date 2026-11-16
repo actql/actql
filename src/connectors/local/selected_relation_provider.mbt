@@ -842,6 +842,49 @@ fn bounded_relation_chain_execution_state(
           return Ok(managed_provider_stopped_poll(0L, 0L))
         }
         if state.pending {
+          // Only an exact stopped child with a finite private-memory cursor
+          // may continue cleanup internally. External/unknown custody keeps
+          // its explicit pause; this never fabricates a cleanup acknowledgement.
+          let finite = if state.reclaiming {
+            state.current
+            .map(managed_provider_cleanup_continuation)
+            .unwrap_or(-1L)
+          } else {
+            -1L
+          }
+          if finite >= 0L {
+            if used.val >= execution.max_work.to_int64() {
+              terminal.val = true
+              return Ok(
+                managed_provider_failed(
+                  @connector.Execution(@execution.InputLimit),
+                  0L,
+                  0L,
+                ),
+              )
+            }
+            used.val += 1L
+            let child = state.current.unwrap()
+            match reclaim_relation_chain_child(state) {
+              Err(issue) => {
+                terminal.val = true
+                return Ok(managed_provider_failed(issue, 0L, 1L))
+              }
+              Ok(false) =>
+                if managed_provider_cleanup_continuation(child) <= finite {
+                  terminal.val = true
+                  return Ok(
+                    managed_provider_failed(
+                      @connector.Execution(@execution.InputLimit),
+                      0L,
+                      1L,
+                    ),
+                  )
+                }
+              Ok(true) => ()
+            }
+            return Ok(managed_provider_continue(0L, 1L))
+          }
           match reclaim_relation_chain_child(state) {
             Ok(true) => ()
             Ok(false) => return Ok(managed_provider_waiting(0L, 0L))

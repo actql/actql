@@ -73,6 +73,20 @@ test "bounded family recipe borrows actual module profile and preserves legacy h
   assert_eq(cached.retained_bytes, selected.retained_bytes)
   assert_eq(cached.execution_bytes, selected.execution_bytes)
   assert_eq(calls.val, 2)
+  // The generic Local importer/exporter owns its own growth independently
+  // of this injected compute provider. Preserve the complete selected family
+  // quote and expose NO permission to meter the provider's constructor.
+  let (transport, provider_growth) = local_module_materializing_start_capacity(
+    installed, 0,
+  ).unwrap()
+  assert_eq(provider_growth, None)
+  assert_eq(transport.retained_bytes, cached.retained_bytes + 1752L)
+  assert_eq(transport.execution_bytes, cached.execution_bytes + 1752L)
+  assert_eq(calls.val, 2)
+  assert_true(
+    local_module_metered_output_start_capacity(installed, 0, sequence) is None,
+  )
+  assert_true(local_module_materializing_start_capacity(installed, 1) is None)
   assert_true(local_module_capacity_for_sequence(installed, 0, foreign) is None)
   assert_eq(calls.val, 2)
   let legacy = managed_provider_with_inputs(

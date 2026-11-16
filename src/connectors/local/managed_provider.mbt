@@ -557,3 +557,18 @@ pub fn managed_provider_retained_completion(
   (execution.stopped)() &&
   execution.retained_completion.map(check => check()).unwrap_or(false)
 }
+
+///|
+/// A fixed constructor may expose its stopped private reclamation cursor on
+/// the SAME execution. This is neither a cleanup ACK nor a new work owner.
+pub fn managed_provider_execution_with_cleanup_continuation(
+  advance : (Int) -> Result[ManagedProviderPoll, @connector.FixedComputeIssue],
+  cancel : () -> Bool,
+  stopped : () -> Bool,
+  cleanup : () -> Result[Bool, @connector.FixedComputeIssue],
+  continuation : () -> Int64,
+) -> ManagedProviderExecution {
+  let owner = managed_provider_execution(advance, cancel, stopped, cleanup)
+  owner.cleanup_continuation = Some(continuation)
+  owner
+}

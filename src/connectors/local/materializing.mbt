@@ -207,7 +207,7 @@ fn[E] prepare_local_materializing_execution_with_startup(
   analytic_envelopes? : Array[@connector.AnalyticEnvelope] = [],
   family_providers? : Array[ManagedProvider] = [],
   provider_capacity? : @connector.FixedComputeCapacity? = None,
-  startup? : (@execution.ExecutionCapacity, Bool)? = None,
+  startup? : (@execution.ExecutionCapacity, Bool?)? = None,
 ) -> Result[
   @connector.PreparedExecution[LocalMaterializingAttempt, E],
   LocalMaterializingIssue,

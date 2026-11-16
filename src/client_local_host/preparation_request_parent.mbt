@@ -292,13 +292,14 @@ let request_preparation_fixed_control_envelope : @execution.PreparationRepresent
   // Plan borrow: proxy1H/3R, its fixed pair Array/backing2H/2R/2W,
   // three growing names/methods/result backings3R each, and the retained
   // object's key/value2R. Fund that3H/16R/2W here before the JS inventory.
-  // Nine installed family provider recipe fields (9R). Interval and Sequence
+  // Nine installed family provider recipe fields (9R). Interval, Sequence
+  // and the direct flat Ranking constructor
   // each retain Some(quote) (1H/1R) plus a closure capturing workspace_slots
   // (1H/1W). Actual execution/measurement are call arguments, not captures.
   // These fixed controls are backed before the installed factory is entered.
-  record_headers: 253L,
-  reference_slots: 469L,
-  scalar_words: 521L,
+  record_headers: 255L,
+  reference_slots: 470L,
+  scalar_words: 522L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }

@@ -298,6 +298,8 @@ pub fn bounded_number_group_borrows_input(@lowering_relation.PreparedKernel) -> 
 
 pub fn bounded_row_window_cleanup_pending(BoundedRowWindowExecution) -> Bool
 
+pub fn bounded_sequence_match_cleanup_continuation(BoundedSequenceMatchExecution) -> Int64
+
 pub fn bounded_sequence_match_cleanup_pending(BoundedSequenceMatchExecution) -> Bool
 
 pub fn bounded_set_cleanup_pending(BoundedSetExecution) -> Bool
@@ -819,6 +821,8 @@ pub fn fixed_supplied_relation_read(SuppliedRelationRead) -> FixedRelationRead
 pub fn generated_asof_search_ceiling(GeneratedSequence, Int) -> Int64?
 
 pub fn generated_bounded_interval_capacity(GeneratedSequence, SequenceExecutionLimits, FixedInputGuardMeasureLimits, Int) -> ExecutionCapacity?
+
+pub fn generated_bounded_ranking_capacity(GeneratedSequence, SequenceExecutionLimits, FixedInputGuardMeasureLimits, Int) -> ExecutionCapacity?
 
 pub fn generated_bounded_sequence_capacity(GeneratedSequence, SequenceExecutionLimits, FixedInputGuardMeasureLimits) -> ExecutionCapacity?
 

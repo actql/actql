@@ -1351,7 +1351,9 @@ pub fn provider(
   limits : @storage.Limits,
   storage_bytes : Int64,
   capacity : @execution.ExecutionCapacity,
+  bounded_constructor? : Bool = false,
 ) -> @local.ManagedProvider {
+  let max_workspace_slots = limits.max_workspace_slots
   @local.managed_provider_with_inputs(
     accepts,
     fn(sequence) {
@@ -1534,6 +1536,15 @@ pub fn provider(
           fn() { cleanup_execution(state) },
         ),
       )
+    },
+    bounded_relation_capacity=if bounded_constructor {
+      Some((sequence, execution, measurement) => {
+        @execution.generated_bounded_ranking_capacity(
+          sequence, execution, measurement, max_workspace_slots,
+        )
+      })
+    } else {
+      None
     },
   )
 }

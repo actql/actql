@@ -278,14 +278,20 @@ pub fn[C, E] start_local_dispatch(
           run, ticket,
         ).map_err(issue => Execution(Physical(issue)))
         let installed_growth = retained.bind(_ => {
-          @local.bind_local_materializing_workspace_growth(
-            attempt,
-            @resources.ledger_admission_limits(
-              @strategy.captured_dag_ledger(run),
-            ).execution_bytes,
-            reserve,
-            meter_retention,
-          ).map_err(issue => Preparation(Materializing(issue)))
+          match meter_retention {
+            // This proof belongs only to the original default constructor.
+            // Transport reservation never grants output growth to a family.
+            Some(meter_retention) =>
+              @local.bind_local_materializing_workspace_growth(
+                attempt,
+                @resources.ledger_admission_limits(
+                  @strategy.captured_dag_ledger(run),
+                ).execution_bytes,
+                reserve,
+                meter_retention,
+              ).map_err(issue => Preparation(Materializing(issue)))
+            None => Ok(())
+          }
         })
         if installed_growth is Err(issue) {
           @local.close_local_materializing_attempt(attempt)

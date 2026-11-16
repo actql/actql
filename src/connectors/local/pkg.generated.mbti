@@ -134,7 +134,7 @@ pub fn local_module_managed_provider(LocalComputeModule, Int, @execution_relatio
 
 pub fn local_module_managed_sequence_supported(LocalComputeModule, Int) -> Bool
 
-pub fn local_module_materializing_start_capacity(LocalComputeModule, Int) -> (@execution_relation.ExecutionCapacity, Bool)?
+pub fn local_module_materializing_start_capacity(LocalComputeModule, Int) -> (@execution_relation.ExecutionCapacity, Bool?)?
 
 pub fn local_module_max_work(LocalComputeModule) -> Int
 
@@ -179,6 +179,8 @@ pub fn managed_provider_continue(Int64, Int64) -> ManagedProviderPoll
 pub fn managed_provider_cumulative_work(ManagedProviderExecution) -> Result[Int64, ManagedProviderWorkIssue]
 
 pub fn managed_provider_execution((Int) -> Result[ManagedProviderPoll, @connector_sdk.FixedComputeIssue], () -> Bool, () -> Bool, () -> Result[Bool, @connector_sdk.FixedComputeIssue]) -> ManagedProviderExecution
+
+pub fn managed_provider_execution_with_cleanup_continuation((Int) -> Result[ManagedProviderPoll, @connector_sdk.FixedComputeIssue], () -> Bool, () -> Bool, () -> Result[Bool, @connector_sdk.FixedComputeIssue], () -> Int64) -> ManagedProviderExecution
 
 pub fn managed_provider_execution_with_retained_completion((Int) -> Result[ManagedProviderPoll, @connector_sdk.FixedComputeIssue], () -> Bool, () -> Bool, () -> Result[Bool, @connector_sdk.FixedComputeIssue], () -> Bool) -> ManagedProviderExecution
 
