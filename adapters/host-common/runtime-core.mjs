@@ -6602,6 +6602,56 @@ function publicationControl(moon) {
         [...entries.values()].map(value => value.admitted), [...roots.values()],
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
     },
+    beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts) {
+      if (typeof issue !== 'boolean' || !Array.isArray(args) ||
+          args.length !== (issue ? 4 : 7)) {
+        throw new TypeError('Invalid Effectful publication construction');
+      }
+      const chain = args[0], receipts = args[2];
+      const limits = captureContractLimits(args[args.length - 1], 'Effectful publication construction');
+      // This bound belongs to the original completed Read's prepaid metadata.
+      // Inspect lengths before allocating flattened token or receipt arrays.
+      const inputLimit = checked(moon.clientProgramInstalledEffectCapturePublicationInputLimit(owner));
+      if (!Number.isSafeInteger(inputLimit) || inputLimit < 5 ||
+          chain === null || typeof chain !== 'object' ||
+          receipts === null || typeof receipts !== 'object' ||
+          typeof receipts.setWire !== 'string' || !Array.isArray(receipts.memberWires) ||
+          issue && !Array.isArray(additionalContracts) ||
+          !issue && typeof receipts.finalWire !== 'string') {
+        throw new TypeError('Invalid Effectful publication construction');
+      }
+      let contractCount = 5;
+      for (const name of ['definitions', 'artifacts', 'derivations', 'orderings', 'retentions', 'durableBindings']) {
+        const values = chain[name];
+        if (!Array.isArray(values) || values.length > inputLimit - contractCount) {
+          throw new RangeError('EffectfulPublicationMetadataLimit');
+        }
+        contractCount += values.length;
+      }
+      const extraCount = issue ? additionalContracts.length : 3;
+      if (extraCount > inputLimit - contractCount ||
+          receipts.memberWires.length > inputLimit - contractCount - extraCount - (issue ? 1 : 2)) {
+        throw new RangeError('EffectfulPublicationMetadataLimit');
+      }
+      const contracts = [token(chain.capturedRun), token(chain.computationReceipt),
+        token(chain.runDefinition), token(chain.invocation), token(chain.manifest)];
+      for (const name of ['definitions', 'artifacts', 'derivations', 'orderings', 'retentions', 'durableBindings']) {
+        for (const contract of chain[name]) contracts.push(token(contract));
+      }
+      if (issue) {
+        for (const contract of additionalContracts) contracts.push(token(contract));
+      } else {
+        for (let index = 3; index < 6; index++) contracts.push(token(args[index]));
+      }
+      const wires = [receipts.setWire];
+      for (const wire of receipts.memberWires) {
+        if (typeof wire !== 'string') throw new TypeError('Invalid Effectful publication Receipt');
+        wires.push(wire);
+      }
+      if (!issue) wires.push(receipts.finalWire);
+      return checked(moon.clientProgramBeginInstalledEffectCapturePublication(owner, issue,
+        contracts, wires, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+    },
     issueEffectfulFinalRunReceipt(chain, preview, receipts, limits) {
       limits = captureContractLimits(limits, 'final Effectful Run Receipt');
       if (chain === null || typeof chain !== 'object' ||

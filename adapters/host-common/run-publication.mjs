@@ -19,14 +19,18 @@ export class RunPublicationError extends Error {
 function invokeEffectfulPublication(original) {
   return Reflect.apply(original.method, this, original.args);
 }
-export function constructEffectfulPublication(resources, captured, receiver, method, args) {
+export function constructEffectfulPublication(resources, captured, receiver, method, args, additionalContracts) {
   const full = resources?.constructCaptured;
   const publication = resources?.constructCapturedForPublication;
   if (typeof full !== 'function' ||
       typeof method !== 'function' || !Array.isArray(args)) {
     throw new TypeError('InvalidEffectfulPublicationConstruction');
   }
-  return Reflect.apply(typeof publication === 'function' ? publication : full, resources,
+  if (typeof publication === 'function') {
+    return Reflect.apply(publication, resources,
+      [captured, receiver, method, args, additionalContracts]);
+  }
+  return Reflect.apply(full, resources,
     [captured, receiver, invokeEffectfulPublication, {method, args}]);
 }
 
@@ -1025,7 +1029,7 @@ export async function publishEffectfulRun(options) {
   const issuedFinal = options.recoveryResources === undefined
     ? control.issueEffectfulFinalRunReceipt(chain, preview, issuedWires, limits)
     : constructEffectfulPublication(options.recoveryResources, chain.capturedRun,
-      control, control.issueEffectfulFinalRunReceipt, [chain, preview, issuedWires, limits]);
+      control, control.issueEffectfulFinalRunReceipt, [chain, preview, issuedWires, limits], sourceArtifacts);
   const receipts = Object.freeze({...issuedWires,
     finalWire: issuedFinal.wire});
   const setReceipt = control.admit(

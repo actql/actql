@@ -11,6 +11,9 @@ const pending = value => {
     ? Object.getOwnPropertyDescriptor(value, 'pending') : undefined;
   return property === undefined || !Object.hasOwn(property, 'value') || property.value !== false;
 };
+function invokePublication({method, args}) {
+  return Reflect.apply(method, this, args);
+}
 function captureFailure(state, error) {
   state.failure ??= error;
   // Capture the existing original carrier, including the one capture-read
@@ -105,6 +108,7 @@ function recoveryView(state) {
       state.assertCurrent = undefined;
       state.begin = undefined;
       state.beginValidation = undefined;
+      state.beginPublication = state.issueFinal = state.commitPublication = undefined;
       state.complete = undefined;
       state.context = undefined;
       const retired = state.retired;
@@ -184,12 +188,39 @@ function recoveryView(state) {
       } catch (error) {cause = error; throw error;}
       finally {view.finish(failed, cause);}
     },
-    constructCapturedForPublication(captured, receiver, method, argument) {
+    constructCapturedForPublication(captured, receiver, method, args, additionalContracts) {
       // Only synchronous publication construction uses the completed Read.
       // A live validation refusal is final; it never retries physical Read.
+      if (typeof method !== 'function' || !Array.isArray(args)) fail('EffectCaptureResourceUnavailable');
+      const issue = receiver === state.control && method === state.issueFinal && args.length === 4;
+      const commit = receiver === state.control && method === state.commitPublication && args.length === 7;
+      if (state.live && typeof state.beginPublication === 'function' && (issue || commit)) {
+        if (captured !== state.capturedRun || captured === undefined ||
+            state.busy || state.preparing || state.closing || state.closed ||
+            args[0]?.capturedRun !== captured) {
+          fail('EffectCaptureResourceUnavailable');
+        }
+        state.busy = true;
+        let failed = true, cause;
+        try {
+          // Only the original installing control's two closed constructors
+          // enter this class. The control bounds metadata before flattening
+          // and Core retains every escaped publication output on this Read.
+          Reflect.apply(state.beginPublication, state.control,
+            [state.value, issue, args, additionalContracts]);
+          if (state.closing || state.closed) fail('EffectCaptureResourceUnavailable');
+          const value = Reflect.apply(method, receiver, args);
+          if (captured !== state.capturedRun || state.closing || state.closed) {
+            fail('EffectCaptureResourceUnavailable');
+          }
+          failed = false;
+          return value;
+        } catch (error) {cause = error; throw error;}
+        finally {view.finish(failed, cause);}
+      }
       const construct = state.live && typeof state.beginValidation === 'function'
         ? view.constructCapturedValidation : view.constructCaptured;
-      return Reflect.apply(construct, view, [captured, receiver, method, argument]);
+      return Reflect.apply(construct, view, [captured, receiver, invokePublication, {method, args}]);
     },
     constructCapturedValidation(captured, receiver, method, argument) {
       if (captured !== state.capturedRun || captured === undefined ||
@@ -284,6 +315,17 @@ export function prepareEffectCaptureResources({moon, control, request, runDefini
         'clientProgramBeginInstalledEffectCaptureRecovery')?.value;
       state.beginValidation = Object.getOwnPropertyDescriptor(moon,
         'clientProgramBeginInstalledEffectCaptureValidation')?.value;
+      if (typeof Object.getOwnPropertyDescriptor(moon,
+        'clientProgramBeginInstalledEffectCapturePublication')?.value === 'function' &&
+          typeof Object.getOwnPropertyDescriptor(moon,
+            'clientProgramInstalledEffectCapturePublicationInputLimit')?.value === 'function') {
+        state.beginPublication = Object.getOwnPropertyDescriptor(control,
+          'beginEffectfulPublicationConstruction')?.value;
+        state.issueFinal = Object.getOwnPropertyDescriptor(control,
+          'issueEffectfulFinalRunReceipt')?.value;
+        state.commitPublication = Object.getOwnPropertyDescriptor(control,
+          'effectfulCommitValid')?.value;
+      }
       state.complete = Object.getOwnPropertyDescriptor(moon,
         'clientProgramCompleteInstalledEffectCaptureRecovery')?.value;
       if (typeof moon.clientProgramPrepareInstalledEffectCaptureRecovery !== 'function' ||

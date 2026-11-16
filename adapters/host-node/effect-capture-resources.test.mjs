@@ -9,7 +9,8 @@ import {prepareEffectCaptureResources} from './effect-capture-resources.mjs';
 const ok = value => ({$tag:1, _0:value});
 function fixture({live = false, beginFailure, reserveFailure, retireFailure,
   retirementCurrent = false, complete, begin, decodedFailure, admitFailure,
-  preparedAvailable = true, validation, validationFailure} = {}) {
+  preparedAvailable = true, validation, validationFailure,
+  publicationAvailable = false, publication, publicationFailure, publicationInvoke} = {}) {
   const events = [], request = {}, definition = {}, parent = {}, policy = {}, value = {};
   let view, admission, originalInput, retired = 0, failRetire = retireFailure, stopped = false;
   const stop = () => {
@@ -141,6 +142,26 @@ function fixture({live = false, beginFailure, reserveFailure, retireFailure,
       if (reserveFailure !== undefined) throw reserveFailure;
     },
   };
+  if (publicationAvailable) {
+    // Explicit Core/control ports: original selection and cleanup only,
+    // not the native quote or its funding.
+    moon.clientProgramBeginInstalledEffectCapturePublication = () => assert.fail('control owns the Core call');
+    moon.clientProgramInstalledEffectCapturePublicationInputLimit = () => assert.fail('control owns the Core limit');
+    control.beginEffectfulPublicationConstruction = function (actual, issue, args, additional) {
+      assert.strictEqual(this, control); assert.strictEqual(actual, value);
+      assert.equal(view.status().busy, true); events.push(issue ? 'publication-issue' : 'publication-commit');
+      publication?.({issue, args, additional});
+      if (publicationFailure !== undefined) throw publicationFailure;
+    };
+    control.issueEffectfulFinalRunReceipt = function (...args) {
+      assert.strictEqual(this, control); events.push('issue-final');
+      return publicationInvoke?.(args) ?? captured;
+    };
+    control.effectfulCommitValid = function (...args) {
+      assert.strictEqual(this, control); events.push('commit-valid');
+      return publicationInvoke?.(args) ?? true;
+    };
+  }
   return {events, request, definition, control, moon, captured,
     open(options = {}) {
       return prepareEffectCaptureResources({moon, control, request, runDefinition:definition,
@@ -550,6 +571,63 @@ test('final publication funding refusal keeps the original primary before valida
   assert.equal(await view.close(), true);
 });
 
+test('final publication selects original closed issue and commit methods on the same completed Read', async () => {
+  const observed = [];
+  const f = fixture({live:true, publicationAvailable:true, publication(value) {observed.push(value);}});
+  const issue = f.control.issueEffectfulFinalRunReceipt, commit = f.control.effectfulCommitValid;
+  const view = f.open();
+  view.begin(); view.reserve(123); view.reserveDecoded('{"original":true}');
+  assert.strictEqual(view.admitCapturedRun(f.captured.wire), f.captured);
+  view.finish(false);
+  const chain = {capturedRun:f.captured}, preview = {}, receipts = {}, limits = {}, artifacts = [{}];
+  const issueArgs = [chain, preview, receipts, limits];
+  const commitArgs = [chain, preview, receipts, {}, {}, {}, limits];
+  const before = f.events.length;
+  f.control.issueEffectfulFinalRunReceipt = () => assert.fail('Do not reread the issue property');
+  f.control.beginEffectfulPublicationConstruction = () => assert.fail('Do not reread the constructor property');
+  assert.strictEqual(constructEffectfulPublication(view, f.captured, f.control, issue, issueArgs, artifacts), f.captured);
+  assert.equal(constructEffectfulPublication(view, f.captured, f.control, commit, commitArgs), true);
+  assert.deepEqual(f.events.slice(before), ['publication-issue', 'issue-final', 'live-complete',
+    'publication-commit', 'commit-valid', 'live-complete']);
+  assert.strictEqual(observed[0].args, issueArgs); assert.strictEqual(observed[0].additional, artifacts);
+  assert.strictEqual(observed[1].args, commitArgs); assert.equal(observed[1].additional, undefined);
+  assert.equal(await view.close(), true);
+});
+test('publication class refusal preserves primary without generic retry or issuer entry', async () => {
+  const primary = new Error('selected publication budget refusal');
+  const f = fixture({live:true, publicationAvailable:true, publicationFailure:primary});
+  const view = f.open();
+  view.begin(); view.reserve(123); view.reserveDecoded('{"original":true}');
+  view.admitCapturedRun(f.captured.wire); view.finish(false);
+  const before = f.events.length;
+  assert.throws(() => constructEffectfulPublication(view, f.captured, f.control,
+    f.control.issueEffectfulFinalRunReceipt, [{capturedRun:f.captured}, {}, {}, {}], []), error => error === primary);
+  assert.deepEqual(f.events.slice(before), ['publication-issue']);
+  assert.equal(await view.close(), true);
+});
+test('publication class checks captured identity and reentry while unknown methods keep full validation', async () => {
+  let view, f, args;
+  f = fixture({live:true, publicationAvailable:true, publication() {
+    assert.throws(() => constructEffectfulPublication(view, f.captured, f.control,
+      f.control.issueEffectfulFinalRunReceipt, args, []), {code:'EffectCaptureResourceUnavailable'});
+  }});
+  view = f.open();
+  view.begin(); view.reserve(123); view.reserveDecoded('{"original":true}');
+  view.admitCapturedRun(f.captured.wire); view.finish(false);
+  args = [{capturedRun:f.captured}, {}, {}, {}];
+  assert.throws(() => constructEffectfulPublication(view, {...f.captured}, f.control,
+    f.control.issueEffectfulFinalRunReceipt, args, []), {code:'EffectCaptureResourceUnavailable'});
+  assert.throws(() => constructEffectfulPublication(view, f.captured, f.control,
+    f.control.issueEffectfulFinalRunReceipt, [{capturedRun:{...f.captured}}, {}, {}, {}], []),
+    {code:'EffectCaptureResourceUnavailable'});
+  constructEffectfulPublication(view, f.captured, f.control, f.control.issueEffectfulFinalRunReceipt, args, []);
+  const before = f.events.length, receiver = {};
+  assert.equal(constructEffectfulPublication(view, f.captured, receiver, function () {
+    assert.strictEqual(this, receiver); return 17;
+  }, args), 17);
+  assert.deepEqual(f.events.slice(before), ['live-validation', 'live-complete']);
+  assert.equal(await view.close(), true);
+});
 test('publication construction preserves full Read funding for nonlive and older Core resources', async () => {
   for (const live of [false, true]) {
     const f = fixture({live});

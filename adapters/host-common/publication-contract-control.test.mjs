@@ -67,6 +67,38 @@ const limits = Object.freeze({
   maxDepth: 64,
 });
 
+test('publication metadata is bounded by its original Read before token-array construction', () => {
+  const owner = {}, primary = new Error('original Read unavailable');
+  let refused = false, entered = 0, limitsRead = 0;
+  const observed = Object.freeze({...moon,
+    clientProgramInstalledEffectCapturePublicationInputLimit(actual) {
+      assert.strictEqual(actual, owner); limitsRead++;
+      if (refused) throw primary;
+      return {$tag:1, _0:16};
+    },
+    clientProgramBeginInstalledEffectCapturePublication() {entered++; assert.fail('No metadata before funding');},
+  });
+  const control = runtimeCore(observed).publicationControl;
+  const oversized = new Array(17);
+  Object.defineProperty(oversized, 0, {get() {assert.fail('Do not flatten an unfunded list');}});
+  const chain = {definitions:oversized, artifacts:[], derivations:[], orderings:[], retentions:[], durableBindings:[]};
+  const args = [chain, {}, {setWire:'{}', memberWires:[]}, limits];
+  assert.throws(() => control.beginEffectfulPublicationConstruction(owner, true, args, []),
+    {name:'RangeError', message:'EffectfulPublicationMetadataLimit'});
+  chain.definitions = [];
+  args[2].memberWires = oversized;
+  assert.throws(() => control.beginEffectfulPublicationConstruction(owner, true, args, []),
+    {name:'RangeError', message:'EffectfulPublicationMetadataLimit'});
+  args[2].memberWires = new Array(5);
+ abana const additional = new Array(7);
+  Object.defineProperty(additional, 0, {get() {assert.fail('The aggregate metadata must be funded');}});
+  assert.throws(() => control.beginEffectfulPublicationConstruction(owner, true, args, additional),
+    {name:'RangeError', message:'EffectfulPublicationMetadataLimit'});
+  refused = true;
+  assert.throws(() => control.beginEffectfulPublicationConstruction(owner, true, args, []), error => error === primary);
+  assert.equal(limitsRead, 4); assert.equal(entered, 0);
+});
+
 test('publication persistence consumes its same-owner immutable contracts without another admission', async t => {
   let admissions = 0;
   const observed = Object.freeze({...moon, strategyPublicationAdmit(...args) {
