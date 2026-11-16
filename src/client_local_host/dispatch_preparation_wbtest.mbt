@@ -349,16 +349,15 @@ test "pre-Run Local inventory counts both imports of one checked predecessor" {
   // both read the same predecessor. Full saturation is tested by the importer.
   let imported = @local.local_materializing_import_start_capacity(imports).unwrap()
   assert_true(imported > 0L)
-  assert_true(imported < @local.local_import_retention_capacity(imports).unwrap())
+  assert_true(
+    imported < @local.local_import_retention_capacity(imports).unwrap(),
+  )
   let before = @local_driver.local_dispatch_preparation_task_capacity(base, 1).unwrap()
   let selected = @local_driver.local_dispatch_preparation_task_capacity(
     original, 1,
   ).unwrap()
   assert_eq(selected.retained_bytes, before.retained_bytes + 2L * imported)
-  assert_eq(
-    selected.execution_bytes,
-    before.execution_bytes + 2L * imported,
-  )
+  assert_eq(selected.execution_bytes, before.execution_bytes + 2L * imported)
   assert_eq(selected.transfer_bytes, 2L * imports.wire.max_bytes.to_int64())
   assert_eq(
     @local_driver.local_dispatch_preparation_retained_bytes(original).unwrap(),

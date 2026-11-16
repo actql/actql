@@ -28,7 +28,9 @@ test "materializing unverified import keeps reservation until sliced cleanup" {
   // Common settlement can retire the ended construction overlap while the
   // same retained prefix and positive cleanup scratch stay funded. This is
   // not a physical cleanup ACK or permission to release imported DATA.
-  assert_true(pending.reserved_execution_bytes <= before.reserved_execution_bytes)
+  assert_true(
+    pending.reserved_execution_bytes <= before.reserved_execution_bytes,
+  )
   assert_eq(pending.reserved_retention_bytes, before.reserved_retention_bytes)
   assert_eq(pending.held_bytes, before.held_bytes)
   assert_true(pending.reserved_execution_bytes > 0L)
@@ -161,7 +163,9 @@ test "materializing close retains stopped provider through cleanup error and ret
   assert_false(@strategy.refresh_task_execution_cleanup(run, ticket).unwrap())
   let pending = @resources.ledger_usage(ledger)
   assert_true(pending.reserved_execution_bytes > 0L)
-  assert_true(pending.reserved_execution_bytes <= before.reserved_execution_bytes)
+  assert_true(
+    pending.reserved_execution_bytes <= before.reserved_execution_bytes,
+  )
   assert_eq(pending.reserved_retention_bytes, before.reserved_retention_bytes)
   assert_eq(pending.held_bytes, before.held_bytes)
   assert_false(
