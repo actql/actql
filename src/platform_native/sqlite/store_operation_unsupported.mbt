@@ -16,6 +16,33 @@ pub fn NativeStoreOperationOriginal::enter_store(
 }
 
 ///|
+pub fn NativeStoreOperationOriginal::has_publication_constructor(
+  _self : NativeStoreOperationOriginal,
+) -> Result[Bool, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn NativeStoreOperationOriginal::prepare_publication_scaffold(
+  _self : NativeStoreOperationOriginal,
+  index? : Bool = false,
+) -> Result[Unit, NativeSqliteIssue] {
+  ignore(index)
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn NativeStoreOperationOriginal::prepare_publication_construction(
+  _self : NativeStoreOperationOriginal,
+  _retained : Int64,
+  _execution : Int64,
+  _contiguous : Int64,
+  _retained_output : Bool,
+) -> Result[Unit, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn NativeStoreOperationOriginal::prepare_delivery_window(
   _self : NativeStoreOperationOriginal,
   _target : Int,
@@ -140,4 +167,13 @@ pub fn Database::bind_original_store_operation(
   _original : NativeStoreOperationOriginal,
 ) -> Result[Unit, NativeSqliteIssue] {
   Err(UnsupportedTarget)
+}
+
+///|
+pub fn publication_construction_block_bound(
+  _slots : Int,
+  _nodes : Int,
+  _bytes : Int,
+) -> Int64 {
+  -1L
 }

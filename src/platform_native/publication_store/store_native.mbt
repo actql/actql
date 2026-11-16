@@ -2700,13 +2700,11 @@ fn Store::commit_publication_in_scope(
     None =>
       match capture {
         Some(original) =>
-          @local.check_program_commit_validation(
+          self.check_original_commit_in_read(
             original, run_definition, invocation, definitions, artifacts, derivations,
             orderings, retentions, bindings, manifest, receipt, captured_run, request,
             attempt, index,
-          ).map_err(issue => {
-            NativePublicationStoreIssue::PublicationPreparation(issue)
-          })
+          )
         None =>
           publication_commit(
             @publication.validate_effect_free_publication_commit_with_result_evidence(

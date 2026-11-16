@@ -1138,3 +1138,31 @@ physical-frame phase may shrink its already flushed output window; the complete
 row phase retains any staged output window while backing its actual nodes.
 The cursor is cancelled before parse, including refusal retirement, and the
 original physical child duties still precede Request retirement.
+
+
+## Native publication metadata in the original Read
+
+A retained computation is not an allocation context for publication metadata.
+The Native Store's immutable operation coordinator selects its existing current
+Journal Read before constructing the public index or checking commit metadata.
+The business capture remains the original semantic evidence and is freshly
+checked; its parked publication reservation is not grown by this Read check.
+
+The index measurement and issuer share one closed fact selection and emitter.
+Its constructor packet includes the complete strict Source/Canonical codec,
+manual writer, sorted binding occurrences and the returned index tree/wire.
+The returned index remains additive on that same Read while later validators
+borrow it. The finite quote evaluator and Native callback/error carriers are
+funded before evaluating variable geometry; they do not price parser forests
+at a policy maximum. The two additional outer coordinator fields stay within
+the original bounded root-control allocations and add no allocation request.
+
+The Core synchronous Read check reports copied slots/arrays before its checked
+snapshot and metadata nodes from that same owned plan. Native translates these
+facts into actual ABI largest-block bounds and monotonically funds the same
+Read before constructor allocation. Every fence rechecks the actual Read after
+business-original callbacks. No validator escapes, no authorization result is
+cached, and semantic plans are cancelled before the Read returns. A funding or
+currentness refusal preserves the original prefix and precise Native primary;
+cleanup still requires the original physical and scope acknowledgements.
+Legacy coordinators without this immutable duty retain their original check.

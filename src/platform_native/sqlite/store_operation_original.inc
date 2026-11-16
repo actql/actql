@@ -7,6 +7,7 @@ struct actql_native_store_operation {
   actql_native_store_operation_route route;
   actql_native_store_delivery_construction delivery_construction;
   actql_native_store_delivery_preparation delivery_preparation;
+  actql_native_store_publication_construction publication_construction;
   pid_t process;
   pthread_t thread;
   void *bound_database;
@@ -93,6 +94,86 @@ MOONBIT_FFI_EXPORT void *actql_native_sqlite_prepare_store_operation_with_delive
       library, receiver, route, construction);
   value->delivery_preparation = preparation;
   return value;
+}
+/* Optional immutable constructor duty on the SAME coordinator. Old factories
+ * keep this slot null; it cannot be installed or replaced after activation. */
+MOONBIT_FFI_EXPORT void *actql_native_sqlite_prepare_store_operation_with_publication_construction(
+    void *library, void *receiver, actql_native_store_operation_route route,
+    actql_native_store_delivery_construction construction,
+    actql_native_store_delivery_preparation preparation,
+    actql_native_store_publication_construction publication) {
+  actql_native_store_operation *value =
+    actql_native_sqlite_prepare_store_operation_with_delivery_preparation(
+      library, receiver, route, construction, preparation);
+  value->publication_construction = publication;
+  return value;
+}
+/* DATA classification only, after the normal original/thread/flight fences.
+ * A stale/foreign original is never classified as a legacy constructor. */
+MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_publication_constructor(
+    actql_native_store_operation *value) {
+  if (!actql_store_operation_thread(value) || value->closed ||
+      !value->activated || value->failed || value->cleanup_only ||
+      !value->flight || value->sql || value->cleanup || value->calling ||
+      value->receiver == NULL || value->route == NULL) return -1;
+  return value->publication_construction == NULL ? 0 : 1;
+}
+MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_prepare_publication_construction(
+    actql_native_store_operation *value, int64_t retained, int64_t execution,
+    int64_t contiguous, int32_t retained_output) {
+  if (!actql_store_operation_thread(value) || value->closed ||
+      !value->activated || value->failed || value->cleanup_only ||
+      !value->flight || value->sql || value->cleanup ||
+      value->receiver == NULL || value->publication_construction == NULL ||
+      retained < 0 || execution < 0 || contiguous < 1 ||
+      (retained_output != 0 && retained_output != 1)) return -1;
+  if (value->calling) return actql_store_operation_failed(value, -2);
+  value->callback_failed = false;
+  value->callback_code = 0;
+  value->calling = true;
+  int32_t code = value->publication_construction(
+    value->receiver, value->library, retained, execution, contiguous, retained_output);
+  value->calling = false;
+  if (code != 0) return actql_store_operation_failed(value, code);
+  if (value->callback_failed) return value->callback_code;
+  return 0;
+}
+/* Fixed demand/callback/Ref/Result carriers before the first Core callback.
+ * Native maximum-block geometry is computed from the actual selected ABI,
+ * independently of the logical tariff. No variable input or policy enters. */
+MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_prepare_publication_scaffold(
+    actql_native_store_operation *value, int32_t index) {
+  if (index != 0 && index != 1) return -1;
+  /* Index numeric recipes: closed callsite SUM, H448/R128/W1024.
+   * No described parser/tree/byte inventory is constructed here. */
+  const int64_t evaluator = index ? 448 * 16 + 128 * 8 + 1024 * 8 : 0;
+  const int64_t controls = 32 * 16 + 48 * 8 + 64 * 8 + evaluator;
+  const int64_t field_bytes = sizeof(void *) > sizeof(int64_t)
+      ? sizeof(void *) : sizeof(int64_t);
+  const int64_t maximum_block = sizeof(struct moonbit_object) +
+      (144 + 6 + 4 + 1 + 2 + 10 + 4) * field_bytes;
+  return actql_native_sqlite_store_operation_prepare_publication_construction(
+    value, controls, controls, maximum_block, 0);
+}
+/* Largest individual allocation in the actual Native metadata ABI. Copied
+ * vectors grow below 2N; detached fields and bool-use vectors below 3N. The
+ * closed codec's map table is bounded by 8N pointer slots. A doubling UTF16
+ * writer has a largest buffer below 2B units. None of these is a quota. */
+MOONBIT_FFI_EXPORT int64_t actql_native_sqlite_publication_construction_block(
+    int32_t slots, int32_t nodes, int32_t bytes) {
+  if (slots < 0 || nodes < 0 || bytes < 0) return -1;
+  int64_t n = slots > nodes ? slots : nodes;
+  int64_t fields = 144 + 6 + 4 + 1 + 2 + 10 + 4;
+  int64_t field_bytes = sizeof(void *) > sizeof(int64_t)
+      ? sizeof(void *) : sizeof(int64_t);
+  int64_t largest = sizeof(struct moonbit_object) + fields * field_bytes;
+  int64_t array = sizeof(struct moonbit_valtype_array_header) +
+      (8 * n + 16) * field_bytes;
+  int64_t text = sizeof(struct moonbit_object) +
+      (2 * (int64_t)bytes + 75) * sizeof(uint16_t);
+  if (array > largest) largest = array;
+  if (text > largest) largest = text;
+  return largest;
 }
 MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_store_operation_prepare_delivery_workspace(
     actql_native_store_operation *value, int32_t row, int32_t frame,

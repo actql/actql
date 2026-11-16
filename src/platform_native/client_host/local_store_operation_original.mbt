@@ -53,6 +53,9 @@ priv struct NativeLocalStoreOperationReceiver {
   mut cleanup_issue : NativeLocalStoreOperationIssue?
   // Same Read retains every prepared delivery, including failed constructors.
   mut delivery_preparation_bytes : Int64
+  // One fixed scalar on the same outer coordinator. Index output remains
+  // additive while later validators borrow it; temporary checks take maxima.
+  mut publication_preparation_bytes : Int64
 }
 
 ///|
@@ -77,7 +80,17 @@ extern "C" fn prepare_store_operation_ffi(
   preparation : FuncRef[
     (NativeLocalStoreOperationReceiver, @sqlite.Library, Int, Int, Int, Int) -> Int,
   ],
-) -> @sqlite.NativeStoreOperationOriginal = "actql_native_sqlite_prepare_store_operation_with_delivery_preparation"
+  publication : FuncRef[
+    (
+      NativeLocalStoreOperationReceiver,
+      @sqlite.Library,
+      Int64,
+      Int64,
+      Int64,
+      Int,
+    ) -> Int,
+  ],
+) -> @sqlite.NativeStoreOperationOriginal = "actql_native_sqlite_prepare_store_operation_with_publication_construction"
 
 ///|
 extern "C" fn store_operation_control_clear_ffi() -> Int = "actql_bootstrap_control_scope_clear"
@@ -146,6 +159,7 @@ fn prepare_native_local_store_operation_for_domain(
     primary: None,
     cleanup_issue: None,
     delivery_preparation_bytes: 0L,
+    publication_preparation_bytes: 0L,
   }
   let bridge = prepare_store_operation_ffi(
     library,
@@ -159,8 +173,101 @@ fn prepare_native_local_store_operation_for_domain(
         library, row, frame, schema_units, nodes,
       )
     },
+    fn(original, library, retained, execution, contiguous, retained_output) {
+      original.prepare_publication_construction(
+        library, retained, execution, contiguous, retained_output,
+      )
+    },
   )
   Ok({ receiver, bridge: Some(bridge), })
+}
+
+///|
+// The callback is a constructor duty on the original active Read. It cannot
+// authorize publication, change the business Ledger or acknowledge cleanup.
+fn NativeLocalStoreOperationReceiver::prepare_publication_construction(
+  self : NativeLocalStoreOperationReceiver,
+  library : @sqlite.Library,
+  retained : Int64,
+  execution : Int64,
+  contiguous : Int64,
+  retained_output : Int,
+) -> Int {
+  let (_, original) = match self.originals(library, false) {
+    Ok(value) => value
+    Err(issue) => return self.refuse(issue)
+  }
+  guard self.ready &&
+    !self.cleanup &&
+    !self.closing &&
+    self.primary is None &&
+    self.phase == StoreRouteRead &&
+    self.origin is Some(_) &&
+    original.active_phase is Some(@arena.HostRead) &&
+    original.store_operation is Some(active) &&
+    physical_equal(active, self) &&
+    retained >= 0L &&
+    execution >= 0L &&
+    contiguous > 0L &&
+    (retained_output == 0 || retained_output == 1) else {
+    return self.refuse(StoreOperationUnavailable)
+  }
+  // An index issued after this flight returns must still be allocated in the
+  // SAME original Journal Read, never in a restored business or idle scope.
+  if retained_output == 1 && !(self.origin is Some(StoreFromRead)) {
+    return self.refuse(StoreOperationUnavailable)
+  }
+  guard @execution.checked_preparation_add_product(
+      self.delivery_preparation_bytes,
+      self.publication_preparation_bytes,
+      1L,
+    )
+    is Some(prior) &&
+    @execution.checked_preparation_add_product(
+      prior,
+      original.metadata_retained,
+      1L,
+    )
+    is Some(coheld) &&
+    @execution.checked_preparation_add_product(coheld, retained, 1L)
+    is Some(retained_peak) &&
+    @execution.checked_preparation_add_product(coheld, execution, 1L)
+    is Some(execution_peak) else {
+    return self.refuse(StoreOperationUnavailable)
+  }
+  if retained_output == 1 {
+    guard @execution.checked_preparation_add_product(
+        self.publication_preparation_bytes,
+        retained,
+        1L,
+      )
+      is Some(next) else {
+      return self.refuse(StoreOperationUnavailable)
+    }
+    // Keep a failed acquisition's same duty/prefix. No later normal call
+    // can spend or refund this record after the original refusal is latched.
+    self.publication_preparation_bytes = next
+  }
+  match
+    original.host.prepare_domain_original_read_construction(
+      original.read,
+      retained_peak,
+      execution_peak,
+      contiguous,
+    ) {
+    Err(issue) => self.refuse(StoreOperationResources(@arena.Read(issue)))
+    Ok(_) =>
+      if self.closing ||
+        self.capture.closing ||
+        original.interrupted ||
+        !(original.active_phase is Some(@arena.HostRead)) ||
+        !(original.store_operation is Some(active) &&
+        physical_equal(active, self)) {
+        self.refuse(StoreOperationUnavailable)
+      } else {
+        0
+      }
+  }
 }
 
 ///|

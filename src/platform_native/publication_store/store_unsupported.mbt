@@ -586,3 +586,28 @@ pub fn Store::retained_data_current(
 ) -> Result[Unit, NativePublicationStoreIssue] {
   Err(UnsupportedTarget)
 }
+
+///|
+pub fn Store::issue_public_index_entry_in_original_read(
+  _self : Store,
+  _run_definition : @publication.PublicationContract,
+  _invocation : @publication.PublicationContract,
+  _manifest : @publication.PublicationContract,
+  _receipt : @publication.PublicationContract,
+  _captured_run : @publication.PublicationContract,
+  _bindings : Array[@publication.PublicationContract],
+  _request : @publication.PublicationContract,
+  _attempt : @publication.PublicationContract,
+  _committed_at : String,
+  _max_bytes : Int,
+  _max_nodes : Int,
+  _max_depth : Int,
+) -> Result[
+  Result[
+    @publication.PublicationContract,
+    @publication.PublicationCommitIssuanceIssue,
+  ],
+  NativePublicationStoreIssue,
+] {
+  Err(UnsupportedTarget)
+}

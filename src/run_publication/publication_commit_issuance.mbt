@@ -292,78 +292,20 @@ pub fn issue_public_index_entry(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[PublicationContract, PublicationCommitIssuanceIssue] {
-  for
-    (contract, expected) in [
-      (run_definition, "run_definition"),
-      (invocation, "run_invocation"),
-      (manifest, "result_manifest"),
-      (receipt, "run_receipt"),
-      (captured_run, "captured_run"),
-      (request, "publication_request"),
-      (attempt, "publication_attempt"),
-    ] {
-    if contract.name != expected {
-      return Err(CommitIssuanceWrongContract)
-    }
+  let inputs = match
+    public_index_entry_inputs(
+      run_definition, invocation, manifest, receipt, captured_run, durable_bindings,
+      request, attempt,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
-  for
-    (actual, expected, field) in [
-      (
-        contract_string(manifest, "run_definition_cid"),
-        run_definition.identity,
-        "manifest.run_definition_cid",
-      ),
-      (
-        contract_string(manifest, "invocation_cid"),
-        invocation.identity,
-        "manifest.invocation_cid",
-      ),
-      (
-        contract_string(request, "run_definition_cid"),
-        run_definition.identity,
-        "request.run_definition_cid",
-      ),
-      (
-        contract_string(attempt, "publication_request_cid"),
-        request.identity,
-        "attempt.publication_request_cid",
-      ),
-      (
-        contract_string(attempt, "run_definition_cid"),
-        run_definition.identity,
-        "attempt.run_definition_cid",
-      ),
-    ] {
-    if actual != Some(expected) {
-      return Err(CommitIssuanceReferenceMismatch(field))
-    }
-  }
-  guard contract_string(request, "namespace_id") is Some(namespace_id) &&
-    contract_string(request, "authority_scope_cid") is Some(authority_scope_cid) else {
-    return Err(CommitIssuanceReferenceMismatch("request.authority"))
-  }
-  let binding_cids : Array[String] = []
-  for binding in durable_bindings {
-    if binding.name != "durable_result_binding" {
-      return Err(CommitIssuanceWrongContract)
-    }
-    if contract_string(binding, "run_definition_cid") !=
-      Some(run_definition.identity) ||
-      contract_string(binding, "invocation_cid") != Some(invocation.identity) {
-      return Err(CommitIssuanceReferenceMismatch("durable_result_binding"))
-    }
-    if binding_cids.contains(binding.identity) {
-      return Err(CommitIssuanceInventoryMismatch)
-    }
-    binding_cids.push(binding.identity)
-  }
-  binding_cids.sort_by(@canonical.compare_utf16)
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(CommitIssuanceEncoding)
   }
   emit_public_index_entry_body(
-    namespace_id,
-    authority_scope_cid,
+    inputs.namespace_id,
+    inputs.authority_scope_cid,
     run_definition.identity,
     invocation.identity,
     manifest.identity,
@@ -372,8 +314,8 @@ pub fn issue_public_index_entry(
     request.identity,
     attempt.identity,
     committed_at,
-    binding_cids.length(),
-    index => binding_cids[index],
+    inputs.binding_cids.length(),
+    index => inputs.binding_cids[index],
     writer,
   ) catch {
     _ => return Err(CommitIssuanceEncoding)

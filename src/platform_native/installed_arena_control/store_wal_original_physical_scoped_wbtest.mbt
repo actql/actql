@@ -333,6 +333,7 @@ fn store_wal_original_work(
 fn store_wal_physical_case(
   normal_probe : Bool,
   open_probe? : Int = 0,
+  publication_probe? : Int = 0,
 ) -> Unit raise {
   let root = @env.get_env_var("ACTQL_TEST_INSTALLED_PROCESS_ROOT").unwrap()
   let component = @env.get_env_var("ACTQL_TEST_SQLITE_COMPONENT").unwrap()
@@ -392,7 +393,9 @@ fn store_wal_physical_case(
     ReadySqlite(value) => value
     PendingSqlite(_, _) => fail("original Store WAL Library pending")
   }
-  let result = if open_probe == 0 {
+  let result = if publication_probe > 0 {
+    publication_read_original_work(host, sqlite, publication_probe - 1)
+  } else if open_probe == 0 {
     store_wal_original_work(host, sqlite, root + "/store", normal_probe)
   } else if open_probe == 6 {
     journal_existing_original_work(host, sqlite, root + "/store")

@@ -66,6 +66,89 @@ pub fn NativeStoreOperationOriginal::enter_store(
 
 ///|
 #borrow(original)
+extern "C" fn store_operation_publication_constructor_ffi(
+  original : NativeStoreOperationOriginal,
+) -> Int = "actql_native_sqlite_store_operation_publication_constructor"
+
+///|
+/// Classify only this live original's immutable constructor duty. False is
+/// the old constructor; an invalid/current failure remains Err, never fallback.
+pub fn NativeStoreOperationOriginal::has_publication_constructor(
+  self : NativeStoreOperationOriginal,
+) -> Result[Bool, NativeSqliteIssue] {
+  match store_operation_publication_constructor_ffi(self) {
+    0 => Ok(false)
+    1 => Ok(true)
+    code =>
+      Err(Physical("original publication constructor unavailable (\{code})"))
+  }
+}
+
+///|
+#borrow(original)
+extern "C" fn store_operation_publication_scaffold_ffi(
+  original : NativeStoreOperationOriginal,
+  index : Int,
+) -> Int = "actql_native_sqlite_store_operation_prepare_publication_scaffold"
+
+///|
+/// Fund the finite Native callback/demand/error carriers before their first
+/// construction. The actual Read owner still decides all current and backing.
+pub fn NativeStoreOperationOriginal::prepare_publication_scaffold(
+  self : NativeStoreOperationOriginal,
+  index? : Bool = false,
+) -> Result[Unit, NativeSqliteIssue] {
+  store_operation_result(
+    store_operation_publication_scaffold_ffi(self, if index { 1 } else { 0 }),
+  )
+}
+
+///|
+#borrow(original)
+extern "C" fn store_operation_publication_construction_ffi(
+  original : NativeStoreOperationOriginal,
+  retained : Int64,
+  execution : Int64,
+  contiguous : Int64,
+  retained_output : Int,
+) -> Int = "actql_native_sqlite_store_operation_prepare_publication_construction"
+
+///|
+/// The SAME entered Read owns metadata construction and any live index output.
+/// These extents carry no Account permission, commit authority or physical ACK.
+pub fn NativeStoreOperationOriginal::prepare_publication_construction(
+  self : NativeStoreOperationOriginal,
+  retained : Int64,
+  execution : Int64,
+  contiguous : Int64,
+  retained_output : Bool,
+) -> Result[Unit, NativeSqliteIssue] {
+  store_operation_result(
+    store_operation_publication_construction_ffi(
+      self,
+      retained,
+      execution,
+      contiguous,
+      if retained_output {
+        1
+      } else {
+        0
+      },
+    ),
+  )
+}
+
+///|
+/// Actual ABI largest-block bound for metadata copies and closed index codec.
+/// Geometry only; no original, scope, reservation or authority is issued.
+pub extern "C" fn publication_construction_block_bound(
+  slots : Int,
+  nodes : Int,
+  bytes : Int,
+) -> Int64 = "actql_native_sqlite_publication_construction_block"
+
+///|
+#borrow(original)
 extern "C" fn store_operation_delivery_window_ffi(
   original : NativeStoreOperationOriginal,
   target : Int,
