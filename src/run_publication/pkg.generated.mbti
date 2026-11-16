@@ -1067,6 +1067,8 @@ pub fn recorded_run_publication_result_cid(RecordedRunPublication) -> String
 
 pub fn recorded_run_publication_run_cid(RecordedRunPublication) -> String
 
+pub fn recovered_content_issuer_kind(String, @value_admission.ReferenceLimits) -> Result[String, GeneratedContentReferenceIssue]
+
 pub fn release_model_capture_bundle_read(ModelCaptureBundleRead) -> Bool
 
 pub fn render_result_material_table(ResultMaterialSchema, Array[ResultMaterialRow], Int, Int) -> Result[String, ResultMaterialIssue]

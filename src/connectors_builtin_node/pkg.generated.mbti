@@ -1116,6 +1116,8 @@ pub fn client_program_effect_keyed_native_activation_matches(@run_publication_ho
 
 pub fn client_program_effect_keyed_native_captured_page_matches(@run_publication_host.ClientKeyedNativeCapturedPage, @run_publication_host.ClientKeyedRequest, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectKeyedOriginal) -> Bool
 
+pub fn client_program_effect_keyed_original_source_evidence_facts(@run_publication_host.ClientEffectKeyedOriginal, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity) -> Result[Array[String], @run_publication_host.ClientEffectCommandContentIssue]
+
 pub fn client_program_effect_keyed_plan_graph_is_generic(@run_publication_host.ClientEffectKeyedPlanGraph) -> Bool
 
 pub fn client_program_effect_keyed_source_unit_invocation(@run_publication_host.ClientEffectKeyedSourceUnit) -> @run_publication_host.ClientEffectLocalInvocation
@@ -3772,6 +3774,10 @@ pub fn client_program_recover_effect_command_content(@run_publication_host.Clien
 
 pub fn client_program_recover_effect_target_guards(@run_publication.EffectPreviewIdentity, Array[Array[@logical_request_scope.LogicalRequestScope]], Array[Array[@effect_application.LogicalItemLocator]], Array[Array[@effect_application.EffectDispatchKey]], Array[Array[@effect_application.EffectLedgerBasis]], Array[Array[@effect_application.EffectLedgerEntry?]], Array[Array[Bool]], Int, Int, Int) -> Result[@effect_application.RecoveredEffectTargetGuards, @effect_application.EffectSetProgressIssue]
 
+pub fn client_program_recover_source_effect_command_content(@run_publication_host.ClientEffectKeyedOriginal, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, String, Int, Int, String, @run_publication_host.ClientCapturedContent, @value_admission.CheckedValue, Int, Int, Int, Int, Int) -> Result[@run_publication_host.RecoveredClientEffectSourceCommandContent, @run_publication_host.ClientEffectCommandContentIssue]
+
+pub fn client_program_recovered_content_issuer_kind(String, Int, Int, Int, Int) -> Result[String, @run_publication.GeneratedContentReferenceIssue]
+
 pub fn client_program_recovered_effect_captured_run_chain_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PreparedCapturedEffectRun, @run_publication.EffectPreviewIdentity, Int, Int, Int) -> Bool
 
 pub fn client_program_recovered_effect_captured_run_contract(@run_publication.PreparedCapturedEffectRun) -> @run_publication.PublicationContract
@@ -3791,6 +3797,20 @@ pub fn client_program_recovered_effect_command_content_matches_issued(@run_publi
 pub fn client_program_recovered_effect_command_content_release(@run_publication_host.RecoveredClientEffectCommandContent) -> Unit
 
 pub fn client_program_recovered_effect_command_content_wire(@run_publication_host.RecoveredClientEffectCommandContent) -> Result[String, @run_publication_host.ClientEffectCommandContentIssue]
+
+pub fn client_program_recovered_source_content_candidate(@run_publication_host.ClientEffectKeyedOriginal, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, String, String, Int, Int, Int, Int) -> Result[@run_publication_host.ClientCapturedContent, @run_publication.GeneratedContentReferenceIssue]
+
+pub fn client_program_recovered_source_content_construction_capacity(String, String, Int, Int, Int, Int, String) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_recovered_source_effect_command_content_current(@run_publication_host.RecoveredClientEffectSourceCommandContent) -> Bool
+
+pub fn client_program_recovered_source_effect_command_content_matches(@run_publication_host.RecoveredClientEffectSourceCommandContent, @run_publication_host.ClientEffectKeyedOriginal, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity, Int, Int, String) -> Bool
+
+pub fn client_program_recovered_source_effect_command_content_matches_issued(@run_publication_host.RecoveredClientEffectSourceCommandContent, @value_admission.CheckedValue) -> Bool
+
+pub fn client_program_recovered_source_effect_command_content_release(@run_publication_host.RecoveredClientEffectSourceCommandContent) -> Unit
+
+pub fn client_program_recovered_source_effect_command_content_wire(@run_publication_host.RecoveredClientEffectSourceCommandContent) -> Result[String, @run_publication_host.ClientEffectCommandContentIssue]
 
 pub fn client_program_recovered_table_preview_commit_outcome(@run_publication_host.RecoveredClientTablePreview, String, Int, Int, Int, Int) -> Result[String, @run_publication_host.ClientTableInputIssue]
 

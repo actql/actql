@@ -633,6 +633,8 @@ pub fn client_effect_keyed_original_current(ClientEffectKeyedOriginal) -> Bool
 
 pub fn client_effect_keyed_original_matches(ClientEffectKeyedOriginal, PreparedClientEffectComputation, ClientCompiledRun, @run_publication.PublicationContract, ClientRequestIdentity, ClientEffectKeyedPlanGraph, ClientKeyedAcquisition, @physical_resources.Ledger) -> Bool
 
+pub fn client_effect_keyed_original_source_evidence_facts(ClientEffectKeyedOriginal, PreparedClientEffectComputation, ClientRequestIdentity) -> Result[Array[String], ClientEffectCommandContentIssue]
+
 pub fn client_effect_keyed_plan_graph_coordinates(ClientEffectKeyedPlanGraph) -> (Int, Int, Int)
 
 pub fn client_effect_keyed_plan_graph_is_generic(ClientEffectKeyedPlanGraph) -> Bool
@@ -2347,6 +2349,8 @@ pub fn prepare_client_query_requirement_at_query_time(PreparedClientProgram, @ex
 
 pub fn prepare_client_query_time(PreparedClientProgram, ClientRequestIdentity, String) -> Result[ClientQueryTimePreparation, ClientQueryTimeIssue]
 
+pub fn prepare_client_recovered_source_content_candidate(ClientEffectKeyedOriginal, PreparedClientEffectComputation, ClientRequestIdentity, String, String, @value_admission.ReferenceLimits) -> Result[ClientCapturedContent, @run_publication.GeneratedContentReferenceIssue]
+
 pub fn prepare_client_remote_effect_task_physical_start(ClientRemoteEffectTaskProgress, String, String, ClientRequestIdentity, ClientRequestIdentity, String, Bool, Bool, Bool, Bool, Bool) -> Result[Bool, ClientRemoteTaskStartIssue]
 
 pub fn prepare_client_remote_task_physical_start(ClientRemoteTaskProgress, String, String, ClientRequestIdentity, ClientRequestIdentity, String, Bool, Bool, Bool, Bool, Bool) -> Result[Bool, ClientRemoteTaskStartIssue]
@@ -2605,6 +2609,8 @@ pub fn read_prepared_client_infer_model_execution(PreparedClientProgram, Int, By
 
 pub fn readmit_client_effect_command_content(ClientCompiledRun, PreparedClientEffectComputation, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, String, Int, Int, Int, String, @run_publication.StoredGeneratedContentReference, @value_admission.CheckedValue, Int, Int, Int, Int, Int) -> Result[RecoveredClientEffectCommandContent, ClientEffectCommandContentIssue]
 
+pub fn readmit_client_effect_source_command_content(ClientEffectKeyedOriginal, PreparedClientEffectComputation, ClientRequestIdentity, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, String, Int, Int, String, ClientCapturedContent, @value_admission.CheckedValue, Int, Int, Int, Int, Int) -> Result[RecoveredClientEffectSourceCommandContent, ClientEffectCommandContentIssue]
+
 pub fn readmit_client_serialization_generation(ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientInferSavedCallScope, @run_publication.BoundContentGeneration) -> Result[ClientSerializationGeneration, ClientSerializationGenerationIssue]
 
 pub fn readmit_client_serialization_generation_evidence(ClientCompiledRun, @run_publication.PublicationContract, String, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.StoredGeneratedContentReference, @value_admission.CheckedValue) -> Result[@run_publication.BoundContentGeneration, ClientSerializationGenerationIssue]
@@ -2619,6 +2625,14 @@ pub fn recovered_client_effect_command_content_matches_issued(RecoveredClientEff
 
 pub fn recovered_client_effect_command_content_wire(RecoveredClientEffectCommandContent) -> Result[String, ClientEffectCommandContentIssue]
 
+pub fn recovered_client_effect_source_command_content_current(RecoveredClientEffectSourceCommandContent) -> Bool
+
+pub fn recovered_client_effect_source_command_content_matches(RecoveredClientEffectSourceCommandContent, ClientEffectKeyedOriginal, PreparedClientEffectComputation, ClientRequestIdentity, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity, Int, Int, String) -> Bool
+
+pub fn recovered_client_effect_source_command_content_matches_issued(RecoveredClientEffectSourceCommandContent, @value_admission.CheckedValue) -> Bool
+
+pub fn recovered_client_effect_source_command_content_wire(RecoveredClientEffectSourceCommandContent) -> Result[String, ClientEffectCommandContentIssue]
+
 pub fn recovered_client_table_preview_commit_outcome(RecoveredClientTablePreview, String, Int, Int, Int, Int) -> Result[String, ClientTableInputIssue]
 
 pub fn recovered_client_table_preview_ledger_identity(RecoveredClientTablePreview) -> @run_publication.EffectPreviewIdentity
@@ -2631,6 +2645,8 @@ pub fn recovered_client_table_preview_member_index(RecoveredClientTablePreview) 
 
 pub fn recovered_client_table_preview_operation(RecoveredClientTablePreview) -> @effect_application.TableOperation
 
+pub fn recovered_source_content_construction_capacity(String, String, @value_admission.ReferenceLimits, String) -> @execution_relation.ExecutionCapacity?
+
 pub fn[A] register_client_keyed_acquisition(ClientKeyedAcquisition, String, (A) -> Bool) -> Result[@query_planning.QueryEvidenceRegistration[@sourceview_resolution.KeyedSourceFacts, @program_check.KeyedExecution, A], @query_planning.QueryEvidenceCustodyIssue]
 
 pub fn register_client_model_raw_capture(ClientInferDispatchAdmission, @run_publication.BoundModelInvocationScope, @run_publication.BoundModelRawCapturePolicy, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, @check_environment.DecisionProbabilityProfile?, @execution_authorization.AdmittedAccountConfiguration, String, String, () -> Bool, () -> Result[(@execution_authorization.AdmittedAccountConfiguration, String), ClientModelRawCaptureIssue], delegated_action? : @execution_authorization.RuntimeAction?) -> Result[ClientModelRawCaptureRegistration, ClientModelRawCaptureIssue]
@@ -2638,6 +2654,8 @@ pub fn register_client_model_raw_capture(ClientInferDispatchAdmission, @run_publ
 pub fn release_client_effect_command_content(ClientEffectCommandContent) -> Unit
 
 pub fn release_recovered_client_effect_command_content(RecoveredClientEffectCommandContent) -> Unit
+
+pub fn release_recovered_client_effect_source_command_content(RecoveredClientEffectSourceCommandContent) -> Unit
 
 pub fn[E] reobserve_client_saved_submission_original(ClientSavedSubmissionSnapshot, (String, String) -> Result[ClientJournalPhysicalRow?, E]) -> Result[ClientSavedSubmissionSnapshot?, E]
 
@@ -5780,6 +5798,8 @@ pub fn PublicationOutputSnapshotPreparation::finish(Self) -> Result[@run_publica
 type PublicationResultRetention
 
 type RecoveredClientEffectCommandContent
+
+type RecoveredClientEffectSourceCommandContent
 
 type RecoveredClientTablePreview
 
