@@ -74,7 +74,7 @@ fn bounded_join_pair_compare(
   right : Int,
 ) -> Result[Int?, RowIssue] {
   // The owning pair advance freshly checks both inputs on every call. This
-  // source only retains immutable DATA from those same exact producer views;
+  // source only retains immutable Text DATA from those same exact live reads;
   // it stores no availability decision across a poll or resume.
   bounded_row_comparison_step_with(
     state.comparison,

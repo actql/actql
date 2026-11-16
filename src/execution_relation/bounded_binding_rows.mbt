@@ -280,12 +280,13 @@ priv enum BoundedRowComparisonContinuation {
 }
 
 ///|
-/// Only exact producer views with an owned in-memory table can construct this
-/// source. The retained reads anchor both the binding and physical table; a
-/// supplied availability closure or arbitrary cell reader cannot issue it.
+/// Exact in-memory reads anchor the cell DATA for its live owner. Supplied
+/// rows use the same sealed backing as a producer's captured-input table.
+/// Their availability callback is still checked by every owning pair poll;
+/// this record retains Text DATA, never a currentness or permission result.
 priv struct BoundedComparisonTextSource {
-  left : ProducerRead
-  right : ProducerRead
+  left : BoundedBindingInput
+  right : BoundedBindingInput
   keys : Array[(Int, Int)]
 }
 
@@ -301,20 +302,34 @@ priv struct BoundedComparisonTextOperands {
 }
 
 ///|
+fn bounded_comparison_text_input_supported(input : BoundedBindingInput) -> Bool {
+  match input {
+    CompletedBindingInput(read) => read.bound.output.table is Some(_)
+    SuppliedBindingInput(_) => true
+  }
+}
+
+///|
+fn bounded_comparison_text_input_current(input : BoundedBindingInput) -> Bool {
+  match input {
+    CompletedBindingInput(read) => producer_read_available(read)
+    SuppliedBindingInput(read) => supplied_relation_read_available(read)
+  }
+}
+
+///|
 fn prepare_bounded_comparison_text_source(
   left : BoundedBindingInput,
   right : BoundedBindingInput,
   keys : Array[(Int, Int)],
   workspace : RowWorkspace,
 ) -> Result[BoundedComparisonTextSource?, OrderingIssue] {
-  guard left is CompletedBindingInput(left) &&
-    right is CompletedBindingInput(right) &&
-    left.bound.output.table is Some(_) &&
-    right.bound.output.table is Some(_) else {
+  guard bounded_comparison_text_input_supported(left) &&
+    bounded_comparison_text_input_supported(right) else {
     return Ok(None)
   }
-  // One record header and three borrowed fields. The exact reads retain their
-  // immutable completed tables; no String or row payload is copied.
+  // One record header and three borrowed fields. The exact live reads retain
+  // their sealed backing; no String or row payload is copied.
   if !reserve_slots(workspace, 4) {
     return Err(Limit)
   }
@@ -481,9 +496,9 @@ fn bounded_row_comparison_step_inner(
           Some(source) => {
             guard source.keys.get(column) is Some(columns) else { return None }
             if row >= 0 {
-              producer_read_cell(source.left, row, columns.0)
+              bounded_binding_input_cell(source.left, row, columns.0)
             } else {
-              producer_read_cell(source.right, -1 - row, columns.1)
+              bounded_binding_input_cell(source.right, -1 - row, columns.1)
             }
           }
           None => read_cell(row, column)
@@ -508,8 +523,8 @@ fn bounded_row_comparison_step_inner(
         }
         // Funding can call the Host. It cannot carry the entry check across
         // that callback, even though the retained DATA itself is immutable.
-        if !producer_read_available(source.left) ||
-          !producer_read_available(source.right) {
+        if !bounded_comparison_text_input_current(source.left) ||
+          !bounded_comparison_text_input_current(source.right) {
           release_slots(workspace, 8)
           return Err(InvalidInput)
         }

@@ -16,6 +16,7 @@ fn bounded_join_fixture(
   reserve? : ((Int64) -> Result[Unit, WorkspaceGrowthIssue])? = None,
   left_current? : (() -> Bool)? = None,
   right_current? : (() -> Bool)? = None,
+  supplied_right? : Bool = false,
   join_keys? : String = "[{\"left\":\"id\",\"right\":\"id\"}]",
 ) -> (@bounded.Control, BoundedJoinExecution, Array[ProducerRead]) raise {
   let schema = "{\"id\":{\"type\":\"" +
@@ -126,11 +127,29 @@ fn bounded_join_fixture(
     10000,
   ).unwrap()
   let control = @bounded.control()
+  let right_input = if supplied_right {
+    let rows = capture_input(
+      receiver,
+      1,
+      @decode.elements(input_cursor(right_rows)).unwrap(),
+      max_rows=100,
+      run_limits().input_values,
+    ).unwrap()
+    let read = prepare_supplied_relation_read(
+      receiver,
+      1,
+      rows,
+      right_current.unwrap_or(() => true),
+    ).unwrap()
+    trusted_output_supplied_relation_input(read)
+  } else {
+    trusted_output_relation_input(right)
+  }
   let execution = start_bounded_join(
     control,
     generated,
     trusted_output_relation_input(left),
-    trusted_output_relation_input(right),
+    right_input,
     100,
     run_limits().input_values,
     { ..output_values, max_nodes: output_nodes, },

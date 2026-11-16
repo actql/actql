@@ -18,14 +18,16 @@ fn text_operand_fixture(
   work? : Int = 100000,
   growth? : WorkspaceGrowth? = None,
   live? : Ref[Bool]? = None,
+  supplied_right? : Bool = false,
 ) -> TextOperandFixture raise {
   let left_calls = Ref(0)
   let right_calls = Ref(0)
-  let (_, execution, reads) = bounded_join_fixture(
+  let (_, execution, _) = bounded_join_fixture(
     left_rows="[{\"id\":\"" + left + "\",\"v\":\"version-a\"}]",
     right_rows="[{\"id\":\"" + right + "\",\"v\":\"version-b\"}]",
     key_type="string",
     value_type="string",
+    supplied_right~,
     left_current=Some(() => {
       left_calls.val += 1
       live.map(value => value.val).unwrap_or(true)
@@ -39,8 +41,8 @@ fn text_operand_fixture(
   // One optional source root, then its header and three borrowed fields.
   assert_true(reserve_slots(workspace, 1))
   let source = prepare_bounded_comparison_text_source(
-      CompletedBindingInput(reads[0]),
-      CompletedBindingInput(reads[1]),
+      execution.state.left,
+      execution.state.right,
       [(0, 0)],
       workspace,
     )
@@ -75,9 +77,9 @@ fn step_text_operand_fixture(
       fixture.fallback_calls.val += 1
       let columns = fixture.source.keys[key]
       if row >= 0 {
-        producer_read_cell(fixture.source.left, row, columns.0)
+        bounded_binding_input_cell(fixture.source.left, row, columns.0)
       } else {
-        producer_read_cell(fixture.source.right, -1 - row, columns.1)
+        bounded_binding_input_cell(fixture.source.right, -1 - row, columns.1)
       }
     },
     0,
@@ -223,8 +225,8 @@ test "Text operands reject changed coordinates projection and foreign source" {
     assert_true(fixture.cursor.tree is TextRowComparison(_))
     let source = if change == 2 {
       prepare_bounded_comparison_text_source(
-        CompletedBindingInput(fixture.source.left),
-        CompletedBindingInput(fixture.source.right),
+        fixture.source.left,
+        fixture.source.right,
         fixture.source.keys,
         fixture.workspace,
       )
@@ -261,7 +263,7 @@ test "Text operands reject changed coordinates projection and foreign source" {
 }
 
 ///|
-test "arbitrary presence and supplied availability callbacks retain the general path" {
+test "arbitrary presence and general cell readers retain the checked path" {
   let fixture = text_operand_fixture("prefix", "prefix")
   let presence = Ref(0)
   let fetched = Ref(0)
@@ -298,15 +300,18 @@ test "arbitrary presence and supplied availability callbacks retain the general 
     calls.val <= 3
   })
   let workspace = row_workspace(20)
-  assert_true(
-    prepare_bounded_comparison_text_source(
+  let source = prepare_bounded_comparison_text_source(
       SuppliedBindingInput(supplied),
       SuppliedBindingInput(supplied),
       [(1, 1)],
       workspace,
     )
-    is Ok(None),
-  )
+    .unwrap()
+    .unwrap()
+  // Eligibility retains DATA, not a liveness decision. The general caller
+  // below supplies no source and keeps its original checked getters.
+  assert_true(source.left is SuppliedBindingInput(_))
+  release_slots(workspace, 4)
   assert_eq(workspace.live, 0)
   let cursor = reference_pair_cursor()
   let control : ControlBudget = { remaining: 100, max_frames: 10, }
@@ -342,6 +347,63 @@ test "arbitrary presence and supplied availability callbacks retain the general 
   )
   assert_eq(calls.val, 4)
   assert_true(cursor.tree is NoRowComparison)
+}
+
+///|
+test "supplied Text operands fetch once while retaining fresh checks on every poll" {
+  for length in [1, 64, 512] {
+    let text = "x".repeat(length)
+    let fixture = text_operand_fixture(text, text, supplied_right=true)
+    let mut polls = 0
+    let mut left_boundary_calls = 0
+    let mut right_boundary_calls = 0
+    let mut finished = false
+    for _ in 0..<20000 {
+      // This is the owning pair poll's currentness boundary. No availability
+      // decision is stored in either the source or the operand cursor.
+      let left_before = fixture.left_calls.val
+      let right_before = fixture.right_calls.val
+      assert_true(bounded_binding_input_available(fixture.source.left))
+      assert_true(bounded_binding_input_available(fixture.source.right))
+      left_boundary_calls += fixture.left_calls.val - left_before
+      right_boundary_calls += fixture.right_calls.val - right_before
+      polls += 1
+      match step_text_operand_fixture(fixture) {
+        Ok(None) => ()
+        Ok(Some(value)) => {
+          assert_eq(value, 0)
+          finished = true
+          break
+        }
+        Err(_) => fail("live supplied Text comparison failed")
+      }
+    }
+    assert_true(finished)
+    // One cell acquisition and one post-funding fence beyond the poll checks,
+    // independent of the immutable Text's charging/comparison length.
+    assert_true(polls > 0)
+    assert_eq(fixture.left_calls.val - left_boundary_calls, 2)
+    assert_eq(fixture.right_calls.val - right_boundary_calls, 2)
+    close_text_operand_fixture(fixture)
+  }
+}
+
+///|
+test "mixed supplied JOIN Text operands preserve full row values" {
+  let text = "x".repeat(128)
+  let (_, execution, _) = bounded_join_fixture(
+    left_rows="[{\"id\":\"" + text + "\",\"v\":10}]",
+    right_rows="[{\"id\":\"" + text + "\",\"v\":20}]",
+    key_type="string",
+    supplied_right=true,
+  )
+  assert_true(execution.state.pairs.text_source is Some(_))
+  let output = finish_bounded_join_test(execution).unwrap()
+  assert_eq(completed_row_count(output), 1)
+  assert_eq(
+    completed_output_row_wire(output, 0, 4096, 100, 10).unwrap(),
+    "{\"k\":\"" + text + "\",\"l\":10,\"r\":20}",
+  )
 }
 
 ///|
@@ -388,6 +450,49 @@ test "JOIN Text operands recheck currentness after yield and clear on cancel" {
     assert_true(cleanup_bounded_join(execution).unwrap())
     assert_eq(execution.state.workspace.live, 0)
     assert_true(producer_read_available(reads[1]))
+  }
+}
+
+///|
+test "supplied JOIN Text operands preserve callback revocation and cancel cleanup after yield" {
+  for cancel in [false, true] {
+    let live = Ref(true)
+    let calls = Ref(0)
+    let text = "x".repeat(128)
+    let (engine, execution, _) = bounded_join_fixture(
+      left_rows="[{\"id\":\"" + text + "\",\"v\":10}]",
+      right_rows="[{\"id\":\"" + text + "\",\"v\":20}]",
+      key_type="string",
+      supplied_right=true,
+      right_current=Some(() => {
+        calls.val += 1
+        live.val
+      }),
+    )
+    reach_join_text_operands(execution)
+    let checked = calls.val
+    assert_true(
+      advance_bounded_join(execution, 1).unwrap() is BoundedJoinContinue(..),
+    )
+    assert_true(calls.val > checked)
+    let before = execution.state.control.remaining
+    if cancel {
+      assert_true(@bounded.request_cancel(engine))
+    } else {
+      live.val = false
+    }
+    let poll = advance_bounded_join(execution, 1).unwrap()
+    assert_true(
+      if cancel {
+        poll is BoundedJoinStopped(_, ..)
+      } else {
+        poll is BoundedJoinFailed(InvalidExecution, ..)
+      },
+    )
+    assert_eq(execution.state.control.remaining, before)
+    assert_true(execution.state.pairs.comparison.tree is NoRowComparison)
+    assert_true(cleanup_bounded_join(execution).unwrap())
+    assert_eq(execution.state.workspace.live, 0)
   }
 }
 
