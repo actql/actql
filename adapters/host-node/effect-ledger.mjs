@@ -398,18 +398,31 @@ export function openEffectLedger({
               typeof claim.intentFingerprintCid !== 'string') {
             fail('InvalidEffectProgressInventory');
           }
-          const prepared = control.issuePreparedLedgerEntry(
-            claim.basis, maxEntryBytes, maxNodes, maxDepth);
-          const dispatching = control.issueNextLedgerEntry(
-            prepared, 'dispatching', '', maxEntryBytes, maxNodes, maxDepth);
-          if (control.ledgerEntryScopeCid(prepared) !== scopeCid ||
-              !control.ledgerEntryAdmitsDispatch(
-                dispatching, claim.scope, claim.locator, claim.key,
-                claim.canonicalRequestCid) ||
-              control.recoveryActionFromEntry(
-                claim.locator, claim.intentFingerprintCid, claim.key,
-                claim.canonicalRequestCid, prepared, false) !== 1) {
+          // Reconstructing two inert Entries is unnecessary when their exact
+          // immutable basis facts and complete codec bounds are already known.
+          // Tight/unsupported policies retain the original codec and refusal.
+          const factsStatus = typeof control.ledgerClaimFactsStatus === 'function'
+            ? control.ledgerClaimFactsStatus(claim.basis, claim.scope, claim.locator,
+              claim.key, claim.intentFingerprintCid, claim.canonicalRequestCid,
+              scopeCid, maxEntryBytes, maxNodes, maxDepth) : 0;
+          if (factsStatus === 0) {
+            const prepared = control.issuePreparedLedgerEntry(
+              claim.basis, maxEntryBytes, maxNodes, maxDepth);
+            const dispatching = control.issueNextLedgerEntry(
+              prepared, 'dispatching', '', maxEntryBytes, maxNodes, maxDepth);
+            if (control.ledgerEntryScopeCid(prepared) !== scopeCid ||
+                !control.ledgerEntryAdmitsDispatch(
+                  dispatching, claim.scope, claim.locator, claim.key,
+                  claim.canonicalRequestCid) ||
+                control.recoveryActionFromEntry(
+                  claim.locator, claim.intentFingerprintCid, claim.key,
+                  claim.canonicalRequestCid, prepared, false) !== 1) {
+              fail('EffectProgressBindingMismatch');
+            }
+          } else if (factsStatus === 2) {
             fail('EffectProgressBindingMismatch');
+          } else if (factsStatus !== 1) {
+            fail('EffectLedgerControlRuntimeUnavailable');
           }
           const locatorCid = control.logicalItemLocatorCid(claim.locator);
           if (seen.has(locatorCid)) fail('EffectProgressDuplicateLocator');

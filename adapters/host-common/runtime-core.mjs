@@ -237,6 +237,9 @@ function effectApplicationControl(moon) {
     ledgerEntryWire: moon.strategyEffectLedgerEntryWire,
     ledgerEntryAdmitsDispatch: moon.strategyEffectLedgerEntryAdmitsDispatch,
     ledgerEntryMatchesBasis: moon.strategyEffectLedgerEntryMatchesBasis,
+    // Optional only for older component runtimes. The Ledger keeps its full
+    // codec path when this inert, allocation-free facts check is unavailable.
+    ledgerClaimFactsStatus: moon.strategyEffectLedgerClaimFactsStatus,
     ledgerBasis: (...args) => checked(moon.strategyEffectLedgerBasis(...args)),
     issuePreparedLedgerEntry: (...args) => checked(
       moon.strategyEffectIssuePreparedLedgerEntry(...args),
