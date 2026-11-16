@@ -86132,7 +86132,11 @@
       "operations": [
         {
           "name": "effectful_publication_construction_inventory",
-          "declaration": "effectful_publication_construction_inventory ( issue : Bool , contracts : Array [ PublicationContract ] , receipt_wires : Array [ String ] , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > ( EffectPreviewIdentityConstructionInventory , EffectPreviewIdentityConstructionInventory , ) ?"
+          "declaration": "effectful_publication_construction_inventory ( issue : Bool , contracts : Array [ PublicationContract ] , receipt_wires : Array [ String ] , max_bytes : Int , max_nodes : Int , max_depth : Int , prepared ? : PreparedCapturedEffectRun ?"
+        },
+        {
+          "name": "effectful_publication_measurement_construction_inventory",
+          "declaration": "effectful_publication_measurement_construction_inventory ( depth : Int , ) - > EffectPreviewIdentityConstructionInventory ?"
         },
         {
           "name": "publication_adoption_inventory",
@@ -86141,6 +86145,10 @@
         {
           "name": "publication_borrowed_contract_inventory",
           "declaration": "publication_borrowed_contract_inventory ( bytes : Int , nodes : Int , depth : Int , ) - > ( EffectPreviewIdentityConstructionInventory , EffectPreviewIdentityConstructionInventory , ) ?"
+        },
+        {
+          "name": "publication_canonical_construction_geometry",
+          "declaration": "publication_canonical_construction_geometry ( value : @ json . CanonicalValue , bytes : Int , nodes : Int , depth : Int , work ? : ( ( Int ) - > Bool ) ?"
         },
         {
           "name": "publication_inventory_add",
@@ -86164,7 +86172,9 @@
             "publication_borrowed_contract_inventory",
             "publication_inventory_add",
             "publication_inventory_max",
-            "publication_returned_contract_inventory"
+            "publication_returned_contract_inventory",
+            "effectful_publication_measurement_construction_inventory",
+            "publication_canonical_construction_geometry"
           ],
           "exports": [],
           "attributes": {
@@ -86176,12 +86186,36 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed capture-recovery Definition construction"
+              },
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_measurement_construction_inventory("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "fn publication_canonical_construction_geometry("
               }
             ],
             "inputsOutputs": [
               {
                 "path": "src/run_publication/effectful_publication_construction.mbt",
                 "anchor": "pub fn effectful_publication_construction_inventory("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_measurement_construction_inventory("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "fn publication_canonical_construction_geometry("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "prepared? : PreparedCapturedEffectRun? = None,"
+              },
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "work? : ((Int) -> Bool)? = None,"
               }
             ],
             "identity": [
@@ -86235,6 +86269,14 @@
               {
                 "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
                 "anchor": "pub fn begin_installed_effect_capture_publication("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_measurement_construction_inventory("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "fn publication_canonical_construction_geometry("
               }
             ],
             "extension": [
@@ -86263,6 +86305,427 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "healthy publication progress needs no cleanup retry or confirming reread"
+              },
+              {
+                "path": "src/run_publication/effectful_publication_local_source_construction_test.mbt",
+                "anchor": "test \"prepared publication constructor reaches local Source sizing with genuine captured originals\""
+              },
+              {
+                "path": "src/run_publication/effectful_publication_local_source_construction_test.mbt",
+                "anchor": "test \"prepared publication constructor does not reuse an equal-wire foreign captured original\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication/effectful_publication_borrowed_construction.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Run Publication constructor owners; genuine prepared capture and original Request/Read retain identity, funding, current and cleanup authority",
+      "referenceQualification": "Pure owner-local construction DATA and actual-source responsibility references only; selected quantity tests do not establish ordinary publication acceptance",
+      "exports": [],
+      "operations": [
+        {
+          "name": "publication_borrowed_collection_inventory",
+          "declaration": "publication_borrowed_collection_inventory ( inventory : @ shape . CollectionConstructionInventory , text_units : Int64 , ) - > EffectPreviewIdentityConstructionInventory ?"
+        },
+        {
+          "name": "publication_borrowed_object_count",
+          "declaration": "publication_borrowed_object_count ( value : @ json . CanonicalValue , name : String , ) - > Int ?"
+        },
+        {
+          "name": "publication_prepared_capture_borrowed_inventory",
+          "declaration": "publication_prepared_capture_borrowed_inventory ( captured : PublicationContract , prepared : PreparedCapturedEffectRun , max_bytes : Int , max_nodes : Int , max_depth : Int , work ? : ( ( Int ) - > Bool ) ?"
+        },
+        {
+          "name": "publication_prepared_capture_phase_inventory",
+          "declaration": "publication_prepared_capture_phase_inventory ( depth : Int , largest_object : Int , roots : Int64 , key_units : Int64 , prefix_units : Int64 , key_count : Int64 , source_refs : Int64 , effects : Int , artifacts : Int , holdings : Int , sources : Int , plans : Int , plan_cids : Int , fields : Int64 , field_units : Int , model_count : Int64 , external_models : Int64 , local_source : EffectPreviewIdentityConstructionInventory , ) - > EffectPreviewIdentityConstructionInventory ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "publication_borrowed_collection_inventory",
+            "publication_borrowed_object_count",
+            "publication_prepared_capture_borrowed_inventory",
+            "publication_prepared_capture_phase_inventory"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_construction_inventory("
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed capture-recovery Definition construction"
+              },
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_measurement_construction_inventory("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "fn publication_canonical_construction_geometry("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_borrowed_construction.mbt",
+                "anchor": "fn publication_prepared_capture_borrowed_inventory("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_construction_inventory("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_measurement_construction_inventory("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "fn publication_canonical_construction_geometry("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "prepared? : PreparedCapturedEffectRun? = None,"
+              },
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "work? : ((Int) -> Bool)? = None,"
+              },
+              {
+                "path": "src/run_publication/effectful_publication_borrowed_construction.mbt",
+                "anchor": "fn publication_prepared_capture_borrowed_inventory("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_construction_inventory("
+              },
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_publication("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_borrowed_construction.mbt",
+                "anchor": "fn publication_prepared_capture_borrowed_inventory("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_publication("
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed capture-recovery Definition construction"
+              },
+              {
+                "path": "src/run_publication/effectful_publication_borrowed_construction.mbt",
+                "anchor": "fn publication_prepared_capture_borrowed_inventory("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_construction_inventory("
+              },
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_publication("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_borrowed_construction.mbt",
+                "anchor": "fn publication_prepared_capture_borrowed_inventory("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_construction_inventory("
+              },
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_publication("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_borrowed_construction.mbt",
+                "anchor": "fn publication_prepared_capture_borrowed_inventory("
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This pure synchronous quantity projection performs no I/O or cancellation transport. The consuming original Read/Run preserves current, cancellation and failed-prefix cleanup."
+            },
+            "resources": [
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_construction_inventory("
+              },
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_publication("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_measurement_construction_inventory("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "fn publication_canonical_construction_geometry("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_borrowed_construction.mbt",
+                "anchor": "fn publication_prepared_capture_borrowed_inventory("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_construction_inventory("
+              },
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_publication("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_borrowed_construction.mbt",
+                "anchor": "fn publication_prepared_capture_borrowed_inventory("
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "anchor": "final publication selects original closed issue and commit methods on the same completed Read"
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "anchor": "publication class refusal preserves primary without generic retry or issuer entry"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "publication metadata is bounded by its original Read before token-array construction"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "healthy publication progress needs no cleanup retry or confirming reread"
+              },
+              {
+                "path": "src/run_publication/effectful_publication_local_source_construction_test.mbt",
+                "anchor": "test \"prepared publication constructor reaches local Source sizing with genuine captured originals\""
+              },
+              {
+                "path": "src/run_publication/effectful_publication_local_source_construction_test.mbt",
+                "anchor": "test \"prepared publication constructor does not reuse an equal-wire foreign captured original\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication/effectful_publication_local_source_construction.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Run Publication constructor owners; genuine prepared capture and original Request/Read retain identity, funding, current and cleanup authority",
+      "referenceQualification": "Pure owner-local construction DATA and actual-source responsibility references only; selected quantity tests do not establish ordinary publication acceptance",
+      "exports": [],
+      "operations": [
+        {
+          "name": "publication_local_source_construction_inventory",
+          "declaration": "publication_local_source_construction_inventory ( context : @ json . CanonicalValue , max_bytes : Int , max_nodes : Int , max_depth : Int , work ? : ( ( Int ) - > Bool ) ?"
+        },
+        {
+          "name": "publication_local_source_contract_inventory",
+          "declaration": "publication_local_source_contract_inventory ( geometry : @ encode . EncodingConstructionGeometry , ) - > ( EffectPreviewIdentityConstructionInventory , EffectPreviewIdentityConstructionInventory , ) ?"
+        },
+        {
+          "name": "publication_local_source_identity_inventory",
+          "declaration": "publication_local_source_identity_inventory ( fields : Int , depth : Int , ) - > EffectPreviewIdentityConstructionInventory ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "publication_local_source_construction_inventory",
+            "publication_local_source_contract_inventory",
+            "publication_local_source_identity_inventory"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_construction_inventory("
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed capture-recovery Definition construction"
+              },
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_measurement_construction_inventory("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "fn publication_canonical_construction_geometry("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_local_source_construction.mbt",
+                "anchor": "fn publication_local_source_construction_inventory("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_construction_inventory("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_measurement_construction_inventory("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "fn publication_canonical_construction_geometry("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "prepared? : PreparedCapturedEffectRun? = None,"
+              },
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "work? : ((Int) -> Bool)? = None,"
+              },
+              {
+                "path": "src/run_publication/effectful_publication_local_source_construction.mbt",
+                "anchor": "fn publication_local_source_construction_inventory("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_construction_inventory("
+              },
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_publication("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_local_source_construction.mbt",
+                "anchor": "fn publication_local_source_construction_inventory("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_publication("
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed capture-recovery Definition construction"
+              },
+              {
+                "path": "src/run_publication/effectful_publication_local_source_construction.mbt",
+                "anchor": "fn publication_local_source_construction_inventory("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_construction_inventory("
+              },
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_publication("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_local_source_construction.mbt",
+                "anchor": "fn publication_local_source_construction_inventory("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_construction_inventory("
+              },
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_publication("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_local_source_construction.mbt",
+                "anchor": "fn publication_local_source_construction_inventory("
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This pure synchronous quantity projection performs no I/O or cancellation transport. The consuming original Read/Run preserves current, cancellation and failed-prefix cleanup."
+            },
+            "resources": [
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_construction_inventory("
+              },
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_publication("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_measurement_construction_inventory("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "fn publication_canonical_construction_geometry("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_local_source_construction.mbt",
+                "anchor": "fn publication_local_source_construction_inventory("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_construction_inventory("
+              },
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_publication("
+              },
+              {
+                "path": "src/run_publication/effectful_publication_local_source_construction.mbt",
+                "anchor": "fn publication_local_source_construction_inventory("
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "anchor": "final publication selects original closed issue and commit methods on the same completed Read"
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "anchor": "publication class refusal preserves primary without generic retry or issuer entry"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "publication metadata is bounded by its original Read before token-array construction"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "healthy publication progress needs no cleanup retry or confirming reread"
+              },
+              {
+                "path": "src/run_publication/effectful_publication_local_source_construction_test.mbt",
+                "anchor": "test \"prepared publication constructor reaches local Source sizing with genuine captured originals\""
+              },
+              {
+                "path": "src/run_publication/effectful_publication_local_source_construction_test.mbt",
+                "anchor": "test \"prepared publication constructor does not reuse an equal-wire foreign captured original\""
               }
             ]
           }
