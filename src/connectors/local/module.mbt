@@ -525,6 +525,7 @@ fn local_module_default_output_start_capacity(
   let mut unnest_chain = count > 1
   let mut has_unnest = false
   let mut required_row_chain = count > 1
+  let unpivot_chain = selected_literal_unpivot_chain(sequence)
   for index in 0..<count {
     match @execution.generated_sequence_step_at(sequence, index) {
       Some(@lower.RowStep(kernel)) => {
@@ -732,7 +733,7 @@ fn local_module_default_output_start_capacity(
           }
         }
       }
-      Some(@lower.RowStep(kernel)) if count == 1 &&
+      Some(@lower.RowStep(kernel)) if (count == 1 || unpivot_chain) &&
         @lower.kernel_unpivot_outputs(kernel) is Some(_) =>
         // This bounded constructor borrows original admitted cells, including
         // Text/Array/Object backing, and prepared column labels. Its stepped
@@ -992,6 +993,7 @@ fn local_module_default_output_start_capacity(
   let constructor_chain = (count > 1 && metered_retention) ||
     window_chain ||
     required_row_chain ||
+    unpivot_chain ||
     selected_literal_binding_chain(sequence) ||
     bounded_family_chain
   let mut scratch = if constructor_chain {

@@ -93,6 +93,62 @@ fn selected_literal_binding_chain(
 }
 
 ///|
+// A literal seed, bounded UNPIVOT, and the existing bounded row children build
+// no legacy sequence table. UNPIVOT rechecks original cells and immutable
+// prepared labels, then funds the complete row before transfer. This proves
+// only serial scratch lifetime: every child's complete workspace and the full
+// retained output remain prepaid, including newly evaluated Text bindings.
+fn selected_literal_unpivot_chain(
+  sequence : @execution.GeneratedSequence,
+) -> Bool {
+  let count = @execution.generated_sequence_step_count(sequence)
+  guard count > 1 &&
+    @execution.generated_sequence_step_at(sequence, 0)
+    is Some(@lower.ValuesStep(_)) else {
+    return false
+  }
+  let prepared = @lower.bound_preparation(
+    @execution.generated_sequence_owner(sequence),
+  )
+  guard @execution.generated_sequence_step_index_at(sequence, 0).bind(step => {
+      @lower.node_at(prepared, step)
+    })
+    is Some(seed) &&
+    @lower.node_input_count(seed) == 0 &&
+    @lower.node_values_literal_text_bytes(seed) is Some(_) else {
+    return false
+  }
+  let mut unpivot = false
+  for index in 1..<count {
+    guard @execution.generated_sequence_step_at(sequence, index)
+      is Some(@lower.RowStep(kernel)) else {
+      return false
+    }
+    if @lower.kernel_unpivot_outputs(kernel) is Some(_) {
+      unpivot = true
+    } else if !selected_binding_rows_supported(kernel) {
+      return false
+    }
+    for
+      schema in [
+        @lower.kernel_input_schema(kernel),
+        @lower.kernel_output_schema(kernel),
+      ] {
+      if !@schema.all_fields_required(schema) {
+        return false
+      }
+      for field in 0..<@schema.field_count(schema) {
+        match @schema.field_at(schema, field).unwrap().contract.shape {
+          @contract.Number | @contract.Boolean | @contract.Text(_) => ()
+          _ => return false
+        }
+      }
+    }
+  }
+  unpivot
+}
+
+///|
 // These evaluator leaves borrow an input/prior value or admitted literal,
 // including checked property selection rooted in an input/prior slot. Inline
 // Number/Boolean results likewise build no persistent text/container forest.
