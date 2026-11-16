@@ -81,6 +81,49 @@ fn local_file_store_footprint_target_capacity() -> @execution.ExecutionCapacity?
 }
 
 ///|
+// The original issuer borrows the checked decision and three CID Strings.
+// Its empty proof, WeakMap value and returned carrier survive construction.
+// The same row later holds {proof,useId}; the closed common use-id template
+// borrows two 71-unit CIDs, "-write-", a hyphen and ten Int-index digits.
+// WeakMap entries are not a cleanup ACK: keep their full per-occurrence cost
+// until the original row/control aliases have drained at Run retirement.
+fn local_file_store_grant_capacity() -> @execution.ExecutionCapacity? {
+  guard @shape.collection_construction_extent({
+      records: 5L,
+      record_references: 7L,
+      record_words: 2L,
+      reference_arrays: 0L,
+      reference_items: 0L,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 1L,
+    })
+    is Some(held) else {
+    return None
+  }
+  standard_create_representation_capacity(
+    {
+      record_headers: held.record_headers,
+      reference_slots: held.reference_slots,
+      scalar_words: held.scalar_words,
+      owned_utf16_units: 2L * 71L + 8L + 10L,
+      owned_wire_bytes: 0L,
+    },
+    {
+      // Destructured issuer frame (seven borrowed refs), Map.set receiver
+      // and two arguments, and the nonoverlapping Object.freeze argument.
+      // Original Account/current frames remain in the common control floor.
+      record_headers: 3L,
+      reference_slots: 11L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+  )
+}
+
+///|
 // The warm File capture initially retains only its proposal-reference Array;
 // generated proposal Strings remain borrowed from the original completed Read.
 // Reserve its wrapper/backing, four spare references and geometric-growth
@@ -380,7 +423,20 @@ pub fn installed_local_file_store_recipe_capacities(
     is Some(controls) &&
     local_file_store_footprint_target_capacity() is Some(footprint_target) &&
     @execution.add_execution_capacity(controls, footprint_target)
-    is Some(controls) else {
+    is Some(controls) &&
+    local_file_store_grant_capacity() is Some(grant) &&
+    @execution.execution_capacity(
+      @execution.execution_capacity_retained_bytes(grant),
+      @execution.execution_capacity_retained_bytes(grant),
+    )
+    is Some(grant_held) &&
+    @execution.add_execution_capacity(controls, grant_held) is Some(controls) &&
+    @execution.execution_capacity(
+      0L,
+      @execution.execution_capacity_execution_bytes(grant) -
+      @execution.execution_capacity_retained_bytes(grant),
+    )
+    is Some(grant_workspace) else {
     return Err(Unsupported)
   }
   // Local's saved request envelope has no separately copied effect-id field.
@@ -389,6 +445,10 @@ pub fn installed_local_file_store_recipe_capacities(
   let no_additional_effect_id = @execution.execution_capacity(0L, 0L).unwrap()
   Ok([
     capture_fixed, capture_row, request, physical, controls, no_additional_effect_id,
+    // R is already multiplied by the SAME checked row count in controls.
+    // Native construction selects only this synchronous W; it adds no R a
+    // second time and completion never returns the retained proof population.
+     grant_workspace,
   ])
 }
 

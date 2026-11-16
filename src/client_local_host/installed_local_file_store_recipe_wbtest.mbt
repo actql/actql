@@ -35,7 +35,7 @@ fn local_file_store_recipe_fixture(
 ///|
 test "Local STORE quote retains actual native descriptor multiplicity and one read window" {
   let original = local_file_store_recipe_fixture().unwrap()
-  assert_eq(original.length(), 6)
+  assert_eq(original.length(), 7)
   for index in 0..<5 {
     assert_true(
       @execution.execution_capacity_retained_bytes(original[index]) > 0L,
@@ -62,6 +62,45 @@ test "Local STORE quote retains actual native descriptor multiplicity and one re
     1L,
   )
   assert_eq(@execution.execution_capacity_execution_bytes(original[5]), 0L)
+  assert_eq(@execution.execution_capacity_retained_bytes(original[6]), 0L)
+  assert_true(@execution.execution_capacity_execution_bytes(original[6]) > 0L)
+}
+
+///|
+test "Local Grant proof population is retained once while its native selector owns scratch only" {
+  let grant = local_file_store_grant_capacity().unwrap()
+  // Issuer proof/value/carrier, later authorization and use-id header:
+  // H5/R7/W2, plus existing Map entry H4/R11/W13 and 160 UTF16 units.
+  // This is independent of any remote Grant parser or signature ceiling.
+  assert_eq(@execution.execution_capacity_retained_bytes(grant), 728L)
+  assert_eq(@execution.execution_capacity_execution_bytes(grant), 864L)
+  for control in [None, Some(1510)] {
+    let recipe = local_file_store_recipe_fixture(control_wire=control).unwrap()
+    assert_eq(@execution.execution_capacity_retained_bytes(recipe[6]), 0L)
+    assert_eq(@execution.execution_capacity_execution_bytes(recipe[6]), 136L)
+  }
+  let rows = 2L
+  let held = rows * @execution.execution_capacity_retained_bytes(grant)
+  let workspace = 136L
+  let ledger = @resources.create_ledger({
+    planning_work: 10,
+    attempts: 0,
+    holdings: 0,
+    transfer_bytes: 0L,
+    retained_bytes: held,
+    execution_bytes: held + workspace,
+  }).unwrap()
+  let original = @resources.reserve_capacity(ledger, held, held).unwrap()
+  // Constructor entry adds only scratch to the same retained population.
+  @resources.resize_capacity(ledger, original, held, held + workspace).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, held)
+  assert_true(
+    @resources.reserve_capacity(ledger, 0L, 1L) is Err(ExecutionLimit),
+  )
+  @resources.resize_capacity(ledger, original, held, held).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, held)
+  @resources.settle_capacity(ledger, original).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
 }
 
 ///|
@@ -107,12 +146,18 @@ test "Local footprint targets retain CID and duplicate inventory apart from fixe
   assert_eq(
     @execution.execution_capacity_retained_bytes(quoted[4]) -
     @execution.execution_capacity_retained_bytes(prior),
-    expected,
+    expected +
+    @execution.execution_capacity_retained_bytes(
+      local_file_store_grant_capacity().unwrap(),
+    ),
   )
   assert_eq(
     @execution.execution_capacity_execution_bytes(quoted[4]) -
     @execution.execution_capacity_execution_bytes(prior),
-    expected,
+    expected +
+    @execution.execution_capacity_retained_bytes(
+      local_file_store_grant_capacity().unwrap(),
+    ),
   )
 }
 
