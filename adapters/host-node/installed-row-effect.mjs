@@ -2292,8 +2292,12 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           const projectionFacts = {member, memberIndex, rowIndex,
             preview: applyPreview, request: entry.request, current: now[memberIndex],
             observation: captured.physical.observation, headers: captured.physical.headers};
+          const projectConstructor = managedPlanRecipe?.projectConstruction;
           let projected = controlConstruction === undefined ? owned.project(projectionFacts)
-            : controlConstruction(owned, owned.project, [projectionFacts]);
+            : projectConstructor !== undefined && projectConstructor.receiver === owned &&
+                projectConstructor.method === owned.project
+              ? controlConstruction(owned, projectConstructor.method, [projectionFacts], projectConstructor.capacity)
+              : controlConstruction(owned, owned.project, [projectionFacts]);
           if (ownerOf(member).responseConfirmation !== undefined && projected?.kind === 'provider-response' &&
               projected.providerEvidence !== undefined) {
             projected = await confirmResponse({memberIndex, rowIndex, projected,

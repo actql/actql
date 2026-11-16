@@ -30,6 +30,21 @@ function bindEffectLedgerCodecs(original, construction) {
       [original, method, args, name === 'admitLedgerEntry' ? args[0] : undefined,
         args.at(-2), args.at(-1)]);
   }
+  if (typeof construction.receiptCodec === 'function') {
+    for (const [name, wireIndex, receiptWire] of [
+      ['issueRowOutcomeReceipt', 7, false],
+      ['issueRowOutcomeReceiptFromResponse', 5, false],
+      ['admitRowOutcomeReceipt', 7, true],
+      ['admitRowOutcomeReceiptFromResponse', 5, true],
+      ['issueRowReceiptTerminalEntry', 13, true],
+      ['issueRowReceiptTerminalEntryFromResponse', 11, true],
+    ]) {
+      const method = original[name];
+      if (typeof method !== 'function') fail('EffectLedgerControlRuntimeUnavailable');
+      control[name] = (...args) => Reflect.apply(construction.receiptCodec, construction,
+        [original, method, args, args[wireIndex], args.at(-2), args.at(-1), receiptWire]);
+    }
+  }
   return Object.freeze(control);
 }
 
@@ -60,11 +75,22 @@ function bindEffectLedgerConstruction(ledger, construction, policy) {
       : (...args) => {
         if ((name === 'issueMemberReceiptFromRowPartition' || name === 'checkMemberReceiptRowPartitionEvidence') &&
             typeof policy.receiptConstruction === 'function') {
-          const prepared = construction(policy, prepareMemberReceiptConstruction, [args]);
+          const prepared = typeof construction.ledgerRow === 'function'
+            ? construction.ledgerRow(policy, prepareMemberReceiptConstruction, [args], 'quantity',
+              policy.maxEntryBytes, policy.maxNodes, policy.maxDepth, policy.maxReadResponseBytes)
+            : construction(policy, prepareMemberReceiptConstruction, [args]);
           // This is the existing private Ledger receiver. Public callers cannot
           // inject a quote: their second argument is replaced at this boundary.
           args[1] = prepared;
           return construction(ledger, method, args, prepared === undefined ? undefined : runtimeField(prepared, 0), prepared !== undefined);
+        }
+        const rowKind = name === 'claimDispatch' || name === 'beginPhysicalFlight' || name === 'readClaimedResponse'
+          ? 'entry' : name === 'recordResponse' ? 'response'
+            : name === 'recordAdmittedRowOutcome' || name === 'commitAdmittedRowOutcome' || name === 'readAdmittedTerminalOutcome'
+              ? 'receipt' : undefined;
+        if (rowKind !== undefined && typeof construction.ledgerRow === 'function') {
+          return construction.ledgerRow(ledger, method, args, rowKind,
+            policy.maxEntryBytes, policy.maxNodes, policy.maxDepth, policy.maxReadResponseBytes);
         }
         // These family selections read only frozen DATA lengths. Mutable or
         // nonstandard callers keep their exact original generic path.
@@ -135,6 +161,8 @@ export function openEffectLedger({
   const physical = openSqliteEffectLedger(root, {
     authorityScopeCid, maxEntries, maxEntryBytes, maxResponseBytes, maxReadResponseBytes,
     maxStoredBytes,
+    ...(typeof controlConstruction?.ledgerHistory === 'function'
+      ? {beforeHistoryRead: (count, wireUnits) => controlConstruction.ledgerHistory(count, wireUnits)} : {}),
   });
   const ownedBatchEvidence = new WeakSet();
   const assertOwnedBatchEvidence = (claims, evidence) => {
@@ -1123,6 +1151,6 @@ export function openEffectLedger({
   // One outer caller frame owns nested original work, never recursive debits.
   // Close remains the original cleanup path even after a constructor failed.
   return bindEffectLedgerConstruction(ledger, controlConstruction,
-    Object.freeze({maxEntries, maxEntryBytes, maxNodes, maxDepth, maxOutcomeNodes, maxOutcomeDepth,
+    Object.freeze({maxEntries, maxEntryBytes, maxReadResponseBytes, maxNodes, maxDepth, maxOutcomeNodes, maxOutcomeDepth,
       runtime: moon, receiptConstruction: moon.clientProgramInstalledEffectMemberReceiptConstruction}));
 }

@@ -298,6 +298,7 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
     ...(Object.hasOwn(recipe, 'recoveryConstruction') ? ['recoveryConstruction'] : []),
     ...(Object.hasOwn(recipe, 'footprintConstruction') ? ['footprintConstruction'] : []),
     ...(Object.hasOwn(recipe, 'grantConstruction') ? ['grantConstruction'] : []),
+    ...(Object.hasOwn(recipe, 'projectConstruction') ? ['projectConstruction'] : []),
     ...(Object.hasOwn(recipe, 'credentialOperations') ? ['credentialOperations'] : []),
     ...(Object.hasOwn(recipe, 'ownedReadOperations') ? ['ownedReadOperations'] : []),
     ...(Object.hasOwn(recipe, 'physicalWrite') ? ['physicalWrite'] : [])]);
@@ -380,17 +381,19 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
   const captureConstruction = memberConstruction('captureConstruction');
   const recoveryConstruction = memberConstruction('recoveryConstruction');
   const footprintConstruction = memberConstruction('footprintConstruction');
-  let grantConstruction;
-  if (fields.grantConstruction !== undefined) {
-    const selected = own(fields.grantConstruction.value, ['receiver', 'method', 'capacity']);
+  const ownedConstruction = name => {
+    if (fields[name] === undefined) return undefined;
+    const selected = own(fields[name].value, ['receiver', 'method', 'capacity']);
     const receiver = selected.receiver.value, method = selected.method.value, capacity = selected.capacity.value;
     if (receiver === null || typeof receiver !== 'object' || nodeTypes.isProxy(receiver) ||
         typeof method !== 'function' || nodeTypes.isProxy(method) || nodeTypes.isAsyncFunction(method) ||
         capacity === null || typeof capacity !== 'object' || nodeTypes.isProxy(capacity)) {
       fail('InvalidInstalledEffectPlanRecipe');
     }
-    grantConstruction = Object.freeze({receiver, method, capacity});
-  }
+    return Object.freeze({receiver, method, capacity});
+  };
+  const grantConstruction = ownedConstruction('grantConstruction');
+  const projectConstruction = ownedConstruction('projectConstruction');
   if (footprintConstruction !== undefined && (footprintConstruction.inputExtent !== undefined ||
       footprintConstruction.operationIndex === captureConstruction?.operationIndex ||
       footprintConstruction.operationIndex === recoveryConstruction?.operationIndex ||
@@ -499,6 +502,7 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
     ...(recoveryConstruction === undefined ? {} : {recoveryConstruction}),
     ...(footprintConstruction === undefined ? {} : {footprintConstruction}),
     ...(grantConstruction === undefined ? {} : {grantConstruction}),
+    ...(projectConstruction === undefined ? {} : {projectConstruction}),
     ...(credentialOperations === undefined ? {} : {credentialOperations}),
     ...(physicalWrite === undefined ? {} : {physicalWrite})});
 }
@@ -1143,8 +1147,11 @@ export function prepareInstalledEffectControlConstruction(run) {
   const footprintBegin = runtime?.clientProgramInstalledEffectOperationFootprintConstructionBegin;
   const ledgerOpenBegin = runtime?.clientProgramInstalledEffectOperationLedgerOpenBegin;
   const ledgerFamilyBegin = runtime?.clientProgramInstalledEffectOperationLedgerFamilyBegin;
+  const ledgerRowBegin = runtime?.clientProgramInstalledEffectOperationLedgerRowBegin;
+  const ledgerHistoryGrow = runtime?.clientProgramInstalledEffectOperationLedgerHistoryGrow;
   const beginInput = runtime?.clientProgramInstalledEffectOperationControlInputBegin;
   const codecBegin = runtime?.clientProgramInstalledEffectOperationLedgerCodecBegin;
+  const receiptCodecBegin = runtime?.clientProgramInstalledEffectOperationReceiptCodecBegin;
   const codecComplete = runtime?.clientProgramInstalledEffectOperationLedgerCodecComplete;
   const hasHostInput = runtime?.clientProgramInstalledEffectManagedPlanHasHostInput;
   const retainInventory = runtime?.clientProgramInstalledEffectCapturedInputInventoryRetain;
@@ -1156,7 +1163,7 @@ export function prepareInstalledEffectControlConstruction(run) {
   if (![begin, complete, readPlan].every(method => typeof method === 'function') || parent === undefined || plan === undefined) {
     fail('InstalledEffectControlRuntimeUnavailable');
   }
-  let working = false, codecWorking = false, failed = false, retired = false, primary, pending, work;
+  let working = false, codecWorking = false, historyWorking = false, failed = false, retired = false, primary, pending, work;
   let previewInputWire, previewInput;
   const sameRecord = () => !run.closed && run.runtime === runtime && run.value === parent &&
     run.prepared === prepared && run.request === request && run.operationPlan === plan &&
@@ -1181,7 +1188,7 @@ export function prepareInstalledEffectControlConstruction(run) {
     Reflect.apply(nativePromiseThen, joined, [settled, settled]);
     fail('InvalidInstalledEffectControlConstruction');
   };
-  const invoke = (receiver, method, args, inputWire, grant = false, requestProjection, footprintProjection, ledgerRoot, ledgerFamily, nativeConstruction, memberReceipt = false) => {
+  const invoke = (receiver, method, args, inputWire, grant = false, requestProjection, footprintProjection, ledgerRoot, ledgerFamily, nativeConstruction, memberReceipt = false, ledgerRow) => {
     if (retired) fail('InstalledEffectControlConstructionRetired');
     if (failed) throw primary;
     if (working || run.selecting) fail('InstalledEffectControlConstructionPending');
@@ -1194,7 +1201,7 @@ export function prepareInstalledEffectControlConstruction(run) {
     // These exact installing Core entrances own their Resource cut: the
     // borrowed Plan getter, or a key constructor that grows this SAME parent
     // before allocation. No arbitrary callback or Host count selects it.
-    const metadata = nativeConstruction === undefined && ledgerFamily === undefined && ledgerRoot === undefined && !grant && requestProjection === undefined && footprintProjection === undefined && inputWire === undefined && receiver === runtime &&
+    const metadata = nativeConstruction === undefined && ledgerRow === undefined && ledgerFamily === undefined && ledgerRoot === undefined && !grant && requestProjection === undefined && footprintProjection === undefined && inputWire === undefined && receiver === runtime &&
       !nodeTypes.isProxy(method) && !nodeTypes.isProxy(args) &&
       (method === shape && Object.getOwnPropertyDescriptor(args, 'length')?.value === 1 &&
         Object.getOwnPropertyDescriptor(args, '0')?.value === plan ||
@@ -1219,13 +1226,15 @@ export function prepareInstalledEffectControlConstruction(run) {
       originalRecord();
       if (metadata) observePlan();
       else checked(Reflect.apply(nativeConstruction !== undefined ? memberReceipt ? receiptBegin : nativeBegin :
+        ledgerRow !== undefined && ledgerRowBegin !== undefined ? ledgerRowBegin :
         ledgerFamily !== undefined && ledgerFamilyBegin !== undefined ? ledgerFamilyBegin :
         ledgerRoot !== undefined && ledgerOpenBegin !== undefined ? ledgerOpenBegin :
         footprintProjection !== undefined && footprintBegin !== undefined ? footprintBegin :
         requestProjection !== undefined && requestProjectionBegin !== undefined ? requestProjectionBegin :
         grant && grantBegin !== undefined ? grantBegin :
         inputWire === undefined ? begin : beginInput, runtime,
-        [parent, prepared, request, plan, ...(ledgerFamily !== undefined && ledgerFamilyBegin !== undefined
+        [parent, prepared, request, plan, ...(ledgerRow !== undefined && ledgerRowBegin !== undefined
+          ? ledgerRow : ledgerFamily !== undefined && ledgerFamilyBegin !== undefined
           ? ledgerFamily : ledgerRoot !== undefined && ledgerOpenBegin !== undefined
           ? [ledgerRoot] : footprintProjection !== undefined && footprintBegin !== undefined
           ? footprintProjection : requestProjection !== undefined && requestProjectionBegin !== undefined
@@ -1320,11 +1329,37 @@ export function prepareInstalledEffectControlConstruction(run) {
   const ledgerFamily = (receiver, method, args, counts, entries, bytes, nodes, depth) =>
     invoke(receiver, method, args, undefined, false, undefined, undefined,
       undefined, [counts, entries, bytes, nodes, depth]);
+  const ledgerRow = (receiver, method, args, kind, bytes, nodes, depth, responseBytes) => {
+    if (!['entry', 'response', 'receipt', 'quantity'].includes(kind) ||
+        ![bytes, nodes, depth, responseBytes].every(value => Number.isSafeInteger(value) && value > 0)) {
+      fail('InvalidInstalledEffectControlConstruction');
+    }
+    return invoke(receiver, method, args, undefined, false, undefined, undefined,
+      undefined, undefined, undefined, false, [kind, bytes, nodes, depth, responseBytes]);
+  };
+  // The original SQLite history reader invokes this before materializing its
+  // same-transaction rows. It extends the active frame, never another owner.
+  const ledgerHistory = (count, wireUnits) => {
+    if (retired) fail('InstalledEffectControlConstructionRetired');
+    if (failed) throw primary;
+    if (!working || !run.selecting || codecWorking || historyWorking) fail('InstalledEffectControlConstructionPending');
+    if (!Number.isSafeInteger(count) || count < 0 || !Number.isSafeInteger(wireUnits) || wireUnits < 0 ||
+        typeof ledgerHistoryGrow !== 'function') fail('InstalledEffectControlRuntimeUnavailable');
+    historyWorking = true;
+    try {
+      originalRecord();
+      checked(Reflect.apply(ledgerHistoryGrow, runtime, [parent, prepared, request, plan, count, wireUnits]));
+      originalRecord();
+    } catch (cause) {
+      failed = true; primary = cause;
+      throw cause;
+    } finally { historyWorking = false; }
+  };
   // Only the original Ledger invokes this nested synchronous seam. The outer
   // control frame retains every output. The selected Ledger family adds its
   // coheld snapshot/array demand; generic frames retain the full family floor.
   // No Preview one-use identity or physical occurrence is reused.
-  const ledgerCodec = (receiver, method, args, wire, nodes = 512, depth = 16) => {
+  const ledgerCodec = (receiver, method, args, wire, nodes = 512, depth = 16, receiptWire) => {
     if (retired) fail('InstalledEffectControlConstructionRetired');
     if (failed) throw primary;
     if (!working || !run.selecting || codecWorking) fail('InstalledEffectControlConstructionPending');
@@ -1332,13 +1367,15 @@ export function prepareInstalledEffectControlConstruction(run) {
         wire !== undefined && typeof wire !== 'string' ||
         !Number.isSafeInteger(nodes) || nodes < 1 || nodes > 4096 ||
         !Number.isSafeInteger(depth) || depth < 1 || depth > 32 ||
-        typeof codecBegin !== 'function' || typeof codecComplete !== 'function') {
+        receiptWire !== undefined && (typeof receiptWire !== 'boolean' || typeof wire !== 'string') ||
+        typeof (receiptWire === undefined ? codecBegin : receiptCodecBegin) !== 'function' || typeof codecComplete !== 'function') {
       fail('InstalledEffectControlRuntimeUnavailable');
     }
     codecWorking = true;
     try {
       originalRecord();
-      checked(Reflect.apply(codecBegin, runtime, [parent, prepared, request, plan, wire, nodes, depth]));
+      checked(Reflect.apply(receiptWire === undefined ? codecBegin : receiptCodecBegin, runtime,
+        [parent, prepared, request, plan, wire, nodes, depth, ...(receiptWire === undefined ? [] : [receiptWire])]));
       originalRecord();
       const value = Reflect.apply(method, receiver, args);
       if (failed) throw primary;
@@ -1351,6 +1388,10 @@ export function prepareInstalledEffectControlConstruction(run) {
       failed = true; primary = cause;
       throw cause;
     } finally { codecWorking = false; }
+  };
+  const receiptCodec = (receiver, method, args, wire, nodes, depth, receiptWire) => {
+    if (typeof receiptWire !== 'boolean') fail('InstalledEffectControlRuntimeUnavailable');
+    return ledgerCodec(receiver, method, args, wire, nodes, depth, receiptWire);
   };
   const parsePreview = (wire, borrowOriginal = false) => {
     if (retired) fail('InstalledEffectControlConstructionRetired');
@@ -1463,6 +1504,9 @@ export function prepareInstalledEffectControlConstruction(run) {
   };
   registerInstalledEffectDependencyOriginal(work,{runtime,parent,prepared,request,plan,current:originalRecord});
   return Object.freeze(Object.assign(work, {retire, parsePreview, ledgerCodec, grant, requestProjection, footprint, ledgerOpen, ledgerFamily,
+    ...(typeof ledgerRowBegin === 'function' ? {ledgerRow} : {}),
+    ...(typeof ledgerHistoryGrow === 'function' ? {ledgerHistory} : {}),
+    ...(typeof receiptCodecBegin === 'function' ? {receiptCodec} : {}),
     retainInputs, retainRecoveredInputs}));
 }
 
