@@ -4,10 +4,49 @@ import assert from 'node:assert/strict';
 import {access} from 'node:fs/promises';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
+import {observeProjectEffectDependencies} from './project-effect-dependency-observation.mjs';
 
 const tables = ['effect_ledger_entries', 'effect_ledger_heads',
   'effect_ledger_responses', 'effect_ledger_batch_responses',
   'effect_ledger_batch_members', 'effect_ledger_outcomes'];
+
+// File reads use the captured lookup attempt chain, not the optional BigQuery
+// Job-original table below. Inspect the SAME authenticated completed capture;
+// the complete immutable snapshot also detects any cold-phase evidence change.
+export async function observeProjectFileStoreSourceAcquisitions(stateDir, ref, maximumBytes) {
+  const {summary, snapshot} = await observeProjectEffectDependencies(stateDir, ref, maximumBytes);
+  const cid = /^sha256:[0-9a-f]{64}$/u;
+  let receipts = 0, attempts = 0;
+  for (const entry of snapshot.entries) {
+    if (entry.kind !== 'acquisition_attempt_receipt') continue;
+    const receipt = JSON.parse(entry.wire);
+    assert.equal(receipt.version, 'actql-lookup-attempt-receipt/0.1');
+    assert.equal(receipt.state, 'succeeded');
+    assert.equal(receipt.self_cid, entry.cid);
+    assert(Array.isArray(receipt.attempts));
+    for (const attempt of receipt.attempts) {
+      assert(attempt !== null && typeof attempt === 'object' && !Array.isArray(attempt));
+      assert.equal(attempt.outcome, 'captured');
+      for (const field of ['call_slot_cid', 'semantic_request_cid', 'raw_response_artifact_cid']) {
+        assert.equal(typeof attempt[field], 'string');
+        assert(cid.test(attempt[field]));
+      }
+      for (const field of ['batch_index', 'page_index']) {
+        assert(Number.isSafeInteger(attempt[field]) && attempt[field] >= 0);
+      }
+      assert(Number.isSafeInteger(attempt.network_attempt) && attempt.network_attempt >= 1);
+      assert(!Object.hasOwn(attempt, 'runtime_error_cid'));
+    }
+    receipts++;
+    attempts += receipt.attempts.length;
+    assert(Number.isSafeInteger(attempts));
+  }
+  for (const entry of snapshot.entries) Object.freeze(entry);
+  for (const reference of snapshot.references) Object.freeze(reference);
+  Object.freeze(snapshot.entries); Object.freeze(snapshot.references); Object.freeze(snapshot);
+  return Object.freeze({summary: Object.freeze({receipts, attempts,
+    capturedRunCid: snapshot.capturedRunCid, snapshotCid: summary.snapshotCid}), snapshot});
+}
 
 export function observeProjectFileStoreAttempts(stateDir, ref) {
   const requests = new DatabaseSync(join(stateDir, 'requests', 'client-requests.sqlite3'), {readOnly: true});
