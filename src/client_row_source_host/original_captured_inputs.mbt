@@ -355,6 +355,23 @@ pub fn row_captured_inputs_source_at(
 }
 
 ///|
+/// Immutable placement identity only, never availability or authorization.
+/// The caller must separately check the complete original borrowed inventory.
+/// Other capture families keep their existing current-source projection.
+pub fn row_captured_inputs_source_same_original(
+  value : RowCapturedInputs,
+  index : Int,
+  source : @query.CapturedInputSource,
+) -> Bool {
+  match value.captures.get(index) {
+    Some({ original: Live(capture), }) =>
+      capture.run.configuration is DirectConfiguration(_) &&
+      physical_equal(capture.source, source)
+    _ => false
+  }
+}
+
+///|
 // Only the closed Direct Row constructor supplies this capture's immutable
 // Source. Its query matcher observes current once; the private original slots
 // fence callback reentry afterward. Input/Restored and standalone getters keep

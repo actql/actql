@@ -392,19 +392,40 @@ fn client_effect_keyed_composed_original_current(
     value.producers is NoProducers &&
     value.sources is [source] &&
     value.inputs is [(_, _, _)] &&
-    // The sole Source-origin constructor seals this read over the exact Source
-    // output, adding only source.live as its restriction. The fresh Source
-    // check already verifies that original completion; this private binding
-    // has no separate Read revocation. The outer left checks the actual Read,
-    // and the output projection still validates the full binding before use.
-    @query.captured_source_available(source) &&
-    value.direct_output is Some(_) &&
-    @row_host.row_captured_inputs_source_at(value.captures, 0) is Some(same) &&
-    physical_equal(source, same) &&
-    @row_host.row_captured_inputs_borrowed_available(
+    value.direct_output is Some(_) else {
+    return false
+  }
+  // The sole constructor seals this read/output over the same capture. Direct
+  // captures can compare that immutable placement without calling their live
+  // verifier twice before the complete inventory check below. No availability
+  // decision is retained; all other capture families keep the current path.
+  let direct = @row_host.row_captured_inputs_source_same_original(
+    value.captures,
+    0,
+    source,
+  )
+  if !direct {
+    guard @query.captured_source_available(source) &&
+      @row_host.row_captured_inputs_source_at(value.captures, 0) is Some(same) &&
+      physical_equal(source, same) else {
+      return false
+    }
+  }
+  guard @row_host.row_captured_inputs_borrowed_available(
+    value.captures,
+    bound.ledger,
+  ) else {
+    return false
+  }
+  // That full check may invoke transport/provider callbacks. Its existing
+  // final mutable-state fence remains mandatory; recheck placement afterward
+  // using only immutable identity, with no callback between this and census.
+  if direct &&
+    !@row_host.row_captured_inputs_source_same_original(
       value.captures,
-      bound.ledger,
-    ) else {
+      0,
+      source,
+    ) {
     return false
   }
   @resources.original_ledger_inventory_available(bound.identity)

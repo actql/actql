@@ -375,6 +375,8 @@ pub fn row_captured_inputs_source_at(RowCapturedInputs, Int) -> @execution_query
 
 pub fn row_captured_inputs_source_original_at(RowCapturedInputs, Int) -> @sourceview_resolution.SourceAcquisition?
 
+pub fn row_captured_inputs_source_same_original(RowCapturedInputs, Int, @execution_query.CapturedInputSource) -> Bool
+
 pub fn row_captures_original_keyed_child_available(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, @physical_resources.Reservation, Int, prefix? : @physical_resources.Reservation?) -> Bool
 
 pub fn row_captures_original_keyed_lookup_dependents_retired(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.Reservation, prefix? : @physical_resources.Reservation?) -> Bool

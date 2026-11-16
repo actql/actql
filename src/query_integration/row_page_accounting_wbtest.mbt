@@ -179,10 +179,12 @@ test "borrowed Direct Source projection keeps captured custody across abort and 
   for retired in 0..<3 {
     let action : Ref[(() -> Unit)?] = Ref(None)
     let provider_live = Ref(true)
+    let current_calls = Ref(0)
     let (run, ledger, plan) = row_page_run(
       "original-live-projection-" + retired.to_string(),
       original_inventory=true,
       verify=_ => {
+        current_calls.val += 1
         let available = provider_live.val
         if action.val is Some(callback) {
           action.val = None
@@ -206,6 +208,18 @@ test "borrowed Direct Source projection keeps captured custody across abort and 
       ledger, control_bytes, control_bytes,
     ).unwrap()
     let inputs = @row_host.borrow_row_captured_inputs([capture], ledger, 10).unwrap()
+    let before_identity = current_calls.val
+    assert_true(
+      @row_host.row_captured_inputs_source_same_original(inputs, 0, original),
+    )
+    let wrapped = @query.restrict_captured_source(original, () => true)
+    assert_false(
+      @row_host.row_captured_inputs_source_same_original(inputs, 0, wrapped),
+    )
+    assert_false(
+      @row_host.row_captured_inputs_source_same_original(inputs, 1, original),
+    )
+    assert_eq(current_calls.val, before_identity)
     assert_true(
       @row_host.row_captured_inputs_source_at(inputs, 0) is Some(source) &&
       physical_equal(source, original),
@@ -241,6 +255,14 @@ test "borrowed Direct Source projection keeps captured custody across abort and 
       )
     }
     @row_host.close_accounted_row_run(run).unwrap()
+    // Placement is immutable DATA, not a cached availability decision. Even
+    // after close it cannot replace the complete fresh inventory check.
+    assert_true(
+      @row_host.row_captured_inputs_source_same_original(inputs, 0, original),
+    )
+    assert_false(
+      @row_host.row_captured_inputs_borrowed_available(inputs, ledger),
+    )
     assert_true(@row_host.row_captured_inputs_source_at(inputs, 0) is None)
     @resources.settle_capacity(ledger, controls).unwrap()
     assert_true(
