@@ -75,8 +75,35 @@ or mode for these two methods. The original wrapper reads only immutable
 member/claim-array lengths through DATA descriptors for the frontier methods. It passes
 those coordinates and the original Ledger policy to MoonBit. Mutable or
 unknown inventories and larger policies retain the complete generic frame.
-Other methods use that frame except for the member Receipt construction below. This is a quantity selection, not Preview membership, current
+Unknown methods retain the generic frame. This is a quantity selection, not Preview membership, current
 permission, completed validation or a claim that any durable head is absent.
+
+The original wrapper also classifies its closed single-row calls. Entry calls
+retain the single-head codec and physical response envelope; response recording
+needs bounded SQL carriers, binary copies and hashing rather than a Receipt
+parser. Row Receipt calls retain those physical intermediates while their real
+issuer/admission codecs run. The nested Receipt quote follows an allocation-free
+scan of the actual immutable outcome or Receipt wire, with the closed envelope
+fields added conservatively. Malformed input keeps the full fallback. Admission,
+canonical form, identity, dispatch binding and currentness checks still execute;
+the scan grants none of those facts. Returned populations remain on the original
+per-row retained floor.
+
+History construction obtains its actual count and total text geometry before
+materializing rows, in the same SQLite transaction as the read. The original
+control grows first or the read refuses. Its existing frame keeps base scratch
+plus the maximum history scratch observed during that constructor. Sequential
+histories do not accumulate their expired temporary demands; nested codecs keep
+the live peak until outer completion. Same-query native text and integer bounds
+protect refused records too. A typed single-response read checks incompatible
+batch presence without constructing a batch member population.
+
+An installing recipe may bind an opaque constructor quote to its exact original
+receiver and method. Grant and provider projection callers use it only while
+both identities match; unknown or replaced issuers keep the generic path. Such
+a scratch-only quote relies on the same recipe's prepaid returned population,
+including fallback control recipes. It neither returns retained proof records
+early nor supplies a grant, approval or physical cleanup acknowledgement.
 
 Member Receipt construction keeps the row Ledger and terminal Receipt codecs unchanged.
 Its aggregate output bounds follow the closed CID/state/index grammar at the
