@@ -344,7 +344,12 @@ test "pre-Run Local inventory counts both imports of one checked predecessor" {
     100,
     inputs=Some((imports, None)),
   ).unwrap()
-  let imported = @local.local_import_retention_capacity(imports).unwrap()
+  // The owned materializing importer starts empty and grows before decode.
+  // Two checked ports still own two independent startup packets even when
+  // both read the same predecessor. Full saturation is tested by the importer.
+  let imported = @local.local_materializing_import_start_capacity(imports).unwrap()
+  assert_true(imported > 0L)
+  assert_true(imported < @local.local_import_retention_capacity(imports).unwrap())
   let before = @local_driver.local_dispatch_preparation_task_capacity(base, 1).unwrap()
   let selected = @local_driver.local_dispatch_preparation_task_capacity(
     original, 1,

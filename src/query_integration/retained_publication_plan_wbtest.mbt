@@ -5,6 +5,7 @@
 /// neither the global fixture policy nor any product limit is widened.
 fn native_publication_retained_local_plan(
   retained_bytes? : Int64? = None,
+  pressure? : Ref[@resources.CapacityReservation?]? = None,
 ) -> (
   @strategy.CapturedDAG,
   @dbhost.StrategyHostDispatch,
@@ -99,6 +100,34 @@ fn native_publication_retained_local_plan(
   let offers = Array::makei(3, index => {
     @dbhost.prepare_dispatch_local_offer(host, index + 1, Some(1L)).unwrap()
   })
+  if pressure is Some(destination) {
+    // Price the actual three offers without committing a strategy. The
+    // default owned constructors can grow before decode; their full fallback
+    // ceilings above remain a Native fixture policy, not an admission oracle.
+    let choices = @strategy.prepare_strategy_choices(
+      run,
+      offers,
+      registry,
+      None,
+    ).unwrap()
+    let required = @strategy.strategy_choice_assessment(choices, 0).unwrap().retained_bytes
+    let ledger = @strategy.captured_dag_ledger(run)
+    let usage = @resources.ledger_usage(ledger)
+    let available = @resources.ledger_admission_limits(ledger).retained_bytes -
+      usage.held_bytes -
+      usage.reserved_retention_bytes
+    assert_true(required > 0L && required <= available)
+    destination.val = Some(
+      @resources.reserve_capacity(ledger, available - required + 1L, 0L).unwrap(),
+    )
+    let pressured = @resources.ledger_usage(ledger)
+    assert_eq(
+      @resources.ledger_admission_limits(ledger).retained_bytes -
+      pressured.held_bytes -
+      pressured.reserved_retention_bytes,
+      required - 1L,
+    )
+  }
   let decision = @strategy.revise_strategy(run, offers, registry, None).unwrap()
   (run, host, issuer, decision, wire)
 }
@@ -108,10 +137,14 @@ fn close_retained_publication_plan(
   run : @strategy.CapturedDAG,
   dispatch : @dbhost.StrategyHostDispatch,
   issuer : @mock.MockQueryIssuer,
+  pressure? : @resources.CapacityReservation? = None,
 ) -> Unit raise {
   @dbhost.stop_strategy_dispatch(dispatch)
   for task in 0..<@strategy.graph_task_count(@strategy.captured_dag_graph(run)) {
     @strategy.close_captured_task_output(run, task)
+  }
+  if pressure is Some(reservation) {
+    @resources.settle_capacity(@strategy.captured_dag_ledger(run), reservation).unwrap()
   }
   @mock.close_mock_query_issuer(issuer)
   let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
@@ -122,8 +155,10 @@ fn close_retained_publication_plan(
 
 ///|
 test "retained Local publication planning rejects the unfunded three-offer envelope" {
+  let pressure = Ref(None)
   let (run, dispatch, issuer, decision, _) = native_publication_retained_local_plan(
     retained_bytes=Some(32000000L),
+    pressure=Some(pressure),
   )
   assert_true(decision is NoFeasible)
   assert_true(@strategy.captured_dag_strategy(run) is None)
@@ -140,12 +175,14 @@ test "retained Local publication planning rejects the unfunded three-offer envel
   for task in 1..<4 {
     assert_false(@strategy.captured_task_completed(run, task))
   }
-  close_retained_publication_plan(run, dispatch, issuer)
+  close_retained_publication_plan(run, dispatch, issuer, pressure=pressure.val)
 }
 
 ///|
 test "retained Local publication planning selects the same three offers under the quoted envelope" {
-  let (run, dispatch, issuer, decision, _) = native_publication_retained_local_plan()
+  let (run, dispatch, issuer, decision, _) = native_publication_retained_local_plan(
+    retained_bytes=Some(32000000L),
+  )
   guard decision is Selected(revision) else {
     abort("retained Local plan must select")
   }
@@ -155,8 +192,14 @@ test "retained Local publication planning selects the same three offers under th
   assert_eq(@strategy.strategy_history_count(run), 1)
   assert_eq(@strategy.strategy_report_count(run), 1)
   assert_eq(@strategy.strategy_assessment(revision).rejection, None)
+  let ledger = @strategy.captured_dag_ledger(run)
+  let usage = @resources.ledger_usage(ledger)
+  assert_true(@strategy.strategy_assessment(revision).retained_bytes > 0L)
   assert_true(
-    @strategy.strategy_assessment(revision).retained_bytes > 32000000L,
+    @strategy.strategy_assessment(revision).retained_bytes <=
+    @resources.ledger_admission_limits(ledger).retained_bytes -
+    usage.held_bytes -
+    usage.reserved_retention_bytes,
   )
   assert_eq(
     @resources.ledger_usage(@strategy.captured_dag_ledger(run)).attempts,

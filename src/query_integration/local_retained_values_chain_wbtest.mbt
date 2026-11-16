@@ -136,12 +136,11 @@ test "retained source-free Values chain admits the exact bounded producer" {
   }).unwrap()
   @strategy.revise_strategy(run, [offer], registry, None).unwrap() |> ignore
   let assessed = @strategy.strategy_report_at(run, 0).unwrap()
-  // The managed constructor keeps its original smaller startup proof. The
-  // legacy FixedComputeRequest offer must cover its real full constructor,
-  // including when the unchanged Ledger correctly refuses that envelope.
-  assert_true(planned.retained_bytes < assessed.retained_bytes)
-  assert_true(assessed.retained_bytes >= full.retained_bytes)
-  assert_true(assessed.execution_bytes >= full.execution_bytes)
+  // This exact owned default provider carries before-commit growth into both
+  // preparation and the installed offer. Full output custody remains in its
+  // original recipe; unknown/injected constructors keep their fallback path.
+  assert_eq(assessed.retained_bytes, planned.retained_bytes)
+  assert_eq(assessed.execution_bytes, planned.execution_bytes)
   assert_eq(
     @resources.ledger_usage(@strategy.captured_dag_ledger(run)).attempts,
     0,
