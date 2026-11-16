@@ -349,7 +349,7 @@ for (const fault of ['absent', 'empty', 'ref', 'cid', 'target', 'kind', 'extra',
   });
 }
 
-for (const fault of ['encoding', 'policy', 'identity', 'over-budget']) {
+for (const fault of ['encoding', 'policy', 'identity', 'mapping-identity']) {
   test(`plural inventory independently rejects a ${fault} Environment`, async t => {
     const fixture = await installation(t);
     const value = profile('invalid'), body = JSON.parse(value.environmentWire);
@@ -362,18 +362,20 @@ for (const fault of ['encoding', 'policy', 'identity', 'over-budget']) {
       body.evidence_bundle_cid = cid('f');
       value.environmentWire = canonicalJson(body);
     }
-    if (fault === 'over-budget') {
-      body.mapping_contracts[0].padding = 'x'.repeat(65536);
+    if (fault === 'mapping-identity') {
+      // Change a real Mapping field while retaining its original CID.
+      body.mapping_contracts[0].version += '-changed';
       value.environmentWire = sealEnvironment(body);
     }
     await assert.rejects(fixture.loadInstalledEffects(await fixture.paths(
-      [profile('first'), value, profile('unreached')]), fixture.options), primary('InstalledCheckEnvironmentConflict'));
+      [profile('first'), value, profile('unreached')]), fixture.options), primary(
+      fault === 'mapping-identity' ? 'InvalidInstalledEffectSelectors' : 'InstalledCheckEnvironmentConflict'));
     assert.deepEqual(fixture.events, [['first', 'load'], ['invalid', 'load'],
       ['first', 'close'], ['invalid', 'close']]);
   });
 }
 
-test('composition retains the standard Environment byte budget across individually admitted members', async t => {
+test('composition preserves admitted Environment originals above the former 64 KiB threshold', async t => {
   const fixture = await installation(t);
   const values = ['first', 'second', 'third'].map(name => {
     const value = profile(name), body = JSON.parse(value.environmentWire);
@@ -390,8 +392,15 @@ test('composition retains the standard Environment byte budget across individual
       false, false, true, false, false, false, false), undefined);
     return value;
   });
-  await assert.rejects(fixture.loadInstalledEffects(await fixture.paths(
-    [...values, profile('unreached')]), fixture.options), primary('InstalledCheckEnvironmentConflict'));
+  const inventory = await fixture.loadInstalledEffects(await fixture.paths(values), fixture.options);
+  const bytes = Buffer.byteLength(inventory.environmentWire);
+  assert(bytes > 65536 && bytes <= 16 * 1024 * 1024);
+  const expected = values.flatMap(value => JSON.parse(value.environmentWire).mapping_contracts);
+  const byCid = (left, right) => left.mapping_contract_cid.localeCompare(right.mapping_contract_cid);
+  assert.deepEqual(JSON.parse(inventory.environmentWire).mapping_contracts.sort(byCid), expected.sort(byCid));
+  for (const value of values) assert.strictEqual(fixture.installedEffectFor(inventory, [descriptor(value)]),
+    fixture.loaded.get(value.name));
+  await inventory.close();
   assert.deepEqual(fixture.events, [['first', 'load'], ['second', 'load'], ['third', 'load'],
     ['first', 'close'], ['second', 'close'], ['third', 'close']]);
 });
