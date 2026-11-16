@@ -41,6 +41,61 @@ test('same physical child starts once and charges chunks without a second writer
   await assert.rejects(child.prepare(), {code: 'InstalledEffectOperationAlreadyPrepared'});
 });
 
+test('closed original physical work completes its workspace while request aliases still prevent retirement', async () => {
+  let f, completeCalls = 0;
+  f = fixture(async ({retainPhysicalChild}, original) => {
+    retainPhysicalChild(original); await Promise.resolve(); f.close(); return 'original response';
+  });
+  const complete = function(token) {
+    assert.strictEqual(this, f.runtime); assert.equal(typeof token, 'object');
+    completeCalls++; f.calls.push('complete'); return ok();
+  };
+  f.runtime.clientProgramInstalledEffectOwnedPhysicalOperationComplete = complete;
+  const child = f.create();
+  f.runtime.clientProgramInstalledEffectOwnedPhysicalOperationComplete = () => assert.fail('replaced completion');
+  assert.equal(await child.prepare(), 'original response');
+  assert.equal(completeCalls, 1); assert.deepEqual(f.calls, ['borrow', 'start', 'complete']);
+  assert.equal(child.status().pending, true);
+  assert.equal(child.release(), false, 'workspace completion is not request retirement');
+  f.retireAliases(); assert.equal(child.retry(), true);
+  assert.deepEqual(f.calls, ['borrow', 'start', 'complete', 'retire']);
+});
+
+for (const mode of ['pending', 'invoke-failure', 'foreign-current', 'unknown-charge']) {
+  test(`physical workspace completion preserves an unfinished original prefix: ${mode}`, async () => {
+    let f; const failure = new Error(mode);
+    f = fixture(({retainPhysicalChild, chargeBytes}, original) => {
+      retainPhysicalChild(original);
+      if (mode === 'unknown-charge') {
+        assert.throws(() => chargeBytes(1n), cause => cause === failure);
+      }
+      if (mode !== 'pending') f.close();
+      if (mode === 'invoke-failure') throw failure;
+      if (mode === 'foreign-current') f.run.value = {};
+      return 'response';
+    });
+    f.runtime.clientProgramInstalledEffectOwnedPhysicalOperationComplete = () => assert.fail('unfinished workspace returned');
+    if (mode === 'unknown-charge') f.runtime.clientProgramInstalledEffectOperationCharge = () => {throw failure;};
+    const child = f.create();
+    if (mode === 'invoke-failure') await assert.rejects(child.prepare(), cause => cause === failure);
+    else if (mode === 'foreign-current') await assert.rejects(child.prepare(), {code: 'ForeignInstalledEffectManagedRun'});
+    else assert.equal(await child.prepare(), 'response');
+    assert.equal(f.calls.includes('retire'), false);
+    assert.equal(child.status().pending, true);
+  });
+}
+
+test('physical workspace completion retains its original failure and cannot be repeated by cleanup', async () => {
+  let f; const failure = new Error('Original completion refusal'); let completions = 0;
+  f = fixture(({retainPhysicalChild}, original) => {retainPhysicalChild(original); f.close(); return 'response';});
+  f.runtime.clientProgramInstalledEffectOwnedPhysicalOperationComplete = () => {completions++; throw failure;};
+  const child = f.create();
+  await assert.rejects(child.prepare(), cause => cause === failure);
+  assert.equal(child.release(), false);
+  f.retireAliases(); assert.equal(child.retry(), true);
+  assert.equal(completions, 1);
+});
+
 test('original undefined failure keeps its physical child until actual cleanup and request retirement', async () => {
   const f = fixture(({retainPhysicalChild}, original) => {retainPhysicalChild(original); throw undefined;});
   const child = f.create(); let caught = false;

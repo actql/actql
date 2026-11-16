@@ -15,6 +15,7 @@ export function prepareInstalledEffectOwnedPhysicalChild({run, memberIndex, rowI
   const borrow = runtime?.clientProgramInstalledEffectOperationBorrow;
   const start = runtime?.clientProgramInstalledEffectOperationStart;
   const charge = runtime?.clientProgramInstalledEffectOperationCharge;
+  const complete = runtime?.clientProgramInstalledEffectOwnedPhysicalOperationComplete;
   const retire = runtime?.clientProgramInstalledEffectOperationRetire;
   if (![select, physical, transfer, borrow, start, charge, retire, readPlan]
       .every(method => typeof method === 'function')) fail('InstalledEffectOperationRuntimeUnavailable');
@@ -85,6 +86,17 @@ export function prepareInstalledEffectOwnedPhysicalChild({run, memberIndex, rowI
         const result = await invoke(Object.freeze({retainPhysicalChild, chargeBytes}));
         current();
         if (!started) fail('InstalledEffectPhysicalChildUnavailable');
+        if (typeof complete === 'function' && !stopping && !accountingFailed) {
+          // The same writer has already performed its own close. Return only
+          // ended workspace; keep its object, output and request aliases until
+          // the original release path can retire the full reservation.
+          const pending = Reflect.apply(status, child, [])?.pending;
+          current();
+          if (pending === false && !stopping && !accountingFailed) {
+            checked(Reflect.apply(complete, runtime, [token]));
+            current();
+          }
+        }
         return result;
       } finally {preparing = false;}
     },
