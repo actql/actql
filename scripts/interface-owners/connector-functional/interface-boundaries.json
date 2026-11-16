@@ -4293,6 +4293,7 @@
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
       "exports": [
+        "collectInstalledRowEffectUpdateObservations",
         "composeInstalledRowEffectOwners",
         "createInstalledRowEffect",
         "installedRowEffectConstructionLimits",
@@ -4430,6 +4431,17 @@
           "name": "cid/cid",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "collectInstalledRowEffectUpdateObservations",
+          "parameters": [
+            "adapters",
+            "selections",
+            "originals",
+            "observations",
+            "installationData"
           ],
           "async": false
         },
@@ -8508,6 +8520,7 @@
         },
         {
           "operations": [
+            "collectInstalledRowEffectUpdateObservations",
             "createRowEffectStage/physicalRoute/physicalRoute/assertClaimedCurrent/assertClaimedCurrent",
             "createRowEffectStage/selectionFence/selectionFence/assertCurrent/assertCurrent",
             "createRowEffectStage/selectionFence/selectionFence/assertCurrent/assertCurrent/assertCurrent",
@@ -8524,6 +8537,7 @@
             "validateInstalledUpdateOwnerSelections"
           ],
           "exports": [
+            "collectInstalledRowEffectUpdateObservations",
             "installedRowEffectOwnerBinding",
             "installedRowEffectUpdateObservation",
             "installedRowEffectUpdateObservations",
@@ -8640,6 +8654,10 @@
               {
                 "path": "adapters/host-node/installed-update-targets.test.mjs",
                 "anchor": "test('same physical current uses real typed installation DATA without transporting its immutable wire again', async t => {"
+              },
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "test('plural current issues each actual physical owner once per fresh observation"
               }
             ]
           }
