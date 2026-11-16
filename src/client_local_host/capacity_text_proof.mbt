@@ -208,6 +208,211 @@ fn client_local_decimal_text_bound(
 }
 
 ///|
+// Borrow cached literal geometry only through the same closed checked graph.
+// Field selection, filtering, stable sorting and limiting cannot create Text.
+// Other sources, families and value-producing expressions keep the old policy.
+fn client_local_original_values_copy_text_bound(
+  sequences : Array[@execution.GeneratedSequence],
+  demand : ClientLocalValueNodeDemand,
+  graph : @strategy.CheckedDAG?,
+  graph_offset : Int,
+  max_work? : Int = client_local_schema_proof_work(),
+) -> (Int, Int, Int)? {
+  guard graph is Some(graph) &&
+    graph_offset == 0 &&
+    @strategy.graph_captured_prefix(graph) == 0 &&
+    @strategy.graph_task_count(graph) == sequences.length() &&
+    !sequences.is_empty() &&
+    max_work > 0 else {
+    return None
+  }
+  let remaining = Ref(max_work)
+  let literal_text = Ref(0L)
+  let mut text_fields = 0L
+  for task, sequence in sequences {
+    if remaining.val < 1 {
+      return None
+    }
+    remaining.val -= 1
+    let original = @execution.generated_prepared_sequence(sequence)
+    let owner = @lower.sequence_owner(original)
+    guard @strategy.graph_task_owner(graph, task) is Some(expected) &&
+      physical_equal(owner, expected) else {
+      return None
+    }
+    let prepared = @lower.bound_preparation(owner)
+    // Each input must borrow a preceding member of this SAME checked graph.
+    // Missing, supplied and captured inputs cannot inherit literal geometry.
+    for input in 0..<@lower.preparation_input_count(prepared) {
+      let mut found = false
+      for index in 0..<@strategy.graph_data_count(graph) {
+        if remaining.val < 1 {
+          return None
+        }
+        remaining.val -= 1
+        guard @strategy.graph_data_at(graph, index) is Some(edge) else {
+          return None
+        }
+        if edge.consumer == task && edge.input == input {
+          if found || edge.producer < 0 || edge.producer >= task {
+            return None
+          }
+          found = true
+        }
+      }
+      if !found {
+        return None
+      }
+    }
+    for step in 0..<@lower.sequence_count(original) {
+      if remaining.val < 1 {
+        return None
+      }
+      remaining.val -= 1
+      guard @lower.sequence_step(original, step) is Some(operation) &&
+        @lower.node_at(prepared, step) is Some(node) &&
+        @lower.node_relation_schema(node) is Some(schema) &&
+        client_local_json_leaf_schema(schema) else {
+        return None
+      }
+      let fields = @schema.field_count(schema)
+      if fields > remaining.val {
+        return None
+      }
+      remaining.val -= fields
+      let mut row_text_fields = 0L
+      for field in 0..<fields {
+        guard @schema.field_at(schema, field) is Some(field) else {
+          return None
+        }
+        match field.contract.shape {
+          @contract.Text(_) => row_text_fields += 1L
+          @contract.Number | @contract.Boolean => ()
+          _ => return None
+        }
+      }
+      text_fields = Int64::max(text_fields, row_text_fields)
+      match operation {
+        @lower.ValuesStep(_) => {
+          guard @lower.node_values_literal_text_bytes(node) is Some(bytes) &&
+            @execution.checked_preparation_add_product(
+              literal_text.val,
+              bytes.to_int64(),
+              1L,
+            )
+            is Some(next) else {
+            return None
+          }
+          literal_text.val = next
+        }
+        @lower.RowStep(kernel) =>
+          match @lower.kernel_body(kernel) {
+            @lower.Filter(expression) =>
+              if !client_local_copy_filter_text(
+                  expression, remaining, literal_text,
+                ) {
+                return None
+              }
+            @lower.Select(_) | @lower.Limit(_, _, _) | @lower.StableSort(_) =>
+              ()
+            _ => return None
+          }
+        _ => return None
+      }
+    }
+  }
+  // A copied cell cannot contain more Text than all original literal backing.
+  // Count every possible field/row occurrence; equal Text never grants sharing.
+  guard literal_text.val > 0L &&
+    @execution.checked_preparation_add_product(
+      0L,
+      text_fields,
+      demand.rows.to_int64(),
+    )
+    is Some(copies) &&
+    @execution.checked_preparation_add_product(0L, literal_text.val, copies)
+    is Some(payload) &&
+    @execution.checked_preparation_add_product(
+      payload,
+      demand.original.max_name_width,
+      demand.rows.to_int64(),
+    )
+    is Some(total) &&
+    total < 2147483647L &&
+    client_local_json_leaf_wire_byte_bound(
+      demand.original.fields,
+      demand.rows,
+      total,
+    )
+    is Some(wire) &&
+    @execution.checked_preparation_add_product(
+      0L,
+      literal_text.val,
+      text_fields,
+    )
+    is Some(row_payload) &&
+    @execution.checked_preparation_add_product(
+      row_payload,
+      demand.original.max_name_width,
+      1L,
+    )
+    is Some(row_text) &&
+    client_local_json_leaf_wire_byte_bound(demand.original.fields, 1, row_text)
+    is Some(row_wire) else {
+    return None
+  }
+  Some((total.to_int(), wire, row_wire))
+}
+
+///|
+// Only predicates with scalar results and field/literal Text leaves qualify.
+// Walk every child, including dormant branches; Text-producing expressions
+// retain the general policy rather than receiving a guessed output bound.
+fn client_local_copy_filter_text(
+  expression : @lower.Expression,
+  remaining : Ref[Int],
+  text : Ref[Int64],
+) -> Bool {
+  if remaining.val < 1 {
+    return false
+  }
+  remaining.val -= 1
+  match @lower.expression_body(expression) {
+    @lower.Field(_, _) => true
+    @lower.Literal(_) =>
+      match @lower.expression_contract(expression).shape {
+        @contract.Text(bounds) => {
+          guard bounds.max_utf8_bytes is Some(bytes) &&
+            bytes >= 0L &&
+            @execution.checked_preparation_add_product(text.val, bytes, 1L)
+            is Some(next) else {
+            return false
+          }
+          text.val = next
+          true
+        }
+        @contract.Number | @contract.Boolean => true
+        _ => false
+      }
+    @lower.TypedNull => true
+    @lower.Unary(_, child) =>
+      match @lower.expression_contract(expression).shape {
+        @contract.Number | @contract.Boolean =>
+          client_local_copy_filter_text(child, remaining, text)
+        _ => false
+      }
+    @lower.Binary(_, left, right) =>
+      match @lower.expression_contract(expression).shape {
+        @contract.Number | @contract.Boolean =>
+          client_local_copy_filter_text(left, remaining, text) &&
+          client_local_copy_filter_text(right, remaining, text)
+        _ => false
+      }
+    _ => false
+  }
+}
+
+///|
 // Borrow cached admission geometry from the SAME literal Values originals.
 // No second row/payload scan, parse, serialization or value copy occurs.
 // Checked CrossJoin may only copy these fields. A closed Graph construction
