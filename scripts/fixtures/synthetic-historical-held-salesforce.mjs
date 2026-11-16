@@ -222,19 +222,13 @@ export async function writeSyntheticHistoricalHeldSalesforce({directory, documen
   const checkpointCid = cid(checkpointBody);
   const checkpointWire = identityWire({...checkpointBody, checkpoint_cid: checkpointCid});
   const environmentBody = declaration.environment;
-  // This is the selected installation's declared environment input, not a
-  // returned acceptance result; the original binding is independently hashed.
+  // Profile-loaded Sources keep the generic declared Host policy. Only the
+  // three existing Graph defaults are installed before Environment admission;
+  // the ordinary materializing Local row/Model profile is not selected here.
+  // Hash these independent original inputs, never a returned acceptance CID.
   environmentBody.host_policy_profile.capacity = {max_graph_construction_edges: 1000,
     max_graph_construction_input_rows: 1000, max_graph_construction_nodes: 1000,
-    ...environmentBody.host_policy_profile.capacity,
-    // The selected materializing Local Host projects its original 512MiB
-    // policy through the 256-byte logical value-node unit. Keep this authored
-    // binding aligned with that declared policy, without reading a Host CID.
-    max_relation_output_rows: 536870912 / 256,
-    max_artifact_rows: 536870912 / 256,
-    max_file_listing_items: 536870912 / 256,
-    // Match the default Local service's declared standard Model request window.
-    max_model_request_bytes_per_item: 65536};
+    ...environmentBody.host_policy_profile.capacity};
   const binding = {authorization_context_cid: cid({principal: principalId,
     account_id: account.account_id, configuration_cid: configurationCid, source_configuration_cid: sourceConfigurationCid}),
   environment_binding_cid: cid({version: 'actql-remote-run-acceptance-environment/0.1', site_key: siteKey,

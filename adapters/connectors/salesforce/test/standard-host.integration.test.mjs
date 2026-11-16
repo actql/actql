@@ -1648,6 +1648,7 @@ test('a synthetic historical held read is approved across a Host restart and rea
       checkpointAuthorization({})});
     const found = await waitFor(async () => {
       const lookup = await second.client.lookupRequest('held-read');
+      assert.notEqual(lookup.state, 'ended', JSON.stringify(lookup));
       return lookup.kind === 'found' ? lookup : undefined;
     });
     const execution = await second.client.attach(found.ref);
