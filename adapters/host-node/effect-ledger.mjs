@@ -30,7 +30,8 @@ function bindEffectLedgerCodecs(original, construction) {
       [original, method, args, name === 'admitLedgerEntry' ? args[0] : undefined,
         args.at(-2), args.at(-1)]);
   }
-  if (typeof construction.receiptCodec === 'function') {
+  const receiptCodec = construction.receiptCodec;
+  if (typeof receiptCodec === 'function') {
     for (const [name, wireIndex, receiptWire] of [
       ['issueRowOutcomeReceipt', 7, false],
       ['issueRowOutcomeReceiptFromResponse', 5, false],
@@ -41,7 +42,7 @@ function bindEffectLedgerCodecs(original, construction) {
     ]) {
       const method = original[name];
       if (typeof method !== 'function') fail('EffectLedgerControlRuntimeUnavailable');
-      control[name] = (...args) => Reflect.apply(construction.receiptCodec, construction,
+      control[name] = (...args) => Reflect.apply(receiptCodec, construction,
         [original, method, args, args[wireIndex], args.at(-2), args.at(-1), receiptWire]);
     }
   }
