@@ -324,3 +324,33 @@ test "working attachment preserves generic callers explicit finite execution" {
   assert_true(one && zero)
   assert_eq(calls.val, 0)
 }
+
+///|
+test "working attachment cannot enlarge an explicit workspace from Fragment value bytes" {
+  let sequence = prepared_sequence(row_owner(",{\"filter\":\"a >= 0\"}"))
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    sequence,
+    [sequence_fragment_context(sequence, 1, 2L)],
+    ["where_1"],
+    100000,
+    10000,
+  ).unwrap()
+  let limits : SequenceExecutionLimits = {
+    rows: { ..run_limits(), operation_entries: 8, },
+    max_work: 100000,
+    max_frames: 100,
+  }
+  let calls = Ref(0)
+  let attached = bind_generated_workspace_growth(generated, limits, 1000000L, _ => {
+    calls.val += 1
+    Ok(())
+  }).unwrap()
+  let workspace = working_row_workspace(attached, 8)
+  assert_true(reserve_slots(workspace, 8))
+  assert_false(reserve_slots(workspace, 1))
+  assert_eq(workspace.live, 8)
+  assert_eq(calls.val, 0)
+  release_slots(workspace, 8)
+  assert_eq(workspace.live, 0)
+}

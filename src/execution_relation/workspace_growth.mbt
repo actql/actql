@@ -161,9 +161,9 @@ fn grow_workspace(
 
 ///|
 /// Attach only at actual task start, after original current/claim admission.
-/// The immutable fragment Request remains the finite semantic ceiling. Its
-/// smaller runtime window is prepaid; this attachment funds actual growth,
-/// rather than reserving every declared maximum before any value is evaluated.
+/// Explicit execution limits remain enforcement ceilings. This attachment
+/// funds actual logical values, Text and output growth on the same Task; it
+/// does not turn a selected structural workspace limit into a prepaid hint.
 pub fn bind_generated_workspace_growth(
   generated : GeneratedSequence,
   limits : SequenceExecutionLimits,
@@ -235,18 +235,9 @@ fn working_row_workspace(
   generated : GeneratedSequence,
   initial : Int,
 ) -> RowWorkspace {
-  let mut maximum = initial
-  if generated.working is Some(_) {
-    for context in generated.contexts {
-      let (_, bytes) = @lower.fragment_request_ceilings(
-        context.fragment.candidate.material.request.request,
-      )
-      if bytes <= (2147483647 - initial).to_int64() {
-        maximum = Int::max(maximum, initial + bytes.to_int())
-      }
-    }
-  }
-  { ..row_workspace(maximum), growth: generated.working, }
+  // A Fragment's value-byte ceiling has a different subject and unit. It
+  // cannot enlarge the caller's explicit per-operation entry ceiling.
+  { ..row_workspace(initial), growth: generated.working, }
 }
 
 ///|
