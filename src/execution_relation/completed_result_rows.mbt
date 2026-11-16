@@ -338,7 +338,7 @@ fn start_completed_result_rows(
       phase: -1,
       offset: 0,
       charge: { offset: 0, next: 0, remaining: 0, },
-      tree: None,
+      tree: NoRowComparison,
     },
     mapping_phase: 0,
     mapping_index: 0,

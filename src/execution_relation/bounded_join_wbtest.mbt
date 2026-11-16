@@ -16,6 +16,7 @@ fn bounded_join_fixture(
   reserve? : ((Int64) -> Result[Unit, WorkspaceGrowthIssue])? = None,
   left_current? : (() -> Bool)? = None,
   right_current? : (() -> Bool)? = None,
+  join_keys? : String = "[{\"left\":\"id\",\"right\":\"id\"}]",
 ) -> (@bounded.Control, BoundedJoinExecution, Array[ProducerRead]) raise {
   let schema = "{\"id\":{\"type\":\"" +
     key_type +
@@ -54,7 +55,9 @@ fn bounded_join_fixture(
   }
   let pipeline_wire = "[{\"from\":\"l\",\"join\":{\"with\":\"r\",\"kind\":\"" +
     kind +
-    "\",\"on\":[{\"left\":\"id\",\"right\":\"id\"}]," +
+    "\",\"on\":" +
+    join_keys +
+    "," +
     "\"select\":" +
     projection +
     options +
@@ -319,8 +322,9 @@ test "empty bounded join has independent exact work and workspace limits" {
   // Two input-end checks, six key lookup units, six projected-name units,
   // eleven projected-source units, and six pair-state transitions.
   let work = 2 + 6 + 6 + 11 + 6
-  // Two base slots, three key slots, and three slots per projected field.
-  let workspace = 2 + 3 + 3 * 3
+  // Two base slots, the immutable source root/header/fields (5), three key
+  // slots, and three slots per projected field. Empty inputs cache no Text.
+  let workspace = 2 + 5 + 3 + 3 * 3
   for
     (work_limit, workspace_limit, succeeds) in [
       (work, workspace, true),
@@ -349,10 +353,10 @@ test "empty bounded join has independent exact work and workspace limits" {
 
 ///|
 test "bounded join reserves overlapping output and index workspace" {
-  // Base (2), key mapping/order (3), projection metadata (9), NULL flags
+  // Base (2), immutable source (5), key mapping/order (3), projection (9), NULL flags
   // (2), retained right index (1), row handles (2), three cells (3), and
   // the two live value/name measurement frames (2).
-  let exact = 2 + 3 + 9 + 2 + 1 + 2 + 3 + 2
+  let exact = 2 + 5 + 3 + 9 + 2 + 1 + 2 + 3 + 2
   for limit in [exact - 1, exact] {
     let (_, execution, _) = bounded_join_fixture(max_entries=limit)
     let result = finish_bounded_join_test(execution)

@@ -166,7 +166,7 @@ fn[T : RelationRows] start_analytic_evaluation(
       phase: -1,
       offset: 0,
       charge: { offset: 0, next: 0, remaining: 0, },
-      tree: None,
+      tree: NoRowComparison,
     },
     ranges: [],
     range_start: 0,

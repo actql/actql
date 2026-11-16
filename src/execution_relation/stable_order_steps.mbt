@@ -49,7 +49,7 @@ fn[T : IndexedRows] start_stable_order(
       phase: -1,
       offset: 0,
       charge: { offset: 0, next: 0, remaining: 0, },
-      tree: None,
+      tree: NoRowComparison,
     },
     phase: 0,
     cursor: 0,
@@ -72,10 +72,7 @@ fn[T] close_stable_order(state : StableOrderExecution[T]) -> Unit {
   if state.closed {
     return
   }
-  if state.comparison.tree is Some(tree) {
-    close_complete_tree_comparison(tree)
-    state.comparison.tree = None
-  }
+  reset_bounded_row_comparison(state.comparison)
   state.source = []
   state.target = []
   release_slots(state.workspace, state.workspace.live - state.baseline)

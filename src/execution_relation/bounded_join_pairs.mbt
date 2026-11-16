@@ -26,6 +26,7 @@ priv struct BoundedJoinPairs {
   workspace : RowWorkspace
   engine : @bounded.Control
   comparison : BoundedRowComparison
+  mut text_source : BoundedComparisonTextSource?
   mut phase : BoundedJoinPairPhase
   mut on_left : Bool
   mut row : Int
@@ -72,6 +73,9 @@ fn bounded_join_pair_compare(
   left : Int,
   right : Int,
 ) -> Result[Int?, RowIssue] {
+  // The owning pair advance freshly checks both inputs on every call. This
+  // source only retains immutable DATA from those same exact producer views;
+  // it stores no availability decision across a poll or resume.
   bounded_row_comparison_step_with(
     state.comparison,
     state.orders,
@@ -80,6 +84,8 @@ fn bounded_join_pair_compare(
     left,
     right,
     state.keys.length(),
+    workspace=Some(state.workspace),
+    text_source=state.text_source,
   ).map_err(ordering_row_issue)
 }
 
@@ -106,6 +112,17 @@ fn bounded_join_begin_right(state : BoundedJoinPairs) -> Unit {
 
 ///|
 fn advance_bounded_join_pairs(
+  state : BoundedJoinPairs,
+) -> Result[BoundedJoinPairPoll, RowIssue] {
+  let result = advance_bounded_join_pairs_inner(state)
+  if result is Err(_) {
+    reset_bounded_row_comparison(state.comparison)
+  }
+  result
+}
+
+///|
+fn advance_bounded_join_pairs_inner(
   state : BoundedJoinPairs,
 ) -> Result[BoundedJoinPairPoll, RowIssue] {
   if !bounded_binding_input_available(state.left) ||
@@ -398,6 +415,11 @@ fn cleanup_bounded_join_pairs(state : BoundedJoinPairs) -> Unit {
     advance_bounded_index_sort(sorter, 1) |> ignore
     cleanup_bounded_index_sort(sorter) |> ignore
     state.sorter = None
+  }
+  reset_bounded_row_comparison(state.comparison)
+  if state.text_source is Some(_) {
+    state.text_source = None
+    release_slots(state.workspace, 4)
   }
   state.index = []
   state.left_nulls.clear()
