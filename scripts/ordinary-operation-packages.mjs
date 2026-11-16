@@ -31,11 +31,30 @@ export async function readFixedSQLiteComparison(path, environment, load) {
 
 // The original run records the PR identity and workflow checkout. Git tree and
 // parent verification still follow after the downloaded manifest is admitted.
-function originalPerformanceMerge(repository, eventHeadSha, buildSourceSha, run) {
+function originalPerformanceMerge(repository, eventHeadSha, buildSourceSha, run, diagnosticHeadComparison) {
   assert.equal(run.event, 'pull_request', 'Only the original PR merge may differ from its event head');
   assert.equal(run.pull_requests.length, 1);
   const pr = run.pull_requests[0];
-  assert(positiveId(pr.number)); assert.equal(pr.head.sha, eventHeadSha);
+  assert(positiveId(pr.number));
+  if (diagnosticHeadComparison !== undefined && pr.head.sha !== eventHeadSha) {
+    // REST refreshes the associated PR head after later pushes. Only this
+    // diagnostic entrance may bind that head to the immutable producer event.
+    assert.equal(run.head_sha, eventHeadSha); assert.equal(run.head_commit.id, eventHeadSha);
+    assert.match(pr.head.sha, /^[a-f0-9]{40}$/u);
+    assert.equal(pr.head.ref, run.head_branch); assert.equal(typeof pr.head.ref, 'string');
+    assert(pr.head.ref.length > 0); assert.equal(typeof pr.base.ref, 'string'); assert(pr.base.ref.length > 0);
+    assert.equal(pr.url, `https://api.github.com/repos/${repository}/pulls/${pr.number}`);
+    const comparison = diagnosticHeadComparison;
+    assert.equal(comparison.html_url, `https://github.com/${repository}/compare/${eventHeadSha}...${pr.head.sha}`);
+    assert.equal(comparison.status, 'ahead'); assert.equal(comparison.behind_by, 0);
+    assert.equal(comparison.base_commit.sha, eventHeadSha);
+    assert.equal(comparison.merge_base_commit.sha, eventHeadSha);
+    assert(Number.isSafeInteger(comparison.total_commits) && comparison.total_commits > 0
+      && comparison.total_commits <= 100, 'Historical diagnostic needs a complete bounded ancestry response');
+    assert.equal(comparison.ahead_by, comparison.total_commits);
+    assert.equal(comparison.commits.length, comparison.total_commits);
+    assert.equal(comparison.commits.at(-1).sha, pr.head.sha);
+  } else assert.equal(pr.head.sha, eventHeadSha);
   assert.match(pr.base.sha, /^[a-f0-9]{40}$/u);
   assert.equal(pr.head.repo.id, run.repository.id); assert.equal(pr.base.repo.id, run.repository.id);
   const reference = run.referenced_workflows.filter(value =>
@@ -180,7 +199,8 @@ function validateBuildSource(options, purpose) {
   assert.equal(sourceCommit.tree.sha, headCommit.tree.sha, 'Built source differs from the reviewed head tree');
   let relation = 'same-head';
   if (manifest.sourceSha !== eventHeadSha) {
-    const pr = originalPerformanceMerge(options.repository, eventHeadSha, manifest.sourceSha, run);
+    const pr = originalPerformanceMerge(options.repository, eventHeadSha, manifest.sourceSha, run,
+      purpose === nativeCpuPurpose ? options.diagnosticHeadComparison : undefined);
     assert.deepEqual(sourceCommit.parents.map(parent => parent.sha), [pr.base.sha, eventHeadSha],
       'Built source does not have the original PR base/head parents');
     relation = 'pull-request-merge';
@@ -250,7 +270,14 @@ async function inspectPackageProducer(options, fetchMetadata, purpose) {
     const headCommit = await get(`git/commits/${options.sourceSha}`);
     const sourceCommit = manifest.sourceSha === options.sourceSha ? headCommit
       : await get(`git/commits/${manifest.sourceSha}`);
-    const binding = {...validateBuildSource({...options, run, artifact, jobs, manifest,
+    let diagnosticHeadComparison;
+    if (purpose === nativeCpuPurpose && manifest.sourceSha !== options.sourceSha
+      && run.pull_requests?.length === 1 && run.pull_requests[0].head.sha !== options.sourceSha) {
+      assert.match(options.sourceSha, /^[a-f0-9]{40}$/u);
+      const currentHead = run.pull_requests[0].head.sha; assert.match(currentHead, /^[a-f0-9]{40}$/u);
+      diagnosticHeadComparison = await get(`compare/${options.sourceSha}...${currentHead}?per_page=100&page=1`);
+    }
+    const binding = {...validateBuildSource({...options, run, artifact, jobs, manifest, diagnosticHeadComparison,
       manifestSha256: hash(bytes), headCommit, sourceCommit}, purpose), manifestFile};
     if (purpose === nativeCpuPurpose) {
       // Recheck the exact downloaded archive before the checkout changes. Member

@@ -242,6 +242,45 @@ function nativeCpuProvenance() {
   return p;
 }
 
+function advanceDiagnosticHead(p) {
+  const current = 'f'.repeat(40), pr = p.run.pull_requests[0];
+  Object.assign(p.run, {head_commit: {id: sha}, head_branch: 'reviewed-branch'});
+  Object.assign(pr, {url: `https://api.github.com/repos/${p.repository}/pulls/${pr.number}`});
+  Object.assign(pr.head, {sha: current, ref: p.run.head_branch}); pr.base.ref = 'main';
+  p.diagnosticHeadComparison = {html_url: `https://github.com/${p.repository}/compare/${sha}...${current}`,
+    status: 'ahead', behind_by: 0, ahead_by: 1, total_commits: 1,
+    base_commit: {sha}, merge_base_commit: {sha}, commits: [{sha: current}]};
+  return p;
+}
+
+test('historical diagnostic binds an advanced PR head to the immutable producer without granting acceptance', () => {
+  const p = advanceDiagnosticHead(nativeCpuProvenance()), before = structuredClone(p);
+  const actual = validateNativeApprovalDiagnosticSource(p);
+  assert.equal(actual.eventHeadSha, sha); assert.equal(actual.sourceSha, p.manifest.sourceSha);
+  assert.equal(actual.diagnosticOnly, true); assert.equal(actual.acceptanceEligible, false);
+  assert.deepEqual(p, before);
+  p.jobs[0].conclusion = 'success';
+  assert.throws(() => validateNativeApprovalSource(p), 'Formal validation still requires its current PR head');
+  for (const mutate of [p => delete p.diagnosticHeadComparison,
+    p => p.run.head_sha = '0'.repeat(40), p => p.run.head_commit.id = '0'.repeat(40),
+    p => p.run.pull_requests[0].head.repo.id++, p => p.run.pull_requests[0].base.repo.id++,
+    p => p.run.pull_requests[0].number++, p => p.run.pull_requests[0].head.ref = 'foreign',
+    p => p.run.pull_requests[0].url = 'https://api.github.com/repos/foreign/repo/pulls/5',
+    p => p.run.repository.full_name = 'foreign/repo', p => p.sourceCommit.parents.reverse(),
+    p => p.sourceCommit.tree.sha = '0'.repeat(40), p => p.manifest.sourceSha = '0'.repeat(40),
+    p => p.artifact.workflow_run.head_sha = '0'.repeat(40), p => p.artifact.digest = '',
+    p => p.diagnosticHeadComparison.status = 'diverged', p => p.diagnosticHeadComparison.behind_by = 1,
+    p => p.diagnosticHeadComparison.base_commit.sha = '0'.repeat(40),
+    p => p.diagnosticHeadComparison.merge_base_commit.sha = '0'.repeat(40),
+    p => p.diagnosticHeadComparison.html_url = 'https://github.com/foreign/repo/compare/old...new',
+    p => p.diagnosticHeadComparison.commits[0].sha = '0'.repeat(40),
+    p => p.diagnosticHeadComparison.total_commits = 101, p => p.diagnosticHeadComparison.commits = [],
+  ]) {
+    const changed = advanceDiagnosticHead(nativeCpuProvenance()); mutate(changed);
+    assert.throws(() => validateNativeApprovalDiagnosticSource(changed));
+  }
+});
+
 test('CPU-only producer diagnosis retains failed outcomes and cannot enter formal acceptance', () => {
   const p = nativeCpuProvenance(), before = structuredClone(p);
   const result = validateNativeApprovalDiagnosticSource(p);
@@ -359,6 +398,23 @@ globalThis.fetch = async (url, options) => {
   const formalSource = passed(['inspect-native-approval-source', cliOutput]);
   assert.equal(formalSource.purpose, 'native-approval-acceptance'); assert.equal(formalSource.acceptanceEligible, true);
   assert.equal(formalSource.sourceSha, cliSource.sourceSha); assert.equal(formalSource.archiveSha256, undefined);
+  advanceDiagnosticHead(p);
+  const freshCalls = [];
+  const freshMetadata = async url => {
+    freshCalls.push(url);
+    return {ok: true, text: async () => JSON.stringify(url.includes('/compare/') ? p.diagnosticHeadComparison
+      : url.endsWith('/runs/17') ? p.run : url.endsWith('/artifacts/23') ? p.artifact
+      : url.includes('/jobs?') ? {total_count: 1, jobs: p.jobs}
+      : url.endsWith('/' + sha) ? p.headCommit : p.sourceCommit)};
+  };
+  const historical = await inspectNativeApprovalDiagnosticProducer({...p, token: 'test-only',
+    nativePackages: output, diagnosticArchive: archive}, freshMetadata);
+  assert.equal(historical.eventHeadSha, sha); assert.equal(historical.archiveSha256, hash(zipped));
+  assert.equal(historical.acceptanceEligible, false);
+  assert(freshCalls.includes(`https://api.github.com/repos/${p.repository}/compare/${sha}...${p.run.pull_requests[0].head.sha}?per_page=100&page=1`));
+  p.diagnosticHeadComparison.status = 'diverged';
+  await assert.rejects(inspectNativeApprovalDiagnosticProducer({...p, token: 'test-only',
+    nativePackages: output, diagnosticArchive: archive}, freshMetadata), /ahead/u);
   await writeFile(join(output, 'release.json'), Buffer.concat([bytes, Buffer.from(' ')]));
   await assert.rejects(inspectNativeApprovalDiagnosticProducer({...p, token: 'test-only',
     nativePackages: output, diagnosticArchive: archive}, fetchMetadata));
