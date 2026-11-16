@@ -299,6 +299,8 @@ pub fn Store::prepare_effect_source_custody(Self, @run_publication.PublicationCo
 pub fn Store::prepare_local_preparation_raw_observation(Self, @remote_credential.LocalPreparationCredentialGrant, @remote_credential.LocalPreparationCredentialUse, @http_client.Client, @signature.Library, Bytes) -> Result[LocalPreparationRawCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_lookup_raw_custody(Self, @run_publication.PublicationContract, String) -> Result[CapturedContentCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_model_evidence_custody(Self, @run_publication.PublicationContract, String, String, String, @run_publication.RunEvidenceValue, @signature.Library, Bytes) -> Result[ModelEvidenceCustody, NativePublicationStoreIssue]
+pub fn Store::prepare_run_observation_construction(Self, @sqlite.NativeStoreOperationOriginal, Int64, Int64, Int64) -> Result[Unit, NativePublicationStoreIssue]
+pub fn Store::prepare_run_observation_constructor_scaffold(Self, @sqlite.NativeStoreOperationOriginal) -> Result[Unit, NativePublicationStoreIssue]
 pub fn Store::private_evidence_custody_construction(Self, String) -> PrivateEvidenceCustodyConstruction?
 pub fn Store::read_publication_contract(Self, String, String) -> Result[@run_publication.PublicationContract, NativePublicationStoreIssue]
 pub fn Store::read_result_schema(Self, String) -> Result[String, NativePublicationStoreIssue]

@@ -144,6 +144,8 @@ type NativePreparedCapturedRunPublication
 pub fn NativePreparedCapturedRunPublication::cancel(Self) -> Result[Bool, NativeCapturedRunPublicationCancellationIssue]
 pub fn NativePreparedCapturedRunPublication::commit(Self) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]
 pub fn NativePreparedCapturedRunPublication::prepare_run_state_candidate(Self, String, Int, Int, Int) -> Result[NativeRunStateCandidate, NativeRunStateCandidateIssue]
+pub fn NativePreparedCapturedRunPublication::run_state_construction_limits(Self) -> (Int, Int, Int)
+pub fn[T, E] NativePreparedCapturedRunPublication::with_run_state_candidate_in_read(Self, String, Int, Int, Int, (@client_local_host.ClientProgramValidationReadDemand) -> Result[Unit, @client_local_host.ClientProgramValidationIssue], (NativeRunStateCandidate) -> Result[T, E]) -> Result[Result[T, E], NativeRunStateCandidateIssue]
 
 type NativePreparedEffectfulRunPublication
 pub fn NativePreparedEffectfulRunPublication::cancel(Self) -> Result[Bool, NativeEffectfulPublicationCancellationIssue]

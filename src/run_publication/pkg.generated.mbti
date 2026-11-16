@@ -1201,6 +1201,8 @@ pub fn run_publication_start_current(RunPublicationAdmission, PublicationContrac
 
 pub fn run_publication_template_cid(RunPublicationAdmission) -> String
 
+pub fn run_state_observation_construction_inventory(Int, Int, Int) -> (EffectPreviewIdentityConstructionInventory, EffectPreviewIdentityConstructionInventory)?
+
 pub fn run_wait_ready(String, Int64?, Int, Int, Int) -> Result[Bool, RunWaitIssue]
 
 pub fn run_wait_ready_until(String, Int64?, RunWaitUntil, Int, Int, Int) -> Result[Bool, RunWaitIssue]

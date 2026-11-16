@@ -588,6 +588,25 @@ pub fn Store::retained_data_current(
 }
 
 ///|
+pub fn Store::prepare_run_observation_construction(
+  _self : Store,
+  _expected : @sqlite.NativeStoreOperationOriginal,
+  _retained : Int64,
+  _execution : Int64,
+  _contiguous : Int64,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Store::prepare_run_observation_constructor_scaffold(
+  _self : Store,
+  _expected : @sqlite.NativeStoreOperationOriginal,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Store::issue_public_index_entry_in_original_read(
   _self : Store,
   _run_definition : @publication.PublicationContract,

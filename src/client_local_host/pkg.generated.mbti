@@ -1529,6 +1529,8 @@ pub fn[I, P] take_program_json_preparation_input(ClientProgramJsonPreparation[I,
 
 pub fn[I, P] take_program_json_preparation_program(ClientProgramJsonPreparation[I, P]) -> Result[@stage_syntax.Program, ClientProgramJsonPreparationIssue]
 
+pub fn[T, E] with_program_commit_validation_view_in_read(ClientProgramCapture, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int, (ClientProgramValidationReadDemand) -> Result[Unit, ClientProgramValidationIssue], (ClientProgramValidation, @run_publication.PublicationCommitPreparation) -> Result[T, E]) -> Result[Result[T, E]?, ClientProgramValidationIssue]
+
 pub fn yield_installed_effect_operation_construction_workspace(ClientInstalledEffectOperationBorrow) -> Result[Unit, ClientInstalledManagedRunIssue]
 
 // Errors

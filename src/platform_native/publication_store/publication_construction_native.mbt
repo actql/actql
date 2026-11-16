@@ -17,6 +17,94 @@ let publication_read_caller_bytes : Int64 = 1408L
 let publication_index_quotation_bytes : Int64 = 16384L
 
 ///|
+/// Fund only on this Store's already retained original. Each constructor
+/// flight returns to the SAME entered Journal Read; no checker, SQL call or
+/// user callback spans this flight. The normal pending-return mirror remains
+/// responsible for failed returns and cleanup.
+pub fn Store::prepare_run_observation_construction(
+  self : Store,
+  expected : @sqlite.NativeStoreOperationOriginal,
+  retained : Int64,
+  execution : Int64,
+  contiguous : Int64,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  self.prepare_run_observation_construction_flight(
+    expected, retained, execution, contiguous, false,
+  )
+}
+
+///|
+/// Prepay fixed Native caller and numeric quotation carriers before creating
+/// the observer's closures/Refs. The existing closed evaluator packet covers
+/// the same generic protocol/writer quotation helpers used for the index.
+pub fn Store::prepare_run_observation_constructor_scaffold(
+  self : Store,
+  expected : @sqlite.NativeStoreOperationOriginal,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  self.prepare_run_observation_construction_flight(
+    expected,
+    2176L + publication_index_quotation_bytes,
+    2176L + publication_index_quotation_bytes,
+    @sqlite.publication_construction_block_bound(0, 0, 0),
+    true,
+  )
+}
+
+///|
+fn Store::prepare_run_observation_construction_flight(
+  self : Store,
+  expected : @sqlite.NativeStoreOperationOriginal,
+  retained : Int64,
+  execution : Int64,
+  contiguous : Int64,
+  scaffold : Bool,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if self.retiring ||
+    self.operation_body_active ||
+    self.operation_return_pending ||
+    self.pending_result_delivery is Some(_) {
+    return Err(CleanupPending)
+  }
+  guard self.operation_original is Some(original) &&
+    physical_equal(original, expected) &&
+    self.database.matches_original_store_operation(original) else {
+    return Err(InvalidConfiguration)
+  }
+  match original.enter_store() {
+    Err(issue) => return Err(Database(issue))
+    Ok(_) => ()
+  }
+  self.operation_body_active = true
+  // A zero retained-output demand invokes the existing strict StoreFromRead
+  // fence without adding output or credit. Business/idle entry is refused.
+  let result = match
+    original.prepare_publication_construction(0L, 0L, 1L, true) {
+    Err(issue) => Err(Database(issue))
+    Ok(_) => {
+      let prefix = if scaffold {
+        original.prepare_publication_scaffold(index=true)
+      } else {
+        Ok(())
+      }
+      match prefix {
+        Err(issue) => Err(Database(issue))
+        Ok(_) =>
+          original
+          .prepare_publication_construction(
+            retained, execution, contiguous, false,
+          )
+          .map_err(issue => Database(issue))
+      }
+    }
+  }
+  self.operation_body_active = false
+  self.complete_original_return(original, result)
+}
+
+///|
 fn Store::check_original_commit_in_read(
   self : Store,
   capture : @local.ClientProgramCapture,

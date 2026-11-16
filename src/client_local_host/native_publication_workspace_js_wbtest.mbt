@@ -1003,7 +1003,7 @@ fn native_publication_read_funding_component(
   )
   let read = @resources.create_ledger({
     ..limits,
-    execution_bytes: if mode == 2 {
+    execution_bytes: if mode == 2 || mode == 8 {
       publication_projection_execution - 1L
     } else {
       limits.execution_bytes
@@ -1018,7 +1018,18 @@ fn native_publication_read_funding_component(
   let plan_nodes = Ref(-1)
   let controller_before_scaffold = Ref(false)
   let controller : Ref[ClientProgramValidation?] = Ref(None)
+  let read_current = Ref(true)
+  let visited = Ref(0)
+  let escaped : Ref[
+    (
+      @publication.PublicationCommitPreparation,
+      @publication.PublicationCommitReadView,
+    )?,
+  ] = Ref(None)
   let fund = fn(demand : ClientProgramValidationReadDemand) {
+    if !read_current.val {
+      return Err(Owner(ForeignOriginal))
+    }
     let phase = match demand.phase {
       Scaffold => 0
       Inventory => 1
@@ -1053,10 +1064,101 @@ fn native_publication_read_funding_component(
     }
     Ok(())
   }
-  let checked = check_program_commit_validation_in_read(
-    capture, definition, invocation, definitions, artifacts, derivations, orderings,
-    retentions, bindings, manifest, receipt, recorded, request, attempt, index, fund,
-  )
+  let checked = if mode >= 5 {
+    let result = with_program_commit_validation_view_in_read(
+      capture,
+      definition,
+      invocation,
+      definitions,
+      artifacts,
+      derivations,
+      orderings,
+      retentions,
+      bindings,
+      manifest,
+      receipt,
+      recorded,
+      request,
+      attempt,
+      index,
+      16,
+      if mode == 9 {
+        1
+      } else {
+        16
+      },
+      if mode == 9 {
+        1
+      } else {
+        1000
+      },
+      fund,
+      fn(owner, checker) {
+        visited.val += 1
+        assert_true(
+          capture.validation is Some(original) &&
+          physical_equal(original, owner),
+        )
+        assert_true(
+          borrow_program_commit_validation(owner) is Some(original) &&
+          physical_equal(original, checker),
+        )
+        assert_true(
+          new_program_validation(capture, true) is Err(Owner(WrongPhase)),
+        )
+        let view = checker.finish_view().unwrap()
+        escaped.val = Some((checker, view))
+        assert_true(checker.view_count(view).unwrap() > 0)
+        checker.release_view(view).unwrap()
+        if mode == 6 || mode == 7 {
+          read_current.val = false
+        }
+        if mode == 7 {
+          Err("original-consumer-error")
+        } else {
+          Ok(17)
+        }
+      },
+    )
+    match mode {
+      5 => {
+        assert_eq(result.unwrap().unwrap().unwrap(), 17)
+        assert_eq(visited.val, 1)
+      }
+      6 => {
+        assert_true(result is Err(Owner(ForeignOriginal)))
+        assert_eq(visited.val, 1)
+      }
+      7 => {
+        assert_eq(result.unwrap().unwrap(), Err("original-consumer-error"))
+        assert_eq(visited.val, 1)
+      }
+      8 => {
+        assert_true(
+          result is Err(Owner(Capacity(@resources.Resource(ExecutionLimit)))),
+        )
+        assert_eq(visited.val, 0)
+      }
+      9 => {
+        assert_true(result is Ok(None))
+        assert_eq(visited.val, 0)
+      }
+      _ => fail("unknown actual Read visitor case")
+    }
+    if escaped.val is Some((checker, view)) {
+      assert_true(checker.view_count(view) is Err(_))
+    }
+    match result {
+      Err(issue) if mode == 8 => Err(issue)
+      _ => Ok(())
+    }
+  } else {
+    check_program_commit_validation_in_read(
+      capture, definition, invocation, definitions, artifacts, derivations, orderings,
+      retentions, bindings, manifest, receipt, recorded, request, attempt, index,
+      fund,
+    )
+  }
   assert_false(controller_before_scaffold.val)
   assert_true(capture.validation is None)
   assert_eq(@resources.ledger_usage(business), business_before)
@@ -1069,7 +1171,7 @@ fn native_publication_read_funding_component(
     old_quotes,
   )
   match mode {
-    2 => {
+    2 | 8 => {
       assert_true(
         checked is Err(Owner(Capacity(@resources.Resource(ExecutionLimit)))),
       )
@@ -1105,7 +1207,7 @@ fn native_publication_read_funding_component(
       assert_true(value.closed && value.plan is None && value.commit is None)
     }
   }
-  if mode != 2 {
+  if mode != 2 && mode != 8 {
     assert_eq(inventory_slots.val, 6)
     assert_eq(inventory_arrays.val, 6)
   }
@@ -1178,5 +1280,52 @@ test "expanded 512-row Text publication validates metadata on independent Read w
     chain=true,
     expanded_text=true,
     read_validation=1,
+  )
+}
+
+///|
+test "publication Read visitor keeps same original loan through consumer then invalidates all views" {
+  native_publication_workspace_component(
+    2,
+    false,
+    snapshot=true,
+    chain=true,
+    read_validation=5,
+  )
+}
+
+///|
+test "publication Read visitor refuses lost Read but preserves consumer primary and exact prefix" {
+  native_publication_workspace_component(
+    2,
+    false,
+    snapshot=true,
+    chain=true,
+    read_validation=6,
+  )
+  native_publication_workspace_component(
+    2,
+    false,
+    snapshot=true,
+    chain=true,
+    read_validation=7,
+  )
+}
+
+///|
+test "publication Read visitor low execution and unfinished bounded validation never enter consumer" {
+  native_publication_workspace_component(
+    2,
+    false,
+    snapshot=true,
+    chain=true,
+    read_validation=8,
+  )
+  native_publication_workspace_component(
+    2,
+    false,
+    snapshot=true,
+    chain=true,
+    read_validation=9,
   )
 }
