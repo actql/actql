@@ -21,13 +21,13 @@ test "publication metadata counts original lists and members independently of un
   // authority. The production entrance uses its SAME authenticated record.
   let record = @identity.from_json(
     Json::object({
-      "definitions": Json::array([Json::null]),
-      "artifacts": Json::array([Json::null]),
-      "derivations": Json::array([Json::null]),
-      "orderings": Json::array([Json::null]),
-      "retentions": Json::array([Json::null]),
-      "durable_bindings": Json::array([Json::null]),
-      "effect_source_artifacts": Json::array([Json::null]),
+      "definitions": Json::array([Json::null()]),
+      "artifacts": Json::array([Json::null()]),
+      "derivations": Json::array([Json::null()]),
+      "orderings": Json::array([Json::null()]),
+      "retentions": Json::array([Json::null()]),
+      "durable_bindings": Json::array([Json::null()]),
+      "effect_source_artifacts": Json::array([Json::null()]),
     }),
     100,
     10,
@@ -61,7 +61,10 @@ test "publication metadata counts original lists and members independently of un
   assert_eq(
     installed_effect_capture_publication_metadata_count(
       @identity.object_with_replaced_fields(record, [
-        ("definitions", @identity.String("foreign array")),
+        (
+          "definitions",
+          @identity.from_json(Json::string("foreign array"), 1, 1, 100),
+        ),
       ]).unwrap(),
       1,
     ),
