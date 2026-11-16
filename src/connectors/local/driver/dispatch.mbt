@@ -238,7 +238,9 @@ fn local_dispatch_ready_input_capacity(
       .map(value => value.0.wire.max_bytes.to_int64())
       .unwrap_or(0L),
       missing,
-      installed.import_policy is Some(_) || installed.output_policy is Some(_),
+      startup is Some(_) ||
+      installed.import_policy is Some(_) ||
+      installed.output_policy is Some(_),
     )
     is Some(capacity) else {
     return Err(Configuration(InvalidLimits))

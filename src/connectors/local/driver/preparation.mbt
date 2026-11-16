@@ -280,7 +280,7 @@ fn local_dispatch_preparation_policies(
         exported,
         inputs.map(value => value.0.wire.max_bytes.to_int64()).unwrap_or(0L),
         ports,
-        inputs is Some(_) || output is Some(_),
+        startup is Some(_) || inputs is Some(_) || output is Some(_),
       )
     },
   )

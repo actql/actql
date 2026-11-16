@@ -44,6 +44,99 @@ fn adaptive_host(
 }
 
 ///|
+test "default Local offer funds the actual materializer before starting without a transfer policy" {
+  for pressured in [true, false] {
+    let (run, issuer) = captured_graph_fixture()
+    let registry = search_registry()
+    let host = adaptive_host(run, registry)
+    @dbhost.configure_dispatch_estimates(host, adaptive_profiles(), {
+      max_offers: 6,
+      max_strategies: 8,
+      max_work: 1000,
+      max_revisions: 3,
+    }).unwrap()
+    let task = @dbhost.prepare_next_dispatch(host).unwrap().unwrap()
+    assert_eq(@dbhost.dispatch_task(task), 1)
+    let selected = @strategy.strategy_task_envelope(run, 1).unwrap()
+    let local_module = @builtin.configured_local_module(
+      @builtin.configured_host_modules(@dbhost.dispatch_installation(host)),
+    ).unwrap()
+    let planned = @local_driver.local_dispatch_preparation_task_capacity(
+      @local_driver.local_dispatch_original_preparation(local_module).unwrap(),
+      1,
+    ).unwrap()
+    assert_eq(selected, planned)
+    let ledger = @strategy.captured_dag_ledger(run)
+    let before = @resources.ledger_usage(ledger)
+    let pressure = if pressured {
+      let available = @resources.ledger_admission_limits(ledger).execution_bytes -
+        before.reserved_execution_bytes
+      assert_true(
+        selected.execution_bytes > 0L && selected.execution_bytes <= available,
+      )
+      Some(
+        @resources.reserve_capacity(
+          ledger,
+          0L,
+          available - selected.execution_bytes + 1L,
+        ).unwrap(),
+      )
+    } else {
+      None
+    }
+    if pressured {
+      let pending = @resources.ledger_usage(ledger)
+      assert_true(
+        @dbhost.take_local_dispatch(task) is Err(Run(Physical(ExecutionLimit))),
+      )
+      assert_eq(@resources.ledger_usage(ledger), pending)
+      assert_eq(pending.attempts, before.attempts)
+      assert_eq(pending.planning_work, before.planning_work)
+      assert_eq(pending.held_bytes, before.held_bytes)
+      assert_false(@strategy.captured_task_completed(run, 1))
+      assert_true(@strategy.captured_task_output(run, 1, Step(1)) is None)
+    } else {
+      let operations = @dbhost.take_local_dispatch(task).unwrap()
+      assert_eq(operations.inputs.length(), 0)
+      assert_true(operations.output is None)
+      let started = @resources.ledger_usage(ledger)
+      // Measure the actual original reservation, rather than reproducing its
+      // formula or treating the task's retained backing as execution scratch.
+      assert_eq(
+        started.reserved_execution_bytes - before.reserved_execution_bytes,
+        selected.execution_bytes,
+      )
+      assert_eq(
+        started.reserved_retention_bytes - before.reserved_retention_bytes,
+        selected.retained_bytes,
+      )
+      assert_eq(started.attempts, before.attempts)
+      assert_eq(started.planning_work, before.planning_work)
+      (operations.execute)().unwrap()
+      assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts + 1)
+      (operations.settle)().unwrap()
+      (operations.complete)().unwrap()
+      let output = @strategy.captured_task_output(run, 1, Step(1)).unwrap()
+      assert_eq(@execution.completed_row_count(output), 1)
+      assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(3)))
+    }
+    @dbhost.stop_strategy_dispatch(host)
+    for task in 0..<4 {
+      @strategy.close_captured_task_output(run, task)
+    }
+    if pressure is Some(reservation) {
+      @resources.settle_capacity(ledger, reservation).unwrap()
+    }
+    @mock.close_mock_query_issuer(issuer)
+    let closed = @resources.ledger_usage(ledger)
+    assert_eq(closed.held_bytes, 0L)
+    assert_eq(closed.reserved_retention_bytes, 0L)
+    assert_eq(closed.reserved_execution_bytes, 0L)
+    assert_eq(closed.reserved_transfer_bytes, 0L)
+  }
+}
+
+///|
 test "standard Host commits an authenticated external policy before dispatch" {
   let (run, issuer) = captured_graph_fixture()
   let registry = search_registry()

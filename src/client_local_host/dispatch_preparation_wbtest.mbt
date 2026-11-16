@@ -357,7 +357,7 @@ test "pre-Run Local inventory counts both imports of one checked predecessor" {
   assert_eq(selected.retained_bytes, before.retained_bytes + 2L * imported)
   assert_eq(
     selected.execution_bytes,
-    before.execution_bytes + selected.retained_bytes,
+    before.execution_bytes + 2L * imported,
   )
   assert_eq(selected.transfer_bytes, 2L * imports.wire.max_bytes.to_int64())
   assert_eq(
