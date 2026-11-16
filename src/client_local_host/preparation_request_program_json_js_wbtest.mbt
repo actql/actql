@@ -196,11 +196,15 @@ fn request_json_expected_bootstrap_control() -> Int64 {
   // One normalization-original reference adds1R before any grow.
   // The prepared-original method's proxy, pair Array/backing, three growing
   // names/methods/result backings and retained key/value add3H/16R/2W.
+  // Nine installed family recipe slots add9R. Interval and Sequence each
+  // retain Some(quote)1H1R and its workspace-count closure1H1W:
+  // together4H/11R/2W =168 bytes before the installed factory is entered.
   // The existing 4096-byte entry group remains separate.
   // This independent tariff expansion includes no domain Source or Check body.
-  16L * (225L + 2L + 2L + 2L + 2L + 1L + 4L + 3L + 1L + 1L + 3L + 3L) +
-  8L * (409L + 1L + 2L + 2L + 2L + 2L + 11L + 6L + 1L + 1L + 4L + 1L + 16L) +
-  8L * (468L + 3L + 1L + 2L + 3L + 4L + 1L + 14L + 13L + 1L + 7L + 2L) +
+  16L * (225L + 2L + 2L + 2L + 2L + 1L + 4L + 3L + 1L + 1L + 3L + 3L + 4L) +
+  8L *
+  (409L + 1L + 2L + 2L + 2L + 2L + 11L + 6L + 1L + 1L + 4L + 1L + 16L + 11L) +
+  8L * (468L + 3L + 1L + 2L + 3L + 4L + 1L + 14L + 13L + 1L + 7L + 2L + 2L) +
   4096L
 }
 
