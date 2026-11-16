@@ -296,6 +296,15 @@ const updateObservation = (owner, installation = ownerBinding(owner)) => ({insta
     ...(owner.storeMappings.includes(mapping) ? {store: true} : {})}))});
 const updateObservations = owners => owners.map(owner => updateObservation(owner));
 
+const updateInstallationProjection = owner =>
+  typeof owner.moon.clientProgramIssueEffectTargetInstallationData !== 'function'
+    ? undefined : issueUpdateTargetInstallationData(owner.moon, [
+      owner.bindingCid, owner.connection, owner.connectorRegistration,
+      owner.connectorRevision, owner.continuationBinding, owner.profile.continuation,
+      owner.profile.continuationBinding, owner.profile.dispatch, owner.profile.recovery,
+      owner.profile.source, owner.profile.targetCheck, owner.profile.unit, owner.runtimeBundleCid,
+    ]);
+
 // One synchronous physical projection. Issue each genuine singular owner's
 // DATA once, preserve ambiguity refusal before Mapping reads, then borrow the
 // selected issuance for its current purpose/Mapping observation. Nothing is
@@ -309,13 +318,7 @@ export function installedRowEffectUpdateObservation(adapters, ownerCid) {
     // The private physical Owner supplies scalar slots, never untrusted DATA.
     // Its profile is the closed frozen installation-table snapshot. Missing
     // typed ports keep the existing complete raw path for older components.
-    const projection = typeof owner.moon.clientProgramIssueEffectTargetInstallationData !== 'function'
-      ? undefined : issueUpdateTargetInstallationData(owner.moon, [
-        owner.bindingCid, owner.connection, owner.connectorRegistration,
-        owner.connectorRevision, owner.continuationBinding, owner.profile.continuation,
-        owner.profile.continuationBinding, owner.profile.dispatch, owner.profile.recovery,
-        owner.profile.source, owner.profile.targetCheck, owner.profile.unit, owner.runtimeBundleCid,
-      ]);
+    const projection = updateInstallationProjection(owner);
     const installation = projection?.installation ?? ownerBinding(owner);
     if (installation.cid === ownerCid) matches.push({owner, installation, data: projection?.data});
   }
@@ -323,6 +326,52 @@ export function installedRowEffectUpdateObservation(adapters, ownerCid) {
   const {owner, installation, data} = matches[0];
   const observation = updateObservation(owner, installation);
   return data === undefined ? observation : {...observation, installationData: data};
+}
+
+// These are the caller's three fresh, synchronous current-observation Maps.
+// Borrow their observation slots for private owner references until every
+// physical CID is resolved. No Mapping is read before ambiguity refusal, and
+// neither typed DATA nor an owner index survives this one current call.
+export function collectInstalledRowEffectUpdateObservations(adapters, selections,
+  originals, observations, installationData) {
+  if (!Array.isArray(adapters)) return false;
+  if (selections.length === 0) return true;
+  for (const adapter of adapters) {
+    const owner = rowInstallations.get(adapter);
+    if (owner === undefined || Array.isArray(owner)) continue;
+    const projection = updateInstallationProjection(owner);
+    const installation = projection?.installation ?? ownerBinding(owner);
+    let selected = false;
+    for (const selection of selections) {
+      if (selection.installation_owner_cid === installation.cid) selected = true;
+    }
+    if (!selected) continue;
+    if (originals.has(installation.cid)) return false;
+    originals.set(installation.cid, installation);
+    observations.set(installation.cid, owner);
+    if (projection?.data !== undefined) installationData.set(installation.cid, projection.data);
+  }
+  for (const selection of selections) {
+    if (!originals.has(selection.installation_owner_cid)) return false;
+  }
+  // Actual installations are frozen, but a legacy caller can supply a mutable
+  // adapter vector. Refuse replacement/duplication during a physical bridge
+  // before turning its earlier owner observation into current Mapping facts.
+  for (const owner of observations.values()) {
+    let occurrences = 0;
+    for (const adapter of adapters) {
+      if (rowInstallations.get(adapter) === owner) occurrences++;
+    }
+    if (occurrences !== 1) return false;
+  }
+  for (const [ownerCid, owner] of observations) {
+    const observation = updateObservation(owner, originals.get(ownerCid));
+    if (installationData.has(ownerCid)) {
+      const {installation, ...currentFacts} = observation;
+      observations.set(ownerCid, currentFacts);
+    } else observations.set(ownerCid, observation);
+  }
+  return true;
 }
 const validateOwnerSelections = (owners, selections, prepared) => {
   if (selections === undefined) return undefined;

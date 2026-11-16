@@ -15,7 +15,8 @@ import {installedInventoryComponent} from './fixtures/installed-inventory-compon
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {composeInstalledCheckEnvironment} from './installed-check-environment.mjs';
 import {createInstalledRowEffect, retainInstalledRowEffectAdapter,
-  installedRowEffectOwnerBinding, validateInstalledUpdateOwnerSelections} from './installed-row-effect.mjs';
+  installedRowEffectOwnerBinding, installedRowEffectUpdateObservation,
+  validateInstalledUpdateOwnerSelections} from './installed-row-effect.mjs';
 import {installNodePublicSourcePreparation} from './public-source-preparation.mjs';
 import {fundedClientPreparation} from './funded-client-preparation.fixture.mjs';
 import {installNodeClientEffectRun} from './client-effect-run.mjs';
@@ -78,10 +79,11 @@ function adapter({connectorId = 'crm', count = 1} = {}) {
     connectorRegistration: 'update_target_fixture', connectorRevision: 'update_target_fixture/0.1'};
 }
 
-async function fixture(t, installations = {main: adapter()}) {
+async function fixture(t, installations = {main: adapter()}, ownerMoon = moon) {
   const root = await mkdtemp(join(tmpdir(), 'actql-update-target-'));
   let inventory;
   const originalRows = new Set();
+  const drivers = [];
   t.after(async () => {
     await inventory?.close();
     for (const row of originalRows) await row.close();
@@ -108,7 +110,12 @@ async function fixture(t, installations = {main: adapter()}) {
         const connectorId = body.mapping_contracts[0].target_ref.split('/')[2];
         const unavailable = () => { counts.prepares++; assert.fail('Publication cannot perform provider work'); };
         let siteClosed = false;
-        const row = await createInstalledRowEffect({moon, environmentWire: selected.environmentWire,
+        const driver = {kinds: ['update'], prepareRequest: unavailable, requestFacts: unavailable,
+          writeOperation: unavailable, send: unavailable, project: unavailable,
+          footprint: unavailable, targetRead: {operation: 'read'},
+          observeTargets: unavailable, recoveryEntry: unavailable, recoverRequests: unavailable, requestCid: unavailable};
+        drivers.push(driver);
+        const row = await createInstalledRowEffect({moon: selected.ownerMoon ?? ownerMoon, environmentWire: selected.environmentWire,
           connectorId, connectorRegistration: 'update_target_fixture',
           connectorRevision: selected.ownerRevision ?? 'update_target_fixture/0.1',
           connection: 'fixture', runtimeBundleCid: selected.ownerRuntime ?? cid('d'),
@@ -120,10 +127,7 @@ async function fixture(t, installations = {main: adapter()}) {
           site: {issueReadGrant: unavailable, issueEffectGrant: unavailable,
             close() { if (!siteClosed) {siteClosed = true; counts.closes++;} return true; }},
           authorization: {authorize: unavailable},
-          driver: {kinds: ['update'], prepareRequest: unavailable, requestFacts: unavailable,
-            writeOperation: unavailable, send: unavailable, project: unavailable,
-            footprint: unavailable, targetRead: {operation: 'read'},
-            observeTargets: unavailable, recoveryEntry: unavailable, recoverRequests: unavailable, requestCid: unavailable},
+          driver,
         });
         originalRows.add(row);
         // Fault fixtures may deliberately present unowned metadata. Valid
@@ -173,7 +177,7 @@ async function fixture(t, installations = {main: adapter()}) {
   const options = {root, principalId: 'fixture', moon, runtimeUrl, connectorTable,
     baseEnvironmentWire: baseWire, loadMember, inventory,
     resolveSecret() { counts.credentials++; assert.fail('Installation cannot read credentials'); }};
-  return {root, path, options, counts, checkedProfiles};
+  return {root, path, options, counts, checkedProfiles, drivers};
 }
 
 const ownerFacts = (changes = {}) => ({
@@ -214,6 +218,146 @@ function originalOwnerFixture(installed) {
   const originals = installUpdateTargetOriginals({moon, control, installedEffect: installed, limits});
   return {prepared, compilation, originals, control, limits};
 }
+
+async function pluralOriginalOwnerFixture(t, count, physicalRuntimes) {
+  const names = Array.from({length: count}, (_, index) => `crm${index}`);
+  const physicalMoon = {...moon};
+  const installations = Object.fromEntries(names.map((name, index) => [name, {
+    ...adapter({connectorId: name}),
+    ownerGeneration: `sha256:${(index + 1).toString(16).padStart(64, '0')}`,
+    ownerMoon: physicalRuntimes?.[index] ?? physicalMoon,
+  }]));
+  const f = await fixture(t, installations, physicalMoon);
+  const paths = await Promise.all(names.map(name =>
+    f.path([alias(`${name}.Account`, `connector://${name}/account`)], name)));
+  const installed = await loadInstalledEffects(paths, f.options);
+  t.after(() => installed.close());
+  const environment = admitted(installed.environmentWire);
+  const publication = sourceAliasPublication(moon, environment, [], [],
+    {updateTargets: installed.queryUpdateTargets});
+  const prepare = await fundedClientPreparation(t, {moon, environment,
+    allowEffects: true, sourcePublication: publication});
+  // A second logical member shares the first original physical owner.
+  const targets = [...names, names[0]];
+  const prepared = await prepare({kind: 'program', parameters: null, input: {
+    version: 'actql/0.1', id: 'plural-current-original', stages: [{id: 'apply', inputs: {},
+      steps: [{values: {schema: {id: {type: 'string', nullable: false},
+        name: {type: 'string', nullable: false}}, rows: [{id: 'original-id', name: 'Ada'}]},
+      as: 'selected'}], results: {rows: {from: 'selected', fields: ['id', 'name']}},
+      effects: Object.fromEntries(targets.map((name, index) => [`save${index}`, {update: {
+        target: `connector://${name}/account`, mapping: `mapping:${name}.account.0.v1`,
+        from: {result: 'rows'}, id: 'id', set: {Name: {field: 'name'}}}}]))}],
+    results: {updates: {from: {stage: 'apply', result: 'rows'}}},
+  }});
+  assert.equal(prepare.kindOf(prepared), 'effectful');
+  const compilation = checked(moon.clientProgramCompileLocalEffects(prepared));
+  const control = runtimeCore(moon).publicationControl;
+  const limits = {maxWireBytes: 1_000_000, maxNodes: 100_000, maxDepth: 100};
+  const originals = installUpdateTargetOriginals({moon, control, installedEffect: installed, limits});
+  return {...f, installed, physicalMoon, names, prepared, compilation, control, limits, originals};
+}
+
+test('plural current issues each actual physical owner once per fresh observation for all logical members', async t => {
+  const f = await pluralOriginalOwnerFixture(t, 17);
+  const original = f.originals.capturePrepared(f.prepared, f.compilation);
+  const restored = f.originals.restorePrepared(original);
+  assert.equal(restored.updateTargetSelections.length, f.names.length + 1);
+  assert.equal(original.installations.length, f.installed.effects.length);
+  let issuances = 0;
+  const issue = moon.clientProgramIssueEffectTargetInstallationData;
+  f.physicalMoon.clientProgramIssueEffectTargetInstallationData = (...args) => {
+    const issued = issue(...args); checked(issued); issuances++; return issued;
+  };
+  const rounds = 2;
+  for (let round = 0; round < rounds; round++) {
+    restored.assertUpdateSelectionCurrent();
+    assert.equal(issuances, (round + 1) * f.installed.effects.length);
+  }
+  console.log('ACTQL_PLURAL_CURRENT_WORK ' + JSON.stringify({physicalOwners: f.installed.effects.length,
+    logicalSelections: restored.updateTargetSelections.length, rounds, issuances}));
+  // The next call must issue through Common again, with changed physical DATA.
+  f.physicalMoon.clientProgramIssueEffectTargetInstallationData = values =>
+    issue(values.map((value, index) => index === 4 ? cid('f') : value));
+  assert.throws(() => restored.assertUpdateSelectionCurrent(), primary('InstalledEffectOriginalSelectionChanged'));
+  f.physicalMoon.clientProgramIssueEffectTargetInstallationData = issue;
+  f.drivers[0].kinds = [];
+  assert.throws(() => restored.assertUpdateSelectionCurrent(),
+    {name: 'TypeError', message: 'InvalidEffectTargetSelections'});
+  f.drivers[0].kinds = ['update'];
+  restored.assertUpdateSelectionCurrent();
+  assert.equal(f.counts.prepares, 0);
+  assert.equal(f.counts.credentials, 0);
+});
+
+test('plural current refuses missing copied duplicate and colliding physical owners before Mapping reads', async t => {
+  const f = await pluralOriginalOwnerFixture(t, 2);
+  const original = f.originals.capturePrepared(f.prepared, f.compilation);
+  const physical = f.installed.effects;
+  for (const effects of [physical.slice(1), physical.map(value => ({...value})),
+    [...physical, physical[0]]]) {
+    const originals = installUpdateTargetOriginals({...f, moon, installedEffect: {effects}});
+    assert.throws(() => originals.restorePrepared(original), primary('InstalledEffectOriginalSelectionChanged'));
+  }
+  // A separate genuine factory occurrence can have identical owner CID DATA.
+  // Its ambiguity must be rejected before inspecting either Mapping's purpose.
+  const name = f.names[0];
+  const duplicate = await loadInstalledEffect(await f.path([
+    alias(`${name}.Account`, `connector://${name}/account`)], name), f.options);
+  t.after(() => duplicate.close());
+  assert.equal(installedRowEffectOwnerBinding(duplicate).cid,
+    installedRowEffectOwnerBinding(physical[0]).cid);
+  let mappingReads = 0;
+  Object.defineProperty(f.drivers[0], 'kinds', {configurable: true,
+    get() {mappingReads++; return ['update'];}});
+  const ambiguous = installUpdateTargetOriginals({...f, moon,
+    installedEffect: {effects: [...physical, duplicate]}});
+  assert.throws(() => ambiguous.restorePrepared(original), primary('InstalledEffectOriginalSelectionChanged'));
+  assert.equal(mappingReads, 0);
+  Object.defineProperty(f.drivers[0], 'kinds', {configurable: true, writable: true, value: ['update']});
+  f.originals.restorePrepared(original).assertUpdateSelectionCurrent();
+});
+
+test('plural current rejects a reentrant physical owner replacement and refreshes after restoration', async t => {
+  const f = await pluralOriginalOwnerFixture(t, 2);
+  const effects = [...f.installed.effects];
+  const originals = installUpdateTargetOriginals({...f, moon, installedEffect: {effects}});
+  const original = originals.capturePrepared(f.prepared, f.compilation);
+  const restored = originals.restorePrepared(original);
+  const issue = moon.clientProgramIssueEffectTargetInstallationData;
+  let changed = false;
+  f.physicalMoon.clientProgramIssueEffectTargetInstallationData = (...args) => {
+    const value = issue(...args);
+    if (!changed) {changed = true; effects[0] = {...effects[0]};}
+    return value;
+  };
+  assert.throws(() => restored.assertUpdateSelectionCurrent(), primary('InstalledEffectOriginalSelectionChanged'));
+  effects[0] = f.installed.effects[0];
+  f.physicalMoon.clientProgramIssueEffectTargetInstallationData = issue;
+  restored.assertUpdateSelectionCurrent();
+  assert.equal(f.counts.prepares, 0);
+  assert.equal(f.counts.credentials, 0);
+});
+
+test('plural current retains complete legacy fallback and refuses a partial typed observation', async t => {
+  const legacy = {...moon};
+  delete legacy.clientProgramIssueEffectTargetInstallationData;
+  const mixed = await pluralOriginalOwnerFixture(t, 2, [legacy, moon]);
+  assert.throws(() => mixed.originals.capturePrepared(mixed.prepared, mixed.compilation),
+    primary('InstalledEffectOriginalSelectionChanged'));
+  const complete = await pluralOriginalOwnerFixture(t, 2, [legacy, legacy]);
+  const original = complete.originals.capturePrepared(complete.prepared, complete.compilation);
+  complete.originals.restorePrepared(original).assertUpdateSelectionCurrent();
+  const physical = complete.installed.effects;
+  const owner = installedRowEffectOwnerBinding(physical[0]);
+  const single = installedRowEffectUpdateObservation(physical, owner.cid);
+  assert.deepEqual(single.installation, owner);
+  assert.equal(single.update, true);
+  assert.equal(Object.hasOwn(single, 'installationData'), false);
+  assert.equal(installedRowEffectUpdateObservation([physical[0], physical[0]], owner.cid), undefined);
+  assert.equal(installedRowEffectUpdateObservation(physical.map(value => ({...value})), owner.cid), undefined);
+  assert.equal(mixed.counts.prepares + complete.counts.prepares, 0);
+  assert.equal(mixed.counts.credentials + complete.counts.credentials, 0);
+});
 
 test('original submitted intent binds UPDATE evidence after one shape admission', async t => {
   const f = await fixture(t);

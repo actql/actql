@@ -2,7 +2,7 @@
 // bytes live in their existing request and Checkpoint custody; they never
 // resolve aliases, issue permissions or establish another recovery authority.
 import {checked} from '../host-common/runtime-result.mjs';
-import {installedRowEffectUpdateObservation,
+import {collectInstalledRowEffectUpdateObservations,
   installedRowEffectDescriptors} from
   './installed-row-effect.mjs';
 import {refusedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
@@ -32,19 +32,12 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
     const originals = new Map();
     const observations = new Map();
     const installationData = new Map();
-    for (const selection of selections) {
-      // The opaque Common selection already fixes its installed Owner. Look
-      // up that actual private owner, then let Common check its original
-      // UPDATE/DELETE/STORE purpose and Mapping against current observations.
-      // Reconstructing every selection as an UPDATE loses STORE's Command.
-      const observation = installedRowEffectUpdateObservation(
-        installedEffect?.effects ?? [installedEffect], selection.installation_owner_cid);
-      if (observation === undefined) fail();
-      const {installation: original, installationData: data, ...currentFacts} = observation;
-      originals.set(original.cid, original);
-      observations.set(original.cid, data === undefined ? {installation: original, ...currentFacts} : currentFacts);
-      if (data !== undefined) installationData.set(original.cid, data);
-    }
+    // Every opaque selection keeps its original UPDATE/DELETE/STORE purpose
+    // and Mapping. Share only this call's physical owner DATA projection;
+    // Common below still checks the complete original selection each time.
+    if (!collectInstalledRowEffectUpdateObservations(
+      installedEffect?.effects ?? [installedEffect], selections,
+      originals, observations, installationData)) fail();
     if (installationData.size === observations.size) {
       assertUpdateTargetSelectionCurrentData(selections, [...observations.values()], [...installationData.values()]);
     } else {
