@@ -47,10 +47,17 @@ const managedSiteCapacity = value => Array.isArray(value)
 
 const stopBoundedExecution = (operations, checked) => {
   if (typeof operations.request_cancel !== 'function') return;
-  if (operations.execution_stopped?.() === true) return;
+  // This is a best-effort logical stop. An observation failure must not
+  // replace the original execution error; the ordinary managed-failure owner
+  // still separately confirms physical cleanup and retains pending custody.
+  const stopped = () => {
+    try { return operations.execution_stopped?.() === true; }
+    catch { return false; }
+  };
+  if (stopped()) return;
   try { operations.request_cancel(); } catch {}
   if (typeof operations.advance === 'function' &&
-      operations.execution_stopped?.() !== true) {
+      !stopped()) {
     try { checked(operations.advance(1)); } catch {}
   }
 };
