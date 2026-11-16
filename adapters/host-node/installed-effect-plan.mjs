@@ -297,6 +297,7 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
     ...(Object.hasOwn(recipe, 'captureConstruction') ? ['captureConstruction'] : []),
     ...(Object.hasOwn(recipe, 'recoveryConstruction') ? ['recoveryConstruction'] : []),
     ...(Object.hasOwn(recipe, 'footprintConstruction') ? ['footprintConstruction'] : []),
+    ...(Object.hasOwn(recipe, 'grantConstruction') ? ['grantConstruction'] : []),
     ...(Object.hasOwn(recipe, 'credentialOperations') ? ['credentialOperations'] : []),
     ...(Object.hasOwn(recipe, 'ownedReadOperations') ? ['ownedReadOperations'] : []),
     ...(Object.hasOwn(recipe, 'physicalWrite') ? ['physicalWrite'] : [])]);
@@ -379,6 +380,17 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
   const captureConstruction = memberConstruction('captureConstruction');
   const recoveryConstruction = memberConstruction('recoveryConstruction');
   const footprintConstruction = memberConstruction('footprintConstruction');
+  let grantConstruction;
+  if (fields.grantConstruction !== undefined) {
+    const selected = own(fields.grantConstruction.value, ['receiver', 'method', 'capacity']);
+    const receiver = selected.receiver.value, method = selected.method.value, capacity = selected.capacity.value;
+    if (receiver === null || typeof receiver !== 'object' || nodeTypes.isProxy(receiver) ||
+        typeof method !== 'function' || nodeTypes.isProxy(method) || nodeTypes.isAsyncFunction(method) ||
+        capacity === null || typeof capacity !== 'object' || nodeTypes.isProxy(capacity)) {
+      fail('InvalidInstalledEffectPlanRecipe');
+    }
+    grantConstruction = Object.freeze({receiver, method, capacity});
+  }
   if (footprintConstruction !== undefined && (footprintConstruction.inputExtent !== undefined ||
       footprintConstruction.operationIndex === captureConstruction?.operationIndex ||
       footprintConstruction.operationIndex === recoveryConstruction?.operationIndex ||
@@ -486,6 +498,7 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
     ...(captureConstruction === undefined ? {} : {captureConstruction}),
     ...(recoveryConstruction === undefined ? {} : {recoveryConstruction}),
     ...(footprintConstruction === undefined ? {} : {footprintConstruction}),
+    ...(grantConstruction === undefined ? {} : {grantConstruction}),
     ...(credentialOperations === undefined ? {} : {credentialOperations}),
     ...(physicalWrite === undefined ? {} : {physicalWrite})});
 }
