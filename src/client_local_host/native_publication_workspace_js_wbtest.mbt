@@ -3,12 +3,17 @@
 // No Native Host, Account, Store, durable Run or physical backing is supplied.
 fn native_publication_workspace_fixture(
   rows : Int,
+  expanded_text? : Bool = false,
 ) -> (
   ClientRequestPreparation[Array[Int]],
   Array[Int],
   @publication_host.PreparedClientProgram,
 ) raise {
-  let document = request_native_numeric_public_program(rows)
+  let document = if expanded_text {
+    original_cross_text_working_program()
+  } else {
+    request_native_numeric_public_program(rows)
+  }
   let input = [1]
   let parent = begin_request_preparation(
     request_parent_fixture(input),
@@ -22,8 +27,41 @@ fn native_publication_workspace_fixture(
   ).unwrap()
   let wire = request_numeric_local_environment(
     @publication_host.client_local_product_assets().environment,
-    rows,
+    if expanded_text {
+      1024
+    } else {
+      rows
+    },
   )
+  let wire = if expanded_text {
+    // The original Native resource-shape operator selects 1024 rows and
+    // 16MiB artifacts; preserve that exact profile for this Common isolation.
+    let parsed = @json.parse(wire)
+    guard parsed is Object(base) &&
+      base["host_policy_profile"] is Object(profile) &&
+      profile["capacity"] is Object(capacity) else {
+      fail("original resource-shape Environment")
+    }
+    base.remove("evidence_bundle_cid")
+    capacity["max_artifact_bytes"] = Json::number(16777216.0)
+    let body = @identity.stringify_value(
+      @identity.from_json(parsed, 100000, 100, 1000000),
+      1000000,
+      100000,
+      100,
+    )
+    base["evidence_bundle_cid"] = @json.parse(
+      "\"sha256:" + @sha.hex(@utf8.encode(body)) + "\"",
+    )
+    @identity.stringify_value(
+      @identity.from_json(parsed, 100000, 100, 1000000),
+      1000000,
+      100000,
+      100,
+    )
+  } else {
+    wire
+  }
   let environment = @publication_host.admit_client_check_environment(
     wire,
     request_numeric_environment_cid(wire),
@@ -82,8 +120,12 @@ fn native_publication_workspace_component(
   snapshot? : Bool = false,
   chain? : Bool = false,
   only_foreign? : Bool = false,
+  expanded_text? : Bool = false,
 ) -> Unit raise {
-  let (parent, _input, prepared) = native_publication_workspace_fixture(rows)
+  let (parent, _input, prepared) = native_publication_workspace_fixture(
+    rows,
+    expanded_text~,
+  )
   let assets = @publication_host.client_local_product_assets()
   let contracts = parent.program_source_free.unwrap().installed_contracts
   let requirements = prepare_source_free_local_requirements(
@@ -113,6 +155,11 @@ fn native_publication_workspace_component(
     "publication-workspace-component",
   ).unwrap()
   let run = begin_request_program_managed_run(parent, request).unwrap()
+  if expanded_text {
+    let ledger = run.ledger.unwrap()
+    assert_eq(@resources.ledger_limits(ledger).retained_bytes, 536870912L)
+    assert_eq(@resources.ledger_limits(ledger).execution_bytes, 536870912L)
+  }
   let mut original_compilation : @publication_host.ClientCompiledRun? = None
   let mut original_observation : @publication.RunEvidenceValue? = None
   if snapshot {
@@ -591,6 +638,11 @@ fn native_publication_workspace_component(
         8192,
         64,
       ).unwrap()
+      if expanded_text {
+        // Native closes this completed export bridge after persistence and
+        // capture, before pending.commit revalidates the retained originals.
+        output.close()
+      }
       check_program_commit_validation(
         capture,
         definition,
@@ -834,5 +886,16 @@ test "ordinary export refuses copied publication continuation before bridge cons
     false,
     snapshot=true,
     only_foreign=true,
+  )
+}
+
+///|
+test "original expanded Text snapshot capture and commit validate under the same owner" {
+  native_publication_workspace_component(
+    512,
+    false,
+    snapshot=true,
+    chain=true,
+    expanded_text=true,
   )
 }
