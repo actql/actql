@@ -128,6 +128,22 @@ fn client_local_capacity_plan(
     value_node_demand~,
     source_free_max_work~,
   )
+  let execution = {
+    ..execution,
+    rows: {
+      ..execution.rows,
+      operation_entries: match dispatch_inventory {
+        Some({ closed_rows: Some(_), .. }) =>
+          client_local_request_operation_entries(
+            sequences,
+            max_rows,
+            execution.rows.operation_entries,
+            execution.max_frames,
+          )
+        _ => execution.rows.operation_entries
+      },
+    },
+  }
   let leaf_text_wire = if scalar_demand is None {
     value_node_demand.bind(demand => {
       match client_local_original_values_text_bound(sequences, demand) {
@@ -579,6 +595,19 @@ fn client_local_capacity_plan_matches(
     !physical_equal(plan.resource_policy, client_local_resource_policy()) ||
     plan.admitted_rows != max_rows ||
     plan.sequences.length() != sequences.length() {
+    return false
+  }
+  let operation_entries = match plan.demand_inventory {
+    Some({ closed_rows: Some(_), .. }) =>
+      client_local_request_operation_entries(
+        sequences,
+        plan.execution.rows.max_rows,
+        client_local_default_operation_entries(),
+        plan.execution.max_frames,
+      )
+    _ => client_local_default_operation_entries()
+  }
+  if plan.execution.rows.operation_entries != operation_entries {
     return false
   }
   if plan.scalar_demand is Some(demand) &&

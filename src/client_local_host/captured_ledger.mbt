@@ -9,6 +9,154 @@ fn client_local_default_row_profile() -> Int {
 }
 
 ///|
+// Structural entries for this checked scalar predicate only. Each node keeps
+// its declared borrowed view entries, at most one continuation and two scalar
+// operand/name cursors. Text/container/vector/dynamic constructors retain the
+// ordinary fallback; their allocation units are not inferred from a Bool result.
+fn client_local_filter_expression_slots(
+  expression : @lower.Expression,
+  depth : Int,
+) -> Int {
+  if depth <= 0 {
+    return -1
+  }
+  match @lower.expression_contract(expression).shape {
+    @contract.Number | @contract.Boolean => ()
+    _ => return -1
+  }
+  let view = @lower.expression_view_entries(expression)
+  // Reject variable-width public body exports BEFORE asking for that view.
+  // Scalar leaves/unary/binary keep their original zero-copy child handles.
+  if view != 0 {
+    return -1
+  }
+  let own = view + 3
+  match @lower.expression_body(expression) {
+    @lower.Field(_, @relation.InputField(_))
+    | @lower.Literal(_)
+    | @lower.TypedNull => own
+    @lower.Unary(operator, child) => {
+      match operator {
+        @lower.Negate
+        | @lower.Not
+        | @lower.IsNull
+        | @lower.NotNull
+        | @lower.IsTrue
+        | @lower.IsFalse
+        | @lower.IsUnknown => ()
+        _ => return -1
+      }
+      let child = client_local_filter_expression_slots(child, depth - 1)
+      if child < 0 || child > 2147483647 - own {
+        -1
+      } else {
+        own + child
+      }
+    }
+    @lower.Binary(operator, left, right) => {
+      match operator {
+        @lower.Add
+        | @lower.Subtract
+        | @lower.Multiply
+        | @lower.Divide
+        | @lower.Equal
+        | @lower.NotEqual
+        | @lower.IsDistinctFrom
+        | @lower.Less
+        | @lower.LessEqual
+        | @lower.Greater
+        | @lower.GreaterEqual => ()
+        _ => return -1
+      }
+      let left = client_local_filter_expression_slots(left, depth - 1)
+      if left < 0 || left > 2147483647 - own {
+        return -1
+      }
+      let right = client_local_filter_expression_slots(right, depth - 1)
+      if right < 0 || right > 2147483647 - own - left {
+        -1
+      } else {
+        own + left + right
+      }
+    }
+    _ => -1
+  }
+}
+
+///|
+// Only the ordinary trusted Request planner selects this limit. Explicit
+// SequenceRunLimits (including embedded Workers) never enter this function.
+// The caller requires its SAME closed row inventory, capped by admitted
+// rows. The bounded FILTER retains one input-root entry per such row. Its
+// metadata uses 2I+O entries; one active row coholds I snapshot and 3O
+// output/checked/capture references. The predicate contributes its SAME typed
+// node/view inventory above. Eight fixed entries cover predicate handles(2),
+// logical-row writer(2), scalar-measure cursors(2), and root/row carriers(2).
+// This is not a bound on StringAgg builders, sort arrays or other constructors:
+// their complete existing workspace/Fragment/DATA quotes use the SAME selected
+// shared Plan limit. No byte/work amount is reinterpreted as an entry count.
+fn client_local_request_operation_entries(
+  sequences : Array[@execution.GeneratedSequence],
+  rows : Int,
+  fallback : Int,
+  frames : Int,
+) -> Int {
+  if rows < 0 || fallback < 0 || frames <= 0 {
+    return fallback
+  }
+  let mut selected = fallback
+  for sequence in sequences {
+    for index in 0..<@execution.generated_sequence_step_count(sequence) {
+      guard @execution.generated_sequence_step_at(sequence, index)
+        is Some(@lower.RowStep(kernel)) &&
+        @lower.kernel_is_filter(kernel) &&
+        @lower.kernel_view_entries(kernel) == 0 &&
+        @lower.kernel_body(kernel) is @lower.Filter(predicate) &&
+        physical_equal(
+          @lower.kernel_owner(kernel),
+          @execution.generated_sequence_owner(sequence),
+        ) else {
+        continue
+      }
+      let input = @lower.kernel_input_schema(kernel)
+      let output = @lower.kernel_output_schema(kernel)
+      let mut primitive = @schema.all_fields_required(input) &&
+        @schema.all_fields_required(output)
+      for port in 0..<2 {
+        let schema = if port == 0 { input } else { output }
+        for column in 0..<@schema.field_count(schema) {
+          match @schema.field_at(schema, column).unwrap().contract.shape {
+            @contract.Number | @contract.Boolean => ()
+            _ => primitive = false
+          }
+        }
+      }
+      if !primitive {
+        continue
+      }
+      let predicate = client_local_filter_expression_slots(predicate, frames)
+      let i = @schema.field_count(input)
+      let o = @schema.field_count(output)
+      // Every product/sum is checked before it can affect an admitted cap.
+      if predicate < 0 ||
+        rows > 2147483639 ||
+        i > (2147483639 - rows) / 3 ||
+        o > (2147483639 - rows - 3 * i) / 4 ||
+        predicate > 2147483639 - rows - 3 * i - 4 * o {
+        continue
+      }
+      selected = Int::max(selected, rows + 3 * i + 4 * o + predicate + 8)
+    }
+  }
+  selected
+}
+
+///|
+fn client_local_default_operation_entries() -> Int {
+  10000
+}
+
+///|
 fn client_local_execution_limits(
   max_rows? : Int = client_local_default_row_profile(),
   scalar_sequences? : Array[@execution.GeneratedSequence]? = None,
@@ -47,7 +195,7 @@ fn client_local_execution_limits(
       max_rows,
       metadata_entries: 10000,
       retained_entries: 10000,
-      operation_entries: 10000,
+      operation_entries: client_local_default_operation_entries(),
       input_values: values,
       output_values: values,
     },

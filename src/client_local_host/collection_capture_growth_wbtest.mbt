@@ -2,6 +2,8 @@
 fn collection_capture_execution_case(
   refuse : Bool,
   finalization_quantum? : Int = 64,
+  memory? : Int64 = 1073741824L,
+  retention_refuse? : Bool = false,
 ) -> Unit raise {
   let digits : Array[String] = []
   for n in 0..<10 {
@@ -41,6 +43,30 @@ fn collection_capture_execution_case(
     ),
   )
   assert_true(client_local_text_free_scalar_sequences(original.sequences))
+  // The five original ten-row dimensions produce 100000 candidate rows.
+  // Their FILTER retains an input-root entry for each row before evaluation;
+  // the ordinary Plan must select structural slots for that exact inventory.
+  assert_true(plan.execution.rows.operation_entries > 100000)
+  assert_true(
+    client_local_capacity_plan_matches(
+      plan,
+      original.sequences,
+      plan.admitted_rows,
+    ),
+  )
+  assert_false(
+    client_local_capacity_plan_matches(
+      {
+        ..plan,
+        execution: {
+          ..plan.execution,
+          rows: { ..plan.execution.rows, operation_entries: 10000, },
+        },
+      },
+      original.sequences,
+      plan.admitted_rows,
+    ),
+  )
   let demand = plan.scalar_demand.unwrap()
   assert_true(demand.name_bytes > 500000)
   assert_eq(plan.execution.rows.output_values.max_text_bytes, demand.name_bytes)
@@ -78,8 +104,10 @@ fn collection_capture_execution_case(
   // authority explicitly, as the existing whole-Source chain fixtures do.
   let limits = {
     ..original.limits,
-    retained_bytes: client_local_retained_byte_ceiling(),
-    execution_bytes: client_local_execution_byte_ceiling(),
+    // Match the original public full-collection capture selection. The
+    // separate 512 MiB negative below retains its original finite refusal.
+    retained_bytes: memory,
+    execution_bytes: memory,
   }
   let ledger = @resources.create_ledger(limits).unwrap()
   let setup = open_checked_local_host(
@@ -142,6 +170,40 @@ fn collection_capture_execution_case(
     )
     return
   }
+  if retention_refuse {
+    guard result is Err(failure) else {
+      fail("512 MiB partial input unexpectedly completed")
+    }
+    let primary = local_values_execution_failure_issue(failure)
+    guard primary
+      is Driver(ExecutionCapacityRefusal(physical, needed, available, policy)) else {
+      fail("original quota refusal missing")
+    }
+    assert_true(physical is @resources.RetentionLimit)
+    assert_true(needed > available)
+    assert_true(available >= 0L && available <= policy)
+    assert_eq(policy, 536870912L)
+    for _ in 0..<10000 {
+      if retry_local_values_execution_failure_cleanup(failure) {
+        break
+      }
+    }
+    assert_false(local_values_execution_failure_cleanup_pending(failure))
+    assert_true(
+      physical_equal(primary, local_values_execution_failure_issue(failure)),
+    )
+    let usage = @resources.ledger_usage(ledger)
+    assert_eq(
+      (
+        usage.live_reservations,
+        usage.held_bytes,
+        usage.reserved_retention_bytes,
+        usage.reserved_execution_bytes,
+      ),
+      (0, 0L, 0L, 0L),
+    )
+    return
+  }
   let output = match result {
     Ok(value) => value
     Err(failure) => {
@@ -162,6 +224,9 @@ fn collection_capture_execution_case(
         Driver(Configuration(Execution(InputSet))) => "InputSet"
         Driver(Configuration(InvalidLimits)) => "Configuration InvalidLimits"
         Driver(Configuration(_)) => "Configuration other"
+        Driver(ExecutionCapacityRefusal(physical, required, available, policy)) =>
+          "capacity " +
+          @debug.to_string((physical, required, available, policy))
         Driver(_) => "Driver other"
         FinalizationLimit => "FinalizationLimit"
         _ => "different original failure"
@@ -199,7 +264,16 @@ test "ordinary collection 9999 executes under its original Local capture policy"
 
 ///|
 test "ordinary collection 9999 cannot borrow occupied execution allowance" {
-  collection_capture_execution_case(true)
+  collection_capture_execution_case(true, memory=536870912L)
+}
+
+///|
+test "ordinary collection retains exact 512 MiB quota refusal and drains partial input cleanup" {
+  collection_capture_execution_case(
+    false,
+    memory=536870912L,
+    retention_refuse=true,
+  )
 }
 
 ///|
@@ -282,5 +356,74 @@ test "collection CrossJoin cannot hide a dormant text child behind numeric outpu
   collection_cross_text_proof_case(
     "SELECT CASE WHEN FALSE THEN LENGTH(REPEAT('x',4)) ELSE a.n END AS n FROM (SELECT 1 AS n) a CROSS JOIN (SELECT 2 AS n) b",
     false,
+  )
+}
+
+///|
+test "ordinary FILTER entry demand uses checked scalar structures and finite overflow fallback" {
+  let prepared = collection_capacity_selected_prepared(
+    "SELECT n FROM (SELECT 1 AS n UNION ALL SELECT 2 AS n) WHERE n + 3 * n < 10",
+    100000,
+  )
+  let assets = @publication_host.client_local_product_assets()
+  let contracts = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let sequences = prepare_client_local_sequences_owned(
+    Pure(prepared),
+    contracts,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let mut found = false
+  for sequence in sequences {
+    for index in 0..<@execution.generated_sequence_step_count(sequence) {
+      if @execution.generated_sequence_step_at(sequence, index)
+        is Some(@lower.RowStep(kernel)) &&
+        @lower.kernel_body(kernel) is @lower.Filter(predicate) {
+        let i = @schema.field_count(@lower.kernel_input_schema(kernel))
+        let o = @schema.field_count(@lower.kernel_output_schema(kernel))
+        let expression = client_local_filter_expression_slots(predicate, 100)
+        assert_true(expression > 0)
+        assert_eq(
+          client_local_request_operation_entries([sequence], 10001, 10000, 100),
+          10001 + 3 * i + 4 * o + expression + 8,
+        )
+        assert_eq(
+          client_local_request_operation_entries([sequence], 10001, 10000, 0),
+          10000,
+        )
+        assert_eq(
+          client_local_request_operation_entries(
+            [sequence],
+            2147483647,
+            10000,
+            100,
+          ),
+          10000,
+        )
+        found = true
+      }
+    }
+  }
+  assert_true(found)
+  let unknown = collection_capacity_selected_prepared(
+    "SELECT n FROM (SELECT 1 AS n UNION ALL SELECT 2 AS n) WHERE CAST(n AS STRING) = '1'",
+    100000,
+  )
+  let sequences = prepare_client_local_sequences_owned(
+    Pure(unknown),
+    contracts,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  assert_eq(
+    client_local_request_operation_entries(sequences, 10001, 10000, 100),
+    10000,
   )
 }
