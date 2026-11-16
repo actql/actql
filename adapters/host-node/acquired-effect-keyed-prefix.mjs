@@ -42,6 +42,9 @@ async function prepareOriginalEffectKeyedInput({moon, acquired, managedRun,
     uncertain = false, closed = false;
   const cleanup = async () => {
     if (closed) return true;
+    // Raw response backing is still funded by its SAME RowRun. Return that
+    // actual byte-holder borrow before retiring the RowRun/lookup credit.
+    if (publication !== undefined && await publication.cleanup() !== true) return false;
     if (uncertain) return false;
     if (failureRecovery !== undefined) {
       await failureRecovery.close();
@@ -62,7 +65,6 @@ async function prepareOriginalEffectKeyedInput({moon, acquired, managedRun,
       }
       sourceLookup = undefined;
     }
-    if (publication !== undefined && await publication.cleanup() !== true) return false;
     if (keyedContent !== undefined) {
       if (await keyedContent.cleanup() === false || keyedContent.cleanupPending() !== false) return false;
       keyedContent = undefined;
@@ -201,6 +203,32 @@ function originalKeyedLookupPublication({moon, acquired, plan, infer, sourceOrig
   }
   let lookup, retention, storage;
   const holdings = [];
+  let storeReadCleanup, storeReadFlight;
+  // Only THIS trusted Store confirmation can retain its actual failed reader.
+  // Cleanup retries that same close handle; it does not reopen/read as cleanup.
+  const confirmRaw = async binding => {
+    if (storeReadFlight !== undefined || storeReadCleanup !== undefined) throw new TypeError('LookupRawReaderCleanupPending');
+    try { return await store.confirmLookupRawEvidence(binding); }
+    catch (error) {
+      if (error?.cleanupHandle !== undefined) storeReadCleanup = error.cleanupHandle;
+      throw error;
+    }
+  };
+  const cleanupStoreReads = async () => {
+    if (storeReadFlight !== undefined) return storeReadFlight;
+    if (storeReadCleanup === undefined) return true;
+    const original = storeReadCleanup;
+    if (original.status().pending === false) {storeReadCleanup = undefined;return true;}
+    let flight;
+    flight = Promise.resolve().then(() => original.retry()).catch(() => {})
+      .then(() => {
+        if (original.status().pending !== false) return false;
+        if (storeReadCleanup === original) storeReadCleanup = undefined;
+        return true;
+      }).finally(() => {if (storeReadFlight === flight) storeReadFlight = undefined;});
+    storeReadFlight = flight;
+    return flight;
+  };
   const originalCurrent = () => {signal?.throwIfAborted(); current();};
   return Object.freeze({
     initialize(original) {
@@ -220,7 +248,15 @@ function originalKeyedLookupPublication({moon, acquired, plan, infer, sourceOrig
         BigInt(Math.floor(performance.now())), acquired.authorityScopeCid));
       originalCurrent();
     },
+    responseBackingReleased() {
+      if (storeReadCleanup !== undefined || storeReadFlight !== undefined) return false;
+      return holdings.every(holding => {
+        const state = holding.status();
+        return (state.committed || state.abandoned) && !state.operationPending && !state.preparedPending;
+      });
+    },
     async cleanup() {
+      if (!await cleanupStoreReads()) return false;
       for (const holding of holdings) {
         await holding.abort();
         const state = holding.status();
@@ -240,7 +276,11 @@ function originalKeyedLookupPublication({moon, acquired, plan, infer, sourceOrig
         BigInt(Math.floor(performance.now())), {maxBytes:capacity.maxBytes,
           maxNodes:256, maxDepth:32, maxTextUnits:capacity.maxBytes});
       originalCurrent();
-      const holding = preparePrivatePublicationHolding(store, captured.binding, bytes);
+      const holding = preparePrivatePublicationHolding({
+        confirmLookupRawEvidence: confirmRaw,
+        prepareLookupRawEvidence: (...args) => store.prepareLookupRawEvidence(...args),
+        commitPhysicalHolding: (...args) => store.commitPhysicalHolding(...args),
+      }, captured.binding, bytes);
       // Retain the original partial writer/commit owner BEFORE its first await.
       holdings.push(holding);
       await holding.commit();

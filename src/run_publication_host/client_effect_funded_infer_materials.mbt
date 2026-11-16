@@ -105,7 +105,8 @@ fn client_effect_funded_infer_inventory(
           component.original.profile,
         )
         guard kind == "native_file_content_read" ||
-          kind == "declared_file_content_read" else {
+          kind == "declared_file_content_read" ||
+          kind == "installed_row_source_read" else {
           return Err(Input(MaterialsEvidence("infer_execution_contracts")))
         }
         @encode.key(writer, "native_read_profile")

@@ -337,7 +337,12 @@ pub fn prepare_client_effect_keyed_source_unit(
   let observations = sources.sources.map(value => {
     @publication.run_evidence_value_identity(value.observation)
   })
-  observations.push(@publication.run_evidence_value_identity(completed.source))
+  // The completed lookup's semantic witness retains its actual barrier,
+  // key set, attempts, validated relation and Source observation. A generic
+  // Source observation alone cannot make that dependency closure reachable.
+  observations.push(
+    @publication.publication_contract_identity(completed.evidence),
+  )
   let scopes = sources.sources.map(value => value.scope)
   scopes.push(identity.scope)
   let scope = match

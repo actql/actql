@@ -446,10 +446,9 @@ pub fn prepare_client_keyed_native_left_relation(
   // The declared-file consumer borrows already-retained Source bodies. Price
   // its next closed envelopes from those original wires/CIDs, not the policy
   // ceiling. Native's selected caller keeps its existing codec geometry.
-  let writer_bytes = if @publication.publication_contract_name(
+  let writer_bytes = if @publication.read_profile_uses_installed_rows(
       component.original.profile,
-    ) ==
-    "declared_file_content_read" {
+    ) {
     let mut units = issuer.length().to_int64() +
       policy.cid.length().to_int64() +
       @publication.publication_contract_json(retention).length().to_int64() +

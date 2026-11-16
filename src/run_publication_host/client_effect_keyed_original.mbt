@@ -328,9 +328,11 @@ pub fn client_effect_keyed_capture_start_construction_inventory(
       // Restricted completion/output/closure/Some, bound producer+identity,
       // producer preparation/read/Result/Some and original left+copy/Options,
       // composed original+closed origin, input tuple and return carriers.
-      records: 20L,
-      record_references: 62L,
-      record_words: 42L,
+      // Same Host raw-confirmation reader duty/flight and its narrow Store
+      // callbacks add H4/R12/W3 before the Node publication port exists.
+      records: 24L,
+      record_references: 74L,
+      record_words: 45L,
       reference_arrays: 3L,
       reference_items: 2L,
       scalar_arrays: 1L,

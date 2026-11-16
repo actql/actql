@@ -3,24 +3,91 @@
 // typed key set and lookup holding. This component fixture has no physical
 // provider/Store IO and claims no Native transport or durable ACK.
 test "generic Whole lookup freezes its genuine empty response closure before holding and retires once" {
-  let (prepared, keyed, declaration) = generic_file_effect_fixture(whole=true)
-  let measured = measure_client_effect_generic_keyed_plan_construction(
-    prepared,
-    keyed,
-    client_standard_values_sequence_limits(),
-    1000000,
-    100000,
-    100,
-  ).unwrap()
+  run_original_source_completion(false)
+}
+
+///|
+test "installed identity RowSource retains the full lookup witness closure and refuses missing work" {
+  // resource-case-id: installed_row_lookup_full_closure
+  run_original_source_completion(true)
+}
+
+///|
+fn run_original_source_completion(installed_rows : Bool) -> Unit raise {
+  // Installation-owned policy leaves are outside each lookup's cached bodies,
+  // just as in ordinary publication. Use their real preimages and identities.
+  let retention_dependencies = if installed_rows {
+    let common = product_common_test_originals(at="2026-11-15T00:00:00.000Z")
+    guard @json.parse(@utf8.decode(common.retention_dependencies))
+      is Array(entries) else {
+      fail("original retention dependencies")
+    }
+    entries.map(entry => {
+      guard entry is Object(fields) &&
+        fields.get("kind") is Some(String(kind)) &&
+        fields.get("cid") is Some(String(cid)) &&
+        fields.get("wire") is Some(String(wire)) else {
+        abort("original retention member")
+      }
+      @publication.admit_captured_effect_dependency_body(
+        kind,
+        Some(cid),
+        wire,
+        8192,
+        512,
+        8,
+      ).unwrap()
+    })
+  } else {
+    []
+  }
+  let retention_leaf = (kind : String) => {
+    retention_dependencies
+    .iter()
+    .find_first(body => {
+      @publication.captured_effect_dependency_body_kind(body) == kind
+    })
+    .map(@publication.captured_effect_dependency_body_cid)
+    .unwrap()
+  }
+  let (prepared, keyed, declaration) = generic_file_effect_fixture(
+    whole=true,
+    installed_rows~,
+  )
+  let measured = if installed_rows {
+    let profile = @row_host.row_declaration_file_read_profile(
+      declaration,
+      declaration.views[1].source_ref,
+    ).unwrap()
+    measure_client_effect_keyed_plan_construction(
+      prepared,
+      keyed,
+      profile,
+      client_standard_values_sequence_limits(),
+      1000000,
+      100000,
+      100,
+    ).unwrap()
+  } else {
+    measure_client_effect_generic_keyed_plan_construction(
+      prepared,
+      keyed,
+      client_standard_values_sequence_limits(),
+      1000000,
+      100000,
+      100,
+    ).unwrap()
+  }
   let graph = issue_client_effect_keyed_plan_graph(
     measured, 1000000, 100000, 100,
   ).unwrap()
-  guard graph.component is GenericKeyedPlan(component) else {
-    fail("generic checked component")
+  let joined_sequence = match graph.component {
+    GenericKeyedPlan(component) => component.original.fragments.joined.sequence
+    NativeKeyedPlan(component) => component.original.fragments.joined.sequence
   }
   let generated = @execution.prepare_generated_sequence(
     whole_source_capture_contracts(),
-    component.original.fragments.joined.sequence,
+    joined_sequence,
     [],
     [],
     10000,
@@ -248,26 +315,111 @@ test "generic Whole lookup freezes its genuine empty response closure before hol
   foreign_stopped.val = true
   @row_host.close_accounted_row_run(foreign_run).unwrap()
   assert_eq(@resources.ledger_usage(foreign_ledger).held_bytes, 0L)
-  let retention = match
-    prepare_client_effect_keyed_generic_source_metadata(
-      parent,
-      lookup,
-      identity,
-      logical,
-      observation,
-      "sha256:" + "d".repeat(64),
-      "2099-01-01T00:00:00.000Z",
-      "2099-01-02T00:00:00.000Z",
-      "2099-01-03T00:00:00.000Z",
-      "sha256:" + "e".repeat(64),
-      "sha256:" + "f".repeat(64),
-      1000000,
-      100000,
-      100,
-    ) {
-    Ok(value) => value
-    Err(Assembly(reason)) => fail("generic metadata: " + reason)
-    Err(_) => fail("generic metadata: typed refusal")
+  let retention = if installed_rows {
+    require_source_fixture(
+      prepare_client_keyed_native_left_identity(
+        lookup,
+        1,
+        {
+          max_nodes: 10000,
+          max_text_bytes: 20000,
+          max_depth: 20,
+          max_work: 1000000,
+        },
+        wire,
+        wire,
+        { max_fields: 10, max_bytes: 20000, max_nodes: 10000, max_depth: 20, },
+        1000000,
+        100000,
+      ),
+      "left identity",
+    )
+    |> ignore
+    let retention = match
+      prepare_client_keyed_declared_file_retention(
+        lookup,
+        request,
+        retention_leaf("retention_contract"),
+        "2099-01-01T00:00:00.000Z",
+        "2099-01-02T00:00:00.000Z",
+        "2099-01-03T00:00:00.000Z",
+        retention_leaf("metadata_retention_policy"),
+        retention_leaf("clock_contract"),
+        1000000,
+      ) {
+      Ok(value) => value
+      Err(Assembly(reason)) => fail("installed retention: " + reason)
+      Err(Physical(issue)) =>
+        fail("installed retention physical: " + @debug.to_string(issue))
+      Err(_) => fail("installed retention: other typed refusal")
+    }
+    match
+      bind_client_keyed_whole_source_metadata(
+        lookup, 0, identity, logical, observation, request, retention, 1000000, 100000,
+        100,
+      ) {
+      Ok(_) => ()
+      Err(Assembly(reason)) => fail("installed source metadata: " + reason)
+      Err(Physical(issue)) =>
+        fail("installed source metadata physical: " + @debug.to_string(issue))
+      Err(SourceLogical(Admission(issue))) =>
+        fail("installed source logical: " + @debug.to_string(issue))
+      Err(SourceLogical(_)) => fail("installed source logical")
+      Err(_) => fail("installed source metadata: other typed refusal")
+    }
+    require_source_fixture(
+      prepare_client_keyed_native_left_relation(
+        lookup,
+        request,
+        retention,
+        client_request_authority_scope_cid(request),
+        1000000,
+        100000,
+        100,
+      ),
+      "left relation",
+    )
+    |> ignore
+    require_source_fixture(
+      bind_client_keyed_declared_file_physical_source(lookup, [declaration]),
+      "physical source",
+    )
+    require_source_fixture(
+      start_client_keyed_declared_file_request_plan(
+        lookup,
+        "2026-11-15T00:00:01.000Z",
+        0L,
+        client_request_authority_scope_cid(request),
+      ),
+      "request plan",
+    )
+    require_source_fixture(
+      finish_client_keyed_capture_request_plan(lookup, 1000000, 100000, 100),
+      "closed request plan",
+    )
+    retention
+  } else {
+    match
+      prepare_client_effect_keyed_generic_source_metadata(
+        parent,
+        lookup,
+        identity,
+        logical,
+        observation,
+        "sha256:" + "d".repeat(64),
+        "2099-01-01T00:00:00.000Z",
+        "2099-01-02T00:00:00.000Z",
+        "2099-01-03T00:00:00.000Z",
+        "sha256:" + "e".repeat(64),
+        "sha256:" + "f".repeat(64),
+        1000000,
+        100000,
+        100,
+      ) {
+      Ok(value) => value
+      Err(Assembly(reason)) => fail("generic metadata: " + reason)
+      Err(_) => fail("generic metadata: typed refusal")
+    }
   }
   assert_true(
     client_effect_keyed_cached_dependency_bodies(parent, lookup, retention)
@@ -282,9 +434,20 @@ test "generic Whole lookup freezes its genuine empty response closure before hol
   )
   assert_eq(@resources.ledger_usage(ledger), before_invalid)
   let read = match
-    finish_client_effect_keyed_generic_publication_input(
-      parent, lookup, "2026-11-15T00:00:02.000Z", 1000000, 100000, 100,
-    ) {
+    (if installed_rows {
+      finish_client_keyed_lookup_publication_input(
+        lookup,
+        1000000,
+        100000,
+        100,
+        retain_body=true,
+        native_completion=Some(("2026-11-15T00:00:02.000Z", 0L)),
+      )
+    } else {
+      finish_client_effect_keyed_generic_publication_input(
+        parent, lookup, "2026-11-15T00:00:02.000Z", 1000000, 100000, 100,
+      )
+    }) {
     Ok(value) => value
     Err(Assembly(reason)) => fail("generic completion: " + reason)
     Err(LookupLimit(reason)) => fail("generic completion limit: " + reason)
@@ -299,17 +462,25 @@ test "generic Whole lookup freezes its genuine empty response closure before hol
     Err(_) => fail("generic completion: typed refusal")
   }
   assert_true(@execution.supplied_relation_read_available(read))
-  assert_true(lookup.native_sources is None && lookup.native_completion is None)
+  assert_true(
+    if installed_rows {
+      lookup.native_sources is Some(_) && lookup.native_completion is Some(_)
+    } else {
+      lookup.native_sources is None && lookup.native_completion is None
+    },
+  )
   let observed = issue_client_keyed_lookup_observation(
     lookup,
     client_request_authority_scope_cid(request),
     "2026-11-15T00:00:02.000Z",
   ).unwrap()
-  assert_true(
-    parent.generic is Some(state) &&
-    state.completed is Some(completed) &&
-    physical_equal(observed, completed.observation),
-  )
+  if !installed_rows {
+    assert_true(
+      parent.generic is Some(state) &&
+      state.completed is Some(completed) &&
+      physical_equal(observed, completed.observation),
+    )
+  }
   let bodies = client_effect_keyed_cached_dependency_bodies(
     parent, lookup, retention,
   ).unwrap()
@@ -321,23 +492,27 @@ test "generic Whole lookup freezes its genuine empty response closure before hol
       client_effect_keyed_cached_dependency_bodies(parent, lookup, retention).unwrap(),
     ),
   )
-  assert_true(
-    physical_equal(
-      read,
-      finish_client_effect_keyed_generic_publication_input(
-        parent, lookup, "2026-11-15T00:00:02.000Z", 1000000, 100000, 100,
-      ).unwrap(),
-    ),
-  )
-  assert_eq(@resources.ledger_usage(ledger), before_cached)
-  assert_true(
-    issue_client_keyed_lookup_observation(
-      lookup,
-      "sha256:" + "9".repeat(64),
-      "2026-11-15T00:00:02.000Z",
+  if !installed_rows {
+    assert_true(
+      physical_equal(
+        read,
+        finish_client_effect_keyed_generic_publication_input(
+          parent, lookup, "2026-11-15T00:00:02.000Z", 1000000, 100000, 100,
+        ).unwrap(),
+      ),
     )
-    is Err(Assembly("foreign_generic_observation_authority")),
-  )
+  }
+  assert_eq(@resources.ledger_usage(ledger), before_cached)
+  if !installed_rows {
+    assert_true(
+      issue_client_keyed_lookup_observation(
+        lookup,
+        "sha256:" + "9".repeat(64),
+        "2026-11-15T00:00:02.000Z",
+      )
+      is Err(Assembly("foreign_generic_observation_authority")),
+    )
+  }
   assert_true(
     client_effect_keyed_cached_dependency_bodies(
       parent,
@@ -346,10 +521,53 @@ test "generic Whole lookup freezes its genuine empty response closure before hol
     )
     is None,
   )
+  if installed_rows {
+    let root = bodies
+      .iter()
+      .find_first(body => {
+        @publication.captured_effect_dependency_body_kind(body) ==
+        "lookup_evidence"
+      })
+      .unwrap()
+    let closure = [..bodies, ..retention_dependencies]
+    match
+      @publication.prepare_captured_effect_dependency_inventory(
+        closure,
+        [root],
+        1000000,
+        100,
+        _ => true,
+      ) {
+      Ok(_) => ()
+      Err(issue) => fail("lookup closure: " + @debug.to_string(issue))
+    }
+    assert_true(
+      @publication.prepare_captured_effect_dependency_inventory(
+        bodies,
+        [root],
+        1000000,
+        100,
+        _ => true,
+      )
+      is Err(@publication.MissingDependency),
+    )
+    assert_true(
+      @publication.prepare_captured_effect_dependency_inventory(
+        closure,
+        [root],
+        1000000,
+        100,
+        _ => false,
+      )
+      is Err(@publication.ReferenceLimit),
+    )
+  }
   for body in bodies {
     let kind = @publication.captured_effect_dependency_body_kind(body)
-    assert_false(kind.has_prefix("native_file_"))
-    assert_false(kind == "acquisition_attempt_receipt")
+    if !installed_rows {
+      assert_false(kind.has_prefix("native_file_"))
+      assert_false(kind == "acquisition_attempt_receipt")
+    }
   }
   stop_client_keyed_lookup_input(lookup)
   assert_true(
@@ -369,4 +587,31 @@ test "generic Whole lookup freezes its genuine empty response closure before hol
   )
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
   assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+}
+
+///|
+fn[T] require_source_fixture(
+  value : Result[T, ClientKeyedRequestIssue],
+  label : String,
+) -> T raise {
+  match value {
+    Ok(value) => value
+    Err(Assembly(reason)) => fail(label + ": " + reason)
+    Err(Physical(issue)) => fail(label + ": " + @debug.to_string(issue))
+    Err(Identity(issue)) => fail(label + ": " + @debug.to_string(issue))
+    Err(Derivation(issue)) => fail(label + ": " + @debug.to_string(issue))
+    Err(CompletedIdentity(issue)) => {
+      let reason = match issue {
+        @execution.Unavailable => "unavailable"
+        @execution.NotCellRepresentation => "not cells"
+        @execution.InvalidTarget => "invalid target"
+        @execution.NotFinished => "not finished"
+        @execution.Closed => "closed"
+        @execution.ForeignMaterial => "foreign"
+        _ => "other"
+      }
+      fail(label + ": " + reason)
+    }
+    Err(_) => fail(label + ": other typed refusal")
+  }
 }

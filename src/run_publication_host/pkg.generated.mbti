@@ -1059,6 +1059,8 @@ pub fn client_keyed_request_value(ClientKeyedRequest, ClientKeyedAcquisition) ->
 
 pub fn client_keyed_request_wire(ClientKeyedRequest, Int, Int, Int) -> Result[String, ClientKeyedRequestIssue]
 
+pub fn client_keyed_source_response_encoding(ClientKeyedRequest) -> String?
+
 pub fn[Store, E] client_local_adopted_account_outcome(ClientLocalAdoptedHostMaterial[Store, E], Store, @execution_authorization.AccessTuple) -> Result[@execution_authorization.AccountOutcome, ClientLocalAdoptedCurrentIssue[E]]
 
 pub fn[Store, E] client_local_adopted_authority_scope_body(ClientLocalAdoptedHostMaterial[Store, E], Store, String, String) -> Result[Bytes, ClientLocalAdoptedCurrentIssue[E]]

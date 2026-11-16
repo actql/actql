@@ -118,8 +118,7 @@ pub fn prepare_client_keyed_native_activation(
     owned_utf16_units: 24L,
     owned_wire_bytes: 0L,
   }).unwrap()
-  let writer_bytes = if @publication.publication_contract_name(profile) ==
-    "declared_file_content_read" {
+  let writer_bytes = if @publication.read_profile_uses_installed_rows(profile) {
     // The original encoded Request is already retained by this plan. Only
     // its actual subtree and the closed issuer/envelope Strings are next;
     // a large accepted codec ceiling is not an allocation request.

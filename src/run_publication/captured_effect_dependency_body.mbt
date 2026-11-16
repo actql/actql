@@ -803,7 +803,9 @@ fn validate_selected_captured_effect_dependency_bodies(
       }
       let allowed = match reference.kind {
         "read_execution_profile" =>
-          ["native_file_content_read", "declared_file_content_read"]
+          [
+            "native_file_content_read", "declared_file_content_read", "installed_row_source_read",
+          ]
         "relation_producer" =>
           [
             "local_result_definition", "source_contract", "carrier_contract", "relation_schema",

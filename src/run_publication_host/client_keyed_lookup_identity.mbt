@@ -518,7 +518,7 @@ pub fn client_protocol_metadata_construction_bytes(
       copies.to_int64(),
     )
     is Some(bodies) &&
-    @execution.checked_preparation_add_product(0L, 128L, slots) is Some(fields) &&
+    @execution.checked_preparation_add_product(0L, slots, 128L) is Some(fields) &&
     @execution.checked_preparation_add_product(fields, extra_controls, 1L)
     is Some(controls) &&
     @execution.checked_preparation_add_product(bodies, controls, 1L)

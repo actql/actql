@@ -426,7 +426,8 @@ fn read_plural_client_infer_run_graphs(
         guard @decode.text(kind) is Ok(kind) &&
           (
             kind == "native_file_content_read" ||
-            kind == "declared_file_content_read"
+            kind == "declared_file_content_read" ||
+            kind == "installed_row_source_read"
           ) &&
           @decode.text(value) is Ok(wire) &&
           @publication.admit_file_read_profile_contract(
@@ -537,7 +538,8 @@ fn encode_client_infer_original_inventory(
           component.original.profile,
         )
         guard kind == "native_file_content_read" ||
-          kind == "declared_file_content_read" else {
+          kind == "declared_file_content_read" ||
+          kind == "installed_row_source_read" else {
           return Err(Binding(UnsupportedProgram))
         }
         // Same original compiler DATA, not an installation/current/read grant.

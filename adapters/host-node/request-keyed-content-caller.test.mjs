@@ -122,7 +122,7 @@ async function fixture({failurePhase,failure,failKeyedRead,hostRetirement=false,
       assert.equal(maxBytes,8);assert.equal(maxWork,1000000);assert.equal(contracts,'{}');
       assert.deepEqual([task,step],[0,1]);assert.equal(limits.maxWork,1000000);
       assert.equal(typeof q,'string');assert.equal(typeof e,'string');assert.deepEqual(transfers,[16n,116n]);
-      assert.deepEqual(executions,[8n,65608n]);requestConstructors++;calls.push('selected');return selected;
+      assert.deepEqual(executions,[8n,65792n]);requestConstructors++;calls.push('selected');return selected;
     }};
   const content=installNodeContentRun({moon,core:{contentGenerationControl:prefixControl,
     publicationControl:{checkClientCompiledRunOwner(c,p){assert.equal(c,plan.compiled);assert.equal(p,prepared);}}},

@@ -16,6 +16,7 @@ pub fn admit_file_read_profile_contract(
   let name = match optional_string(@json.object_field(complete, "version")) {
     Some("actql-native-file-content-read/0.1") => "native_file_content_read"
     Some("actql-declared-file-content-read/0.1") => "declared_file_content_read"
+    Some("actql-installed-row-source-read/0.1") => "installed_row_source_read"
     _ => return Err(InvalidField("version"))
   }
   admit_publication_contract_material(
@@ -34,9 +35,9 @@ pub fn admit_file_read_profile_contract(
 pub fn file_read_profile_contract_bindings(
   profile : PublicationContract,
 ) -> (String, String, String)? {
-  guard ["native_file_content_read", "declared_file_content_read"].contains(
-      profile.name,
-    ) &&
+  guard [
+      "native_file_content_read", "declared_file_content_read", "installed_row_source_read",
+    ].contains(profile.name) &&
     optional_string(
       @json.object_field(profile.value, "source_view_contract_cid"),
     )
@@ -56,13 +57,20 @@ pub fn file_read_profile_contract_bindings(
 pub fn file_read_profile_physical_source_contract_cid(
   profile : PublicationContract,
 ) -> String? {
-  if !["native_file_content_read", "declared_file_content_read"].contains(
-      profile.name,
-    ) {
+  if ![
+      "native_file_content_read", "declared_file_content_read", "installed_row_source_read",
+    ].contains(profile.name) {
     return None
   }
   optional_string(
-    @json.object_field(profile.value, "physical_source_view_contract_cid"),
+    @json.object_field(
+      profile.value,
+      if profile.name == "installed_row_source_read" {
+        "source_view_contract_cid"
+      } else {
+        "physical_source_view_contract_cid"
+      },
+    ),
   )
 }
 
@@ -168,5 +176,14 @@ pub fn issue_native_file_lookup_transport(
   }
   issue_file_lookup_transport(
     profile, static_request, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// Installed captured RowRun implementations quote actual immutable metadata,
+/// while explicit Native callers keep their selected codec workspace policy.
+pub fn read_profile_uses_installed_rows(profile : PublicationContract) -> Bool {
+  ["declared_file_content_read", "installed_row_source_read"].contains(
+    profile.name,
   )
 }

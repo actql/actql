@@ -1433,6 +1433,82 @@ export async function openRowSourceCredentialSite({profile, principalId,
 // `physicalTarget(resource, fields)` the exact target an approval covers.
 // Standard installations may instead supply their frozen full target DATA
 // inventory. It has no authorization/current/physical cleanup methods.
+// The selected RowRun reserves the maximum page/codec overlap before it
+// starts. Emit synchronously after the last current/await fence into one owned
+// buffer; no object toJSON hook or provider getter participates in this codec.
+export function encodeTypedResponseJson(value, maxBytes) {
+  if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > 2147483647) fail('InvalidKeyedResponseObservation');
+  const body = Buffer.allocUnsafe(maxBytes);
+  let position = 0, nodes = 0;
+  const byte = value => {
+    if (position === maxBytes) fail('InstalledRowPageLimit');
+    body[position++] = value;
+  };
+  const ascii = text => { for (let index = 0; index < text.length; index++) byte(text.charCodeAt(index)); };
+  const quoted = text => {
+    byte(34);
+    for (let index = 0; index < text.length; index++) {
+      let code = text.charCodeAt(index);
+      if (code === 34 || code === 92) { byte(92); byte(code); }
+      else if (code < 32) {
+        ascii('\\u00'); byte('0123456789abcdef'.charCodeAt(code >> 4)); byte('0123456789abcdef'.charCodeAt(code & 15));
+      } else if (code < 128) byte(code);
+      else if (code < 2048) { byte(192 | (code >> 6)); byte(128 | (code & 63)); }
+      else {
+        if (code >= 0xd800 && code <= 0xdbff && index + 1 < text.length) {
+          const next = text.charCodeAt(index + 1);
+          if (next >= 0xdc00 && next <= 0xdfff) { code = 0x10000 + ((code - 0xd800) << 10) + next - 0xdc00; index++; }
+        }
+        if (code >= 0xd800 && code <= 0xdfff) {
+          ascii('\\u');
+          for (let shift = 12; shift >= 0; shift -= 4) byte('0123456789abcdef'.charCodeAt((code >> shift) & 15));
+        } else if (code < 0x10000) {
+          byte(224 | (code >> 12)); byte(128 | ((code >> 6) & 63)); byte(128 | (code & 63));
+        } else {
+          byte(240 | (code >> 18)); byte(128 | ((code >> 12) & 63)); byte(128 | ((code >> 6) & 63)); byte(128 | (code & 63));
+        }
+      }
+    }
+    byte(34);
+  };
+  const emit = (item, depth) => {
+    if (++nodes > maxBytes || depth > 32) fail('InvalidKeyedResponseObservation');
+    if (typeof item === 'string') return quoted(item);
+    if (item === null) return ascii('null');
+    if (typeof item === 'boolean') return ascii(item ? 'true' : 'false');
+    if (typeof item === 'number' && Number.isFinite(item)) return ascii(String(item));
+    if (typeof item !== 'object' || nodeTypes.isProxy(item)) fail('InvalidKeyedResponseObservation');
+    const array = Array.isArray(item), prototype = Object.getPrototypeOf(item);
+    if (array ? prototype !== Array.prototype : prototype !== Object.prototype && prototype !== null) fail('InvalidKeyedResponseObservation');
+    byte(array ? 91 : 123);
+    if (array) {
+      if (item.length > maxBytes) fail('InstalledRowPageLimit');
+      for (let index = 0; index < item.length; index++) {
+        if (index) byte(44);
+        const field = Object.getOwnPropertyDescriptor(item, String(index));
+        if (field && !Object.hasOwn(field, 'value')) fail('InvalidKeyedResponseObservation');
+        emit(field === undefined ? null : field.value, depth + 1);
+      }
+    } else {
+      let first = true;
+      for (const key in item) {
+        const field = Object.getOwnPropertyDescriptor(item, key);
+        if (field === undefined) continue;
+        if (!Object.hasOwn(field, 'value')) fail('InvalidKeyedResponseObservation');
+        if (!first) byte(44); first = false;
+        quoted(key); byte(58); emit(field.value, depth + 1);
+      }
+    }
+    byte(array ? 93 : 125);
+  };
+  emit(value, 0);
+  // Never retain a tiny view of the maximum backing in a raw holder or
+  // decoder. The prepaid phase includes this exact owned copy beside it.
+  const exact = Buffer.allocUnsafeSlow(position);
+  exact.set(body.subarray(0, position));
+  return exact;
+}
+
 export async function createInstalledRowSource({moon, declaration, commands,
   declared, environmentWire, environment, sourceInitialization, connectorId, connectorRegistration,
   connectorRevision, site, authorization, readOperation, physicalTarget,
@@ -2260,6 +2336,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
       originalClosed = true;
     };
     let deadline;
+    let responsePageActive = false;
     const budgetAbort = new AbortController();
     signal = signal === undefined ? budgetAbort.signal : AbortSignal.any([signal, budgetAbort.signal]);
     try {
@@ -2316,9 +2393,15 @@ export async function createInstalledRowSource({moon, declaration, commands,
         fail('InstalledSourcePreparationMismatch');
       }
       const nonce = randomUUID();
+      const backingField = lookupPublication === undefined ? undefined
+        : Object.getOwnPropertyDescriptor(lookupPublication, 'responseBackingReleased');
+      if (backingField !== undefined && (!Object.hasOwn(backingField, 'value') ||
+          typeof backingField.value !== 'function')) fail('ForeignOriginalKeyedRawResponse');
+      const responseBackingReleased = backingField === undefined ? undefined
+        : () => !responsePageActive && Reflect.apply(backingField.value, lookupPublication, []) === true;
       session = startInstalledRowRun({moon, acquisition, nonce, ledger,
-        keyed: true, originalKeyedRead, capacity: {transferBytes: keyedTransferBytes,
-          executionBytes: keyedExecutionBytes}});
+        keyed: true, originalKeyedRead, responseBackingReleased,
+        capacity: {transferBytes: keyedTransferBytes, executionBytes: keyedExecutionBytes}});
       const {run} = session;
       // Encode only under the common acquisition's workspace reservation.
       const requestWire = checked(
@@ -2440,14 +2523,38 @@ export async function createInstalledRowSource({moon, declaration, commands,
         // verification count is not a physical-byte observation or a grant.
         consumeObservation: charge => checked(moon.clientProgramRowSourceConsumeObservationCharge(run, charge)),
         // The Site must await admission before returning protocol completion.
-        consumePage: (rows, {charge} = {}) => {
-          const body = Buffer.from(JSON.stringify(rows), 'utf8');
+        consumePage: async (rows, {charge} = {}) => {
+          // The codec comes from the exact Request's installed execution
+          // original. A driver Bool or an earlier current decision cannot
+          // select raw evidence or replace its pending activation.
+          const identityResponse = lookupPublication !== undefined &&
+            moon.clientProgramKeyedSourceResponseEncoding(request) === 'typed_json_row_array';
+          if (identityResponse && (backingField === undefined || responsePageActive)) fail('ForeignOriginalKeyedRawResponse');
+          if (identityResponse) responsePageActive = true;
+          let body;
+          try {
+          if (identityResponse) {
+            await verifyRead(); signal?.throwIfAborted();
+            if (moon.clientProgramKeyedSourceResponseEncoding(request) !== 'typed_json_row_array') fail('ForeignOriginalKeyedRawResponse');
+          }
+          body = identityResponse ? encodeTypedResponseJson(rows, limits.maxPageBytes)
+            : Buffer.from(JSON.stringify(rows), 'utf8');
           const ticket = charge ?? checked(moon.clientProgramRowSourceChargePage(run, body));
           checked(moon.clientProgramKeyedResponseObserve(request,
             charge === undefined ? BigInt(body.byteLength) : 0n,
             BigInt(body.byteLength), observedMs()));
-          return session.consumeKeyedPage(body,
+          if (identityResponse) {
+            if (lookupActivation === undefined || lookupRaw !== undefined) fail('ForeignOriginalKeyedRawResponse');
+            lookupRaw = await lookupPublication.retainRawResponse(lookupOriginal,
+              request, lookupActivation, body);
+            await verifyRead(); signal?.throwIfAborted();
+          }
+          return await session.consumeKeyedPage(body,
             {charge: ticket, currentRead: verifyRead, signal});
+          } finally {
+            body = undefined;
+            if (identityResponse) responsePageActive = false;
+          }
         }});
       session.confirmTransportStopped();
       const capture = await session.capture({currentRead: verifyRead, signal});

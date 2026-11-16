@@ -13,13 +13,39 @@ pub(all) struct DeclaredFileReadFields {
 }
 
 ///|
-priv struct DeclaredFileReadProfile {
-  source_ref : String
-  physical_view : RowDeclaredView
-  physical_wire : String
-  physical_resource : String
-  fields : DeclaredFileReadFields
-  contract : @publication.PublicationContract
+priv enum DeclaredFileReadProfile {
+  DeclaredFileRead(
+    String,
+    RowDeclaredView,
+    String,
+    String,
+    DeclaredFileReadFields,
+    @publication.PublicationContract
+  )
+  InstalledRowRead(
+    String,
+    RowDeclaredView,
+    String,
+    @publication.PublicationContract
+  )
+}
+
+///|
+fn declared_read_profile_source(value : DeclaredFileReadProfile) -> String {
+  match value {
+    DeclaredFileRead(source, _, _, _, _, _)
+    | InstalledRowRead(source, _, _, _) => source
+  }
+}
+
+///|
+fn declared_read_profile_contract(
+  value : DeclaredFileReadProfile,
+) -> @publication.PublicationContract {
+  match value {
+    DeclaredFileRead(_, _, _, _, _, contract)
+    | InstalledRowRead(_, _, _, contract) => contract
+  }
 }
 
 ///|
@@ -131,7 +157,7 @@ pub fn declared_file_read_profile_construction_inventory(
     @shape.collection_construction_extent({
       records: 6L,
       record_references: 26L,
-      record_words: 2L,
+      record_words: 3L,
       reference_arrays: 4L,
       reference_items: prior_profiles.to_int64() +
       fields.items_path.length().to_int64() +
@@ -178,7 +204,11 @@ pub fn bind_declared_file_read_profile(
   fields : DeclaredFileReadFields,
 ) -> Result[RowDeclaration, RowMappingIssue] {
   guard !declaration.file_read_profiles
-    .map(profiles => profiles.any(profile => profile.source_ref == source_ref))
+    .map(profiles => {
+      profiles.any(profile => {
+        declared_read_profile_source(profile) == source_ref
+      })
+    })
     .unwrap_or(false) &&
     row_declaration_view(declaration, source_ref) is Some(view) &&
     physical.views.iter().find_first(view => view.resource == physical_resource)
@@ -310,18 +340,18 @@ pub fn bind_declared_file_read_profile(
     Ok(value) => value
     Err(_) => return Err(InvalidSpecification)
   }
-  let profile = {
+  let profile = DeclaredFileRead(
     source_ref,
     physical_view,
     physical_wire,
     physical_resource,
-    fields: {
+    {
       ..fields,
       items_path: fields.items_path.copy(),
       key_path: fields.key_path.copy(),
     },
     contract,
-  }
+  )
   Ok({
     ..declaration,
     file_read_profiles: Some(
@@ -345,8 +375,8 @@ pub fn row_declaration_file_read_profile(
     Some(profiles) =>
       profiles
       .iter()
-      .find_first(profile => profile.source_ref == source_ref)
-      .map(profile => profile.contract)
+      .find_first(profile => declared_read_profile_source(profile) == source_ref)
+      .map(declared_read_profile_contract)
   }
 }
 
@@ -362,11 +392,16 @@ pub fn row_declaration_file_read_profile_matches(
   fields : DeclaredFileReadFields,
 ) -> Bool {
   guard declaration.file_read_profiles is Some(profiles) &&
-    profiles.iter().find_first(profile => profile.source_ref == source_ref)
+    profiles
+    .iter()
+    .find_first(profile => declared_read_profile_source(profile) == source_ref)
     is Some(profile) else {
     return false
   }
-  let original = profile.fields
+  guard profile
+    is DeclaredFileRead(_, original_view, _, original_resource, original, _) else {
+    return false
+  }
   let same_path = (left : Array[String], right : Array[String]) => {
     if left.length() != right.length() {
       return false
@@ -378,10 +413,10 @@ pub fn row_declaration_file_read_profile_matches(
     }
     true
   }
-  profile.physical_resource == physical_resource &&
+  original_resource == physical_resource &&
   physical.views.iter().find_first(view => view.resource == physical_resource)
   is Some(view) &&
-  physical_equal(profile.physical_view, view) &&
+  physical_equal(original_view, view) &&
   original.identity == fields.identity &&
   original.name == fields.name &&
   original.version == fields.version &&
@@ -403,7 +438,14 @@ pub fn row_declaration_file_read_physical_source(
   declaration.file_read_profiles.bind(profiles => {
     profiles
     .iter()
-    .find_first(value => physical_equal(value.contract, profile))
-    .map(value => (value.physical_view.view_cid, value.physical_wire))
+    .find_first(value => {
+      physical_equal(declared_read_profile_contract(value), profile)
+    })
+    .map(value => {
+      match value {
+        DeclaredFileRead(_, view, wire, _, _, _)
+        | InstalledRowRead(_, view, wire, _) => (view.view_cid, wire)
+      }
+    })
   })
 }

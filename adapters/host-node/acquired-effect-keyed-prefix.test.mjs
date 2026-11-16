@@ -299,6 +299,67 @@ test('retirement during original raw Store await prevents page adoption and Mode
   assert.equal(f.counts().acquired,0);
 });
 
+test('failed raw confirmation retains its same reader before lookup retirement without another dispatch', async () => {
+  const f = fixture({rawProtocol: true});
+  let pending = false, closeAllowed = false, failed = false, retries = 0;
+  const closeFailure = new Error('original raw reader close failed');
+  const reader = Object.freeze({
+    status: () => ({pending}),
+    async retry() {
+      assert(pending, 'Only the same pending physical reader is retried');
+      retries++;
+      if (!closeAllowed) throw closeFailure;
+      pending = false;
+    },
+  });
+  const primary = Object.assign(new Error('original raw confirmation failed'),
+    {cleanupPending: true, cleanupHandle: reader});
+  const confirm = f.options.store.confirmLookupRawEvidence;
+  f.options.store.confirmLookupRawEvidence = async binding => {
+    assert.equal(pending, false, 'Reconfirmation cannot reopen while its original reader is pending');
+    const saved = await confirm(binding);
+    if (saved !== undefined && !failed) {
+      failed = true; pending = true;
+      throw primary;
+    }
+    return saved;
+  };
+  const close = f.lookup.close;
+  f.lookup.close = async () => {
+    assert.equal(pending, false, 'Lookup credit cannot retire before its original raw reader');
+    return close();
+  };
+  const open = f.adapter.openKeyedLookup;
+  f.adapter.openKeyedLookup = async value => {
+    try {return await open(value);}
+    catch (cause) {throw acquisitionFailure(cause, 'unknown', f.lookup);}
+  };
+  await assert.rejects(prepareAcquiredEffectKeyedPrefix(f.options),
+    error => error.cause === primary);
+  assert.equal(pending, true);
+  assert.equal(f.events.includes('journal-page'), false);
+  assert.equal(f.events.includes('lookup-completion'), false);
+  assert.equal(await f.duty().cleanup(), false);
+  assert.equal(f.counts().closes, 0);
+  assert.equal(f.duty().cleanupPending(), true);
+
+  closeAllowed = true;
+  let released = false;
+  for (let turn = 0; turn < 8 && !released; turn++) {
+    await new Promise(resolve => setImmediate(resolve));
+    released = await f.duty().cleanup();
+  }
+  assert.equal(released, true);
+  assert.equal(pending, false);
+  assert(retries > 0);
+  assert.equal(f.events.filter(event => event === 'raw-prepare').length, 1);
+  assert.equal(f.events.filter(event => event === 'raw-commit').length, 1);
+  assert.equal(f.counts().acquired, 0);
+  assert.equal(f.counts().closes, 1);
+  assert.equal(f.duty().cleanupPending(), false);
+  assert.equal(await f.duty().cleanup(), true);
+});
+
 
 test('same Host continuation selects original completed Result prefix without the raw-capture prefix entrance', async () => {
   const f = fixture(), host = {}, old = f.options.acquired.control.startInstalledOriginalComposedKeyedPrefix;

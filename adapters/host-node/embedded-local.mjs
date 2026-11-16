@@ -8289,6 +8289,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
       // is the same one required by that service's original identity fence.
       const acquired = installPreparedProjectLocalFiles({moon, preparation: projectSourcePreparation,
         sourceManaged, baseEnvironmentWire, authorizationFor, nativeFilesystem: localProjectFilesystem(),
+        construction: installedSourceConfigurationReader(preparation.sourceInitializationServices(
+          moon, originalInstallation.root, userInfo().username)),
         prepareManagedContentRun(prepared, request, graph, recipe, constructPlan, contentPreparation) {
           return preparation.prepareManagedKeyedContentRun(moon, prepared, request, graph, recipe, constructPlan, contentPreparation);
         },

@@ -9,7 +9,7 @@ import {types as nodeTypes} from 'node:util';
 const fail = code => { throw Object.assign(new Error(code), {code}); };
 
 export function startInstalledRowRun({moon, acquisition, nonce, ledger,
-  capacity, keyed = false, originalRead, originalKeyedRead, wholeInput = false}) {
+  capacity, keyed = false, originalRead, originalKeyedRead, wholeInput = false, responseBackingReleased}) {
   // The checked original already retains the Whole acquisition and its Core
   // provider capacity. A Host-backed Mock read has no separate managed reader;
   // do not fabricate one or confuse that absence with missing Run backing.
@@ -17,6 +17,12 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
       capacity?.listingReport !== undefined)) {
     fail('InstalledWholeSourceReadUnavailable');
   }
+  if (responseBackingReleased !== undefined &&
+      (!keyed || typeof responseBackingReleased !== 'function' || nodeTypes.isProxy(responseBackingReleased) || nodeTypes.isAsyncFunction(responseBackingReleased))) {
+    fail('InvalidInstalledSourceBackingOwner');
+  }
+  const physicalAndBackingStopped = () => transportStopped &&
+    (responseBackingReleased === undefined || responseBackingReleased() === true);
   if (keyed && ledger === undefined) fail('InstalledKeyedSourceLedgerRequired');
   const reportCapacity = capacity?.listingReport;
   const providerCapacity = capacity?.provider;
@@ -80,11 +86,11 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     : originalKeyedRead !== undefined
     ? moon.clientProgramInstalledKeyedSourceReadStartRows(originalKeyedRead, acquisition,
       nonce, attempt => settled.has(attempt), capacity.transferBytes,
-      capacity.executionBytes, () => transportStopped)
+      capacity.executionBytes, physicalAndBackingStopped)
     : keyed
     ? moon.clientProgramKeyedRowStartAccounted(acquisition, nonce,
       attempt => settled.has(attempt), ledger, capacity.transferBytes,
-      capacity.executionBytes, () => transportStopped)
+      capacity.executionBytes, physicalAndBackingStopped)
     : reportCapacity !== undefined
     ? moon.clientProgramRowSourceStartListingAccounted(acquisition,
       reportCapacity, nonce, attempt => settled.has(attempt), ledger,

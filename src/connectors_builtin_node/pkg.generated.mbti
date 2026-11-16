@@ -2600,6 +2600,8 @@ pub fn client_program_keyed_row_start_accounted(@client_row_source_host.RowKeyed
 
 pub fn client_program_keyed_row_target(@client_row_source_host.RowKeyedAcquisition) -> Result[Array[String], @client_row_source_host.RowHostIssue]
 
+pub fn client_program_keyed_source_response_encoding(@run_publication_host.ClientKeyedRequest) -> String?
+
 pub fn client_program_kintone_accept_read_page(@actql/actql/connectors/kintone/host.RecordRead, Bytes) -> Result[Int, @actql/actql/connectors/kintone/host.RecordReadIssue]
 
 pub fn client_program_kintone_adopt_managed_borrow(@actql/actql/connectors/kintone/host.RecordDeclaration, @client_row_source_host.RowRunResponseBorrow, @actql/actql/connectors/kintone/catalog.RecordPageLimits, @actql/actql/connectors/kintone/catalog.RecordValueLimits, Int, Int) -> Result[@actql/actql/connectors/kintone/host.ManagedRecordRead, @actql/actql/connectors/kintone/host.RecordReadIssue]
@@ -4060,6 +4062,8 @@ pub fn client_program_row_source_begin_with_page_limits(@client_row_source_host.
 
 pub fn client_program_row_source_bind_file_read_profile(@client_row_source_host.RowDeclaration, String, @client_row_source_host.RowDeclaration, String, String, String, String, String, String, String?, Array[String], Array[String]) -> Result[@client_row_source_host.RowDeclaration, @client_row_source_host.RowMappingIssue]
 
+pub fn client_program_row_source_bind_read_profile(@client_row_source_host.RowDeclaration, String) -> Result[@client_row_source_host.RowDeclaration, @client_row_source_host.RowMappingIssue]
+
 pub fn client_program_row_source_bind_response_cleanup(@client_row_source_host.RowRunResponseBorrow, () -> Bool) -> Result[Unit, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_borrow_responses(@client_row_source_host.RowRun, @client_row_source_host.RowAcquisition) -> Result[@client_row_source_host.RowRunResponseBorrow, @client_row_source_host.RowHostIssue]
@@ -4143,6 +4147,8 @@ pub fn client_program_row_source_project_json_page(Bytes, Array[String], Bool, A
 pub fn client_program_row_source_project_typed_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[@client_row_source_host.RowSourceProjectedJsonPage, @client_row_source_host.RowSourceJsonPageIssue]
 
 pub fn client_program_row_source_provider_capacity(Int64, Int64) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_row_source_read_profile_construction_capacity(@client_row_source_host.RowDeclaration) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_row_source_request_wire(@client_row_source_host.RowAcquisition) -> Result[String, @client_row_source_host.RowHostIssue]
 

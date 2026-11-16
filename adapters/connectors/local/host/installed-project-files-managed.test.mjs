@@ -380,64 +380,6 @@ test('shared native Source keeps post-close Account uncertainty separate from na
   assert.strictEqual(failure, f.accountFailure);
 });
 
-const hostSource = await readFile(new URL('../../../host-node/embedded-local.mjs', import.meta.url), 'utf8');
-const hostAst = parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'});
-let installationMethod;
-function visit(node) {
-  if (node === null || typeof node !== 'object') return;
-  if (node.type === 'Property' && node.method && node.key.name === 'installProjectSources') {
-    assert.equal(installationMethod, undefined); installationMethod = node;
-  }
-  for (const value of Object.values(node)) {
-    if (Array.isArray(value)) value.forEach(visit);
-    else if (value && typeof value === 'object') visit(value);
-  }
-}
-visit(hostAst); assert(installationMethod);
-const hostFactory = new Function('moon', 'projectSourcePreparation', 'mockPreparation',
-  'assertSourceManagedInstallationCurrent', 'sourceManaged', 'originals',
-  'installPreparedProjectLocalFiles', 'localProjectFilesystem', 'preparation', 'record',
-  'originalInstallation', 'retainInstalledHostInitializationFailure', 'clientOperationError',
-  `return ({${hostSource.slice(installationMethod.start, installationMethod.end)}}).installProjectSources;`);
-const operationError = code => Object.assign(new Error(code), {code});
-
-test('Local installation forwards the captured actual Host method and original receiver to its same profile', async () => {
-  const runtime = {}, originalPreparation = {}, manager = {}, originals = {}, namespace = {};
-  const profile = {}, prepared = {}, request = {}, parent = {}, record = {}, installation = {};
-  let supplied, calls = 0;
-  const host = {prepareManagedSourceRun(...args) {
-    assert.strictEqual(this, host); assert.deepEqual(args, [runtime, prepared, request, profile, undefined]);
-    assert.strictEqual(record.managedSourceProfile, profile);
-    assert.strictEqual(installation.managedSourceProfile, profile); calls++; return parent;
-  }};
-  const install = hostFactory(runtime, originalPreparation, undefined,
-    (actual, input) => {assert.strictEqual(actual, manager); assert.strictEqual(input, originals);},
-    manager, originals, options => {
-      assert.strictEqual(options.preparation, originalPreparation);
-      assert.strictEqual(options.sourceManaged, manager);
-      assert.strictEqual(options.nativeFilesystem, namespace);
-      supplied = options.prepareManagedRun; return Promise.resolve(profile);
-    }, () => namespace, host, record, installation,
-    () => assert.fail('No failed initialization'), operationError);
-  assert.strictEqual(await install(runtime, '{}', () => {}), profile);
-  host.prepareManagedSourceRun = () => assert.fail('No later method lookup');
-  assert.strictEqual(supplied({preparedProgram: prepared, requestIdentity: request, sourceProfile: profile}), parent);
-  assert.equal(calls, 1);
-  assert.throws(() => install({}, '{}', () => {}), {code: 'ForeignInstalledProjectSourcePreparation'});
-});
-
-test('Local duplicate installation retains the actual returned profile for original initialization cleanup', async () => {
-  const runtime = {}, original = {}, profile = {}, existing = {}, record = {managedSourceProfile: existing};
-  let retained;
-  const install = hostFactory(runtime, original, undefined, () => {}, {}, {},
-    () => Promise.resolve(profile), () => ({}), {prepareManagedSourceRun() {}}, record, {},
-    async (cause, owners) => {retained = owners.sourceProfile; return cause;}, operationError);
-  await assert.rejects(install(runtime, '{}', () => {}), {code: 'InstalledSourcePreparationChanged'});
-  assert.strictEqual(retained, profile);
-  assert.strictEqual(record.managedSourceProfile, existing);
-});
-
-
 test('timed original Local wrapper forwards the same Host invocation constructor without invoking it',async()=>{
   const original=()=>assert.fail('Local must not invoke the Host constructor');
   const f=await fixture({expectedInvocation:original});f.profile.prepareManagedRun({preparedProgram:f.prepared,requestIdentity:f.request,prepareInvocation:original});

@@ -4,6 +4,7 @@
 fn generic_file_effect_fixture(
   whole? : Bool = false,
   lookup_bytes? : Int = 32768,
+  installed_rows? : Bool = false,
 ) -> (
   PreparedClientEffectComputation,
   ClientKeyedAcquisition,
@@ -78,6 +79,14 @@ fn generic_file_effect_fixture(
     limits,
     classifications=Some([@environment.Internal, @environment.Internal]),
   ).unwrap()
+  let declaration = if installed_rows {
+    @row_host.bind_installed_row_read_profile(
+      declaration,
+      declaration.views[1].source_ref,
+    ).unwrap()
+  } else {
+    declaration
+  }
   let document =
     #|{"version":"actql/0.1","id":"generic-file-effect","stages":[{"id":"capture","inputs":{"files":{"connector":"local-files","resource":"files"},"remote":{"connector":"local-files","resource":"contents"}},"steps":[{"from":"files","filter":"path <> ''"},{"select":["resource","version","path"],"as":"left"},{"from":"left","join":{"with":"remote","kind":"inner","on":[{"left":"resource","right":"resource"},{"left":"version","right":"version"}],"select":{"path":"left.path","content":"right.content"}},"as":"joined"},{"derive":{"value":{"literal":1}},"as":"selected"}],"results":{"out":{"from":"selected","fields":["value"]}},"effects":{"save":{"create":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"out"}}}}}],"results":{"published":{"from":{"stage":"capture","result":"out"}}}}
   let document = if whole {

@@ -84,10 +84,9 @@ fn prepare_native_keyed_lookup_completion(
   // accounting/receipt emit only fixed field spellings, bounded numeric counts
   // and CID references per original; actual time/issuer text is quoted here.
   // Preserve the Native codec policy; do not allocate the declared wire ceiling.
-  let codec_bytes = if @publication.publication_contract_name(
+  let codec_bytes = if @publication.read_profile_uses_installed_rows(
       component.original.profile,
-    ) ==
-    "declared_file_content_read" {
+    ) {
     let text = issuer.length().to_int64() +
       started_at.length().to_int64() +
       recorded_at.length().to_int64() +
@@ -153,8 +152,7 @@ fn prepare_native_keyed_lookup_completion(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  if @publication.publication_contract_name(component.original.profile) ==
-    "declared_file_content_read" {
+  if @publication.read_profile_uses_installed_rows(component.original.profile) {
     prepare_declared_file_lookup_dependencies(
       lookup,
       result,

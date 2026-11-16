@@ -4688,7 +4688,9 @@ async function openOriginalLocalPublicationStore(
     const original = validateModelRawBinding(binding);
     const operation = materialRetentionBusy.then(() =>
       readPrivateRawEvidenceOriginal(original, 'lookup', true));
-    materialRetentionBusy = operation.catch(() => {});
+    // The queue owns settlement ordering only. Keep the returned original API
+    // result, but do not retain its decrypted raw bytes on the Store tail.
+    materialRetentionBusy = operation.then(() => undefined, () => undefined);
     return operation;
   };
 

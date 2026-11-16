@@ -89,8 +89,7 @@ fn bind_client_keyed_captured_source_metadata(
     composed.keyed.program is KeyedEffect(prepared) &&
     prepared_client_effect_request_scope(prepared, request) is Ok(_) &&
     client_composed_keyed_original_component(composed) is Some(component) &&
-    @publication.publication_contract_name(component.original.profile) ==
-    "declared_file_content_read" &&
+    @publication.read_profile_uses_installed_rows(component.original.profile) &&
     composed.sources.get(index) is Some(source) &&
     @row_host.row_captured_inputs_source_at(composed.captures, index)
     is Some(same_source) &&

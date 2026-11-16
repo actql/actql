@@ -224,9 +224,8 @@ fn build_client_keyed_native_captured_page(
   // The raw binding projection's tuple/Some adds2H3R2W. Scanner and protocol
   // writers have their own existing dynamic constructor quotes below.
   let declared = state.native_read_profile
-    .map(@publication.publication_contract_name)
-    .unwrap_or("") ==
-    "declared_file_content_read"
+    .map(@publication.read_profile_uses_installed_rows)
+    .unwrap_or(false)
   let controls = @execution.preparation_representation_cost({
     // Actual shape tuple1H2W; selected declared page wire/schema records3H14W.
     record_headers: 21L + (if declared { 3L } else { 0L }),
@@ -385,9 +384,8 @@ fn build_client_keyed_native_captured_page(
     return Err(Assembly("native_page_dependency_limit"))
   }
   let codec_bytes = if state.native_read_profile
-    .map(@publication.publication_contract_name)
-    .unwrap_or("") ==
-    "declared_file_content_read" {
+    .map(@publication.read_profile_uses_installed_rows)
+    .unwrap_or(false) {
     let units = @publication.publication_contract_json(raw.metadata)
       .length()
       .to_int64() +

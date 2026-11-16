@@ -400,7 +400,8 @@
             "authorizationFor",
             "nativeFilesystem",
             "prepareManagedRun",
-            "prepareManagedContentRun"
+            "prepareManagedContentRun",
+            "construction"
           ],
           "async": true
         },
@@ -579,6 +580,11 @@
           "async": false
         },
         {
+          "name": "installPreparedProjectLocalFiles/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installPreparedProjectLocalFiles/init:ledgerCapacity/init:ledgerCapacity",
           "parameters": [
             "prepared"
@@ -598,6 +604,32 @@
             "facts"
           ],
           "async": true
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/init:project/init:project/entries/entries",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/init:project/init:project/entries/entries/response/response",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/init:project/init:project/init:project",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
         },
         {
           "name": "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles",
@@ -863,8 +895,13 @@
             "installPreparedProjectLocalFiles/contentLedger",
             "installPreparedProjectLocalFiles/contentSourceEntry/index/index",
             "installPreparedProjectLocalFiles/contentSourceEntry/index/index/index",
+            "installPreparedProjectLocalFiles/init:capacity/init:capacity",
             "installPreparedProjectLocalFiles/init:ledgerCapacity/init:ledgerCapacity",
             "installPreparedProjectLocalFiles/init:prepare/init:prepare",
+            "installPreparedProjectLocalFiles/init:project/init:project",
+            "installPreparedProjectLocalFiles/init:project/init:project/entries/entries",
+            "installPreparedProjectLocalFiles/init:project/init:project/entries/entries/response/response",
+            "installPreparedProjectLocalFiles/init:project/init:project/init:project",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#2",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#3",
@@ -1219,6 +1256,18 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "anchor": "public Local installer funds and forwards its same installed row read profile and transport"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "anchor": "public Local profile constructor refuses before projection on the original Source budget"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "anchor": "public Local profile construction observes original retirement before authorization or Source publication"
               }
             ]
           }
