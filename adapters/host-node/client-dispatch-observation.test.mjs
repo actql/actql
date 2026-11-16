@@ -10,9 +10,10 @@ import {fileURLToPath} from 'node:url';
 import {installNodeClientDispatchOwner as installActualDispatchOwner} from './client-dispatch-owner.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {types as nodeTypes} from 'node:util';
+import {CapturedRunPublicationError} from './entry.mjs';
 
 // This boundary uses the actual owner and Result guard, not a copied catch.
-async function observeActualDispatchFailure(failure, {afterInstall, observerThrows = false} = {}) {
+async function observeActualDispatchFailure(failure, {afterInstall, observerThrows = false, closeFailure} = {}) {
   const records = [], stopped = [];
   let closes = 0, cleanups = 0;
   const owner = installActualDispatchOwner({observed(name, detail) {
@@ -20,7 +21,7 @@ async function observeActualDispatchFailure(failure, {afterInstall, observerThro
     if (observerThrows) throw new Error('OptionalObserverRefusal');
   }});
   afterInstall?.();
-  const physical = {async close() {closes++;}, cleanup() {cleanups++; return true;},
+  const physical = {async close() {closes++; if (closeFailure !== undefined) throw closeFailure;}, cleanup() {cleanups++; return true;},
     cleanupPending: () => false};
   const ref = {runDefinitionCid: 'actual-dispatch-diagnostic'};
   const operation = owner.track(ref, {run({beginPhysicalWork, retainExecution}) {
@@ -36,6 +37,76 @@ async function observeActualDispatchFailure(failure, {afterInstall, observerThro
   assert.equal(records.length, 1);
   return records[0];
 }
+
+function fieldlessLedgerFailure(issue) {
+  try { checked({$tag: 0, _0: {$tag: 10, _0: issue}}); }
+  catch (error) { return error; }
+  assert.fail('Expected the actual Result guard to reject');
+}
+
+test('dispatch nested issue forwards fieldless Ledger tags through the actual owner', async () => {
+  // Pinned LedgerIssue variants: PlanningLimit1, RetentionLimit5, ExecutionLimit6.
+  for (const issue of [1, 5, 6, 0, 65535]) {
+    const failure = fieldlessLedgerFailure(issue);
+    const detail = await observeActualDispatchFailure(failure);
+    assert.equal(detail.issueTag, 10);
+    assert.equal(detail.nestedIssueTag, issue);
+    assert.equal(detail.primaryCode, 'MoonBitHostFailure');
+    assert.equal(Object.hasOwn(detail, 'cause'), false);
+  }
+});
+
+test('dispatch nested issue omits malformed primitive tags and preserves boxed tags', async () => {
+  for (const issue of [-1, 65536, 1.5, NaN, Infinity, -Infinity, '5', null, undefined, true, 5n, {}]) {
+    const detail = await observeActualDispatchFailure(fieldlessLedgerFailure(issue));
+    assert.equal(detail.issueTag, 10);
+    assert.equal(detail.nestedIssueTag, undefined);
+    assert.equal(Object.hasOwn(JSON.parse(JSON.stringify(detail)), 'nestedIssueTag'), false);
+  }
+  const detail = await observeActualDispatchFailure(fieldlessLedgerFailure({$tag: 6}));
+  assert.equal(detail.nestedIssueTag, 6);
+});
+
+test('dispatch nested issue preserves wrapped primary failure ahead of later cleanup failure', async () => {
+  const primary = fieldlessLedgerFailure(5), cleanup = fieldlessLedgerFailure(6);
+  const failure = new CapturedRunPublicationError(primary, undefined);
+  const detail = await observeActualDispatchFailure(failure, {closeFailure: cleanup, observerThrows: true});
+  assert.equal(detail.code, 'CapturedRunPublicationFailed');
+  assert.equal(detail.primaryCode, 'MoonBitHostFailure');
+  assert.equal(detail.issueTag, 10);
+  assert.equal(detail.nestedIssueTag, 5);
+});
+
+test('dispatch nested issue forwards the fieldless cause from the configured start owner', async () => {
+  const failure = fieldlessLedgerFailure(6), records = [], stopped = [];
+  let closes = 0, cleanups = 0;
+  const ref = {runDefinitionCid: 'actual-start-fieldless-diagnostic'};
+  const definition = {wire: 'same-original-definition'};
+  const row = {cancellationRequested: false, revision: 1, runDefinition: definition};
+  const owner = installActualDispatchOwner({moon: {},
+    observed(name, detail) {if (name === 'dispatch_failed') records.push(detail);},
+    control: {runDefinitionRunId: () => 'same-run', runCancellationConfirmed: () => false},
+    journal: {reservePhysicalStart: () => true, lookupRunDefinition: () => row,
+      lookupReconciliationState: () => undefined, markPhysicalClose: (...args) => stopped.push(args)},
+    store: {confirmCommittedIndex: async () => undefined},
+    startRun: async () => ({kind: 'reserved', ref}), hostConnection: () => true,
+    planFor: () => ({kind: 'infer', runDefinition: definition}),
+    runInfer: async ({retainExecution}) => {
+      retainExecution({async close() {closes++;}, cleanup() {cleanups++; return true;},
+        cleanupPending: () => false});
+      throw failure;
+    }});
+  assert.equal(await owner.start({preparedProgram: {}, principalId: 'owner', connection: {},
+    requestId: 'same-request'}, {}, {ref, runDefinition: definition,
+    dispatchReserved: false, cancellationRequested: false}, {}), 'started');
+  await owner.drain();
+  assert.equal(records.length, 1);
+  assert.equal(records[0].issueTag, 10);
+  assert.equal(records[0].nestedIssueTag, 6);
+  assert.equal(records[0].primaryCode, 'MoonBitHostFailure');
+  assert.equal(closes, 1); assert.equal(cleanups, 1); assert.equal(stopped.length, 1);
+  assert.equal(owner.operation(ref), undefined);
+});
 
 test('dispatch code-site diagnostic preserves the actual Result failure and physical cleanup', async () => {
   let failure;

@@ -1490,6 +1490,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         const original = entry.primaryFailure;
         const primaryFailure = original instanceof CapturedRunPublicationError
           ? original.primaryFailure : original;
+        const nestedIssue = runtimeOptionalField(primaryFailure?.cause, 0);
+        const nestedTag = runtimeTag(nestedIssue);
         diagnostic('dispatch_failed', {ref: accepted.ref,
           code: cause?.code ?? cause?.message ?? 'ClientDispatchFailed',
           primaryCode: primaryFailure?.code,
@@ -1497,7 +1499,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
             dispatchFailureCodeSite(primaryFailure, diagnosticErrorType, diagnosticStackFormatter),
           cleanupDiagnostic: dispatchFailureSnapshot(primaryFailure)?.cleanupDiagnostic,
           issueTag: runtimeTag(primaryFailure?.cause),
-          nestedIssueTag: runtimeTag(runtimeOptionalField(primaryFailure?.cause, 0))});
+          nestedIssueTag: nestedTag === undefined && Number.isSafeInteger(nestedIssue) &&
+            nestedIssue >= 0 && nestedIssue <= 65535 ? nestedIssue : nestedTag});
       } catch { /* Optional diagnostics cannot interrupt cleanup. */ }
       const failedExecution = cause instanceof CapturedRunPublicationError
         ? cause.execution : undefined;
@@ -1609,13 +1612,16 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         const original = entry.primaryFailure;
         const primaryFailure = original instanceof CapturedRunPublicationError
           ? original.primaryFailure : original;
+        const nestedIssue = runtimeOptionalField(primaryFailure?.cause, 0);
+        const nestedTag = runtimeTag(nestedIssue);
         diagnostic('dispatch_failed', {ref: entry.ref,
           code: cause?.code ?? 'ClientDispatchFailed',
           primaryCode: primaryFailure?.code,
           primaryDiagnostic: dispatchFailureSnapshot(primaryFailure)?.primaryDiagnostic ??
             dispatchFailureCodeSite(primaryFailure, diagnosticErrorType, diagnosticStackFormatter),
           issueTag: runtimeTag(primaryFailure?.cause),
-          nestedIssueTag: runtimeTag(runtimeOptionalField(primaryFailure?.cause, 0))});
+          nestedIssueTag: nestedTag === undefined && Number.isSafeInteger(nestedIssue) &&
+            nestedIssue >= 0 && nestedIssue <= 65535 ? nestedIssue : nestedTag});
       } catch { /* Optional diagnostics cannot interrupt original cleanup. */ }
       if (!entry.runInvoked) {
         // A refused execution barrier ran no Site callback. This is a
