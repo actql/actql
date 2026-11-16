@@ -995,6 +995,7 @@ fn effect_whole_selected_capture_bytes_fixture(
   selected_bytes : Int,
   max_pages? : Int = 3,
   explicit_small? : Bool = false,
+  initial_only? : Bool = false,
 ) -> Unit raise {
   let declaration = @row_source_host.generate_row_declaration(
     "operation-source",
@@ -1038,21 +1039,25 @@ fn effect_whole_selected_capture_bytes_fixture(
     },
     runtime_admission=true,
   )
-  let (input, initial, ledger, capacity) = effect_parent_test_preparation(
-    plan,
-    prepared_installed_effect_managed_requirements(plan),
+  let selected = prepared_installed_effect_managed_requirements(plan)
+  if initial_only {
+    selected[4] += 10L
+    selected[5] += 10L
+  } else {
+    // The initial quote funds controls, not future received page DATA. This
+    // positive policy fixture selects a finite parent with page-growth room;
+    // the separate initial-only case retains the genuine memory refusal.
+    // No production policy or page/capture limit changes with this selection.
+    assert_true(selected[4] + 10L <= 536870912L)
+    assert_true(selected[5] + 10L <= 536870912L)
+    selected[4] = 536870912L
+    selected[5] = 536870912L
+  }
+  let (input, initial, ledger, capacity) = effect_preparation_test_capacity(
+    plan, selected,
   )
-  // Preserve the existing checked component recipe and its documented staged
-  // carrier. This fixture's wide JOIN recipe is not a 512 MiB ledger proof;
-  // the independent Pure Source case verifies that actual selected budget.
-  assert_eq(
-    @resources.ledger_limits(ledger).retained_bytes,
-    plan.limits.retained_bytes + 10L,
-  )
-  assert_eq(
-    @resources.ledger_limits(ledger).execution_bytes,
-    plan.limits.execution_bytes + 10L,
-  )
+  assert_eq(@resources.ledger_limits(ledger).retained_bytes, selected[4])
+  assert_eq(@resources.ledger_limits(ledger).execution_bytes, selected[5])
   let output_policy = installed_source_listing_policy(plan.graph)
   assert_eq(
     @capacity.ceiling_value(
@@ -1126,6 +1131,7 @@ fn effect_whole_selected_capture_bytes_fixture(
       match @row_source_host.accept_charged_row_run_page(run, charged, body) {
         Ok(count) => assert_eq(count, 16)
         Err(Source(Capture(CaptureLimit))) if explicit_small => refused = true
+        Err(Physical(RetentionLimit)) if initial_only => refused = true
         Err(_) => fail("unexpected Whole Effect page refusal")
       }
   }
@@ -1148,7 +1154,7 @@ fn effect_whole_selected_capture_bytes_fixture(
       }
     }
   }
-  if explicit_small || selected_bytes < 786552 {
+  if explicit_small || selected_bytes < 786552 || initial_only {
     assert_true(refused)
     assert_false(ready)
     assert_true(@row_source_host.capture_row_run(run) is Err(_))
@@ -1205,4 +1211,10 @@ test "Effect Whole Source captures 786552 text bytes from its exact selected Hos
 test "Effect Whole Source preserves selected and explicit small byte refusal and cleanup" {
   effect_whole_selected_capture_bytes_fixture(500000, max_pages=1)
   effect_whole_selected_capture_bytes_fixture(4194304, explicit_small=true)
+}
+
+///|
+#cfg(target="js")
+test "Effect Whole Source refuses actual page growth beyond its original parent memory" {
+  effect_whole_selected_capture_bytes_fixture(4194304, initial_only=true)
 }
