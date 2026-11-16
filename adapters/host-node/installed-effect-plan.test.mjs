@@ -1715,6 +1715,123 @@ test('nested constructor input refusal preserves the first failure and original 
 });
 
 
+test('owned Grant recipe captures immutable selector metadata and borrows its exact opaque originals', () => {
+  let calls = 0;
+  const receiver = {}, method = function() {calls++;}, capacity = Object.freeze({
+    get privateExtent() {assert.fail('Host must not inspect opaque Common capacity');},
+  });
+  const grantConstruction = Object.freeze({receiver, method, capacity});
+  const base = {memberOperations: Object.freeze([]), rowOperations: Object.freeze([
+    Object.freeze({operation: 'external.owned.write', extent: {}}),
+  ])};
+  const selected = captureInstalledEffectPlanRecipe(Object.freeze({...base, grantConstruction}), 1);
+  assert.notStrictEqual(selected.grantConstruction, grantConstruction);
+  assert.equal(Object.isFrozen(selected.grantConstruction), true);
+  assert.strictEqual(selected.grantConstruction.receiver, receiver);
+  assert.strictEqual(selected.grantConstruction.method, method);
+  assert.strictEqual(selected.grantConstruction.capacity, capacity);
+  assert.equal(calls, 0, 'capturing constructor metadata never issues permission');
+  assert.equal(Object.hasOwn(captureInstalledEffectPlanRecipe(Object.freeze(base), 1), 'grantConstruction'), false);
+});
+
+test('owned Grant recipe rejects malformed or executable selector metadata without invoking it', () => {
+  const receiver = {}, method = () => {}, capacity = {}, base = {
+    memberOperations: Object.freeze([]), rowOperations: Object.freeze([
+      Object.freeze({operation: 'external.owned.write', extent: {}}),
+    ]),
+  };
+  let calls = 0;
+  const trap = {getOwnPropertyDescriptor() {calls++; throw new Error('Proxy must not run');}};
+  const selectors = [null, {}, {receiver, method, capacity},
+    Object.freeze({receiver, method}), Object.freeze({receiver, method, capacity, extra: true}),
+    Object.freeze({receiver, method: undefined, capacity}),
+    Object.freeze({receiver, method: async () => {}, capacity}),
+    Object.freeze({receiver, method: new Proxy(method, trap), capacity}),
+    ...[null, undefined, 0, () => {}, new Proxy(receiver, trap)].map(value =>
+      Object.freeze({receiver: value, method, capacity})),
+    ...[null, undefined, 0, 'capacity', new Proxy(capacity, trap)].map(value =>
+      Object.freeze({receiver, method, capacity: value})),
+    Object.freeze({receiver, get method() {calls++; return method;}, capacity}),
+    Object.freeze({receiver, method, get capacity() {calls++; return capacity;}}),
+    new Proxy(Object.freeze({receiver, method, capacity}), trap),
+  ];
+  for (const grantConstruction of selectors) {
+    assert.throws(() => captureInstalledEffectPlanRecipe(Object.freeze({...base, grantConstruction}), 1),
+      {code: 'InvalidInstalledEffectPlanRecipe'});
+  }
+  const accessor = Object.freeze({...base, get grantConstruction() {calls++; return {receiver, method, capacity};}});
+  assert.throws(() => captureInstalledEffectPlanRecipe(accessor, 1), {code: 'InvalidInstalledEffectPlanRecipe'});
+  assert.equal(calls, 0);
+});
+
+test('owned Grant native frame passes the same opaque capacity before issuer entry and keeps legacy Grant funding', () => {
+  const receiver = {}, argument = {}, result = {}, capacity = {};
+  let f;
+  f = controlWorkFixture({clientProgramInstalledEffectOperationNativeConstructionBegin(...args) {
+    assert.strictEqual(this, f.runtime);
+    assert.deepEqual(args, [f.run.value, f.run.prepared, f.run.request, f.run.operationPlan, capacity]);
+    assert.equal(f.run.selecting, true); f.events.push('native grant'); return {$tag: 1};
+  }});
+  const issuer = function(value) {
+    assert.strictEqual(this, receiver); assert.strictEqual(value, argument);
+    assert.equal(f.work.retire(), false);
+    assert.throws(() => f.work(receiver, issuer, [argument], capacity),
+      {code: 'InstalledEffectControlConstructionPending'});
+    return result;
+  };
+  assert.strictEqual(f.work(receiver, issuer, [argument], capacity), result);
+  assert.deepEqual(f.events, ['native grant', 'complete']);
+  const legacy = controlWorkFixture();
+  assert.strictEqual(legacy.work.grant(receiver, () => result, []), result);
+  assert.deepEqual(legacy.events, ['begin', 'complete']);
+  assert.equal(f.run.selecting, false); assert.equal(f.work.retire(), true);
+});
+
+test('owned Grant native frame preserves quote entry callback current and asynchronous failure prefixes', async () => {
+  for (const mode of ['quote', 'entry', 'callback', 'foreign', 'async']) {
+    let f, settle;
+    const capacity = {}, foreignCapacity = {}, failure = new Error(mode),
+      promise = new Promise(resolve => {settle = resolve;});
+    f = controlWorkFixture({clientProgramInstalledEffectOperationNativeConstructionBegin(...args) {
+      f.events.push('native grant');
+      if (mode === 'entry') throw failure;
+      if (args[4] !== capacity) return {$tag: 0, _0: failure};
+      return {$tag: 1};
+    }});
+    let primary;
+    assert.throws(() => f.work(undefined, () => {
+      if (mode === 'entry' || mode === 'quote') assert.fail('unfunded issuer');
+      if (mode === 'callback') throw failure;
+      if (mode === 'foreign') {f.run.operationPlan = {}; return 1;}
+      return promise;
+    }, [], mode === 'quote' ? foreignCapacity : capacity), cause => {
+      primary = cause;
+      return mode === 'entry' || mode === 'callback' ? cause === failure
+        : mode === 'quote' ? cause.code === 'MoonBitHostFailure' && cause.cause === failure : !!cause.code;
+    });
+    assert.deepEqual(f.events, ['native grant']);
+    assert.throws(() => f.work(undefined, () => assert.fail('failed prefix retry'), [], capacity), cause => cause === primary);
+    if (mode === 'async') {assert.equal(f.work.retire(), false); settle(); await new Promise(setImmediate);}
+    else settle();
+    assert.equal(f.run.selecting, false);
+  }
+});
+
+test('owned Grant native frame refuses malformed capacity and missing runtime before issuer allocation', () => {
+  const f = controlWorkFixture({clientProgramInstalledEffectOperationNativeConstructionBegin() {
+    assert.fail('invalid capacity cannot enter Common');
+  }});
+  for (const capacity of [null, 0, 'capacity', new Proxy({}, {})]) {
+    assert.throws(() => f.work(undefined, () => assert.fail('invalid capacity cannot issue'), [], capacity),
+      {code: 'InvalidInstalledEffectControlConstruction'});
+  }
+  assert.deepEqual(f.events, []);
+  const legacy = controlWorkFixture();
+  assert.throws(() => legacy.work(undefined, () => assert.fail('missing native constructor cannot issue'), [], {}),
+    {code: 'InstalledEffectControlRuntimeUnavailable'});
+  assert.deepEqual(legacy.events, []);
+});
+
 test('original Grant frame selects the same Core issuer capacity and retains generic full funding', () => {
   let f; const receiver = {}, argument = {}, result = {};
   f = controlWorkFixture({
