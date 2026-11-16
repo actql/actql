@@ -200,8 +200,7 @@ test "fixed Request control envelope preserves original upper bound through the 
   // The explicit source-free work selection adds its Some/header, scalar
   // and two references (1H/2R/1W =40 bytes), not payload capacity.
   // This fixed control belongs to the original parent before domain growth.
-  assert_eq(
-    10736L +
+  let expected_control = 10736L +
     16L * 2L +
     8L * 2L +
     8L * 2L +
@@ -239,21 +238,20 @@ test "fixed Request control envelope preserves original upper bound through the 
     16L * 3L +
     8L * 16L +
     8L * 2L +
-    // Nine family fields and two Some/one-scalar quote closure pairs.
-    16L * 4L +
-    8L * 11L +
-    8L * 2L,
-    11968L,
-  )
+    // Nine family fields; Interval/Sequence/Ranking each own one Some and
+    // one scalar closure. Events' closure also borrows its record policy.
+    16L * 8L +
+    8L * 14L +
+    8L * 4L
   assert_eq(
     @execution.preparation_representation_cost(
       request_preparation_fixed_control_envelope,
     ),
-    Some(11968L),
+    Some(expected_control),
   )
   assert_eq(
     client_request_preparation_control_capacity(client_local_resource_policy()),
-    Some((16064L, 0L)),
+    Some((expected_control + 4096L, 0L)),
   )
   let growth = @resources.preparation_inventory_growth_entry_construction()
   assert_eq(
