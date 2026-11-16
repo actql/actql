@@ -165,9 +165,9 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
       }
     },
     async prepareNext(outputs) {
-      // A typed Carrier path keeps its exact managed generations. Ordinary
-      // Relations require the installed snapshot start and complete reload
-      // bridges before replacing the materializing row-Store route.
+      // An installed row Store selects retained-file Relations. A typed
+      // Carrier path still keeps its exact managed generations and snapshots;
+      // a temporary snapshot must not replace the selected row-file lifetime.
       const carrierPath = createLease != null &&
         moon.strategyModule_local_NextCarrierPath?.(setup) === true;
       const task = moon.strategyHostNextTask(setup);
@@ -202,12 +202,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         }) : undefined;
       });
       if (inputs.some(input => input == null)) return undefined;
-      if (createLease && !carrierPath && (createSnapshotLease == null ||
-          typeof moon.strategyModule_local_ManagedStartRetained !== 'function' ||
-          typeof moon.strategyPrepareDurableResultRowFrames !== 'function' ||
-          typeof moon.strategyFeedDurableResultRowFrames !== 'function' ||
-          typeof moon.strategyFinishDurableResultRowFrames !== 'function' ||
-          typeof moon.strategyCancelDurableResultRowFrames !== 'function')) {
+      if (createLease && !carrierPath) {
         return undefined;
       }
       const relationInputs = inputs.filter(input =>
