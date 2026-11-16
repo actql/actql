@@ -541,6 +541,8 @@ pub fn effectful_final_run_evidence_receipt(EffectfulFinalRunEvidence) -> Public
 
 pub fn effectful_final_run_evidence_reconciliation_state(EffectfulFinalRunEvidence, String, Int, Int, Int) -> Result[String, RunStateIssue]
 
+pub fn effectful_publication_construction_inventory(Bool, Array[PublicationContract], Array[String], Int, Int, Int) -> (EffectPreviewIdentityConstructionInventory, EffectPreviewIdentityConstructionInventory)?
+
 pub fn emit_content_serialization_options(ContentSerializationProfile, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn empty_initial_input_artifact_set_cid() -> String

@@ -442,6 +442,8 @@ pub fn client_program_begin_infer_original_model_invalidation(@client_infer_host
 
 pub fn client_program_begin_infer_original_read_scope(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @model_execution.ModelQuantityCapacity?, Int64, Int64, Int, Int, Int) -> Result[@run_publication_host.ClientModelReadScope, @client_infer_host.Issue]
 
+pub fn client_program_begin_installed_effect_capture_publication(@client_local_host.ClientInstalledEffectCaptureRecovery, Bool, Array[@run_publication.PublicationContract], Array[String], Int, Int, Int) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_begin_installed_effect_capture_recovery(@client_local_host.ClientInstalledEffectCaptureRecovery) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_begin_installed_effect_capture_validation(@client_local_host.ClientInstalledEffectCaptureRecovery) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
@@ -1803,6 +1805,8 @@ pub fn client_program_installed_duckdb_capture_capacity_accepts(@client_local_ho
 pub fn client_program_installed_effect_capture_extent_prepare(String, @execution_relation.ExecutionCapacity, @execution_relation.ExecutionCapacity) -> Result[@client_local_host.ClientInstalledEffectOperationExtent, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_capture_prepared_available(@client_local_host.ClientInstalledEffectCaptureRecovery) -> Bool
+
+pub fn client_program_installed_effect_capture_publication_input_limit(@client_local_host.ClientInstalledEffectCaptureRecovery) -> Result[Int, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_capture_recipe_extent_prepare(String, Array[@execution_relation.ExecutionCapacity]) -> Result[@client_local_host.ClientInstalledEffectOperationExtent, @client_local_host.ClientInstalledManagedRunIssue]
 
