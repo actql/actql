@@ -362,7 +362,7 @@
         },
         {
           "name": "local_module_materializing_start_capacity",
-          "declaration": "local_module_materializing_start_capacity ( installed : LocalComputeModule , slot : Int , ) - > ( @ execution . ExecutionCapacity , Bool ) ?"
+          "declaration": "local_module_materializing_start_capacity ( installed : LocalComputeModule , slot : Int , ) - > ( @ execution . ExecutionCapacity , Bool ? ) ?"
         },
         {
           "name": "local_module_max_work",
