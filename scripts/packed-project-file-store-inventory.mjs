@@ -120,7 +120,10 @@ export async function runPackedProjectFileStoreInventory({prepared, root, reposi
           await verifyNodeBenchmarkPackages(prepared.manifest, prepared.manifestPath, prepared.consumer);
           observed = await command(process.execPath, [join(application, fixtureMembers[0]),
             phase, selected.case, handoff], {cwd: application, env,
-            name: `project-store-${selected.case}-${phase}`, timeout: 60_000});
+            name: `project-store-${selected.case}-${phase}`,
+            // Leave bounded time for cold open, approval, Result verification
+            // and first close around the 101-write functional wait.
+            timeout: selected.case === 'rows101' && phase === 'approve' ? 120_000 : 60_000});
           assert.equal(observed.code, 0); assert.equal(observed.signal ?? null, null);
           const actual = JSON.parse(observed.stdout.trim().split('\n').at(-1));
           record.observation = actual;

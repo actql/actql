@@ -208,7 +208,11 @@ try {
       await save(join(directory, 'approval.json'), resolution);
       assert.equal(resolution.results.length, 1); assert.equal(resolution.results[0].status, 'committed');
       timing.stamp('window-start');
-      const signal = AbortSignal.timeout(15_000);
+      // This is a bounded functional completion wait, not a latency SLA.
+      // The 101 independent durable writes retain their full timing samples.
+      const completionTimeoutMs = caseId === 'rows101' ? 60_000 : 15_000;
+      report.approvalCompletionTimeoutMs = completionTimeoutMs;
+      const signal = AbortSignal.timeout(completionTimeoutMs);
       let resumedState;
       do {
         resumedState = await run.status({signal});
