@@ -152,7 +152,7 @@ fn publication_read_original_work(
     PendingOriginalRead(_, _) => fail("publication Read preparation pending")
   }
   let consumer = host
-    .prepare_domain_original_read_consumer(read, 8192L, 16384L)
+    .prepare_domain_original_read_consumer(read, 65536L, 131072L)
     .retained_execution_value("publication Read stage 2")
   let receiver : PublicationReadReceiver = {
     host,
