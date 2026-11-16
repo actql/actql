@@ -119,25 +119,27 @@ test "publication exact execution boundary and one-short refusal preserve the sa
 
 ///|
 test "publication current reentry closing and foreign backing refusal preserve the original demand prefix" {
-  let owner : Ref[ClientInstalledEffectCaptureRecovery?] = Ref(None)
-  let mode = Ref(0)
-  let reentry = Ref(false)
-  let (run, ledger, read, _) = capture_validation_geometry_fixture(current=() => {
-    if mode.val == 1 {
-      capture_recovery_current_refusal()
-    }
-    if mode.val == 2 {
-      reentry.val = installed_effect_capture_publication_input_limit(
-          owner.val.unwrap(),
-        )
-        is Err(Retired)
-    }
-    if mode.val == 3 {
-      owner.val.unwrap().closing = true
-    }
-  })
-  owner.val = Some(read)
+  // A failed current check poisons that original Run. Each independent mode
+  // needs its own genuine fixture; no later success can erase that refusal.
   for selected in [1, 2, 3] {
+    let owner : Ref[ClientInstalledEffectCaptureRecovery?] = Ref(None)
+    let mode = Ref(0)
+    let reentry = Ref(false)
+    let (run, ledger, read, _) = capture_validation_geometry_fixture(current=() => {
+      if mode.val == 1 {
+        capture_recovery_current_refusal()
+      }
+      if mode.val == 2 {
+        reentry.val = installed_effect_capture_publication_input_limit(
+            owner.val.unwrap(),
+          )
+          is Err(Retired)
+      }
+      if mode.val == 3 {
+        owner.val.unwrap().closing = true
+      }
+    })
+    owner.val = Some(read)
     mode.val = selected
     let before = @resources.ledger_usage(ledger)
     let previous = read.publication_retained
@@ -153,7 +155,12 @@ test "publication current reentry closing and foreign backing refusal preserve t
     }
     mode.val = 0
     read.closing = false
+    close_capture_validation_fixture(run, ledger, read)
+    assert_true(
+      installed_effect_capture_publication_input_limit(read) is Err(Retired),
+    )
   }
+  let (run, ledger, read, _) = capture_validation_geometry_fixture()
   let (foreign_run, foreign_ledger, foreign, _) = capture_validation_geometry_fixture()
   let copied = { ..read, ledger: Some(foreign_ledger), }
   let before = @resources.ledger_usage(ledger)

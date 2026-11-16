@@ -73,14 +73,14 @@ test "publication constructor covers actual final Receipt and escaped adoption o
   let set = admit_publication_contract(
     "effect_set_apply_receipt", set_wire, 65536, 4096, 32,
   ).unwrap()
-  let member = admit_publication_contract(
+  let member_receipt = admit_publication_contract(
     "effect_apply_receipt",
     members[0],
     65536,
     4096,
     32,
   ).unwrap()
-  // Two Final/Set/member views and one Source view retain their Canonical
+  // Two Final/Set/member_receipt views and one Source view retain their Canonical
   // trees and UTF-16 wire/text. Temporary byte/parser/hash packets are not
   // multiplied by that escaped-output count: later adoption uses one MAX.
   let mut minimum_headers = 0L
@@ -90,7 +90,7 @@ test "publication constructor covers actual final Receipt and escaped adoption o
     (contract, copies) in [
       (final_receipt, 2L),
       (set, 2L),
-      (member, 2L),
+      (member_receipt, 2L),
       (source, 1L),
     ] {
     let actual = publication_contract_representation_extent(
@@ -137,7 +137,7 @@ test "publication constructor covers actual final Receipt and escaped adoption o
 }
 
 ///|
-test "publication constructor accounts independently for member and Source adoption lifetimes" {
+test "publication constructor accounts independently for member_receipt and Source adoption lifetimes" {
   let chain = captured_run_test_chain()
   let captured = final_test_captured(chain)
   let preview = final_test_preview(chain)
@@ -160,7 +160,7 @@ test "publication constructor accounts independently for member and Source adopt
     4096,
     32,
   ).unwrap()
-  let member = admit_publication_contract(
+  let member_receipt = admit_publication_contract(
     "effect_apply_receipt",
     members[0],
     65536,
@@ -168,7 +168,7 @@ test "publication constructor accounts independently for member and Source adopt
     32,
   ).unwrap()
   let member_extent = publication_contract_representation_extent(
-    member, 4096, 32, 1000000,
+    member_receipt, 4096, 32, 1000000,
   ).unwrap()
   assert_true(
     member_retained.owned_utf16_units >=
@@ -204,7 +204,7 @@ test "publication constructor accounts independently for member and Source adopt
     source_workspace.owned_wire_bytes >= member_workspace.owned_wire_bytes,
   )
   // A quote for only the Set is constructor DATA; it does not establish the
-  // missing member closure that the actual final Receipt issuer requires.
+  // missing member_receipt closure that the actual final Receipt issuer requires.
   assert_true(
     issue_effectful_final_run_receipt(
       chain.run,
@@ -230,7 +230,7 @@ test "publication constructor retains exact Receipt codec limits and original or
   let set = admit_publication_contract(
     "effect_set_apply_receipt", set_wire, 65536, 4096, 32,
   ).unwrap()
-  let member = admit_publication_contract(
+  let member_receipt = admit_publication_contract(
     "effect_apply_receipt",
     members[0],
     65536,
@@ -239,10 +239,13 @@ test "publication constructor retains exact Receipt codec limits and original or
   ).unwrap()
   let set_bytes = @utf8.encode(set_wire).length()
   let member_bytes = @utf8.encode(members[0]).length()
-  // Set: six root fields and a five-field member object in its Array.
+  // Set: six root fields and a five-field member_receipt object in its Array.
   // Member: seven root fields, including the empty rows Array.
   assert_eq(publication_contract_wire_usage(set), Some((set_bytes, 13, 3)))
-  assert_eq(publication_contract_wire_usage(member), Some((member_bytes, 8, 2)))
+  assert_eq(
+    publication_contract_wire_usage(member_receipt),
+    Some((member_bytes, 8, 2)),
+  )
   let bytes = Int::max(set_bytes, member_bytes)
   let contracts = [captured, chain.receipt]
   let receipts = [set_wire, members[0]]

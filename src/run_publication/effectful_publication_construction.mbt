@@ -293,17 +293,17 @@ pub fn effectful_publication_construction_inventory(
         depth,
         live_keys=Some(0),
       )
-      is Some(final) &&
+      is Some(final_codec) &&
       publication_returned_contract_inventory(bytes + 293, nodes + 3, depth)
       is Some(output) &&
       publication_inventory_add(returned, output) is Some(next) &&
       publication_inventory_add(next, output) is Some(next) &&
-      publication_inventory_add(codecs, final) is Some(peak) else {
+      publication_inventory_add(codecs, final_codec) is Some(peak) else {
       return None
     }
     returned = next
     codecs = peak
-    adoption = publication_inventory_max(adoption, final)
+    adoption = publication_inventory_max(adoption, final_codec)
   }
   // Host contract/bounds/token views, receipt/evidence/preparation carriers,
   // source-schema strings and their actual Array growth remain through the
