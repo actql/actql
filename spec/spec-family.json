@@ -533,7 +533,7 @@
         {
           "path": "spec/manifests/actql-barrier-contracts-0.1.json",
           "pointer": "",
-          "cid": "sha256:39edc60ba6841dccc1c0a5f20253b04e234a8336ff8efa72a1f6737ada571dff",
+          "cid": "sha256:e34e3bbe1499f945cb80ef813f6f647524d602e1e1152c6d884bd7a38e4f7cab",
           "version": "actql-barrier-contract-manifest/0.1"
         },
         {

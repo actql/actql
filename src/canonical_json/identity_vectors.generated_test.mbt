@@ -4566,10 +4566,10 @@ test "contract spec/manifests/actql-grammar-0.1.json#" {
 ///|
 test "contract spec/manifests/actql-barrier-contracts-0.1.json#" {
   let input = @json.parse([
-    "{\"version\":\"actql-barrier-contract-manifest/0.1\",\"production_profile_registry_cid\":\"sha256:7489e478e75781a2dccfe398ea1ed4d57dc30e06caa936980002bd620376c9e8\",\"contracts\":[{\"name\":\"content_barrier\",\"contract_cid\":\"sha256:4b7fea87dfbed0e1f11e9421cd077793cd3bccfc3e981617fa2a1547960acee5\"},{\"name\":\"inference_barrier\",\"contract_cid\":\"sha256:34f1a37cbaea973964f4cf84ca3806b2492df545b718042ad8057604c95cb6dd\"},{\"name\":\"lookup_barrier\",\"contract_cid\":\"sha256:866b8e34f31933d310c208b8423e7a0e9a467e078b0b73114046865873a310c9\"},{\"name\":\"text_time_evaluation_barrier\",\"contract_cid\":\"sha256:cab960023ffd6486161c4757a86bde76c93798504d92a47631c73d747f881cdf\"}],\"barrier_contract_manifest_cid\":\"sha256:ef306c82a3b6c3a19b26653e57be6521b1810c93591b0beee2494254f2728020\"}",
+    "{\"version\":\"actql-barrier-contract-manifest/0.1\",\"production_profile_registry_cid\":\"sha256:dfe2f1cecbacd23330c72bf525c61931568bea6fe679135ab47d9b6f80183549\",\"contracts\":[{\"name\":\"content_barrier\",\"contract_cid\":\"sha256:4b7fea87dfbed0e1f11e9421cd077793cd3bccfc3e981617fa2a1547960acee5\"},{\"name\":\"inference_barrier\",\"contract_cid\":\"sha256:34f1a37cbaea973964f4cf84ca3806b2492df545b718042ad8057604c95cb6dd\"},{\"name\":\"lookup_barrier\",\"contract_cid\":\"sha256:866b8e34f31933d310c208b8423e7a0e9a467e078b0b73114046865873a310c9\"},{\"name\":\"text_time_evaluation_barrier\",\"contract_cid\":\"sha256:cab960023ffd6486161c4757a86bde76c93798504d92a47631c73d747f881cdf\"}],\"barrier_contract_manifest_cid\":\"sha256:4d6d66190cd0effbaa55ae0c6ba97737f6d737a8cd64e9e5cfef22c10de424db\"}",
   ].join(""))
   let value = @canonical_json.from_json(input, 17, 3, 755)
-  assert_eq(@canonical_json.cid_value(value, 755, 17, 3), "sha256:39edc60ba6841dccc1c0a5f20253b04e234a8336ff8efa72a1f6737ada571dff")
+  assert_eq(@canonical_json.cid_value(value, 755, 17, 3), "sha256:e34e3bbe1499f945cb80ef813f6f647524d602e1e1152c6d884bd7a38e4f7cab")
   assert_eq(@canonical_json.measure_value(value, 755, 17, 3), 755)
 }
 
