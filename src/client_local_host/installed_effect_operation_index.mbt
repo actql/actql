@@ -59,6 +59,9 @@ priv struct ClientEffectOperationControls {
   mut ledger_codec_active : Bool
   mut ledger_codec_workspace : Int64
   mut ledger_codec_retained : Int64
+  // Returned native constructor DATA remains charged through caller adoption
+  // and failure. Only this existing control owner's retirement returns it.
+  mut native_output_retained : Int64
   // Runtime inventory belongs to this Run, never the reusable immutable Plan.
   mut captured_rows : Int?
   // One same-Run Preview input; its existing producer retains wire storage.

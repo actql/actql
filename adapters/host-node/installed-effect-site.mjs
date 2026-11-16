@@ -212,8 +212,24 @@ function authorization(facts, stage, beforeDefer) {
     reviewWire: facts.control.effectComputationPreviewWire(stage.preview),
     // Capture the same actual Preview, not its public CID or a restored DATA
     // substitute. The Checkpoint Owner supplies its original policy/claims.
-    projectReview: (policy, limits) =>
-      facts.control.projectEffectComputationReview(stage.preview, policy, limits),
+    projectReview: (policy, limits) => {
+      const input = stage.publication.contractLimits;
+      const args = [stage.preview, policy, limits, input];
+      const construction = facts.managedEffect?.controlConstruction;
+      if (construction === undefined) {
+        return facts.control.projectEffectComputationReview(...args);
+      }
+      // Reuse the SAME Run's fixed control frame for bounded preflight, then
+      // prepay the native parser/encoder peak before entering projection.
+      const wire = facts.control.effectComputationPreviewWire(stage.preview);
+      const capacity = construction(facts.moon,
+        facts.moon.clientProgramEffectReviewConstructionCapacity,
+        [wire, input.maxWireBytes, input.maxNodes, input.maxDepth,
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth]);
+      if (capacity === undefined) fail('EffectReviewConstructionUnavailable');
+      return construction(facts.control,
+        facts.control.projectEffectComputationReview, args, capacity);
+    },
     continuationWire: continuation(facts, stage, false, requestedStop),
     ...(requestedStop === undefined ? {} : {requestedStop,
       assertRequestedStopCurrent: stage.assertRequestedStopCurrent ??

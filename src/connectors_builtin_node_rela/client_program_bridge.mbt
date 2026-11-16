@@ -4289,6 +4289,9 @@ pub fn client_program_project_effect_review(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  preview_max_bytes : Int?,
+  preview_max_nodes : Int?,
+  preview_max_depth : Int?,
 ) -> Result[
   @publication.RunEvidenceValue,
   @publication.EffectReviewProjectionIssue,
@@ -4296,7 +4299,48 @@ pub fn client_program_project_effect_review(
   @publication.project_effect_review_projection(
     original, preview_wire, authority_scope_cid, approval_claims, redaction_policy_cid,
     max_bytes, max_nodes, max_depth,
+    preview_limits=Some((
+      preview_max_bytes.unwrap_or(max_bytes),
+      preview_max_nodes.unwrap_or(max_nodes),
+      preview_max_depth.unwrap_or(max_depth),
+    )),
   )
+}
+
+///|
+/// The SAME installed control funds fixed preflight controls before this call
+/// and the returned scratch before invoking the strict projection constructor.
+#export_name("clientProgramEffectReviewConstructionCapacity")
+pub fn client_program_effect_review_construction_capacity(
+  preview_wire : String,
+  preview_bytes : Int,
+  preview_nodes : Int,
+  preview_depth : Int,
+  review_bytes : Int,
+  review_nodes : Int,
+  review_depth : Int,
+) -> @execution.ExecutionCapacity? {
+  guard @publication.effect_review_projection_construction_inventory(
+      preview_wire, preview_bytes, preview_nodes, preview_depth,
+      review_bytes, review_nodes, review_depth,
+    ) is Some((returned, peak)) &&
+    @execution.preparation_representation_cost({
+      record_headers: returned.record_headers,
+      reference_slots: returned.reference_slots,
+      scalar_words: returned.scalar_words,
+      owned_utf16_units: returned.owned_utf16_units,
+      owned_wire_bytes: returned.owned_wire_bytes,
+    }) is Some(retained) &&
+    @execution.preparation_representation_cost({
+      record_headers: peak.record_headers,
+      reference_slots: peak.reference_slots,
+      scalar_words: peak.scalar_words,
+      owned_utf16_units: peak.owned_utf16_units,
+      owned_wire_bytes: peak.owned_wire_bytes,
+    }) is Some(bytes) &&
+    @execution.checked_preparation_add_product(retained, bytes, 1L)
+      is Some(execution) else { return None }
+  @execution.execution_capacity(retained, execution)
 }
 
 ///|

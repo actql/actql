@@ -126,17 +126,24 @@ test "native scratch refuses one byte short before caller work and preserves ori
     owner, prepared, request, plan,
   ).unwrap()
   let before = @resources.ledger_usage(ledger)
-  assert_true(
-    begin_installed_effect_operation_control_construction(
-      owner,
-      prepared,
-      request,
-      plan,
-      native=Some(@execution.execution_capacity(1L, 2L).unwrap()),
-    )
-    is Err(Unsupported),
+  begin_installed_effect_operation_control_construction(
+    owner,
+    prepared,
+    request,
+    plan,
+    native=Some(@execution.execution_capacity(1L, 2L).unwrap()),
+  ).unwrap()
+  assert_eq(control.native_output_retained, 1L)
+  complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_retention_bytes,
+    before.reserved_retention_bytes + 1L,
   )
-  assert_eq(@resources.ledger_usage(ledger), before)
+  require_installed_effect_operation_plan(owner, prepared, request).unwrap()
+  |> ignore
+  assert_eq(control.native_output_retained, 1L)
   retire_installed_managed_run(owner).unwrap()
 }
 
@@ -158,16 +165,137 @@ test "native scratch still rejects reentry after the original current callback" 
       prepared,
       request,
       plan,
-      native=Some(
-        @hubspot_catalog.effect_catalog_recheck_construction_capacity(256).unwrap(),
-      ),
+      native=Some(@execution.execution_capacity(128L, 4096L).unwrap()),
     )
     is Err(_),
   )
   assert_eq(@resources.ledger_usage(ledger), before)
   assert_false(owner.effect_operation_controls.unwrap().construction_active)
+  assert_eq(owner.effect_operation_controls.unwrap().native_output_retained, 0L)
   // Restore only this explicit no-I/O reentry fixture for its own cleanup.
   invalidate.val = false
   owner.ledger = Some(ledger)
+  retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "native returned DATA keeps same-owner retention after completion and refuses before growth" {
+  let (prepared, request, plan, owner, ledger) = native_control_fixture()
+  let control = owner.effect_operation_controls.unwrap()
+  let native = @execution.execution_capacity(1024L, 4096L).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  let headroom = @resources.ledger_limits(ledger).retained_bytes -
+    before.held_bytes -
+    before.reserved_retention_bytes
+  let pressure = @resources.reserve_capacity(ledger, headroom - 1023L, 0L).unwrap()
+  let occupied = @resources.ledger_usage(ledger)
+  assert_true(
+    begin_installed_effect_operation_control_construction(
+      owner,
+      prepared,
+      request,
+      plan,
+      native=Some(native),
+    )
+    is Err(Ledger(RetentionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), occupied)
+  assert_eq(control.native_output_retained, 0L)
+  assert_false(control.construction_active)
+  @resources.settle_capacity(ledger, pressure).unwrap()
+  begin_installed_effect_operation_control_construction(
+    owner,
+    prepared,
+    request,
+    plan,
+    native=Some(native),
+  ).unwrap()
+  let active = @resources.ledger_usage(ledger)
+  assert_eq(
+    active.reserved_retention_bytes,
+    before.reserved_retention_bytes + 1024L,
+  )
+  assert_eq(control.native_output_retained, 1024L)
+  assert_true(
+    begin_installed_effect_operation_control_construction(
+      owner,
+      prepared,
+      request,
+      plan,
+      native=Some(native),
+    )
+    is Err(AlreadyBound),
+  )
+  assert_eq(control.native_output_retained, 1024L)
+  require_installed_effect_operation_plan(owner, prepared, request).unwrap()
+  |> ignore
+  assert_eq(@resources.ledger_usage(ledger), active)
+  complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  let adopted = @resources.ledger_usage(ledger)
+  assert_eq(
+    adopted.reserved_retention_bytes,
+    before.reserved_retention_bytes + 1024L,
+  )
+  assert_eq(
+    adopted.reserved_execution_bytes,
+    before.reserved_execution_bytes + 1024L,
+  )
+  // A second returned object coexists; failure/reentry cannot reset its debit.
+  begin_installed_effect_operation_control_construction(
+    owner,
+    prepared,
+    request,
+    plan,
+    native=Some(native),
+  ).unwrap()
+  assert_eq(control.native_output_retained, 2048L)
+  assert_true(
+    complete_installed_effect_operation_control_construction(
+      { ..owner, },
+      prepared,
+      request,
+      plan,
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_eq(control.native_output_retained, 2048L)
+  complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+  assert_true(
+    begin_installed_effect_operation_control_construction(
+      owner,
+      prepared,
+      request,
+      plan,
+      native=Some(native),
+    )
+    is Err(Retired),
+  )
+}
+
+///|
+test "native returned retention arithmetic refuses overflow without charging the original" {
+  let (prepared, request, plan, owner, ledger) = native_control_fixture()
+  let control = owner.effect_operation_controls.unwrap()
+  let before = @resources.ledger_usage(ledger)
+  control.native_output_retained = 9223372036854775807L
+  assert_true(
+    begin_installed_effect_operation_control_construction(
+      owner,
+      prepared,
+      request,
+      plan,
+      native=Some(@execution.execution_capacity(1L, 2L).unwrap()),
+    )
+    is Err(Unsupported),
+  )
+  assert_eq(control.native_output_retained, 9223372036854775807L)
+  assert_eq(@resources.ledger_usage(ledger), before)
+  control.native_output_retained = 0L
   retire_installed_managed_run(owner).unwrap()
 }

@@ -55,7 +55,7 @@ pub fn admit_effect_preview_identity_with_original(String, String, String, Int, 
 
 pub fn admit_effect_reconciliation_receipt_for_row(EffectPreviewIdentity, Int, Int, PublicationContract, PublicationContract, PublicationContract?, String, Int, Int, Int) -> Result[PublicationContract, EffectRowReconciliationIssue]
 
-pub fn admit_effect_review_projection(EffectPreviewIdentity, String, String, String, Array[String], String, Int, Int, Int) -> Result[RunEvidenceValue, EffectReviewProjectionIssue]
+pub fn admit_effect_review_projection(EffectPreviewIdentity, String, String, String, Array[String], String, Int, Int, Int, preview_limits? : (Int, Int, Int)?) -> Result[RunEvidenceValue, EffectReviewProjectionIssue]
 
 pub fn admit_effect_row_outcome_receipt(EffectPreviewIdentity, Int, Int, String, String, Bytes, Int, String, Int, Int, Int, Int) -> Result[PublicationContract, EffectRowOutcomeIssue]
 
@@ -505,6 +505,8 @@ pub fn effect_preview_semantic_identity(EffectPreviewIdentity) -> String
 
 pub fn effect_review_projection_binding_facts(RunEvidenceValue) -> (String, String, String, Array[String])?
 
+pub fn effect_review_projection_construction_inventory(String, Int, Int, Int, Int, Int, Int) -> (EffectPreviewIdentityConstructionInventory, EffectPreviewIdentityConstructionInventory)?
+
 pub fn effect_row_outcome_receipt_dispatch_identity(PublicationContract) -> String?
 
 pub fn effect_row_outcome_receipt_row_identity(PublicationContract) -> String?
@@ -945,7 +947,7 @@ pub fn project_delivery_record(PublicationContract) -> Result[DeliveryRecordProj
 
 pub fn project_durable_result_binding_read(PublicationContract) -> Result[DurableResultBindingRead, DeliveryIssuanceIssue]
 
-pub fn project_effect_review_projection(EffectPreviewIdentity, String, String, Array[String], String, Int, Int, Int) -> Result[RunEvidenceValue, EffectReviewProjectionIssue]
+pub fn project_effect_review_projection(EffectPreviewIdentity, String, String, Array[String], String, Int, Int, Int, preview_limits? : (Int, Int, Int)?) -> Result[RunEvidenceValue, EffectReviewProjectionIssue]
 
 pub fn project_interactive_legacy_state(String, Int, Int, Int) -> Result[String, RunControlReadIssue]
 

@@ -1308,6 +1308,8 @@ pub fn client_program_effect_result_import_observation_json(@run_publication_hos
 
 pub fn client_program_effect_result_name(@run_publication_host.PreparedClientEffectComputation, Int) -> String?
 
+pub fn client_program_effect_review_construction_capacity(String, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_effect_risk_unsigned_payload_cid(@effect_application.EffectRiskAcceptanceBody) -> String
 
 pub fn client_program_effect_run_materials_allowed(@run_publication_host.ClientEffectRunMaterials) -> @run_publication_host.ClientEffectAllowedRun
@@ -3626,7 +3628,7 @@ pub fn client_program_prepared_request_query_lowering(@client_local_host.ClientR
 
 pub fn client_program_private_continuation_retention_shape(Bytes, String, Int, Int) -> String
 
-pub fn client_program_project_effect_review(@run_publication.EffectPreviewIdentity, String, String, Array[String], String, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, @run_publication.EffectReviewProjectionIssue]
+pub fn client_program_project_effect_review(@run_publication.EffectPreviewIdentity, String, String, Array[String], String, Int, Int, Int, Int?, Int?, Int?) -> Result[@run_publication.RunEvidenceValue, @run_publication.EffectReviewProjectionIssue]
 
 pub fn client_program_project_http_chat_request(@model_execution.AdmittedModelProvider, @model_execution.ModelRequest, String, Int, Int, Int, Int, Int) -> Result[(String, String, String, String, String), @model_execution.OpenAIChatProjectionIssue]
 

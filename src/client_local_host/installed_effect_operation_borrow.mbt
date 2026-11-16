@@ -39,7 +39,7 @@ fn installed_effect_operation_control_capacity(
   guard @shape.collection_construction_extent({
       records: 11L,
       record_references: 36L,
-      record_words: 5L,
+      record_words: 6L,
       reference_arrays: 1L,
       reference_items: recovery_members.to_int64(),
       scalar_arrays: 0L,
@@ -739,6 +739,7 @@ fn retain_installed_effect_operation_controls(
         ledger_codec_active: false,
         ledger_codec_workspace: 0L,
         ledger_codec_retained: 0L,
+        native_output_retained: 0L,
         captured_rows: None,
         host_input: None,
         dependency_static: Map([]),
@@ -1829,13 +1830,12 @@ fn resize_installed_effect_operation_control_construction(
     ) {
     return Err(Unsupported)
   }
-  // Installing code can forward its actual same-Common Unit constructor
-  // quote. It adds only scratch to this original retained/idle control floor;
+  // Installing code forwards its actual same-Common constructor quote.
+  // Returned DATA adds to this original retained/idle control floor;
   // it cannot issue outputs, enter a nested codec or select another family.
-  if native_construction is Some(native) &&
+  if native_construction is Some(_) &&
     (
       !active ||
-      @execution.execution_capacity_retained_bytes(native) != 0L ||
       input_wire is Some(_) ||
       grant_construction ||
       request_projection is Some(_) ||
@@ -1866,7 +1866,13 @@ fn resize_installed_effect_operation_control_construction(
     is Some(scratch) {
     Some(Ledger(@execution.execution_capacity_execution_bytes(scratch)))
   } else if native_construction is Some(native) {
-    Some(Fixed(@execution.execution_capacity_execution_bytes(native), None))
+    Some(
+      Fixed(
+        @execution.execution_capacity_execution_bytes(native) -
+        @execution.execution_capacity_retained_bytes(native),
+        None,
+      ),
+    )
   } else if request_projection is Some((member_index, operation, row)) {
     if !active ||
       footprint_construction is Some(_) ||
@@ -1993,9 +1999,24 @@ fn resize_installed_effect_operation_control_construction(
   } else {
     None
   }
+  let native_output_retained = match native_construction {
+    None => control.native_output_retained
+    Some(native) => {
+      guard @execution.checked_preparation_add_product(
+          control.native_output_retained,
+          @execution.execution_capacity_retained_bytes(native),
+          1L,
+        )
+        is Some(retained) else {
+        return Err(Unsupported)
+      }
+      retained
+    }
+  }
   guard installed_effect_control_capacity(
       Some(control),
       plan,
+      native_output_retained=Some(native_output_retained),
       input~,
       constructor_frame=Some(constructor_frame),
       codec_workspace=Some(codec_workspace),
@@ -2041,6 +2062,7 @@ fn resize_installed_effect_operation_control_construction(
   match result {
     Err(issue) => Err(issue)
     Ok(_) => {
+      control.native_output_retained = native_output_retained
       if input is Some(original) {
         control.host_input = Some(original)
       }
@@ -2461,6 +2483,7 @@ fn installed_effect_control_capacity(
   codec_retained? : Int64? = None,
   constructor_frame? : ClientEffectControlConstructorFrame?? = None,
   dependency_capacity? : @execution.ExecutionCapacity? = None,
+  native_output_retained? : Int64? = None,
 ) -> (@execution.ExecutionCapacity, Int64)? {
   let selected = match input {
     Some(value) => Some(value)
@@ -2515,6 +2538,21 @@ fn installed_effect_control_capacity(
       }
       (next, idle)
     }
+  }
+  let native_output_retained = native_output_retained.unwrap_or(
+    control.map(value => value.native_output_retained).unwrap_or(0L),
+  )
+  guard native_output_retained >= 0L &&
+    @execution.execution_capacity(
+      native_output_retained, native_output_retained,
+    )
+    is Some(returned) &&
+    @execution.add_execution_capacity(base, returned) is Some(base) &&
+    @execution.checked_preparation_add_product(
+      base_idle, native_output_retained, 1L,
+    )
+    is Some(base_idle) else {
+    return None
   }
   let base_retained = @execution.execution_capacity_retained_bytes(base)
   // A failed/active constructor keeps its exact scratch on same-owner current
