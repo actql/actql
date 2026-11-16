@@ -104,6 +104,46 @@ test "Model suffix input binding keeps its original completion rather than desce
 }
 
 ///|
+test "same completed producer refuses callback revocation without substituting its original completion" {
+  let owner = row_owner(
+    ",{\"from\":\"seed\",\"select\":[\"a\"],\"as\":\"selected\"}",
+  )
+  let executed = evaluate_sequence_components(
+    registered_relation_contracts(),
+    prepared_sequence(owner),
+    [],
+    ["values_0", "select_1"],
+    run_limits(),
+    { remaining: 10000, max_frames: 100, },
+  ).unwrap()
+  let raw = completed_output(executed, Step(0)).unwrap()
+  let live = Ref(true)
+  let revoke = Ref(false)
+  let original = restrict_completed_output(raw, () => {
+    let available = live.val
+    if revoke.val {
+      // Reentrant logical retirement after the first true observation must
+      // still refuse this handoff. Repeating a cached true would be unsafe.
+      revoke.val = false
+      live.val = false
+    }
+    available
+  })
+  let input = prepare_producer_read(
+    owner,
+    bind_completed_operation_input(owner, 1, 0, owner, original).unwrap(),
+    100,
+    100,
+  ).unwrap()
+  assert_true(producer_read_matches_completed_output(input, original))
+  revoke.val = true
+  assert_false(producer_read_matches_completed_output(input, original))
+  assert_false(live.val)
+  assert_false(producer_read_matches_completed_output(input, original))
+  assert_true(completed_output_available(raw))
+}
+
+///|
 // Actual executed completion and anchored operation binding, independently of
 // the scheduler's temporary input alias. No Model service or Native caller.
 test "completed operation keeps original input provenance after temporary read retirement" {
