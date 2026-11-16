@@ -176,14 +176,14 @@ test "Source context reuse preserves explicit small limits and foreign member St
     )
   }
   for
-    (member, store) in [
+    (member_index, store) in [
       (1, ordering_test_cid("d")),
       (0, ordering_test_cid("e")),
     ] {
     assert_true(
       captured_effect_source_result_from_original_capture(
         preview,
-        member,
+        member_index,
         chain.invocation,
         source,
         captured,

@@ -101,9 +101,10 @@ test "bounded join raw output keeps independent exact and one-short limits" {
 ///|
 test "bounded join raw output reserves exact overlapping workspace" {
   // Same three-field layout as the independent scalar Join fixture:
-  // base 2 + key mapping/order 3 + projection metadata 9 + NULL flags 2
-  // + retained right index 1 + row handles 2 + cells 3 + measure frames 2.
-  let exact = 2 + 3 + 9 + 2 + 1 + 2 + 3 + 2
+  // Base 2 + immutable source 5 + key mapping/order 3 + projection metadata 9
+  // + NULL flags 2 + retained right index 1 + row handles 2 + cells 3
+  // + measure frames 2. The source is one optional slot and four borrowed fields.
+  let exact = 2 + 5 + 3 + 9 + 2 + 1 + 2 + 3 + 2
   for limit in [exact - 1, exact] {
     let (_, active, reads) = join_large_output_fixture(
       join_large_output_limits(),
