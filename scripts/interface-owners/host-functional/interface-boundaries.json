@@ -126612,6 +126612,16 @@
           "async": false
         },
         {
+          "name": "recoveryView/init:constructCapturedForPublication/init:constructCapturedForPublication",
+          "parameters": [
+            "captured",
+            "receiver",
+            "method",
+            "argument"
+          ],
+          "async": false
+        },
+        {
           "name": "recoveryView/init:constructCapturedValidation/init:constructCapturedValidation",
           "parameters": [
             "captured",
@@ -126870,6 +126880,7 @@
         },
         {
           "operations": [
+            "recoveryView/init:constructCapturedForPublication/init:constructCapturedForPublication",
             "recoveryView/init:constructCapturedValidation/init:constructCapturedValidation"
           ],
           "exports": [],
@@ -126882,6 +126893,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Saved Source Command Content"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed capture-recovery Definition construction"
               }
             ],
             "inputsOutputs": [
@@ -126912,6 +126927,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Saved Source Command Content"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed capture-recovery Definition construction"
               }
             ],
             "synchronization": [
@@ -126952,6 +126971,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Saved Source Command Content"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed capture-recovery Definition construction"
               }
             ],
             "extension": [
@@ -126972,6 +126995,18 @@
               {
                 "path": "adapters/host-node/effect-capture-resources.test.mjs",
                 "anchor": "retained validation funding and callback failures keep the original primary and unfinished cleanup"
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "anchor": "test('final publication validator uses the same captured Read, exact receiver and original argument inventory'"
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "anchor": "test('final publication funding refusal keeps the original primary before validator work'"
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "anchor": "test('publication construction preserves full Read funding for nonlive and older Core resources'"
               }
             ]
           }

@@ -21910,7 +21910,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/installed-effect-owned-operation.mjs",
-                "anchor": "if (preparing || accountingFailed) return false;"
+                "anchor": "if (preparing || accountingFailed || releasing) return false;"
               },
               {
                 "path": "adapters/host-node/installed-effect-owned-operation.mjs",
