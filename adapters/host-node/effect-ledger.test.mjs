@@ -453,6 +453,64 @@ test('recovered possible dispatch never becomes a second send', async t => {
     .claimed, true);
 });
 
+for (const refused of [false, true]) {
+  test(`installed Ledger selects real row and Receipt constructors before their work: refused=${refused}`, async t => {
+    const root = await fixture(t), events = [], refusal = new Error('Response reservation refused');
+    const construction = (receiver, method, args) => Reflect.apply(method, receiver, args);
+    construction.ledgerRow = (receiver, method, args, kind, bytes, nodes, depth, responseBytes) => {
+      assert.deepEqual([bytes, nodes, depth, responseBytes], [4096, 64, 4, 4096]);
+      events.push(kind);
+      if (refused && kind === 'response') throw refusal;
+      return Reflect.apply(method, receiver, args);
+    };
+    construction.ledgerCodec = (receiver, method, args) => Reflect.apply(method, receiver, args);
+    construction.receiptCodec = (receiver, method, args, wire, nodes, depth, receiptWire) => {
+      assert.equal(typeof wire, 'string');
+      assert.equal(nodes, 512); assert.equal(depth, 16);
+      events.push(receiptWire ? 'admit-receipt' : 'issue-receipt');
+      return Reflect.apply(method, receiver, args);
+    };
+    construction.ledgerHistory = (count, wireUnits) => {
+      assert(Number.isSafeInteger(count) && count > 0);
+      assert(Number.isSafeInteger(wireUnits) && wireUnits > 0);
+      events.push('history');
+    };
+    const ledger = openEffectLedger({moon, root, authorityScopeCid,
+      callerRequestId: 'request-1', maxEntryBytes: 4096, maxResponseBytes: 4096,
+      controlConstruction: construction});
+    t.after(() => ledger.close());
+    const {admitted, claims} = admittedProgressFixture('continue', 1), claim = claims[0][0];
+    let physicalCalls = 0;
+    const capture = () => captureClaimedEffectResponse({ledger, claim,
+      requestCid: claim.canonicalRequestCid, execute: async () => {
+        physicalCalls++; return {observation: {useCid: cid('4'), statusCode: 201,
+          body: Buffer.from('{"success":true}')}};
+      }});
+    if (refused) {
+      await assert.rejects(capture(), cause => cause === refusal);
+      assert.equal(ledger.readClaimedResponse(claim), undefined);
+      assert.equal((await capture()).claimed, false);
+      assert.equal(physicalCalls, 1, 'an unrecorded response never permits another send');
+      assert.equal(events.includes('issue-receipt'), false);
+      return;
+    }
+    assert.equal((await capture()).claimed, true);
+    const recorded = ledger.recordAdmittedRowOutcome({claim, preview: admitted,
+      memberIndex: 0, previewRowIndex: 0,
+      outcomeWire: '{"result":{"id":"a001"},"state":"applied"}'});
+    assert.equal(recorded.custody.created, true);
+    ledger.commitAdmittedRowOutcome({claim, preview: admitted, memberIndex: 0, previewRowIndex: 0});
+    const receipt = ledger.issueMemberReceiptFromRowPartition({preview: admitted,
+      memberIndex: 0, rowOwners: [{claim}]});
+    const body = JSON.parse(receipt.wire);
+    assert.equal(body.rows.length, 1); assert.equal(body.rows[0].state, 'applied');
+    for (const kind of ['entry', 'response', 'receipt', 'quantity', 'issue-receipt', 'admit-receipt', 'history']) {
+      assert(events.includes(kind), `The actual installed path must use its ${kind} boundary`);
+    }
+    assert.equal(physicalCalls, 1);
+  });
+}
+
 test('saved response issues one exact terminal row Receipt before Ledger head',
   async t => {
     const root = await fixture(t);

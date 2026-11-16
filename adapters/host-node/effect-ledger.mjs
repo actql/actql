@@ -248,7 +248,7 @@ export function openEffectLedger({
     const locatorCid = control.logicalItemLocatorCid(ownedClaim.locator);
     const current = validateStored(physical.current(locatorCid));
     const outcome = physical.outcomeForLocator(
-      locatorCid, responseEvidence?.stored);
+      locatorCid, responseEvidence?.stored, claims === undefined && responseEvidence === undefined);
     if (current === undefined || outcome === undefined ||
         outcome.responsePhysicalSha256 !== stored.responsePhysicalSha256) {
       fail('EffectPhysicalOutcomeNotOwned');
@@ -689,7 +689,7 @@ export function openEffectLedger({
         fail('EffectDispatchBindingMismatch');
       }
       if (action < 3 || action > 7) return undefined;
-      const row = physical.responseForLocator(locatorCid);
+      const row = physical.responseForLocator(locatorCid, true);
       if (row !== undefined && row.logicalRequestScopeCid !== scopeCid) {
         fail('EffectLedgerScopeMismatch');
       }
@@ -704,7 +704,7 @@ export function openEffectLedger({
     readClaimedOutcome(claim) {
       const stored = ledger.readClaimedResponse(claim);
       if (stored === undefined) return undefined;
-      return physical.outcomeForLocator(stored.logicalItemLocatorCid);
+      return physical.outcomeForLocator(stored.logicalItemLocatorCid, undefined, true);
     },
     // Physical custody only. The caller must separately admit the typed
     // provider projection and issue its semantic outcome Receipt. A partial
@@ -735,6 +735,7 @@ export function openEffectLedger({
         logicalItemLocatorCid: member.logicalItemLocatorCid,
         dispatchEntryCid: member.dispatchEntryCid,
         responsePhysicalSha256, outcomeCid, outcomeJson,
+        singleOnly: claims === undefined,
       });
     },
     // The common MoonBit issuer fixes the receipt semantics before SQLite
@@ -1014,7 +1015,7 @@ export function openEffectLedger({
           return Object.freeze({
             action, claimed: false, entry: stored.entry,
             response: action === 3
-              ? physical.response(control.ledgerEntryCid(stored.entry))
+              ? physical.response(control.ledgerEntryCid(stored.entry), true)
               : undefined,
           });
         }
