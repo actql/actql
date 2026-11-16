@@ -7,13 +7,16 @@ import {dirname, isAbsolute, join} from 'node:path';
 import {verifyNodeBenchmarkPackages} from './benchmark-node-operations.mjs';
 
 export const packedProjectFileStoreInventoryCases = Object.freeze([
-  Object.freeze({case: 'rows101', writes: 101, definitions: 1, rows: 101}),
-  Object.freeze({case: 'members17', writes: 17, definitions: 17, rows: 1}),
+  Object.freeze({case: 'rows101', writes: 101, definitions: 1, rows: 101,
+    sourceAcquisitions: 1, sourceAttempts: 101}),
+  Object.freeze({case: 'members17', writes: 17, definitions: 17, rows: 1,
+    sourceAcquisitions: 0, sourceAttempts: 0}),
 ]);
 const fixtureMembers = [
   'scripts/fixtures/packed-project-file-store-inventory.mjs',
   'scripts/fixtures/project-file-store-inventory-cases.mjs',
   'scripts/fixtures/project-file-store-ledger-observation.mjs',
+  'scripts/fixtures/project-effect-dependency-observation.mjs',
   'scripts/fixtures/record-approval/scoped-fds.fixture.mjs',
   'adapters/host-node/fixtures/work-observation.fixture.mjs',
 ];
@@ -41,10 +44,20 @@ export function assertPackedProjectFileStorePhase({selected, phase, actual, pid,
   assert.equal(actual.workObservation.totals.modelCallStarts, 0);
   assert.equal(actual.sourceStarts, actual.workObservation.sourceAcquisitionStarts);
   assert.equal(actual.sourceStarts, actual.workObservation.totals.sourceAcquisitionStarts);
+  assert.equal(actual.sourceAttempts, selected.sourceAttempts);
   if (phase === 'capture' && selected.case === 'rows101') {
-    assert(actual.sourceStarts > 0); assert(actual.newSourceAttempts > 0);
+    assert.equal(actual.sourceStarts, selected.sourceAcquisitions);
+    assert.equal(actual.newSourceAttempts, selected.sourceAttempts);
   } else {
     assert.equal(actual.sourceStarts, 0); assert.equal(actual.newSourceAttempts, 0);
+  }
+  if (selected.sourceAcquisitions > 0) {
+    assert.equal(actual.sourceAcquisitionEvidence.receipts, selected.sourceAcquisitions);
+    assert.equal(actual.sourceAcquisitionEvidence.attempts, selected.sourceAttempts);
+    for (const key of ['capturedRunCid', 'snapshotCid'])
+      assert.match(actual.sourceAcquisitionEvidence[key], /^sha256:[0-9a-f]{64}$/u);
+    for (const earlier of previous) assert.deepEqual(actual.sourceAcquisitionEvidence,
+      earlier.sourceAcquisitionEvidence, 'Every cold phase preserves the exact authenticated Source inventory');
   }
   assert.equal(actual.rows.length, phase === 'capture' ? 0 : selected.rows);
   assert.equal(actual.targets.length, phase === 'capture' ? 0 : selected.writes);

@@ -3001,17 +3001,21 @@ test('required dependency restoration cannot pass an unexecuted consumer and ret
 });
 
 test('File inventory phase oracle requires three cold processes and no completed work replay', async () => {
-  const load = await runnerFunctions('./packed-project-file-store-inventory.mjs');
-  const check = load('assertPackedProjectFileStorePhase', {assert});
-  const selected = {case: 'rows101', writes: 101, definitions: 1, rows: 101};
+  const {assertPackedProjectFileStorePhase: check} = await import('./packed-project-file-store-inventory.mjs');
+  const selected = {case: 'rows101', writes: 101, definitions: 1, rows: 101,
+    sourceAcquisitions: 1, sourceAttempts: 101};
   const phase = 'approve', ref = {runDefinitionCid: 'same-original'};
+  const sourceAcquisitionEvidence = {receipts: 1, attempts: 101,
+    capturedRunCid: 'sha256:' + 'a'.repeat(64), snapshotCid: 'sha256:' + 'b'.repeat(64)};
   const before = {case: selected.case, phase: 'capture', pid: 101, ref, runId: 'run',
-    checkpointId: 'checkpoint', checkpointCid: 'sealed-checkpoint', sourceAttempts: 2};
+    checkpointId: 'checkpoint', checkpointCid: 'sealed-checkpoint', sourceAttempts: 101,
+    sourceAcquisitionEvidence};
   const actual = {case: selected.case, phase, pid: 202, ref, runId: 'run',
     checkpointId: 'checkpoint', checkpointCid: 'sealed-checkpoint', complete: true,
     submits: 0, approvals: 1, successfulStores: 101, memberPreviews: 1, newEffectCommits: 101,
     modelAttempts: 0, workObservation: {complete: true, modelCallStarts: 0,
-      sourceAcquisitionStarts: 0, totals: {modelCallStarts: 0, sourceAcquisitionStarts: 0}}, sourceStarts: 0, newSourceAttempts: 0,
+      sourceAcquisitionStarts: 0, totals: {modelCallStarts: 0, sourceAcquisitionStarts: 0}},
+    sourceStarts: 0, sourceAttempts: 101, newSourceAttempts: 0, sourceAcquisitionEvidence,
     rows: Array.from({length: 101}, (_, key) => ({key})), targets: Array.from({length: 101}, (_, key) => ({key})),
     requestMemory: {retainedBytes: 536870912, executionBytes: 536870912},
     firstClose: 'returned', firstCloseCalls: 1, aliveScopedFD: {before: 0, after: 0}, cleanup: [],
@@ -3027,7 +3031,10 @@ test('File inventory phase oracle requires three cold processes and no completed
     row => row.workObservation.sourceAcquisitionStarts = 1,
     row => row.workObservation.complete = false, row => row.workObservation.modelCallStarts++,
     row => row.workObservation.totals.sourceAcquisitionStarts++,
-    row => row.modelAttempts++, row => row.newSourceAttempts++, row => row.firstCloseCalls++,
+    row => row.modelAttempts++, row => row.newSourceAttempts++, row => row.sourceAttempts--,
+    row => row.sourceAcquisitionEvidence.attempts--,
+    row => row.sourceAcquisitionEvidence.snapshotCid = 'sha256:' + 'c'.repeat(64),
+    row => row.firstCloseCalls++,
     row => row.firstClose = 'pending', row => row.aliveScopedFD.after++, row => row.ref = {},
     row => row.checkpointCid = 'foreign', row => row.rows.pop(), row => row.targets.pop(),
     row => row.originalInputsAndProgramAbsent = false];
@@ -3036,7 +3043,7 @@ test('File inventory phase oracle requires three cold processes and no completed
   }
   assert.throws(() => run(actual, []), 'Missing capture cannot become successful approval');
   const saved = {...structuredClone(actual), phase: 'saved', pid: 303, approvals: 0,
-    newEffectCommits: 0, sourceAttempts: 2};
+    newEffectCommits: 0};
   const savedCheck = (row = saved, prior = [before, actual]) => check({selected, phase: 'saved',
     actual: row, pid: row.pid, original, previous: prior});
   savedCheck();

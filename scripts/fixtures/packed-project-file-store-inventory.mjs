@@ -10,7 +10,8 @@ import {setTimeout as delay} from 'node:timers/promises';
 import {open} from '@actql/node';
 import {projectFileStoreRows101, projectFileStoreMembers17,
   projectFileStoreInventoryAcceptance} from './project-file-store-inventory-cases.mjs';
-import {observeProjectFileStoreLedger, observeProjectFileStoreAttempts}
+import {observeProjectFileStoreLedger, observeProjectFileStoreAttempts,
+  observeProjectFileStoreSourceAcquisitions}
   from './project-file-store-ledger-observation.mjs';
 import {observeRecordApprovalDescriptors} from './record-approval/scoped-fds.fixture.mjs';
 import {workflowWorkObservation} from '../../adapters/host-node/fixtures/work-observation.fixture.mjs';
@@ -234,17 +235,36 @@ try {
     assert.equal(report.workObservation.totals.modelCallStarts, 0);
     report.sourceStarts = report.workObservation.sourceAcquisitionStarts;
     assert.equal(report.workObservation.totals.sourceAcquisitionStarts, report.sourceStarts);
-    if (phase === 'capture' && caseId === 'rows101') assert(report.sourceStarts > 0);
+    if (phase === 'capture' && caseId === 'rows101') assert.equal(report.sourceStarts, 1);
     else assert.equal(report.sourceStarts, 0, 'Cold approval and Saved never reacquire completed Sources');
     const attempts = observeProjectFileStoreAttempts(stateDir, original.ref);
-    report.sourceAttempts = attempts.sources.length;
-    report.newSourceAttempts = attempts.sources.length - (attemptsBefore?.sources.length ?? 0);
+    // The optional request-Journal table records remote job originals. Local
+    // File lookup attempts live in the authenticated captured dependency DAG.
+    report.sourceOperationOriginals = attempts.sources.length;
+    report.sourceAttempts = 0; report.newSourceAttempts = 0;
     report.modelAttempts = attempts.model.resume_model_attempts;
     if (phase !== 'capture') {
       assert.deepEqual(attempts, attemptsBefore, 'Cold phases preserve the SAME original acquisitions');
-      assert.equal(report.newSourceAttempts, 0);
-    } else if (caseId === 'rows101') assert(report.sourceAttempts > 0,
-      'The physical File Source must have actual recorded original attempt evidence');
+    }
+    if (caseId === 'rows101') {
+      const source = await observeProjectFileStoreSourceAcquisitions(stateDir, original.ref,
+        projectFileStoreInventoryAcceptance.budgetBytes);
+      assert.equal(source.summary.receipts, 1);
+      assert.equal(source.summary.attempts, selected.inputs.length);
+      report.sourceAcquisitionEvidence = source.summary;
+      report.sourceAttempts = source.summary.attempts;
+      report.newSourceAttempts = report.sourceAttempts -
+        (phase === 'capture' ? 0 : original.sourceAcquisitionSummary.attempts);
+      if (phase === 'capture') {
+        original.sourceAcquisitionSummary = source.summary;
+        original.sourceAcquisitionSnapshot = source.snapshot;
+      } else {
+        assert.deepEqual(source.summary, original.sourceAcquisitionSummary);
+        assert.deepEqual(source.snapshot, original.sourceAcquisitionSnapshot,
+          'Cold phases retain every original Source body and reference unchanged');
+        assert.equal(report.newSourceAttempts, 0);
+      }
+    }
     const ledger = await observeProjectFileStoreLedger(stateDir, selected.expectedFiles,
       {beforeApproval: phase === 'capture'});
     report.successfulStores = ledger.successfulStores;
