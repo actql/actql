@@ -128,12 +128,18 @@ export function openSqliteEffectLedger(root, {
   maxEntries = 100_000,
   maxEntryBytes = 1_048_576,
   maxResponseBytes = 1_000_000,
+  // Bound every response materialized by this connection, including write
+  // acknowledgements and exact retries. Unrelated durable history keeps the
+  // installation's maxResponseBytes policy.
+  maxReadResponseBytes = maxResponseBytes,
   maxStoredBytes = 134_217_728,
 } = {}) {
   if (typeof root !== 'string' || root.length === 0 ||
       !cid(authorityScopeCid) || !count(maxEntries) || maxEntries === 0 ||
       !count(maxEntryBytes) || maxEntryBytes === 0 ||
       !count(maxResponseBytes) || maxResponseBytes === 0 ||
+      !count(maxReadResponseBytes) || maxReadResponseBytes === 0 ||
+      maxReadResponseBytes > maxResponseBytes ||
       !count(maxStoredBytes) || maxStoredBytes === 0) {
     fail('InvalidEffectLedgerConfiguration');
   }
@@ -291,7 +297,10 @@ export function openSqliteEffectLedger(root, {
     THEN entry_json ELSE NULL END AS entry_json`;
   const boundedOutcomeJson = `CASE WHEN LENGTH(CAST(outcome_json AS BLOB)) <= ${nativeTextBytes}
     THEN outcome_json ELSE NULL END AS outcome_json`;
-  const boundedResponseBytes = `CASE WHEN LENGTH(response_bytes) <= ${maxResponseBytes}
+  // A receiver may admit less than the installation's durable response policy.
+  // Apply its bound in SQL before allocating the BLOB or the Buffer copy. Old
+  // unrelated rows retain their original storage quota and startup validation.
+  const boundedResponseBytes = `CASE WHEN LENGTH(response_bytes) <= ${maxReadResponseBytes}
     THEN response_bytes ELSE NULL END AS response_bytes`;
   const readEntry = database.prepare(`
     SELECT logical_item_locator_cid, revision,
@@ -390,7 +399,7 @@ export function openSqliteEffectLedger(root, {
         !count(row.status_code) || row.status_code < 100 ||
         row.status_code > 599 ||
         !(row.response_bytes instanceof Uint8Array) ||
-        row.response_bytes.byteLength > maxResponseBytes ||
+        row.response_bytes.byteLength > maxReadResponseBytes ||
         responseDigest(row) !== row.physical_sha256 ||
         readDispatchEntry.get(row.dispatch_entry_cid)
           ?.logical_item_locator_cid !== row.logical_item_locator_cid) {
@@ -420,7 +429,7 @@ export function openSqliteEffectLedger(root, {
         !count(row.status_code) || row.status_code < 100 ||
         row.status_code > 599 ||
         !(row.response_bytes instanceof Uint8Array) ||
-        row.response_bytes.byteLength > maxResponseBytes ||
+        row.response_bytes.byteLength > maxReadResponseBytes ||
         !count(row.member_count) || row.member_count === 0 ||
         row.member_count !== members.length ||
         row.batch_owner_cid !== members[0].dispatch_entry_cid ||
@@ -657,7 +666,8 @@ export function openSqliteEffectLedger(root, {
           !cid(credentialUseCid) || !count(statusCode) ||
           statusCode < 100 || statusCode > 599 ||
           !(responseBytes instanceof Uint8Array) ||
-          responseBytes.byteLength > maxResponseBytes) {
+          responseBytes.byteLength > maxResponseBytes ||
+          responseBytes.byteLength > maxReadResponseBytes) {
         fail('InvalidEffectPhysicalResponse');
       }
       return transaction.run(() => {
@@ -723,6 +733,7 @@ export function openSqliteEffectLedger(root, {
           !count(statusCode) || statusCode < 100 || statusCode > 599 ||
           !(responseBytes instanceof Uint8Array) ||
           responseBytes.byteLength > maxResponseBytes ||
+          responseBytes.byteLength > maxReadResponseBytes ||
           !Array.isArray(members) || members.length === 0 ||
           members.length > maxEntries) {
         fail('InvalidEffectPhysicalBatchResponse');

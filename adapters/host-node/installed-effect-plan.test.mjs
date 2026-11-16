@@ -7,12 +7,44 @@ import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 import {captureInstalledEffectPlanRecipe, prepareInstalledEffectManagedPlan,
   captureInstalledStandardCreateLimits, prepareInstalledStandardCreatePlanRecipe, prepareInstalledEffectRequestChild, prepareInstalledEffectOwnedRequestChild,
-  prepareInstalledEffectControlConstruction}
+  prepareInstalledEffectControlConstruction, installedEffectSavedControlEntryLimit,
+  installedEffectSavedControlResponseLimit, installedEffectRecipeForControlEntryLimit}
   from './installed-effect-plan.mjs';
 import {effectLedgerImplementationBounds} from './effect-ledger-implementation-bounds.mjs';
 import {refusedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
 import {httpsCredentialAuthorizationPrefix, httpsCredentialResponseHeaderByteLimit}
   from '../site-node/https-credential-resource.mjs';
+
+test('shared control readers retain each plugin bound and restore full capacity for mixed receivers', () => {
+  const capacity = {}, fallbackCapacity = {}, extent = {};
+  const recipe = maxResponseBytes => captureInstalledEffectPlanRecipe(Object.freeze({
+    memberOperations: Object.freeze([]), rowOperations: Object.freeze([
+      Object.freeze({operation: 'external.plugin.operation', extent})]),
+    controlsPerRow: capacity,
+    savedControlCodec: Object.freeze({maxEntryBytes: 1510, fallbackCapacity,
+      ...(maxResponseBytes === undefined ? {} : {maxResponseBytes})}),
+  }), 1);
+  const compact = recipe(65536), second = recipe(8192), legacy = recipe();
+  const entries = installedEffectSavedControlEntryLimit([compact, second]);
+  const responses = installedEffectSavedControlResponseLimit([compact, second]);
+  assert.equal(entries, 1510);
+  assert.equal(responses, 65536);
+  assert.strictEqual(installedEffectRecipeForControlEntryLimit(compact, entries, responses), compact);
+  assert.strictEqual(installedEffectRecipeForControlEntryLimit(second, entries, responses).controlsPerRow,
+    fallbackCapacity);
+  assert.equal(installedEffectSavedControlResponseLimit([compact, legacy]),
+    effectLedgerImplementationBounds.maxResponseBytes);
+  assert.equal(installedEffectSavedControlResponseLimit([compact, undefined]),
+    effectLedgerImplementationBounds.maxResponseBytes);
+  assert.strictEqual(installedEffectRecipeForControlEntryLimit(compact, entries,
+    installedEffectSavedControlResponseLimit([compact, legacy])).controlsPerRow, fallbackCapacity);
+  assert.strictEqual(installedEffectRecipeForControlEntryLimit(compact,
+    effectLedgerImplementationBounds.maxEntryBytes, responses).controlsPerRow, fallbackCapacity);
+  for (const invalid of [0, -1, 1.5, NaN, null, 1000001]) {
+    assert.throws(() => recipe(invalid),
+      {code: 'InvalidInstalledEffectPlanRecipe'});
+  }
+});
 
 test('automatic standard recipe forwards original constructor capacities and keeps all physical phases distinct', () => {
   for (const beforeSend of [false,true]) {

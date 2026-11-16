@@ -488,6 +488,81 @@ test('bounded physical responses survive restart without becoming outcomes',
       response.responseBytes);
   });
 
+for (const batch of [false, true]) {
+  test(`a ${batch ? 'batch' : 'single'} response reader bounds selected BLOBs before materialization without rejecting unrelated history`,
+    async t => {
+      const root = await fixture(t);
+      const first = openSqliteEffectLedger(root, {authorityScopeCid: scope, maxResponseBytes: 128});
+      t.after(() => first.close());
+      append(first, 0, cid('1'), firstJson);
+      append(first, 1, cid('2'), secondJson);
+      const large = Buffer.alloc(65, 37), small = Buffer.alloc(32, 41);
+      const common = {logicalRequestScopeCid: scope, credentialUseCid: cid('d'), statusCode: 200};
+      if (batch) {
+        first.recordBatchResponse({...common, responseBytes: large,
+          members: [{logicalItemLocatorCid: locator, dispatchEntryCid: cid('2')}]});
+      } else {
+        first.recordResponse({...common, responseBytes: large,
+          logicalItemLocatorCid: locator, dispatchEntryCid: cid('2')});
+      }
+      first.append({logicalRequestScopeCid: scope, logicalItemLocatorCid: cid('c'),
+        expectedRevision: 0, entryCid: cid('3'), entryJson: firstJson});
+      first.recordResponse({...common, responseBytes: small,
+        logicalItemLocatorCid: cid('c'), dispatchEntryCid: cid('3')});
+      first.close();
+
+      // Observe the real SQLite result, rather than a source-text condition.
+      // An oversized BLOB must already be absent when Statement.get returns.
+      const prepare = DatabaseSync.prototype.prepare, returned = [];
+      t.mock.method(DatabaseSync.prototype, 'prepare', function(...args) {
+        const statement = Reflect.apply(prepare, this, args), get = statement.get;
+        t.mock.method(statement, 'get', function(...values) {
+          const row = Reflect.apply(get, this, values);
+          if (row && Object.hasOwn(row, 'response_bytes')) returned.push(row.response_bytes);
+          return row;
+        });
+        return statement;
+      });
+      const reader = openSqliteEffectLedger(root, {authorityScopeCid: scope,
+        maxResponseBytes: 128, maxReadResponseBytes: 32});
+      t.after(() => reader.close());
+      assert.equal(reader.current(locator).revision, 2);
+      assert.throws(() => reader.response(cid('2')), {code: 'EffectLedgerIntegrityFailed'});
+      assert.strictEqual(returned.at(-1), null);
+      assert.deepEqual(reader.response(cid('3')).responseBytes, small);
+      assert.equal(reader.response(cid('9')), undefined);
+      reader.append({logicalRequestScopeCid: scope, logicalItemLocatorCid: cid('e'),
+        expectedRevision: 0, entryCid: cid('5'), entryJson: firstJson});
+      const record = responseBytes => batch
+        ? reader.recordBatchResponse({...common, responseBytes,
+          members: [{logicalItemLocatorCid: cid('e'), dispatchEntryCid: cid('5')}]})
+        : reader.recordResponse({...common, responseBytes,
+          logicalItemLocatorCid: cid('e'), dispatchEntryCid: cid('5')});
+      // A write acknowledgement is another returned response. Reject it before
+      // insertion when it cannot fit this receiver, on both physical paths.
+      assert.throws(() => record(large), {code: batch
+        ? 'InvalidEffectPhysicalBatchResponse' : 'InvalidEffectPhysicalResponse'});
+      assert.equal(reader.response(cid('5')), undefined);
+      assert.equal(record(small).created, true);
+      assert.equal(record(small).created, false);
+      assert.deepEqual(reader.response(cid('5')).responseBytes, small);
+      reader.close();
+      t.mock.restoreAll();
+      const wide = openSqliteEffectLedger(root, {authorityScopeCid: scope, maxResponseBytes: 128});
+      t.after(() => wide.close());
+      assert.deepEqual(wide.response(cid('2')).responseBytes, large);
+      assert.deepEqual(wide.response(cid('3')).responseBytes, small);
+    });
+}
+
+test('invalid response receiver budgets are rejected before opening a connection', async t => {
+  const root = await fixture(t);
+  for (const maxReadResponseBytes of [0, -1, 1.5, NaN, 129]) {
+    assert.throws(() => openSqliteEffectLedger(root, {authorityScopeCid: scope,
+      maxResponseBytes: 128, maxReadResponseBytes}), {code: 'InvalidEffectLedgerConfiguration'});
+  }
+});
+
 test('one logical row cannot acquire a second physical response', async t => {
   const root = await fixture(t);
   const ledger = openSqliteEffectLedger(root, {authorityScopeCid: scope});

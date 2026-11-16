@@ -94,7 +94,7 @@ import {prepareInstalledEffectOwnedPhysicalChild} from './installed-effect-owned
 // installed connector table), or the common default. No provider name or
 // type appears here.
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
-import {installedEffectSavedControlEntryLimit, installedEffectRecipeForControlEntryLimit, captureInstalledEffectPlanRecipe, selectInstalledEffectCredentialOperation, prepareInstalledStandardCreatePlanRecipe, prepareInstalledEffectManagedPlan, prepareInstalledEffectRequestChild, prepareInstalledEffectCaptureChild, prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectCredentialChild} from './installed-effect-plan.mjs';
+import {installedEffectSavedControlEntryLimit, installedEffectSavedControlResponseLimit, installedEffectRecipeForControlEntryLimit, captureInstalledEffectPlanRecipe, selectInstalledEffectCredentialOperation, prepareInstalledStandardCreatePlanRecipe, prepareInstalledEffectManagedPlan, prepareInstalledEffectRequestChild, prepareInstalledEffectCaptureChild, prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectCredentialChild} from './installed-effect-plan.mjs';
 import {installedRowCredentialOperationSite} from './installed-row-source.mjs';
 import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
@@ -119,7 +119,7 @@ import {preparePinnedEffectSourceHoldings, preparePinnedEffectSourceSet,
   retainPinnedEffectDependencyPayloads} from './effect-input-export.mjs';
 import {verifyPinnedEffectPlan} from './effect-plan-verify.mjs';
 import {retireEffectCommandKeyWorkspace} from './effect-command-key.mjs';
-import {openEffectLedger} from './effect-ledger.mjs';
+import {openInstalledEffectLedger} from './installed-effect-ledger-open.mjs';
 import {effectLedgerImplementationBounds} from './effect-ledger-implementation-bounds.mjs';
 import {captureClaimedEffectResponse, snapshotEffectDispatchClaim} from
   './effect-physical-dispatch.mjs';
@@ -1404,8 +1404,9 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   const recipes = owners.flatMap(owner => owner.managedPlanRecipes === undefined
     ? [owner.managedPlanRecipe] : Object.values(owner.managedPlanRecipes));
   const controlEntryBytes = installedEffectSavedControlEntryLimit(recipes);
+  const controlResponseBytes = installedEffectSavedControlResponseLimit(recipes);
   const controlRecipes = new Map(recipes.map(recipe => [recipe,
-    installedEffectRecipeForControlEntryLimit(recipe, controlEntryBytes)]));
+    installedEffectRecipeForControlEntryLimit(recipe, controlEntryBytes, controlResponseBytes)]));
   const singular = routes === undefined ? owners[0] : undefined;
   const assertPrepared = ({moon: runMoon, compilation}) => {
     if (singular !== undefined) return;
@@ -1528,17 +1529,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     return route.owner;
   };
   const effect = runtimeCore(moon).effectApplicationControl;
-  const openLedger = (identity, controlConstruction) => {
-    const options = {moon, root: ledgerRoot,
-      authorityScopeCid: moon.clientRequestAuthorityScopeCid(identity),
-      callerRequestId: moon.clientRequestCallerId(identity),
-      maxEntryBytes: controlEntryBytes,
-      ...(controlConstruction === undefined ? {} : {controlConstruction})};
-    return controlConstruction === undefined ? openEffectLedger(options)
-      : controlConstruction.ledgerOpen === undefined
-        ? controlConstruction(undefined, openEffectLedger, [options])
-        : controlConstruction.ledgerOpen(ledgerRoot, undefined, openEffectLedger, [options]);
-  };
+  const openLedger = (identity, controlConstruction) => openInstalledEffectLedger(
+    moon, ledgerRoot, identity, controlEntryBytes, controlResponseBytes, controlConstruction);
   const scopes = members => Object.freeze(members.map(member =>
     Object.freeze({connection: ownerOf(member).connection, resource: member.resource})));
   const permissionsOf = member => {

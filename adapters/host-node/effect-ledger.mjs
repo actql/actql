@@ -106,6 +106,7 @@ export function openEffectLedger({
   maxEntries = effectLedgerImplementationBounds.maxEntries,
   maxEntryBytes = effectLedgerImplementationBounds.maxEntryBytes,
   maxResponseBytes = effectLedgerImplementationBounds.maxResponseBytes,
+  maxReadResponseBytes = maxResponseBytes,
   maxStoredBytes = effectLedgerImplementationBounds.maxStoredBytes,
   maxBatchRows = effectLedgerImplementationBounds.maxBatchRows,
   maxNodes = effectLedgerImplementationBounds.maxNodes,
@@ -132,7 +133,7 @@ export function openEffectLedger({
   );
   const scopeCid = control.logicalRequestScopeCid(scope);
   const physical = openSqliteEffectLedger(root, {
-    authorityScopeCid, maxEntries, maxEntryBytes, maxResponseBytes,
+    authorityScopeCid, maxEntries, maxEntryBytes, maxResponseBytes, maxReadResponseBytes,
     maxStoredBytes,
   });
   const ownedBatchEvidence = new WeakSet();

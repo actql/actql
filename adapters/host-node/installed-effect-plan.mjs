@@ -320,14 +320,23 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
       nodeTypes.isProxy(controlsPerRow))) fail('InvalidInstalledEffectPlanRecipe');
   let savedControlCodec;
   if (fields.savedControlCodec !== undefined) {
-    const codec = own(fields.savedControlCodec.value, ['maxEntryBytes', 'fallbackCapacity']);
-    const maxEntryBytes = codec.maxEntryBytes.value, fallbackCapacity = codec.fallbackCapacity.value;
-    if (controlsPerRow === undefined || !Number.isSafeInteger(maxEntryBytes) || maxEntryBytes < 1 ||
-        maxEntryBytes > effectLedgerImplementationBounds.maxEntryBytes || fallbackCapacity === null ||
-        typeof fallbackCapacity !== 'object' || nodeTypes.isProxy(fallbackCapacity)) {
+    const value = fields.savedControlCodec.value;
+    if (value === null || typeof value !== 'object' || nodeTypes.isProxy(value)) {
       fail('InvalidInstalledEffectPlanRecipe');
     }
-    savedControlCodec = Object.freeze({maxEntryBytes, fallbackCapacity});
+    const codec = own(value, ['maxEntryBytes', 'fallbackCapacity',
+      ...(Object.hasOwn(value, 'maxResponseBytes') ? ['maxResponseBytes'] : [])]);
+    const maxEntryBytes = codec.maxEntryBytes.value, fallbackCapacity = codec.fallbackCapacity.value;
+    const maxResponseBytes = codec.maxResponseBytes?.value;
+    if (controlsPerRow === undefined || !Number.isSafeInteger(maxEntryBytes) || maxEntryBytes < 1 ||
+        maxEntryBytes > effectLedgerImplementationBounds.maxEntryBytes || fallbackCapacity === null ||
+        typeof fallbackCapacity !== 'object' || nodeTypes.isProxy(fallbackCapacity) ||
+        (codec.maxResponseBytes !== undefined && (!Number.isSafeInteger(maxResponseBytes) || maxResponseBytes < 1 ||
+          maxResponseBytes > effectLedgerImplementationBounds.maxResponseBytes))) {
+      fail('InvalidInstalledEffectPlanRecipe');
+    }
+    savedControlCodec = Object.freeze({maxEntryBytes, fallbackCapacity,
+      ...(maxResponseBytes === undefined ? {} : {maxResponseBytes})});
   }
   if (memberOperations.length + rowOperations.length === 0 ||
       memberOperations.length + rowOperations.length > maxOperations) fail('InvalidInstalledEffectPlanRecipe');
@@ -1449,7 +1458,14 @@ export function installedEffectSavedControlEntryLimit(recipes) {
   return Math.max(...recipes.map(recipe => recipe?.savedControlCodec?.maxEntryBytes ??
     effectLedgerImplementationBounds.maxEntryBytes));
 }
-export function installedEffectRecipeForControlEntryLimit(recipe, maxEntryBytes) {
-  return recipe?.savedControlCodec !== undefined && maxEntryBytes > recipe.savedControlCodec.maxEntryBytes
+export function installedEffectSavedControlResponseLimit(recipes) {
+  return Math.max(...recipes.map(recipe => recipe?.savedControlCodec?.maxResponseBytes ??
+    effectLedgerImplementationBounds.maxResponseBytes));
+}
+export function installedEffectRecipeForControlEntryLimit(recipe, maxEntryBytes,
+  maxResponseBytes = effectLedgerImplementationBounds.maxResponseBytes) {
+  const codec = recipe?.savedControlCodec;
+  return codec !== undefined && (maxEntryBytes > codec.maxEntryBytes ||
+    maxResponseBytes > (codec.maxResponseBytes ?? effectLedgerImplementationBounds.maxResponseBytes))
     ? Object.freeze({...recipe, controlsPerRow: recipe.savedControlCodec.fallbackCapacity}) : recipe;
 }
