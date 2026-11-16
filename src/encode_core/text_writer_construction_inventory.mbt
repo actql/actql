@@ -28,7 +28,20 @@ pub fn text_writer_construction_inventory(
   if output_bytes < 0 || nodes < 1 || depth < 0 {
     return None
   }
-  let frames = writer_frame_construction_extent(nodes, depth)
+  text_writer_live_key_inventory(output_bytes, nodes, depth)
+}
+
+///|
+/// SAME text writer with an independently proved live unordered-key bound.
+/// Ordered CanonicalValue objects need no seen-key map entries. This changes
+/// no output/node/depth policy; unknown callers keep the full-node entrance.
+pub fn text_writer_live_key_inventory(
+  output_bytes : Int,
+  max_live_keys : Int,
+  depth : Int,
+) -> TextWriterConstructionInventory? {
+  if output_bytes < 0 || max_live_keys < 0 || depth < 0 { return None }
+  let frames = writer_frame_construction_extent(max_live_keys, depth)
   // TextOutput1H1R1W, builder1H1R1W; two old/new fixed buffers and three
   // old/new/current String headers5H. These target alternatives co-count.
   // ASCII view+owned span2H1R2W, two escape Strings/number/Char Strings4H,

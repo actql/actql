@@ -6119,6 +6119,21 @@ function publicationControl(moon) {
       }
       return wire;
     },
+    effectComputationReviewConstructionCapacity(preview, limits, previewLimits = limits) {
+      issuanceLimits(limits, 'Effect review projection');
+      issuanceLimits(previewLimits, 'Effect review Preview');
+      // SAME private admission key: the identity and immutable wire cannot be
+      // supplied independently or replaced by a copied/equal-CID Preview.
+      const original = computationPreviewTokens.get(preview);
+      const wire = computationPreviewWires.get(preview);
+      if (original === undefined || wire === undefined) {
+        throw new TypeError('Foreign Effect computation Preview');
+      }
+      return moon.clientProgramEffectReviewOriginalConstructionCapacity(original,
+        wire, previewLimits.maxWireBytes, previewLimits.maxNodes,
+        previewLimits.maxDepth, limits.maxWireBytes, limits.maxNodes,
+        limits.maxDepth);
+    },
     projectEffectComputationReview(preview, policy, limits, previewLimits = limits) {
       issuanceLimits(limits, 'Effect review projection');
       issuanceLimits(previewLimits, 'Effect review Preview');

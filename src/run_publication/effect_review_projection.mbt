@@ -371,13 +371,29 @@ pub fn effect_review_projection_construction_inventory(
   // complete self-CID wrapper and final encoder coexist with that input;
   // two output inventories cover these returned and refused prefixes. No
   // parser frame, writer buffer or returned review is treated as released here.
+  review_construction_inventory_parts(
+    input, shape, output, review_bytes, output_nodes, output_depth,
+  )
+}
+
+///|
+fn review_construction_inventory_parts(
+  input : EffectPreviewIdentityConstructionInventory,
+  shape : EffectPreviewIdentityConstructionInventory,
+  output : EffectPreviewIdentityConstructionInventory,
+  review_bytes : Int,
+  output_nodes : Int,
+  output_depth : Int,
+  geometry? : @encode.EncodingConstructionGeometry? = None,
+) -> (EffectPreviewIdentityConstructionInventory, EffectPreviewIdentityConstructionInventory)? {
   let n = output_nodes.to_int64()
   let d = output_depth.to_int64()
   // Two Common RunEvidence values (issued and Checkpoint-admitted), the
   // Checkpoint's detached JSON body, both complete wire Strings, Host token
   // views/arrays and the response bytes may coexist through evidence.hold.
   // Keep these returned DATA on the SAME Run control until retirement.
-  guard @shape.collection_construction_extent({
+  let canonical = match geometry {
+    None => @shape.collection_construction_extent({
       records: 2L * (3L * n + 3L * d + 1L) + 24L,
       record_references: 2L * (4L * n + 6L * d) + 64L,
       record_words: 2L * (2L * n + 4L * d + 3L) + 24L,
@@ -388,12 +404,21 @@ pub fn effect_review_projection_construction_inventory(
       maps: 2L * n,
       map_entries: 2L * n,
     })
-    is Some(canonical) &&
+
+    Some(value) => @json.source_conversion_construction_extent(
+      output_nodes, value.fields, value.objects, value.arrays, output_depth, 0,
+    ).map(value => {
+      record_headers: 2L * value.retained.record_headers + 24L,
+      reference_slots: 2L * value.retained.reference_slots + 64L,
+      scalar_words: 2L * value.retained.scalar_words + 24L,
+    })
+  }
+  guard canonical is Some(canonical) &&
     @source.json_tree_retained_construction_extent(
       output_nodes,
-      output_nodes - 1,
-      output_nodes,
-      0,
+      geometry.map(value => value.fields).unwrap_or(output_nodes - 1),
+      geometry.map(value => value.objects).unwrap_or(output_nodes),
+      geometry.map(value => value.arrays).unwrap_or(0),
       review_bytes.to_int64(),
       keep_spans=false,
     )

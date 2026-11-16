@@ -503,6 +503,8 @@ pub fn effect_preview_run_identity(EffectPreviewIdentity) -> String
 
 pub fn effect_preview_semantic_identity(EffectPreviewIdentity) -> String
 
+pub fn effect_review_original_construction_inventory(EffectPreviewIdentity, String, Int, Int, Int, Int, Int, Int) -> (EffectPreviewIdentityConstructionInventory, EffectPreviewIdentityConstructionInventory)?
+
 pub fn effect_review_projection_binding_facts(RunEvidenceValue) -> (String, String, String, Array[String])?
 
 pub fn effect_review_projection_construction_inventory(String, Int, Int, Int, Int, Int, Int) -> (EffectPreviewIdentityConstructionInventory, EffectPreviewIdentityConstructionInventory)?

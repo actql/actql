@@ -185,6 +185,10 @@ test('review output limits do not reselect the admitted private Preview policy',
   const quote=moon.clientProgramEffectReviewConstructionCapacity(wire,
     inputLimits.maxWireBytes,inputLimits.maxNodes,inputLimits.maxDepth,
     outputLimits.maxWireBytes,outputLimits.maxNodes,outputLimits.maxDepth);
+  assert.notEqual(control.effectComputationReviewConstructionCapacity(
+    original,outputLimits,inputLimits),undefined);
+  assert.throws(()=>control.effectComputationReviewConstructionCapacity(
+    {...original},outputLimits,inputLimits),/Foreign Effect computation Preview/);
   assert.notEqual(quote,undefined);
   assert.equal(moon.clientProgramEffectReviewConstructionCapacity(wire,0,
     inputLimits.maxNodes,inputLimits.maxDepth,outputLimits.maxWireBytes,

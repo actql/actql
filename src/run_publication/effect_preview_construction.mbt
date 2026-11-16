@@ -24,6 +24,23 @@ pub fn effect_preview_identity_construction_inventory(
   guard protocol_wire_codec_construction_inventory(bytes, nodes, depth)
     is Some(codec) else { return None }
   let count = Int::min(bytes, nodes).to_int64()
+  guard preview_identity_member_row_inventory(count) is Some(identity) else {
+    return None
+  }
+  Some({
+    record_headers: codec.record_headers + identity.record_headers,
+    reference_slots: codec.reference_slots + identity.reference_slots,
+    scalar_words: codec.scalar_words + identity.scalar_words,
+    // Original per-row correlation/intended/create strings and member CIDs.
+    owned_utf16_units: codec.owned_utf16_units + identity.owned_utf16_units,
+    owned_wire_bytes: codec.owned_wire_bytes,
+  })
+}
+
+///|
+fn preview_identity_member_row_inventory(
+  count : Int64,
+) -> EffectPreviewIdentityConstructionInventory? {
   guard @shape.collection_construction_extent({
       // EffectPreviewIdentity35R; per-member footprint/contract/Option and
       // relation-source carriers. Per-row CID/return/Some/error carriers are
@@ -45,12 +62,11 @@ pub fn effect_preview_identity_construction_inventory(
     })
     is Some(identity) else { return None }
   Some({
-    record_headers: codec.record_headers + identity.record_headers,
-    reference_slots: codec.reference_slots + identity.reference_slots,
-    scalar_words: codec.scalar_words + identity.scalar_words,
-    // Original per-row correlation/intended/create strings and member CIDs.
-    owned_utf16_units: codec.owned_utf16_units + 255L * count + 142L,
-    owned_wire_bytes: codec.owned_wire_bytes,
+    record_headers: identity.record_headers,
+    reference_slots: identity.reference_slots,
+    scalar_words: identity.scalar_words,
+    owned_utf16_units: 255L * count + 142L,
+    owned_wire_bytes: 0L,
   })
 }
 
@@ -62,6 +78,8 @@ fn protocol_wire_codec_construction_inventory(
   bytes : Int,
   nodes : Int,
   depth : Int,
+  geometry? : @encode.EncodingConstructionGeometry? = None,
+  live_keys? : Int? = None,
 ) -> EffectPreviewIdentityConstructionInventory? {
   if bytes < 1 || nodes < 1 || depth < 1 {
     return None
@@ -69,11 +87,23 @@ fn protocol_wire_codec_construction_inventory(
   let n = Int::min(bytes, nodes)
   let count = n.to_int64()
   let d = Int::min(n, depth).to_int64()
-  guard @decode.preserving_json_parser_construction_inventory(bytes, n, depth)
-    is Some(parser) &&
-    @encode.text_writer_construction_inventory(bytes, n, depth) is Some(text) &&
-    @encode.hash_writer_construction_inventory(n, depth) is Some(hash) &&
-    @shape.collection_construction_extent({
+  let parser = match geometry {
+    None => @decode.preserving_json_parser_construction_inventory(bytes, n, depth)
+    Some(value) => @source.json_shaped_construction_extent(
+      bytes, n, depth, value.fields, value.objects + value.arrays,
+      value.objects, value.largest_object, value.strings, normalize_keys=false,
+    ).map(value => { ..value,
+      record_headers: value.record_headers + 1L,
+      owned_utf16_units: value.owned_utf16_units + bytes.to_int64(),
+    })
+  }
+  let canonical = match geometry {
+    Some(value) => @json.source_conversion_construction_extent(
+      n, value.fields, value.objects, value.arrays, depth, 0,
+    ).bind(value => @shape.add_collection_construction_extents(
+      value.retained, value.scratch,
+    ))
+    None => @shape.collection_construction_extent({
       // Canonical alternatives/FrozenArray wrappers, object-entry tuples,
       // input budget and recursive conversion controls. Key maps and sorted
       // fields belong to this conversion, not the already charged Source.
@@ -87,7 +117,14 @@ fn protocol_wire_codec_construction_inventory(
       maps: count,
       map_entries: count,
     })
-    is Some(canonical) &&
+  }
+  // CanonicalValue traversals use ordered frames. Closed callers supply the
+  // simultaneous unordered vocabulary of their actual manual emitters.
+  // General/unknown callers retain the unchanged full-node key inventory.
+  let keys = live_keys.unwrap_or(n)
+  guard parser is Some(parser) && canonical is Some(canonical) &&
+    @encode.text_writer_live_key_inventory(bytes, keys, depth) is Some(text) &&
+    @encode.hash_writer_live_key_inventory(keys, depth) is Some(hash) &&
     @shape.collection_construction_extent({
       // Protocol visit/result continuations consume the existing <=8N work
       // budget. Include unique-array comparison/index material, row/create

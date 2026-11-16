@@ -133,6 +133,8 @@ pub fn string_value(Writer, String) -> Unit raise EncodeFailure
 
 pub fn text_writer_construction_inventory(Int, Int, Int) -> TextWriterConstructionInventory?
 
+pub fn text_writer_live_key_inventory(Int, Int, Int) -> TextWriterConstructionInventory?
+
 pub fn text_writer_next_construction_inventory(Writer, Int, Int, Int) -> TextWriterConstructionInventory?
 
 pub fn work_comparing_writer(String, Int, Int, Int, (Int) -> Bool) -> Writer raise EncodeFailure

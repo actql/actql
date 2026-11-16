@@ -886,6 +886,8 @@ pub fn client_program_effect_result_name(@run_publication_host.PreparedClientEff
 
 pub fn client_program_effect_review_construction_capacity(String, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
+pub fn client_program_effect_review_original_construction_capacity(@run_publication.EffectPreviewIdentity, String, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_effect_risk_unsigned_payload_cid(@effect_application.EffectRiskAcceptanceBody) -> String
 
 pub fn client_program_effect_run_materials_allowed(@run_publication_host.ClientEffectRunMaterials) -> @run_publication_host.ClientEffectAllowedRun

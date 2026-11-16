@@ -221,11 +221,9 @@ function authorization(facts, stage, beforeDefer) {
       }
       // Reuse the SAME Run's fixed control frame for bounded preflight, then
       // prepay the native parser/encoder peak before entering projection.
-      const wire = facts.control.effectComputationPreviewWire(stage.preview);
-      const capacity = construction(facts.moon,
-        facts.moon.clientProgramEffectReviewConstructionCapacity,
-        [wire, input.maxWireBytes, input.maxNodes, input.maxDepth,
-          limits.maxWireBytes, limits.maxNodes, limits.maxDepth]);
+      const capacity = construction(facts.control,
+        facts.control.effectComputationReviewConstructionCapacity,
+        [stage.preview, limits, input]);
       if (capacity === undefined) fail('EffectReviewConstructionUnavailable');
       return construction(facts.control,
         facts.control.projectEffectComputationReview, args, capacity);
