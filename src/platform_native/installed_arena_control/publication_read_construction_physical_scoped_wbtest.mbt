@@ -146,13 +146,13 @@ fn publication_read_original_work(
       read_retained: 65536L,
       read_execution: 131072L,
     })
-    .unwrap() {
+    .retained_execution_value("publication Read stage 1") {
     ReadyOriginalRead(value) => value
     PendingOriginalRead(_, _) => fail("publication Read preparation pending")
   }
   let consumer = host
     .prepare_domain_original_read_consumer(read, 8192L, 16384L)
-    .unwrap()
+    .retained_execution_value("publication Read stage 2")
   let receiver : PublicationReadReceiver = {
     host,
     read,
@@ -178,14 +178,19 @@ fn publication_read_original_work(
     },
   )
   receiver.original = Some(original)
-  original.activate().unwrap()
+  original.activate().retained_execution_value("publication Read stage 3")
   // Outside the original flight no callback or allocation is attempted.
   assert_true(original.has_publication_constructor() is Err(_))
   assert_true(original.prepare_publication_scaffold() is Err(_))
   assert_eq(receiver.calls, 0)
   assert_eq(original.primary_code(), 0)
-  original.enter_store().unwrap()
-  assert_eq(original.has_publication_constructor().unwrap(), true)
+  original.enter_store().retained_execution_value("publication Read stage 4")
+  assert_eq(
+    original
+    .has_publication_constructor()
+    .retained_execution_value("publication Read stage 5"),
+    true,
+  )
   let initial_r = read.funded_retained_bytes
   let initial_e = read.funded_execution_bytes
   if mode == 2 {
@@ -194,10 +199,14 @@ fn publication_read_original_work(
     assert_eq(read.funded_retained_bytes, initial_r)
     assert_eq(read.funded_execution_bytes, initial_e)
   } else {
-    original.prepare_publication_scaffold().unwrap()
+    original
+    .prepare_publication_scaffold()
+    .retained_execution_value("publication Read stage 6")
     let raw = @sqlite.publication_construction_block_bound(7, 31, 0)
     assert_true(raw > 0L)
-    original.prepare_publication_construction(2048L, 8192L, raw, false).unwrap()
+    original
+    .prepare_publication_construction(2048L, 8192L, raw, false)
+    .retained_execution_value("publication Read stage 7")
     assert_eq(
       read.funded_retained_bytes,
       consumer.initial_retained_bytes + 2048L,
@@ -208,14 +217,18 @@ fn publication_read_original_work(
     )
     let funded_r = read.funded_retained_bytes
     let funded_e = read.funded_execution_bytes
-    original.prepare_publication_construction(0L, 0L, raw, false).unwrap()
+    original
+    .prepare_publication_construction(0L, 0L, raw, false)
+    .retained_execution_value("publication Read stage 8")
     assert_eq(read.funded_retained_bytes, funded_r)
     assert_eq(read.funded_execution_bytes, funded_e)
     assert_true(receiver.failure is None)
     if mode == 0 {
       // The closed index evaluator is prepaid before any numeric recipe is
       // evaluated; it grows this SAME original, without replacing the loan.
-      original.prepare_publication_scaffold(index=true).unwrap()
+      original
+      .prepare_publication_scaffold(index=true)
+      .retained_execution_value("publication Read stage 9")
       assert_true(read.funded_retained_bytes > funded_r)
       assert_true(read.funded_execution_bytes > funded_e)
       assert_true(physical_equal(read.consumer.unwrap(), consumer))
@@ -242,17 +255,21 @@ fn publication_read_original_work(
     assert_true(original.prepare_publication_scaffold() is Err(_))
     assert_eq(receiver.calls, calls)
     assert_true(original.leave_store() is Err(_))
-    original.enter_cleanup().unwrap()
+    original
+    .enter_cleanup()
+    .retained_execution_value("publication Read stage 10")
     assert_true(original.prepare_publication_scaffold() is Err(_))
   }
-  original.leave_store().unwrap()
-  original.close_checked().unwrap()
+  original.leave_store().retained_execution_value("publication Read stage 11")
+  original.close_checked().retained_execution_value("publication Read stage 12")
   receiver.original = None
   // Retire the observed failure DATA only after the original bridge's actual
   // return/close acknowledgements. This cannot revive its normal duty.
   receiver.failure = None
   assert_true(original.prepare_publication_scaffold() is Err(_))
-  host.close_domain_original_read(read).unwrap()
+  host
+  .close_domain_original_read(read)
+  .retained_execution_value("publication Read stage 13")
   assert_true(read.closed && read.consumer is None)
   !receiver.active
 }
