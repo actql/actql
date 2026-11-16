@@ -12,6 +12,57 @@ import {createInstalledConnectorTable, installedConnectorForTable} from './insta
 import {installedConnectors} from '../connectors-builtin/installations.generated.mjs';
 
 
+// Real Source parent/reader, runtime namespace and complete Local installer.
+// The fixture supplies declaration and native-profile DATA only: no Run,
+// Account grant, Content read or physical Local writer operation is issued here.
+test('Local file installer prepays its recovery profile on the original Source reader', async t => {
+  const {installPreparedProjectLocalFileEffects} = await import('../connectors/local/host/installed-project-file-effects.mjs');
+  const {canonicalJson, contentCid} = await import('./local-account-config.mjs');
+  const {readFile} = await import('node:fs/promises');
+  const f = await boundConstructionActualFixture(t);
+  const connectorId = 'local-files', connection = 'local-files';
+  const manifest = {connector: 'local', connector_id: connectorId, connector_version: 'local/0.1'};
+  const catalog = {schema: 'actql.connector_catalog/0.1', connector_id: connectorId,
+    connector_version: 'local/0.1', source_views: [], commands: [], contracts: []};
+  const catalogCid = contentCid(catalog);
+  const declaredWire = canonicalJson({connector_id: connectorId, connector_registration: 'local',
+    connector_version: 'local/0.1', catalog: canonicalJson({...catalog, catalog_cid: catalogCid}),
+    catalog_cid: catalogCid, contracts: [], command_bodies: [], evidence_schemas: [],
+    evidence_capabilities: [], view_bodies: [],
+    manifest_entry: canonicalJson(manifest), manifest_entry_cid: contentCid(manifest)});
+  const entry = Object.freeze({connectorId, connection, wire: declaredWire, rootPath: f.root,
+    scopeCid: contentCid({root: f.root}), limits: Object.freeze({maxFileBytes: 4096})});
+  const bundle = Object.freeze({sources: Object.freeze([entry])});
+  const context = Object.freeze({contextCid: contentCid({fixture: 'Local installation context'})});
+  let grants = 0, physical = 0;
+  const authorization = Object.freeze({context,
+    configurationCid: contentCid({fixture: 'ungranted Local installation'}),
+    authorize() {grants++; assert.fail('Installation cannot authorize a Run');}});
+  const nativeFilesystem = Object.freeze({
+    localFileWriteConstructionProfile() {return Object.freeze({nativeOriginalBytes: 8192,
+      maxRootBytes: 4096, maxNameBytes: 1024, maxDepth: 130, writeQuantumBytes: 65536});},
+    ...Object.fromEntries(['openFileRoot', 'openFileDirectory', 'openRootFileWriter',
+      'fileRootCurrent', 'fileRootWrite', 'fileRootPublish', 'fileRootClose'].map(name =>
+      [name, () => {physical++; assert.fail('Installation cannot perform a file operation');}]))});
+  const resources = Object.freeze(Object.fromEntries(['bindRunOriginal', 'assertCurrent', 'limits'].map(name =>
+    [name, () => assert.fail('Installation cannot use a Run resource')])));
+  const baseEnvironmentWire = (await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
+  const effect = await installPreparedProjectLocalFileEffects({moon: f.moon,
+    preparation: {originalsForRuntime(runtime) {assert.strictEqual(runtime, f.moon); return bundle;}},
+    sourceManaged: {assertCurrent() {}}, baseEnvironmentWire,
+    authorizationFor: async selected => {assert.equal(selected, connection); return authorization;},
+    principalId: 'operator', runtimeBundleCid: contentCid({fixture: 'Local installation runtime'}),
+    ledgerRoot: join(f.root, 'local-effect-ledger'), nativeFilesystem, effectResources: resources,
+    sourceBindings: [{connectorId, bindingCid: contentCid({scope: entry.scopeCid,
+      declaration: entry.wire, account_context: context.contextCid})}], installationServices: f.services});
+  try {
+    assert.equal(effect.effects.length, 1);
+    assert.equal(effect.queryStoreTargets[0].name, `${connection}.files`);
+    assert.equal(grants, 0); assert.equal(physical, 0); assert.equal(f.secretReads(), 0);
+  } finally {await effect.close();}
+  await f.close(); assert.equal(f.pending(), false); assert.equal(f.retire(), true);
+});
+
 test('same original profile facts fund parse snapshot and inspection as distinct native constructors', async t => {
   const f = await boundConstructionActualFixture(t);
   const reader = installedSourceConfigurationReader(f.services);
