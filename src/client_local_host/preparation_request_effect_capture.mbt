@@ -264,16 +264,18 @@ fn request_effect_capture_recovery_capacity(
       // admission controls plus one retained Some(P). Its field is one
       // reference on the original Read/material record even before admission;
       // the installed resize current fence also captures that SAME Option.
+      // Same-wire node/longest-key/total-key facts add three material
+      // references and optional scalar carriers (3H3R3W) before issue.
       record_headers: work.record_headers +
-      17L +
+      20L +
       (if staged_envelope { utf8_h + 1L } else { 0L }),
       reference_slots: work.reference_slots +
-      50L +
+      53L +
       (if staged_envelope { utf8_r } else { 0L }),
       // The same Read distinguishes its prepared-token retirement from the
       // ordinary admitted capture's alias release with one retained Bool.
       scalar_words: work.scalar_words +
-      17L +
+      20L +
       (if staged_envelope { utf8_w + 1L } else { 0L }),
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
@@ -486,6 +488,9 @@ fn[I] reserve_request_effect_capture_recovery_owned(
             envelope_nodes: None,
             observed_wire: None,
             nodes: None,
+            decoded_nodes: None,
+            decoded_key_units: None,
+            decoded_key_total: None,
             captured: None,
             work: None,
             max_wire_bytes,
