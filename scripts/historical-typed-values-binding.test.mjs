@@ -1,71 +1,51 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
-import {compileFunction} from 'node:vm';
 import test from 'node:test';
-import {parse} from 'acorn';
-import {selectInstalledLocalMaterializationEnvironment} from '../adapters/host-node/installed-host-policy.mjs';
+import {selectInstalledHostEnvironment, selectInstalledLocalMaterializationEnvironment}
+  from '../adapters/host-node/installed-host-policy.mjs';
 import {contentCid} from '../adapters/host-node/local-account-config.mjs';
 
-const select = (source, predicate) => {
-  const found = [];
-  (function visit(node) {
-    if (!node || typeof node !== 'object') return;
-    if (predicate(node)) found.push(node);
-    for (const value of Object.values(node)) {
-      if (Array.isArray(value)) value.forEach(visit);
-      else if (value && typeof value === 'object') visit(value);
-    }
-  })(parse(source, {ecmaVersion: 'latest', sourceType: 'module'}));
-  assert.equal(found.length, 1);
-  return source.slice(found[0].start, found[0].end);
+// Independent policy preimages for the historical recovery inputs. Exercise
+// the actual selectors, without executing private snippets from a fixture or
+// the Checkpoint service. Real held-request recovery tests admit the bindings.
+const baseWire = readFileSync(new URL('../spec/local-check-environment.json', import.meta.url), 'utf8');
+const {evidence_bundle_cid: ignored, ...base} = JSON.parse(baseWire); void ignored;
+const genericCapacity = {max_graph_construction_edges: 1000,
+  max_graph_construction_input_rows: 1000, max_graph_construction_nodes: 1000,
+  ...base.host_policy_profile.capacity};
+const localCapacity = {...genericCapacity, max_relation_output_rows: 536870912 / 256,
+  max_artifact_rows: 536870912 / 256, max_file_listing_items: 536870912 / 256,
+  max_model_request_bytes_per_item: 65536};
+const wire = value => value === null || typeof value !== 'object' ? JSON.stringify(value)
+  : Array.isArray(value) ? '[' + value.map(wire).join(',') + ']'
+    : '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + wire(value[key])).join(',') + '}';
+const cid = value => 'sha256:' + createHash('sha256').update(wire(value)).digest('hex');
+const environment = capacity => ({...structuredClone(base), host_policy_profile:
+  {...structuredClone(base.host_policy_profile), capacity}});
+const checkedEnvironment = selected => {
+  const {evidence_bundle_cid: evidenceCid, ...body} = JSON.parse(selected);
+  assert.equal(evidenceCid, cid(body), 'the selected Environment carries its actual canonical preimage');
+  return body;
+};
+const admission = {clientProgramCheckEnvironment(selected, evidenceCid) {
+  assert.equal(evidenceCid, cid(checkedEnvironment(selected)));
+  return {};
+}};
+const localMoon = () => {
+  const original = Object.freeze({});
+  return {...admission, clientLocalResourcePolicyOriginal: () => original,
+    clientLocalResourcePolicyRowCeiling(value) {assert.equal(value, original); return 536870912 / 256;},
+    clientLocalResourcePolicyModelRequestByteCeiling(value) {assert.equal(value, original); return 65536n;}};
 };
 
-test('historical typed-value binding independently matches the same Local materialization environment', () => {
-  const fixture = readFileSync(new URL('./fixtures/synthetic-historical-held-typed-values.mjs', import.meta.url), 'utf8');
-  const host = readFileSync(new URL('../adapters/host-node/client-checkpoints.mjs', import.meta.url), 'utf8');
-  const capacity = select(fixture, node => node.type === 'AssignmentExpression' &&
-    node.left.property?.name === 'capacity' && node.left.object.property?.name === 'host_policy_profile' &&
-    node.left.object.object?.name === 'environmentBody');
-  const variable = (source, name) => select(source, node => node.type === 'VariableDeclarator' && node.id.name === name);
-  const baseWire = readFileSync(new URL('../spec/local-check-environment.json', import.meta.url), 'utf8');
-  const {evidence_bundle_cid: ignored, ...raw} = JSON.parse(baseWire); void ignored;
-  const fixtureBody = compileFunction(capacity + '; return environmentBody;', ['environmentBody'])(structuredClone(raw));
-  const salesforceFixture = readFileSync(new URL('./fixtures/synthetic-historical-held-salesforce.mjs', import.meta.url), 'utf8');
-  const salesforceCapacity = select(salesforceFixture, node => node.type === 'AssignmentExpression' &&
-    node.left.property?.name === 'capacity' && node.left.object.property?.name === 'host_policy_profile' &&
-    node.left.object.object?.name === 'environmentBody');
-  const salesforceBody = compileFunction(salesforceCapacity + '; return environmentBody;',
-    ['environmentBody'])(structuredClone(raw));
-  // Authored current-policy preimage, independent of the selected function's
-  // output. Optional file listing uses the SAME 512MiB/256 nominal row ceiling.
-  const expectedCapacity = {max_graph_construction_edges: 1000,
-    max_graph_construction_input_rows: 1000, max_graph_construction_nodes: 1000,
-    ...raw.host_policy_profile.capacity,
-    max_relation_output_rows: 536870912 / 256,
-    max_artifact_rows: 536870912 / 256,
-    max_file_listing_items: 536870912 / 256,
-    max_model_request_bytes_per_item: 65536};
-  assert.deepEqual(fixtureBody.host_policy_profile.capacity, expectedCapacity);
-  assert.deepEqual(salesforceBody.host_policy_profile.capacity, expectedCapacity,
-    'the independent Salesforce historical fixture binds the same selected Local policy');
-  // Explicit component ports for the SAME fixed Local policy, not funding or
-  // an executed CheckEnvironment/Core claim. These are the existing service windows.
-  const original = Object.freeze({});
-  const moon = {clientLocalResourcePolicyOriginal: () => original,
-    clientLocalResourcePolicyRowCeiling(value) {assert.equal(value, original); return 536870912 / 256;},
-    clientLocalResourcePolicyModelRequestByteCeiling(value) {assert.equal(value, original); return 65536n;},
-    clientProgramCheckEnvironment: () => ({})};
-  const {evidence_bundle_cid: selected, ...actualBody} = JSON.parse(
-    selectInstalledLocalMaterializationEnvironment(moon, baseWire)); void selected;
-  actualBody.host_policy_profile.capacity = {max_graph_construction_edges: 1000,
-    max_graph_construction_input_rows: 1000, max_graph_construction_nodes: 1000, ...actualBody.host_policy_profile.capacity};
-  const wire = value => value === null || typeof value !== 'object' ? JSON.stringify(value)
-    : Array.isArray(value) ? '[' + value.map(wire).join(',') + ']'
-      : '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + wire(value[key])).join(',') + '}';
-  const cid = value => 'sha256:' + createHash('sha256').update(wire(value)).digest('hex');
-  assert.equal(cid(fixtureBody), 'sha256:738a87cd0899ff9a3d27dee04de8ebb955d9d9c46b6eeba50c84697e8e1169bc');
-  const beforeAnalyticCeilings = structuredClone(fixtureBody);
+test('source-free Local selection retains the independent historical typed-value policy identities', () => {
+  const expected = environment(localCapacity);
+  const actual = checkedEnvironment(selectInstalledLocalMaterializationEnvironment(
+    localMoon(), baseWire, undefined, undefined, undefined, true));
+  assert.deepEqual(actual, expected);
+  assert.equal(cid(expected), 'sha256:738a87cd0899ff9a3d27dee04de8ebb955d9d9c46b6eeba50c84697e8e1169bc');
+  const beforeAnalyticCeilings = structuredClone(expected);
   for (const field of ['max_analytic_frame_memberships', 'max_analytic_input_wire_bytes',
     'max_analytic_output_wire_bytes', 'max_analytic_partition_wire_bytes']) {
     assert.equal(beforeAnalyticCeilings.host_policy_profile.capacity[field], 1000);
@@ -73,66 +53,49 @@ test('historical typed-value binding independently matches the same Local materi
   }
   assert.equal(cid(beforeAnalyticCeilings), 'sha256:cd9f929c74c3b55f40e94b9edf46e248f6c30e4fa970683e762e768fd5cc7470',
     'the previous policy retains its original identity rather than being relabeled');
-  const previousEnvironment = structuredClone(fixtureBody);
-  delete previousEnvironment.host_policy_profile.capacity.max_file_listing_items;
-  assert.notEqual(cid(previousEnvironment), cid(fixtureBody),
-    'an original Environment without the optional policy keeps its distinct binding');
-  const ownerPrincipal = 'fixture-owner', account = {account_id: 'fixture-account'}, configurationCid = 'sha256:' + 'a'.repeat(64);
-  const siteKey = 'actql-remote-host', realizationKey = 'source-free-values', authorityScopeCid = 'sha256:' + 'b'.repeat(64);
-  const fixtureBinding = compileFunction('const ' + variable(fixture, 'binding') + '; return binding;',
-    ['environmentBody', 'cid', 'principalId', 'account', 'configurationCid', 'siteKey', 'realizationKey', 'authorityScopeCid']);
-  const authored = fixtureBinding(
-    fixtureBody, cid, ownerPrincipal, account, configurationCid, siteKey, realizationKey, authorityScopeCid);
-  const current = compileFunction('const ' + variable(host, 'binding') + '; return binding;',
-    ['contentCid', 'ownerPrincipal', 'gate', 'sourceGate', 'effectTargetGate', 'effectTargets', 'sources',
-      'siteKey', 'realizationKey', 'environmentCid', 'authorityScopeCid'])(
-    contentCid, ownerPrincipal, {accountId: account.account_id, configurationCid}, undefined, undefined, undefined, undefined,
-    siteKey, realizationKey, contentCid(actualBody), authorityScopeCid);
-  assert.equal(authored.authorization_context_cid, current.authorizationContextCid);
-  assert.equal(authored.environment_binding_cid, current.environmentBindingCid);
-  const previous = fixtureBinding(previousEnvironment, cid, ownerPrincipal, account,
-    configurationCid, siteKey, realizationKey, authorityScopeCid);
-  assert.equal(previous.authorization_context_cid, current.authorizationContextCid);
-  assert.notEqual(previous.environment_binding_cid, current.environmentBindingCid,
-    'the prior Environment binding cannot be relabeled as the current one');
-  const changed = structuredClone(fixtureBody); changed.host_policy_profile.capacity.max_artifact_rows--;
-  assert.notEqual(cid(changed), cid(actualBody), 'changed policy remains a distinct Environment preimage');
+  const previous = structuredClone(expected);
+  delete previous.host_policy_profile.capacity.max_file_listing_items;
+  const changed = structuredClone(expected);
+  changed.host_policy_profile.capacity.max_artifact_rows--;
+  const scope = 'sha256:' + 'b'.repeat(64);
+  const binding = (environmentCid, authorityScopeCid = scope) => ({
+    version: 'actql-remote-run-acceptance-environment/0.1', site_key: 'actql-remote-host',
+    realization_key: 'source-free-values', environment_cid: environmentCid,
+    authority_scope_cid: authorityScopeCid});
+  assert.equal(contentCid(binding(contentCid(actual))), cid(binding(cid(expected))));
+  for (const other of [previous, changed]) {
+    assert.notEqual(contentCid(binding(contentCid(other))), cid(binding(cid(expected))),
+      'a different original policy cannot be relabeled as the selected binding');
+  }
+  assert.notEqual(contentCid(binding(contentCid(actual), 'sha256:' + 'c'.repeat(64))),
+    cid(binding(cid(expected))), 'the selected Environment cannot substitute another authority scope');
 });
 
-for (const [name, file] of [['Values', 'values'], ['Query', 'query']]) {
-  test(`historical ${name} independently binds default Local policy while retaining explicit and Effect policy`, () => {
-    const fixture = readFileSync(new URL(`./fixtures/synthetic-historical-held-${file}.mjs`, import.meta.url), 'utf8');
-    const assignment = select(fixture, node => node.type === 'AssignmentExpression' &&
-      node.left.property?.name === 'capacity' && node.left.object.property?.name === 'host_policy_profile' &&
-      node.left.object.object?.name === 'environmentBody');
-    const project = compileFunction(assignment + '; return environmentBody;',
-      ['environmentBody', 'effectEnvironmentWire', 'effectiveHostCapacityPolicy', 'hostCapacityPolicy']);
-    const {evidence_bundle_cid: ignored, ...raw} = JSON.parse(readFileSync(
-      new URL('../spec/local-check-environment.json', import.meta.url), 'utf8')); void ignored;
-    const generic = {max_graph_construction_edges: 1000,
-      max_graph_construction_input_rows: 1000, max_graph_construction_nodes: 1000,
-      ...raw.host_policy_profile.capacity};
-    // Independent installed-policy preimage. The fixture cannot learn this
-    // identity from a prepared Host or turn the numerical window into supply.
-    const expected = {...generic, max_relation_output_rows: 536870912 / 256,
-      max_artifact_rows: 536870912 / 256, max_file_listing_items: 536870912 / 256,
-      max_model_request_bytes_per_item: 65536};
-    const current = project(structuredClone(raw), undefined, undefined, undefined);
-    assert.deepEqual(current.host_policy_profile.capacity, expected);
-    const publishedEffect = project(structuredClone(raw), 'published-effect-environment', undefined, undefined);
-    assert.deepEqual(publishedEffect.host_policy_profile.capacity, generic,
-      'an independent published Effect keeps its generic policy');
-    const explicit = {...generic, max_relation_output_rows: 31, max_artifact_rows: 17};
-    delete explicit.max_file_listing_items;
-    for (const original of [explicit, {...explicit, max_file_listing_items: 7}]) {
-      const body = structuredClone(raw);
-      body.host_policy_profile.capacity = structuredClone(original);
-      assert.deepEqual(project(body, undefined, original, original).host_policy_profile.capacity, original,
-        'an explicit optional listing policy stays absent or keeps its original value');
-    }
-    const prior = structuredClone(current);
-    delete prior.host_policy_profile.capacity.max_file_listing_items;
-    assert.notEqual(contentCid(prior), contentCid(current),
-      'a previous original Environment remains a different binding');
-  });
-}
+test('published Source and independent Effect selectors retain their generic declared policy', () => {
+  // Salesforce installs a published Source profile, unlike source-free Values.
+  // No Local resource-policy port is provided to this selector.
+  assert.equal(selectInstalledHostEnvironment(admission, baseWire), baseWire);
+  const actual = checkedEnvironment(selectInstalledHostEnvironment(admission, baseWire, genericCapacity));
+  assert.deepEqual(actual, environment(genericCapacity));
+  assert.equal(actual.host_policy_profile.capacity.max_artifact_rows, 1000);
+  assert.equal(Object.hasOwn(actual.host_policy_profile.capacity, 'max_file_listing_items'), false);
+  assert.notEqual(cid(actual), cid(environment(localCapacity)),
+    'published generic policy is not the ordinary materialization Environment');
+});
+
+test('explicit Local selection preserves optional listing policy and its distinct original identity', () => {
+  const explicit = {...genericCapacity, max_relation_output_rows: 31, max_artifact_rows: 17};
+  delete explicit.max_file_listing_items;
+  for (const original of [explicit, {...explicit, max_file_listing_items: 7}]) {
+    const moon = localMoon();
+    moon.clientLocalResourcePolicyModelRequestByteCeiling = () => {
+      assert.fail('an explicit policy must not borrow the default Model window');
+    };
+    const actual = checkedEnvironment(selectInstalledLocalMaterializationEnvironment(
+      moon, baseWire, original, undefined, undefined, true));
+    assert.deepEqual(actual, environment(original));
+    assert.notEqual(cid(actual), cid(environment(localCapacity)));
+  }
+  assert.deepEqual(JSON.parse(baseWire).host_policy_profile.capacity, base.host_policy_profile.capacity,
+    'policy selection leaves the original Environment unchanged');
+});
