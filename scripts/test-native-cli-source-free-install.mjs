@@ -20,6 +20,7 @@ import {admitInstalledLocalRuntime} from '../packages/native-cli/lib/local-runti
 import {canonicalText} from './check-canonical-json.mjs';
 import {nativeMockAcceptanceObservations} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {nativeLauncherEnvelope} from './native-cli-mock-scenario.mjs';
+import {observeNativeResourceOperatorShape} from './native-source-free-resource-shape.mjs';
 import {observeNativeUnionRows, observeNativeUnionRowPolicy} from './native-cli-union-rows.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
@@ -768,34 +769,9 @@ export async function observeNativeResourceOperatorShapes({project, cli, assets,
   await mkdir(outputDirectory, {mode: 0o700});
   const observations = [];
   for (const fixture of nativeResourceShapeFixtures()) {
-    const inputName = fixture.id + '.json', input = join(project, inputName);
-    const wire = JSON.stringify(fixture.program), inputWireBytes = Buffer.byteLength(wire);
-    if (fixture.id === 'few-long-strings') assert(inputWireBytes > 1048576);
-    const first = join(outputDirectory, fixture.id + '-first.jsonl');
-    const saved = join(outputDirectory, fixture.id + '-saved.jsonl');
-    await writeFile(input, wire, {flag: 'wx', mode: 0o600});
-    const original = JSON.parse((await command(['run', inputName, '--format', 'json', '--json'])).stdout);
-    assert.equal(original.version, 'actql-run-state/0.1');
-    assert.equal(original.status, 'succeeded');
-    assert.equal(typeof original.run_id, 'string'); assert(original.run_id.length > 0);
-    await command(['result', original.run_id, '--result', 'answer0', '--format', 'jsonl', '--output', first]);
-    const firstRows = await verifyNativeResourceRows(first, fixture.expectedRows, fixture.key);
-    if (fixture.id === 'few-long-strings') {
-      assert.equal(firstRows.rows, 2); assert(firstRows.wireBytes > 1048576);
-    }
-    await unlink(input);
-    const restored = JSON.parse((await command(['status', original.run_id, '--json'])).stdout);
-    assert.deepEqual([restored.version, restored.run_id, restored.status],
-      [original.version, original.run_id, original.status]);
-    await command(['result', original.run_id, '--result', 'answer0', '--format', 'jsonl', '--output', saved]);
-    const savedRows = await verifyNativeResourceRows(saved, fixture.expectedRows, fixture.key);
-    assert.equal(savedRows.contentSha256, firstRows.contentSha256);
-    if (fixture.id === 'small-input-large-output') {
-      assert(inputWireBytes < 16384); assert(firstRows.wireBytes > 1048576);
-      assert(firstRows.wireBytes > 100 * inputWireBytes);
-    }
-    observations.push({id: fixture.id, runId: original.run_id, inputWireBytes,
-      first: firstRows, saved: savedRows, inputRemovedBeforeSaved: true});
+    observations.push(await observeNativeResourceOperatorShape({project, cli,
+      configuration: selected.configuration, fixture, outputDirectory,
+      verifyRows: verifyNativeResourceRows}));
   }
   return {scope: 'installed-native-json-source-resource-shapes', observations,
     operator: {environmentCid: selected.environmentCid, maxRows: selected.maxRows},
