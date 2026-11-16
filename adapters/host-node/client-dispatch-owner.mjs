@@ -140,17 +140,20 @@ function dispatchFailureCodeSite(error, errorType, formatter) {
         currentFormatter?.value !== formatter) return undefined;
     const heading = {};
     const code = Object.getOwnPropertyDescriptor(error, 'code');
-    if (!code || !Object.hasOwn(code, 'value') || code.value !== 'MoonBitHostFailure') return undefined;
+    if (!code || !Object.hasOwn(code, 'value') || typeof code.value !== 'string' ||
+        code.value.length < 1 || code.value.length > 96 ||
+        !/^[A-Za-z][A-Za-z0-9_]*$/u.test(code.value)) return undefined;
     for (const key of ['name', 'message']) {
       const own = Object.getOwnPropertyDescriptor(error, key);
       const inherited = Object.getOwnPropertyDescriptor(errorType.prototype, key);
+      if (key === 'message' && own === undefined) return undefined;
       if (own !== undefined && (!Object.hasOwn(own, 'value') || typeof own.value !== 'string') ||
           inherited === undefined || !Object.hasOwn(inherited, 'value')) return undefined;
       heading[key] = own?.value ?? inherited.value;
     }
-    // The generic Core Result guard has this fixed inert heading. Arbitrary
-    // exception text is neither resolved nor copied by this fallback.
-    if (heading.name !== 'Error' || heading.message !== 'MoonBitHostFailure') return undefined;
+    // Only a bounded code used verbatim as its own inert message is a safe
+    // heading. Arbitrary exception text is neither resolved nor copied.
+    if (heading.name !== 'Error' || heading.message !== code.value) return undefined;
     const field = Object.getOwnPropertyDescriptor(error, 'stack');
     if (field === undefined) return undefined;
     let stack;

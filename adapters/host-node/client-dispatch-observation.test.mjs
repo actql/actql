@@ -63,6 +63,40 @@ test('dispatch code-site diagnostic prefers the original typed phase', async () 
   assert.deepEqual(detail.primaryDiagnostic, failure.primaryDiagnostic);
 });
 
+test('dispatch code-site diagnostic locates plain native failures with their own bounded static code', async () => {
+  for (const code of ['StaticPreparationUnavailable', 'OriginalEffectContentUnavailable']) {
+    const failure = Object.assign(new Error(code), {code});
+    const detail = await observeActualDispatchFailure(failure);
+    assert.equal(detail.code, code);
+    assert.equal(detail.primaryCode, code);
+    assert.equal(detail.primaryDiagnostic.phase, 'dispatch');
+    assert.equal(detail.primaryDiagnostic.kind, 'code_site');
+    assert.match(detail.primaryDiagnostic.message,
+      /^adapters\/host-node\/client-dispatch-observation\.test\.mjs:\d+:\d+/u);
+    assert.equal(detail.primaryDiagnostic.message.includes(code), false);
+    assert.equal(detail.primaryDiagnostic.message.includes(process.cwd()), false);
+    assert.equal(detail.primaryDiagnostic.message.includes('file://'), false);
+  }
+});
+
+test('dispatch code-site diagnostic refuses unsafe codes and arbitrary or inherited messages', async () => {
+  const code = 'StaticPreparationUnavailable';
+  const samples = [
+    Object.assign(new Error('private payload'), {code}),
+    ...['', 'x'.repeat(97), 'Bad Code', 'Bad\nCode', 'Bad/Code', '非公開'].map(value =>
+      Object.assign(new Error(value), {code: value})),
+    Object.assign(new Error(code), {code: 7}),
+    new Error(code),
+  ];
+  const inherited = Object.assign(new Error(code), {code});
+  delete inherited.message;
+  samples.push(inherited);
+  for (const failure of samples) {
+    const detail = await observeActualDispatchFailure(failure);
+    assert.equal(detail.primaryDiagnostic, undefined);
+  }
+});
+
 test('dispatch code-site diagnostic never invokes overridden or inherited stack getters', async () => {
   let reads = 0;
   for (const missing of [false, true]) {
