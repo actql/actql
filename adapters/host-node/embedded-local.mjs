@@ -5839,6 +5839,11 @@ async function openInstalledHost(originalInstallation, preparation) {
             busy = true;
             continue;
           }
+          // The continuation borrows this Journal's already admitted Run.
+          // Every probe still reads committed storage and compares the full
+          // row, including cancellation; unchanged DATA needs no readmission.
+          const observeContinuationCancellation = journal.observeRunCancellation(
+            ref, moon, control, retained);
           const continuation = await checkpoints.effectContinuation(view);
           const flight = dispatchOwner.track(ref, {
             run: async ({signal, retainExecution, beginPhysicalWork}) => {
@@ -5848,7 +5853,7 @@ async function openInstalledHost(originalInstallation, preparation) {
               return await effectInstallation.resume(Object.freeze({ref, view, observation, managedEffect,
                 reconciliationOnly: observing,
                 assertContinuationCurrent() {
-                  if (journal.lookupRunDefinition(ref, moon, control)?.cancellationRequested !== false) {
+                  if (observeContinuationCancellation()?.cancellationRequested !== false) {
                     throw clientOperationError('ClientRunCancellationRequested');
                   }
                 },
