@@ -15,6 +15,7 @@ import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-bind
 import {checkedRequestSnapshotPreparation, requestProgramCapacityRefusal}
   from './client-program-preparation.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
+import {installNodeClientEffectRun} from './client-effect-run.mjs';
 import {retainUpdateTargetSelection, originalUpdateTargetSelectionsCid, updateTargetSelectionMatchesRun}
   from './update-target-original-shape.mjs';
 
@@ -1424,13 +1425,41 @@ function ordinaryEffectDefinitionFixture({target = false, stop = false} = {}) {
     }, captureEffectMaterials(facts) {
       assert.strictEqual(facts.allowed, allowed); assert.strictEqual(facts.definition, definition);
       assert.strictEqual(facts.identity, identity); calls.push('capture-full-original'); return wire;
-    }}, prepareDefinition(facts) {
+    }, compilationFor(value) {assert.strictEqual(value, prepared);return compilation;}}, prepareDefinition(facts) {
       assert.strictEqual(facts.prepared, prepared); assert.strictEqual(facts.compilation, compilation);
       assert.strictEqual(facts.identity, identity); calls.push('same-parent-constructor');
     }};
-  const body = retainedRequestSourceMember('./client-effect-run.mjs', 'issueDefinition');
-  const owner = new Function(...Object.keys(ports), 'return ({' + body + '});')(...Object.values(ports));
-  return {issue: () => owner.issueDefinition(), wire, targetOriginal, runDefinition, calls};
+  const unused = () => assert.fail('Definition acceptance must not dispatch physical work');
+  Object.assign(moon, {
+    clientProgramEffectCompilationIssueCode: () => undefined,
+    clientProgramCompileLocalEffects(value) {assert.strictEqual(value, prepared);return ok(compilation);},
+    clientProgramEffectTargetSelections: unused, clientProgramEffectTargetSelectionOriginal: unused,
+    clientRunStartAction: unused, clientRequestAuthorityScopeCid: unused, clientRequestCallerId: unused,
+    clientSubmittedIntent: () => 'original-intent',
+    clientSubmittedIntentEffectCompatible: (intent, value) => intent === 'original-intent' && value === prepared,
+    clientSubmittedIntentRequestsCommitStop: () => stop,
+  });
+  let issued;
+  const journal = {
+    reservePhysicalStart: unused, originalSubmittedIntent: unused,
+    lookupDefinition: unused, reserveDispatch: unused,
+    lookupSubmittedIntent: submission => ({requestId: 'original-request', intentCid: submission.intentCid,
+      intentWire: 'original-intent-wire'}),
+    async admitOrLookupDefinition(original, {issueDefinition}) {
+      assert.strictEqual(original, identity);
+      issued = await issueDefinition();
+      return {ref: {runDefinitionCid: runDefinition.identity}, revision: 1, durability: 'fixture'};
+    },
+  };
+  const owner = installNodeClientEffectRun({...ports, publicationControl: ports.control, journal,
+    authorizeRequest: async facts => {assert.strictEqual(facts.prepared, prepared);return ports.policy;},
+    authorizeRunStart: unused, execute: unused, requestIdentityFor: () => identity});
+  return {async issue() {
+    await owner.accept({prepared, authorityScopeCid: 'original-authority', requestId: 'original-request',
+      namespaceId: 'original-scope', principalId: 'owner', connection: {},
+      ...(stop ? {submission: {intentCid: 'original-intent-cid'}} : {})});
+    return issued;
+  }, wire, targetOriginal, runDefinition, calls};
 }
 
 test('ordinary Effect approval retains full original materials without an explicit commit stop', async () => {
