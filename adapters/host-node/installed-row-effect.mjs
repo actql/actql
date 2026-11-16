@@ -1434,6 +1434,15 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       ? owner.managedPlanRecipe : owner.managedPlanRecipes[member.kind];
     return controlRecipes.get(recipe);
   };
+  const projectOwnedResponse = (member, facts, construction) => {
+    const {owned} = ownerOf(member);
+    const method = owned.project;
+    if (construction === undefined) return Reflect.apply(method, owned, [facts]);
+    const selected = recipeOf(member)?.projectConstruction;
+    return selected !== undefined && selected.receiver === owned && selected.method === method
+      ? construction(owned, method, [facts], selected.capacity)
+      : construction(owned, method, [facts]);
+  };
   const retainMember = (owner, member) => {
     const retained = Object.freeze(member);
     memberInstallations.set(retained, owner);
@@ -2292,12 +2301,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           const projectionFacts = {member, memberIndex, rowIndex,
             preview: applyPreview, request: entry.request, current: now[memberIndex],
             observation: captured.physical.observation, headers: captured.physical.headers};
-          const projectConstructor = managedPlanRecipe?.projectConstruction;
-          let projected = controlConstruction === undefined ? owned.project(projectionFacts)
-            : projectConstructor !== undefined && projectConstructor.receiver === owned &&
-                projectConstructor.method === owned.project
-              ? controlConstruction(owned, projectConstructor.method, [projectionFacts], projectConstructor.capacity)
-              : controlConstruction(owned, owned.project, [projectionFacts]);
+          let projected = projectOwnedResponse(member, projectionFacts, controlConstruction);
           if (ownerOf(member).responseConfirmation !== undefined && projected?.kind === 'provider-response' &&
               projected.providerEvidence !== undefined) {
             projected = await confirmResponse({memberIndex, rowIndex, projected,
@@ -3631,7 +3635,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
                   authorizeEvidenceRead: async () => true,
                   projectStored: stored => {
                     assertRecoveredCurrent();
-                    const {owned, responseConfirmation} = ownerOf(members[memberIndex]);
+                    const {responseConfirmation} = ownerOf(members[memberIndex]);
                     // Presence alone is not a terminal fact. Reuse the
                     // existing complete receipt/current/history admission and
                     // original CAS continuation, never another provider read
@@ -3646,8 +3650,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
                       preview: ledgerPreview, request: entry.request, current: currents[memberIndex],
                       observation: Object.freeze({useCid: stored.credentialUseCid,
                         statusCode: stored.statusCode, body: stored.responseBytes}), headers: undefined};
-                    return controlConstruction === undefined ? owned.project(projectionFacts)
-                      : controlConstruction(owned, owned.project, [projectionFacts]);
+                    return projectOwnedResponse(members[memberIndex], projectionFacts, controlConstruction);
                   }});
                 assertRecoveredCurrent();
                 if (retainedOutcome) continue;
