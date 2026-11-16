@@ -137,7 +137,7 @@ fn publication_local_source_identity_inventory(
       records: 8L,
       record_references: 13L,
       record_words: 2L,
-      // Root seven-field copy/literal inventory; the exact local metadata
+      // Root seven-field copy/literal inventory; the exact local_value metadata
       // field lists, detached fields and preimage, plus both Manifest maps.
       reference_arrays: 6L,
       reference_items: 21L + 3L * fields.to_int64(),
@@ -148,7 +148,7 @@ fn publication_local_source_identity_inventory(
     })
     is Some(control) &&
     // The five-key physical holding hash is the only unordered writer here;
-    // local Canonical identity emitters use fewer simultaneously live keys.
+    // local_value Canonical identity emitters use fewer simultaneously live keys.
     @encode.hash_writer_live_key_inventory(5, Int::max(2, depth)) is Some(hash) else {
     return None
   }
@@ -162,7 +162,7 @@ fn publication_local_source_identity_inventory(
 }
 
 ///|
-// Workspace of the existing strict local Source admission only. Outer name
+// Workspace of the existing strict local_value Source admission only. Outer name
 // inventories belong to the caller. One member's physical Source and four
 // semantic contracts coexist; their parser/validator/hash packets are a
 // sequential maximum. Nothing from this check escapes to the next member.
@@ -195,8 +195,8 @@ fn publication_local_source_construction_inventory(
       return None
     }
     let (name, physical) = @json.array_at(sources, index).unwrap()
-    guard @json.object_field(locals, name) is Some(local) &&
-      @json.object_field_count(local) == Some(7) &&
+    guard @json.object_field(locals, name) is Some(local_value) &&
+      @json.object_field_count(local_value) == Some(7) &&
       publication_canonical_construction_geometry(
         physical,
         max_bytes,
@@ -216,7 +216,7 @@ fn publication_local_source_construction_inventory(
       if work is Some(charge) && !charge(1) {
         return None
       }
-      guard @json.object_field(local, field) is Some(value) &&
+      guard @json.object_field(local_value, field) is Some(value) &&
         publication_canonical_construction_geometry(
           value,
           max_bytes,
@@ -238,7 +238,7 @@ fn publication_local_source_construction_inventory(
       if work is Some(charge) && !charge(1) {
         return None
       }
-      guard @json.object_field(local, field) is Some(value) &&
+      guard @json.object_field(local_value, field) is Some(value) &&
         publication_canonical_construction_geometry(
           value,
           max_bytes,

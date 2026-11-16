@@ -210,13 +210,17 @@ fn publication_canonical_construction_geometry(
   depth : Int,
   work? : ((Int) -> Bool)? = None,
 ) -> @encode.EncodingConstructionGeometry? {
-  let writer = match work {
-    None => @encode.construction_measuring_writer(bytes, nodes, depth)
-    Some(spend) => @encode.work_construction_measuring_writer(bytes, nodes, depth, spend)
-  } catch { _ => return None }
-  @json.emit_value(value, writer) catch { _ => return None }
-  try { Some(@encode.finish_construction_measurement(writer)) }
-  catch { _ => None }
+  try {
+    let writer = match work {
+      None => @encode.construction_measuring_writer(bytes, nodes, depth)
+      Some(spend) =>
+        @encode.work_construction_measuring_writer(bytes, nodes, depth, spend)
+    }
+    @json.emit_value(value, writer)
+    Some(@encode.finish_construction_measurement(writer))
+  } catch {
+    _ => None
+  }
 }
 
 ///|
