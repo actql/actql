@@ -294,7 +294,9 @@ pub fn generated_bounded_sequence_capacity(
     generated.selected_steps is None &&
     generated.selected_prefix_end is None
   if !(generated.selected_steps is Some([_]) ||
-    operation is @lower.ValuesStep(_) || whole_distinct || whole_set) {
+    operation is @lower.ValuesStep(_) ||
+    whole_distinct ||
+    whole_set) {
     return generated_sequence_capacity(generated, limits, measurement)
   }
   match operation {
@@ -610,7 +612,8 @@ pub fn generated_bounded_sequence_capacity(
       if @lower.node_input_target(node, index)
         .bind(target => @lower.preparation_schema_at(prepared, target))
         .map(bounded_number_group_scalar_schema)
-        .unwrap_or(false) == false {
+        .unwrap_or(false) ==
+        false {
         borrowed_set = false
       }
     }
@@ -748,7 +751,8 @@ pub fn generated_bounded_sequence_capacity(
         ordinary.execution_bytes,
         original.retained_bytes - ordinary.retained_bytes,
         1L,
-      ) is Some(execution) else {
+      )
+      is Some(execution) else {
       return None
     }
     // Only ended/absent constructor scratch changes. Preserve full provider R
