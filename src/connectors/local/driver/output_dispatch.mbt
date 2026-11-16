@@ -189,6 +189,15 @@ fn local_output_transfer(
       if reserve is None {
         return @local.next_local_output_export(attempt).map_err(issue)
       }
+      // Preserve the blocking port's metadata preparation before entering the
+      // same stream with its before-commit growth callback.
+      while true {
+        match @local.advance_local_output_export_preparation(attempt, 64) {
+          Ok((true, _)) => break
+          Ok((false, _)) => ()
+          Err(value) => return Err(failed.val.unwrap_or(issue(value)))
+        }
+      }
       let mut complete = false
       let mut batch : String? = None
       while !complete && batch is None {
