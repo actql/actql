@@ -422,7 +422,8 @@ pub fn generated_bounded_sequence_capacity(
           | @lower.StableSort(_)
           | @lower.Limit(_, _, _)
           | @lower.AssertAll(_)
-          | @lower.AssertUnique(_) => true
+          | @lower.AssertUnique(_)
+          | @lower.Watermark(_, _, _, _) => true
           _ => false
         })
       (
@@ -460,6 +461,10 @@ pub fn generated_bounded_sequence_capacity(
             // key/index workspace and forwards the same admitted values.
             // It builds no second input forest or measurement wire.
             @lower.kernel_body(kernel) is @lower.AssertUnique(_) ||
+            // WATERMARK scans and forwards the same original cells. Numeric
+            // time/late fields and the static decision Text use its existing
+            // workspace and complete retained-output allowance.
+            @lower.kernel_body(kernel) is @lower.Watermark(_, _, _, _) ||
             // UNNEST scans original arrays and rechecks the same immutable
             // carried/element values. Its maps, row arrays, complete input
             // charge and recheck/measurement cursors remain funded below.

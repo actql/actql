@@ -53,7 +53,6 @@ fn selected_literal_binding_chain(
     @lower.node_values_literal_text_bytes(seed) is Some(_) else {
     return false
   }
-  let mut bindings = false
   for index in 0..<count {
     guard @execution.generated_sequence_step_index_at(sequence, index).bind(step => {
         @lower.preparation_schema_at(prepared, @pipeline.Step(step))
@@ -72,14 +71,8 @@ fn selected_literal_binding_chain(
     }
     guard @execution.generated_sequence_step_at(sequence, index)
       is Some(@lower.RowStep(kernel)) &&
-      (
-        @lower.kernel_bindings(kernel) is Some(_) ||
-        @lower.kernel_is_projection(kernel)
-      ) else {
+      selected_binding_rows_supported(kernel) else {
       return false
-    }
-    if @lower.kernel_bindings(kernel) is Some(_) {
-      bindings = true
     }
     let input = @lower.kernel_input_schema(kernel)
     for field in 0..<@schema.field_count(input) {
@@ -89,7 +82,7 @@ fn selected_literal_binding_chain(
       }
     }
   }
-  bindings
+  true
 }
 
 ///|
