@@ -1,4 +1,17 @@
 ///|
+// Provider selection keeps eleven provider field slots and two capacity
+// results (each result and its Some: 2H/1R/2W) alive once per chain.
+fn capacity_evidence_selection_bytes() -> Int64 {
+  @execution.preparation_representation_cost({
+    record_headers: 4L,
+    reference_slots: 13L,
+    scalar_words: 4L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+}
+
+///|
 /// Use the existing checked fixture and actual registration/selection route.
 /// This oracle checks declared allowances, not runtime heap measurements.
 fn capacity_evidence_child_sum(
@@ -58,7 +71,10 @@ test "capacity evidence declared child sums match the actual registered chain" {
       // This checks the declared reservation, not a physical sizing theorem.
       Int64::max(
         base.execution_bytes,
-        children + count.to_int64() * 256L + 512L,
+        children +
+        count.to_int64() * 256L +
+        512L +
+        capacity_evidence_selection_bytes(),
       ),
     )
     // A max(child) mutation must not substitute a serial execution argument
@@ -76,7 +92,7 @@ test "capacity evidence actual Int64 guards reject child sum and handle overflow
   )
   let suffix = capacity_evidence_child_sum(sequence, zero)
   let handles = 2L * 256L
-  let preparation = 512L
+  let preparation = 512L + capacity_evidence_selection_bytes()
   let maximum = 9223372036854775807L
   let get = fn(retained : Int64, execution : Int64) raise {
     let family = capacity_evidence_family(

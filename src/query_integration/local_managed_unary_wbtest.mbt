@@ -1277,7 +1277,11 @@ test "ordinary keyed count chain reserves overlapping child capacity" {
     // coheld child outputs/scratch/handles are simultaneous obligations.
     Int64::max(
       base.retained_bytes,
-      retained + scratch + count.to_int64() * 256L + 512L,
+      retained +
+      scratch +
+      count.to_int64() * 256L +
+      512L +
+      capacity_evidence_selection_bytes(),
     ),
   )
   @strategy.stop_captured_dag(run)
