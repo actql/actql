@@ -3,6 +3,7 @@
 // path neither creates a generation nor reacquires a provider response.
 import {issueStoredCapturedContent, consumeStoredContentOriginal,
   closeStoredContentReaders} from './generated-content-holding.mjs';
+import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 
 export function prepareRecoveredSourceCommandContent({publications, control,
   sourceOriginal, prepared, request, definition, captured, preview, invocation,
@@ -21,7 +22,7 @@ export function prepareRecoveredSourceCommandContent({publications, control,
   const expiresAt = Date.parse(binding.expires_at);
   // The caller creates this child inside its already-funded metadata phase.
   // Later native phases quote this same complete spelling before allocation.
-  const bindingWire = JSON.stringify(binding);
+  const bindingWire = canonicalJson(binding);
   let stopping = false, released = false, attempted = false, flight, candidate, original, borrow;
   const readers = new Set();
   const available = () => !stopping && !released && store.status().closed === false &&
@@ -44,16 +45,16 @@ export function prepareRecoveredSourceCommandContent({publications, control,
     signal?.throwIfAborted();
     if (!available()) throw new Error('RecoveredContentUnavailable');
   };
-  const construct = (receiver, method, args) => {
+  const construct = (receiver, method, args, role) => {
     current();
-    const value = sourceConstruction(receiver, method, args, bindingWire);
+    const value = sourceConstruction(receiver, method, args, bindingWire, role);
     current();
     return value;
   };
   const storedControl = Object.freeze({
-    inspect: value => construct(control, control.inspect, [value]),
-    issuer: (...args) => construct(control, control.issuer, args),
-    issue: (...args) => construct(control, control.issue, args),
+    inspect: value => construct(control, control.inspect, [value], 'inspect'),
+    issuer: (...args) => construct(control, control.issuer, args, 'issuer'),
+    issue: (...args) => construct(control, control.issue, args, 'issue'),
   });
   const selected = value => {
     current();
@@ -89,12 +90,12 @@ export function prepareRecoveredSourceCommandContent({publications, control,
         const makeCandidate = () => {
           // Retain before either original constructor's success/current cut.
           candidate = control.recoveryCandidateForEffectOriginal(sourceOriginal,
-            prepared, request, referenceWire, binding, referenceLimits);
+            prepared, request, referenceWire, bindingWire, referenceLimits);
           return candidate;
         };
         recoveryResources.constructCaptured(captured, undefined,
-          () => construct(undefined, makeCandidate, []), undefined);
-        const holdingCid = construct(control, control.holdingCid, [candidate]);
+          () => construct(undefined, makeCandidate, [], 'candidate'), undefined);
+        const holdingCid = construct(control, control.holdingCid, [candidate], 'holding');
         const issued = await issueStoredCapturedContent({store, control: storedControl, candidate,
           holdingCid, workspaceScopeCid: authorityScopeCid,
           effectiveDataPolicyCid: sourcePolicyCid, available: live, authorize: live,
@@ -108,7 +109,7 @@ export function prepareRecoveredSourceCommandContent({publications, control,
           return borrow;
         };
         recoveryResources.constructCaptured(captured, undefined,
-          value => construct(undefined, recover, [value]), argument);
+          value => construct(undefined, recover, [value], 'view'), argument);
         current();
         selected(borrow.binding);
         return Object.freeze({borrow, contentOwner});
