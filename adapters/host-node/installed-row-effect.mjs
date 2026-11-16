@@ -127,6 +127,7 @@ import {recoverProjectedEffectResponse} from './effect-response-recovery.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
 import {prepareInstalledRowCaptureChild, retainInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
 import {issueUpdateTargetInstallation, issueUpdateTargetInstallationData, assertUpdateTargetSelectionCurrent,
+  assertUpdateTargetSelectionCurrentData,
   assertUpdateTargetSelectionMembersCurrent} from './update-target-original-shape.mjs';
 import {assertInstalledSourceConstruction, retainInstalledSourceConstruction,
   closeInstalledSourceConstruction} from './installed-host-services.mjs';
@@ -375,7 +376,30 @@ export function collectInstalledRowEffectUpdateObservations(adapters, selections
 }
 const validateOwnerSelections = (owners, selections, prepared) => {
   if (selections === undefined) return undefined;
-  try { assertUpdateTargetSelectionCurrent(selections, updateObservations(owners), prepared); }
+  try {
+    // These call-local DATA slots replace the full embedded installation
+    // strings and their decoder/cursor scratch in the same current phase.
+    // Their coexisting representation fits that removed work; no retained
+    // cache, larger limit or new resource grant is introduced here.
+    const observations = [], installations = [];
+    for (const owner of owners) {
+      // Fresh physical DATA, not a retained validation or authorization grant.
+      // Common still checks the same preparation, purpose and Mapping at each
+      // use, including the virtual bounds of the complete installation wire.
+      const projection = updateInstallationProjection(owner);
+      observations.push(updateObservation(owner, projection?.installation));
+      if (projection !== undefined) installations.push(projection.data);
+    }
+    if (installations.length === 0) {
+      assertUpdateTargetSelectionCurrent(selections, observations, prepared);
+    } else {
+      if (installations.length !== observations.length) selectionChanged();
+      // These are new private observation records. Reuse them without another
+      // wrapper while removing the wire that the same opaque DATA represents.
+      for (const observation of observations) delete observation.installation;
+      assertUpdateTargetSelectionCurrentData(selections, observations, installations, prepared);
+    }
+  }
   catch (cause) { selectionChanged(cause); }
   return selections;
 };

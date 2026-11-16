@@ -26,7 +26,7 @@ import {openClientRequestJournal} from './client-request-journal.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {assertUpdateTargetSelectionCurrent, assertUpdateTargetSelectionMembersCurrent,
-  createUpdateTargetOriginalShapeControl, updateTargetSelectionsCid,
+  createUpdateTargetOriginalShapeControl, updateTargetSelectionsCid, retainUpdateTargetSelection,
   originalUpdateTargetSelectionsCid} from './update-target-original-shape.mjs';
 
 const runtimeUrl = process.env.ACTQL_TEST_COMMON_RUNTIME === undefined
@@ -287,6 +287,61 @@ test('plural current issues each actual physical owner once per fresh observatio
   restored.assertUpdateSelectionCurrent();
   assert.equal(f.counts.prepares, 0);
   assert.equal(f.counts.credentials, 0);
+});
+
+test('physical per-use current reuses real installation DATA and freshly refuses changed owners', async t => {
+  // Two logical occurrences share the same actual registered physical stage.
+  // The inventory bag itself is not an installed row stage or a new owner.
+  const f = await pluralOriginalOwnerFixture(t, 1);
+  let checks = 0, issuances = 0, legacyChecks = 0;
+  const observedMoon = {...moon,
+    clientProgramEffectTargetSelectionCurrent(...args) {
+      legacyChecks++;
+      return moon.clientProgramEffectTargetSelectionCurrent(...args);
+    },
+    clientProgramEffectTargetSelectionCurrentData(...args) {
+      checks++;
+      assert(JSON.parse(args[3]).every(value => !Object.hasOwn(value, 'installation')));
+      return moon.clientProgramEffectTargetSelectionCurrentData(...args);
+    },
+  };
+  const selections = retainUpdateTargetSelection(observedMoon, f.prepared);
+  assert.equal(selections.length, 2);
+  const issue = moon.clientProgramIssueEffectTargetInstallationData;
+  f.physicalMoon.clientProgramIssueEffectTargetInstallationData = (...args) => {
+    const value = issue(...args); checked(value); issuances++; return value;
+  };
+  for (let round = 0; round < 2; round++) {
+    assert.strictEqual(validateInstalledUpdateOwnerSelections(f.installed, selections, f.prepared), selections);
+    assert.equal(checks, round + 1);
+    assert.equal(issuances, (round + 1) * f.drivers.length);
+  }
+  const changed = {code: 'InstalledRowEffectInstallationChanged'};
+  f.drivers[0].kinds = [];
+  assert.throws(() => validateInstalledUpdateOwnerSelections(f.installed, selections, f.prepared), changed);
+  f.drivers[0].kinds = ['update'];
+  f.physicalMoon.clientProgramIssueEffectTargetInstallationData = values =>
+    issue(values.map((value, index) => index === 4 ? cid('f') : value));
+  assert.throws(() => validateInstalledUpdateOwnerSelections(f.installed, selections, f.prepared), changed);
+  f.physicalMoon.clientProgramIssueEffectTargetInstallationData = issue;
+  assert.throws(() => validateInstalledUpdateOwnerSelections(f.installed, [...selections], f.prepared), changed);
+  const typedCurrent = observedMoon.clientProgramEffectTargetSelectionCurrentData;
+  for (const port of [undefined, () => false, () => Promise.resolve(true)]) {
+    observedMoon.clientProgramEffectTargetSelectionCurrentData = port;
+    assert.throws(() => validateInstalledUpdateOwnerSelections(f.installed, selections, f.prepared), changed);
+  }
+  observedMoon.clientProgramEffectTargetSelectionCurrentData = typedCurrent;
+  assert.strictEqual(validateInstalledUpdateOwnerSelections(f.installed, selections, f.prepared), selections);
+  assert.equal(legacyChecks, 0);
+  assert.equal(f.counts.prepares, 0);
+  assert.equal(f.counts.credentials, 0);
+});
+
+test('physical per-use current retains complete legacy support', async t => {
+  const legacy = {...moon}; delete legacy.clientProgramIssueEffectTargetInstallationData;
+  const f = await pluralOriginalOwnerFixture(t, 1, [legacy]);
+  const selections = retainUpdateTargetSelection(moon, f.prepared);
+  assert.strictEqual(validateInstalledUpdateOwnerSelections(f.installed, selections, f.prepared), selections);
 });
 
 test('plural current refuses missing copied duplicate and colliding physical owners before Mapping reads', async t => {
