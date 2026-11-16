@@ -682,13 +682,13 @@ fn prepare_declared_file_lookup_dependencies(
   }
   // Callback/Result/Map/Array controls and bounded measuring-writer frames.
   // Per-member controls, spare slots, text and parser/workspace follow below.
-  match
+  let phase = match
     grow_keyed_lookup_protocol_metadata(
       lookup,
       1,
       64L + 2L * max_depth.to_int64(),
     ) {
-    Ok(_) => ()
+    Ok(phase) => phase
     Err(issue) => return Err(issue)
   }
   let primary : Ref[ClientKeyedRequestIssue?] = Ref(None)
@@ -762,7 +762,18 @@ fn prepare_declared_file_lookup_dependencies(
     return Err(Assembly("retired_declared_file_dependency_entry"))
   }
   state.dependency_bodies = Some(bodies)
-  Ok(())
+  // The synchronous collector returned; its parser/writer/seen/callback
+  // frames cannot escape in these opaque bodies. Retain the SAME completed
+  // bodies before this fallible cut. All prior Source, Value, receipt and IO
+  // backing remains in phase's original basis; only finished scratch returns.
+  finish_keyed_lookup_protocol_metadata(
+    lookup,
+    phase,
+    max_nodes,
+    max_depth,
+    [],
+    dependency_bodies=Some(bodies),
+  )
 }
 
 ///|

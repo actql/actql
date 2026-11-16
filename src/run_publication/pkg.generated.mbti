@@ -215,6 +215,8 @@ pub fn captured_effect_dependency_body_reference_count(CapturedEffectDependencyB
 
 pub fn captured_effect_dependency_body_references(CapturedEffectDependencyBody, Int) -> Array[(String, String)]?
 
+pub fn captured_effect_dependency_body_representation_extent(CapturedEffectDependencyBody, Int, Int, Int) -> Result[(@canonical_json.CanonicalRepresentationExtent, @decode_shape.CollectionConstructionExtent, Int64), PublicationContractIssue]
+
 pub fn captured_effect_dependency_body_wire_usage(CapturedEffectDependencyBody) -> (Int, Int, Int)?
 
 pub fn captured_effect_dependency_inventory_count(CapturedEffectDependencyInventory) -> Int
