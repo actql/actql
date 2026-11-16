@@ -4464,7 +4464,8 @@
         },
         {
           "operations": [
-            "publicationControl/init:projectEffectComputationReview/init:projectEffectComputationReview"
+            "publicationControl/init:projectEffectComputationReview/init:projectEffectComputationReview",
+            "publicationControl/init:effectComputationReviewConstructionCapacity/init:effectComputationReviewConstructionCapacity"
           ],
           "exports": [],
           "attributes": {
@@ -4486,6 +4487,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "const originalReview = (subjectCid, claims) =>"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "effectComputationReviewConstructionCapacity(preview, limits, previewLimits = limits)"
               }
             ],
             "identity": [
@@ -4554,6 +4559,10 @@
               {
                 "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
                 "anchor": "maxWireBytes: 256 * 1024"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Sealed review construction and adoption"
               }
             ],
             "extension": [
@@ -10607,6 +10616,15 @@
           "parameters": [
             "runDefinition",
             "storeAuthorityCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:effectComputationReviewConstructionCapacity/init:effectComputationReviewConstructionCapacity",
+          "parameters": [
+            "preview",
+            "limits",
+            "previewLimits"
           ],
           "async": false
         },
@@ -61713,6 +61731,10 @@
           "declaration": "client_program_effect_review_construction_capacity ( preview_wire : String , preview_bytes : Int , preview_nodes : Int , preview_depth : Int , review_bytes : Int , review_nodes : Int , review_depth : Int , ) - > @ execution . ExecutionCapacity ?"
         },
         {
+          "name": "client_program_effect_review_original_construction_capacity",
+          "declaration": "client_program_effect_review_original_construction_capacity ( original : @ publication . EffectPreviewIdentity , preview_wire : String , preview_bytes : Int , preview_nodes : Int , preview_depth : Int , review_bytes : Int , review_nodes : Int , review_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
           "name": "client_program_effect_risk_unsigned_payload_cid",
           "declaration": "client_program_effect_risk_unsigned_payload_cid ( body : @ effect . EffectRiskAcceptanceBody , ) - > String"
         },
@@ -62949,6 +62971,10 @@
           "declaration": "compile_client_local_effects ( prepared : @ publication_host . PreparedClientEffectComputation , infer : @ publication_host . ClientInferPlanGraph ? , infers ? : Array [ @ publication_host . ClientInferPlanGraph ]"
         },
         {
+          "name": "effect_review_inventory_capacity",
+          "declaration": "effect_review_inventory_capacity ( inventory : ( @ publication . EffectPreviewIdentityConstructionInventory , @ publication . EffectPreviewIdentityConstructionInventory , ) ? , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
           "name": "identify_installed_captured_source",
           "declaration": "identify_installed_captured_source ( source : @ query . CapturedInputSource , retain_body_bytes : Int , columns ? : Int"
         },
@@ -63653,7 +63679,9 @@
         {
           "operations": [
             "client_program_effect_review_construction_capacity",
-            "client_program_project_effect_review"
+            "client_program_project_effect_review",
+            "client_program_effect_review_original_construction_capacity",
+            "effect_review_inventory_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -63667,6 +63695,10 @@
               {
                 "path": "src/run_publication/effect_review_projection.mbt",
                 "anchor": "pub fn effect_review_projection_construction_inventory("
+              },
+              {
+                "path": "src/run_publication/effect_review_shaped_construction.mbt",
+                "anchor": "pub fn effect_review_original_construction_inventory("
               }
             ],
             "identity": [
@@ -66703,13 +66735,18 @@
         {
           "name": "text_writer_construction_inventory",
           "declaration": "text_writer_construction_inventory ( output_bytes : Int , nodes : Int , depth : Int , ) - > TextWriterConstructionInventory ?"
+        },
+        {
+          "name": "text_writer_live_key_inventory",
+          "declaration": "text_writer_live_key_inventory ( output_bytes : Int , max_live_keys : Int , depth : Int , ) - > TextWriterConstructionInventory ?"
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "text_writer_construction_inventory"
+            "text_writer_construction_inventory",
+            "text_writer_live_key_inventory"
           ],
           "exports": [],
           "attributes": {
@@ -66753,6 +66790,10 @@
               {
                 "path": "docs/design/github-issue-observations.md",
                 "anchor": "Fixed controls use the existing common constructor envelope per actual"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Sealed review construction and adoption"
               }
             ],
             "extension": [
@@ -85624,13 +85665,18 @@
         {
           "name": "effect_preview_identity_construction_inventory",
           "declaration": "effect_preview_identity_construction_inventory ( bytes : Int , nodes : Int , depth : Int , ) - > EffectPreviewIdentityConstructionInventory ?"
+        },
+        {
+          "name": "preview_identity_member_row_inventory",
+          "declaration": "preview_identity_member_row_inventory ( count : Int64 , ) - > EffectPreviewIdentityConstructionInventory ?"
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "effect_preview_identity_construction_inventory"
+            "effect_preview_identity_construction_inventory",
+            "preview_identity_member_row_inventory"
           ],
           "exports": [],
           "attributes": {
@@ -85677,6 +85723,10 @@
               {
                 "path": "docs/design/salesforce-write-capability.md",
                 "anchor": "bounded cumulatively"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Sealed review construction and adoption"
               }
             ],
             "extension": [

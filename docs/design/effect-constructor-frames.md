@@ -198,6 +198,15 @@ does not reselect the input policy: projection still re-admits the complete
 Preview against its original Run and Authoring Context and compares its semantic
 CID before emitting any displayed evidence.
 
+For the original-aware quote, the Host retrieves the admitted identity and its
+immutable wire through the same private Preview key. The shared projection
+emitter measures its actual input shape and bounds the generated output before
+construction. Known ordered canonical subtrees do not acquire unordered-key
+maps; the quote still covers their frame headers and actual backing. Literal
+unordered frames include all simultaneously live parent keys. Preview semantic
+writers keep their own wider key bounds, separately from the review emitter.
+Raw-wire callers retain the general constructor inventory.
+
 The existing control frame funds bounded wire preflight before Common quotes
 the actual input geometry and bounded output construction. Its native constructor
 entrance reserves both the temporary parse/encode peak and returned DATA on the

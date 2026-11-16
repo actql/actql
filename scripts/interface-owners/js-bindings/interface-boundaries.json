@@ -19635,7 +19635,8 @@
         },
         {
           "operations": [
-            "publicationControl/init:projectEffectComputationReview/init:projectEffectComputationReview"
+            "publicationControl/init:projectEffectComputationReview/init:projectEffectComputationReview",
+            "publicationControl/init:effectComputationReviewConstructionCapacity/init:effectComputationReviewConstructionCapacity"
           ],
           "exports": [],
           "attributes": {
@@ -19657,6 +19658,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "const originalReview = (subjectCid, claims) =>"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "effectComputationReviewConstructionCapacity(preview, limits, previewLimits = limits)"
               }
             ],
             "identity": [
@@ -19725,6 +19730,10 @@
               {
                 "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
                 "anchor": "maxWireBytes: 256 * 1024"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Sealed review construction and adoption"
               }
             ],
             "extension": [
@@ -26603,6 +26612,15 @@
           "parameters": [
             "runDefinition",
             "storeAuthorityCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:effectComputationReviewConstructionCapacity/init:effectComputationReviewConstructionCapacity",
+          "parameters": [
+            "preview",
+            "limits",
+            "previewLimits"
           ],
           "async": false
         },
