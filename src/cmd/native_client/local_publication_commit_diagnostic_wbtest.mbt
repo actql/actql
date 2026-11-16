@@ -46,3 +46,62 @@ test "commit diagnostics separate original Store evidence refusal from uncertain
   assert_eq(fields.get(11), Some(9005L))
   assert_eq(fields.get(12), Some(2064L))
 }
+
+///|
+test "commit diagnostics retain capture owner and physical binding refusal kinds" {
+  let fields : Map[Int, Int64] = Map([])
+  let emit = (tag, value) => fields[tag] = fields.get(tag).unwrap_or(0L) + value
+  local_publication_commit_failure_tags(
+    @local_publication.Store(
+      PublicationPreparation(Owner(Capacity(Resource(ChildFundingUnavailable)))),
+    ),
+    emit,
+  )
+  assert_eq(fields.get(10), Some(11L))
+  assert_eq(fields.get(11), Some(9005L))
+  assert_eq(fields.get(12), Some(5208L))
+  assert_eq(fields.get(13), Some(17L))
+  assert_eq(fields.get(15), None)
+  fields.clear()
+  local_publication_commit_failure_tags(
+    @local_publication.Store(PublicationPreparation(Owner(Policy))),
+    emit,
+  )
+  assert_eq(fields.get(12), Some(5003L))
+  fields.clear()
+  local_publication_commit_failure_tags(
+    @local_publication.Store(PublicationPreparation(Chain(EvidenceEncoding))),
+    emit,
+  )
+  assert_eq(fields.get(12), Some(6101L))
+  fields.clear()
+  local_publication_commit_failure_tags(
+    @local_publication.Store(
+      PublicationPreparation(Commit(CommitEvidence(EvidenceEncoding))),
+    ),
+    emit,
+  )
+  assert_eq(fields.get(12), Some(7101L))
+  fields.clear()
+  local_publication_commit_failure_tags(
+    @local_publication.Store(
+      DeliveryIssuance(
+        DeliveryIssuanceReferenceMismatch("binding.result_schema"),
+      ),
+    ),
+    emit,
+  )
+  assert_eq(fields.get(11), Some(9005L))
+  assert_eq(fields.get(12), Some(8201L))
+  assert_eq(fields.get(13), None)
+  fields.clear()
+  local_publication_commit_failure_tags(
+    @local_publication.Store(
+      DeliveryIssuance(
+        DeliveryIssuanceReferenceMismatch("private fixture text"),
+      ),
+    ),
+    emit,
+  )
+  assert_eq(fields.get(12), Some(8200L))
+}
