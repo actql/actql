@@ -1,0 +1,39 @@
+{
+  "source": "942da5f7cff320f37489be12498fee6f742c40c3",
+  "qualification": "Finite current JS package-configuration review only. This exact authored descriptor adds four literal JS whitebox selectors; it changes no imports, aliases, supported targets, existing predicates, linker options, build hooks or external resolvers. Every immediate source byte/mode/membership and transitive literal import remains an input. This review does not execute tests, prove Native I/O, or authorize reuse.",
+  "path": "src/client_local_host/moon.pkg",
+  "sha256": "b0d5e68d9e82221e6ae49e364de6175ca92377e8227443eafa84149e5ee25b23",
+  "bytes": 12133,
+  "previousRevision": "ee5ce11962555e55f77463249a3047248c662623",
+  "previousSha256": "90a6ea30dcda6c0978a79f1d35e592b4cf39bb508ec89907ad00a630de746458",
+  "previousBytes": 11885,
+  "rule": "literal-target-selectors-with-bound-source-membership",
+  "addedSelectors": [
+    {
+      "file": "closed_values_copy_text_js_wbtest.mbt",
+      "targets": [
+        "js"
+      ]
+    },
+    {
+      "file": "closed_values_replace_text_js_wbtest.mbt",
+      "targets": [
+        "js"
+      ]
+    },
+    {
+      "file": "installed_effect_capture_validation_js_wbtest.mbt",
+      "targets": [
+        "js"
+      ]
+    },
+    {
+      "file": "installed_effect_capture_publication_js_wbtest.mbt",
+      "targets": [
+        "js"
+      ]
+    }
+  ],
+  "meaning": "The two closed Values Text cases and two same-Read capture validation/publication cases use the existing JavaScript fixture/callback entry. JS selection prevents a portable backend from adopting that fixture; ordinary production sources and all previous backend choices remain unchanged.",
+  "refusalPolicy": "Only the exact current digest at the same JS target and reviewed toolchain qualifies. Previous descriptors remain historical. Changed selectors, imports, options, paths, targets or toolchain are refused or separately rekeyed; no wildcard package-language admission is added."
+}

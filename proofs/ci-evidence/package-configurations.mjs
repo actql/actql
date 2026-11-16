@@ -122,7 +122,9 @@ export const currentPackageConfigurations = Object.freeze({
   // Same imports and target policy; one result-publication-work JS selector.
   // Prior descriptors remain at 4d25879b4f9443cfc73758b948fc472401a5a96e
   // and 776746d359ec107cf3172d90016d07e009384fc9.
-  'src/client_local_host/moon.pkg': Object.freeze({digest: '90a6ea30dcda6c0978a79f1d35e592b4cf39bb508ec89907ad00a630de746458', rule: 'literal-target-selectors-with-bound-source-membership', revision: 'ee5ce11962555e55f77463249a3047248c662623'}),
+  // Four literal JS fixture selectors; imports/options and all earlier predicates unchanged.
+  // See docs/reviews/2026-11-17-session-local-text-publication-selector-review.json.
+  'src/client_local_host/moon.pkg': Object.freeze({digest: 'b0d5e68d9e82221e6ae49e364de6175ca92377e8227443eafa84149e5ee25b23', rule: 'literal-target-selectors-with-bound-source-membership', revision: '942da5f7cff320f37489be12498fee6f742c40c3'}),
   'src/connectors_builtin_node/moon.pkg': Object.freeze({digest: 'd515c9868140c30ef68b5778b71863813cad0d53cc7300e4ba8fcc3e00405d9d', rule: 'literal-js-foreign-library-with-bound-source-membership', revision: '6f27dfdf10aa232977277ec8580557463e44e81f'}),
   'src/execution_relation/moon.pkg': Object.freeze({digest: '2a223e06a52cbb8c01280e9d5c5132485434728f59271ff02900f74ea582d079', rule: 'literal-target-selectors-with-bound-source-membership', revision: '6813ab0330a17f99c8eef5c9f4a70480ecc7e96c'}),
   'src/native_values_integration/moon.pkg': Object.freeze({digest: 'aa3777f1835f552da0ea34a13bbcb0de9afeb6c96adeadfbb26b483ce683c54f', rule: 'literal-native-options-with-bound-source-membership'}),

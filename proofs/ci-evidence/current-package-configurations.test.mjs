@@ -276,6 +276,55 @@ test('current configuration entries bind exact authored Git inputs and literal d
   }
 });
 
+test('current Local JS review admits only the four fixture selectors and keeps every source bound', () => {
+  const review = JSON.parse(readFileSync(new URL(
+    '../../docs/reviews/2026-11-17-session-local-text-publication-selector-review.json', import.meta.url)));
+  const path = review.path;
+  const entry = currentPackageConfigurations[path];
+  const body = gitTree(root, review.source).read(path).toString();
+  const previous = gitTree(root, review.previousRevision).read(path).toString();
+  assert.equal(entry.revision, review.source);
+  assert.equal(entry.digest, review.sha256);
+  assert.equal(hash(body), review.sha256);
+  assert.equal(hash(previous), review.previousSha256);
+  let reconstructed = body;
+  for (const selector of review.addedSelectors) {
+    assert.deepEqual(selector.targets, ['js']);
+    const line = `    "${selector.file}": [ "js" ],\n`;
+    assert.equal(reconstructed.split(line).length, 2);
+    reconstructed = reconstructed.replace(line, '');
+  }
+  assert.equal(reconstructed, previous, 'Imports, aliases, hooks and every preceding option remain exact');
+  assert.deepEqual(packageImports(body).imports, packageImports(previous).imports);
+  const selected = packageSourceInputs({tree: currentTree, packages: ['src/client_local_host'], target: 'js'});
+  assert(!selected.unresolved.includes('Unreviewed package configuration: ' + path));
+  assert(selected.packageConfigurations.some(value => value.path === path && value.digest === review.sha256));
+  for (const selector of review.addedSelectors) {
+    const source = 'src/client_local_host/' + selector.file;
+    assert(selected.paths.includes(source));
+    assert.equal(currentTree.entries.get(source)?.kind, 'blob');
+    assert.equal(currentTree.entries.get(source)?.mode, '100644');
+  }
+  for (const changed of [
+    body.replace('"closed_values_copy_text_js_wbtest.mbt": [ "js" ]',
+      '"closed_values_copy_text_js_wbtest.mbt": [ "native" ]'),
+    body + '\noptions(pre_build: "unreviewed-hook")\n',
+    body.replace('"actql/actql/decode_shape" @shape', '"actql/actql/decode_shape" @permission'),
+  ]) {
+    assert.notEqual(changed, body);
+    assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
+    const changedTree = {...currentTree, read(file) {
+      return file === path ? Buffer.from(changed) : currentTree.read(file);
+    }};
+    assert(packageSourceInputs({tree: changedTree, packages: ['src/client_local_host'], target: 'js'})
+      .unresolved.includes('Unreviewed package configuration: ' + path));
+  }
+  for (const changed of [{target: 'native'}, {toolchainDigest: '0'.repeat(64)}, {path: 'src/foreign/moon.pkg'}]) {
+    assert.equal(currentPackageConfigurationReviewFor({...request(path, review.sha256), ...changed}), null);
+  }
+  assert.equal(currentPackageConfigurationReviewFor(request(path, review.previousSha256)), null);
+});
+
 test('the prior Local descriptor stays historical without admitting it as current', () => {
   const path = 'src/client_local_host/moon.pkg';
   for (const [revision, digest] of [
