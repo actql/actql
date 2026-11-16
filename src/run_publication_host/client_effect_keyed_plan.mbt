@@ -391,12 +391,13 @@ fn client_effect_keyed_composed_original_current(
     value.completed is None &&
     value.producers is NoProducers &&
     value.sources is [source] &&
-    value.inputs is [(_, _, read)] &&
-    @query.captured_source_matches_segment_input(source, read) &&
-    // The sole Source-origin constructor binds this immutable output to the
-    // exact read above. Its fresh Source/read check already observes that same
-    // completion; repeating availability adds no new association proof. The
-    // output projection still validates the binding before returning it.
+    value.inputs is [(_, _, _)] &&
+    // The sole Source-origin constructor seals this read over the exact Source
+    // output, adding only source.live as its restriction. The fresh Source
+    // check already verifies that original completion; this private binding
+    // has no separate Read revocation. The outer left checks the actual Read,
+    // and the output projection still validates the full binding before use.
+    @query.captured_source_available(source) &&
     value.direct_output is Some(_) &&
     @row_host.row_captured_inputs_source_at(value.captures, 0) is Some(same) &&
     physical_equal(source, same) &&
