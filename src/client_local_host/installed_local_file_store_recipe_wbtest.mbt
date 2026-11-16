@@ -35,7 +35,7 @@ fn local_file_store_recipe_fixture(
 ///|
 test "Local STORE quote retains actual native descriptor multiplicity and one read window" {
   let original = local_file_store_recipe_fixture().unwrap()
-  assert_eq(original.length(), 7)
+  assert_eq(original.length(), 8)
   for index in 0..<5 {
     assert_true(
       @execution.execution_capacity_retained_bytes(original[index]) > 0L,
@@ -64,6 +64,10 @@ test "Local STORE quote retains actual native descriptor multiplicity and one re
   assert_eq(@execution.execution_capacity_execution_bytes(original[5]), 0L)
   assert_eq(@execution.execution_capacity_retained_bytes(original[6]), 0L)
   assert_true(@execution.execution_capacity_execution_bytes(original[6]) > 0L)
+  assert_eq(@execution.execution_capacity_retained_bytes(original[7]), 0L)
+  // The existing projected Host tree/text remains in controlsPerRow. Only
+  // its one CanonicalWireBytes constructor domain (8B/byte) is selected here.
+  assert_eq(@execution.execution_capacity_execution_bytes(original[7]), 524288L)
 }
 
 ///|

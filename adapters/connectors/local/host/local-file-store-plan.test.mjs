@@ -68,7 +68,7 @@ test('Local STORE recipe consumes actual constructor bounds in distinct original
   } finally {moon.clientProgramInstalledOpaqueBoundaryFootprintCapacity = originalFootprintQuote;}
 });
 
-function localGrantRecipeFixture(quantities, fallback, grantIssuer) {
+function localGrantRecipeFixture(quantities, fallback, grantIssuer, responseProjector) {
   const captures = [], quotes = [], limits = {...LOCAL_STORE_LIMITS, maxFileBytes: 123456};
   const moon = {
     clientProgramInstalledOpaqueBoundaryFootprintCapacity: () => ({}),
@@ -83,7 +83,7 @@ function localGrantRecipeFixture(quantities, fallback, grantIssuer) {
       return {$tag: 1, _0: {operation, capacity, transfer, physical}};
     },
   };
-  const recipe = prepareLocalFileStorePlanRecipe({moon, limits, grantIssuer,
+  const recipe = prepareLocalFileStorePlanRecipe({moon, limits, grantIssuer, responseProjector,
     inputLimits: installedRowEffectConstructionLimits({maxRows: 100, maxMembers: 16}),
     writerProfile: {nativeOriginalBytes: 4321, maxRootBytes: 4096, maxNameBytes: 1024, maxDepth: 130}});
   return {recipe, captures, quotes, limits};
@@ -129,6 +129,29 @@ test('Local Grant recipe preserves six-capacity legacy capture without sampling 
   assert.strictEqual(recipe.controlsPerRow, quantities[4]);
   assert.strictEqual(recipe.savedControlCodec.fallbackCapacity, fallback[4]);
   assert.equal(sampled, 0);
+});
+
+test('Local projector keeps its original receiver and opaque scratch separate from the six retained roles', () => {
+  let invoked = 0;
+  const driver = Object.freeze({project() {invoked++;}});
+  const quote = Object.freeze({get retained() {assert.fail('opaque quote was inspected');}});
+  const quantities = [...Array.from({length: 7}, () => Object.freeze({})), quote];
+  const fallback = Array.from({length: 8}, () => Object.freeze({}));
+  const {recipe, captures} = localGrantRecipeFixture(quantities, fallback, undefined, driver);
+  assert.equal(captures[0].length, 6);
+  assert.strictEqual(recipe.projectConstruction.receiver, driver);
+  assert.strictEqual(recipe.projectConstruction.method, driver.project);
+  assert.strictEqual(recipe.projectConstruction.capacity, quote);
+  assert.strictEqual(recipe.controlsPerRow, quantities[4]);
+  const shared = installedEffectRecipeForControlEntryLimit(recipe, 1000000, 1000000);
+  assert.strictEqual(shared.controlsPerRow, fallback[4]);
+  assert.strictEqual(shared.projectConstruction, recipe.projectConstruction);
+  assert.equal(invoked, 0);
+  let inspected = 0;
+  const legacy = Object.freeze({get project() {inspected++; assert.fail('legacy projector was sampled');}});
+  const old = localGrantRecipeFixture(quantities.slice(0, 7), fallback.slice(0, 7), undefined, legacy);
+  assert.equal(Object.hasOwn(old.recipe, 'projectConstruction'), false);
+  assert.equal(inspected, 0);
 });
 
 test('owned physical write cannot reuse a constructor slot or malformed transfer amount', () => {
