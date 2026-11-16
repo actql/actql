@@ -192,3 +192,173 @@ test "literal nullable Text chain retains full DATA and bounded child scratch wh
   }
   @connector.close_capability_registry(registry)
 }
+
+///|
+fn literal_string_group_sequence(
+  wider? : Bool = false,
+  distinct? : Bool = false,
+) -> @execution.GeneratedSequence raise {
+  let text = "[{\"values\":{\"schema\":{\"a\":{\"type\":\"number\",\"nullable\":true},\"b\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"a\":1,\"b\":\"x\"},{\"a\":1,\"b\":\"x\"},{\"a\":2,\"b\":\"y\"},{\"a\":null,\"b\":\"n\"}]},\"as\":\"seed\"},{\"group\":{\"by\":[],\"aggregates\":{\"labels\":{\"fn\":\"string_agg\",\"field\":\"b\",\"delimiter\":\"|\",\"max_bytes\":10000,\"order_by\":[{\"a\":\"desc\"}]" +
+    (if distinct { ",\"distinct\":true" } else { "" }) +
+    "}}},\"as\":\"grouped\"},{\"select\":[\"labels\"]}" +
+    (if wider { ",{\"select\":[\"labels\"]}" } else { "" }) +
+    "]"
+  chain_lifetime_generated(
+    chain_lifetime_bind(
+      @pipeline.check(chain_lifetime_cursor(text), [], None, None, {
+        max_steps: 100,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      }).unwrap(),
+    ),
+  )
+}
+
+///|
+test "literal StringAgg chain peak coholds prior output and active full constructor without changing whole retention" {
+  let sequence = literal_string_group_sequence()
+  assert_true(@execution.bounded_literal_string_group_chain(sequence))
+  let values : @execution.ValueLimits = {
+    max_nodes: 28,
+    max_text_bytes: 20000000,
+    max_depth: 100,
+    max_work: 20000000,
+  }
+  let limits = {
+    ..chain_lifetime_limits(),
+    rows: {
+      ..chain_lifetime_limits().rows,
+      max_rows: 4,
+      input_values: values,
+      output_values: values,
+    },
+    max_work: 20000000,
+  }
+  let measurement = {
+    ..chain_lifetime_measurement(),
+    max_nodes: 20000,
+    max_bytes: 120000845,
+    max_depth: 100,
+  }
+  let full = @execution.generated_sequence_capacity(
+    sequence, limits, measurement,
+  ).unwrap()
+  let quote = bounded_relation_chain_capacity(sequence, limits, measurement, []).unwrap()
+  let mut prior = 0L
+  let mut peak = 0L
+  let mut largest_child = 0L
+  for index in 0..<3 {
+    let step = @execution.generated_sequence_step_index_at(sequence, index).unwrap()
+    let selected = @execution.select_generated_sequence_step(sequence, step).unwrap()
+    let child = chain_lifetime_child_capacity(selected, limits, measurement)
+    peak = Int64::max(peak, prior + child.execution_bytes)
+    largest_child = Int64::max(largest_child, child.execution_bytes)
+    prior += child.retained_bytes
+  }
+  peak = Int64::max(peak, prior)
+  let controls = 3L * 256L + 512L + local_provider_selection_recipe_field_bytes
+  assert_eq(quote.retained_bytes, full.retained_bytes)
+  assert_eq(
+    quote.execution_bytes,
+    Int64::max(full.retained_bytes, peak + controls),
+  )
+  assert_true(quote.execution_bytes < prior + largest_child + controls)
+  // The existing driver also retains its independent checked output copy.
+  // Keep that entire outer holding alongside the actual chain peak.
+  assert_true(quote.execution_bytes + full.retained_bytes < 536870912L)
+  let (active, state) = bounded_relation_chain_execution_state(
+    sequence,
+    [],
+    limits,
+    measurement,
+    10000,
+    None,
+    [],
+  ).unwrap()
+  let mut completed = false
+  for _ in 0..<100000 {
+    match advance_managed_provider(active, 1).unwrap() {
+      Continue(..) | Waiting(..) => ()
+      Complete(output, ..) => {
+        assert_eq(@execution.completed_row_count(output), 1)
+        assert_true(
+          @execution.completed_cell(output, 0, 0)
+          is Some(@execution.Text("y|x|x|n")),
+        )
+        completed = true
+        break
+      }
+      _ => fail("original literal StringAgg chain did not complete")
+    }
+  }
+  assert_true(completed)
+  assert_true(state.completed[0] is Some(_))
+  assert_true(state.completed[1] is Some(_))
+  let literal = state.completed[0].unwrap()
+  let grouped = state.completed[1].unwrap()
+  assert_eq(@execution.completed_row_count(literal), 4)
+  assert_true(@execution.completed_cell(literal, 3, 0) is Some(@execution.Null))
+  assert_true(
+    @execution.completed_cell(grouped, 0, 0) is Some(@execution.Text("y|x|x|n")),
+  )
+  assert_true(cleanup_managed_provider(active).unwrap())
+  assert_true(state.completed.is_empty())
+  assert_true(@execution.completed_output_available(literal))
+  assert_true(@execution.completed_output_available(grouped))
+}
+
+///|
+test "literal StringAgg chain proof excludes wider distinct and injected provider recipes" {
+  assert_false(
+    @execution.bounded_literal_string_group_chain(
+      literal_string_group_sequence(wider=true),
+    ),
+  )
+  assert_false(
+    @execution.bounded_literal_string_group_chain(
+      literal_string_group_sequence(distinct=true),
+    ),
+  )
+  let sequence = literal_string_group_sequence()
+  let limits = chain_lifetime_limits()
+  let measurement = chain_lifetime_measurement()
+  let original = @execution.execution_capacity(4000000L, 7000000L).unwrap()
+  let replacement = managed_provider(_ => true, _ => Some(original), (
+    _,
+    _,
+    _,
+    _,
+    _,
+  ) => Err(@connector.InvalidLimits))
+  let registry = @connector.prepare_capability_registry(
+    [{ name: "local", acquisition: false, fixed_compute: true, effect: false, }],
+    1,
+    100,
+  ).unwrap()
+  let installed = prepare_local_compute_module(
+    registry,
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    [sequence],
+    limits,
+    measurement,
+    100000,
+    1,
+    managed_providers=[replacement],
+  ).unwrap()
+  let selected = local_module_capacity(installed, 0).unwrap()
+  assert_eq(selected.retained_bytes, original.retained_bytes)
+  assert_eq(selected.execution_bytes, original.execution_bytes)
+  assert_true(
+    physical_equal(
+      local_module_managed_provider(installed, 0, sequence).unwrap(),
+      replacement,
+    ),
+  )
+  assert_true(
+    local_module_metered_output_start_capacity(installed, 0, sequence) is None,
+  )
+  @connector.close_capability_registry(registry)
+}

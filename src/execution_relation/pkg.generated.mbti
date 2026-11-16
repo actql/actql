@@ -292,6 +292,8 @@ pub fn bounded_interval_join_cleanup_pending(BoundedIntervalJoinExecution) -> Bo
 
 pub fn bounded_join_cleanup_pending(BoundedJoinExecution) -> Bool
 
+pub fn bounded_literal_string_group_chain(GeneratedSequence) -> Bool
+
 pub fn bounded_nest_cleanup_pending(BoundedNestExecution) -> Bool
 
 pub fn bounded_number_group_borrows_input(@lowering_relation.PreparedKernel) -> Bool

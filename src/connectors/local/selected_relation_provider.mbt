@@ -582,6 +582,8 @@ fn bounded_relation_chain_capacity(
   let reclaimed_prefix = relation_chain_reclaimed_prefix(
     sequence, limits, measurement, family,
   )
+  let trusted_string_chain = reclaimed_prefix == count &&
+    @execution.bounded_literal_string_group_chain(sequence)
   let mut retained_children = 0L
   let mut scratch = 0L
   let mut prefix_peak = 0L
@@ -630,11 +632,12 @@ fn bounded_relation_chain_capacity(
     }
     retained_children += child.retained_bytes
   }
-  // An actual bounded family receipt joins the existing ACK-qualified
+  // An actual bounded family receipt or this exact built-in StringAgg chain
+  // joins the existing ACK-qualified
   // serial prefix. Each current child coholds earlier accepted outputs and
   // its COMPLETE E; future outputs do not exist yet. Unknown suffixes keep
   // all their old output holding and complete execution overlap.
-  let live_children = if bounded_prefix {
+  let live_children = if bounded_prefix || trusted_string_chain {
     guard @execution.checked_preparation_add_product(
         retained_children, scratch, 1L,
       )

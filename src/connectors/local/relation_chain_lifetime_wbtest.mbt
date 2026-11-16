@@ -791,7 +791,15 @@ test "audited prefix releases scratch before conservative child custody" {
     overlap += child.retained_bytes
     peak = Int64::max(peak, child.execution_bytes)
   }
-  assert_eq(capacity.execution_bytes, overlap + peak)
+  let original = @execution.generated_sequence_capacity(
+    sequence, limits, measure,
+  ).unwrap()
+  assert_false(@execution.bounded_literal_string_group_chain(sequence))
+  // The unaudited suffix also keeps the original whole generic floor.
+  assert_eq(
+    capacity.execution_bytes,
+    Int64::max(original.execution_bytes, overlap + peak),
+  )
   let (active, state) = chain_lifetime_start(sequence, read)
   let mut result = None
   for _ in 0..<100000 {

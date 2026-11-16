@@ -327,12 +327,10 @@ pub fn generated_bounded_sequence_capacity(
   let mut primitive_values = operation is @lower.ValuesStep(_)
   let mut borrowed_values = primitive_values &&
     @schema.all_fields_required(schema)
-  let mut literal_required = true
   if primitive_values {
     for index in 0..<@schema.field_count(schema) {
       guard @schema.field_at(schema, index) is Some(field) else { return None }
       let contract = @schema.field_contract(field)
-      literal_required = literal_required && !contract.nullable
       primitive_values = primitive_values &&
         (match contract.shape {
           @contract.Number | @contract.Boolean => true
@@ -346,11 +344,13 @@ pub fn generated_bounded_sequence_capacity(
   // The bounded Values reader measures/rechecks those same cells, so its
   // possible DATA is bounded by the original rows and cached literal charge,
   // not every unused node/Text slot in the enclosing runtime policy. Keep
-  // both policies as caps; parameters and recursive/presence shapes retain
+  // both policies as caps. Explicit NULL is one original scalar node and no
+  // Text backing; nullable contracts do not create a copied value forest.
+  // Parameters and recursive/optional-presence shapes retain
   // their original general recipe. This changes only physical quotation.
   let mut literal_nodes = -1L
   let mut literal_text = -1L
-  if borrowed_values && literal_required {
+  if borrowed_values {
     match
       (
         @lower.node_values_row_count(node),
