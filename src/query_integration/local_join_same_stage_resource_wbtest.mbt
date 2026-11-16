@@ -175,7 +175,19 @@ test "same-stage full join admits exact work and one-short limits" {
 
 ///|
 test "same-stage full join admits exact workspace and one-short limit" {
-  // The branches complete under both limits; only the join exceeds 35.
-  assert_eq(run_same_stage_join_budget(100000, 36).0, "complete")
-  assert_eq(run_same_stage_join_budget(100000, 35).0, "row_limit")
+  // Three base roots, the immutable comparison source header/three fields,
+  // one key/order tuple, and three projection slots per output column coexist.
+  let controls = 3 + 4 + 3 + 3 * 3
+  // Three left NULL flags and four right NULL/match flags survive ordering.
+  let flags = 3 + 2 * 4
+  let right_rows = 4
+  // The two sort index arrays precede output. Its retained index then overlaps
+  // two row handles, three cells and two value/name measurement frames.
+  let sorting = controls + flags + 2 * right_rows
+  let output = controls + flags + right_rows + 2 + 3 + 2
+  assert_true(sorting < output)
+  // The numeric join never caches Text operands. Both completed branch owners
+  // remain available under either limit; only the final join needs this peak.
+  assert_eq(run_same_stage_join_budget(100000, output).0, "complete")
+  assert_eq(run_same_stage_join_budget(100000, output - 1).0, "row_limit")
 }
