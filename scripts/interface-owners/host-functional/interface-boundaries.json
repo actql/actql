@@ -35680,6 +35680,13 @@
           "async": false
         },
         {
+          "name": "bindEffectLedgerCodecs/bindEffectLedgerCodecs#2",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
           "name": "bindEffectLedgerConstruction/bindEffectLedgerConstruction",
           "parameters": [
             "args"
@@ -36194,6 +36201,14 @@
           "async": false
         },
         {
+          "name": "openEffectLedger/physical/physical",
+          "parameters": [
+            "count",
+            "wireUnits"
+          ],
+          "async": false
+        },
+        {
           "name": "openEffectLedger/validateStored/validateStored",
           "parameters": [
             "row"
@@ -36564,6 +36579,7 @@
           "operations": [
             "bindEffectLedgerConstruction/bindEffectLedgerConstruction",
             "bindEffectLedgerConstruction/bindEffectLedgerConstruction#2",
+            "openEffectLedger/physical/physical",
             "prepareMemberReceiptConstruction"
           ],
           "exports": [],
@@ -36572,6 +36588,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "History construction obtains its actual count and total text geometry before"
               }
             ],
             "inputsOutputs": [
@@ -36590,6 +36610,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "History construction obtains its actual count and total text geometry before"
               }
             ],
             "synchronization": [
@@ -36626,6 +36650,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "Member Receipt construction keeps the row Ledger and terminal Receipt codecs unchanged."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "History construction obtains its actual count and total text geometry before"
               }
             ],
             "extension": [
@@ -36650,13 +36678,22 @@
               {
                 "path": "adapters/host-node/effect-ledger.test.mjs",
                 "anchor": "test('member receipts cover every durable row beyond a single-entry codec without enlarging stored entries'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('History growth extends only a live original frame and cannot hide its first refusal'"
+              },
+              {
+                "path": "adapters/host-node/effect-ledger.test.mjs",
+                "anchor": "test(`installed Ledger selects real row and Receipt constructors before their work:"
               }
             ]
           }
         },
         {
           "operations": [
-            "bindEffectLedgerCodecs/bindEffectLedgerCodecs"
+            "bindEffectLedgerCodecs/bindEffectLedgerCodecs",
+            "bindEffectLedgerCodecs/bindEffectLedgerCodecs#2"
           ],
           "exports": [],
           "attributes": {
@@ -36664,6 +36701,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "The original wrapper also classifies its closed single-row calls."
               }
             ],
             "inputsOutputs": [
@@ -36682,6 +36723,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "The original wrapper also classifies its closed single-row calls."
               }
             ],
             "synchronization": [
@@ -36710,6 +36755,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "The standard Ledger frontier/intents family selects one closed frame for"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "The original wrapper also classifies its closed single-row calls."
               }
             ],
             "extension": [
@@ -36734,6 +36783,14 @@
               {
                 "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
                 "anchor": "test \"standard Ledger family coholds actual snapshot and nested codec on same token through failed current\""
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('Receipt codecs retain their original row frame and preserve an entry refusal before body work'"
+              },
+              {
+                "path": "adapters/host-node/effect-ledger.test.mjs",
+                "anchor": "test(`installed Ledger selects real row and Receipt constructors before their work:"
               }
             ]
           }

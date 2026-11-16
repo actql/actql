@@ -19788,7 +19788,8 @@
             "args",
             "wire",
             "nodes",
-            "depth"
+            "depth",
+            "receiptWire"
           ],
           "async": false
         },
@@ -19807,12 +19808,41 @@
           "async": false
         },
         {
+          "name": "prepareInstalledEffectControlConstruction/ledgerHistory/ledgerHistory",
+          "parameters": [
+            "count",
+            "wireUnits"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareInstalledEffectControlConstruction/ledgerOpen/ledgerOpen",
           "parameters": [
             "root",
             "receiver",
             "method",
             "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectControlConstruction/ledgerRow/ledgerRow",
+          "parameters": [
+            "receiver",
+            "method",
+            "args",
+            "kind",
+            "bytes",
+            "nodes",
+            "depth",
+            "responseBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectControlConstruction/ledgerRow/ledgerRow/ledgerRow",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -19844,6 +19874,19 @@
             "args",
             "nativeConstruction",
             "memberReceipt"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectControlConstruction/receiptCodec/receiptCodec",
+          "parameters": [
+            "receiver",
+            "method",
+            "args",
+            "wire",
+            "nodes",
+            "depth",
+            "receiptWire"
           ],
           "async": false
         },
@@ -20917,7 +20960,10 @@
             "prepareInstalledEffectControlConstruction/footprint/footprint/footprint",
             "prepareInstalledEffectControlConstruction/grant/grant",
             "prepareInstalledEffectControlConstruction/ledgerFamily/ledgerFamily",
+            "prepareInstalledEffectControlConstruction/ledgerHistory/ledgerHistory",
             "prepareInstalledEffectControlConstruction/ledgerOpen/ledgerOpen",
+            "prepareInstalledEffectControlConstruction/ledgerRow/ledgerRow",
+            "prepareInstalledEffectControlConstruction/ledgerRow/ledgerRow/ledgerRow",
             "prepareInstalledEffectControlConstruction/parsePreview/parsePreview",
             "prepareInstalledEffectControlConstruction/requestProjection/requestProjection",
             "prepareInstalledEffectControlConstruction/requestProjection/requestProjection/requestProjection"
@@ -20928,6 +20974,14 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "The original wrapper also classifies its closed single-row calls."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "History construction obtains its actual count and total text geometry before"
               }
             ],
             "inputsOutputs": [
@@ -20946,6 +21000,14 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "The original wrapper also classifies its closed single-row calls."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "History construction obtains its actual count and total text geometry before"
               }
             ],
             "synchronization": [
@@ -20998,6 +21060,14 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "A retained Catalog recheck has a different constructor from receiving and"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "The original wrapper also classifies its closed single-row calls."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "History construction obtains its actual count and total text geometry before"
               }
             ],
             "extension": [
@@ -21054,13 +21124,22 @@
               {
                 "path": "adapters/host-node/effect-control-native.test.mjs",
                 "anchor": "test('same control forwards opaque native quote before Reflect and preserves the legacy no-quote call'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('Ledger row classes forward original policy geometry and keep the legacy full frame'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('History growth extends only a live original frame and cannot hide its first refusal'"
               }
             ]
           }
         },
         {
           "operations": [
-            "prepareInstalledEffectControlConstruction/ledgerCodec/ledgerCodec"
+            "prepareInstalledEffectControlConstruction/ledgerCodec/ledgerCodec",
+            "prepareInstalledEffectControlConstruction/receiptCodec/receiptCodec"
           ],
           "exports": [],
           "attributes": {
@@ -21068,6 +21147,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "The original wrapper also classifies its closed single-row calls."
               }
             ],
             "inputsOutputs": [
@@ -21086,6 +21169,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "The original wrapper also classifies its closed single-row calls."
               }
             ],
             "synchronization": [
@@ -21110,6 +21197,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "The original wrapper also classifies its closed single-row calls."
               }
             ],
             "extension": [
@@ -21130,6 +21221,10 @@
               {
                 "path": "adapters/host-node/installed-effect-plan.test.mjs",
                 "anchor": "test('saved Ledger codec grows the same active frame before each original wire and returns only its local workspace'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('Receipt codecs retain their original row frame and preserve an entry refusal before body work'"
               }
             ]
           }
