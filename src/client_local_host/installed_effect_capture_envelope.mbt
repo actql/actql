@@ -9,6 +9,7 @@ pub fn reserve_installed_effect_capture_envelope(
   if owner.transitioning || owner.closing || owner.fixed is None {
     return Err(Retired)
   }
+  owner.material_completed = false
   if !owner.material_staged_envelope {
     return Ok(())
   }

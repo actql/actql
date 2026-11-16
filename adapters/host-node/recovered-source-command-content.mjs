@@ -14,7 +14,7 @@ export function prepareRecoveredSourceCommandContent({publications, control,
   if (principalId !== ownerPrincipal || store.storeAuthorityCid !== storeAuthorityCid ||
       typeof assertCurrent !== 'function' || typeof authorize !== 'function' ||
       typeof referenceWire !== 'string' || typeof sourceConstruction !== 'function' ||
-      typeof recoveryResources?.constructCaptured !== 'function' ||
+      typeof recoveryResources?.constructCapturedValidation !== 'function' ||
       binding?.effective_data_policy_cid !== sourcePolicyCid ||
       !Number.isFinite(Date.parse(binding?.expires_at))) {
     throw new TypeError('InvalidRecoveredSourceCommandContent');
@@ -93,7 +93,7 @@ export function prepareRecoveredSourceCommandContent({publications, control,
             prepared, request, referenceWire, bindingWire, referenceLimits);
           return candidate;
         };
-        recoveryResources.constructCaptured(captured, undefined,
+        recoveryResources.constructCapturedValidation(captured, undefined,
           () => construct(undefined, makeCandidate, [], 'candidate'), undefined);
         const holdingCid = construct(control, control.holdingCid, [candidate], 'holding');
         const issued = await issueStoredCapturedContent({store, control: storedControl, candidate,
@@ -108,7 +108,7 @@ export function prepareRecoveredSourceCommandContent({publications, control,
           borrow = publications.recoverSourceEffectCommandContent(value);
           return borrow;
         };
-        recoveryResources.constructCaptured(captured, undefined,
+        recoveryResources.constructCapturedValidation(captured, undefined,
           value => construct(undefined, recover, [value], 'view'), argument);
         current();
         selected(borrow.binding);

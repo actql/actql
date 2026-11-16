@@ -62,7 +62,7 @@ fn close_capture_validation_fixture(
   run : ClientInstalledManagedRun,
   ledger : @resources.Ledger,
   read : ClientInstalledEffectCaptureRecovery,
-) raise {
+) -> Unit raise {
   retire_installed_effect_capture_recovery(read).unwrap()
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)

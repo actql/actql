@@ -104,6 +104,7 @@ function recoveryView(state) {
       state.closed = true;
       state.assertCurrent = undefined;
       state.begin = undefined;
+      state.beginValidation = undefined;
       state.complete = undefined;
       state.context = undefined;
       const retired = state.retired;
@@ -183,6 +184,27 @@ function recoveryView(state) {
       } catch (error) {cause = error; throw error;}
       finally {view.finish(failed, cause);}
     },
+    constructCapturedValidation(captured, receiver, method, argument) {
+      if (captured !== state.capturedRun || captured === undefined ||
+          typeof method !== 'function' || !state.live ||
+          typeof state.beginValidation !== 'function' ||
+          state.busy || state.preparing || state.closing || state.closed) {
+        fail('EffectCaptureResourceUnavailable');
+      }
+      state.busy = true;
+      let failed = true, cause;
+      try {
+        checked(Reflect.apply(state.beginValidation, state.context.runtime, [state.value]));
+        if (state.closing || state.closed) fail('EffectCaptureResourceUnavailable');
+        const value = Reflect.apply(method, receiver, [argument]);
+        if (captured !== state.capturedRun || state.closing || state.closed) {
+          fail('EffectCaptureResourceUnavailable');
+        }
+        failed = false;
+        return value;
+      } catch (error) {cause = error; throw error;}
+      finally {view.finish(failed, cause);}
+    },
     retainCleanup(operation) {
       if (state.closed || state.resultCleanup !== undefined || typeof operation !== 'function') {
         fail('EffectCaptureResourceUnavailable');
@@ -210,9 +232,9 @@ function recoveryView(state) {
         else {
           if (state.closing || state.child !== undefined || state.unknownChild) fail('EffectCaptureResourceUnavailable');
           if (state.live) {
-            // Only the existing trusted Store return reaches successful finish:
-            // its FD and temporary decode aliases are already closed/cut. The
-            // SAME Core token keeps all returned schemas and typed originals.
+            // The initial trusted Store return has closed/cut its FD and
+            // decode aliases. A later retained validation returns only its
+            // own synchronous scratch; SAME-token outputs stay retained.
             state.preparing = true;
             try {checked(Reflect.apply(state.complete, state.context.runtime, [state.value]));}
             finally {state.preparing = false;}
@@ -253,6 +275,8 @@ export function prepareEffectCaptureResources({moon, control, request, runDefini
     if (managed !== undefined) {
       state.begin = Object.getOwnPropertyDescriptor(moon,
         'clientProgramBeginInstalledEffectCaptureRecovery')?.value;
+      state.beginValidation = Object.getOwnPropertyDescriptor(moon,
+        'clientProgramBeginInstalledEffectCaptureValidation')?.value;
       state.complete = Object.getOwnPropertyDescriptor(moon,
         'clientProgramCompleteInstalledEffectCaptureRecovery')?.value;
       if (typeof moon.clientProgramPrepareInstalledEffectCaptureRecovery !== 'function' ||

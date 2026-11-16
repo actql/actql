@@ -23,6 +23,7 @@ struct ClientInstalledEffectCaptureRecovery {
   mut material_wire : String?
   mut material_captured : @publication.PreparedCapturedEffectRun?
   mut material_ready : Bool
+  mut material_completed : Bool
   mut transitioning : Bool
   mut closing : Bool
 }
@@ -85,6 +86,7 @@ pub fn prepare_installed_effect_capture_recovery(
     material_wire: None,
     material_captured: None,
     material_ready: false,
+    material_completed: false,
     transitioning: false,
     closing: false,
   })
@@ -100,6 +102,7 @@ pub fn begin_installed_effect_capture_recovery(
   if owner.transitioning || owner.closing || owner.fixed is None {
     return Err(Retired)
   }
+  owner.material_completed = false
   owner.transitioning = true
   preparation_module_call(
     () => {
@@ -121,6 +124,37 @@ pub fn begin_installed_effect_capture_recovery(
 }
 
 ///|
+/// Validate an already returned capture on its SAME Read. The trusted Store
+/// return has ended the physical receive/decrypt buffers and parsed container;
+/// the returned trees, Strings and full synchronous validator remain funded.
+pub fn begin_installed_effect_capture_validation(
+  owner : ClientInstalledEffectCaptureRecovery,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  if owner.transitioning || owner.closing || owner.fixed is None {
+    return Err(Retired)
+  }
+  if !owner.material_completed || !owner.material_ready || owner.material is None {
+    return Err(ForeignOriginal)
+  }
+  // Failure of this next constructor keeps its prefix and cannot reuse the
+  // previous success as a completion or physical cleanup acknowledgement.
+  owner.material_completed = false
+  owner.transitioning = true
+  preparation_module_call(
+    () => {
+      match resize_installed_effect_capture_recovery_definition(owner, false) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      resize_installed_effect_capture_recovery_material(
+        owner, false, validation=true,
+      )
+    },
+    () => owner.transitioning = false,
+  )
+}
+
+///|
 /// Exact selected encrypted extent, before the Store allocates ciphertext,
 /// plaintext, String, JSON, typed values or schemas. Repeat of this SAME read
 /// is idempotent; another extent cannot replace an in-flight original.
@@ -131,6 +165,7 @@ pub fn reserve_installed_effect_capture_recovery(
   if owner.transitioning || owner.closing || owner.fixed is None {
     return Err(Retired)
   }
+  owner.material_completed = false
   owner.transitioning = true
   preparation_module_call(
     () => {
@@ -202,6 +237,7 @@ pub fn reserve_installed_effect_capture_encrypted(
     if owner.transitioning || owner.closing || owner.fixed is None {
       return Err(Retired)
     }
+    owner.material_completed = false
     owner.transitioning = true
     let started = preparation_module_call(
       () => prepare_installed_effect_capture_recovery_work(owner),
@@ -315,6 +351,7 @@ pub fn reserve_installed_effect_capture_decoded(
   if owner.transitioning || owner.closing || owner.fixed is None {
     return Err(Retired)
   }
+  owner.material_completed = false
   guard owner.material_bytes is Some(bytes) &&
     wire.length() <= bytes &&
     (
@@ -378,7 +415,13 @@ pub fn complete_installed_effect_capture_recovery(
         Err(issue) => return Err(issue)
         Ok(_) => ()
       }
-      resize_installed_effect_capture_recovery_definition(owner, true)
+      match resize_installed_effect_capture_recovery_definition(owner, true) {
+        Err(issue) => Err(issue)
+        Ok(_) => {
+          owner.material_completed = true
+          Ok(())
+        }
+      }
     },
     () => owner.transitioning = false,
   )
@@ -469,6 +512,7 @@ fn resize_installed_effect_capture_recovery_definition(
 fn resize_installed_effect_capture_recovery_material(
   owner : ClientInstalledEffectCaptureRecovery,
   completed : Bool,
+  validation? : Bool = false,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
   guard !owner.closing &&
     owner.transitioning &&
@@ -488,6 +532,9 @@ fn resize_installed_effect_capture_recovery_material(
   }
   guard owner.material is Some(material) && owner.material_bytes is Some(bytes) else {
     return check_installed_effect_managed_run(parent, prepared, request)
+  }
+  if !completed && !validation {
+    owner.material_completed = false
   }
   let nodes = owner.material_nodes.unwrap_or(0)
   let plaintext_bytes = owner.material_plaintext_bytes
@@ -545,11 +592,11 @@ fn resize_installed_effect_capture_recovery_material(
     is Some(base) else {
     return Err(InsufficientCapacity)
   }
-  let retained = @execution.execution_capacity_retained_bytes(required) -
+  let mut retained = @execution.execution_capacity_retained_bytes(required) -
     @execution.execution_capacity_retained_bytes(base)
-  let execution = @execution.execution_capacity_execution_bytes(required) -
+  let mut execution = @execution.execution_capacity_execution_bytes(required) -
     @execution.execution_capacity_execution_bytes(base)
-  if completed {
+  if completed || validation {
     // The full parsed capture container no longer exists after the trusted
     // Store return. That return also cuts the envelope/ciphertext/plaintext
     // buffers and completed schema-writer bytes; failures never enter here.
@@ -580,14 +627,22 @@ fn resize_installed_effect_capture_recovery_material(
       is Some(completed_material) else {
       return Err(InsufficientCapacity)
     }
-    return @resources.complete_prepared_run_operation_construction_output(
-      admission,
-      plan,
-      ledger,
-      original,
-      backing,
-      retained - completed_material,
-    ).map_err(installed_effect_operation_reservation_issue)
+    if completed {
+      return @resources.complete_prepared_run_operation_construction_output(
+        admission,
+        plan,
+        ledger,
+        original,
+        backing,
+        retained - completed_material,
+      ).map_err(installed_effect_operation_reservation_issue)
+    }
+    // A retained-value validator keeps the identical live output floor and
+    // every existing parser/cursor/text/hash workspace term. Only the ended
+    // physical four-buffer and full parsed-container packet is absent in BOTH
+    // dimensions; this never returns the two live trees or decoded Strings.
+    retained -= completed_material
+    execution -= completed_material
   }
   if @resources.capacity_reservation_covers(
       ledger, material, retained, execution,
@@ -633,6 +688,7 @@ pub fn retire_installed_effect_capture_recovery(
   owner.material_nodes = None
   owner.material_plaintext_bytes = None
   owner.material_ready = false
+  owner.material_completed = false
   owner.transitioning = true
   preparation_module_call(
     () => {

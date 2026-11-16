@@ -51,7 +51,7 @@ function fixture() {
     namespaceId: 'local', authorityScopeCid: 'scope', storeAuthorityCid: 'Store',
     ownerPrincipal: 'actor', now: () => '2026-11-16T00:00:00.000Z', authorize: () => true});
   const captured = {}, store = {storeAuthorityCid: 'Store', status: () => ({closed: false})};
-  const resources = {constructCaptured(original, receiver, method, argument) {
+  const resources = {constructCapturedValidation(original, receiver, method, argument) {
     assert.strictEqual(original, captured); assert.equal(insideRead, false); insideRead = true;
     try {return Reflect.apply(method, receiver, [argument]);} finally {insideRead = false;}
   }};
@@ -62,7 +62,7 @@ function fixture() {
   return {calls, marker, context, reference, compiled, run, options,
     family(value) {family = value;}, refuseFamily(value) {familyFailure = value;}, refuseNative(value) {nativeFailure = value;},
     binding: () => binding,
-    child(extra = {}) {return resources.constructCaptured(captured, undefined,
+    child(extra = {}) {return resources.constructCapturedValidation(captured, undefined,
       () => run.prepareRecoveredCommandContent({...options(), ...extra}));}};
 }
 

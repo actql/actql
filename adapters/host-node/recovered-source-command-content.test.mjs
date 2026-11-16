@@ -60,7 +60,8 @@ function fixture({cutFailure} = {}) {
     assert.equal(value.memberIndex, 0); assert.equal(value.row, 0); assert.equal(value.inputName, 'content');
     events.push('bind Source'); return nominal;
   }};
-  const recoveryResources = {constructCaptured(value, receiver, method, argument) {
+  const recoveryResources = {constructCaptured() {assert.fail('Source validation does not restart physical capture');},
+    constructCapturedValidation(value, receiver, method, argument) {
     assert.strictEqual(value, captured); assert.strictEqual(receiver, undefined);
     reading++;
     try {

@@ -9,7 +9,7 @@ import {prepareEffectCaptureResources} from './effect-capture-resources.mjs';
 const ok = value => ({$tag:1, _0:value});
 function fixture({live = false, beginFailure, reserveFailure, retireFailure,
   retirementCurrent = false, complete, begin, decodedFailure, admitFailure,
-  preparedAvailable = true} = {}) {
+  preparedAvailable = true, validation, validationFailure} = {}) {
   const events = [], request = {}, definition = {}, parent = {}, policy = {}, value = {};
   let view, admission, originalInput, retired = 0, failRetire = retireFailure, stopped = false;
   const stop = () => {
@@ -66,6 +66,13 @@ function fixture({live = false, beginFailure, reserveFailure, retireFailure,
       assert.equal(this, moon); assert.equal(actual, value);
       assert.equal(view.status().busy, true); events.push('live-begin');
       begin?.(); return ok(undefined);
+    },
+    clientProgramBeginInstalledEffectCaptureValidation(actual) {
+      assert.equal(this, moon); assert.equal(actual, value);
+      assert.equal(view.status().busy, true); events.push('live-validation');
+      validation?.();
+      if (validationFailure !== undefined) throw validationFailure;
+      return ok(undefined);
     },
     clientProgramInstalledEffectCapturePreparedAvailable(actual) {
       assert.equal(actual, value); return preparedAvailable;
@@ -239,6 +246,68 @@ test('ordinary cold capture admission binds its exact returned original to the S
   assert.equal(f.events.includes('cold-retire-data'), false);
   assert.equal(f.events.filter(value => value === 'live-retire').length, 1);
   assert.equal(await view.close(), true);
+});
+
+function returnedLiveCapture(f) {
+  const view = f.open(); view.begin(); view.reserve(123);
+  view.reserveDecoded('{"original":true}');
+  view.admitCapturedRun(f.captured.wire); view.finish(false);
+  return view;
+}
+
+test('retained capture validation selects its own entry and preserves exact original, receiver and finish fences', async () => {
+  const f = fixture({live: true}), view = returnedLiveCapture(f), receiver = {}, argument = {}, result = {};
+  const before = f.events.length;
+  assert.strictEqual(view.constructCapturedValidation(f.captured, receiver, function (value) {
+    assert.strictEqual(this, receiver); assert.strictEqual(value, argument);
+    assert.equal(view.status().busy, true); assert.equal(f.events.at(-1), 'live-validation');
+    assert.throws(() => view.constructCapturedValidation(f.captured, receiver, () => {}, argument),
+      {code: 'EffectCaptureResourceUnavailable'});
+    assert.throws(() => view.constructCaptured(f.captured, receiver, () => {}, argument),
+      {code: 'EffectCaptureResourceUnavailable'});
+    return result;
+  }, argument), result);
+  assert.deepEqual(f.events.slice(before), ['live-validation', 'live-complete']);
+  const calls = f.events.length;
+  assert.throws(() => view.constructCapturedValidation({...f.captured}, receiver, () => {}, argument),
+    {code: 'EffectCaptureResourceUnavailable'});
+  assert.equal(f.events.length, calls);
+  view.constructCaptured(f.captured, receiver, () => result, argument);
+  assert.deepEqual(f.events.slice(-2), ['live-begin', 'live-complete'], 'generic/generated construction keeps the full entrance');
+  assert.equal(await view.close(), true);
+  assert.throws(() => view.constructCapturedValidation(f.captured, receiver, () => {}, argument),
+    {code: 'EffectCaptureResourceUnavailable'});
+});
+
+test('retained validation funding and callback failures keep the original primary and unfinished cleanup', async () => {
+  const refusal = new Error('same validation reservation refused');
+  const f = fixture({live: true, validationFailure: refusal}), view = returnedLiveCapture(f);
+  let entered = false; const completed = f.events.filter(value => value === 'live-complete').length;
+  assert.throws(() => view.constructCapturedValidation(f.captured, undefined, () => {entered = true;}),
+    error => error === refusal);
+  assert.equal(entered, false); assert.equal(view.status().busy, false);
+  assert.equal(f.events.filter(value => value === 'live-complete').length, completed);
+  assert.equal(await view.close(), true);
+
+  const g = fixture({live: true}), retained = returnedLiveCapture(g);
+  let pending = true;
+  const child = {status: () => ({pending}), async retry() {}};
+  const primary = Object.assign(new Error('same validation child failed'), {cleanupPending: true, cleanupHandle: child});
+  assert.throws(() => retained.constructCapturedValidation(g.captured, undefined, () => {throw primary;}),
+    error => error === primary);
+  assert.equal(g.events.filter(value => value === 'live-complete').length, 1);
+  assert.equal(await retained.close(), false); assert.equal(g.events.includes('live-retire'), false);
+  pending = false; assert.equal(await retained.close(), true);
+});
+
+test('retained validation current callback closing the same Read cannot enter validation or issue a finish', async () => {
+  let closing;
+  const f = fixture({live: true, validation() {closing = f.view.close();}}), view = returnedLiveCapture(f);
+  let entered = false;
+  assert.throws(() => view.constructCapturedValidation(f.captured, undefined, () => {entered = true;}),
+    {code: 'EffectCaptureResourceUnavailable'});
+  assert.equal(entered, false); assert.equal(f.events.filter(value => value === 'live-complete').length, 1);
+  assert.equal(await closing, true); assert.equal(view.status().pending, false);
 });
 
 test('ordinary cold admission failure keeps its original primary and does not retire a nonexistent prepared token', async () => {

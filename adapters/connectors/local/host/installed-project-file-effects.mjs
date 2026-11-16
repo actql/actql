@@ -408,8 +408,9 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
                 return contentChild;
               };
               const contentChild=recovered.recoveryResources===undefined?prepareContent():
-                recovered.recoveryResources.constructCaptured(
-                  recovered.computation.computation.capturedRun,undefined,prepareContent,undefined);
+                Reflect.apply(recovered.recoveryResources.constructCapturedValidation??
+                  recovered.recoveryResources.constructCaptured,recovered.recoveryResources,[
+                  recovered.computation.computation.capturedRun,undefined,prepareContent,undefined]);
               if(stopping)fail('LocalStoreRequestClosing');
               const restored=await contentChild.prepare();
               if(stopping)fail('LocalStoreRequestClosing');

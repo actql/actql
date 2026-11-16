@@ -266,16 +266,20 @@ fn request_effect_capture_recovery_capacity(
       // the installed resize current fence also captures that SAME Option.
       // Same-wire node/longest-key/total-key facts add three material
       // references and optional scalar carriers (3H3R3W) before issue.
+      // The selected retained-validation method adds1H3R and its captured
+      // Core entry adds1R. Its completion-phase scalar is priced below.
       record_headers: work.record_headers +
-      20L +
+      21L +
       (if staged_envelope { utf8_h + 1L } else { 0L }),
       reference_slots: work.reference_slots +
-      53L +
+      57L +
       (if staged_envelope { utf8_r } else { 0L }),
       // The same Read distinguishes its prepared-token retirement from the
       // ordinary admitted capture's alias release with one retained Bool.
+      // The installed Read's completion-phase word and Host validation-entry
+      // reference exist before its first construction, not at later reentry.
       scalar_words: work.scalar_words +
-      20L +
+      21L +
       (if staged_envelope { utf8_w + 1L } else { 0L }),
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
