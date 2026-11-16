@@ -485,6 +485,63 @@ fn run_original_source_completion(installed_rows : Bool) -> Unit raise {
     parent, lookup, retention,
   ).unwrap()
   assert_true(bodies.length() > 0)
+  if installed_rows {
+    let transport = lookup.native_transport.unwrap()
+    let (bytes, nodes, _) = @publication.publication_contract_wire_usage(
+      transport,
+    ).unwrap()
+    // Independent tree counting checks the original encoder receipt. The
+    // collector must forward this SAME original, never one node per wire byte.
+    assert_eq(
+      nodes,
+      source_dependency_json_nodes(
+        @json.parse(@publication.publication_contract_json(transport)),
+      ),
+    )
+    assert_true(nodes < bytes)
+    let quotes : Array[(Int, Int)] = []
+    let collected = client_keyed_lookup_native_dependency_bodies(
+      lookup,
+      retention,
+      {
+        max_entries: 4096,
+        max_total_bytes: 16777216,
+        max_references: 65536,
+        max_depth: 100,
+      },
+      100000,
+      100,
+      physical_source=lookup.native_sources.unwrap().physical_source,
+      before_body=Some((b, n, _) => {
+        quotes.push((b, n))
+        true
+      }),
+    ).unwrap()
+    assert_true(quotes.contains((bytes, nodes)))
+    assert_eq(
+      collected.map(@publication.captured_effect_dependency_body_cid),
+      bodies.map(@publication.captured_effect_dependency_body_cid),
+    )
+    let before_refusal = @resources.ledger_usage(ledger)
+    assert_true(
+      client_keyed_lookup_native_dependency_bodies(
+        lookup,
+        retention,
+        {
+          max_entries: 4096,
+          max_total_bytes: 16777216,
+          max_references: 65536,
+          max_depth: 100,
+        },
+        100000,
+        100,
+        physical_source=lookup.native_sources.unwrap().physical_source,
+        before_body=Some((_, _, _) => false),
+      )
+      is Err(ConstructionRefused),
+    )
+    assert_eq(@resources.ledger_usage(ledger), before_refusal)
+  }
   let before_cached = @resources.ledger_usage(ledger)
   assert_true(
     physical_equal(

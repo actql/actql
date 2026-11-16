@@ -99,10 +99,11 @@ fn keyed_lookup_native_dependency_bodies_from_original(
   let bodies : Array[@publication.CapturedEffectDependencyBody] = []
   let seen : Map[String, String] = Map([])
   let mut remaining = limits.max_total_bytes
-  fn append(
+  fn append_measured(
     kind : String,
     cid : String,
     wire : String,
+    wire_extent : (Int, Int)?,
   ) -> Unit raise NativeLookupDependencyStop {
     let key = kind + "\u0000" + cid
     if seen.get(key) is Some(previous) {
@@ -133,30 +134,48 @@ fn keyed_lookup_native_dependency_bodies_from_original(
           .map(value => physical_equal(value, completed))
           .unwrap_or(false)
         },
+        wire_extent~,
       ),
     )
     bodies.push(body)
     seen[key] = wire
     remaining -= bytes
   }
+  fn append(
+    kind : String,
+    cid : String,
+    wire : String,
+  ) -> Unit raise NativeLookupDependencyStop {
+    append_measured(kind, cid, wire, None)
+  }
   fn contract(
     kind : String,
     value : @publication.PublicationContract,
   ) -> Unit raise NativeLookupDependencyStop {
-    append(
+    // The SAME sealed original owns these encoder facts and the wire below.
+    // Preserve full body/CID admission; unknown wires keep the byte-node bound.
+    let extent = @publication.publication_contract_wire_usage(value).map(usage => {
+      (usage.0, usage.1)
+    })
+    append_measured(
       kind,
       @publication.publication_contract_identity(value),
       @publication.publication_contract_json(value),
+      extent,
     )
   }
   fn evidence(
     kind : String,
     value : @publication.RunEvidenceValue,
   ) -> Unit raise NativeLookupDependencyStop {
-    append(
+    let extent = @publication.run_evidence_value_wire_usage(value).map(usage => {
+      (usage.0, usage.1)
+    })
+    append_measured(
       kind,
       @publication.run_evidence_value_identity(value),
       @publication.run_evidence_value_json(value),
+      extent,
     )
   }
   fn emit(

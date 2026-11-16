@@ -62,4 +62,20 @@ test "measured original dependency keeps exact encoder bytes and nodes and full 
     is Err(Dependency(@publication.InvalidBody)),
   )
   assert_eq(calls.val, 2)
+  let fallback = Ref((0, 0))
+  admit_client_effect_dependency_capture_body(
+    "request_values",
+    Some(cid),
+    wire,
+    1000,
+    100,
+    16,
+    Some((b, n, _) => {
+      fallback.val = (b, n)
+      true
+    }),
+    () => true,
+  ).unwrap()
+  |> ignore
+  assert_eq(fallback.val, (19, 19))
 }
