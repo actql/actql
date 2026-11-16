@@ -24,6 +24,30 @@ export function nativeCoreTestSelectionOptions({env, platformScope, partition,
     executionPackages: platformPackages ? executionPackages : physical ? undefined : executionPackages};
 }
 
+// The original CLI and its tests share the actual discovery/partition boundary.
+// A discovery port permits deterministic compiler inventories without copying
+// private caller source or invoking a second compiler during orchestration tests.
+export function selectNativeCoreTestProfiles(repository, args, options,
+  {discover = nativeCoreTestSelection} = {}) {
+  const {platformScope, partition, platformPackages} = options;
+  const selection = discover(repository, args, nativeCoreTestSelectionOptions(options));
+  if (platformPackages && selection.executionScope?.mode !== 'subset') {
+    throw new Error('Native platform scope must retain its exact compiler-owned package/file scope');
+  }
+  if (platformScope === 'linux-common-importers' &&
+      selection.profiles.http.cases + selection.profiles.source.cases + selection.profiles.scoped.cases !== 0) {
+    throw new Error('Linux common/importers cannot adopt an unrelated physical fixture');
+  }
+  let partitionInfo;
+  if (partition) {
+    const originalCases = selection.profiles.ordinary.cases;
+    selection.profiles = nativeCorePartitionProfiles(selection.profiles, partition,
+      {hostedDarwin: platformScope === 'darwin-differences'});
+    partitionInfo = {partition, originalCases, selectedCases: selection.profiles.ordinary.cases};
+  }
+  return {selection, partitionInfo};
+}
+
 export const nativeRelationWorkTestFile =
   'src/platform_native/relation_file_work_tests/relation_file_original_physical_scoped_test.mbt';
 

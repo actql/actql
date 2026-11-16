@@ -17,7 +17,7 @@ import {readNativeEffectCaptureProgress} from './fixtures/native-effect-capture-
 import {nativeRuntimeReaderCustodyFixture} from './native-runtime-reader-custody-fixture.mjs';
 import {failedCoreDriver, diagnoseFailedCoreDriver} from './native-compiler-stop-diagnostic.mjs';
 import {runFocusedTests} from './test-execution.mjs';
-import {nativeCorePartitionProfiles} from './native-core-test-selection.mjs';
+import {nativeCorePartitionProfiles, selectNativeCoreTestProfiles} from './native-core-test-selection.mjs';
 // This file is selected by the canonical CI lint job. Keep the Native fixture
 // and compiler/linker regressions on that existing execution path.
 import './native-private-host-fixture.test.mjs';
@@ -483,10 +483,6 @@ test('Native Core full campaign remains selected after callback diagnosis failur
 });
 
 test('Native partition caller passes the complete compiler inventory before selecting the original profile', () => {
-  const source = readFileSync(new URL('test-native-core.mjs', import.meta.url), 'utf8');
-  const start = source.indexOf('const selection = full ? nativeCoreTestSelection');
-  const end = source.indexOf('if (selection) console.log', start);
-  assert(start >= 0 && end > start);
   const parts = [{args: ['src/a'], cases: 2}, {args: ['src/b'], cases: 3}];
   const profiles = {ordinary: {cases: 5, partitions: parts},
     http: {args: ['src/http'], cases: 1}, source: {args: ['src/source'], cases: 1},
@@ -504,12 +500,12 @@ test('Native partition caller passes the complete compiler inventory before sele
     for (const partition of labels) {
       let discoveries = 0;
       const args = ['--release', '--strip'], env = {original: true};
-      const selected = runInNewContext(source.slice(start, end) + '\nselection;', {
-        full: true, root: '/original', args, compilerEnvironment: env, partition, executionPackages,
-        linuxCommonImporters, platformScope: role === 'darwin' ? 'darwin-differences' : linuxCommonImporters ? 'linux-common-importers' : undefined,
+      const {selection: selected, partitionInfo} = selectNativeCoreTestProfiles('/original', args, {
+        env, partition, executionPackages,
+        platformScope: role === 'darwin' ? 'darwin-differences' : linuxCommonImporters ? 'linux-common-importers' : undefined,
         platformPackages: role === 'local' ? undefined : {common: [], importers: [], darwin: []},
-        nativeCorePartitionProfiles,
-        nativeCoreTestSelection(root, originalArgs, options) {
+      }, {
+        discover(root, originalArgs, options) {
           discoveries++;
           assert.equal(root, '/original'); assert.equal(originalArgs, args);
           assert.equal(options.env, env); assert.equal(options.partitionProfiles, true);
@@ -519,9 +515,10 @@ test('Native partition caller passes the complete compiler inventory before sele
           assert.equal(options.executionPackages, executionPackages);
           assert.equal(options.allowNestedFileInputs, role !== 'local');
           return {profiles: originalProfiles, executionScope: {mode: 'subset'}};
-        }, console: {log() {}},
+        },
       });
       assert.equal(discoveries, 1);
+      assert.equal(partitionInfo.originalCases, linuxCommonImporters ? 36 : 5);
       assert.equal(selected.profiles.ordinary, originalParts[Number(partition[0]) - 1]);
       assert.equal(selected.profiles.http.args === null, linuxCommonImporters || partition === '2/2');
       if (role !== 'local') for (const name of ['source', 'scoped']) assert.equal(selected.profiles[name].args, null);
@@ -530,20 +527,14 @@ test('Native partition caller passes the complete compiler inventory before sele
 });
 
 test('the original Linux entry refuses foreign scope physical profiles empty partitions and original discovery failure', () => {
-  const source = readFileSync(new URL('test-native-core.mjs', import.meta.url), 'utf8');
-  const start = source.indexOf('const selection = full ? nativeCoreTestSelection');
-  const end = source.indexOf('if (selection) console.log', start);
-  assert(start >= 0 && end > start);
   const fixture = () => ({executionScope: {mode: 'subset'}, profiles: {
     ordinary: {cases: 8, partitions: Array.from({length: 8}, (_, i) => ({args: [`src/owner-${i}`], cases: 1}))},
     http: {args: null, cases: 0}, source: {args: null, cases: 0}, scoped: {args: null, cases: 0, tests: []},
   }});
-  const inspect = discover => runInNewContext(source.slice(start, end), {
-    full: true, root: '/original', args: ['--release'], compilerEnvironment: {}, partition: '1/8',
-    executionPackages: ['src/common', 'src/importer'], linuxCommonImporters: true,
+  const inspect = discover => selectNativeCoreTestProfiles('/original', ['--release'], {
+    env: {}, partition: '1/8', executionPackages: ['src/common', 'src/importer'],
     platformScope: 'linux-common-importers', platformPackages: {common: [], importers: [], darwin: []},
-    nativeCorePartitionProfiles, nativeCoreTestSelection: discover, console: {log() {}},
-  });
+  }, {discover});
   for (const [label, change, reason] of [
     ['fallback', value => {value.executionScope.mode = 'full-fallback';}, /exact compiler-owned/u],
     ...['http', 'source', 'scoped'].map(name => [name, value => {value.profiles[name].cases = 1;}, /unrelated physical fixture/u]),
