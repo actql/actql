@@ -4246,7 +4246,8 @@
             "limits",
             "writerProfile",
             "requestHeaderUnits",
-            "grantIssuer"
+            "grantIssuer",
+            "responseProjector"
           ],
           "async": false
         },
