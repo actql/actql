@@ -68,6 +68,69 @@ test('Local STORE recipe consumes actual constructor bounds in distinct original
   } finally {moon.clientProgramInstalledOpaqueBoundaryFootprintCapacity = originalFootprintQuote;}
 });
 
+function localGrantRecipeFixture(quantities, fallback, grantIssuer) {
+  const captures = [], quotes = [], limits = {...LOCAL_STORE_LIMITS, maxFileBytes: 123456};
+  const moon = {
+    clientProgramInstalledOpaqueBoundaryFootprintCapacity: () => ({}),
+    clientProgramInstalledLocalFileStoreControlWireBound: () => 1510,
+    clientProgramInstalledLocalFileStoreRecipeCapacities(...args) {
+      quotes.push(args); return {$tag: 1, _0: args.at(-1) === undefined ? fallback : quantities};
+    },
+    clientProgramInstalledEffectCaptureRecipeExtentPrepare(operation, capacities) {
+      captures.push(capacities); return {$tag: 1, _0: {operation, capacities}};
+    },
+    clientProgramInstalledEffectOperationExtentFromCapacityPrepare(operation, capacity, transfer, physical) {
+      return {$tag: 1, _0: {operation, capacity, transfer, physical}};
+    },
+  };
+  const recipe = prepareLocalFileStorePlanRecipe({moon, limits, grantIssuer,
+    inputLimits: installedRowEffectConstructionLimits({maxRows: 100, maxMembers: 16}),
+    writerProfile: {nativeOriginalBytes: 4321, maxRootBytes: 4096, maxNameBytes: 1024, maxDepth: 130}});
+  return {recipe, captures, quotes, limits};
+}
+
+test('Local Grant recipe keeps its seventh opaque quote out of the six-capacity capture and retains exact issuer originals', () => {
+  let grants = 0;
+  const site = Object.freeze({issueEffectGrant() {grants++; return {proof: {}};}});
+  const nativeQuote = Object.freeze({get privateExtent() {assert.fail('Host must not inspect Common quote');}});
+  const quantities = [...Array.from({length: 6}, () => Object.freeze({})), nativeQuote],
+    fallback = Array.from({length: 7}, () => Object.freeze({}));
+  const {recipe, captures, quotes, limits} = localGrantRecipeFixture(quantities, fallback, site);
+  assert.equal(quotes.length, 2);
+  assert.deepEqual(quotes.map(args => args.slice(-2)), [[1510, limits.maxResponseBytes], [undefined, undefined]]);
+  assert.equal(captures.length, 1);
+  assert.notStrictEqual(captures[0], quantities);
+  assert.equal(captures[0].length, 6);
+  for (let index = 0; index < 6; index++) assert.strictEqual(captures[0][index], quantities[index]);
+  assert.equal(Object.isFrozen(recipe.grantConstruction), true);
+  assert.strictEqual(recipe.grantConstruction.receiver, site);
+  assert.strictEqual(recipe.grantConstruction.method, site.issueEffectGrant);
+  assert.strictEqual(recipe.grantConstruction.capacity, nativeQuote);
+  assert.strictEqual(recipe.controlsPerRow, quantities[4]);
+  assert.strictEqual(recipe.rowOperations[0].extent.capacity, quantities[2]);
+  assert.strictEqual(recipe.rowOperations[1].extent.capacity, quantities[3]);
+  assert.strictEqual(recipe.savedControlCodec.fallbackCapacity, fallback[4]);
+  const shared = installedEffectRecipeForControlEntryLimit(recipe,
+    effectLedgerImplementationBounds.maxEntryBytes, limits.maxResponseBytes);
+  assert.strictEqual(shared.controlsPerRow, fallback[4]);
+  assert.strictEqual(shared.grantConstruction, recipe.grantConstruction);
+  assert.strictEqual(shared.rowOperations, recipe.rowOperations);
+  assert.equal(grants, 0, 'building a quote never issues a grant');
+});
+
+test('Local Grant recipe preserves six-capacity legacy capture without sampling an unsupported issuer', () => {
+  const quantities = Array.from({length: 6}, () => Object.freeze({})),
+    fallback = Array.from({length: 6}, () => Object.freeze({}));
+  let sampled = 0;
+  const site = Object.freeze({get issueEffectGrant() {sampled++; assert.fail('legacy must not inspect issuer');}});
+  const {recipe, captures} = localGrantRecipeFixture(quantities, fallback, site);
+  assert.strictEqual(captures[0], quantities);
+  assert.equal(Object.hasOwn(recipe, 'grantConstruction'), false);
+  assert.strictEqual(recipe.controlsPerRow, quantities[4]);
+  assert.strictEqual(recipe.savedControlCodec.fallbackCapacity, fallback[4]);
+  assert.equal(sampled, 0);
+});
+
 test('owned physical write cannot reuse a constructor slot or malformed transfer amount', () => {
   const base = {memberOperations: Object.freeze([]), rowOperations: Object.freeze([
     Object.freeze({operation: 'request', extent: {}}), Object.freeze({operation: 'files.write', extent: {}})]),
