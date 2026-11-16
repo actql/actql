@@ -1,13 +1,16 @@
 import assert from 'node:assert/strict';
-import {mkdtempSync,readFileSync,rmSync,writeFileSync} from 'node:fs';
+import {mkdirSync,mkdtempSync,readFileSync,rmSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {nativeQueryCoverage,runNativeQueryTests,readNativeQuerySources,selectNativeQueryTests} from './native-query-coverage.mjs';
-const cwd=fileURLToPath(new URL('../',import.meta.url));
+import {nativeQuerySourceFixture} from './fixtures/native-query-source-fixture.mjs';
 function fixture(t){
  const root=mkdtempSync(join(tmpdir(),'actql-query-build-phases-'));t.after(()=>rmSync(root,{recursive:true,force:true}));
+ const cwd=join(root,'source');
+ for(const [path,text] of Object.entries(nativeQuerySourceFixture())){
+  const destination=join(cwd,path);mkdirSync(join(destination,'..'),{recursive:true});writeFileSync(destination,text);
+ }
  const moon=join(root,'moon.mjs'),commands=join(root,'commands.jsonl'),executions=join(root,'executions');
  writeFileSync(moon,'#!'+process.execPath+'\n'+String.raw`
 import {appendFileSync,existsSync,writeFileSync} from 'node:fs';
@@ -20,12 +23,13 @@ if(compile){
 }else{
  if(!existsSync(process.env.FIXTURE_ARTIFACT))throw Error('original compiled software missing');
  appendFileSync(process.env.FIXTURE_EXECUTIONS,'one original case group\n');
- const n=process.env.FIXTURE_SHORT?11:12;console.log('Total tests: '+n+', passed: '+n+', failed: 0.');
+ const n=Number(process.env.FIXTURE_EXPECTED)-(process.env.FIXTURE_SHORT?1:0);console.log('Total tests: '+n+', passed: '+n+', failed: 0.');
 }
 `,{mode:0o700});
  const env={...process.env,...Object.fromEntries(nativeQueryCoverage.requiredEnvironment['remote-runtime'].map(name=>[name,'1'])),
   FIXTURE_COMMANDS:commands,FIXTURE_EXECUTIONS:executions,FIXTURE_ARTIFACT:join(root,'compiled'),FIXTURE_ORIGINAL:'same original'};
  const selection=selectNativeQueryTests('remote-runtime',readNativeQuerySources(cwd),env),targetDirectory=join(root,'target');
+ env.FIXTURE_EXPECTED=String(selection.expected);
  const calls=()=>readFileSync(commands,'utf8').trim().split('\n').map(JSON.parse);
  return {moon,env,cwd,targetDirectory,calls,executions,selection};
 }
