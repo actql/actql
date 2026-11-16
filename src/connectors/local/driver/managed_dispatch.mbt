@@ -738,7 +738,9 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
   // managed producer bridges allocate an importer on this same task.
   let mut count = 0L
   let mut imported = 0L
-  guard local_managed_import_start_bytes(imports) is Some(import_start) else {
+  guard local_managed_import_start_bytes(imports) is Some(import_start) &&
+    @local.local_materializing_import_start_capacity(imports)
+    is Some(retained_import_start) else {
     return Err(Configuration(InvalidLimits))
   }
   for input in relation_inputs {
@@ -746,7 +748,13 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
       OrdinaryRelationInput(read) =>
         if !@execution.producer_read_has_cell_access(read) {
           count += 1L
-          per_input
+          // The original Local retained importer below funds every actual row
+          // before decode. Unknown non-cell representations keep the full quote.
+          if @execution.producer_read_retained_material(read) is Some(_) {
+            retained_import_start
+          } else {
+            per_input
+          }
         } else {
           0L
         }
@@ -1696,6 +1704,12 @@ pub fn[T] start_local_managed_dispatch(
     }
     let position = read_index
     let importer : Ref[@execution.CompletedOutputImport?] = Ref(None)
+    // The existing per-port startup packet prepays these four monotone
+    // counters and all refusal/current carriers before this closure escapes.
+    let copied_rows = Ref(0L)
+    let copied_nodes = Ref(0L)
+    let copied_text = Ref(0L)
+    let copied_extent = Ref(0L)
     retained_imports.push(importer)
     retained_transfers.push({
       material,
@@ -1713,7 +1727,8 @@ pub fn[T] start_local_managed_dispatch(
             settled.val,
             disposed.val,
           ) &&
-          importer.val is None else {
+          importer.val is None &&
+          !import_mutating.val else {
           return Err(Configuration(InputUnavailable))
         }
         let prepared = match
@@ -1738,18 +1753,64 @@ pub fn[T] start_local_managed_dispatch(
         )
       },
       append: row => {
-        guard importer.val is Some(active) &&
-          local_managed_input_writes_open(live.val, settled.val, disposed.val) else {
-          return Err(Configuration(InputUnavailable))
-        }
-        @execution.append_completed_output_import_wire(
-          active,
-          row,
-          setup.imports.row,
-        ).map_err(_ => Configuration(InputUnavailable))
+        with_local_managed_import_mutation(import_mutating, fn() {
+          guard importer.val is Some(active) &&
+            local_managed_input_writes_open(live.val, settled.val, disposed.val) else {
+            return Err(Configuration(InputUnavailable))
+          }
+          let bytes = match
+            managed_row_transfer_bytes(row, setup.imports.wire.max_bytes) {
+            Ok(value) => value
+            Err(issue) => return Err(issue)
+          }
+          guard local_managed_import_next_extent(
+              setup.imports,
+              copied_rows.val,
+              copied_nodes.val,
+              copied_text.val,
+              bytes,
+            )
+            is Some((rows, nodes, text, quoted)) else {
+            return Err(Configuration(InvalidLimits))
+          }
+          let extent = Int64::max(copied_extent.val, quoted)
+          guard @execution.checked_preparation_add_product(
+              import_extra.val,
+              extent - copied_extent.val,
+              1L,
+            )
+            is Some(next) else {
+            return Err(Configuration(InvalidLimits))
+          }
+          match reserve_import(next, None) {
+            Err(issue) => return Err(issue)
+            Ok(_) => ()
+          }
+          // Growth can synchronously cancel this SAME original importer.
+          // Keep its paid prefix, but never parse after that current fence.
+          guard local_managed_input_writes_open(
+              live.val,
+              settled.val,
+              disposed.val,
+            ) &&
+            importer.val is Some(current) &&
+            physical_equal(current, active) else {
+            return Err(Configuration(InputUnavailable))
+          }
+          copied_rows.val = rows
+          copied_nodes.val = nodes
+          copied_text.val = text
+          copied_extent.val = extent
+          @execution.append_completed_output_import_wire(
+            active,
+            row,
+            setup.imports.row,
+          ).map_err(_ => Configuration(InputUnavailable))
+        })
       },
       finish: fn() {
-        guard importer.val is Some(active) &&
+        guard !import_mutating.val &&
+          importer.val is Some(active) &&
           local_managed_input_writes_open(live.val, settled.val, disposed.val) else {
           return Err(Configuration(InputUnavailable))
         }

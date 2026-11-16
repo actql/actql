@@ -820,6 +820,8 @@ pub fn fixed_supplied_relation_read(SuppliedRelationRead) -> FixedRelationRead
 
 pub fn generated_asof_search_ceiling(GeneratedSequence, Int) -> Int64?
 
+pub fn generated_bounded_events_projection_capacity(GeneratedSequence, SequenceExecutionLimits, FixedInputGuardMeasureLimits) -> ExecutionCapacity?
+
 pub fn generated_bounded_interval_capacity(GeneratedSequence, SequenceExecutionLimits, FixedInputGuardMeasureLimits, Int) -> ExecutionCapacity?
 
 pub fn generated_bounded_ranking_capacity(GeneratedSequence, SequenceExecutionLimits, FixedInputGuardMeasureLimits, Int) -> ExecutionCapacity?

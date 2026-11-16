@@ -147,7 +147,13 @@ fn construct_installed_client_family(
         union_policy=Some(selected_graph_union_policy()),
         mean_policy=Some(selected_graph_mean_policy()),
       )
-    Events => @local_tea_provider.provider(records, 100000L, capacity)
+    Events =>
+      @local_tea_provider.provider(
+        records,
+        100000L,
+        capacity,
+        bounded_constructor=true,
+      )
     TimeSeries => @local_tea_provider.time_series_provider(records, capacity)
     CalendarSeries =>
       @local_tea_provider.calendar_series_provider(records, capacity)

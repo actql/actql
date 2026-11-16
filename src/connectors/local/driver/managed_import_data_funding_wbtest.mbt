@@ -145,3 +145,50 @@ test "snapshot reload reclassification refuses foreign prefixes regression and o
     )
   }
 }
+
+///|
+test "owned retained-file import keeps its per-port controls and entire saturated recipe" {
+  let limits = managed_import_funding_limits()
+  let start = @local.local_materializing_import_start_capacity(limits).unwrap()
+  let old_empty = local_managed_import_start_bytes(limits).unwrap()
+  assert_eq(start - old_empty, 336L)
+  let (_, _, _, copied) = local_managed_import_next_extent(
+    limits, 99L, 900L, 1900L, 1024L,
+  ).unwrap()
+  assert_eq(
+    start + copied,
+    @local.local_import_retention_capacity(limits).unwrap() + 336L,
+  )
+  // The same existing mutation latch rejects recursive append before a second
+  // parser can start; current loss remains a refusal with the paid prefix.
+  let active = Ref(false)
+  let parses = Ref(0)
+  let current = Ref(true)
+  let saw_active = Ref(false)
+  let refused_nested = Ref(false)
+  let result : Result[Unit, LocalDispatchIssue] = with_local_managed_import_mutation(
+    active,
+    fn() {
+      saw_active.val = active.val
+      let nested : Result[Unit, LocalDispatchIssue] = with_local_managed_import_mutation(
+        active,
+        fn() {
+          parses.val += 1
+          Ok(())
+        },
+      )
+      refused_nested.val = nested is Err(Configuration(InputUnavailable))
+      current.val = false
+      if !local_managed_input_writes_open(current.val, false, false) {
+        Err(Configuration(InputUnavailable))
+      } else {
+        parses.val += 1
+        Ok(())
+      }
+    },
+  )
+  assert_true(result is Err(Configuration(InputUnavailable)))
+  assert_true(saw_active.val && refused_nested.val)
+  assert_eq(parses.val, 0)
+  assert_false(active.val)
+}

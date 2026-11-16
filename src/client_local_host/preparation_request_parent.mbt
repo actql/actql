@@ -296,10 +296,12 @@ let request_preparation_fixed_control_envelope : @execution.PreparationRepresent
   // and the direct flat Ranking constructor
   // each retain Some(quote) (1H/1R) plus a closure capturing workspace_slots
   // (1H/1W). Actual execution/measurement are call arguments, not captures.
+  // Events adds Some(quote) (1H/1R) and a closure borrowing its retained
+  // record policy and capturing storage_bytes (1H/1R/1W).
   // These fixed controls are backed before the installed factory is entered.
-  record_headers: 255L,
-  reference_slots: 470L,
-  scalar_words: 522L,
+  record_headers: 257L,
+  reference_slots: 472L,
+  scalar_words: 523L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }
