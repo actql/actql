@@ -1009,6 +1009,216 @@ for (const kind of ['entry', 'single response', 'batch response', 'outcome']) {
   });
 }
 
+function observeResponseMetadataBounds(t) {
+  const prepare = DatabaseSync.prototype.prepare;
+  const textUnits = {logical_item_locator_cid: 71, dispatch_entry_cid: 71,
+    logical_request_scope_cid: 71, credential_use_cid: 71, entry_cid: 71,
+    batch_owner_cid: 71, physical_sha256: 64};
+  let rows = 0;
+  t.mock.method(DatabaseSync.prototype, 'prepare', function(sql) {
+    const statement = Reflect.apply(prepare, this, [sql]);
+    if (!sql.trimStart().startsWith('SELECT')) return statement;
+    return new Proxy(statement, {get(target, key) {
+      const method = Reflect.get(target, key, target);
+      if (key !== 'get' && key !== 'all') return typeof method === 'function' ? method.bind(target) : method;
+      return (...args) => {
+        const value = Reflect.apply(method, target, args);
+        for (const row of key === 'all' ? value : [value]) {
+          if (row === undefined) continue;
+          rows++;
+          for (const [field, units] of Object.entries(textUnits)) {
+            if (typeof row[field] === 'string') assert(row[field].length <= units,
+              `${field} must be bounded before Statement returns`);
+          }
+          for (const field of ['revision', 'status_code', 'position', 'member_count']) {
+            if (row[field] !== undefined && row[field] !== null) assert(Number.isSafeInteger(row[field]));
+          }
+          if (row.response_bytes !== undefined && row.response_bytes !== null) {
+            assert(row.response_bytes instanceof Uint8Array);
+            assert(row.response_bytes.byteLength <= 4);
+          }
+        }
+        return value;
+      };
+    }});
+  });
+  return () => rows;
+}
+
+const oversizedMetadata = '界'.repeat(32768);
+const unsafeSqlInteger = 9007199254740992n;
+for (const [kind, table, field, malformed] of [
+  ['ownership', 'effect_ledger_heads', 'logical_request_scope_cid', oversizedMetadata],
+  ['ownership', 'effect_ledger_heads', 'entry_cid', oversizedMetadata],
+  ['ownership', 'effect_ledger_heads', 'revision', unsafeSqlInteger],
+  ['ownership', 'effect_ledger_entries', 'logical_item_locator_cid', oversizedMetadata],
+  ['single', 'effect_ledger_responses', 'logical_item_locator_cid', oversizedMetadata],
+  ['single', 'effect_ledger_responses', 'logical_request_scope_cid', oversizedMetadata],
+  ['single', 'effect_ledger_responses', 'credential_use_cid', oversizedMetadata],
+  ['single', 'effect_ledger_responses', 'physical_sha256', oversizedMetadata],
+  ['single', 'effect_ledger_responses', 'status_code', unsafeSqlInteger],
+  ['single', 'effect_ledger_responses', 'response_bytes', Buffer.alloc(131072)],
+  ['locator', 'effect_ledger_responses', 'dispatch_entry_cid', oversizedMetadata],
+  ['batch', 'effect_ledger_batch_responses', 'logical_request_scope_cid', oversizedMetadata],
+  ['batch', 'effect_ledger_batch_responses', 'credential_use_cid', oversizedMetadata],
+  ['batch', 'effect_ledger_batch_responses', 'physical_sha256', oversizedMetadata],
+  ['batch', 'effect_ledger_batch_responses', 'status_code', unsafeSqlInteger],
+  ['batch', 'effect_ledger_batch_responses', 'member_count', unsafeSqlInteger],
+  ['batch', 'effect_ledger_batch_members', 'batch_owner_cid', oversizedMetadata],
+  ['batch', 'effect_ledger_batch_members', 'logical_item_locator_cid', oversizedMetadata],
+  ['batch', 'effect_ledger_batch_members', 'position', unsafeSqlInteger],
+  ['batch locator', 'effect_ledger_batch_members', 'dispatch_entry_cid', oversizedMetadata],
+]) {
+  test(`Effect response SQL bounds ${table}.${field} and retains integrity through ${kind}`, async t => {
+    const root = await fixture(t);
+    const observedRows = observeResponseMetadataBounds(t);
+    const ledger = openSqliteEffectLedger(root, {authorityScopeCid: scope, maxReadResponseBytes: 4});
+    t.after(() => ledger.close());
+    append(ledger, 0, cid('1'), firstJson); append(ledger, 1, cid('2'), secondJson);
+    const response = {logicalRequestScopeCid: scope, logicalItemLocatorCid: locator,
+      dispatchEntryCid: cid('2'), credentialUseCid: cid('c'), statusCode: 200, responseBytes: Buffer.from('ok')};
+    const batch = kind.startsWith('batch');
+    if (batch) ledger.recordBatchResponse({logicalRequestScopeCid: scope,
+      credentialUseCid: cid('c'), statusCode: 200, responseBytes: response.responseBytes,
+      members: [{logicalItemLocatorCid: locator, dispatchEntryCid: cid('2')}]});
+    else if (kind !== 'ownership') ledger.recordResponse(response);
+    const external = new DatabaseSync(join(root, 'effect-ledger.sqlite3'));
+    try {
+      // Preserve the original field before corruption; no oversized readback is
+      // used to restore it. Foreign-key/check bypass is confined to this writer.
+      external.exec('PRAGMA foreign_keys = OFF; PRAGMA ignore_check_constraints = ON');
+      const original = external.prepare(`SELECT ${field} AS original FROM ${table} LIMIT 1`).get().original;
+      const update = external.prepare(`UPDATE ${table} SET ${field} = ?`);
+      update.run(malformed);
+      const read = kind === 'ownership' ? () => ledger.recordResponse(response)
+        : kind.includes('locator') ? () => ledger.responseForLocator(locator) : () => ledger.response(cid('2'));
+      assert.throws(read, {code: 'EffectLedgerIntegrityFailed'});
+      if (kind === 'single' || kind === 'locator') {
+        assert.throws(() => ledger.recordResponse(response), {code: 'EffectLedgerIntegrityFailed'});
+      }
+      assert(observedRows() > 0, 'assertions observe actual native Statement output');
+      update.run(original);
+      if (kind === 'ownership') assert.equal(ledger.recordResponse(response).created, true);
+      const restored = ledger.responseForLocator(locator);
+      assert.equal(restored.dispatchEntryCid, cid('2'));
+      assert.equal(restored.logicalItemLocatorCid, locator);
+      assert.equal(restored.logicalRequestScopeCid, scope);
+      assert.equal(restored.credentialUseCid, cid('c'));
+      assert.deepEqual(restored.responseBytes, Buffer.from('ok'));
+    } finally {external.close();}
+  });
+}
+
+test('Effect response fixed metadata preserves exact UTF8 and UTF16 original values', async t => {
+  for (const encoding of ['UTF-8', 'UTF-16le', 'UTF-16be']) {
+    const root = await fixture(t), setup = new DatabaseSync(join(root, 'effect-ledger.sqlite3'));
+    setup.exec(`PRAGMA encoding = '${encoding}'`); setup.exec('CREATE TABLE encoding_pin (n INTEGER)'); setup.close();
+    const ledger = openSqliteEffectLedger(root, {authorityScopeCid: scope, maxReadResponseBytes: 4});
+    try {
+      append(ledger, 0, cid('1'), firstJson);
+      const response = {logicalRequestScopeCid: scope, logicalItemLocatorCid: locator,
+        dispatchEntryCid: cid('1'), credentialUseCid: cid('c'), statusCode: 200, responseBytes: Buffer.from('ok')};
+      assert.equal(ledger.recordResponse(response).created, true);
+      assert.equal(ledger.recordResponse(response).created, false);
+      assert.equal(ledger.current(locator).entryCid, cid('1'));
+      assert.deepEqual(ledger.responseForLocator(locator).responseBytes, Buffer.from('ok'));
+    } finally {ledger.close();}
+  }
+});
+
+test('Effect whole history funds actual count and wire backing before native materialization in the same transaction', async t => {
+  for (const encoding of ['UTF-8', 'UTF-16le', 'UTF-16be']) {
+    const root = await fixture(t), setup = new DatabaseSync(join(root, 'effect-ledger.sqlite3'));
+    setup.exec(`PRAGMA encoding = '${encoding}'`); setup.exec('CREATE TABLE encoding_pin (n INTEGER)'); setup.close();
+    const prepare = DatabaseSync.prototype.prepare;
+    let originalDatabase, materialized = 0;
+    t.mock.method(DatabaseSync.prototype, 'prepare', function(sql) {
+      originalDatabase ??= this;
+      const statement = Reflect.apply(prepare, this, [sql]);
+      const all = statement.all;
+      t.mock.method(statement, 'all', function(...args) {
+        materialized++; return Reflect.apply(all, this, args);
+      });
+      return statement;
+    });
+    const first = JSON.stringify({value: 'é😀'}), second = JSON.stringify({value: '界'}), observations = [];
+    const external = new DatabaseSync(join(root, 'effect-ledger.sqlite3'));
+    external.exec('PRAGMA busy_timeout = 0');
+    const ledger = openSqliteEffectLedger(root, {authorityScopeCid: scope,
+      beforeHistoryRead(entries, wireUnits) {
+        assert.equal(originalDatabase.isTransaction, true);
+        assert.equal(materialized, 0, 'funding precedes the actual Statement.all');
+        observations.push([entries, wireUnits]);
+        assert.throws(() => external.prepare('UPDATE effect_ledger_entries SET entry_json = entry_json').run(),
+          'another connection cannot mutate the observed geometry before materialization');
+      }});
+    try {
+      append(ledger, 0, cid('1'), first); append(ledger, 1, cid('2'), second);
+      assert.deepEqual(ledger.history(locator, 2).map(row => row.entryJson), [first, second]);
+      const units = encoding === 'UTF-8' ? Buffer.byteLength(first) + Buffer.byteLength(second) : first.length + second.length;
+      assert.deepEqual(observations, [[2, units]]);
+      assert.equal(materialized, 1);
+      assert.equal(originalDatabase.isTransaction, false);
+      assert.doesNotThrow(() => external.prepare('UPDATE effect_ledger_entries SET entry_json = entry_json').run());
+    } finally {ledger.close(); external.close(); t.mock.restoreAll();}
+  }
+});
+
+test('Effect whole history preserves funding refusal and non-Unit failure before allocation and permits healthy recovery', async t => {
+  for (const refusal of [new Error('original funding refused'), null, false, Promise.resolve()]) {
+    const root = await fixture(t), prepare = DatabaseSync.prototype.prepare;
+    let materialized = 0, attempts = 0, recover = false;
+    t.mock.method(DatabaseSync.prototype, 'prepare', function(sql) {
+      const statement = Reflect.apply(prepare, this, [sql]), all = statement.all;
+      t.mock.method(statement, 'all', function(...args) {materialized++; return Reflect.apply(all, this, args);});
+      return statement;
+    });
+    const ledger = openSqliteEffectLedger(root, {authorityScopeCid: scope, beforeHistoryRead() {
+      attempts++;
+      if (recover) return;
+      if (refusal instanceof Error) throw refusal;
+      return refusal;
+    }});
+    try {
+      append(ledger, 0, cid('1'), firstJson); append(ledger, 1, cid('2'), secondJson);
+      assert.throws(() => ledger.history(locator, 2), refusal instanceof Error
+        ? cause => cause === refusal : {code: 'InvalidEffectLedgerHistory'});
+      assert.equal(materialized, 0); assert.equal(attempts, 1);
+      assert.equal(ledger.current(locator).entryCid, cid('2'));
+      recover = true;
+      assert.deepEqual(ledger.history(locator, 2).map(row => row.entryJson), [firstJson, secondJson]);
+      assert.equal(materialized, 1); assert.equal(attempts, 2);
+    } finally {ledger.close(); t.mock.restoreAll();}
+  }
+});
+
+test('Effect whole history rejects invalid geometry before funding and never truncates or confuses a missing head', async t => {
+  const root = await fixture(t), prepare = DatabaseSync.prototype.prepare;
+  let materialized = 0, funded = 0;
+  t.mock.method(DatabaseSync.prototype, 'prepare', function(sql) {
+    const statement = Reflect.apply(prepare, this, [sql]), all = statement.all;
+    t.mock.method(statement, 'all', function(...args) {materialized++; return Reflect.apply(all, this, args);});
+    return statement;
+  });
+  const ledger = openSqliteEffectLedger(root, {authorityScopeCid: scope, maxEntryBytes: 64,
+    beforeHistoryRead() {funded++;}});
+  t.after(() => ledger.close());
+  append(ledger, 0, cid('1'), firstJson); append(ledger, 1, cid('2'), secondJson);
+  assert.deepEqual(ledger.history(cid('c'), 2), []);
+  assert.throws(() => ledger.history(locator, 1), {code: 'EffectLedgerHistoryLimitExceeded'});
+  assert.equal(funded, 0); assert.equal(materialized, 0);
+  const external = new DatabaseSync(join(root, 'effect-ledger.sqlite3'));
+  try {
+    external.prepare('UPDATE effect_ledger_entries SET entry_json = ? WHERE revision = 2').run('界'.repeat(100));
+    assert.throws(() => ledger.history(locator, 2), {code: 'EffectLedgerIntegrityFailed'});
+    assert.equal(funded, 0); assert.equal(materialized, 0);
+    external.prepare('UPDATE effect_ledger_entries SET entry_json = ? WHERE revision = 2').run(secondJson);
+    external.prepare('DELETE FROM effect_ledger_entries WHERE revision = 1').run();
+    assert.throws(() => ledger.history(locator, 2), {code: 'EffectLedgerIntegrityFailed'});
+    assert.equal(funded, 0); assert.equal(materialized, 0);
+  } finally {external.close();}
+});
+
 for (const encoding of ['UTF-16le', 'UTF-16be']) {
   test(`Effect original SQLite text encoding ${encoding} retains exact valid text and native-byte quota`, async t => {
     const root = await fixture(t);
