@@ -63127,7 +63127,8 @@
             "principalId",
             "effectResources",
             "sourceBindings",
-            "installationServices"
+            "installationServices",
+            "sourceProfile"
           ],
           "async": true
         },
