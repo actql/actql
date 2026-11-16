@@ -20450,7 +20450,7 @@
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "projectEffectComputationReview(preview, policy, limits)"
+                "anchor": "projectEffectComputationReview(preview, policy, limits, previewLimits = limits)"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -20780,7 +20780,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "projectEffectComputationReview(preview, policy, limits)"
+                "anchor": "projectEffectComputationReview(preview, policy, limits, previewLimits = limits)"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -21139,7 +21139,7 @@
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "projectEffectComputationReview(preview, policy, limits)"
+                "anchor": "projectEffectComputationReview(preview, policy, limits, previewLimits = limits)"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -61493,7 +61493,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "projectEffectComputationReview(preview, policy, limits)"
+                "anchor": "projectEffectComputationReview(preview, policy, limits, previewLimits = limits)"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -74885,7 +74885,7 @@
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "projectEffectComputationReview(preview, policy, limits)"
+                "anchor": "projectEffectComputationReview(preview, policy, limits, previewLimits = limits)"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -75158,7 +75158,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "projectEffectComputationReview(preview, policy, limits)"
+                "anchor": "projectEffectComputationReview(preview, policy, limits, previewLimits = limits)"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -75411,7 +75411,7 @@
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "projectEffectComputationReview(preview, policy, limits)"
+                "anchor": "projectEffectComputationReview(preview, policy, limits, previewLimits = limits)"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",

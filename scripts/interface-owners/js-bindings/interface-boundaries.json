@@ -19652,7 +19652,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "projectEffectComputationReview(preview, policy, limits)"
+                "anchor": "projectEffectComputationReview(preview, policy, limits, previewLimits = limits)"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -29201,7 +29201,8 @@
           "parameters": [
             "preview",
             "policy",
-            "limits"
+            "limits",
+            "previewLimits"
           ],
           "async": false
         },

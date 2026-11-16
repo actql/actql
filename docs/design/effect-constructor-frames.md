@@ -177,9 +177,9 @@ under the same property limit passed to that native recheck. Sequential Unit
 checks do not retain one Map per request.
 
 Installing code may pass this scratch-only opaque Common quote through the
-existing control-construction entrance. Core accepts no retained output in
-this optional argument, preserves its whole original retained/idle floor,
-and funds the quote before invoking the callback. Omission keeps the complete
+existing control-construction entrance. This Catalog recheck returns no retained
+output. The entrance preserves its whole original retained/idle floor and
+funds the quote before invoking the callback. Omission keeps the complete
 generic constructor. The quote cannot combine with another selected frame
 or enter a nested Ledger codec. Active or failed scratch stays on that same
 control reservation until explicit checked completion; the original current,
@@ -189,6 +189,30 @@ current memo, another Ledger, row-coordinate inference or physical ACK.
 The original four-argument Node export stays unchanged. Because exported
 MoonBit functions cannot have optional arguments, one typed native-quote
 variant delegates to that same Core entrance; it creates no new reservation.
+
+### Sealed review construction and adoption
+
+The private Preview keeps the codec policy under which its original Run admitted
+it. The public review has its own finite output policy. A smaller review limit
+does not reselect the input policy: projection still re-admits the complete
+Preview against its original Run and Authoring Context and compares its semantic
+CID before emitting any displayed evidence.
+
+The existing control frame funds bounded wire preflight before Common quotes
+the actual input geometry and bounded output construction. Its native constructor
+entrance reserves both the temporary parse/encode peak and returned DATA on the
+same control reservation before invoking projection. Returned capacity also
+covers the subsequent Checkpoint admission, parsing and evidence-holding
+envelope; it is not released with the first constructor's scratch.
+
+Each successful reservation adds the returned capacity to that control's retained
+output inventory. Successful completion returns only temporary scratch. Current
+checks, subsequent constructors and failures preserve the accumulated output
+allowance until the existing control owner retires after its borrowers drain.
+An unsuccessful reservation changes neither that inventory nor the callback's
+execution state. The additional scalar is included in the fixed control quote.
+This adds no owner, permission, cached authorization or physical cleanup
+acknowledgement; scratch-only callers keep their existing zero-retained quotes.
 
 ### Completed check-only metadata projections
 

@@ -4481,7 +4481,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "projectEffectComputationReview(preview, policy, limits)"
+                "anchor": "projectEffectComputationReview(preview, policy, limits, previewLimits = limits)"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -13205,7 +13205,8 @@
           "parameters": [
             "preview",
             "policy",
-            "limits"
+            "limits",
+            "previewLimits"
           ],
           "async": false
         },
@@ -61708,6 +61709,10 @@
           "declaration": "client_program_effect_result_name ( value : @ publication_host . PreparedClientEffectComputation , index : Int , ) - > String ?"
         },
         {
+          "name": "client_program_effect_review_construction_capacity",
+          "declaration": "client_program_effect_review_construction_capacity ( preview_wire : String , preview_bytes : Int , preview_nodes : Int , preview_depth : Int , review_bytes : Int , review_nodes : Int , review_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
           "name": "client_program_effect_risk_unsigned_payload_cid",
           "declaration": "client_program_effect_risk_unsigned_payload_cid ( body : @ effect . EffectRiskAcceptanceBody , ) - > String"
         },
@@ -62353,7 +62358,7 @@
         },
         {
           "name": "client_program_project_effect_review",
-          "declaration": "client_program_project_effect_review ( original : @ publication . EffectPreviewIdentity , preview_wire : String , authority_scope_cid : String , approval_claims : Array [ String ] , redaction_policy_cid : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication . RunEvidenceValue , @ publication . EffectReviewProjectionIssue , ]"
+          "declaration": "client_program_project_effect_review ( original : @ publication . EffectPreviewIdentity , preview_wire : String , authority_scope_cid : String , approval_claims : Array [ String ] , redaction_policy_cid : String , max_bytes : Int , max_nodes : Int , max_depth : Int , preview_max_bytes : Int ? , preview_max_nodes : Int ? , preview_max_depth : Int ? , ) - > Result [ @ publication . RunEvidenceValue , @ publication . EffectReviewProjectionIssue , ]"
         },
         {
           "name": "client_program_publication_bytes_binding_json",
@@ -63347,7 +63352,6 @@
             "client_program_prepare_run_state_observation",
             "client_program_prepare_salesforce_declared_row_acquisition",
             "client_program_prepare_salesforce_row_acquisition",
-            "client_program_project_effect_review",
             "client_program_publication_bytes_binding_json",
             "client_program_publication_bytes_limit_json",
             "client_program_publication_plan_fact_bindings",
@@ -63642,6 +63646,83 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "not nominal Core or normal acceptance"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_effect_review_construction_capacity",
+            "client_program_project_effect_review"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Sealed review construction and adoption"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication/effect_review_projection.mbt",
+                "anchor": "pub fn effect_review_projection_construction_inventory("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication/effect_review_projection.mbt",
+                "anchor": "pub fn project_effect_review_projection("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Sealed review construction and adoption"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Sealed review construction and adoption"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_effect_native_control_js_wbtest.mbt",
+                "anchor": "test \"native returned DATA keeps same-owner retention after completion and refuses before growth\""
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Sealed review construction and adoption"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Sealed review construction and adoption"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_native_control_js_wbtest.mbt",
+                "anchor": "test \"native returned DATA keeps same-owner retention after completion and refuses before growth\""
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Sealed review construction and adoption"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/sealed-effect-review-checkpoints.test.mjs",
+                "anchor": "test('review output limits do not reselect the admitted private Preview policy'"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_native_control_js_wbtest.mbt",
+                "anchor": "test \"native returned DATA keeps same-owner retention after completion and refuses before growth\""
               }
             ]
           }
