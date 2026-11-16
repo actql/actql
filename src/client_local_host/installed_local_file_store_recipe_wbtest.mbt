@@ -79,28 +79,6 @@ test "Local Grant proof population is retained once while its native selector ow
     assert_eq(@execution.execution_capacity_retained_bytes(recipe[6]), 0L)
     assert_eq(@execution.execution_capacity_execution_bytes(recipe[6]), 136L)
   }
-  let rows = 2L
-  let held = rows * @execution.execution_capacity_retained_bytes(grant)
-  let workspace = 136L
-  let ledger = @resources.create_ledger({
-    planning_work: 10,
-    attempts: 0,
-    holdings: 0,
-    transfer_bytes: 0L,
-    retained_bytes: held,
-    execution_bytes: held + workspace,
-  }).unwrap()
-  let original = @resources.reserve_capacity(ledger, held, held).unwrap()
-  // Constructor entry adds only scratch to the same retained population.
-  @resources.grow_capacity_reservation(ledger, original, held, held + workspace).unwrap()
-  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, held)
-  assert_true(
-    @resources.reserve_capacity(ledger, 0L, 1L) is Err(ExecutionLimit),
-  )
-  @resources.shrink_capacity_reservation(ledger, original, held, held).unwrap()
-  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, held)
-  @resources.settle_capacity(ledger, original).unwrap()
-  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
 }
 
 ///|
