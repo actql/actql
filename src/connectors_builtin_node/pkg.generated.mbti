@@ -2042,7 +2042,7 @@ pub fn client_program_installed_local_file_store_observed_constructor_capacities
 
 pub fn client_program_installed_local_file_store_observed_recovery_capacities(Int, Int, Int) -> Result[Array[@execution_relation.ExecutionCapacity], @client_local_host.ClientInstalledManagedRunIssue]
 
-pub fn client_program_installed_local_file_store_recipe_capacities(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int64, Int, Int, Int, Int, Int, Int?) -> Result[Array[@execution_relation.ExecutionCapacity], @client_local_host.ClientInstalledManagedRunIssue]
+pub fn client_program_installed_local_file_store_recipe_capacities(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int64, Int, Int, Int, Int, Int, Int?, Int?) -> Result[Array[@execution_relation.ExecutionCapacity], @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_managed_acquired_serialization_prefix_start(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @client_local_host.ClientInstalledManagedSerializationPreparation, @client_row_source_host.RowSourceCapture) -> Result[@client_local_host.ClientSerializationPrefix, @client_local_host.ClientInstalledManagedRunIssue]
 

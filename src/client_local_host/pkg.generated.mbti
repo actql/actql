@@ -631,7 +631,7 @@ pub fn installed_local_file_store_observed_constructor_capacities(Int, Int, Int,
 
 pub fn installed_local_file_store_observed_recovery_capacities(Int, Int, Int) -> Result[Array[@execution_relation.ExecutionCapacity], ClientInstalledManagedRunIssue]
 
-pub fn installed_local_file_store_recipe_capacities(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int64, Int, Int, Int, Int, Int, control_wire_bytes? : Int?) -> Result[Array[@execution_relation.ExecutionCapacity], ClientInstalledManagedRunIssue]
+pub fn installed_local_file_store_recipe_capacities(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int64, Int, Int, Int, Int, Int, control_wire_bytes? : Int?, control_response_bytes? : Int?) -> Result[Array[@execution_relation.ExecutionCapacity], ClientInstalledManagedRunIssue]
 
 pub fn installed_managed_acquisition_result_publication(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Result[Bool, ClientInstalledManagedRunIssue]
 

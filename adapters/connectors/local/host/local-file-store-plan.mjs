@@ -18,15 +18,15 @@ export function prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writ
     throw new TypeError('InvalidLocalFileStoreConstructionGeometry');
   }
   const controlEntryBytes = moon.clientProgramInstalledLocalFileStoreControlWireBound();
-  const quote = controlWireBytes => checked(moon.clientProgramInstalledLocalFileStoreRecipeCapacities(
+  const quote = (controlWireBytes, controlResponseBytes) => checked(moon.clientProgramInstalledLocalFileStoreRecipeCapacities(
     inputLimits.body.maxBytes, inputLimits.body.maxNodes, inputLimits.body.maxDepth,
     inputLimits.preview.maxWireBytes, inputLimits.preview.maxNodes, inputLimits.preview.maxDepth,
     limits.maxRequestBytes, inputLimits.preview.maxWireBytes + limits.maxRequestBytes, limits.maxResponseBytes,
     Math.max(effectLedgerImplementationBounds.maxEntryBytes, effectLedgerImplementationBounds.maxResponseBytes),
     effectLedgerImplementationBounds.maxOutcomeNodes, effectLedgerImplementationBounds.maxOutcomeDepth,
     BigInt(writerProfile.nativeOriginalBytes), writerProfile.maxRootBytes, writerProfile.maxNameBytes,
-    localFileWriteMaxComponents, writerProfile.maxDepth, physicalContentReadWindowBytes, controlWireBytes));
-  const quantities = quote(controlEntryBytes), fallback = quote(undefined);
+    localFileWriteMaxComponents, writerProfile.maxDepth, physicalContentReadWindowBytes, controlWireBytes, controlResponseBytes));
+  const quantities = quote(controlEntryBytes, limits.maxResponseBytes), fallback = quote(undefined, undefined);
   const capture = checked(moon.clientProgramInstalledEffectCaptureRecipeExtentPrepare('files.write.capture', quantities));
   const request = checked(moon.clientProgramInstalledEffectOperationExtentFromCapacityPrepare(
     'files.write.request', quantities[2], 0n, false));
@@ -144,7 +144,8 @@ export function prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writ
       Object.freeze({operation: 'files.write.footprint', extent: footprint})]),
     rowOperations: Object.freeze([Object.freeze({operation: 'files.write.request', extent: warmRequest}),
       Object.freeze({operation: 'files.write', extent: physical})]),
-    savedControlCodec: Object.freeze({maxEntryBytes: controlEntryBytes, fallbackCapacity: fallback[4]}),
+    savedControlCodec: Object.freeze({maxEntryBytes: controlEntryBytes,
+      maxResponseBytes: limits.maxResponseBytes, fallbackCapacity: fallback[4]}),
     controlsPerRow: quantities[4], captureConstruction: Object.freeze({operationIndex: 0,
       ...(captureInput === undefined ? {} : {inputExtent: captureInput})}),
     recoveryConstruction: Object.freeze({operationIndex: 1,

@@ -3,6 +3,7 @@ import test from 'node:test';
 import {prepareLocalFileStorePlanRecipe} from './local-file-store-plan.mjs';
 import {installedRowEffectConstructionLimits} from '../../../host-node/installed-row-effect.mjs';
 import {captureInstalledEffectPlanRecipe, installedEffectSavedControlEntryLimit,
+  installedEffectSavedControlResponseLimit,
   installedEffectRecipeForControlEntryLimit} from '../../../host-node/installed-effect-plan.mjs';
 import {effectLedgerImplementationBounds} from '../../../host-node/effect-ledger-implementation-bounds.mjs';
 import {physicalContentReadWindowBytes} from '../../../store-local/publication-store.mjs';
@@ -14,12 +15,14 @@ test('Local STORE recipe consumes actual constructor bounds in distinct original
   const limits = {...LOCAL_STORE_LIMITS, maxFileBytes: 123456};
   const writerProfile = {nativeOriginalBytes: 4321, maxRootBytes: 4096,
     maxNameBytes: 1024, maxDepth: 130, writeQuantumBytes: 65536};
-  const quantities = Array.from({length: 6}, () => Object.freeze({})), calls = [];
+  const quantities = Array.from({length: 6}, () => Object.freeze({})),
+    fallback = Array.from({length: 6}, () => Object.freeze({})), calls = [];
   const moon = {
     clientProgramInstalledOpaqueBoundaryFootprintCapacity: (origin, account, units) => ({origin, account, units}),
     clientProgramInstalledLocalFileStoreControlWireBound: () => 1510,
     clientProgramInstalledLocalFileStoreRecipeCapacities(...args) {
-      assert.strictEqual(this, moon); calls.push(args); return {$tag: 1, _0: quantities};
+      assert.strictEqual(this, moon); calls.push(args);
+      return {$tag: 1, _0: args.at(-1) === undefined ? fallback : quantities};
     }, clientProgramInstalledEffectCaptureRecipeExtentPrepare(operation, original) {
       assert.strictEqual(original, quantities); return {$tag: 1, _0: {operation, original}};
     }, clientProgramInstalledEffectOperationExtentFromCapacityPrepare(operation, capacity, transfer, physical) {
@@ -33,7 +36,7 @@ test('Local STORE recipe consumes actual constructor bounds in distinct original
     Math.max(effectLedgerImplementationBounds.maxEntryBytes, effectLedgerImplementationBounds.maxResponseBytes),
     effectLedgerImplementationBounds.maxOutcomeNodes, effectLedgerImplementationBounds.maxOutcomeDepth,
     4321n, 4096, 1024, localFileWriteMaxComponents, 130, physicalContentReadWindowBytes];
-  assert.deepEqual(calls, [[...expected,1510],[...expected,undefined]]);
+  assert.deepEqual(calls, [[...expected,1510,limits.maxResponseBytes],[...expected,undefined,undefined]]);
   assert.deepEqual(recipe.memberOperations.map(entry => entry.operation),
     ['files.write.capture', 'files.write.capture', 'files.write.footprint']);
   assert.deepEqual(recipe.footprintConstruction, {operationIndex: 2});
@@ -46,7 +49,17 @@ test('Local STORE recipe consumes actual constructor bounds in distinct original
   assert.deepEqual(recipe.rowOperations.map(entry => entry.extent.physical), [false, true]);
   assert.strictEqual(recipe.controlsPerRow, quantities[4]);
   assert.deepEqual(recipe.physicalWrite, {operationIndex: 1, transferBytes: 123456n});
-  assert.deepEqual(recipe.savedControlCodec, {maxEntryBytes:1510, fallbackCapacity:quantities[4]});
+  assert.deepEqual(recipe.savedControlCodec, {maxEntryBytes:1510,
+    maxResponseBytes:limits.maxResponseBytes, fallbackCapacity:fallback[4]});
+  const captured = captureInstalledEffectPlanRecipe(recipe, 5);
+  const selectedResponse = installedEffectSavedControlResponseLimit([captured]);
+  assert.equal(selectedResponse, limits.maxResponseBytes);
+  assert.strictEqual(installedEffectRecipeForControlEntryLimit(captured, 1510, selectedResponse), captured);
+  const sharedResponse = installedEffectSavedControlResponseLimit([captured, undefined]);
+  assert.equal(sharedResponse, effectLedgerImplementationBounds.maxResponseBytes);
+  const shared = installedEffectRecipeForControlEntryLimit(captured, 1510, sharedResponse);
+  assert.strictEqual(shared.controlsPerRow, fallback[4]);
+  assert.strictEqual(shared.rowOperations, captured.rowOperations);
   assert.equal(recipe.credentialOperations, undefined, 'Local must not borrow an HTTP/secret recipe');
   const originalFootprintQuote = moon.clientProgramInstalledOpaqueBoundaryFootprintCapacity;
   moon.clientProgramInstalledOpaqueBoundaryFootprintCapacity = () => undefined;

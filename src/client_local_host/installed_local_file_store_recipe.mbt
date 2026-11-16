@@ -282,10 +282,14 @@ pub fn installed_local_file_store_recipe_capacities(
   native_depth : Int,
   content_read_window_bytes : Int,
   control_wire_bytes? : Int? = None,
+  control_response_bytes? : Int? = None,
 ) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
   let control_bytes = control_wire_bytes.unwrap_or(stored_bytes)
+  let response_read_bytes = control_response_bytes.unwrap_or(stored_bytes)
   if control_bytes < 1 ||
     control_bytes > stored_bytes ||
+    response_read_bytes < 1 ||
+    response_read_bytes > stored_bytes ||
     native_original_bytes <= 0L ||
     path_bytes < 1 ||
     name_bytes < 1 ||
@@ -361,8 +365,10 @@ pub fn installed_local_file_store_recipe_capacities(
     local_file_store_json_capacity(response_bytes, stored_nodes, stored_depth)
     is Some(projected) &&
     @execution.execution_capacity_inventory(
-      // Same SQLite response and its existing Buffer.from materialization.
-      [{ unit: QuotedBytes, count: stored_bytes.to_int64(), copies: 2, }],
+      // The receiver bounds the native SQLite BLOB BEFORE materialization.
+      // Its Buffer.from copy overlaps that row; if both single/batch records
+      // exist, the prior single Buffer survives the second copy until refusal.
+      [{ unit: QuotedBytes, count: response_read_bytes.to_int64(), copies: 3, }],
       [],
       RetainedAlongsideExecution,
     )

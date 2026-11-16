@@ -5,10 +5,30 @@ fn local_file_store_recipe_fixture(
   window? : Int = 65536,
   body? : Int = 100000,
   request? : Int = 100000,
+  control_wire? : Int? = None,
+  control_response? : Int? = None,
 ) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
   installed_local_file_store_recipe_capacities(
-    body, 10000, 16, 1000000, 100000, 64, request, 100000, 65536, 1000000, 512, 16,
-    native_bytes, 4096, 1024, components, 130, window,
+    body,
+    10000,
+    16,
+    1000000,
+    100000,
+    64,
+    request,
+    100000,
+    65536,
+    1000000,
+    512,
+    16,
+    native_bytes,
+    4096,
+    1024,
+    components,
+    130,
+    window,
+    control_wire_bytes=control_wire,
+    control_response_bytes=control_response,
   )
 }
 
@@ -76,7 +96,7 @@ test "Local footprint targets retain CID and duplicate inventory apart from fixe
   let saved = standard_create_saved_control_capacity(1000000, 512, 16).unwrap()
   let projected = local_file_store_json_capacity(65536, 512, 16).unwrap()
   let stored = @execution.execution_capacity_inventory(
-    [{ unit: QuotedBytes, count: 1000000L, copies: 2, }],
+    [{ unit: QuotedBytes, count: 1000000L, copies: 3, }],
     [],
     RetainedAlongsideExecution,
   ).unwrap()
@@ -161,6 +181,52 @@ test "Local closed saved codec keeps original response buffers and generic fallb
     @execution.execution_capacity_execution_bytes(narrow[4]) >
     200000000L,
   )
+}
+
+///|
+test "Local response receiver backs native copy and rejected single batch overlap with the same closed limit" {
+  let bound = 65536
+  let general = local_file_store_recipe_fixture(control_wire=Some(1510)).unwrap()
+  let selected = local_file_store_recipe_fixture(
+    control_wire=Some(1510),
+    control_response=Some(bound),
+  ).unwrap()
+  for index in [0, 1, 2, 3, 5] {
+    assert_eq(
+      @execution.execution_capacity_retained_bytes(selected[index]),
+      @execution.execution_capacity_retained_bytes(general[index]),
+    )
+    assert_eq(
+      @execution.execution_capacity_execution_bytes(selected[index]),
+      @execution.execution_capacity_execution_bytes(general[index]),
+    )
+  }
+  let difference = 3L * (1000000L - bound.to_int64())
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(general[4]) -
+    @execution.execution_capacity_retained_bytes(selected[4]),
+    difference,
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(general[4]) -
+    @execution.execution_capacity_execution_bytes(selected[4]),
+    difference,
+  )
+  let next = local_file_store_recipe_fixture(
+    control_wire=Some(1510),
+    control_response=Some(bound + 1),
+  ).unwrap()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(next[4]) -
+    @execution.execution_capacity_retained_bytes(selected[4]),
+    3L,
+  )
+  for invalid in [0, -1, 1000001] {
+    assert_true(
+      local_file_store_recipe_fixture(control_response=Some(invalid))
+      is Err(Unsupported),
+    )
+  }
 }
 
 ///|
