@@ -126,6 +126,24 @@ separate original limits. The completed owner lends that same Read through
 publication and Store inspection, then severs it at the original cleanup.
 No new owner, permission cache, or asynchronous I/O scope is introduced.
 
+Only the installing control's original final-Receipt and commit methods select
+this completed-Read constructor class. It borrows the admitted Definition and
+capture, preserving their streaming context, reference and identity checks.
+It funds the actual Receipt codecs instead of rebuilding the capture's Source
+and canonical forests or receiving its ended encrypted buffers again. Other
+methods retain the complete validation class; a selected refusal never retries
+a different class.
+
+New canonical Receipt/artifact trees, complete wires and Host views remain on
+the same material reservation across publication awaits. A single maximum
+adoption envelope covers sequential post-return admissions; ended per-body
+parser and writer scratch does not accumulate with every output. Completion
+returns only synchronous scratch, while failure retains its funded prefix.
+Publication metadata uses the captured result, member and Source inventories,
+independently of payload node counts. Its matching bound is funded before the
+Host constructs token and Receipt argument arrays, and is checked again before
+the original constructor runs. It supplies no chain admission or currentness.
+
 The captured row-stage constructor freezes only the three structural envelopes
 it newly creates for this inventory: the outer member Array, each member record
 and each claims Array. They are final DATA before the original captured-input
