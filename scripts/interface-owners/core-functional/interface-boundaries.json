@@ -59806,7 +59806,9 @@
             "client_program_adopt_request_program_preparation",
             "client_program_advance_program_json_preparation",
             "client_program_begin_host_initialization_preparation",
+            "client_program_begin_installed_effect_capture_publication",
             "client_program_begin_installed_effect_capture_recovery",
+            "client_program_begin_installed_effect_capture_validation",
             "client_program_begin_request_preparation",
             "client_program_bind_request_policy_subject",
             "client_program_borrow_request_effect_plan_input",
@@ -59825,6 +59827,7 @@
             "client_program_finish_request_computation",
             "client_program_finish_request_policy_subjects",
             "client_program_finish_request_submitted_intent",
+            "client_program_installed_effect_capture_publication_input_limit",
             "client_program_lower_request_published_query",
             "client_program_parse_request_query_syntax",
             "client_program_preparation_capacity_refusal",
@@ -59885,6 +59888,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed capture-recovery Definition construction"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_publication("
               }
             ],
             "inputsOutputs": [
@@ -59895,6 +59902,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed capture-recovery Definition construction"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_publication("
               }
             ],
             "identity": [
@@ -59905,6 +59916,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed capture-recovery Definition construction"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_publication("
               }
             ],
             "ownership": [
@@ -59915,6 +59930,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed capture-recovery Definition construction"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_publication("
               }
             ],
             "synchronization": [
@@ -59925,6 +59944,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed capture-recovery Definition construction"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_publication("
               }
             ],
             "failure": [
@@ -59935,6 +59958,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed capture-recovery Definition construction"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_publication("
               }
             ],
             "cancellation": [
@@ -59945,6 +59972,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed capture-recovery Definition construction"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_publication("
               }
             ],
             "resources": [
@@ -59955,6 +59986,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed capture-recovery Definition construction"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_publication("
               }
             ],
             "extension": [
@@ -59965,6 +60000,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed capture-recovery Definition construction"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_publication("
               }
             ],
             "verification": [
@@ -59983,6 +60022,18 @@
               {
                 "path": "src/client_local_host/installed_effect_definition_capacity_js_wbtest.mbt",
                 "anchor": "test \"Definition success retains actual Unicode tree and full text then SAME begin regrows before admission\""
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "anchor": "final publication selects original closed issue and commit methods on the same completed Read"
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "anchor": "publication class refusal preserves primary without generic retry or issuer entry"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "publication metadata is bounded by its original Read before token-array construction"
               }
             ]
           }
@@ -60643,8 +60694,16 @@
           "declaration": "client_program_begin_host_initialization_preparation ( initial : @ resources . NodePreparationAdmission [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , policy : @ client_local_host . ClientLocalResourcePolicy , ) - > Result [ @ client_local_host . ClientHostInitializationPreparation [ ClientLocalPreparationInputOriginal , ] , @ client_local_host . ClientHostInitializationIssue , ]"
         },
         {
+          "name": "client_program_begin_installed_effect_capture_publication",
+          "declaration": "client_program_begin_installed_effect_capture_publication ( original : @ client_local_host . ClientInstalledEffectCaptureRecovery , issue : Bool , contracts : Array [ @ publication . PublicationContract ] , receipt_wires : Array [ String ] , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "client_program_begin_installed_effect_capture_recovery",
           "declaration": "client_program_begin_installed_effect_capture_recovery ( original : @ client_local_host . ClientInstalledEffectCaptureRecovery , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_begin_installed_effect_capture_validation",
+          "declaration": "client_program_begin_installed_effect_capture_validation ( original : @ client_local_host . ClientInstalledEffectCaptureRecovery , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "client_program_begin_request_preparation",
@@ -60737,6 +60796,10 @@
         {
           "name": "client_program_finish_request_submitted_intent",
           "declaration": "client_program_finish_request_submitted_intent ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_capture_publication_input_limit",
+          "declaration": "client_program_installed_effect_capture_publication_input_limit ( original : @ client_local_host . ClientInstalledEffectCaptureRecovery , ) - > Result [ Int , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "client_program_installed_effect_models_demand_prepare",
@@ -85929,6 +85992,14 @@
         {
           "name": "preview_identity_member_row_inventory",
           "declaration": "preview_identity_member_row_inventory ( count : Int64 , ) - > EffectPreviewIdentityConstructionInventory ?"
+        },
+        {
+          "name": "protocol_wire_codec_construction_inventory",
+          "declaration": "protocol_wire_codec_construction_inventory ( bytes : Int , nodes : Int , depth : Int , geometry ? : @ encode . EncodingConstructionGeometry ?"
+        },
+        {
+          "name": "protocol_wire_validation_construction_extent",
+          "declaration": "protocol_wire_validation_construction_extent ( count : Int64 , ) - > @ shape . CollectionConstructionExtent ?"
         }
       ],
       "contracts": [
@@ -85936,7 +86007,9 @@
           "operations": [
             "<module>",
             "effect_preview_identity_construction_inventory",
-            "preview_identity_member_row_inventory"
+            "preview_identity_member_row_inventory",
+            "protocol_wire_codec_construction_inventory",
+            "protocol_wire_validation_construction_extent"
           ],
           "exports": [],
           "attributes": {
@@ -85944,36 +86017,60 @@
               {
                 "path": "docs/design/salesforce-write-capability.md",
                 "anchor": "## Salesforce managed operation recipe"
+              },
+              {
+                "path": "src/run_publication/effect_preview_construction.mbt",
+                "anchor": "// Shared protocol wire codec only:"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "src/run_publication/effect_preview_construction.mbt",
                 "anchor": "pub fn "
+              },
+              {
+                "path": "src/run_publication/effect_preview_construction.mbt",
+                "anchor": "// Shared protocol wire codec only:"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/salesforce-write-capability.md",
                 "anchor": "the same complete"
+              },
+              {
+                "path": "src/run_publication/effect_preview_construction.mbt",
+                "anchor": "// Shared protocol wire codec only:"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/salesforce-write-capability.md",
                 "anchor": "Core's checked Program"
+              },
+              {
+                "path": "src/run_publication/effect_preview_construction.mbt",
+                "anchor": "// Shared protocol wire codec only:"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/salesforce-write-capability.md",
                 "anchor": "Synchronous constructor scratch"
+              },
+              {
+                "path": "src/run_publication/effect_preview_construction.mbt",
+                "anchor": "// Shared protocol wire codec only:"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/salesforce-write-capability.md",
                 "anchor": "Original native refusals propagate before child creation."
+              },
+              {
+                "path": "src/run_publication/effect_preview_construction.mbt",
+                "anchor": "// Shared protocol wire codec only:"
               }
             ],
             "cancellation": {
@@ -85987,18 +86084,185 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Sealed review construction and adoption"
+              },
+              {
+                "path": "src/run_publication/effect_preview_construction.mbt",
+                "anchor": "// Shared protocol wire codec only:"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/salesforce-write-capability.md",
                 "anchor": "Labels and implementation limits do not issue a grant"
+              },
+              {
+                "path": "src/run_publication/effect_preview_construction.mbt",
+                "anchor": "// Shared protocol wire codec only:"
               }
             ],
             "verification": [
               {
                 "path": "src/connectors/salesforce/host/effect_capture_construction_wbtest.mbt",
                 "anchor": "test \"Salesforce capture"
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "anchor": "final publication selects original closed issue and commit methods on the same completed Read"
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "anchor": "publication class refusal preserves primary without generic retry or issuer entry"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "publication metadata is bounded by its original Read before token-array construction"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication/effectful_publication_construction.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Run Publication constructor owners; the original Request/Read retains funding, current and cleanup authority",
+      "referenceQualification": "Source and existing Host/Store responsibility references only; numerical API checks and ordinary publication acceptance remain separate",
+      "exports": [],
+      "operations": [
+        {
+          "name": "effectful_publication_construction_inventory",
+          "declaration": "effectful_publication_construction_inventory ( issue : Bool , contracts : Array [ PublicationContract ] , receipt_wires : Array [ String ] , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > ( EffectPreviewIdentityConstructionInventory , EffectPreviewIdentityConstructionInventory , ) ?"
+        },
+        {
+          "name": "publication_adoption_inventory",
+          "declaration": "publication_adoption_inventory ( wire : String , bytes : Int , nodes : Int , depth : Int , ) - > EffectPreviewIdentityConstructionInventory ?"
+        },
+        {
+          "name": "publication_borrowed_contract_inventory",
+          "declaration": "publication_borrowed_contract_inventory ( bytes : Int , nodes : Int , depth : Int , ) - > ( EffectPreviewIdentityConstructionInventory , EffectPreviewIdentityConstructionInventory , ) ?"
+        },
+        {
+          "name": "publication_inventory_add",
+          "declaration": "publication_inventory_add ( left : EffectPreviewIdentityConstructionInventory , right : EffectPreviewIdentityConstructionInventory , ) - > EffectPreviewIdentityConstructionInventory ?"
+        },
+        {
+          "name": "publication_inventory_max",
+          "declaration": "publication_inventory_max ( left : EffectPreviewIdentityConstructionInventory , right : EffectPreviewIdentityConstructionInventory , ) - > EffectPreviewIdentityConstructionInventory"
+        },
+        {
+          "name": "publication_returned_contract_inventory",
+          "declaration": "publication_returned_contract_inventory ( bytes : Int , nodes : Int , depth : Int , geometry ? : @ encode . EncodingConstructionGeometry ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "effectful_publication_construction_inventory",
+            "publication_adoption_inventory",
+            "publication_borrowed_contract_inventory",
+            "publication_inventory_add",
+            "publication_inventory_max",
+            "publication_returned_contract_inventory"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_construction_inventory("
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed capture-recovery Definition construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_construction_inventory("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_construction_inventory("
+              },
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_publication("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_publication("
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Completed capture-recovery Definition construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_construction_inventory("
+              },
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_publication("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_construction_inventory("
+              },
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_publication("
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This pure synchronous quantity projection performs no I/O or cancellation transport. The consuming original Read/Run preserves current, cancellation and failed-prefix cleanup."
+            },
+            "resources": [
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_construction_inventory("
+              },
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_publication("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication/effectful_publication_construction.mbt",
+                "anchor": "pub fn effectful_publication_construction_inventory("
+              },
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_publication("
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "anchor": "final publication selects original closed issue and commit methods on the same completed Read"
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "anchor": "publication class refusal preserves primary without generic retry or issuer entry"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "publication metadata is bounded by its original Read before token-array construction"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "healthy publication progress needs no cleanup retry or confirming reread"
               }
             ]
           }
