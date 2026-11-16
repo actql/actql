@@ -306,6 +306,8 @@ pub fn client_program_begin_effect_local_command_key_workspace(ClientEffectComma
 
 pub fn client_program_begin_host_initialization_preparation(@physical_resources.NodePreparationAdmission[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientLocalResourcePolicy) -> Result[@client_local_host.ClientHostInitializationPreparation[ClientLocalPreparationInputOriginal], @client_local_host.ClientHostInitializationIssue]
 
+pub fn client_program_begin_installed_effect_capture_publication(@client_local_host.ClientInstalledEffectCaptureRecovery, Bool, Array[@run_publication.PublicationContract], Array[String], Int, Int, Int) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_begin_installed_effect_capture_recovery(@client_local_host.ClientInstalledEffectCaptureRecovery) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_begin_installed_effect_capture_validation(@client_local_host.ClientInstalledEffectCaptureRecovery) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
@@ -1053,6 +1055,8 @@ pub fn client_program_infer_run_materials_prepared(@run_publication_host.ClientT
 pub fn client_program_installed_duckdb_capture_capacity(@actql/actql/connectors/duckdb/host.CaptureConfiguration) -> @client_local_host.ClientInstalledCaptureCapacity?
 
 pub fn client_program_installed_duckdb_capture_capacity_accepts(@client_local_host.ClientInstalledCaptureCapacity, @actql/actql/connectors/duckdb/host.CaptureConfiguration) -> Bool
+
+pub fn client_program_installed_effect_capture_publication_input_limit(@client_local_host.ClientInstalledEffectCaptureRecovery) -> Result[Int, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_managed_plan_whole_source(@client_local_host.ClientInstalledEffectManagedPlan, Int) -> Result[(@sourceview_resolution.SourceAcquisition, @client_row_source_host.RowInputAcquisition, @client_local_host.ClientInstalledWholeSourceCapacity), @client_local_host.ClientInstalledManagedRunIssue]
 
