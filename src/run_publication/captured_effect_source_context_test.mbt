@@ -1,5 +1,5 @@
 ///|
-// Existing real publication fixtures exercise the immutable association only.
+// Real publication fixtures exercise the public projection and refusal paths.
 // No Store custody, current authorization or physical completion is supplied.
 fn source_context_fixture(
   prepared? : Bool = false,
@@ -50,37 +50,32 @@ fn source_context_fixture(
 }
 
 ///|
-test "Source context association uses exact admitted originals from both producers and preserves legacy Result" {
+fn source_context_result_string(
+  contract : PublicationContract,
+  field : String,
+) -> String? {
+  match
+    @json.object_field(
+      captured_test_value(publication_contract_json(contract)),
+      field,
+    ) {
+    Some(@json.String(value)) => Some(value)
+    _ => None
+  }
+}
+
+///|
+test "Source context producers preserve the public unbound Result projection and authored facts" {
   for prepared in [false, true] {
     let (chain, captured, preview, source) = source_context_fixture(prepared~)
-    let (bytes, nodes, depth) = publication_contract_wire_usage(captured).unwrap()
-    assert_true(
-      captured_effect_source_context_matches(
-        source,
-        captured,
-        preview,
-        chain.invocation,
-        0,
-        ordering_test_cid("d"),
-        bytes,
-        nodes,
-        depth,
-      ),
-    )
-    let legacy = { ..source, context_binding: None, }
-    assert_false(
-      captured_effect_source_context_matches(
-        legacy,
-        captured,
-        preview,
-        chain.invocation,
-        0,
-        ordering_test_cid("d"),
-        bytes,
-        nodes,
-        depth,
-      ),
-    )
+    // The ordinary artifact constructor has no admitted captured-context association.
+    let legacy = admit_captured_effect_source_artifact(
+      preview,
+      0,
+      chain.invocation,
+      final_test_source_artifact(chain),
+      ordering_test_cid("d"),
+    ).unwrap()
     let result = captured_effect_source_result_from_original_capture(
       preview,
       0,
@@ -89,7 +84,7 @@ test "Source context association uses exact admitted originals from both produce
       captured,
       ordering_test_cid("d"),
     ).unwrap()
-    let original_result = captured_effect_source_result_from_original_capture(
+    let legacy_result = captured_effect_source_result_from_original_capture(
       preview,
       0,
       chain.invocation,
@@ -100,21 +95,18 @@ test "Source context association uses exact admitted originals from both produce
     assert_eq(publication_contract_name(result), "result_artifact")
     assert_eq(
       publication_contract_json(result),
-      publication_contract_json(original_result),
+      publication_contract_json(legacy_result),
     )
-    assert_eq(
-      contract_string(result, "logical_result_cid"),
-      contract_string(chain.artifact, "logical_result_cid"),
-    )
-    assert_eq(
-      contract_string(result, "result_schema_cid"),
-      contract_string(chain.artifact, "result_schema_cid"),
-    )
+    for field in ["logical_result_cid", "result_schema_cid"] {
+      let expected = source_context_result_string(chain.artifact, field)
+      assert_true(expected is Some(_))
+      assert_eq(source_context_result_string(result, field), expected)
+    }
   }
 }
 
 ///|
-test "equal-looking admitted capture Preview and invocation do not select another Source context association" {
+test "separately admitted equal capture Preview and invocation retain full projection semantics" {
   let (chain, captured, preview, source) = source_context_fixture()
   let (bytes, nodes, depth) = publication_contract_wire_usage(captured).unwrap()
   let other_captured = admit_publication_contract(
@@ -141,21 +133,6 @@ test "equal-looking admitted capture Preview and invocation do not select anothe
       (captured, other_preview, chain.invocation),
       (captured, preview, other_invocation),
     ] {
-    assert_false(
-      captured_effect_source_context_matches(
-        source,
-        candidate,
-        selected_preview,
-        invocation,
-        0,
-        ordering_test_cid("d"),
-        bytes,
-        nodes,
-        depth,
-      ),
-    )
-    // Equal canonical DATA remains acceptable through the full legacy check;
-    // rejecting the reuse predicate does not invent a new semantic refusal.
     let result = captured_effect_source_result_from_original_capture(
       selected_preview,
       0,
@@ -165,36 +142,24 @@ test "equal-looking admitted capture Preview and invocation do not select anothe
       ordering_test_cid("d"),
     ).unwrap()
     assert_eq(
-      contract_string(result, "logical_result_cid"),
-      contract_string(chain.artifact, "logical_result_cid"),
+      source_context_result_string(result, "logical_result_cid"),
+      source_context_result_string(chain.artifact, "logical_result_cid"),
     )
   }
 }
 
 ///|
-test "Source context association never waives explicit smaller limits or a foreign member Store or artifact" {
+test "Source context reuse preserves explicit small limits and foreign member Store artifact and context refusal" {
   let (chain, captured, preview, source) = source_context_fixture()
   let (bytes, nodes, depth) = publication_contract_wire_usage(captured).unwrap()
-  assert_true(bytes > 1 && nodes > 1 && depth > 1)
+  assert_true(bytes > 1024 && nodes > 1 && depth > 1)
   for
     (small_bytes, small_nodes, small_depth) in [
       (1, nodes, depth),
+      (1024, nodes, depth),
       (bytes, 1, depth),
       (bytes, nodes, 1),
     ] {
-    assert_false(
-      captured_effect_source_context_matches(
-        source,
-        captured,
-        preview,
-        chain.invocation,
-        0,
-        ordering_test_cid("d"),
-        small_bytes,
-        small_nodes,
-        small_depth,
-      ),
-    )
     assert_true(
       captured_effect_source_result_from_capture(
         preview,
@@ -215,19 +180,6 @@ test "Source context association never waives explicit smaller limits or a forei
       (1, ordering_test_cid("d")),
       (0, ordering_test_cid("e")),
     ] {
-    assert_false(
-      captured_effect_source_context_matches(
-        source,
-        captured,
-        preview,
-        chain.invocation,
-        member,
-        store,
-        bytes,
-        nodes,
-        depth,
-      ),
-    )
     assert_true(
       captured_effect_source_result_from_original_capture(
         preview,
@@ -240,37 +192,20 @@ test "Source context association never waives explicit smaller limits or a forei
       is Err(_),
     )
   }
-  // Even a private whitebox copy carrying a prior association must still
-  // satisfy the actual stored member/artifact correspondence.
-  let other_source = {
-    ..source,
-    artifact: final_test_source_artifact(chain, table=true),
-  }
+  let table_preview = final_test_preview(chain, plan=false, table=true)
+  let foreign_source = final_test_source(chain, table_preview, table=true)
   assert_true(
     captured_effect_source_result_from_original_capture(
       preview,
       0,
       chain.invocation,
-      other_source,
+      foreign_source,
       captured,
       ordering_test_cid("d"),
     )
     is Err(_),
   )
   let foreign_capture = final_test_captured(chain, table=true)
-  assert_false(
-    captured_effect_source_context_matches(
-      source,
-      foreign_capture,
-      preview,
-      chain.invocation,
-      0,
-      ordering_test_cid("d"),
-      bytes,
-      nodes,
-      depth,
-    ),
-  )
   assert_true(
     captured_effect_source_result_from_original_capture(
       preview,
