@@ -585,15 +585,27 @@ fn local_module_default_output_start_capacity(
       Some(@lower.WindowStep(_)) if window_chain => ()
       Some(@lower.RowStep(kernel)) if window_chain &&
         @lower.kernel_body(kernel) is @lower.Groups(_) => {
-        // Only direct window reductions use the bounded borrowed-cell recipe.
-        // Their maps/pending rows remain in operation workspace; persistent
+        // Scalar window reductions use the bounded borrowed-cell recipe.
+        // Dynamic arguments and filters retain their complete Fragment
+        // context, maps and pending rows in operation workspace; persistent
         // output grows before CommitOutput appends the original checked row.
         let direct = @lower.kernel_group(kernel)
           .map(group => {
             let mut direct = @lower.group_is_window(group)
             for aggregate in 0..<@lower.group_aggregate_count(group) {
               let aggregate = @lower.group_aggregate_at(group, aggregate).unwrap()
-              if @lower.group_aggregate_requires_expression_context(aggregate) {
+              match @lower.group_aggregate_argument(aggregate) {
+                @lower.AggregateExpression(expression) =>
+                  match @lower.expression_contract(expression).shape {
+                    @contract.Number | @contract.Boolean => ()
+                    // A scalar result such as COUNT can still consume a
+                    // newly constructed Text or collection argument.
+                    _ => direct = false
+                  }
+                _ => ()
+              }
+              if @lower.group_aggregate_filter(aggregate) is Some(filter) &&
+                !(@lower.expression_contract(filter).shape is @contract.Boolean) {
                 direct = false
               }
               // A newly built text/collection aggregate needs its own full

@@ -1177,6 +1177,11 @@ test "window reductions retain constructing aggregate backing before row funding
     (aggregate, borrowed) in [
       ("{\"fn\":\"count\"}", true),
       (
+        "{\"fn\":\"sum\",\"expr\":{\"add\":[{\"field\":\"id\"},{\"literal\":1}]},\"filter\":{\"gt\":[{\"field\":\"id\"},{\"literal\":0}]},\"distinct\":true}",
+        true,
+      ),
+      ("{\"fn\":\"count\",\"expr\":{\"literal\":\"text\"}}", false),
+      (
         "{\"fn\":\"array_agg\",\"field\":\"id\",\"max_items\":100,\"order_by\":[{\"id\":\"asc\"}]}",
         false,
       ),

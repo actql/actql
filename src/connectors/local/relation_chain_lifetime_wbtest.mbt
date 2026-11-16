@@ -123,7 +123,19 @@ fn chain_lifetime_generated(
     if @lower.sequence_step(sequence, step) is Some(@lower.RowStep(kernel)) &&
       (
         @lower.kernel_body(kernel) is @lower.Filter(_) ||
-        @lower.kernel_bindings(kernel) is Some(_)
+        @lower.kernel_bindings(kernel) is Some(_) ||
+        @lower.kernel_group(kernel)
+        .map(group => {
+          let mut dynamic = false
+          for index in 0..<@lower.group_aggregate_count(group) {
+            if @lower.group_aggregate_at(group, index) is Some(aggregate) &&
+              @lower.group_aggregate_requires_expression_context(aggregate) {
+              dynamic = true
+            }
+          }
+          dynamic
+        })
+        .unwrap_or(false)
       ) {
       let fragment = @lower.prepare_fragment_pipeline(sequence, step, {
         max_roots: 100,
