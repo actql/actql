@@ -39,13 +39,6 @@ unchanged. A successful input is one-use, and only successful completion drops
 its scratch; its returned forest remains retained. Later generic callbacks
 still require the full original recipe construction demand.
 
-The same idle control floor prepays the fixed lexical preflight cursor before
-observing the original wire. Quoted payload text does not become a grammar-node
-count. Observed bytes and node prefixes refine the forest quote under every
-selected member's existing byte, node and depth limits; role multiplicities and
-the original full text allowance remain unchanged. Preflight constructs no
-tree and does not replace JSON or Preview admission.
-
 Effect Ledger open has its own same-control frame. The logical-request-scope
 owner supplies the exact existing hashing-writer/caller-validation inventory;
 Common adds the original path conversions and its shared fixed Host-control
