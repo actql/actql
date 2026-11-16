@@ -279,6 +279,8 @@ pub fn check_installed_whole_source_capacity(ClientInstalledWholeSourceCapacity,
 
 pub fn check_program_commit_validation(ClientProgramCapture, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract) -> Result[Unit, ClientProgramValidationIssue]
 
+pub fn check_program_commit_validation_in_read(ClientProgramCapture, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, (ClientProgramValidationReadDemand) -> Result[Unit, ClientProgramValidationIssue]) -> Result[Unit, ClientProgramValidationIssue]
+
 pub fn cleanup_client_broad_residual(ClientBroadResidual) -> Result[Bool, @connector_sdk.FixedComputeIssue]
 
 pub fn cleanup_client_infer_input(ClientInferInputExecution) -> Result[Bool, ClientInferInputIssue]
@@ -1896,6 +1898,22 @@ pub(all) enum ClientProgramValidationIssue {
   Owner(ClientClosedValuesPreparationIssue)
   Chain(@run_publication.RunEvidenceChainIssue)
   Commit(@run_publication.PublicationCommitIssue)
+}
+
+pub(all) struct ClientProgramValidationReadDemand {
+  retained_bytes : Int64
+  execution_bytes : Int64
+  copied_slots : Int
+  copied_arrays : Int
+  metadata_nodes : Int
+  phase : ClientProgramValidationReadPhase
+}
+
+pub(all) enum ClientProgramValidationReadPhase {
+  Scaffold
+  Inventory
+  Plan
+  Fence
 }
 
 type ClientQueryResidual
