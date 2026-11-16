@@ -3463,14 +3463,18 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         managedEffect.definitionOriginal.definition, durable.invocation, preview, requestScope,
         members.length, limits.maxRows, limits.maxWork, limits.key.maxBytes,
         limits.key.maxNodes, limits.key.maxDepth, controlConstruction);
-    let recoveredRows = 0;
+    let recoveredRows = 0, recoveredMemberRows = 0;
     for (const member of body.effects) {
       if (!Array.isArray(member.changes)) fail('InstalledEffectContinuationMismatch');
       recoveredRows += member.changes.length;
+      recoveredMemberRows = Math.max(recoveredMemberRows, member.changes.length);
       if (member.changes.length > limits.maxRowsPerMember || recoveredRows > limits.maxRows) {
         fail('InstalledRowEffectRowLimit');
       }
     }
+    // Run limits remain rejection ceilings. Ledger recovery consumes this
+    // verified whole cohort; each native member constructor consumes only the
+    // widest actual member. Neither receiver inherits the Run's policy size.
     const applyPreview = effect.admitPreviewIdentity(previewWire,
       body.run_identity_cid, body.authoring_context.authoring_context_cid,
       requestScope, keys, limits.preview.maxWireBytes,
@@ -3558,10 +3562,10 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     try {
       const recorded = ledger.recoverClaimFacts({preview: admitted,
         scope: requestScope, programId: provider.program_id,
-        nodeId: provider.stage_id, maxRows: limits.maxRows,
+        nodeId: provider.stage_id, maxRows: recoveredRows,
         maxWork: limits.maxWork}, keys);
       assertCurrent?.();
-      ({entries, currents} = prepareRecoveredEntries({members, body, durable, maxRows: limits.maxRowsPerMember,
+      ({entries, currents} = prepareRecoveredEntries({members, body, durable, maxRows: recoveredMemberRows,
         recorded, previewWire, runInvocationCid, dispatches,
         requestTags: keys.map((rows, index) => ownerOf(members[index]).owned.finalizeRequest === undefined
           ? undefined : rows.map(key => effect.dispatchKeyCid(key))), controlConstruction,
@@ -3656,7 +3660,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           ...(requestedStop === undefined ? {} : {requestedStop, assertRequestedStopCurrent}),
           apply: {moon, store, publicationControl: control, computation,
             preview, ledger, requestScope, programId: provider.program_id,
-            nodeId: provider.stage_id, maxRows: limits.maxRows,
+            nodeId: provider.stage_id, maxRows: recoveredRows,
             maxFrontierWork: limits.maxFrontierWork,
             maxRecoveryWork: limits.maxWork,
             keyLimits: {...limits.key, maxWork: limits.maxWork},

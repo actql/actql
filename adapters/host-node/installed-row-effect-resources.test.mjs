@@ -115,9 +115,10 @@ test('a resource accessor is not invoked or silently treated as an absent servic
 
 test('managed recovery derives its shared row ceiling from the same current Plan, preserving explicit tighter bounds', async t => {
   for (const [rows, supplied, expected, members = 1] of [[101, undefined, 101], [501, undefined, 501],
-    [101, 100, 100], [0, undefined, 0], [60, undefined, 120, 2],
+    [1000000, undefined, 1000000], [101, 100, 100], [0, undefined, 0], [60, undefined, 120, 2],
     [2147483647, undefined, 2147483647, 2]]) {
     const plan = {}, value = {}, prepared = {}, request = {}, events = [];
+    const definition = {}, allowed = {}, invocation = {};
     let active = false;
     const f = await fixture(t, {limits: supplied === undefined ? {} : {maxRows: supplied}, moon: {
       clientProgramInstalledEffectManagedPlanShape(selected) {
@@ -126,6 +127,12 @@ test('managed recovery derives its shared row ceiling from the same current Plan
       },
       clientProgramInstalledEffectManagedOperationPlan() {events.push('current'); return {$tag: 1, _0: plan};},
       clientProgramInstalledEffectManagedPlanHasHostInput() {return false;},
+      clientRequestRelation(actual, original) {
+        assert.strictEqual(actual, request); assert.strictEqual(original, request); return 1;
+      },
+      strategyPublicationContractIdentity(original) {
+        assert.strictEqual(original, definition); return cid('e');
+      },
       clientProgramInstalledEffectOperationControlConstructionBegin(p, original, identity, selected) {
         assert.deepEqual([p, original, identity, selected], [value, prepared, request, plan]);
         assert.equal(active, false); active = true; events.push('begin'); return {$tag: 1, _0: undefined};
@@ -133,20 +140,33 @@ test('managed recovery derives its shared row ceiling from the same current Plan
       clientProgramInstalledEffectOperationControlConstructionComplete() {
         assert.equal(active, true); active = false; events.push('complete'); return {$tag: 1, _0: undefined};
       },
-      strategyEffectRecoveredPreviewKeys(_preview, _scope, _members, actualRows, work) {
-        assert.equal(actualRows, expected); assert.equal(work, 10000);
-        assert.equal(active, false); throw f.next;
-      },
     }});
     const managed = {runtime: f.moon, value, prepared, request, operationPlan: plan,
+      definitionOriginal: {allowed, definition},
       readPlan: f.moon.clientProgramInstalledEffectManagedOperationPlan, closed: false, selecting: false};
     const work = prepareInstalledEffectControlConstruction(managed);
     managed.controlConstruction = work; managed.retireControlConstruction = work.retire;
     f.recovered.managedEffect = managed;
+    f.recovered.retainRecoveryOwner = () => assert.fail('No physical Ledger owner before selected key recovery');
+    f.recovered.recovered.requestIdentity = request;
+    f.recovered.recovered.runDefinition = {identity: cid('e')};
+    f.recovered.recovered.computation.invocation = invocation;
     f.recovered.control.effectComputationPreviewLedgerIdentity = () => ({});
+    f.recovered.control.retainInstalledEffectRecoveredInputInventory = function(...args) {
+      assert.strictEqual(this, f.recovered.control);
+      assert.deepEqual(args, [value, prepared, request, plan, allowed, definition,
+        invocation, f.recovered.recovered.computation.preview]);
+      events.push('retain');
+    };
+    f.recovered.control.recoverInstalledEffectPreviewKeys = function(...args) {
+      assert.strictEqual(this, f.recovered.control);
+      assert.equal(args[10], expected); assert.equal(args[11], 10000);
+      assert.strictEqual(args.at(-1), work);
+      assert.equal(active, false); throw f.next;
+    };
     f.expect(f.recovered);
     assert.throws(() => f.effect.prepareRecovered(f.recovered), error => error === f.next);
-    assert.deepEqual(events, ['current', 'shape', 'current']);
+    assert.deepEqual(events, ['current', 'shape', 'current', 'retain']);
     assert.equal(work.retire(), true);
   }
 });
