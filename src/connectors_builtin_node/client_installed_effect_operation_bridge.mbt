@@ -452,6 +452,16 @@ pub fn client_program_installed_effect_operation_response_projection_complete(
 }
 
 ///|
+#export_name("clientProgramInstalledEffectOwnedPhysicalOperationComplete")
+pub fn client_program_installed_effect_owned_physical_operation_complete(
+  original : @client_local_host.ClientInstalledEffectOperationBorrow,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.complete_installed_effect_owned_physical_operation(
+    original,
+  )
+}
+
+///|
 #export_name("clientProgramInstalledEffectOperationEmptyResponseHeadersExtentPrepare")
 pub fn client_program_installed_effect_operation_empty_response_headers_extent_prepare(
   original : @client_local_host.ClientInstalledEffectOperationExtent,

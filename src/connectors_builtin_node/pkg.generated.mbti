@@ -2000,6 +2000,8 @@ pub fn client_program_installed_effect_operation_start(@client_local_host.Client
 
 pub fn client_program_installed_effect_operation_transfer_uncertain(@client_local_host.ClientInstalledEffectOperationBorrow, Int64) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_installed_effect_owned_physical_operation_complete(@client_local_host.ClientInstalledEffectOperationBorrow) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_effect_plan_matches_model_demand(@client_local_host.ClientInstalledEffectManagedPlan, @client_local_host.ClientInstalledEffectModelDemand) -> Bool
 
 pub fn client_program_installed_effect_publication_limits(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledEffectManagedPlan, Int) -> Array[Int]

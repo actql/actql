@@ -90,8 +90,11 @@ fn installed_effect_operation_control_capacity(
       // the physical child; its existing preparation latch owns the flight.
       // Optional same-response preflight object and its two original methods,
       // plus the installing original field, remain with this physical child.
-      record_references: (64L + 3L + 2L + 4L + 1L + 8L + 4L + 3L) * calls,
-      record_words: (12L + 2L + 3L + 2L + 4L) * calls,
+      // One optional same-owned physical completion method is captured before
+      // the child factory. It returns ended workspace, never its retained R.
+      record_references: (64L + 3L + 2L + 4L + 1L + 8L + 4L + 3L + 1L) * calls,
+      // The same physical child's release/status fence has one reentry word.
+      record_words: (12L + 2L + 3L + 2L + 4L + 1L) * calls,
       // Deferred member construction retains one original preparation-method
       // vector. Its length is bounded by these same checked child slots.
       reference_arrays: 5L * calls + 1L,
@@ -1098,7 +1101,18 @@ pub fn begin_installed_effect_operation_construction(
 pub fn complete_installed_effect_operation_response_projection(
   value : ClientInstalledEffectOperationBorrow,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
-  complete_installed_effect_response_projection(value, false)
+  complete_installed_effect_response_projection(value, false, false)
+}
+
+///|
+/// The original owned physical child has joined its invoke and observed the
+/// SAME retained child's close status. Its complete retained response/cleanup
+/// floor stays on this token until ordinary alias retirement. This does not
+/// acknowledge an outcome, physical-stop authority, or another operation.
+pub fn complete_installed_effect_owned_physical_operation(
+  value : ClientInstalledEffectOperationBorrow,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  complete_installed_effect_response_projection(value, false, true)
 }
 
 ///|
@@ -1153,13 +1167,14 @@ pub fn require_installed_effect_operation_response_headers(
 pub fn complete_installed_effect_discarded_response_projection(
   value : ClientInstalledEffectOperationBorrow,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
-  complete_installed_effect_response_projection(value, true)
+  complete_installed_effect_response_projection(value, true, false)
 }
 
 ///|
 fn complete_installed_effect_response_projection(
   value : ClientInstalledEffectOperationBorrow,
   discarded : Bool,
+  owned_physical : Bool,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
   guard value.original is Some(original) && physical_equal(original, value) else {
     return Err(ForeignOriginal)
@@ -1172,7 +1187,7 @@ fn complete_installed_effect_response_projection(
   }
   guard backing is @resources.NodeManagedRunOperationBacking::Physical(_) &&
     value.started &&
-    value.input_selected else {
+    (if owned_physical { !value.input_selected } else { value.input_selected }) else {
     return Err(Unsupported)
   }
   guard owner.preparation is Some(preparation) &&
@@ -1195,7 +1210,11 @@ fn complete_installed_effect_response_projection(
   } else {
     None
   }
-  let remaining = match value.extent {
+  let remaining = if owned_physical {
+    // Unlike Unit/header-specific projection entrances this completion never
+    // lowers R, even if its original extent declares another later remainder.
+    None
+  } else { match value.extent {
     Some(extent) =>
       match extent.empty_response_headers {
         None => remaining
@@ -1211,7 +1230,7 @@ fn complete_installed_effect_response_projection(
         }
       }
     None => return Err(Retired)
-  }
+  } }
   @resources.complete_prepared_run_operation_response_projection(
     admission,
     plan,
