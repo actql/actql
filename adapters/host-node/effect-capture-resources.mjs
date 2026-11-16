@@ -184,6 +184,13 @@ function recoveryView(state) {
       } catch (error) {cause = error; throw error;}
       finally {view.finish(failed, cause);}
     },
+    constructCapturedForPublication(captured, receiver, method, argument) {
+      // Only synchronous publication construction uses the completed Read.
+      // A live validation refusal is final; it never retries physical Read.
+      const construct = state.live && typeof state.beginValidation === 'function'
+        ? view.constructCapturedValidation : view.constructCaptured;
+      return Reflect.apply(construct, view, [captured, receiver, method, argument]);
+    },
     constructCapturedValidation(captured, receiver, method, argument) {
       if (captured !== state.capturedRun || captured === undefined ||
           typeof method !== 'function' || !state.live ||

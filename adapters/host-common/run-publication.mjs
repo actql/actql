@@ -20,11 +20,14 @@ function invokeEffectfulPublication(original) {
   return Reflect.apply(original.method, this, original.args);
 }
 export function constructEffectfulPublication(resources, captured, receiver, method, args) {
-  if (typeof resources?.constructCaptured !== 'function' ||
+  const full = resources?.constructCaptured;
+  const publication = resources?.constructCapturedForPublication;
+  if (typeof full !== 'function' ||
       typeof method !== 'function' || !Array.isArray(args)) {
     throw new TypeError('InvalidEffectfulPublicationConstruction');
   }
-  return resources.constructCaptured(captured, receiver, invokeEffectfulPublication, {method, args});
+  return Reflect.apply(typeof publication === 'function' ? publication : full, resources,
+    [captured, receiver, invokeEffectfulPublication, {method, args}]);
 }
 
 const cidPattern = /^sha256:[0-9a-f]{64}$/u;

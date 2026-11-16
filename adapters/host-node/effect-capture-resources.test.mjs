@@ -531,7 +531,7 @@ test('final publication validator uses the same captured Read, exact receiver an
     assert.equal(view.status().busy, true);
     return result;
   }, args), result);
-  assert.deepEqual(f.events.slice(before), ['live-begin', 'live-complete']);
+  assert.deepEqual(f.events.slice(before), ['live-validation', 'live-complete']);
   assert.throws(() => constructEffectfulPublication(view, {...f.captured}, receiver,
     () => assert.fail('Foreign capture cannot validate'), args), {code:'EffectCaptureResourceUnavailable'});
   assert.equal(await view.close(), true);
@@ -540,7 +540,7 @@ test('final publication validator uses the same captured Read, exact receiver an
 });
 test('final publication funding refusal keeps the original primary before validator work', async () => {
   const primary = Object.freeze(new Error('current lost')); let armed = false;
-  const f = fixture({live:true, begin() {if (armed) throw primary;}}), view = f.open();
+  const f = fixture({live:true, validation() {if (armed) throw primary;}}), view = f.open();
   view.begin(); view.reserve(123); view.reserveDecoded('{"original":true}');
   assert.strictEqual(view.admitCapturedRun(f.captured.wire), f.captured);
   view.finish(false); armed = true;
@@ -548,4 +548,24 @@ test('final publication funding refusal keeps the original primary before valida
     () => assert.fail('No validation before funding'), []), error => error === primary);
   assert.equal(view.status().busy, false);
   assert.equal(await view.close(), true);
+});
+
+test('publication construction preserves full Read funding for nonlive and older Core resources', async () => {
+  for (const live of [false, true]) {
+    const f = fixture({live});
+    if (live) delete f.moon.clientProgramBeginInstalledEffectCaptureValidation;
+    const view = returnedLiveCapture(f), result = {}, before = f.events.length;
+    assert.strictEqual(constructEffectfulPublication(view, f.captured, undefined, () => result, []), result);
+    assert.equal(f.events.slice(before).includes('live-validation'), false);
+    if (live) assert.deepEqual(f.events.slice(before), ['live-begin', 'live-complete']);
+    assert.throws(() => view.constructCapturedValidation(f.captured, undefined, () => {}),
+      {code: 'EffectCaptureResourceUnavailable'});
+    assert.equal(await view.close(), true);
+  }
+  const captured = {}, result = {};
+  const original = {constructCaptured(actual, receiver, method, args) {
+    assert.strictEqual(this, original); assert.strictEqual(actual, captured);
+    return Reflect.apply(method, receiver, [args]);
+  }};
+  assert.strictEqual(constructEffectfulPublication(original, captured, undefined, () => result, []), result);
 });
