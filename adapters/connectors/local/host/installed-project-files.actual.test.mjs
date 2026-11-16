@@ -11,6 +11,7 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 import {installedSourceConfigurationReader} from '../../../host-node/installed-host-services.mjs';
 import {createInstalledLoaderParent} from '../../../host-node/fixtures/installed-loader-parent.fixture.mjs';
 import {canonical,cid} from '../../../host-node/fixtures/file-listing-source.fixture.mjs';
+import {composeInstalledSourceEnvironment} from '../../../host-node/installed-funded-environment.mjs';
 
 assert(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME,'Select the actual qualified Common runtime');
 const moon=await import(pathToFileURL(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME));
@@ -175,7 +176,7 @@ test('combined Local Source and STORE initialization retain the same original co
     ledgerRoot:join(f.original.sources[0].rootPath,'unused-effect-ledger'),nativeFilesystem,
     effectResources:Object.freeze(Object.fromEntries(['bindRunOriginal','assertCurrent','limits'].map(name=>
       [name,()=>assert.fail('Initialization cannot use a Run resource')]))),
-    sourceBindings:source.connectorBindings,installationServices:f.parent.services,
+    sourceBindings:source.connectorBindings,installationServices:f.parent.services,sourceProfile:source,
   }));}catch(error){t.diagnostic(JSON.stringify({primaryFailureCode:error.primaryFailure?.code}));throw error;}
   const original=f.original.sources[0];
   const expected=cid({scope:original.scopeCid,declaration:original.wire,
@@ -186,7 +187,24 @@ test('combined Local Source and STORE initialization retain the same original co
   const contents=JSON.parse(original.wire).views.find(view=>view.resource==='contents');
   assert.ok(moon.clientProgramRowSourceFileReadProfile(source.fileReadDeclarations[0],contents.source_ref),
     'the augmented read-execution declaration remains retained');
+  const composed=composeInstalledSourceEnvironment(f.parent.services,moon,f.options.baseEnvironmentWire,
+    source.environmentWire,effect.environmentWire);
+  const profileCid=JSON.parse(moon.strategyPublicationContractJson(
+    moon.clientProgramRowSourceFileReadProfile(source.fileReadDeclarations[0],contents.source_ref))).transport_cid;
+  assert(JSON.parse(composed.wire).connector_capabilities.some(value=>
+    value.source_ref===contents.source_ref&&value.capability_contract_cids.includes(profileCid)));
+  assert.throws(()=>source.originalsForProjectEffects.call({...source},moon,f.preparation),
+    {code:'ForeignLocalFilesPreparation'});
+  assert.throws(()=>source.originalsForProjectEffects(moon,{...f.preparation}),
+    {code:'ForeignLocalFilesPreparation'});
   assert.strictEqual(f.preparation.originalsForRuntime(moon),f.original);
+  let closing;
+  f.options.sourceManaged.assertCurrent=()=>{closing??=source.close();};
+  assert.throws(()=>source.originalsForProjectEffects(moon,f.preparation),
+    {code:'LocalFilesInstallationClosing'});
+  await closing;
+  assert.throws(()=>source.originalsForProjectEffects(moon,f.preparation),
+    {code:'LocalFilesInstallationClosing'});
 });
 
 test('public Local profile constructor refuses before projection on the original Source budget',async t=>{

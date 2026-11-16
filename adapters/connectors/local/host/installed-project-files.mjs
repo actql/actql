@@ -436,7 +436,10 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
             if(next===undefined)fail('LocalFilesReadExecutionUnavailable');
             quantity=quantity===undefined?next:checked(moon.clientProgramComposeInstalledSourceConstructionCapacity(quantity,[next]));
           }
-          return quantity;
+          // The returned profile's original-evidence method/closure/field and
+          // conditional carrier coexist with this SAME retained declaration.
+          const handoff=checked(moon.clientProgramInstalledSourceConstructionCapacity(8n,0n,0n,0n,0n,0n));
+          return checked(moon.clientProgramComposeInstalledSourceConstructionCapacity(quantity,[handoff]));
         },
         project(){
           const entries=originalBundle.sources.map(entry=>{
@@ -732,6 +735,13 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
     current();
     profile=Object.freeze({realizationKey:'installed-multi-acquired',environmentWire,sources:Object.freeze(sources),
       ...(bundle.fileReadDeclarations===undefined?{}:{fileReadDeclarations:bundle.fileReadDeclarations}),
+      ...(construction===undefined?{}:{originalsForProjectEffects(runtime,originalPreparation){
+        if(this!==profile||runtime!==moon||originalPreparation!==preparation)
+          fail('ForeignLocalFilesPreparation');
+        current();
+        if(closing)fail('LocalFilesInstallationClosing');
+        return bundle;
+      }}),
       connectorBindings:Object.freeze(sources.flatMap(source=>source.connectorBindings)),
       queryAliases:Object.freeze(sources.flatMap(source=>source.queryAliases)),
       admitsSource:ref=>sources.some(source=>source.admitsSource(ref)),

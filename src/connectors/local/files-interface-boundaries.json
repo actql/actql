@@ -599,6 +599,14 @@
           "async": false
         },
         {
+          "name": "installPreparedProjectLocalFiles/init:originalsForProjectEffects/init:originalsForProjectEffects",
+          "parameters": [
+            "runtime",
+            "originalPreparation"
+          ],
+          "async": false
+        },
+        {
           "name": "installPreparedProjectLocalFiles/init:prepare/init:prepare",
           "parameters": [
             "facts"
@@ -897,6 +905,7 @@
             "installPreparedProjectLocalFiles/contentSourceEntry/index/index/index",
             "installPreparedProjectLocalFiles/init:capacity/init:capacity",
             "installPreparedProjectLocalFiles/init:ledgerCapacity/init:ledgerCapacity",
+            "installPreparedProjectLocalFiles/init:originalsForProjectEffects/init:originalsForProjectEffects",
             "installPreparedProjectLocalFiles/init:prepare/init:prepare",
             "installPreparedProjectLocalFiles/init:project/init:project",
             "installPreparedProjectLocalFiles/init:project/init:project/entries/entries",
@@ -1268,6 +1277,10 @@
               {
                 "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
                 "anchor": "public Local profile construction observes original retirement before authorization or Source publication"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "anchor": "combined Local Source and STORE initialization retain the same original connection binding"
               }
             ]
           }
@@ -2451,7 +2464,8 @@
             "nativeFilesystem",
             "effectResources",
             "sourceBindings",
-            "installationServices"
+            "installationServices",
+            "sourceProfile"
           ],
           "async": true
         },
@@ -2761,6 +2775,10 @@
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "anchor": "combined Local Source and STORE initialization retain the same original connection binding"
               }
             ]
           }

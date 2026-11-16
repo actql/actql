@@ -43,7 +43,7 @@ export const LOCAL_STORE_LIMITS=Object.freeze({maxRows:100,maxRequestBytes:10000
 
 export async function installPreparedProjectLocalFileEffects({moon,preparation,sourceManaged,
   baseEnvironmentWire,authorizationFor,principalId,runtimeBundleCid,ledgerRoot,
-  nativeFilesystem,effectResources,sourceBindings,installationServices}) {
+  nativeFilesystem,effectResources,sourceBindings,installationServices,sourceProfile}) {
   if(typeof preparation?.originalsForRuntime!=='function'||
       typeof sourceManaged?.assertCurrent!=='function'||typeof authorizationFor!=='function'||
       typeof principalId!=='string'||!isCid(runtimeBundleCid)||typeof ledgerRoot!=='string'||
@@ -74,7 +74,23 @@ export async function installPreparedProjectLocalFileEffects({moon,preparation,s
       const binding=sourceBindings.filter(value=>value.connectorId===entry.connectorId);
       if(binding.length!==1||binding[0].bindingCid!==bindingCid)
         fail('ForeignLocalFileEffectInstallation');
-      const target=prepareLocalFileStoreTarget(moon,{declaredWire:entry.wire,
+      let declaredWire=entry.wire;
+      if(sourceProfile!==undefined){
+        if(sourceProfile.connectorBindings!==sourceBindings||
+            typeof sourceProfile.originalsForProjectEffects!=='function')fail('ForeignLocalFileEffectInstallation');
+        const sourceOriginals=sourceProfile.originalsForProjectEffects(moon,preparation);
+        const sourceEntry=sourceOriginals.sources[bundle.sources.indexOf(entry)];
+        if(sourceOriginals.project!==bundle.project||sourceOriginals.connections!==bundle.connections||
+            sourceOriginals.sources.length!==bundle.sources.length||sourceEntry===undefined||
+            sourceEntry.queryAliases!==entry.queryAliases||sourceEntry.limits!==entry.limits||
+            sourceEntry.connection!==entry.connection||sourceEntry.connectorId!==entry.connectorId||
+            sourceEntry.rootPath!==entry.rootPath||sourceEntry.scopeCid!==entry.scopeCid)
+          fail('ForeignLocalFileEffectInstallation');
+        // Borrow the actual Source owner's already funded capability/profile
+        // export. Physical binding and paths still use the original entry.
+        declaredWire=sourceEntry.wire;
+      }
+      const target=prepareLocalFileStoreTarget(moon,{declaredWire,
         connectorId:entry.connectorId,rootPath:entry.rootPath,scopeCid:entry.scopeCid,
         authorityScopeCid:authorization.context.contextCid,assertCurrent:current,...declarationLimits});
       const declared=JSON.parse(target.declarationWire),command=JSON.parse(target.commandWire),

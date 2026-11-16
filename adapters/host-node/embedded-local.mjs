@@ -2046,7 +2046,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       if (installationSourcePreparation !== undefined) {
         const projectEffects = await preparation.installProjectEffects(moon, baseEnvironmentWire,
           () => createLocalAuthorizationGate({...authorization, principal: principalId, accountConstruction}),
-          principalId, localFileEffectResources, sourceProfile.connectorBindings, installationServices);
+          principalId, localFileEffectResources, sourceProfile.connectorBindings, installationServices, sourceProfile);
         localFileEffectInstallation = projectEffects;
         if (installedEffect === undefined) installedEffect = projectEffects;
         else {
@@ -8322,16 +8322,24 @@ async function openPreparedInstalledHost(options, initialEntry) {
         maxRows: 100, maxRequestBytes: 100000, maxResponseBytes: 65536, maxEffects: 16});
     },
     async installProjectEffects(runtime, baseEnvironmentWire, authorizationFor, principalId,
-      effectResources, sourceBindings, installationServices) {
+      effectResources, sourceBindings, installationServices, sourceProfile) {
       if (runtime !== moon || projectSourcePreparation === undefined || mockPreparation !== undefined) {
+        throw clientOperationError('ForeignInstalledProjectSourcePreparation');
+      }
+      if (sourceProfile === undefined || sourceProfile !== record.managedSourceProfile ||
+          sourceProfile !== originalInstallation.managedSourceProfile) {
         throw clientOperationError('ForeignInstalledProjectSourcePreparation');
       }
       assertSourceManagedInstallationCurrent(sourceManaged, originals);
       const nativeFilesystem = localProjectFilesystem();
       const runtimeBundleCid = await installedRuntimeBundleCid(runtimeUrl);
       assertSourceManagedInstallationCurrent(sourceManaged, originals);
+      if (sourceProfile !== record.managedSourceProfile ||
+          sourceProfile !== originalInstallation.managedSourceProfile) {
+        throw clientOperationError('ForeignInstalledProjectSourcePreparation');
+      }
       return installPreparedProjectLocalFileEffects({moon, preparation: projectSourcePreparation,
-        sourceManaged, baseEnvironmentWire, authorizationFor, principalId, sourceBindings, installationServices,
+        sourceManaged, baseEnvironmentWire, authorizationFor, principalId, sourceBindings, installationServices, sourceProfile,
         runtimeBundleCid, ledgerRoot: join(originalInstallation.root, 'state', 'effects', 'ledger'),
         nativeFilesystem, effectResources,
         assertCurrent: () => assertSourceManagedInstallationCurrent(sourceManaged, originals)});
