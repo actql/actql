@@ -211,7 +211,11 @@ fn client_local_decimal_text_bound(
 // Borrow cached literal geometry only through the same closed checked graph.
 // Field selection, filtering, sorting, limiting and proved scalar bindings
 // cannot create Text. Actual immutable parameter literals contribute their own
-// finite geometry; other sources and value-producing expressions keep policy.
+// finite geometry.
+// Checked interval projections and numeric-time sequence matches likewise copy
+// their Text cells; multiplicity still uses every output field and the SAME
+// execution row bound below. Predicates may not construct new Text.
+// Other sources, families and Text-producing expressions keep the old policy.
 fn client_local_original_values_copy_text_bound(
   sequences : Array[@execution.GeneratedSequence],
   demand : ClientLocalValueNodeDemand,
@@ -229,6 +233,7 @@ fn client_local_original_values_copy_text_bound(
   }
   let remaining = Ref(max_work)
   let literal_text = Ref(0L)
+  let mut literal_seeds = 0
   let mut text_fields = 0L
   for task, sequence in sequences {
     if remaining.val < 1 {
@@ -305,6 +310,7 @@ fn client_local_original_values_copy_text_bound(
             return None
           }
           literal_text.val = next
+          literal_seeds += 1
         }
         @lower.RowStep(kernel) =>
           match @lower.kernel_body(kernel) {
@@ -333,13 +339,49 @@ fn client_local_original_values_copy_text_bound(
               }
             _ => return None
           }
+        @lower.IntervalJoinStep(join) => {
+          guard physical_equal(@lower.interval_join_owner(join), owner) &&
+            @lower.interval_join_step(join) == step &&
+            @lower.node_input_count(node) == 2 &&
+            !@lower.interval_join_uses_timestamps(join) &&
+            @lower.interval_join_output_limit(join) is Some(limit) &&
+            limit > 0L &&
+            limit <= demand.rows.to_int64() else {
+            return None
+          }
+          // Prepared projections contain field references only. Null extension
+          // can add no Text backing, even when the two sides duplicate rows.
+          if @lower.interval_join_field_count(join) != fields {
+            return None
+          }
+        }
+        @lower.SequenceMatchStep(pattern) => {
+          guard physical_equal(@lower.sequence_match_owner(pattern), owner) &&
+            @lower.sequence_match_step(pattern) == step &&
+            @lower.node_input_count(node) == 1 &&
+            !@lower.sequence_match_uses_timestamp(pattern) &&
+            @lower.sequence_match_pattern_count(pattern) > 0 else {
+            return None
+          }
+          // IDs/partition fields are the original immutable cells; added time
+          // boundaries are numeric. Visit every authored predicate, including
+          // dormant children, without executing or narrowing its work budget.
+          for index in 0..<@lower.sequence_match_pattern_count(pattern) {
+            guard @lower.sequence_match_predicate(pattern, index)
+              is Some(predicate) &&
+              client_local_copy_filter_text(predicate, remaining, literal_text) else {
+              return None
+            }
+          }
+        }
         _ => return None
       }
     }
   }
   // A copied cell cannot contain more Text than all original literal backing.
   // Count every possible field/row occurrence; equal Text never grants sharing.
-  guard literal_text.val > 0L &&
+  guard literal_seeds > 0 &&
+    literal_text.val >= 0L &&
     @execution.checked_preparation_add_product(
       0L,
       text_fields,

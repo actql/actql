@@ -7,7 +7,7 @@ import test from 'node:test';
 import {inspect} from 'node:util';
 import {connectEmbeddedLocal} from './embedded-local.mjs';
 import {canonicalJson} from './local-account-config.mjs';
-import {assertRetainedRelationSnapshots} from './fixtures/retained-relation-snapshot.mjs';
+import {createRetainedRowStoreProbe} from './fixtures/retained-row-store.mjs';
 
 test('public retained interval join compares long Text keys and excludes NULL',
   {timeout: 60_000}, async t => {
@@ -15,7 +15,7 @@ test('public retained interval join compares long Text keys and excludes NULL',
     const keys = generateKeyPairSync('ed25519');
     let advances = 0;
     let completions = 0;
-    let relationSnapshots;
+    const store = createRetainedRowStoreProbe(directory);
     const authorization = {
       accountConfiguration: canonicalJson({
         version: 'actql-execution-account-config/0.1',
@@ -34,14 +34,15 @@ test('public retained interval join compares long Text keys and excludes NULL',
         publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
       hostKey: {keyId: 'host', privateKey: keys.privateKey.export({
         type: 'pkcs8', format: 'pem'})},
-      faultInjection(step) {
+      async faultInjection(step, detail) {
         if (step === 'local_compute_advanced') advances++;
+        await store.faultInjection(step, detail);
       },
       observe(step, detail) {
         if (step === 'computed') {
           completions++;
-          relationSnapshots = detail.relationSnapshots;
         }
+        store.observe(step, detail);
       },
     };
     const key = suffix => 'g'.repeat(80) + suffix;
@@ -107,14 +108,18 @@ test('public retained interval join compares long Text keys and excludes NULL',
     for (const name of ['published', 'consumed_a', 'consumed_b']) {
       assert.deepEqual(await execution.result(name).all(), expected, name);
     }
-    assertRetainedRelationSnapshots(relationSnapshots, expected, 3);
+    store.assertCompleted(expected, {minimum: 3});
     assert.ok(advances > 0);
     assert.equal(completions, 1);
     const savedAdvances = advances;
+    const savedWrites = store.checkpoint();
     const repeated = await client.startSource(source, options);
     assert.deepEqual(repeated.ref, execution.ref);
     assert.deepEqual(await repeated.result('published').all(), expected);
     assert.equal(advances, savedAdvances);
+    store.assertUnchanged(savedWrites);
     assert.equal(completions, 1);
     assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
+    await client.close();
+    await store.assertReclaimed();
   });
