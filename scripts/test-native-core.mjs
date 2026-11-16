@@ -13,7 +13,7 @@ import {nativePrivateHostFixture, nativeOriginalSigningFixture} from './native-p
 import {nativeRuntimeReaderCustodyFixture} from './native-runtime-reader-custody-fixture.mjs';
 import {nativeCoreCCompiler} from './native-core-c-compiler.mjs';
 import {nativeProjectConfigurationFixture, nativeProjectContentCaseFixture} from './native-project-configuration-fixture.mjs';
-import {nativeCoreTestSelection, nativeCoreScopedAllocationProfile, nativeCoreScopedBackingPages,
+import {nativeCoreTestSelection, nativeCoreTestSelectionOptions, nativeCoreScopedAllocationProfile, nativeCoreScopedBackingPages,
   nativeCoreScopedTestEnvironment,
   nativeRelationWorkTestFile, nativeRelationCaptureTestFiles, nativeCorePartitionProfiles, nativeCoreCheckpointRequired,
   nativeProjectMockContentTestFile, nativeRelationTargetIOTestFile, nativeRelationTargetIOLineageTestFile,
@@ -88,15 +88,8 @@ const compilerEnvironment = {...process.env, ACTQL_TEST_NATIVE_CORE_PARTITION: u
 const selection = full ? nativeCoreTestSelection(root, args,
   // One absolute metadata-preparation envelope covers four dry-run plans and
   // all original driver generations. It grants no extra test or C-build time.
-  {env: compilerEnvironment, partitionProfiles: true,
-    measuredCompilerWeights: platformScope === 'darwin-differences',
-    ordinaryPartitions: linuxCommonImporters ? 8 : partition?.endsWith('/4') ? 4 : Boolean(partition) && !['http', 'source', 'scoped', 'scoped-runtime', 'scoped-review'].includes(partition),
-    // Physical jobs retain their complete profile even when an ordinary PR
-    // closure has no member in it. An empty job cannot establish execution.
-    timeoutMs: 5 * 60_000,
-    allowNestedFileInputs: platformPackages !== undefined,
-    executionPackages: platformPackages ? executionPackages :
-      ['http', 'source', 'scoped', 'scoped-runtime', 'scoped-review'].includes(partition) ? undefined : executionPackages}) : undefined;
+  nativeCoreTestSelectionOptions({env: compilerEnvironment, platformScope,
+    partition, platformPackages, executionPackages})) : undefined;
 if (platformPackages && selection.executionScope?.mode !== 'subset') {
   throw new Error('Native platform scope must retain its exact compiler-owned package/file scope');
 }

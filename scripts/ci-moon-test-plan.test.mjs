@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {runInNewContext} from 'node:vm';
 import {readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, realpathSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join, dirname} from 'node:path';
@@ -12,8 +11,9 @@ import {moonGraphCandidate, nonMoonRequirements, normalizeMoonGraph, planMoonTes
 import {selectTargets, validateSelection, gateJobRequired, deepProofRequired, verifyGate, gateJobs,
   maintenanceFiles, readChanges} from './ci-targets.mjs';
 import {runMoonTests, nativeMoonPackages} from './ci-moon-tests.mjs';
-import {nativeCoreTestSelection, nativeScopedTestFiles, portableMoonTestCount} from './native-core-test-selection.mjs';
+import {nativeCoreTestSelection, nativeCoreTestSelectionOptions, nativeScopedTestFiles, portableMoonTestCount} from './native-core-test-selection.mjs';
 import {runFocusedTests} from './test-execution.mjs';
+import {inventory as verificationInventory} from './verification-actions.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url)).replace(/\/$/u, '');
 // Complete tracked-source metadata exceeds Node's default 1 MiB. Keep the
@@ -183,47 +183,32 @@ test('Native caller consumes the same checked package closure without changing i
   assert.equal(nativeMoonPackages({CI_PLAN:JSON.stringify({selection:{profile:'full'}})}, options), undefined);
   assert.throws(() => nativeMoonPackages({...env, GITHUB_EVENT_NAME:'push'}, options));
   assert.throws(() => nativeMoonPackages(env, {...options, git:() => other}));
-  const source = readFileSync(new URL('./test-native-core.mjs', import.meta.url), 'utf8');
-  assert.match(source, /const full = !\['focused', 'reporting'\]\.includes/u);
-  assert.match(source, /full && \(process\.env\.CI_PLAN \|\| process\.env\.CI_PLAN_PATH\)/u);
-  assert.match(source, /nativeMoonPackages\(\)/u);
-  const start = source.indexOf('const selection = full ? nativeCoreTestSelection');
-  const end = source.indexOf('if (selection?.executionScope)', start);
-  assert(start > 0 && end > start);
   const packages = selection.moonTests.packages;
-  const platformStart = source.indexOf('const platformPackages = full && platformScope');
-  const platformEnd = source.indexOf('\nconst executionPackages', platformStart);
-  assert(platformStart > 0 && platformEnd > platformStart);
-  // This PR closure has no platform override. Evaluate the actual preceding
-  // production binding rather than fabricating an empty Darwin package set.
-  const platformPackages = await runInNewContext('(async () => {\n' +
-    source.slice(platformStart, platformEnd) + '\nreturn platformPackages;})()', {
-    full: true, platformScope: env.ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE,
-  });
-  assert.equal(platformPackages, undefined);
-  const linuxBinding = source.match(/^const linuxCommonImporters = [^\n]+;$/mu)?.[0];
-  assert(linuxBinding, 'Retain the actual preceding platform binding in this extracted consumer');
-  const linuxCommonImporters = runInNewContext(linuxBinding + '\nlinuxCommonImporters;',
-    {platformScope: env.ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE});
-  assert.equal(linuxCommonImporters, false, 'This authenticated PR closure has no Linux platform override');
-  for (const partition of [undefined, '1/2', '2/2', '1/4', '4/4', 'http', 'source', 'scoped']) {
-    let calls = 0;
-    runInNewContext(source.slice(start, end), {
-      full: true, root: '/same/source', args: ['--release'], partition,
-      executionPackages: packages, platformPackages, linuxCommonImporters, compilerEnvironment: {},
-      nativeCoreTestSelection(root, args, options) {
-        calls++;
-        assert.equal(root, '/same/source');
-        assert.equal(options.timeoutMs, 300_000);
-        assert.equal(options.partitionProfiles, true);
-        assert.equal(options.allowNestedFileInputs, false);
-        assert.equal(options.ordinaryPartitions, partition?.endsWith('/4') ? 4 :
-          Boolean(partition) && !['http', 'source', 'scoped'].includes(partition));
-        assert.equal(options.executionPackages, ['http', 'source', 'scoped'].includes(partition) ? undefined : packages,
-          'Physical profiles keep full originals; ordinary jobs use only the same authenticated closure');
-      },
-    });
-    assert.equal(calls, 1);
+  for (const partition of [undefined, '1/2', '2/2', '1/4', '4/4',
+    'http', 'source', 'scoped', 'scoped-runtime', 'scoped-review']) {
+    const options = nativeCoreTestSelectionOptions({env,
+      platformScope: undefined, partition, platformPackages: undefined, executionPackages: packages});
+    const physical = ['http', 'source', 'scoped', 'scoped-runtime', 'scoped-review'].includes(partition);
+    assert.equal(options.env, env);
+    assert.equal(options.timeoutMs, 300_000);
+    assert.equal(options.partitionProfiles, true);
+    assert.equal(options.measuredCompilerWeights, false);
+    assert.equal(options.allowNestedFileInputs, false);
+    assert.equal(options.ordinaryPartitions, partition?.endsWith('/4') ? 4 : Boolean(partition) && !physical);
+    assert.equal(options.executionPackages, physical ? undefined : packages,
+      'Physical profiles keep full originals; ordinary jobs use the authenticated closure');
+  }
+  for (const [platformScope, partition, ordinary, weights] of [
+    ['linux-common-importers', '1/8', 8, false],
+    ['darwin-differences', 'http', false, true],
+  ]) {
+    const options = nativeCoreTestSelectionOptions({env, platformScope, partition,
+      platformPackages: {common: packages}, executionPackages: packages});
+    assert.equal(options.env, env);
+    assert.equal(options.ordinaryPartitions, ordinary);
+    assert.equal(options.measuredCompilerWeights, weights);
+    assert.equal(options.allowNestedFileInputs, true);
+    assert.equal(options.executionPackages, packages);
   }
 });
 
@@ -273,7 +258,16 @@ test('reviewed real prose and independent JS edits omit product jobs but retain 
   }
   const owned = workflow.jobs.lint.steps.find(step => step.name === 'Test ordinary operation performance policy oracles');
   assert.equal(owned.if, undefined, 'Small policy oracles must execute during Draft preparation too');
-  for (const path of ['scripts/operation-performance.test.mjs', 'scripts/operation-performance-policy.test.mjs']) assert(owned.run.includes(path));
+  const inventory = verificationInventory({
+    workflowText: JSON.stringify({jobs: {lint: {steps: [owned]}}}),
+    packageText: readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+  });
+  const actions = inventory.actions.filter(action => action.origin === 'workflow');
+  assert(actions.length > 0);
+  for (const action of actions) assert.deepEqual(action.unresolved, []);
+  for (const path of ['scripts/operation-performance.test.mjs', 'scripts/operation-performance-policy.test.mjs']) {
+    assert(actions.some(action => action.invocation.kind === 'node-test' && action.invocation.argv.includes(path)), path);
+  }
 });
 
 test('workflow prepares graph tools only for candidates and retains full checks and unchanged Native command', () => {

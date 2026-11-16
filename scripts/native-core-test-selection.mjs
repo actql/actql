@@ -9,6 +9,21 @@ import {basename, dirname, join, relative, resolve, sep} from 'node:path';
 import {parseCommands} from './verification-actions.mjs';
 import {nativeCorePhysicalProfiles, nativeCoreScopedCiProfiles, nativeCoreCompilerWeights} from './ci-core-partitions.mjs';
 
+// The full Native entry keeps the original physical profiles while an ordinary
+// PR may supply its authenticated compiler closure. Share this actual option
+// selection with its caller tests; no compiler, fixture or source is copied.
+export function nativeCoreTestSelectionOptions({env, platformScope, partition,
+  platformPackages, executionPackages}) {
+  const linuxCommonImporters = platformScope === 'linux-common-importers';
+  const physical = ['http', 'source', 'scoped', 'scoped-runtime', 'scoped-review'].includes(partition);
+  return {env, partitionProfiles: true,
+    measuredCompilerWeights: platformScope === 'darwin-differences',
+    ordinaryPartitions: linuxCommonImporters ? 8 : partition?.endsWith('/4') ? 4 : Boolean(partition) && !physical,
+    timeoutMs: 5 * 60_000,
+    allowNestedFileInputs: platformPackages !== undefined,
+    executionPackages: platformPackages ? executionPackages : physical ? undefined : executionPackages};
+}
+
 export const nativeRelationWorkTestFile =
   'src/platform_native/relation_file_work_tests/relation_file_original_physical_scoped_test.mbt';
 
