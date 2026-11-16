@@ -537,6 +537,12 @@ pub fn generated_bounded_sequence_capacity(
       )
     _ => false
   }
+  let borrowed_string_group = match operation {
+    @lower.RowStep(kernel) =>
+      bounded_string_group_borrows_input(kernel) &&
+      bounded_group_step_supported(generated, kernel)
+    _ => false
+  }
   if operation is @lower.RowStep(kernel) &&
     (
       @lower.kernel_group(kernel) is Some(_) ||
@@ -545,6 +551,7 @@ pub fn generated_bounded_sequence_capacity(
     ) &&
     !borrowed_window_group &&
     !borrowed_number_group &&
+    !borrowed_string_group &&
     !borrowed_pivot {
     return generated_sequence_capacity(generated, limits, measurement)
   }
@@ -603,7 +610,8 @@ pub fn generated_bounded_sequence_capacity(
       borrowed_join ||
       borrowed_window ||
       borrowed_window_group ||
-      borrowed_number_group,
+      borrowed_number_group ||
+      borrowed_string_group,
     // Append uses the same workspace-funded binary input scan as CROSS JOIN;
     // its constructor receives no physical measurement forest or wire buffer.
     literal_output_nodes=literal_nodes,
@@ -615,7 +623,8 @@ pub fn generated_bounded_sequence_capacity(
       borrowed_join ||
       borrowed_window ||
       borrowed_window_group ||
-      borrowed_number_group,
+      borrowed_number_group ||
+      borrowed_string_group,
   )
   guard ordinary is Some(ordinary) else { return None }
   // The Values provider does not pass FixedInputGuardMeasureLimits to its
