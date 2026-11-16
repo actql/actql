@@ -502,17 +502,17 @@ pub fn generated_bounded_sequence_capacity(
     @lower.JoinStep(kernel) => bounded_join_borrows_input(kernel)
     _ => false
   }
-  // Direct window reductions read the original required cells. Their existing
-  // bounded evaluator charges maps, aggregate state and pending row containers
-  // to its workspace, while contract recheck retains the same admitted values.
-  // Dynamic aggregate expressions and other group families keep their generic
-  // fragment/input construction recipe.
+  // Bounded window reductions read the original required cells. Their maps,
+  // aggregate state and pending row containers use the existing workspace;
+  // dynamic arguments/filters use the SAME supported Fragment context and its
+  // complete independent live-value/frame inventory below. Neither path copies
+  // an input forest or encodes a measurement body. Keep all retained output
+  // DATA and the original expression/work limits.
   let borrowed_window_group = match operation {
     @lower.RowStep(kernel) =>
       @lower.kernel_group(kernel)
       .map(group => {
         @lower.group_is_window(group) &&
-        !bounded_group_dynamic(group) &&
         bounded_group_step_supported(generated, kernel) &&
         @schema.all_fields_required(@lower.kernel_input_schema(kernel)) &&
         @schema.all_fields_required(schema)
