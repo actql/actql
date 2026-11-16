@@ -130,6 +130,8 @@ fn row_page_run(
   nonce : String,
   transfer_bytes? : Int64 = 1024L,
   max_page_bytes? : Int = 128,
+  verify? : (@row_host.RowAttempt) -> Bool = _ => true,
+  original_inventory? : Bool = false,
 ) -> (@row_host.RowRun, @resources.Ledger, @salesforce_catalog.ReadProjection) raise {
   let (declaration, acquisition) = row_page_acquisition()
   let plan = @salesforce_host.recheck_installed_salesforce_row_projection(
@@ -138,25 +140,116 @@ fn row_page_run(
     row_page_observation(),
     100,
   ).unwrap()
+  // This explicit component-only control envelope funds the original token
+  // census before the first Row attempt. The existing page/data selection is
+  // unchanged; tests without a shared original retain their exact old budget.
+  let original_controls = if original_inventory { 65536L } else { 0L }
   let ledger = @resources.create_ledger({
     planning_work: 100,
     attempts: 2,
     holdings: 2,
     transfer_bytes,
-    retained_bytes: @row_host.row_acquisition_retained_capacity(acquisition),
+    retained_bytes: @row_host.row_acquisition_retained_capacity(acquisition) +
+    original_controls,
     execution_bytes: @row_host.row_acquisition_execution_capacity(acquisition) +
-    max_page_bytes.to_int64(),
+    max_page_bytes.to_int64() +
+    original_controls,
   }).unwrap()
+  if original_inventory {
+    let bootstrap = @resources.reserve_capacity(
+      ledger, original_controls, original_controls,
+    ).unwrap()
+    @resources.begin_original_ledger_inventory(ledger, bootstrap, 8, 8, 0).unwrap()
+    |> ignore
+  }
   let run = @row_host.start_accounted_row_acquisition(
     acquisition,
     nonce,
-    _ => true,
+    verify,
     ledger,
     transfer_bytes,
     max_page_bytes.to_int64(),
   ).unwrap()
   @row_host.begin_row_run(run, max_page_bytes, 10, 10).unwrap()
   (run, ledger, plan)
+}
+
+///|
+test "borrowed Direct Source projection keeps captured custody across abort and refuses reentrant current loss" {
+  for retired in 0..<3 {
+    let action : Ref[(() -> Unit)?] = Ref(None)
+    let provider_live = Ref(true)
+    let (run, ledger, plan) = row_page_run(
+      "original-live-projection-" + retired.to_string(),
+      original_inventory=true,
+      verify=_ => {
+        let available = provider_live.val
+        if action.val is Some(callback) {
+          action.val = None
+          callback()
+        }
+        available
+      },
+    )
+    let body = row_page_body(7)
+    let charge = @row_host.charge_row_run_page(run, body).unwrap()
+    let values = row_page_values(body, plan)
+    @row_host.accept_charged_row_run_values(run, charge, ["id"], values).unwrap()
+    |> ignore
+    @row_host.finish_row_run(run).unwrap()
+    let capture = @row_host.capture_row_run(run).unwrap()
+    let original = @row_host.row_capture_source(capture).unwrap()
+    let control_bytes = @execution.preparation_representation_cost(
+      @row_host.row_captured_inputs_construction_inventory(1).unwrap(),
+    ).unwrap()
+    let controls = @resources.reserve_capacity(
+      ledger, control_bytes, control_bytes,
+    ).unwrap()
+    let inputs = @row_host.borrow_row_captured_inputs([capture], ledger, 10).unwrap()
+    assert_true(
+      @row_host.row_captured_inputs_source_at(inputs, 0) is Some(source) &&
+      physical_equal(source, original),
+    )
+    assert_true(
+      @row_host.row_captured_inputs_borrowed_available(inputs, ledger),
+    )
+    action.val = Some(() => {
+      if retired == 1 {
+        @row_host.abort_row_run(run)
+      } else if retired == 0 {
+        // This also retires the issuer registration. The transport callback
+        // still returns true; the original post-callback slots must refuse.
+        @row_host.close_row_run(run)
+      } else {
+        // An independent provider flag has no Core closed field. A final
+        // fresh transport check must reject its earlier true return.
+        provider_live.val = false
+      }
+    })
+    let after = @row_host.row_captured_inputs_source_at(inputs, 0)
+    if retired == 1 {
+      // Abort cannot revoke an already captured observation. Its existing
+      // custody remains live until the original issuer is actually closed.
+      assert_true(after is Some(source) && physical_equal(source, original))
+      assert_true(
+        @row_host.row_captured_inputs_borrowed_available(inputs, ledger),
+      )
+    } else {
+      assert_true(after is None, msg="retirement mode " + retired.to_string())
+      assert_false(
+        @row_host.row_captured_inputs_borrowed_available(inputs, ledger),
+      )
+    }
+    @row_host.close_accounted_row_run(run).unwrap()
+    assert_true(@row_host.row_captured_inputs_source_at(inputs, 0) is None)
+    @resources.settle_capacity(ledger, controls).unwrap()
+    assert_true(
+      @resources.finish_original_ledger_inventory(ledger, true).unwrap(),
+    )
+    assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+    assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+    assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+  }
 }
 
 ///|

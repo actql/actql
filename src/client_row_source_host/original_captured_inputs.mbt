@@ -119,8 +119,8 @@ pub fn row_captured_inputs_borrowed_available(
 
 ///|
 fn row_captured_inputs_current(value : RowCapturedInputs) -> Bool {
-  for capture in value.captures {
-    if row_captured_input_source(capture) is None {
+  for index in 0..<value.captures.length() {
+    if row_captured_inputs_source_current(value, index) is None {
       return false
     }
   }
@@ -147,8 +147,8 @@ pub fn row_captured_inputs_live(
   if !physical_equal(value.ledger, ledger) {
     return false
   }
-  for capture in value.captures {
-    if row_captured_input_source(capture) is None {
+  for index in 0..<value.captures.length() {
+    if row_captured_inputs_source_current(value, index) is None {
       return false
     }
   }
@@ -351,10 +351,89 @@ pub fn row_captured_inputs_source_at(
   value : RowCapturedInputs,
   index : Int,
 ) -> @query.CapturedInputSource? {
-  match value.captures.get(index) {
-    Some(capture) => row_captured_input_source(capture)
-    None => None
+  row_captured_inputs_source_current(value, index)
+}
+
+///|
+// Only the closed Direct Row constructor supplies this capture's immutable
+// Source. Its query matcher observes current once; the private original slots
+// fence callback reentry afterward. Input/Restored and standalone getters keep
+// their existing path. Resource availability remains with the outer inventory
+// checks; this Source projection compares placement identity, not a new grant.
+fn row_captured_inputs_source_current(
+  value : RowCapturedInputs,
+  index : Int,
+) -> @query.CapturedInputSource? {
+  guard value.captures.get(index) is Some(captured) else { return None }
+  guard captured.original is Live(capture) &&
+    capture.run.configuration is DirectConfiguration(configuration) &&
+    capture.run.physical is Some(physical) &&
+    value.originals.get(index) is Some((reservation, holding)) &&
+    physical_equal(physical.ledger, value.ledger) &&
+    physical_equal(physical.reservation, reservation) else {
+    return row_captured_input_source(captured)
   }
+  let run = capture.run
+  guard !run.closed &&
+    run.issuer is DirectIssuer(issuer) &&
+    run.attempt.authority is DirectAuthority(authority) &&
+    capture.observation is QueryObservation(observation) &&
+    physical_equal(observation.records.authority, authority) &&
+    physical_equal(authority.issuer, issuer) &&
+    @planning.query_evidence_registration_live(issuer.registration) &&
+    run.attempt.state is Captured(actual) &&
+    physical_equal(actual, observation) else {
+    return None
+  }
+  let source = capture.source
+  let before_holding = physical.holding
+  let before_dag = physical.dag
+  if !@query.captured_source_matches_query(
+      source,
+      @planning.query_material_owner(
+        @planning.query_requirement_material(configuration.requirement),
+      ),
+    ) {
+    return None
+  }
+  // The public transport verifier can change its own provider state while
+  // returning an earlier true. Preserve that final fresh observation without
+  // repeating the full Source/output verifier cascade.
+  if !@planning.query_evidence_transport_matches(
+      issuer.registration,
+      run.attempt,
+    ) {
+    return None
+  }
+  let same_holding = match before_holding {
+    None => physical.holding is None
+    Some(expected) =>
+      physical.holding is Some(current) && physical_equal(current, expected)
+  }
+  let same_dag = match before_dag {
+    None => physical.dag is None
+    Some((expected, task)) =>
+      physical.dag is Some((current, current_task)) &&
+      physical_equal(current, expected) &&
+      current_task == task
+  }
+  guard !run.closed &&
+    @planning.query_evidence_registration_live(issuer.registration) &&
+    run.attempt.state is Captured(current_observation) &&
+    physical_equal(current_observation, observation) &&
+    run.physical is Some(current_physical) &&
+    physical_equal(current_physical, physical) &&
+    same_holding &&
+    same_dag &&
+    value.captures.get(index) is Some(current_input) &&
+    current_input.original is Live(current_capture) &&
+    physical_equal(current_capture, capture) &&
+    value.originals.get(index) is Some((current_reservation, current_holding)) &&
+    physical_equal(current_reservation, reservation) &&
+    physical_equal(current_holding, holding) else {
+    return None
+  }
+  Some(source)
 }
 
 ///|
