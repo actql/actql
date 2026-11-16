@@ -32,6 +32,43 @@ pub fn representation_extent(
   max_depth : Int,
   max_utf16_units : Int,
 ) -> Result[CanonicalRepresentationExtent, CanonicalFailure] {
+  representation_extent_original(
+    value,
+    max_nodes,
+    max_depth,
+    max_utf16_units,
+    None,
+  )
+}
+
+///|
+/// Use the caller's existing Work receipt for the same read-only walk. Work
+/// follows continuation frames, not the length of already-owned Strings.
+/// Refusal stops before the next frame is read and yields no partial extent.
+pub fn representation_extent_with_work(
+  value : CanonicalValue,
+  max_nodes : Int,
+  max_depth : Int,
+  max_utf16_units : Int,
+  work : (Int) -> Bool,
+) -> Result[CanonicalRepresentationExtent, CanonicalFailure] {
+  representation_extent_original(
+    value,
+    max_nodes,
+    max_depth,
+    max_utf16_units,
+    Some(work),
+  )
+}
+
+///|
+fn representation_extent_original(
+  value : CanonicalValue,
+  max_nodes : Int,
+  max_depth : Int,
+  max_utf16_units : Int,
+  work : ((Int) -> Bool)?,
+) -> Result[CanonicalRepresentationExtent, CanonicalFailure] {
   if max_nodes < 1 || max_depth < 0 || max_utf16_units < 0 {
     return Err(InputLimit)
   }
@@ -47,6 +84,9 @@ pub fn representation_extent(
     max_frame_slots: pending.capacity().to_int64(),
   }
   while pending.pop() is Some(frame) {
+    if work is Some(spend) && !spend(1) {
+      return Err(InputLimit)
+    }
     match frame {
       Value(value, depth) => {
         if extent.nodes >= max_nodes.to_int64() {
