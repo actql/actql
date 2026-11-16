@@ -382,11 +382,9 @@ fn client_effect_keyed_composed_original_current(
     physical_equal(value.compiled, bound.compiled) &&
     physical_equal(value.definition, bound.definition) &&
     client_effect_keyed_original_available(bound) &&
-    client_effect_keyed_plan_graph_matches(
-      bound.plan,
-      bound.prepared,
-      value.keyed,
-    ) &&
+    // The original above already checked this exact immutable acquisition's
+    // graph/Effect association. Reuse that proof only for the same pointer.
+    physical_equal(value.keyed, bound.keyed) &&
     value.prefix is None &&
     value.completed is None &&
     value.producers is NoProducers &&
