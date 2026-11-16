@@ -90,7 +90,7 @@ test('publication metadata is bounded by its original Read before token-array co
   assert.throws(() => control.beginEffectfulPublicationConstruction(owner, true, args, []),
     {name:'RangeError', message:'EffectfulPublicationMetadataLimit'});
   args[2].memberWires = new Array(5);
- abana const additional = new Array(7);
+  const additional = new Array(7);
   Object.defineProperty(additional, 0, {get() {assert.fail('The aggregate metadata must be funded');}});
   assert.throws(() => control.beginEffectfulPublicationConstruction(owner, true, args, additional),
     {name:'RangeError', message:'EffectfulPublicationMetadataLimit'});
