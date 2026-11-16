@@ -2229,7 +2229,8 @@
             "checkCurrent",
             "signal",
             "inputLimits",
-            "runOriginal"
+            "runOriginal",
+            "managedContext"
           ],
           "async": false
         },
@@ -2254,14 +2255,19 @@
           "async": true
         },
         {
-          "name": "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work/contentChild/contentChild",
+          "name": "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work/prepareContent/prepareContent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work/prepareContent/prepareContent/contentChild/contentChild",
           "parameters": [
             "entry"
           ],
           "async": false
         },
         {
-          "name": "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work/contentChild/init:assertCurrent/init:assertCurrent",
+          "name": "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work/prepareContent/prepareContent/contentChild/init:assertCurrent/init:assertCurrent",
           "parameters": [],
           "async": false
         },
@@ -2566,8 +2572,9 @@
             "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare",
             "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/init:prepare",
             "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work",
-            "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work/contentChild/contentChild",
-            "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work/contentChild/init:assertCurrent/init:assertCurrent",
+            "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work/prepareContent/prepareContent",
+            "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work/prepareContent/prepareContent/contentChild/contentChild",
+            "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work/prepareContent/prepareContent/contentChild/init:assertCurrent/init:assertCurrent",
             "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work/sources/sources",
             "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:release/init:release",
             "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:release/init:release/init:release",
@@ -2596,11 +2603,11 @@
             "installPreparedProjectLocalFileEffects",
             "installPreparedProjectLocalFileEffects/current/current",
             "installPreparedProjectLocalFileEffects/effects/effects",
-            "installPreparedProjectLocalFileEffects/effects/effects#2",
             "installPreparedProjectLocalFileEffects/effects/effects/binding/binding",
             "installPreparedProjectLocalFileEffects/effects/effects/effects",
             "installPreparedProjectLocalFileEffects/effects/effects/effects#2",
             "installPreparedProjectLocalFileEffects/effects/effects/entries/entries",
+            "installPreparedProjectLocalFileEffects/effects/effects#2",
             "installPreparedProjectLocalFileEffects/installPreparedProjectLocalFileEffects",
             "installPreparedProjectLocalFileEffects/resources/resources",
             "installPreparedProjectLocalFileEffects/resources/resources/resources",
@@ -2625,6 +2632,10 @@
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
               }
             ],
             "inputsOutputs": [
@@ -2639,6 +2650,10 @@
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
               }
             ],
             "identity": [
@@ -2657,6 +2672,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Managed Local file quantity selection"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
               }
             ],
             "ownership": [
@@ -2675,6 +2694,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Managed Local file quantity selection"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
               }
             ],
             "synchronization": [
@@ -2689,6 +2712,10 @@
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
               }
             ],
             "failure": [
@@ -2707,6 +2734,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Managed Local file quantity selection"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
               }
             ],
             "cancellation": [
@@ -2725,6 +2756,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Managed Local file quantity selection"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
               }
             ],
             "resources": [
@@ -2743,6 +2778,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Managed Local file quantity selection"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
               }
             ],
             "extension": [
@@ -2757,6 +2796,10 @@
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
               }
             ],
             "verification": [
@@ -2779,6 +2822,10 @@
               {
                 "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
                 "anchor": "combined Local Source and STORE initialization retain the same original connection binding"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
               }
             ]
           }

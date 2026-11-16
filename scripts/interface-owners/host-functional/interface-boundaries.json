@@ -56475,6 +56475,16 @@
           "async": false
         },
         {
+          "name": "installNodeContentRun/installNodeContentRun/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun/current/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installNodeContentRun/installNodeContentRun/init:cleanup/init:cleanup",
           "parameters": [],
           "async": true
@@ -56520,20 +56530,25 @@
         },
         {
           "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun#4",
           "parameters": [
             "row"
           ],
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun#4",
+          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun#5",
           "parameters": [
             "name"
           ],
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun#5",
+          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun#6",
           "parameters": [
             "value",
             "index"
@@ -56541,7 +56556,7 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun#6",
+          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun#7",
           "parameters": [
             "value",
             "index"
@@ -56559,6 +56574,17 @@
             "workspace",
             "physical",
             "retain"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun/sourceConstruction/sourceConstruction",
+          "parameters": [
+            "receiver",
+            "method",
+            "args",
+            "bindingWire",
+            "role"
           ],
           "async": false
         },
@@ -58602,6 +58628,121 @@
               {
                 "path": "adapters/host-node/installed-content-family-custody.test.mjs",
                 "anchor": "test('retained Content cleanup joins the same pending append before reporting completion'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installNodeContentRun/installNodeContentRun/current/current",
+            "installNodeContentRun/installNodeContentRun/current/current/current",
+            "installNodeContentRun/installNodeContentRun/installNodeContentRun#7",
+            "installNodeContentRun/installNodeContentRun/sourceConstruction/sourceConstruction"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "const sourceConstruction = (receiver, method, args, bindingWire"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "const sourceConstruction = (receiver, method, args, bindingWire"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "const sourceConstruction = (receiver, method, args, bindingWire"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "const sourceConstruction = (receiver, method, args, bindingWire"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "const sourceConstruction = (receiver, method, args, bindingWire"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "const sourceConstruction = (receiver, method, args, bindingWire"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "const sourceConstruction = (receiver, method, args, bindingWire"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "const sourceConstruction = (receiver, method, args, bindingWire"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "const sourceConstruction = (receiver, method, args, bindingWire"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/recovered-source-content-control.test.mjs",
+                "anchor": "Source recovery facades borrow only the current managed original and exact Core reference family"
+              },
+              {
+                "path": "adapters/host-node/recovered-source-command-content.test.mjs",
+                "anchor": "Source child retains failed reader close and never substitutes or reissues the reference"
+              },
+              {
+                "path": "src/run_publication_host/client_recovered_source_command_content_wbtest.mbt",
+                "anchor": "recovered Source candidate refuses copied Request foreign Source changed wire policy and lifetime"
               }
             ]
           }
@@ -129602,6 +129743,434 @@
         }
       ],
       "referenceQualification": "Source and original bounded component references only; no new grant, normal package, physical cleanup or whole Host acceptance"
+    },
+    {
+      "module": "adapters/host-node/recovered-source-command-content.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "bb714c1c54e9380d05e2daefe963c22a7469433196209a0c93ead9f6aa142d51",
+      "role": "physical-io",
+      "owner": "Existing keyed Source original, authenticated Command input and physical Store reader owners",
+      "exports": [
+        "prepareRecoveredSourceCommandContent"
+      ],
+      "operations": [
+        {
+          "name": "prepareRecoveredSourceCommandContent",
+          "parameters": [
+            "publications",
+            "control",
+            "sourceOriginal",
+            "prepared",
+            "request",
+            "definition",
+            "captured",
+            "preview",
+            "invocation",
+            "source",
+            "store",
+            "principalId",
+            "ownerPrincipal",
+            "storeAuthorityCid",
+            "authorityScopeCid",
+            "now",
+            "authorize",
+            "binding",
+            "sourcePolicyCid",
+            "referenceLimits",
+            "memberIndex",
+            "row",
+            "inputName",
+            "referenceWire",
+            "assertCurrent",
+            "signal",
+            "limits",
+            "recoveryResources",
+            "sourceConstruction"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRecoveredSourceCommandContent/available/available",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareRecoveredSourceCommandContent/contentOwner/contentOwner",
+          "parameters": [
+            "value",
+            "valueBinding"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRecoveredSourceCommandContent/contentOwner/init:consumeContent/init:consumeContent",
+          "parameters": [
+            "value",
+            "accept"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRecoveredSourceCommandContent/contentOwner/init:consumeContent/init:consumeContent/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareRecoveredSourceCommandContent/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareRecoveredSourceCommandContent/fence/fence/fence",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareRecoveredSourceCommandContent/init:prepare/init:prepare",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareRecoveredSourceCommandContent/init:prepare/init:prepare/init:prepare",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareRecoveredSourceCommandContent/init:prepare/init:prepare/operation/operation",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "prepareRecoveredSourceCommandContent/init:prepare/init:prepare/operation/operation/issued/init:retainOriginal/init:retainOriginal",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRecoveredSourceCommandContent/init:prepare/init:prepare/operation/operation/makeCandidate/makeCandidate",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareRecoveredSourceCommandContent/init:prepare/init:prepare/operation/operation/operation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareRecoveredSourceCommandContent/init:prepare/init:prepare/operation/operation/operation#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRecoveredSourceCommandContent/init:prepare/init:prepare/operation/operation/recover/recover",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRecoveredSourceCommandContent/init:release/init:release",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "prepareRecoveredSourceCommandContent/live/live",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareRecoveredSourceCommandContent/prepareRecoveredSourceCommandContent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareRecoveredSourceCommandContent/selected/selected",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRecoveredSourceCommandContent/storedControl/storedControl",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRecoveredSourceCommandContent/storedControl/storedControl#2",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRecoveredSourceCommandContent/storedControl/storedControl#3",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "prepareRecoveredSourceCommandContent",
+            "prepareRecoveredSourceCommandContent/available/available",
+            "prepareRecoveredSourceCommandContent/contentOwner/contentOwner",
+            "prepareRecoveredSourceCommandContent/contentOwner/init:consumeContent/init:consumeContent",
+            "prepareRecoveredSourceCommandContent/contentOwner/init:consumeContent/init:consumeContent/init:assertCurrent/init:assertCurrent",
+            "prepareRecoveredSourceCommandContent/current/current",
+            "prepareRecoveredSourceCommandContent/fence/fence/fence",
+            "prepareRecoveredSourceCommandContent/init:prepare/init:prepare",
+            "prepareRecoveredSourceCommandContent/init:prepare/init:prepare/init:prepare",
+            "prepareRecoveredSourceCommandContent/init:prepare/init:prepare/operation/operation",
+            "prepareRecoveredSourceCommandContent/init:prepare/init:prepare/operation/operation/issued/init:retainOriginal/init:retainOriginal",
+            "prepareRecoveredSourceCommandContent/init:prepare/init:prepare/operation/operation/makeCandidate/makeCandidate",
+            "prepareRecoveredSourceCommandContent/init:prepare/init:prepare/operation/operation/operation",
+            "prepareRecoveredSourceCommandContent/init:prepare/init:prepare/operation/operation/operation#2",
+            "prepareRecoveredSourceCommandContent/init:prepare/init:prepare/operation/operation/recover/recover",
+            "prepareRecoveredSourceCommandContent/init:release/init:release",
+            "prepareRecoveredSourceCommandContent/live/live",
+            "prepareRecoveredSourceCommandContent/prepareRecoveredSourceCommandContent",
+            "prepareRecoveredSourceCommandContent/selected/selected",
+            "prepareRecoveredSourceCommandContent/storedControl/storedControl",
+            "prepareRecoveredSourceCommandContent/storedControl/storedControl#2",
+            "prepareRecoveredSourceCommandContent/storedControl/storedControl#3"
+          ],
+          "exports": [
+            "prepareRecoveredSourceCommandContent"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "anchor": "export function prepareRecoveredSourceCommandContent("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "anchor": "export function prepareRecoveredSourceCommandContent("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "anchor": "export function prepareRecoveredSourceCommandContent("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "anchor": "export function prepareRecoveredSourceCommandContent("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "anchor": "export function prepareRecoveredSourceCommandContent("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "anchor": "export function prepareRecoveredSourceCommandContent("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "anchor": "export function prepareRecoveredSourceCommandContent("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "anchor": "export function prepareRecoveredSourceCommandContent("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "anchor": "export function prepareRecoveredSourceCommandContent("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/recovered-source-content-control.test.mjs",
+                "anchor": "Source recovery facades borrow only the current managed original and exact Core reference family"
+              },
+              {
+                "path": "adapters/host-node/recovered-source-command-content.test.mjs",
+                "anchor": "Source child retains failed reader close and never substitutes or reissues the reference"
+              },
+              {
+                "path": "src/run_publication_host/client_recovered_source_command_content_wbtest.mbt",
+                "anchor": "recovered Source candidate refuses copied Request foreign Source changed wire policy and lifetime"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "anchor": "export function prepareRecoveredSourceCommandContent("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "anchor": "export function prepareRecoveredSourceCommandContent("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "anchor": "export function prepareRecoveredSourceCommandContent("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "anchor": "export function prepareRecoveredSourceCommandContent("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "anchor": "export function prepareRecoveredSourceCommandContent("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "anchor": "export function prepareRecoveredSourceCommandContent("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "anchor": "export function prepareRecoveredSourceCommandContent("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "anchor": "export function prepareRecoveredSourceCommandContent("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "anchor": "export function prepareRecoveredSourceCommandContent("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/recovered-source-content-control.test.mjs",
+                "anchor": "Source recovery facades borrow only the current managed original and exact Core reference family"
+              },
+              {
+                "path": "adapters/host-node/recovered-source-command-content.test.mjs",
+                "anchor": "Source child retains failed reader close and never substitutes or reissues the reference"
+              },
+              {
+                "path": "src/run_publication_host/client_recovered_source_command_content_wbtest.mbt",
+                "anchor": "recovered Source candidate refuses copied Request foreign Source changed wire policy and lifetime"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Source Content restoration through existing keyed original, same Read and physical Store holding. References describe ownership and selected regression coverage; they do not establish full ordinary-distribution acceptance.",
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "./generated-content-holding.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     }
   ],
   "generated": [],

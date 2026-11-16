@@ -23672,6 +23672,132 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "contentCaptureControl/init:recoveryCandidateForEffectOriginal/init:recoveryCandidateForEffectOriginal",
+            "publicationControl/init:checkedRecoveredSourceContentCandidate/init:checkedRecoveredSourceContentCandidate",
+            "publicationControl/init:effectKeyedOriginalSourceEvidenceFacts/init:effectKeyedOriginalSourceEvidenceFacts",
+            "publicationControl/init:effectKeyedOriginalSourceEvidenceFacts/init:effectKeyedOriginalSourceEvidenceFacts/init:effectKeyedOriginalSourceEvidenceFacts",
+            "publicationControl/init:installedEffectKeyedOriginal/init:installedEffectKeyedOriginal",
+            "publicationControl/init:recoveredContentIssuerKind/init:recoveredContentIssuerKind",
+            "publicationControl/init:recoveredContentIssuerKind/init:recoveredContentIssuerKind/init:recoveredContentIssuerKind",
+            "publicationControl/init:recoveredSourceContentConstructionCapacity/init:recoveredSourceContentConstructionCapacity",
+            "publicationControl/init:recoveredSourceContentConstructionCapacity/init:recoveredSourceContentConstructionCapacity/init:recoveredSourceContentConstructionCapacity",
+            "publicationControl/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent",
+            "publicationControl/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/current/current",
+            "publicationControl/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/init:matchesIssued/init:matchesIssued",
+            "publicationControl/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent",
+            "publicationControl/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/init:release/init:release",
+            "publicationControl/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/init:wire/init:wire"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recoveredSourceContentConstructionCapacity(wire, bindingWire, limits, role"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recoveredSourceContentConstructionCapacity(wire, bindingWire, limits, role"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recoveredSourceContentConstructionCapacity(wire, bindingWire, limits, role"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recoveredSourceContentConstructionCapacity(wire, bindingWire, limits, role"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recoveredSourceContentConstructionCapacity(wire, bindingWire, limits, role"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recoveredSourceContentConstructionCapacity(wire, bindingWire, limits, role"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recoveredSourceContentConstructionCapacity(wire, bindingWire, limits, role"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recoveredSourceContentConstructionCapacity(wire, bindingWire, limits, role"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recoveredSourceContentConstructionCapacity(wire, bindingWire, limits, role"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/recovered-source-content-control.test.mjs",
+                "anchor": "Source recovery facades borrow only the current managed original and exact Core reference family"
+              },
+              {
+                "path": "adapters/host-node/recovered-source-command-content.test.mjs",
+                "anchor": "Source child retains failed reader close and never substitutes or reissues the reference"
+              },
+              {
+                "path": "src/run_publication_host/client_recovered_source_command_content_wbtest.mbt",
+                "anchor": "recovered Source candidate refuses copied Request foreign Source changed wire policy and lifetime"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -23776,6 +23902,18 @@
         {
           "name": "contentCaptureControl/init:issuer/init:issuer/issuer/issuer",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "contentCaptureControl/init:recoveryCandidateForEffectOriginal/init:recoveryCandidateForEffectOriginal",
+          "parameters": [
+            "original",
+            "prepared",
+            "request",
+            "originalWire",
+            "bindingWire",
+            "limits"
+          ],
           "async": false
         },
         {
@@ -26353,6 +26491,18 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:checkedRecoveredSourceContentCandidate/init:checkedRecoveredSourceContentCandidate",
+          "parameters": [
+            "original",
+            "prepared",
+            "request",
+            "referenceWire",
+            "bindingWire",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:checkRecoveredTableSchemaWire/init:checkRecoveredTableSchemaWire",
           "parameters": [
             "preview",
@@ -26718,6 +26868,22 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:effectKeyedOriginalSourceEvidenceFacts/init:effectKeyedOriginalSourceEvidenceFacts",
+          "parameters": [
+            "original",
+            "prepared",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:effectKeyedOriginalSourceEvidenceFacts/init:effectKeyedOriginalSourceEvidenceFacts/init:effectKeyedOriginalSourceEvidenceFacts",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:effectPrivateEvidenceBinding/init:effectPrivateEvidenceBinding",
           "parameters": [
             "preview",
@@ -26910,6 +27076,14 @@
             "originalMoon",
             "execution",
             "slot"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:installedEffectKeyedOriginal/init:installedEffectKeyedOriginal",
+          "parameters": [
+            "managedContext",
+            "prepared"
           ],
           "async": false
         },
@@ -29536,6 +29710,38 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:recoveredContentIssuerKind/init:recoveredContentIssuerKind",
+          "parameters": [
+            "wire",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:recoveredContentIssuerKind/init:recoveredContentIssuerKind/init:recoveredContentIssuerKind",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:recoveredSourceContentConstructionCapacity/init:recoveredSourceContentConstructionCapacity",
+          "parameters": [
+            "wire",
+            "bindingWire",
+            "limits",
+            "role"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:recoveredSourceContentConstructionCapacity/init:recoveredSourceContentConstructionCapacity/init:recoveredSourceContentConstructionCapacity",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:recoveredTablePreviewMatchesSource/init:recoveredTablePreviewMatchesSource",
           "parameters": [
             "preview",
@@ -29613,6 +29819,56 @@
             "maxKeyDepth",
             "construction"
           ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent",
+          "parameters": [
+            "sourceOriginal",
+            "prepared",
+            "request",
+            "definition",
+            "captured",
+            "preview",
+            "invocation",
+            "source",
+            "storeAuthorityCid",
+            "memberIndex",
+            "row",
+            "inputName",
+            "candidate",
+            "issued",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/init:matchesIssued/init:matchesIssued",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/init:release/init:release",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:recoverSourceEffectCommandContent/init:recoverSourceEffectCommandContent/init:wire/init:wire",
+          "parameters": [],
           "async": false
         },
         {

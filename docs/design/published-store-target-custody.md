@@ -149,3 +149,27 @@ replace a Run, bypass explicit approval or resend an uncertain publication.
 Unselected recovery preserves its existing synchronous validation path. Only
 the selected Content consumer awaits physical restoration, and it does so under
 the already retained original recovery parent rather than a detached callback.
+
+## Saved Source Command Content
+
+Captured Source Content and derived Content use their own closed Reference issuer
+families. Source recovery borrows the current installed keyed original from the
+same prepared Request and Run Definition. It checks the authenticated captured
+member, Command input, complete intended Preview row and independent Source
+policy, classification, MIME and lifetime. A matching CID is not authority to
+substitute another Request, occurrence, physical holding or issued Reference.
+
+The installing Host checks the saved namespace, Store and workspace before
+constructing the Source binding. The existing Store then verifies the exact
+captured holding and supplies its actual issued original. The retained Command
+view must match that issued object and remain current before every read. No
+generation, provider response, new capture grant or alternate Run is created.
+Derived Content retains its existing serialization recovery contract.
+
+Each Source constructor quotes its own live output and conservative parsing and
+encoding workspace through the same managed native control. Returned retained
+output remains charged until that control retires. Store awaits end the native
+frame; subsequent constructors enter a fresh frame under the same current Read.
+The recovery parent retains the child before asynchronous physical preparation.
+Cancellation, current-state changes and failed reader closes keep their cleanup
+duties; an earlier authorization result never replaces a fresh current check.
