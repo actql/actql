@@ -97475,6 +97475,125 @@
         }
       ],
       "referenceQualification": "Source and original bounded component references only; no new grant, normal package, physical cleanup or whole Host acceptance"
+    },
+    {
+      "module": "src/run_publication/public_index_construction.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing publication contract and Resource construction owners; immutable geometry DATA only",
+      "referenceQualification": "Actual constructor quantities and original Read/current/failure/cleanup responsibility references. Component tests are not full Native CLI or artifact acceptance.",
+      "exports": [],
+      "operations": [
+        {
+          "name": "public_index_entry_construction_geometry",
+          "declaration": "public_index_entry_construction_geometry ( run_definition : PublicationContract , invocation : PublicationContract , manifest : PublicationContract , receipt : PublicationContract , captured_run : PublicationContract , durable_bindings : Array [ PublicationContract ] , request : PublicationContract , attempt : PublicationContract , committed_at : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ encode . EncodingConstructionGeometry , PublicationCommitIssuanceIssue , ]"
+        },
+        {
+          "name": "public_index_entry_inputs",
+          "declaration": "public_index_entry_inputs ( run_definition : PublicationContract , invocation : PublicationContract , manifest : PublicationContract , receipt : PublicationContract , captured_run : PublicationContract , durable_bindings : Array [ PublicationContract ] , request : PublicationContract , attempt : PublicationContract , ) - > Result [ PublicIndexEntryInputs , PublicationCommitIssuanceIssue ]"
+        },
+        {
+          "name": "publication_wire_construction_inventory",
+          "declaration": "publication_wire_construction_inventory ( geometry : @ encode . EncodingConstructionGeometry , ) - > ( EffectPreviewIdentityConstructionInventory , EffectPreviewIdentityConstructionInventory , ) ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "public_index_entry_construction_geometry",
+            "public_index_entry_inputs",
+            "publication_wire_construction_inventory"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication/public_index_construction.mbt",
+                "anchor": "pub fn public_index_entry_construction_geometry("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication/public_index_construction.mbt",
+                "anchor": "pub fn public_index_entry_construction_geometry("
+              },
+              {
+                "path": "src/run_publication/publication_commit_issuance.mbt",
+                "anchor": "fn emit_public_index_entry_body("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              },
+              {
+                "path": "src/run_publication/public_index_construction.mbt",
+                "anchor": "pub fn public_index_entry_construction_geometry("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              },
+              {
+                "path": "src/run_publication/public_index_construction.mbt",
+                "anchor": "pub fn public_index_entry_construction_geometry("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              },
+              {
+                "path": "src/run_publication/public_index_construction.mbt",
+                "anchor": "pub fn public_index_entry_construction_geometry("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              },
+              {
+                "path": "src/run_publication/public_index_construction.mbt",
+                "anchor": "pub fn public_index_entry_construction_geometry("
+              },
+              {
+                "path": "src/run_publication/public_index_construction.mbt",
+                "anchor": "pub fn publication_wire_construction_inventory("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication/public_index_construction_test.mbt",
+                "anchor": "test \"public index geometry measures the actual sealed issuer including its identity\""
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

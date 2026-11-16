@@ -314,6 +314,10 @@
           "declaration": "NativeLocalStoreOperationReceiver : : prepare_delivery_workspace ( self : NativeLocalStoreOperationReceiver , library : @ sqlite . Library , row : Int , frame : Int , schema_units : Int , nodes : Int , ) - > Int"
         },
         {
+          "name": "NativeLocalStoreOperationReceiver::prepare_publication_construction",
+          "declaration": "NativeLocalStoreOperationReceiver : : prepare_publication_construction ( self : NativeLocalStoreOperationReceiver , library : @ sqlite . Library , retained : Int64 , execution : Int64 , contiguous : Int64 , retained_output : Int , ) - > Int"
+        },
+        {
           "name": "NativeLocalStoreOperationReceiver::refuse",
           "declaration": "NativeLocalStoreOperationReceiver : : refuse ( self : NativeLocalStoreOperationReceiver , issue : NativeLocalStoreOperationIssue , ) - > Int"
         },
@@ -335,7 +339,7 @@
         },
         {
           "name": "prepare_store_operation_ffi",
-          "declaration": "prepare_store_operation_ffi ( library : @ sqlite . Library , receiver : NativeLocalStoreOperationReceiver , route : FuncRef [ ( NativeLocalStoreOperationReceiver , @ sqlite . Library , Int ) - > Int , ] , construction : FuncRef [ ( NativeLocalStoreOperationReceiver , @ sqlite . Library , Int ) - > Int , ] , preparation : FuncRef [ ( NativeLocalStoreOperationReceiver , @ sqlite . Library , Int , Int , Int , Int ) - > Int , ] , ) - > @ sqlite . NativeStoreOperationOriginal"
+          "declaration": "prepare_store_operation_ffi ( library : @ sqlite . Library , receiver : NativeLocalStoreOperationReceiver , route : FuncRef [ ( NativeLocalStoreOperationReceiver , @ sqlite . Library , Int ) - > Int , ] , construction : FuncRef [ ( NativeLocalStoreOperationReceiver , @ sqlite . Library , Int ) - > Int , ] , preparation : FuncRef [ ( NativeLocalStoreOperationReceiver , @ sqlite . Library , Int , Int , Int , Int ) - > Int , ] , publication : FuncRef [ ( NativeLocalStoreOperationReceiver , @ sqlite . Library , Int64 , Int64 , Int64 , Int , ) - > Int , ] , ) - > @ sqlite . NativeStoreOperationOriginal"
         },
         {
           "name": "store_operation_control_clear_ffi",
@@ -371,7 +375,8 @@
             "prepare_native_local_store_operation",
             "prepare_native_local_store_operation_for_domain",
             "prepare_store_operation_ffi",
-            "store_operation_control_clear_ffi"
+            "store_operation_control_clear_ffi",
+            "NativeLocalStoreOperationReceiver::prepare_publication_construction"
           ],
           "exports": [],
           "attributes": {
@@ -397,12 +402,20 @@
               {
                 "path": "docs/design/retained-result-boundary.md",
                 "anchor": "## Native streamed Result read construction"
+              },
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
               }
             ],
             "synchronization": [
               {
                 "path": "src/platform_native/sqlite/store_operation_original.inc",
                 "anchor": "value->calling"
+              },
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
               }
             ],
             "failure": [
@@ -421,6 +434,10 @@
               {
                 "path": "src/client_local_host/preparation_request_result_read.mbt",
                 "anchor": "pub fn result_read_frame_cost("
+              },
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
               }
             ],
             "extension": [
@@ -433,6 +450,18 @@
               {
                 "path": "src/platform_native/installed_arena_control/original_read_working_window_scoped_wbtest.mbt",
                 "anchor": "Native Result READ grows the same finite owner before a row above sixteen MiB"
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/publication_read_construction_physical_scoped_wbtest.mbt",
+                "anchor": "test \"publication constructor funds only its same actual Read and preserves its maximum\""
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/publication_read_construction_physical_scoped_wbtest.mbt",
+                "anchor": "test \"publication constructor keeps its failed finite Read prefix and actual cleanup duty\""
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/publication_read_construction_physical_scoped_wbtest.mbt",
+                "anchor": "test \"publication constructor reentry cannot be hidden by a successful callback result\""
               }
             ]
           }
@@ -1601,6 +1630,10 @@
           "declaration": "NativeStoreOperationOriginal : : enter_store ( self : NativeStoreOperationOriginal , ) - > Result [ Unit , NativeSqliteIssue ]"
         },
         {
+          "name": "NativeStoreOperationOriginal::has_publication_constructor",
+          "declaration": "NativeStoreOperationOriginal : : has_publication_constructor ( self : NativeStoreOperationOriginal , ) - > Result [ Bool , NativeSqliteIssue ]"
+        },
+        {
           "name": "NativeStoreOperationOriginal::leave_store",
           "declaration": "NativeStoreOperationOriginal : : leave_store ( self : NativeStoreOperationOriginal , ) - > Result [ Unit , NativeSqliteIssue ]"
         },
@@ -1615,6 +1648,14 @@
         {
           "name": "NativeStoreOperationOriginal::prepare_delivery_workspace",
           "declaration": "NativeStoreOperationOriginal : : prepare_delivery_workspace ( self : NativeStoreOperationOriginal , row : Int , frame : Int , schema_units : Int , nodes : Int , ) - > Result [ Unit , NativeSqliteIssue ]"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::prepare_publication_construction",
+          "declaration": "NativeStoreOperationOriginal : : prepare_publication_construction ( self : NativeStoreOperationOriginal , retained : Int64 , execution : Int64 , contiguous : Int64 , retained_output : Bool , ) - > Result [ Unit , NativeSqliteIssue ]"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::prepare_publication_scaffold",
+          "declaration": "NativeStoreOperationOriginal : : prepare_publication_scaffold ( self : NativeStoreOperationOriginal , index ? : Bool"
         },
         {
           "name": "NativeStoreOperationOriginal::primary_code",
@@ -1635,6 +1676,10 @@
         {
           "name": "original_has_no_database_ffi",
           "declaration": "original_has_no_database_ffi ( original : NativeStoreOperationOriginal , ) - > Bool"
+        },
+        {
+          "name": "publication_construction_block_bound",
+          "declaration": "publication_construction_block_bound ( slots : Int , nodes : Int , bytes : Int , ) - > Int64"
         },
         {
           "name": "store_operation_activate_ffi",
@@ -1679,6 +1724,18 @@
         {
           "name": "store_operation_primary_ffi",
           "declaration": "store_operation_primary_ffi ( original : NativeStoreOperationOriginal , ) - > Int"
+        },
+        {
+          "name": "store_operation_publication_construction_ffi",
+          "declaration": "store_operation_publication_construction_ffi ( original : NativeStoreOperationOriginal , retained : Int64 , execution : Int64 , contiguous : Int64 , retained_output : Int , ) - > Int"
+        },
+        {
+          "name": "store_operation_publication_constructor_ffi",
+          "declaration": "store_operation_publication_constructor_ffi ( original : NativeStoreOperationOriginal , ) - > Int"
+        },
+        {
+          "name": "store_operation_publication_scaffold_ffi",
+          "declaration": "store_operation_publication_scaffold_ffi ( original : NativeStoreOperationOriginal , index : Int , ) - > Int"
         },
         {
           "name": "store_operation_result",
@@ -1729,7 +1786,14 @@
             "store_operation_leave_ffi",
             "store_operation_pending_scope_ffi",
             "store_operation_primary_ffi",
-            "store_operation_result"
+            "store_operation_result",
+            "NativeStoreOperationOriginal::has_publication_constructor",
+            "NativeStoreOperationOriginal::prepare_publication_construction",
+            "NativeStoreOperationOriginal::prepare_publication_scaffold",
+            "publication_construction_block_bound",
+            "store_operation_publication_construction_ffi",
+            "store_operation_publication_constructor_ffi",
+            "store_operation_publication_scaffold_ffi"
           ],
           "exports": [],
           "attributes": {
@@ -1755,12 +1819,20 @@
               {
                 "path": "docs/design/retained-result-boundary.md",
                 "anchor": "## Native streamed Result read construction"
+              },
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
               }
             ],
             "synchronization": [
               {
                 "path": "src/platform_native/sqlite/store_operation_original.inc",
                 "anchor": "value->calling"
+              },
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
               }
             ],
             "failure": [
@@ -1779,6 +1851,10 @@
               {
                 "path": "src/client_local_host/preparation_request_result_read.mbt",
                 "anchor": "pub fn result_read_frame_cost("
+              },
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
               }
             ],
             "extension": [
@@ -1791,6 +1867,18 @@
               {
                 "path": "src/platform_native/sqlite/store_operation_native_wbtest.mbt",
                 "anchor": "Store operation original refuses a legacy Library before invoking its receiver"
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/publication_read_construction_physical_scoped_wbtest.mbt",
+                "anchor": "test \"publication constructor funds only its same actual Read and preserves its maximum\""
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/publication_read_construction_physical_scoped_wbtest.mbt",
+                "anchor": "test \"publication constructor keeps its failed finite Read prefix and actual cleanup duty\""
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/publication_read_construction_physical_scoped_wbtest.mbt",
+                "anchor": "test \"publication constructor reentry cannot be hidden by a successful callback result\""
               }
             ]
           }
@@ -1855,6 +1943,10 @@
           "declaration": "NativeStoreOperationOriginal : : enter_store ( _self : NativeStoreOperationOriginal , ) - > Result [ Unit , NativeSqliteIssue ]"
         },
         {
+          "name": "NativeStoreOperationOriginal::has_publication_constructor",
+          "declaration": "NativeStoreOperationOriginal : : has_publication_constructor ( _self : NativeStoreOperationOriginal , ) - > Result [ Bool , NativeSqliteIssue ]"
+        },
+        {
           "name": "NativeStoreOperationOriginal::leave_store",
           "declaration": "NativeStoreOperationOriginal : : leave_store ( _self : NativeStoreOperationOriginal , ) - > Result [ Unit , NativeSqliteIssue ]"
         },
@@ -1871,8 +1963,20 @@
           "declaration": "NativeStoreOperationOriginal : : prepare_delivery_workspace ( _self : NativeStoreOperationOriginal , _row : Int , _frame : Int , _schema_units : Int , _nodes : Int , ) - > Result [ Unit , NativeSqliteIssue ]"
         },
         {
+          "name": "NativeStoreOperationOriginal::prepare_publication_construction",
+          "declaration": "NativeStoreOperationOriginal : : prepare_publication_construction ( _self : NativeStoreOperationOriginal , _retained : Int64 , _execution : Int64 , _contiguous : Int64 , _retained_output : Bool , ) - > Result [ Unit , NativeSqliteIssue ]"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::prepare_publication_scaffold",
+          "declaration": "NativeStoreOperationOriginal : : prepare_publication_scaffold ( _self : NativeStoreOperationOriginal , index ? : Bool"
+        },
+        {
           "name": "NativeStoreOperationOriginal::primary_code",
           "declaration": "NativeStoreOperationOriginal : : primary_code ( _self : NativeStoreOperationOriginal , ) - > Int"
+        },
+        {
+          "name": "publication_construction_block_bound",
+          "declaration": "publication_construction_block_bound ( _slots : Int , _nodes : Int , _bytes : Int , ) - > Int64"
         }
       ],
       "contracts": [
@@ -1895,7 +1999,11 @@
             "NativeStoreOperationOriginal::pending_scope",
             "NativeStoreOperationOriginal::prepare_delivery_window",
             "NativeStoreOperationOriginal::prepare_delivery_workspace",
-            "NativeStoreOperationOriginal::primary_code"
+            "NativeStoreOperationOriginal::primary_code",
+            "NativeStoreOperationOriginal::has_publication_constructor",
+            "NativeStoreOperationOriginal::prepare_publication_construction",
+            "NativeStoreOperationOriginal::prepare_publication_scaffold",
+            "publication_construction_block_bound"
           ],
           "exports": [],
           "attributes": {
@@ -1921,12 +2029,20 @@
               {
                 "path": "docs/design/retained-result-boundary.md",
                 "anchor": "## Native streamed Result read construction"
+              },
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
               }
             ],
             "synchronization": [
               {
                 "path": "src/platform_native/sqlite/store_operation_original.inc",
                 "anchor": "value->calling"
+              },
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
               }
             ],
             "failure": [
@@ -1945,6 +2061,10 @@
               {
                 "path": "src/client_local_host/preparation_request_result_read.mbt",
                 "anchor": "pub fn result_read_frame_cost("
+              },
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
               }
             ],
             "extension": [
@@ -1957,6 +2077,163 @@
               {
                 "path": "src/platform_native/sqlite/store_operation_native_wbtest.mbt",
                 "anchor": "Store operation original refuses a legacy Library before invoking its receiver"
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/publication_read_construction_physical_scoped_wbtest.mbt",
+                "anchor": "test \"publication constructor funds only its same actual Read and preserves its maximum\""
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/publication_read_construction_physical_scoped_wbtest.mbt",
+                "anchor": "test \"publication constructor keeps its failed finite Read prefix and actual cleanup duty\""
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/publication_read_construction_physical_scoped_wbtest.mbt",
+                "anchor": "test \"publication constructor reentry cannot be hidden by a successful callback result\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/platform_native/publication_store/publication_construction_native.mbt",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Journal Read and Store operation owners; no new allocation authority or cleanup owner",
+      "referenceQualification": "Actual constructor quantities and original Read/current/failure/cleanup responsibility references. Component tests are not full Native CLI or artifact acceptance.",
+      "exports": [],
+      "operations": [
+        {
+          "name": "publication_index_inventory_cost",
+          "declaration": "publication_index_inventory_cost ( value : @ publication . EffectPreviewIdentityConstructionInventory , ) - > Int64 ?"
+        },
+        {
+          "name": "publication_index_measurement_cost",
+          "declaration": "publication_index_measurement_cost ( bindings : Int ) - > Int64 ?"
+        },
+        {
+          "name": "Store::check_original_commit_in_read",
+          "declaration": "Store : : check_original_commit_in_read ( self : Store , capture : @ local . ClientProgramCapture , run_definition : @ publication . PublicationContract , invocation : @ publication . PublicationContract , definitions : Array [ @ publication . PublicationContract ] , artifacts : Array [ @ publication . PublicationContract ] , derivations : Array [ @ publication . PublicationContract ] , orderings : Array [ @ publication . PublicationContract ] , retentions : Array [ @ publication . PublicationContract ] , bindings : Array [ @ publication . PublicationContract ] , manifest : @ publication . PublicationContract , receipt : @ publication . PublicationContract , captured_run : @ publication . PublicationContract , request : @ publication . PublicationContract , attempt : @ publication . PublicationContract , index : @ publication . PublicationContract , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::issue_public_index_entry_in_original_read",
+          "declaration": "Store : : issue_public_index_entry_in_original_read ( self : Store , run_definition : @ publication . PublicationContract , invocation : @ publication . PublicationContract , manifest : @ publication . PublicationContract , receipt : @ publication . PublicationContract , captured_run : @ publication . PublicationContract , bindings : Array [ @ publication . PublicationContract ] , request : @ publication . PublicationContract , attempt : @ publication . PublicationContract , committed_at : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Result [ @ publication . PublicationContract , @ publication . PublicationCommitIssuanceIssue , ] , NativePublicationStoreIssue , ]"
+        },
+        {
+          "name": "Store::issue_public_index_entry_in_scope",
+          "declaration": "Store : : issue_public_index_entry_in_scope ( self : Store , original : @ sqlite . NativeStoreOperationOriginal , run_definition : @ publication . PublicationContract , invocation : @ publication . PublicationContract , manifest : @ publication . PublicationContract , receipt : @ publication . PublicationContract , captured_run : @ publication . PublicationContract , bindings : Array [ @ publication . PublicationContract ] , request : @ publication . PublicationContract , attempt : @ publication . PublicationContract , committed_at : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Result [ @ publication . PublicationContract , @ publication . PublicationCommitIssuanceIssue , ] , NativePublicationStoreIssue , ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "publication_index_inventory_cost",
+            "publication_index_measurement_cost",
+            "Store::check_original_commit_in_read",
+            "Store::issue_public_index_entry_in_original_read",
+            "Store::issue_public_index_entry_in_scope"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/platform_native/publication_store/publication_construction_native.mbt",
+                "anchor": "fn Store::check_original_commit_in_read("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/platform_native/publication_store/publication_construction_native.mbt",
+                "anchor": "fn Store::check_original_commit_in_read("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              },
+              {
+                "path": "src/platform_native/publication_store/publication_construction_native.mbt",
+                "anchor": "fn Store::check_original_commit_in_read("
+              },
+              {
+                "path": "src/platform_native/client_host/local_store_operation_original.mbt",
+                "anchor": "fn NativeLocalStoreOperationReceiver::prepare_publication_construction("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              },
+              {
+                "path": "src/platform_native/publication_store/publication_construction_native.mbt",
+                "anchor": "fn Store::check_original_commit_in_read("
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_validation.mbt",
+                "anchor": "pub fn check_program_commit_validation_in_read("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              },
+              {
+                "path": "src/platform_native/publication_store/publication_construction_native.mbt",
+                "anchor": "fn Store::check_original_commit_in_read("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              },
+              {
+                "path": "src/platform_native/publication_store/publication_construction_native.mbt",
+                "anchor": "fn Store::check_original_commit_in_read("
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/original_read_consumer_native.mbt",
+                "anchor": "pub fn InstalledArenaHost::prepare_domain_original_read_construction("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/platform_native/installed_arena_control/publication_read_construction_physical_scoped_wbtest.mbt",
+                "anchor": "test \"publication constructor funds only its same actual Read and preserves its maximum\""
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/publication_read_construction_physical_scoped_wbtest.mbt",
+                "anchor": "test \"publication constructor keeps its failed finite Read prefix and actual cleanup duty\""
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/publication_read_construction_physical_scoped_wbtest.mbt",
+                "anchor": "test \"publication constructor reentry cannot be hidden by a successful callback result\""
+              },
+              {
+                "path": "src/run_publication/public_index_construction_test.mbt",
+                "anchor": "test \"public index geometry measures the actual sealed issuer including its identity\""
               }
             ]
           }
