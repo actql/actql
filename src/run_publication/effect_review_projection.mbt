@@ -282,8 +282,15 @@ pub fn admit_effect_review_projection(
 ) -> Result[RunEvidenceValue, EffectReviewProjectionIssue] {
   let expected = match
     project_effect_review_projection(
-      original, preview_wire, authority_scope_cid, approval_claims, redaction_policy_cid,
-      max_wire_bytes, max_nodes, max_depth, preview_limits~,
+      original,
+      preview_wire,
+      authority_scope_cid,
+      approval_claims,
+      redaction_policy_cid,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      preview_limits~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -315,14 +322,28 @@ pub fn effect_review_projection_construction_inventory(
   review_bytes : Int,
   review_nodes : Int,
   review_depth : Int,
-) -> (EffectPreviewIdentityConstructionInventory, EffectPreviewIdentityConstructionInventory)? {
-  if preview_bytes < 1 || preview_nodes < 2 || preview_depth < 1 ||
-    review_bytes < 1 || review_nodes < 2 || review_depth < 1 {
+) -> (
+  EffectPreviewIdentityConstructionInventory,
+  EffectPreviewIdentityConstructionInventory,
+)? {
+  if preview_bytes < 1 ||
+    preview_nodes < 2 ||
+    preview_depth < 1 ||
+    review_bytes < 1 ||
+    review_nodes < 2 ||
+    review_depth < 1 {
     return None
   }
   guard capture_plan_construction_extent(
-      preview_wire, preview_bytes, preview_nodes, preview_depth, _ => true,
-    ) is Some((bytes, nodes, depth)) else { return None }
+      preview_wire,
+      preview_bytes,
+      preview_nodes,
+      preview_depth,
+      _ => true,
+    )
+    is Some((bytes, nodes, depth)) else {
+    return None
+  }
   let nodes = Int::min(nodes, preview_nodes)
   let depth = Int::min(depth, preview_depth)
   // Projection emits each selected input subtree once, plus row/member
@@ -333,17 +354,20 @@ pub fn effect_review_projection_construction_inventory(
     review_nodes.to_int64(),
     Int64::min(review_bytes.to_int64(), 4L * nodes.to_int64() + 64L),
   ).to_int()
-  let output_depth = Int64::min(
-    review_depth.to_int64(), depth.to_int64() + 4L,
-  ).to_int()
+  let output_depth = Int64::min(review_depth.to_int64(), depth.to_int64() + 4L).to_int()
   guard effect_preview_identity_construction_inventory(bytes, nodes, depth)
     is Some(input) &&
-    effect_preview_identity_construction_inventory(
+    protocol_wire_codec_construction_inventory(bytes, nodes, depth)
+    is Some(shape) &&
+    protocol_wire_codec_construction_inventory(
       review_bytes, output_nodes, output_depth,
-    ) is Some(output) else { return None }
-  // The first identity and second shape parse coexist. Two full identity
-  // inventories conservatively include both parsers/forests, comparison and
-  // retained row strings. The review body writer, its sealing parser/forest,
+    )
+    is Some(output) else {
+    return None
+  }
+  // One Preview identity admission and the second shape parse coexist.
+  // Only the first constructs member/row identity inventories. The review
+  // body writer, its generic sealing parser/forest,
   // complete self-CID wrapper and final encoder coexist with that input;
   // two output inventories cover these returned and refused prefixes. No
   // parser frame, writer buffer or returned review is treated as released here.
@@ -359,31 +383,60 @@ pub fn effect_review_projection_construction_inventory(
       record_words: 2L * (2L * n + 4L * d + 3L) + 24L,
       reference_arrays: 4L * n + 8L,
       reference_items: 6L * n + 24L,
-      scalar_arrays: 0L, scalar_items: 0L,
-      maps: 2L * n, map_entries: 2L * n,
-    }) is Some(canonical) &&
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 2L * n,
+      map_entries: 2L * n,
+    })
+    is Some(canonical) &&
     @source.json_tree_retained_construction_extent(
-      output_nodes, output_nodes - 1, output_nodes, 0,
-      review_bytes.to_int64(), keep_spans=false,
-    ) is Some(host) else { return None }
+      output_nodes,
+      output_nodes - 1,
+      output_nodes,
+      0,
+      review_bytes.to_int64(),
+      keep_spans=false,
+    )
+    is Some(host) else {
+    return None
+  }
   let returned : EffectPreviewIdentityConstructionInventory = {
     // originalReview performs its strict admission AFTER the first synchronous
     // projection returns. Keep that later parser/hash/writer envelope here;
     // completion cannot return it before the Checkpoint caller has adopted it.
-    record_headers: canonical.record_headers + host.record_headers + output.record_headers,
-    reference_slots: canonical.reference_slots + host.reference_slots + output.reference_slots,
-    scalar_words: canonical.scalar_words + host.scalar_words + output.scalar_words,
+    record_headers: canonical.record_headers +
+    host.record_headers +
+    output.record_headers,
+    reference_slots: canonical.reference_slots +
+    host.reference_slots +
+    output.reference_slots,
+    scalar_words: canonical.scalar_words +
+    host.scalar_words +
+    output.scalar_words,
     // Two canonical forests, the Host forest and two independently encoded
     // complete wires. Original Preview/policy strings remain on prior owners.
     owned_utf16_units: 5L * review_bytes.to_int64() + output.owned_utf16_units,
     owned_wire_bytes: 4L * review_bytes.to_int64() + output.owned_wire_bytes,
   }
   let temporary : EffectPreviewIdentityConstructionInventory = {
-    record_headers: 2L * input.record_headers + 2L * output.record_headers + 8L,
-    reference_slots: 2L * input.reference_slots + 2L * output.reference_slots + 24L,
-    scalar_words: 2L * input.scalar_words + 2L * output.scalar_words + 16L,
-    owned_utf16_units: 2L * input.owned_utf16_units + 2L * output.owned_utf16_units,
-    owned_wire_bytes: 2L * input.owned_wire_bytes + 2L * output.owned_wire_bytes,
+    record_headers: input.record_headers +
+    shape.record_headers +
+    2L * output.record_headers +
+    8L,
+    reference_slots: input.reference_slots +
+    shape.reference_slots +
+    2L * output.reference_slots +
+    24L,
+    scalar_words: input.scalar_words +
+    shape.scalar_words +
+    2L * output.scalar_words +
+    16L,
+    owned_utf16_units: input.owned_utf16_units +
+    shape.owned_utf16_units +
+    2L * output.owned_utf16_units,
+    owned_wire_bytes: input.owned_wire_bytes +
+    shape.owned_wire_bytes +
+    2L * output.owned_wire_bytes,
   }
   Some((returned, temporary))
 }

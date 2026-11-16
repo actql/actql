@@ -21,6 +21,48 @@ pub fn effect_preview_identity_construction_inventory(
   nodes : Int,
   depth : Int,
 ) -> EffectPreviewIdentityConstructionInventory? {
+  guard protocol_wire_codec_construction_inventory(bytes, nodes, depth)
+    is Some(codec) else { return None }
+  let count = Int::min(bytes, nodes).to_int64()
+  guard @shape.collection_construction_extent({
+      // EffectPreviewIdentity35R; per-member footprint/contract/Option and
+      // relation-source carriers. Per-row CID/return/Some/error carriers are
+      // included even when final identity comparison refuses the Preview.
+      records: 1L + 16L * count,
+      record_references: 35L + 24L * count,
+      record_words: 4L * count,
+      // 27 root vectors plus <=12 per-member vectors: the eight row
+      // inventories, ordered correlations/states/values and footprint IDs.
+      // Ordered arrays borrow Strings from the original row vectors.
+      reference_arrays: 27L + 12L * count,
+      reference_items: 40L * count,
+      scalar_arrays: 1L + count,
+      scalar_items: 2L * count,
+      // Two global seen maps and one row index per member. Their entries
+      // total <=3N; each member/row consumes an original JSON node.
+      maps: 2L + count,
+      map_entries: 3L * count,
+    })
+    is Some(identity) else { return None }
+  Some({
+    record_headers: codec.record_headers + identity.record_headers,
+    reference_slots: codec.reference_slots + identity.reference_slots,
+    scalar_words: codec.scalar_words + identity.scalar_words,
+    // Original per-row correlation/intended/create strings and member CIDs.
+    owned_utf16_units: codec.owned_utf16_units + 255L * count + 142L,
+    owned_wire_bytes: codec.owned_wire_bytes,
+  })
+}
+
+///|
+// Shared protocol wire codec only: preserving Source parser, canonical
+// conversion/views, generated shape visits and canonical text/hash writers.
+// Preview identity admission adds its member/row inventories separately.
+fn protocol_wire_codec_construction_inventory(
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+) -> EffectPreviewIdentityConstructionInventory? {
   if bytes < 1 || nodes < 1 || depth < 1 {
     return None
   }
@@ -47,26 +89,6 @@ pub fn effect_preview_identity_construction_inventory(
     })
     is Some(canonical) &&
     @shape.collection_construction_extent({
-      // EffectPreviewIdentity35R; per-member footprint/contract/Option and
-      // relation-source carriers. Per-row CID/return/Some/error carriers are
-      // included even when final identity comparison refuses the Preview.
-      records: 1L + 16L * count,
-      record_references: 35L + 24L * count,
-      record_words: 4L * count,
-      // 27 root vectors plus <=12 per-member vectors: the eight row
-      // inventories, ordered correlations/states/values and footprint IDs.
-      // Ordered arrays borrow Strings from the original row vectors.
-      reference_arrays: 27L + 12L * count,
-      reference_items: 40L * count,
-      scalar_arrays: 1L + count,
-      scalar_items: 2L * count,
-      // Two global seen maps and one row index per member. Their entries
-      // total <=3N; each member/row consumes an original JSON node.
-      maps: 2L + count,
-      map_entries: 3L * count,
-    })
-    is Some(identity) &&
-    @shape.collection_construction_extent({
       // Protocol visit/result continuations consume the existing <=8N work
       // budget. Include unique-array comparison/index material, row/create
       // inventory sorting and detached object_fields/array_values copies.
@@ -86,36 +108,27 @@ pub fn effect_preview_identity_construction_inventory(
   Some({
     record_headers: parser.record_headers +
     2L * canonical.record_headers +
-    identity.record_headers +
     controls.record_headers +
     text.record_headers +
     hash.record_headers +
     8L,
     reference_slots: parser.reference_slots +
     2L * canonical.reference_slots +
-    identity.reference_slots +
     controls.reference_slots +
     text.reference_slots +
     hash.reference_slots,
     scalar_words: parser.scalar_words +
     2L * canonical.scalar_words +
-    identity.scalar_words +
     controls.scalar_words +
     text.scalar_words +
     hash.scalar_words,
-    // The canonical DATA String bodies borrow the preserving Source. Sum of
-    // serialized correlation/intended subtrees is <=B, not B for EACH row.
-    // Include create-after wires, full canonical comparison and old/new
-    // String growth. Create re-admits its after subtree while the full
-    // canonical Preview remains live, hence the second canonical forest.
-    // Content CIDs71U, row-identity JSON <=113U (Int occurrence <=10 digits),
-    // and member CIDs71U are cumulative; row/hash temporaries are sequential.
+    // Preserve parser/conversion/complete-wire comparison and text/hash
+    // backings. Body/complete canonical views may coexist while a self-CID
+    // field is added. This constructs no Preview member or row identity.
     owned_utf16_units: parser.owned_utf16_units +
     text.owned_utf16_units +
     hash.owned_utf16_units +
-    4L * bytes.to_int64() +
-    255L * count +
-    142L,
+    4L * bytes.to_int64(),
     // Original UTF8 encode(wire) and the one active incremental hash sink.
     owned_wire_bytes: bytes.to_int64() + hash.owned_wire_bytes,
   })
