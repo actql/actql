@@ -252,13 +252,18 @@ fn native_large_result_read_case(short : Bool) -> Unit raise {
   let (retained, execution, contiguous) = @native_client.native_local_result_delivery_preparation_capacity(
     row_bytes, 65536, 64, 32,
   ).unwrap()
-  let ordinary = @client.client_local_preparation_initial_limits(
+  // The parser's wire-index buffers are charged with the decoded row. This
+  // geometry test selects a finite Read allowance that admits that overlap;
+  // it does not change the ordinary Host's default allowance.
+  let selected = @client.client_local_preparation_initial_limits(
     @client.client_local_resource_policy(),
+    retained_bytes=Some(1024L * mib),
+    execution_bytes=Some(1024L * mib),
   ).unwrap()
   assert_true(
-    retained < ordinary.retained_bytes && execution < ordinary.execution_bytes,
+    retained < selected.retained_bytes && execution < selected.execution_bytes,
   )
-  // Same finite ordinary declaration. The small acquired basis and original
+  // Same finite selected declaration. The small acquired basis and original
   // physical domain are independent; the new constructor must actually grow.
   let host = prepare_installed_arena_host(
     "0123456789012345678901234567890123456789",
@@ -271,7 +276,7 @@ fn native_large_result_read_case(short : Bool) -> Unit raise {
       holdings: 16,
       transfer_bytes: mib,
       retained_bytes: 0L,
-      execution_bytes: ordinary.retained_bytes + ordinary.execution_bytes,
+      execution_bytes: selected.retained_bytes + selected.execution_bytes,
     },
     mib,
   ).unwrap()
@@ -291,9 +296,9 @@ fn native_large_result_read_case(short : Bool) -> Unit raise {
         retained_bytes: if short {
           retained + 131072L - 1L
         } else {
-          ordinary.retained_bytes
+          selected.retained_bytes
         },
-        execution_bytes: ordinary.execution_bytes,
+        execution_bytes: selected.execution_bytes,
       },
       initial_window=Some(4L * mib),
     )
@@ -305,7 +310,7 @@ fn native_large_result_read_case(short : Bool) -> Unit raise {
   host.leave_backing_borrow_scope(scope).unwrap()
   host.return_backing_borrow(scope).unwrap()
   host
-  .prepare_domain_read(domain, execution_ceiling=ordinary.execution_bytes)
+  .prepare_domain_read(domain, execution_ceiling=selected.execution_bytes)
   .unwrap()
   let read = match
     host
