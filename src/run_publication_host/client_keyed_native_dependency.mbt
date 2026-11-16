@@ -178,6 +178,35 @@ fn keyed_lookup_native_dependency_bodies_from_original(
       extent,
     )
   }
+  fn receive_policy_body(
+    body : @publication.CapturedEffectDependencyBody,
+    bytes : Int,
+  ) -> Result[Unit, @checked.LocalDependencyBodyIssue] {
+    let kind = @publication.captured_effect_dependency_body_kind(body)
+    let cid = @publication.captured_effect_dependency_body_cid(body)
+    let wire = @publication.captured_effect_dependency_body_json(body)
+    let key = kind + "\u0000" + cid
+    if lookup.closed ||
+      lookup.left.lookup_issue is Some(_) ||
+      !lookup.native_completion
+      .map(value => physical_equal(value, completed))
+      .unwrap_or(false) {
+      return Err(ForeignBody)
+    }
+    if seen.get(key) is Some(previous) {
+      return if previous == wire { Ok(()) } else { Err(ForeignBody) }
+    }
+    if bytes < 0 || bytes > remaining || bodies.length() >= limits.max_entries {
+      return Err(BudgetExceeded)
+    }
+    // The policy codec already admitted this SAME body after its measured
+    // construction. Keep its original, rather than decode a wire copy again.
+    bodies.push(body)
+    seen[key] = wire
+    remaining -= bytes
+    Ok(())
+  }
+  let policy_receiver = Some(receive_policy_body)
   fn emit(
     kind : String,
     cid : String,
@@ -198,14 +227,14 @@ fn keyed_lookup_native_dependency_bodies_from_original(
         raise NativeLookupDependencyStop(ForeignInput)
       }
     }
-    let wire = try {
+    let (wire, bytes, nodes, _) = try {
       let writer = @encode.writer(remaining, max_nodes, max_depth)
       produce(writer)
-      @encode.finish(writer)
+      @encode.finish_text_usage(writer)
     } catch {
       _ => raise NativeLookupDependencyStop(Dependency(InvalidBody))
     }
-    append(kind, cid, wire)
+    append_measured(kind, cid, wire, Some((bytes, nodes)))
   }
   fn carrier(
     original : @carrier.Carrier,
@@ -432,6 +461,7 @@ fn keyed_lookup_native_dependency_bodies_from_original(
             retain_catalog~,
             retained_body_keys=Some(seen),
             before_body~,
+            admitted_body=policy_receiver,
           ).map_err(issue => Static(issue)),
         )
         for (kind, cid, wire) in selected {
