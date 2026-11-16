@@ -20,8 +20,10 @@ fn installed_effect_dependency_index_capacity(
       // Original pin materialization: local ports/occurrences, request
       // tuples, source/entry variants, original borrow wrappers and private
       // Table entries. Each physical holding remains an independent slot.
+      // The warm Source handle's optional context field is one additional
+      // borrowed-reference slot; its checked-context association is cold-only.
       records: 8L + 6L * n + 6L + 8L * n + 7L * m + 7L * t,
-      record_references: 20L + 23L * n + 12L + 17L * n + 16L * m + 15L * t,
+      record_references: 20L + 23L * n + 12L + 17L * n + 17L * m + 15L * t,
       record_words: 6L + 9L * n + 4L + 8L * n + 6L * m + 6L * t,
       reference_arrays: 19L + 4L * n,
       reference_items: 14L * n + 10L * m + 3L * t,

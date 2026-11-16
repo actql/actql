@@ -1,10 +1,9 @@
 ///|
 // Validate the complete chain once, then project every Source in this SAME
-// synchronous call. No standing field, Some/proof record or retained context
-// tuple is added to any fresh, cold or legacy constructor. Already-funded
-// lexical arguments borrow the original immutable tree. The transient index
-// vector and returned typed Source handles use the SAME decoded Read's
-// existing typed-body/index inventory. No permission or current is cached.
+// synchronous call. Returned Source handles retain an exact immutable context
+// association for subsequent row projections. Its borrowed originals and the
+// transient index vector use the SAME decoded Read's typed-body/member
+// inventory. No permission, Store custody or current decision is cached.
 pub fn prepared_captured_effect_run_sources(
   run_definition : PublicationContract,
   invocation : PublicationContract,
@@ -52,6 +51,7 @@ pub fn prepared_captured_effect_run_sources(
         member_index,
         invocation,
         artifacts[index],
+        captured,
         context,
         store_authority_cid,
         max_bytes,

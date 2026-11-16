@@ -22,6 +22,22 @@ struct CapturedEffectSourceArtifact {
   effect_id : String
   artifact : PublicationContract
   holding_cid : String
+  context_binding : CapturedEffectSourceContext?
+}
+
+///|
+// Only the two whole-context admission entrances may issue this immutable
+// association. It borrows exact originals, never an availability verdict.
+priv struct CapturedEffectSourceContext {
+  captured : PublicationContract
+  preview : EffectPreviewIdentity
+  invocation : PublicationContract
+  artifact : PublicationContract
+  store_authority_cid : String
+  member_index : Int
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
 }
 
 ///|
@@ -355,6 +371,7 @@ fn admit_captured_effect_source_binding(
   artifact : PublicationContract,
   preview_artifact_cid : String,
   store_authority_cid : String,
+  context_binding? : CapturedEffectSourceContext? = None,
 ) -> Result[CapturedEffectSourceArtifact, CapturedRunIssuanceIssue] {
   guard effect_preview_member_effect_id(preview, member_index)
     is Some(effect_id) &&
@@ -384,7 +401,7 @@ fn admit_captured_effect_source_binding(
     is Some(holding_cid) else {
     return Err(CaptureIssuanceReferenceMismatch("effect_source_holding"))
   }
-  Ok({ effect_id, artifact, holding_cid, })
+  Ok({ effect_id, artifact, holding_cid, context_binding, })
 }
 
 ///|

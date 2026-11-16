@@ -182,6 +182,11 @@ fn request_effect_capture_recovery_capacity(
       // inventory coexist during construction. Successful Store return cuts
       // only the full parsed container; the returned two tree inventories
       // stay backed until their original child cleanup has completed.
+      // A Source has a distinct prepared-member root beside its typed
+      // PublicationContract tree (one unique member, no duplicated indices).
+      // That root's existing 256-byte slot covers the Source H1/R4 (48B),
+      // context Some H1/R1/W1 (32B), and borrowed exact-context H1/R5/W4
+      // (88B): 168B total. It does not consume the Canonical root's slot.
       { unit: ValueNodeSlots, count: node_slots, copies: 1, },
       // Capture wire, decoded record strings, and independently decoded typed
       // strings. A getter alias of an existing wire is not another copy.

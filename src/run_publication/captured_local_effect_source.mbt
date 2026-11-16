@@ -381,8 +381,8 @@ pub fn admit_captured_effect_source_from_capture(
     return Err(CaptureIssuanceReferenceMismatch("effect_source_capture"))
   }
   captured_effect_source_from_checked_context(
-    preview, member_index, invocation, artifact, context, store_authority_cid, max_wire_bytes,
-    max_nodes, max_depth,
+    preview, member_index, invocation, artifact, captured, context, store_authority_cid,
+    max_wire_bytes, max_nodes, max_depth,
   )
 }
 
@@ -394,6 +394,7 @@ fn captured_effect_source_from_checked_context(
   member_index : Int,
   invocation : PublicationContract,
   artifact : PublicationContract,
+  captured : PublicationContract,
   context : @json.CanonicalValue,
   store_authority_cid : String,
   max_wire_bytes : Int,
@@ -412,8 +413,57 @@ fn captured_effect_source_from_checked_context(
     return Err(CaptureIssuanceReferenceMismatch("effect_source_capture"))
   }
   admit_captured_effect_source_binding(
-    preview, member_index, invocation, artifact, expected, store_authority_cid,
+    preview,
+    member_index,
+    invocation,
+    artifact,
+    expected,
+    store_authority_cid,
+    context_binding=captured.wire_usage.map(usage => {
+      let (bytes, nodes, depth) = usage
+      {
+        captured,
+        preview,
+        invocation,
+        artifact,
+        store_authority_cid,
+        member_index,
+        max_bytes: bytes,
+        max_nodes: nodes,
+        max_depth: depth,
+      }
+    }),
   )
+}
+
+///|
+// The complete immutable context was admitted when this SAME source was
+// issued. A smaller explicit policy still takes the original full validator.
+// No Store custody, permission or original-current decision is represented.
+fn captured_effect_source_context_matches(
+  source : CapturedEffectSourceArtifact,
+  captured : PublicationContract,
+  preview : EffectPreviewIdentity,
+  invocation : PublicationContract,
+  member_index : Int,
+  store_authority_cid : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  guard source.context_binding is Some(binding) else { return false }
+  physical_equal(binding.captured, captured) &&
+  physical_equal(binding.preview, preview) &&
+  physical_equal(binding.invocation, invocation) &&
+  physical_equal(binding.artifact, source.artifact) &&
+  binding.member_index == member_index &&
+  binding.store_authority_cid == store_authority_cid &&
+  binding.max_bytes > 0 &&
+  binding.max_nodes > 0 &&
+  binding.max_depth > 0 &&
+  max_bytes >= binding.max_bytes &&
+  max_nodes >= binding.max_nodes &&
+  max_depth >= binding.max_depth
 }
 
 ///|
@@ -501,20 +551,31 @@ fn captured_effect_source_relation_artifact_from_capture(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[PublicationContract, CapturedRunIssuanceIssue] {
-  guard admit_captured_effect_source_from_capture(
-      preview,
-      member_index,
-      invocation,
-      source.artifact,
-      captured,
-      store_authority_cid,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
-    )
-    is Ok(expected) &&
-    expected.effect_id == source.effect_id &&
-    expected.holding_cid == source.holding_cid &&
+  let matches = if captured_effect_source_context_matches(
+      source, captured, preview, invocation, member_index, store_authority_cid, max_wire_bytes,
+      max_nodes, max_depth,
+    ) {
+    true
+  } else {
+    match
+      admit_captured_effect_source_from_capture(
+        preview,
+        member_index,
+        invocation,
+        source.artifact,
+        captured,
+        store_authority_cid,
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+      ) {
+      Ok(expected) =>
+        expected.effect_id == source.effect_id &&
+        expected.holding_cid == source.holding_cid
+      Err(_) => false
+    }
+  }
+  guard matches &&
     @json.object_field(captured.value, "effect_context") is Some(context) &&
     @json.object_field(context, "effect_source_local_inventory")
     is Some(inventory) &&
