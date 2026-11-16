@@ -248,6 +248,17 @@ fn bounded_join_borrows_input(kernel : @lower.PreparedJoinKernel) -> Bool {
 }
 
 ///|
+// The bounded DISTINCT reader charges/rechecks the same original scalar cells,
+// including explicit NULL and borrowed Text. Sorting retains row indices and
+// workspace-funded comparison cursors; it builds no input forest or canonical
+// measurement body. Optional presence and recursive shapes keep the full recipe.
+fn bounded_distinct_borrows_input(kernel : @lower.PreparedKernel) -> Bool {
+  @lower.kernel_body(kernel) is @lower.DistinctRows &&
+  bounded_number_group_scalar_schema(@lower.kernel_input_schema(kernel)) &&
+  bounded_number_group_scalar_schema(@lower.kernel_output_schema(kernel))
+}
+
+///|
 /// Constructor-specific recipe for bounded Values, Append, primitive Set/Join,
 /// INNER JOIN with immediate keys, required-field CROSS JOIN, scalar grouped
 /// COUNT, UNNEST and binding-row
@@ -264,11 +275,26 @@ pub fn generated_bounded_sequence_capacity(
 ) -> ExecutionCapacity? {
   guard generated_sequence_step_index_at(generated, 0) is Some(step) &&
     generated_sequence_step_index_at(generated, 1) is None &&
-    (
-      generated.selected_steps is Some([_]) ||
-      generated_sequence_step_at(generated, 0) is Some(@lower.ValuesStep(_))
-    ) &&
     generated_sequence_step_at(generated, 0) is Some(operation) else {
+    return generated_sequence_capacity(generated, limits, measurement)
+  }
+  let borrowed_distinct = match operation {
+    @lower.RowStep(kernel) => bounded_distinct_borrows_input(kernel)
+    _ => false
+  }
+  // The same one-step Relation provider invokes the bounded row constructor
+  // for an original whole DISTINCT as for its selected-step view. No legacy
+  // table is constructed. Keep its complete original retained holding below.
+  let whole_distinct = borrowed_distinct &&
+    @lower.sequence_count(generated.sequence) == 1 &&
+    generated.selected_steps is None &&
+    generated.selected_prefix_end is None
+  let whole_set = operation is @lower.SetStep(_) &&
+    @lower.sequence_count(generated.sequence) == 1 &&
+    generated.selected_steps is None &&
+    generated.selected_prefix_end is None
+  if !(generated.selected_steps is Some([_]) ||
+    operation is @lower.ValuesStep(_) || whole_distinct || whole_set) {
     return generated_sequence_capacity(generated, limits, measurement)
   }
   match operation {
@@ -441,6 +467,7 @@ pub fn generated_bounded_sequence_capacity(
       .bind(target => @lower.preparation_schema_at(prepared, target))
       .map(input => {
         bounded_immediate_binding_schema(input) ||
+        borrowed_distinct ||
         // Binding snapshots and these forwarding constructors borrow the
         // original immutable cells. Recursive recheck returns the same value,
         // not an input tree copy. Preserve the complete independent output
@@ -572,6 +599,22 @@ pub fn generated_bounded_sequence_capacity(
   if operation is @lower.WindowStep(_) && !borrowed_window {
     return generated_sequence_capacity(generated, limits, measurement)
   }
+  // Bounded EXCEPT/INTERSECT scans both original reads, sorts row indices and
+  // forwards checked cells. Its input scan/rechecks own workspace cursors, not
+  // copied input forests or a physical-measurement canonical body.
+  let mut borrowed_set = operation is @lower.SetStep(_) &&
+    @lower.node_input_count(node) == 2 &&
+    bounded_number_group_scalar_schema(schema)
+  if borrowed_set {
+    for index in 0..<2 {
+      if @lower.node_input_target(node, index)
+        .bind(target => @lower.preparation_schema_at(prepared, target))
+        .map(bounded_number_group_scalar_schema)
+        .unwrap_or(false) == false {
+        borrowed_set = false
+      }
+    }
+  }
   let binary = operation is @lower.SetStep(_) || operation is @lower.JoinStep(_)
   let mut borrowed_binary = binary &&
     @lower.node_input_count(node) == 2 &&
@@ -590,7 +633,7 @@ pub fn generated_bounded_sequence_capacity(
   // Unsupported binary shapes keep the full existing envelope. Immediate
   // Set/Join inputs and the checked INNER JOIN's carried DATA are borrowed;
   // every logical occurrence still uses the bounded charged input scan.
-  if binary && !borrowed_binary && !borrowed_join {
+  if binary && !borrowed_binary && !borrowed_join && !borrowed_set {
     return generated_sequence_capacity(generated, limits, measurement)
   }
   let roots = @schema.field_count(schema).to_int64() +
@@ -606,6 +649,7 @@ pub fn generated_bounded_sequence_capacity(
       operation is @lower.AppendStep(_) ||
       borrowed_row ||
       borrowed_binary ||
+      borrowed_set ||
       borrowed_cross ||
       borrowed_join ||
       borrowed_window ||
@@ -619,6 +663,7 @@ pub fn generated_bounded_sequence_capacity(
     bounded_measurement=borrowed_values ||
       (borrowed_row && !borrowed_group) ||
       operation is @lower.AppendStep(_) ||
+      borrowed_set ||
       borrowed_cross ||
       borrowed_join ||
       borrowed_window ||
@@ -694,6 +739,21 @@ pub fn generated_bounded_sequence_capacity(
         RetainedAlongsideExecution,
       )
     }
+  }
+  if whole_distinct || whole_set {
+    guard generated_sequence_capacity(generated, limits, measurement)
+      is Some(original) &&
+      original.retained_bytes >= ordinary.retained_bytes &&
+      checked_preparation_add_product(
+        ordinary.execution_bytes,
+        original.retained_bytes - ordinary.retained_bytes,
+        1L,
+      ) is Some(execution) else {
+      return None
+    }
+    // Only ended/absent constructor scratch changes. Preserve full provider R
+    // alongside the complete bounded workspace; output retention is not deferred.
+    return execution_capacity(original.retained_bytes, execution)
   }
   Some(ordinary)
 }
