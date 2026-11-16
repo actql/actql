@@ -73,6 +73,7 @@ import {
 options(
   targets: {
     "closed_values_copy_text_js_wbtest.mbt": [ "js" ],
+    "closed_values_replace_text_js_wbtest.mbt": [ "js" ],
     "installed_effect_result_publication_work_js_wbtest.mbt": [ "js" ],
     "installed_effect_cold_read_js_wbtest.mbt": [ "js" ],
     "installed_effect_catalog_group_js_wbtest.mbt": [ "js" ],

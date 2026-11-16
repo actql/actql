@@ -136,6 +136,11 @@ fn client_local_capacity_plan(
             sequences, demand, graph, graph_offset,
           )
           is Some(value) => Some(value)
+        None if client_local_original_values_replace_text_bound(
+            sequences, demand, graph, graph_offset,
+          )
+          is Some(value) &&
+          value.0 <= values.max_work => Some(value)
         None if content is None && demand.original.flat_json_leaves => {
           // This same closed JSON-leaf schema has no opaque reference wire.
           // ValueBudget charges every UTF-8 text/name byte against max_work;
