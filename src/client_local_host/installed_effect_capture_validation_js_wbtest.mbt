@@ -299,3 +299,31 @@ test "validation preserves foreign current reentry retirement and original clean
   }
   close_capture_validation_fixture(foreign_run, foreign_ledger, foreign)
 }
+
+///|
+test "Definition-only completion cannot authorize validation of the first later material" {
+  let (run, ledger, read) = installed_cold_read_fixture()
+  assert_true(read.material is None)
+  complete_installed_effect_capture_recovery(read).unwrap()
+  assert_true(read.material is None)
+  // Geometry component seam only: no AEAD, Store ACK or captured authority.
+  // A completed Definition predates this distinct material construction.
+  let envelope = "{\"ciphertext\":\"" + "A".repeat(2048) + "\"}"
+  reserve_installed_effect_capture_encrypted(read, envelope.length()).unwrap()
+  assert_true(
+    begin_installed_effect_capture_validation(read) is Err(ForeignOriginal),
+  )
+  reserve_installed_effect_capture_envelope(read, envelope).unwrap()
+  assert_true(
+    begin_installed_effect_capture_validation(read) is Err(ForeignOriginal),
+  )
+  reserve_installed_effect_capture_decoded(read, "{\"geometry\":true}").unwrap()
+  assert_true(read.material_ready)
+  assert_true(
+    begin_installed_effect_capture_validation(read) is Err(ForeignOriginal),
+  )
+  complete_installed_effect_capture_recovery(read).unwrap()
+  begin_installed_effect_capture_validation(read).unwrap()
+  complete_installed_effect_capture_recovery(read).unwrap()
+  close_capture_validation_fixture(run, ledger, read)
+}
