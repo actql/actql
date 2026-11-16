@@ -1832,6 +1832,88 @@ test('owned Grant native frame refuses malformed capacity and missing runtime be
   assert.deepEqual(legacy.events, []);
 });
 
+test('Ledger row classes forward original policy geometry and keep the legacy full frame', () => {
+  let f; const receiver = {}, argument = {}, result = {};
+  f = controlWorkFixture({clientProgramInstalledEffectOperationLedgerRowBegin(...args) {
+    assert.strictEqual(this, f.runtime);
+    assert.deepEqual(args, [f.run.value, f.run.prepared, f.run.request, f.run.operationPlan,
+      'response', 1510, 64, 4, 65536]);
+    f.events.push('row'); return {$tag: 1};
+  }});
+  assert.strictEqual(f.work.ledgerRow(receiver, function(value) {
+    assert.strictEqual(this, receiver); assert.strictEqual(value, argument);
+    assert.equal(f.work.retire(), false);
+    assert.throws(() => f.work.ledgerRow(receiver, () => {}, [], 'entry', 1, 1, 1, 1),
+      {code: 'InstalledEffectControlConstructionPending'});
+    return result;
+  }, [argument], 'response', 1510, 64, 4, 65536), result);
+  assert.deepEqual(f.events, ['row', 'complete']);
+  assert.throws(() => f.work.ledgerRow(receiver, () => assert.fail('invalid class'), [], 'unknown', 1, 1, 1, 1),
+    {code: 'InvalidInstalledEffectControlConstruction'});
+  const legacy = controlWorkFixture();
+  assert.equal(legacy.work.ledgerRow, undefined);
+  assert.equal(legacy.work.receiptCodec, undefined);
+  assert.equal(legacy.work.ledgerHistory, undefined);
+  legacy.work(receiver, () => result, []);
+  assert.deepEqual(legacy.events, ['begin', 'complete']);
+});
+
+test('Receipt codecs retain their original row frame and preserve an entry refusal before body work', () => {
+  for (const refused of [false, true]) {
+    let f; const refusal = new Error('original Receipt capacity refusal'), result = {};
+    f = controlWorkFixture({
+      clientProgramInstalledEffectOperationLedgerRowBegin() {f.events.push('row'); return {$tag: 1};},
+      clientProgramInstalledEffectOperationReceiptCodecBegin(...args) {
+        assert.strictEqual(this, f.runtime);
+        assert.deepEqual(args, [f.run.value, f.run.prepared, f.run.request, f.run.operationPlan,
+          '{"state":"applied"}', 512, 16, false]);
+        f.events.push('receipt'); if (refused) throw refusal; return {$tag: 1};
+      },
+      clientProgramInstalledEffectOperationLedgerCodecComplete() {f.events.push('codec-complete'); return {$tag: 1};},
+    });
+    const operation = () => f.work.ledgerRow(undefined, () => f.work.receiptCodec(undefined,
+      () => {if (refused) assert.fail('unfunded Receipt work'); return result;}, [],
+      '{"state":"applied"}', 512, 16, false), [], 'receipt', 1510, 64, 4, 65536);
+    if (refused) {
+      assert.throws(operation, cause => cause === refusal);
+      assert.deepEqual(f.events, ['row', 'receipt']);
+      assert.throws(() => f.work(undefined, () => assert.fail('failed-prefix retry'), []), cause => cause === refusal);
+    } else {
+      assert.strictEqual(operation(), result);
+      assert.deepEqual(f.events, ['row', 'receipt', 'codec-complete', 'complete']);
+    }
+  }
+});
+
+test('History growth extends only a live original frame and cannot hide its first refusal', () => {
+  for (const refused of [false, true]) {
+    let f; const refusal = new Error('original history capacity refusal');
+    f = controlWorkFixture({
+      clientProgramInstalledEffectOperationLedgerRowBegin() {f.events.push('row'); return {$tag: 1};},
+      clientProgramInstalledEffectOperationLedgerHistoryGrow(...args) {
+        assert.strictEqual(this, f.runtime);
+        assert.deepEqual(args, [f.run.value, f.run.prepared, f.run.request, f.run.operationPlan, 3, 4100n]);
+        assert.throws(() => f.work.ledgerHistory(3, 4100), {code: 'InstalledEffectControlConstructionPending'});
+        f.events.push('history'); if (refused) throw refusal; return {$tag: 1};
+      },
+    });
+    assert.throws(() => f.work.ledgerHistory(3, 4100), {code: 'InstalledEffectControlConstructionPending'});
+    let materialized = false;
+    const operation = () => f.work.ledgerRow(undefined, () => {
+      assert.equal(f.work.ledgerHistory(3, 4100), undefined);
+      materialized = true;
+    }, [], 'receipt', 1510, 64, 4, 65536);
+    if (refused) {
+      assert.throws(operation, cause => cause === refusal); assert.equal(materialized, false);
+      assert.deepEqual(f.events, ['row', 'history']);
+      assert.throws(() => f.work(undefined, () => {}, []), cause => cause === refusal);
+    } else {
+      operation(); assert.equal(materialized, true);
+      assert.deepEqual(f.events, ['row', 'history', 'complete']);
+    }
+  }
+});
+
 test('original Grant frame selects the same Core issuer capacity and retains generic full funding', () => {
   let f; const receiver = {}, argument = {}, result = {};
   f = controlWorkFixture({

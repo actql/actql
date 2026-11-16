@@ -1343,12 +1343,12 @@ export function prepareInstalledEffectControlConstruction(run) {
     if (retired) fail('InstalledEffectControlConstructionRetired');
     if (failed) throw primary;
     if (!working || !run.selecting || codecWorking || historyWorking) fail('InstalledEffectControlConstructionPending');
-    if (!Number.isSafeInteger(count) || count < 0 || !Number.isSafeInteger(wireUnits) || wireUnits < 0 ||
+    if (!Number.isSafeInteger(count) || count < 0 || count > 2147483647 || !Number.isSafeInteger(wireUnits) || wireUnits < 0 ||
         typeof ledgerHistoryGrow !== 'function') fail('InstalledEffectControlRuntimeUnavailable');
     historyWorking = true;
     try {
       originalRecord();
-      checked(Reflect.apply(ledgerHistoryGrow, runtime, [parent, prepared, request, plan, count, wireUnits]));
+      checked(Reflect.apply(ledgerHistoryGrow, runtime, [parent, prepared, request, plan, count, BigInt(wireUnits)]));
       originalRecord();
     } catch (cause) {
       failed = true; primary = cause;
