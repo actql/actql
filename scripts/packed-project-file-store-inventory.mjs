@@ -16,6 +16,7 @@ const fixtureMembers = [
   'scripts/fixtures/packed-project-file-store-inventory.mjs',
   'scripts/fixtures/project-file-store-inventory-cases.mjs',
   'scripts/fixtures/project-file-store-ledger-observation.mjs',
+  'scripts/fixtures/project-file-store-progress-observation.mjs',
   'scripts/fixtures/project-effect-dependency-observation.mjs',
   'scripts/fixtures/record-approval/scoped-fds.fixture.mjs',
   'adapters/host-node/fixtures/work-observation.fixture.mjs',
