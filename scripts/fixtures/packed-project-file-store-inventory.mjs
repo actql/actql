@@ -15,6 +15,7 @@ import {observeProjectFileStoreLedger, observeProjectFileStoreAttempts,
   from './project-file-store-ledger-observation.mjs';
 import {observeRecordApprovalDescriptors} from './record-approval/scoped-fds.fixture.mjs';
 import {workflowWorkObservation} from '../../adapters/host-node/fixtures/work-observation.fixture.mjs';
+import {projectFileStoreProgressObservation} from './project-file-store-progress-observation.mjs';
 
 const [phase, caseId, handoffPath] = process.argv.slice(2);
 assert(['capture', 'approve', 'saved'].includes(phase)); assert(['rows101', 'members17'].includes(caseId));
@@ -84,6 +85,9 @@ const inputsAbsent = async original => {
   assert.deepEqual(await readdir(sourceRoot), []);
 };
 const selected = caseId === 'rows101' ? projectFileStoreRows101() : projectFileStoreMembers17();
+const timing = projectFileStoreProgressObservation({stateDir, destinationRoot,
+  expectedFiles: selected.expectedFiles, instrumented: process.env.ACTQL_TEST_FILE_PROGRESS === '1'});
+report.phaseTiming = timing.data;
 const work = workflowWorkObservation({trackOriginal: true});
 let original, client, primary, attemptsBefore, ledgerBefore;
 const cleanup = [];
@@ -139,6 +143,7 @@ try {
   assert.deepEqual(original.expectedProjection, selected.expectedProjection);
   const budget = projectFileStoreInventoryAcceptance.budgetBytes;
   report.requestMemory = {retainedBytes: budget, executionBytes: budget};
+  timing.stamp('open-begin');
   client = await open({stateDir, installation: {observation: work.connection, authorization: {...original.authorization,
     observe(name, detail) {
       if (['dispatch_failed', 'effect_preflight_failed', 'effect_start_failed', 'local_compute_failed'].includes(name)
@@ -146,6 +151,7 @@ try {
     }},
     requestMemory: report.requestMemory,
     resultDataPolicy: {kind: 'data_policy', wire: policyWire, cid: digest(policyWire)}}});
+  timing.stamp('open-end');
   let run;
   if (phase === 'capture') {
     report.submits++;
@@ -154,6 +160,7 @@ try {
     // Functional completion bound for acquisition plus Compute, not a latency
     // assertion. Cold approval and Saved keep their separate existing bounds.
     const waiting = await run.wait({signal: AbortSignal.timeout(45_000)});
+    timing.stamp('terminal-or-abort');
     report.captureState = snapshot(waiting);
     assert.equal(waiting.status, 'waiting_checkpoint');
     assert.deepEqual(await readdir(destinationRoot), []);
@@ -163,7 +170,9 @@ try {
     const checkpoints = page.items.filter(item => item.kind === 'effect_set');
     assert.equal(checkpoints.length, 1);
     const checkpoint = checkpoints[0];
+    timing.stamp('review-begin');
     const review = await client.reviewCheckpoint(checkpoint, {maxBytes: 1024 * 1024});
+    timing.stamp('review-end');
     // The public method verifies the review's self-excluding contract CID.
     // Its physical byte digest is a separate observation, not that identity.
     assert.equal(review.checkpointCid, checkpoint.checkpointCid);
@@ -174,33 +183,42 @@ try {
     original.runId = waiting.run_id; original.reviewBase64 = Buffer.from(review.bytes).toString('base64');
     await save(handoffPath, original);
   } else {
+    timing.stamp('attach-begin');
     run = await client.attach(original.ref); assert.deepEqual(run.ref, original.ref);
+    timing.stamp('attach-end');
     const state = await run.status();
     assert.equal(state.run_id, original.runId);
     if (phase === 'approve') {
       assert.equal(state.status, 'waiting_checkpoint');
       assert.equal(state.checkpoint.id, original.checkpointId);
+      timing.stamp('review-begin');
       const review = await client.reviewCheckpoint(original.checkpoint, {maxBytes: 1024 * 1024});
+      timing.stamp('review-end');
       assert.equal(Buffer.from(review.bytes).toString('base64'), original.reviewBase64,
         'The cold process must recover the identical sealed original review');
       assert.deepEqual(await readdir(destinationRoot), []);
       await observeProjectFileStoreLedger(stateDir, selected.expectedFiles, {beforeApproval: true});
       report.zeroWritesBeforeApproval = true;
       report.approvals++;
+      timing.stamp('resolve-begin');
       const resolution = await client.resolveCheckpoints([{checkpoint: original.checkpoint, decision: 'approved'}], {
         signer: {keyId: 'reviewer', reviewerId: 'reviewer', authorityScopeCid: run.ref.authorityScopeCid,
           sign: bytes => sign(null, bytes, original.authorization.hostKey.privateKey)}});
+      timing.stamp('resolve-end');
       await save(join(directory, 'approval.json'), resolution);
       assert.equal(resolution.results.length, 1); assert.equal(resolution.results[0].status, 'committed');
+      timing.stamp('window-start');
       const signal = AbortSignal.timeout(15_000);
       let resumedState;
       do {
         resumedState = await run.status({signal});
+        if (timing.instrumented) timing.poll();
         if (!['waiting_checkpoint', 'resuming', 'running'].includes(resumedState.status)) break;
         await delay(20, undefined, {signal});
       } while (true);
+      timing.stamp('terminal-or-abort');
       assert.equal(resumedState.status, 'succeeded'); assert.equal(resumedState.run_id, original.runId);
-    } else assert.equal(state.status, 'succeeded');
+    } else {timing.stamp('terminal-or-abort'); assert.equal(state.status, 'succeeded');}
   }
   if (phase !== 'capture') {
     const rows = await run.result(original.resultName).all();
@@ -213,14 +231,19 @@ try {
   report.checkpointCid = original.checkpoint.checkpointCid;
 } catch (error) {
   primary = error; report.primary = diagnosticData(error);
+  timing.stamp('terminal-or-abort');
+  await timing.failure();
 } finally {
   report.ref ??= original?.ref; report.workObservation = original?.ref ? work.forOriginal(original.ref) : work.snapshot();
   report.firstClose = client === undefined ? 'not-attempted' : 'pending';
+  timing.stamp('close-pending');
   try {await save(join(dirname(handoffPath), `${caseId}-${phase}.pending.json`), report);}
   catch (error) {cleanup.push(error);}
   if (client !== undefined) try {
+    timing.stamp('close-begin');
     report.firstCloseCalls++; await client.close(); report.firstClose = 'returned';
   } catch (error) {report.firstClose = 'threw'; cleanup.push(error);}
+  finally {timing.stamp('close-end');}
   if (report.firstClose === 'returned') try {
     const roots = [stateDir, sourceRoot, destinationRoot];
     const before = await observeRecordApprovalDescriptors(roots); await delay(100);
