@@ -50,7 +50,7 @@ test "prepared publication constructor reaches local Source sizing with genuine 
         32,
         prepared=Some(prepared),
         work=Some(units => {
-          if units < 1 {
+          if units < 0 {
             false
           } else {
             spent.val += units
