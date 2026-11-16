@@ -130,7 +130,10 @@ fn journal_metadata_original_read_fixture(
       .borrow_local_host_sqlite(pair)
       .map_err(issue => OriginalResources(issue))
       .unwrap()
-    let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap() +
+    // This fixture installs a fresh one-shot journal schema. The scoped runner
+    // issues this private physical namespace per case, even when the legacy
+    // SQLite input namespace is shared by adjacent cases.
+    let path = @env.get_env_var("ACTQL_TEST_INSTALLED_PROCESS_ROOT").unwrap() +
       "/journal-metadata-original-read.sqlite3"
     match library.open_database_with_custody(path, 2097152L) {
       Ok(value) => database.val = Some(value)
