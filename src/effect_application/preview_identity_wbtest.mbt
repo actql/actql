@@ -187,6 +187,120 @@ test "Effect recovery derives exact keys from the admitted Preview" {
 }
 
 ///|
+test "Effect recovery row ceiling does not allocate or refuse beyond its admitted small inventory" {
+  let authority = preview_footprint_test_cid("a")
+  let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
+  let scope = prepare_logical_request_scope(authority, "request-1", 32).unwrap()
+  let (one, _) = preview_apply_test_wire(scope, "halt")
+  let value = @json.from_source(
+    @source.parse_json(one, {
+      max_input_bytes: 8192,
+      max_nodes: 256,
+      max_depth: 12,
+    }).unwrap(),
+    256,
+    12,
+    8192,
+  ) catch {
+    _ => abort("Expected admitted Preview")
+  }
+  guard @json.object_field(value, "effects") is Some(@json.Array(members)) &&
+    @json.array_at(members, 0) is Some(effect) &&
+    @json.object_field(effect, "changes") is Some(@json.Array(changes)) &&
+    @json.array_at(changes, 0) is Some(first) &&
+    @json.object_field(first, "row_preview_cid")
+    is Some(@json.String(first_cid)) else {
+    fail("Expected actual one-row member")
+  }
+  let second_cid = preview_footprint_test_cid("9")
+  let second = @json.object_with_string_field(
+    @json.object_without_field(first, "target_row_identity").unwrap(),
+    "target_row_identity",
+    "row-2",
+  ).unwrap()
+  let second = @json.object_with_string_field(
+    @json.object_without_field(second, "row_preview_cid").unwrap(),
+    "row_preview_cid",
+    second_cid,
+  ).unwrap()
+  let first_wire = @json.stringify_value(first, 8192, 256, 12) catch {
+    _ => abort("Expected row")
+  }
+  let second_wire = @json.stringify_value(second, 8192, 256, 12) catch {
+    _ => abort("Expected row")
+  }
+  let template = one
+    .replace_all(
+      old="\"changes\":[" + first_wire + "]",
+      new="\"changes\":[" + first_wire + "," + second_wire + "]",
+    )
+    .replace_all(
+      old="\"row_order\":[\"" + first_cid + "\"]",
+      new="\"row_order\":[\"" + first_cid + "\",\"" + second_cid + "\"]",
+    )
+    .replace_all(old="\"count\":1", new="\"count\":2")
+    .replace_all(old="\"max_items\":1", new="\"max_items\":2")
+  // Re-author the complete semantic chain through its real public constructor;
+  // no changed row/member CID or dispatch key is treated as admitted DATA.
+  let (semantic, identity) = @publication.author_effect_preview_semantic_wire(
+    template, authority, authoring, 8192, 256, 12,
+  ).unwrap()
+  let expected : Array[EffectDispatchKey] = []
+  for row in 0..<2 {
+    expected.push(
+      prepare_effect_preview_row_dispatch_key(
+        identity, scope, 0, row, 128, 8, 3,
+      ).unwrap(),
+    )
+  }
+  let completed = @publication.complete_effect_preview_dispatch_keys(
+    semantic,
+    [expected.map(value => value.cid)],
+    authority,
+    authoring,
+    8192,
+    256,
+    12,
+  ).unwrap()
+  let preview = @publication.admit_effect_preview_identity(
+    completed, authority, authoring, 8192, 256, 12,
+  ).unwrap()
+  for ceiling in [100000, 1000000] {
+    let recovered = recover_effect_preview_apply_keys(
+      preview, scope, 1, ceiling, 3, 128, 8, 3,
+    ).unwrap()
+    assert_eq(recovered.length(), 1)
+    assert_eq(recovered[0].length(), 2)
+    assert_eq(
+      recovered[0].map(value => value.cid),
+      expected.map(value => value.cid),
+    )
+    assert_eq(recovered[0].map(value => value.row_or_item_key_wire), [
+      "\"row-1\"", "\"row-2\"",
+    ])
+  }
+  assert_true(
+    recover_effect_preview_apply_keys(preview, scope, 1, 1, 3, 128, 8, 3)
+    is Err(CapacityExceeded),
+  )
+  assert_true(
+    recover_effect_preview_apply_keys(preview, scope, 1, 1000000, 2, 128, 8, 3)
+    is Err(CapacityExceeded),
+  )
+  assert_true(
+    recover_effect_preview_apply_keys(preview, scope, 1, 0, 3, 128, 8, 3)
+    is Err(InvalidLimits),
+  )
+  let foreign = prepare_logical_request_scope(authority, "another-request", 32).unwrap()
+  assert_true(
+    recover_effect_preview_apply_keys(
+      preview, foreign, 1, 1000000, 3, 128, 8, 3,
+    )
+    is Err(Mismatch(RowKeyMismatch(0, 0))),
+  )
+}
+
+///|
 test "Effect apply checks every current target guard before mutation" {
   let approved = preview_footprint_test_cid("a")
   let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"

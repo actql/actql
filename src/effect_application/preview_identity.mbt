@@ -218,7 +218,6 @@ pub fn recover_effect_preview_apply_keys(
   if max_members < 1 ||
     max_members > 1000 ||
     max_rows < 1 ||
-    max_rows > 100000 ||
     max_work < 1 {
     return Err(InvalidLimits)
   }
