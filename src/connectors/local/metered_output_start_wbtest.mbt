@@ -216,19 +216,19 @@ test "singleton Append startup uses its bounded constructor and preserves inject
 }
 
 ///|
-test "singleton Set startup keeps recursive and injected providers fully prepaid" {
+test "singleton Set borrows scalar Text without metering and preserves recursive and injected fallbacks" {
   for
-    (contract, literal, primitive) in [
-      ("{\"type\":\"number\",\"nullable\":false}", "1", true),
-      ("{\"type\":\"boolean\",\"nullable\":false}", "true", true),
-      ("{\"type\":\"string\",\"nullable\":false}", "\"text\"", false),
+    (contract, literal, metered_scalar, borrowed_scalar) in [
+      ("{\"type\":\"number\",\"nullable\":false}", "1", true, true),
+      ("{\"type\":\"boolean\",\"nullable\":false}", "true", true, true),
+      ("{\"type\":\"string\",\"nullable\":false}", "\"text\"", false, true),
       (
         "{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}",
-        "[1,2]", false,
+        "[1,2]", false, false,
       ),
       (
         "{\"type\":\"object\",\"nullable\":false,\"fields\":{\"x\":{\"type\":\"number\",\"nullable\":false}}}",
-        "{\"x\":1}", false,
+        "{\"x\":1}", false, false,
       ),
     ] {
     let (chain, _, _) = chain_lifetime_fixture(
@@ -273,17 +273,39 @@ test "singleton Set startup keeps recursive and injected providers fully prepaid
     let metered = local_module_metered_output_start_capacity(
       original, 0, selected,
     )
-    if primitive {
+    if metered_scalar {
       assert_true(full.execution_bytes < generic.execution_bytes)
       assert_true(
         metered is Some(value) && value.execution_bytes < full.execution_bytes,
       )
     } else {
       assert_true(metered is None)
-      assert_eq(
-        (full.retained_bytes, full.execution_bytes),
-        (generic.retained_bytes, generic.execution_bytes),
-      )
+      if borrowed_scalar {
+        // The fixed Set constructor borrows original flat Text inputs, but
+        // keeps its complete output DATA prepaid. It does not opt Text into
+        // the Number/Boolean output-growth protocol or copy input forests.
+        let output = chain_lifetime_limits().rows.output_values
+        let retained_output = @execution.execution_capacity_inventory_bytes([
+          { unit: @execution.CursorRootSlots, count: 3L, copies: 1, },
+          {
+            unit: @execution.ValueNodeSlots,
+            count: output.max_nodes.to_int64(),
+            copies: 1,
+          },
+          {
+            unit: @execution.DecodedTextBytes,
+            count: output.max_text_bytes.to_int64(),
+            copies: 1,
+          },
+        ]).unwrap()
+        assert_eq(full.retained_bytes, retained_output)
+        assert_true(full.execution_bytes < generic.execution_bytes)
+      } else {
+        assert_eq(
+          (full.retained_bytes, full.execution_bytes),
+          (generic.retained_bytes, generic.execution_bytes),
+        )
+      }
     }
     let starts = Ref(0)
     let replacement = managed_provider(_ => true, _ => Some(generic), (
