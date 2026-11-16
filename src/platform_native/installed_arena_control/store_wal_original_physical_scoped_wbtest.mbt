@@ -366,8 +366,16 @@ fn store_wal_physical_case(
     host
     .prepare_domain(backing, descriptor, 128L * page, {
       planning_work: 8,
-      attempts: 4,
-      holdings: 2,
+      attempts: if publication_probe > 0 {
+        2
+      } else {
+        4
+      },
+      holdings: if publication_probe > 0 {
+        1
+      } else {
+        2
+      },
       transfer_bytes: 4096L,
       retained_bytes: 0L,
       execution_bytes: 128L * page,
@@ -379,6 +387,32 @@ fn store_wal_physical_case(
   host
   .transfer_domain(domain)
   .retained_execution_value("Store WAL domain transfer")
+  // Publication metadata uses the actual separate A Read. An original Read
+  // cannot be minted in the already consumed SQLite domain. The selected
+  // probe delegates only2 SQLite attempts/1holding, preserving the original
+  // root8attempts/4holdings and256-page backing. Other cases are unchanged.
+  let publication_domain = if publication_probe > 0 {
+    let acquired = host
+      .prepare_domain(backing, descriptor, 32L * page, {
+        planning_work: 4,
+        attempts: 2,
+        holdings: 2,
+        transfer_bytes: 4096L,
+        retained_bytes: 8L * page,
+        execution_bytes: 24L * page,
+      })
+      .retained_execution_value("publication original Read domain")
+    let original = match acquired {
+      PreparedDomain(value) => value
+      PendingDomain(_, _) => fail("publication Read domain pending")
+    }
+    host
+    .transfer_domain(original)
+    .retained_execution_value("publication Read domain transfer")
+    Some(original)
+  } else {
+    None
+  }
   host
   .leave_backing_borrow_scope(backing)
   .retained_execution_value("Store WAL backing leave")
@@ -386,6 +420,11 @@ fn store_wal_physical_case(
   .return_backing_borrow(backing)
   .retained_execution_value("Store WAL backing return")
   host.prepare_domain_read(domain).retained_execution_value("Store WAL Read")
+  if publication_domain is Some(original) {
+    host
+    .prepare_domain_read(original)
+    .retained_execution_value("publication Read context")
+  }
   let sqlite = match
     host
     .prepare_sqlite_library(domain, component, 32L * page, 128)
@@ -394,7 +433,12 @@ fn store_wal_physical_case(
     PendingSqlite(_, _) => fail("original Store WAL Library pending")
   }
   let result = if publication_probe > 0 {
-    publication_read_original_work(host, sqlite, publication_probe - 1)
+    publication_read_original_work(
+      host,
+      sqlite,
+      publication_domain.unwrap(),
+      publication_probe - 1,
+    )
   } else if open_probe == 0 {
     store_wal_original_work(host, sqlite, root + "/store", normal_probe)
   } else if open_probe == 6 {
@@ -415,6 +459,11 @@ fn store_wal_physical_case(
       fail(
         "Store WAL Library domain cleanup pending; Database children=\{children}",
       )
+  }
+  if publication_domain is Some(original) {
+    host
+    .close_domain_after_owner_ack(original)
+    .retained_execution_value("publication Read domain ACK")
   }
   host
   .close_domain_after_owner_ack(domain)

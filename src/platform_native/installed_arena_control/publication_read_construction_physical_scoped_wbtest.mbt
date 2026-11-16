@@ -135,11 +135,12 @@ fn publication_read_fund(
 fn publication_read_original_work(
   host : InstalledArenaHost,
   sqlite : InstalledArenaSqliteLibrary,
+  read_domain : InstalledArenaDomain,
   mode : Int,
 ) -> Bool raise {
   let read = match
     host
-    .prepare_domain_original_read(sqlite.domain, {
+    .prepare_domain_original_read(read_domain, {
       bootstrap_retained: 16384L,
       bootstrap_execution: 8192L,
       workspace_execution: 65536L,
