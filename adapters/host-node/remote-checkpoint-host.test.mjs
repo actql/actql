@@ -39,6 +39,7 @@ import {verifyPinnedEffectPlan} from './effect-plan-verify.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {issuedEffectSetReceiptWires} from '../host-common/effect-receipt-custody.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {installedEffectDependencyOriginal} from '../host-common/installed-effect-dependency-original.mjs';
 import {issueCompletedEffectfulComputationEvidence,
   storeCompletedRunResultSet} from
   '../host-common/completed-run-publication.mjs';
@@ -425,17 +426,23 @@ async function prepareReferenceCapture(facts, {directory, mappingCids,
     invocation: plan.invocation, results: plan.results,
     outputLimits: plan.outputLimits,
     contractLimits: plan.contractLimits});
-  // Completed-output storage has its original managed Result-import owner.
-  // Match captureStage: retain actual input inventory after storage, then
-  // enter each capture constructor before asynchronous Source export/Preview.
-  const inputs = checked(moon.clientProgramPinEffectSources(checkedHost, maxInputPins));
+  // Match captureStage: the actual managed pin starts the SAME parent's
+  // dependency Work continuation before static bodies enter their reader.
+  const original = installedEffectDependencyOriginal(controlConstruction, moon);
+  assert.strictEqual(original.parent, facts.managedEffect.value);
+  assert.strictEqual(original.prepared, prepared);
+  assert.strictEqual(original.request, identity);
+  assert.strictEqual(original.plan, facts.managedEffect.operationPlan);
+  const inputs = checked(moon.clientProgramInstalledEffectDependencySourcesPin(
+    original.parent, prepared, identity, original.plan, checkedHost, maxInputPins));
+  original.current();
   const releaseInputs = () => {moon.clientProgramReleaseEffectInputs(inputs);};
   retainInputCleanup?.(releaseInputs);
   if (beginConstruction !== undefined) {
     controlConstruction.retainInputs(inputs);
     beginConstruction();
   }
-  const sourceSet = await preparePinnedEffectSourceSet({moon,
+  const sourceSet = await preparePinnedEffectSourceSet({moon, dependencyConstruction: controlConstruction,
     checkedOwner: prepared, execution, inputs,
     maxMembers: mappingCids.length,
     maxGroupingWork: 100,
