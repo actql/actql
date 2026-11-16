@@ -13,7 +13,15 @@ test "installed identity RowSource retains the full lookup witness closure and r
 }
 
 ///|
-fn run_original_source_completion(installed_rows : Bool) -> Unit raise {
+test "installed identity RowSource retains distinct Whole and keyed static request originals" {
+  run_original_source_completion(true, distinct_requests=true)
+}
+
+///|
+fn run_original_source_completion(
+  installed_rows : Bool,
+  distinct_requests? : Bool = false,
+) -> Unit raise {
   // Installation-owned policy leaves are outside each lookup's cached bodies,
   // just as in ordinary publication. Use their real preimages and identities.
   let retention_dependencies = if installed_rows {
@@ -53,11 +61,15 @@ fn run_original_source_completion(installed_rows : Bool) -> Unit raise {
   let (prepared, keyed, declaration) = generic_file_effect_fixture(
     whole=true,
     installed_rows~,
+    whole_request=distinct_requests,
   )
   let measured = if installed_rows {
     let profile = @row_host.row_declaration_file_read_profile(
       declaration,
-      declaration.views[1].source_ref,
+      declaration.views
+      .iter()
+      .find_first(view => view.resource == "contents")
+      .unwrap().source_ref,
     ).unwrap()
     measure_client_effect_keyed_plan_construction(
       prepared,
@@ -353,10 +365,14 @@ fn run_original_source_completion(installed_rows : Bool) -> Unit raise {
         fail("installed retention physical: " + @debug.to_string(issue))
       Err(_) => fail("installed retention: other typed refusal")
     }
+    // The distinct-request component selects a finite codec envelope for its
+    // tiny metadata; the existing ledger and ordinary fixture stay unchanged.
+    let source_metadata_bytes = if distinct_requests { 8192 } else { 1000000 }
+    let source_metadata_nodes = if distinct_requests { 1024 } else { 100000 }
     match
       bind_client_keyed_whole_source_metadata(
-        lookup, 0, identity, logical, observation, request, retention, 1000000, 100000,
-        100,
+        lookup, 0, identity, logical, observation, request, retention, source_metadata_bytes,
+        source_metadata_nodes, 100,
       ) {
       Ok(_) => ()
       Err(Assembly(reason)) => fail("installed source metadata: " + reason)
@@ -486,6 +502,39 @@ fn run_original_source_completion(installed_rows : Bool) -> Unit raise {
   ).unwrap()
   assert_true(bodies.length() > 0)
   if installed_rows {
+    let identity = lookup.publication_identity.unwrap()
+    let static_request = bodies
+      .iter()
+      .find_first(body => {
+        @publication.captured_effect_dependency_body_kind(body) ==
+        "request_values" &&
+        @publication.captured_effect_dependency_body_cid(body) ==
+        identity.static_request_cid
+      })
+      .unwrap()
+    assert_eq(
+      @publication.captured_effect_dependency_body_json(static_request),
+      identity.static_request,
+    )
+    if distinct_requests {
+      let source = lookup.native_sources.unwrap().sources[0]
+      assert_true(source.request_cid != identity.static_request_cid)
+      assert_eq(identity.static_request, "{}")
+      assert_eq(
+        identity.static_request_cid,
+        "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      )
+      assert_true(
+        bodies.any(body => {
+          @publication.captured_effect_dependency_body_kind(body) ==
+          "request_values" &&
+          @publication.captured_effect_dependency_body_cid(body) ==
+          source.request_cid &&
+          @publication.captured_effect_dependency_body_json(body) ==
+          @encode.document_text(source.request)
+        }),
+      )
+    }
     let transport = lookup.native_transport.unwrap()
     let (bytes, nodes, _) = @publication.publication_contract_wire_usage(
       transport,
@@ -597,6 +646,46 @@ fn run_original_source_completion(installed_rows : Bool) -> Unit raise {
       ) {
       Ok(_) => ()
       Err(issue) => fail("lookup closure: " + @debug.to_string(issue))
+    }
+    if distinct_requests {
+      let identity = lookup.publication_identity.unwrap()
+      let missing = closure.filter(body => {
+        !(@publication.captured_effect_dependency_body_kind(body) ==
+        "request_values" &&
+        @publication.captured_effect_dependency_body_cid(body) ==
+        identity.static_request_cid)
+      })
+      assert_true(
+        @publication.prepare_captured_effect_dependency_inventory(
+          missing,
+          [root],
+          1000000,
+          100,
+          _ => true,
+        )
+        is Err(@publication.MissingDependency),
+      )
+      // Same canonical DATA and CID under another admitted kind cannot
+      // discharge the original scope's typed request-values obligation.
+      let wrong_kind = @publication.admit_captured_effect_dependency_body(
+        "parameter_declarations",
+        Some(identity.static_request_cid),
+        identity.static_request,
+        1000000,
+        100000,
+        100,
+      ).unwrap()
+      missing.push(wrong_kind)
+      assert_true(
+        @publication.prepare_captured_effect_dependency_inventory(
+          missing,
+          [root],
+          1000000,
+          100,
+          _ => true,
+        )
+        is Err(@publication.WrongDependencyKind),
+      )
     }
     assert_true(
       @publication.prepare_captured_effect_dependency_inventory(

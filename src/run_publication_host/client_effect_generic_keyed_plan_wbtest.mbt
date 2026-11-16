@@ -5,6 +5,7 @@ fn generic_file_effect_fixture(
   whole? : Bool = false,
   lookup_bytes? : Int = 32768,
   installed_rows? : Bool = false,
+  whole_request? : Bool = false,
 ) -> (
   PreparedClientEffectComputation,
   ClientKeyedAcquisition,
@@ -18,7 +19,13 @@ fn generic_file_effect_fixture(
       resource_kind: "file",
       schema_wire: files,
       schema_cid: "sha256:" + @sha.text_hex(files).unwrap(),
-      request_schema_wire: None,
+      request_schema_wire: if whole_request {
+        Some(
+          "{\"additional_properties\":false,\"fields\":{\"prefix\":{\"nullable\":false,\"type\":\"string\"}},\"nullable\":false,\"type\":\"object\"}",
+        )
+      } else {
+        None
+      },
       facts_wire: None,
       acquisition_wire: None,
     },
@@ -51,12 +58,16 @@ fn generic_file_effect_fixture(
     limits,
     classifications=Some([@environment.Internal, @environment.Internal]),
   ).unwrap()
+  let content_view = initial.views
+    .iter()
+    .find_first(view => view.resource == "contents")
+    .unwrap()
   let facts : Json = {
     "file_content": {
       "version": "actql-file-content/0.1",
       "kind": "file_content",
       "admitted_scope_contract_cid": "sha256:" + "a".repeat(64),
-      "content_schema_contract_cid": initial.views[1].carrier_schema_cid,
+      "content_schema_contract_cid": content_view.carrier_schema_cid,
       "version_capability": {
         "contract_cid": "sha256:" + "b".repeat(64),
         "required_nonnull": true,
@@ -82,7 +93,10 @@ fn generic_file_effect_fixture(
   let declaration = if installed_rows {
     @row_host.bind_installed_row_read_profile(
       declaration,
-      declaration.views[1].source_ref,
+      declaration.views
+      .iter()
+      .find_first(view => view.resource == "contents")
+      .unwrap().source_ref,
     ).unwrap()
   } else {
     declaration
@@ -93,6 +107,14 @@ fn generic_file_effect_fixture(
     document.replace(
       old="\"steps\":[{\"from\":\"files\",\"filter\":\"path <> ''\"},{\"select\":[\"resource\",\"version\",\"path\"],\"as\":\"left\"},{\"from\":\"left\",\"join\":",
       new="\"steps\":[{\"from\":\"files\",\"join\":",
+    )
+  } else {
+    document
+  }
+  let document = if whole_request {
+    document.replace(
+      old="\"resource\":\"files\"}",
+      new="\"resource\":\"files\",\"request\":{\"prefix\":\"original\"}}",
     )
   } else {
     document
@@ -119,6 +141,20 @@ fn generic_file_effect_fixture(
   for catalog in effect_catalogs {
     catalogs.push(catalog)
   }
+  // Evidence members are ordered by their complete canonical body hashes,
+  // independently of either connector's declaration or insertion position.
+  let catalog_keys : Array[(String, Json)] = []
+  for catalog in catalogs {
+    let key = @canonical.cid_value(
+      @canonical.from_json(catalog, 100000, 100, 1000000),
+      1000000,
+      100000,
+      100,
+    )
+    catalog_keys.push((key, catalog))
+  }
+  catalog_keys.sort_by((a, b) => a.0.compare(b.0))
+  fields["connector_catalogs"] = Json::array(catalog_keys.map(entry => entry.1))
   connectors.push(
     @json.parse(
       "{\"connector\":\"crm\",\"connector_id\":\"crm\",\"connector_version\":\"fixture\"}",
@@ -196,7 +232,10 @@ test "generic Source-only keyed compiler retains real file-content inputs withou
   assert_true(
     @row_host.row_declaration_file_read_profile(
       declaration,
-      declaration.views[1].source_ref,
+      declaration.views
+      .iter()
+      .find_first(view => view.resource == "contents")
+      .unwrap().source_ref,
     )
     is None,
   )
