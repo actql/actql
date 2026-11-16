@@ -531,7 +531,10 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
           // The original Host validates its own adopted parent before it
           // retains the physical child. No second Core current callback is
           // needed between the shared read selection and this same handoff.
-          const raw=sourceManaged.prepareRead(checkedOwner,declaration,run.value,occurrence,run.request);
+          // Physical child custody belongs to the exact original Project
+          // declaration. The checked execution below retains its funded read
+          // profile; it does not replace that installation owner.
+          const raw=sourceManaged.prepareRead(checkedOwner,originalEntry.declaration,run.value,occurrence,run.request);
           const read={raw,entry,owner:run,index,value:originalRead,reader:undefined,physical:undefined,close:undefined,closeCaptured:false,
             retain:undefined,closed:false,attempted:false};
           run.reads.set(index,read);
@@ -555,7 +558,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
               moon.clientProgramKeyedAcquisitionMatchesEffectProgram(keyedAcquisition,checkedOwner)!==true
               : run.recipe===undefined||run.keyed!==keyedAcquisition||run.contentEntry!==entry)||
               declaration!==entry.declaration||run.reads.has(request))fail('LocalFilesSourcePreparationMismatch');
-          const raw=sourceManaged.prepareKeyedRead(checkedOwner,declaration,run.effectful?run.value:run.original,request);
+          const raw=sourceManaged.prepareKeyedRead(checkedOwner,originalEntry.declaration,run.effectful?run.value:run.original,request);
           const read={raw,entry,owner:run,index:request,keyed:true,value:undefined,reader:undefined,physical:undefined,
             close:undefined,closeCaptured:false,retain:undefined,closed:false,attempted:false};
           run.reads.set(request,read);sharedReads.add(read);captureClose(read);read.retain=raw.retainChild;
