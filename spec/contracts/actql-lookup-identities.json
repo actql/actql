@@ -3747,6 +3747,13 @@
           "self_field": "transport_cid",
           "schema_cid": "sha256:3385e23c7a3046cffb522dea96c81722d3dba3ae688d9007b49e317386da7d0c",
           "selection": "Installed Node declared-file keyed Content reader; same SourceView, physical provider and projection; not Native or query Source evidence"
+        },
+        "actql-installed-row-source-read/0.1": {
+          "path": "spec/contracts/actql-production-profile-schemas.json",
+          "pointer": "/schemas/installed_row_source_read",
+          "self_field": "transport_cid",
+          "schema_cid": "sha256:3dbdbd48a456fbfc9838dae8eb2f3b9b7577ef9ec8c74b57d5f3f66f475dffbe",
+          "selection": "Original installed RowSource typed row-array reader; same SourceView, request and response schema; not a file UTF8 projection or physical byte authority"
         }
       }
     },

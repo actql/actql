@@ -213,7 +213,7 @@ test('CapturedRun generated contract retains existing Native Lookup dependency k
     'native_file_lookup_batch_plan', 'native_file_lookup_request',
     'native_file_lookup_call_slot', 'native_file_lookup_activation',
     'native_file_lookup_raw_response', 'native_file_lookup_attempt_event',
-    'native_file_lookup_adoption']) assert.ok(generated.includes(kind), kind);
+    'native_file_lookup_adoption', 'installed_row_source_read']) assert.ok(generated.includes(kind), kind);
   for (const kind of ['lookup_capacity_proof', 'arbitrary_dependency', '']) {
     assert.ok(!generated.includes(kind), kind);
   }
@@ -583,7 +583,7 @@ test('corrected schemas have independently fixed canonical identities', () => {
       run_state:
         'sha256:3fbfc2cc5a79449fd05fce58e0fad25f6eef0ecde8314a222417a2e233db28c2',
       captured_run:
-        'sha256:70f397acca6b312f31005db54973a195809f4fdd0e04773bb08bd1c462d893ba',
+        'sha256:aa479d8c10e61bd10667a81df180bdf17a58c474b09ab3fa298fef6b96afe4b5',
     },
   );
 });

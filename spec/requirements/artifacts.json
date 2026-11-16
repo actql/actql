@@ -400,7 +400,7 @@
     },
     {
       "requirement_id": "actql.protocol.artifacts/lookup-acquisition-identities.product-e655e0e2e3f2",
-      "statement_sha256": "2e5865c132eda3d4b6aa28dd484c732acd0587de3b02039380e16ba942b72dbe",
+      "statement_sha256": "ea9a508874ae08a7fad49cd1b5b8295781aec2dd5c46fbc9276c69b7f04e5089",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

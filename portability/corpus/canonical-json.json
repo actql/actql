@@ -157,6 +157,18 @@
       "input": "\\n",
       "expected_json": "\"\\\\n\"",
       "expected_cid": "sha256:63096527de30c146fbca1b5c649d164d7e36849e4a0620609b4d5ff6b445233f"
+    },
+    {
+      "id": "installed-row-source-read-profile-preimage",
+      "input": {
+        "version": "actql-installed-row-source-read/0.1",
+        "source_view_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "request_schema_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "response_schema_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "response_encoding": "typed_json_row_array"
+      },
+      "expected_json": "{\"request_schema_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"response_encoding\":\"typed_json_row_array\",\"response_schema_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"source_view_contract_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"version\":\"actql-installed-row-source-read/0.1\"}",
+      "expected_cid": "sha256:92b44ed3a4f91fc60952e0028330b871325be1f73cad930dcd8f4a6858f6a169"
     }
   ]
 }

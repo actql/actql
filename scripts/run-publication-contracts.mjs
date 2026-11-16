@@ -703,6 +703,7 @@ export function correctedContracts(registry, cli) {
         'native_file_lookup_call_slot', 'native_file_lookup_activation',
         'native_file_lookup_raw_response', 'native_file_lookup_attempt_event',
         'native_file_lookup_adoption',
+        'installed_row_source_read',
       ]}, cid: clone(cid), body: {type: 'object'}}},
   };
   for (const [name, schema] of Object.entries(next.artifact_schemas)) {

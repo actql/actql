@@ -361,6 +361,23 @@ Neither implementation profile substitutes for the other.
 
 <!-- machine-import: ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/declared_file_content_read sha256:3385e23c7a3046cffb522dea96c81722d3dba3ae688d9007b49e317386da7d0c -->
 
+The installed row Source reader uses the closed
+`actql-installed-row-source-read/0.1` implementation profile. It binds the
+original SourceView, request schema and response schema with response encoding
+`typed_json_row_array`. Its raw response is the exact UTF8 JSON row array
+emitted by that same installed RowSource. Typed values and reference envelopes
+remain under the bound response schema; binary Content is already captured by
+the original Store and appears through its actually issued ContentRef. The
+profile introduces no UTF8 file-content decoding or alternate physical
+SourceView. Its `transport_cid` identifies the complete canonical profile body
+with that self field excluded. It is immutable implementation DATA rather than
+permission, raw-byte custody, a dispatch attempt or an acquisition receipt.
+The same nominal RowDeclaration and Metadata owner retain the original
+Run/Task/Request and authority through predispatch activation, raw capture,
+adoption, accounting and the existing five-reference evidence chain.
+
+<!-- machine-import: ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/installed_row_source_read sha256:3dbdbd48a456fbfc9838dae8eb2f3b9b7577ef9ec8c74b57d5f3f66f475dffbe -->
+
 <!-- requirement-block: lookup-acquisition-identities.product-774467c23fbe lookup-acquisition-identities.product-4554f0d2d0bd lookup-acquisition-identities.product-7ea9da11d811 lookup-acquisition-identities.product-eaa3962db019 lookup-acquisition-identities.product-bf2864bb4433 lookup-acquisition-identities.product-2ac42b610ae9 lookup-acquisition-identities.product-354e1495b498 lookup-acquisition-identities.product-e655e0e2e3f2 -->
 The lookup identity registry fixes the five references in the existing
 `actql-lookup-evidence/0.1` schema. These are not aliases for a published Result
@@ -704,7 +721,7 @@ The auxiliary references have these exact targets, before final Invocation:
 
 | Reference | Contract and admission |
 | --- | --- |
-| transport_plan_cid | Registry transport_plan; adapter_contract_cid resolves the SourceView's checked read execution contract: HTTP http_read_transport, Native native_file_content_read or installed Node declared_file_content_read, each with self field transport_cid; not runtime SourceReadPlan |
+| transport_plan_cid | Registry transport_plan; adapter_contract_cid resolves the SourceView's checked read execution contract: HTTP http_read_transport, Native native_file_content_read, installed Node declared_file_content_read or installed_row_source_read, each with self field transport_cid; not runtime SourceReadPlan |
 | activation / adoption lifecycle refs | Registry activation / adoption, self_cid; authenticated durable slot ownership and cross-bindings above |
 | accounting / attempt_event lifecycle refs | Registry accounting / attempt_event, self_cid; same barrier, input/batch/slot and cumulative history |
 | raw_response_artifact_cid | Registry raw_response, self_cid; content_cid is SHA-256 of exact decoded response bytes and size_bytes is that byte length; wire and decoded accounting remain separate |
@@ -1369,7 +1386,7 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-lookup-identities.json#/evidence_slots sha256:d5257ad4c6368df06bdd720a132c1759b46ed0d3457b46e66e750b1f7f4aaa66
 ../../../spec/contracts/actql-lookup-identities.json#/reference_roles sha256:24dd3184553911026820fbf87b96d32ac3ce4fb4d256f069fe3d1c9d5533240d
 ../../../spec/contracts/actql-lookup-identities.json#/evidence_kinds sha256:98e11850d4899e992f5b2405ed2e160ed6037fef63e6f0fa02994d8fe3903913
-../../../spec/contracts/actql-lookup-identities.json#/external_contracts sha256:d5fc3030e24e9b94fef16dcb63dfd454a70064040fbbbd15b8db713b2b902a33
+../../../spec/contracts/actql-lookup-identities.json#/external_contracts sha256:e57fa71d9a97a65a51fe398d25a392351b37aaa8a641a008933f9b016f82bd06
 ../../../spec/contracts/actql-lookup-identities.json#/laws sha256:2fb2ee20393958ca02aa8e3aa66e6900efb02acc71e3aaaf7aa64ed285a8b5db
 ```
 <!-- lookup-identity-pins:end -->

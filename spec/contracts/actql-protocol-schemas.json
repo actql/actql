@@ -17279,7 +17279,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:e46f4fa5e8115bdeaba182440956b9ec2b577c2f7d5edd89db2f056e45d15a57",
+  "artifact_registry_cid": "sha256:c84c8fdb00f34f49e39877d3b856696db30d1c2640ead24cdb2bb590dee3f4f5",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:cf421ba9a3d602be0bf53fc646eb822c0fa96151a2c5cf72a2f271cc7c3a6d77",
@@ -17316,7 +17316,7 @@
     "plan_document": "sha256:8faa3038775b916b1446c42b8ef3a2349bed1fb9f4341a96025f668a6d199232",
     "plan_result": "sha256:30b762e781c467c305110ca83ad9b724275422380eb060b3c6654d7d6807583b",
     "run_state": "sha256:3fbfc2cc5a79449fd05fce58e0fad25f6eef0ecde8314a222417a2e233db28c2",
-    "captured_run": "sha256:70f397acca6b312f31005db54973a195809f4fdd0e04773bb08bd1c462d893ba",
+    "captured_run": "sha256:aa479d8c10e61bd10667a81df180bdf17a58c474b09ab3fa298fef6b96afe4b5",
     "execution_account_config": "sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20",
     "caller_input_intent": "sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d",
     "initial_input_artifact_set": "sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d",
@@ -86541,7 +86541,8 @@
                       "native_file_lookup_activation",
                       "native_file_lookup_raw_response",
                       "native_file_lookup_attempt_event",
-                      "native_file_lookup_adoption"
+                      "native_file_lookup_adoption",
+                      "installed_row_source_read"
                     ]
                   },
                   "cid": {

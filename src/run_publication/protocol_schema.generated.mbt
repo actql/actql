@@ -3,7 +3,7 @@
 
 ///|
 fn generated_protocol_schema_nodes() -> Array[ProtocolSchemaRule] {
-  let nodes : Array[ProtocolSchemaRule] = Array(capacity=8971)
+  let nodes : Array[ProtocolSchemaRule] = Array(capacity=8984)
   generated_protocol_schema_nodes_0(nodes)
   generated_protocol_schema_nodes_1(nodes)
   generated_protocol_schema_nodes_2(nodes)
@@ -4818,6 +4818,7 @@ fn generated_protocol_schema_nodes_1(nodes : Array[ProtocolSchemaRule]) -> Unit 
         "declared_file_content_read", "native_file_lookup_transport", "native_file_lookup_batch_plan",
         "native_file_lookup_request", "native_file_lookup_call_slot", "native_file_lookup_activation",
         "native_file_lookup_raw_response", "native_file_lookup_attempt_event", "native_file_lookup_adoption",
+        "installed_row_source_read",
       ],
       0,
       0,
@@ -24644,6 +24645,56 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
+  nodes.push(
+    protocol_string_rule(Some("actql-installed-row-source-read/0.1"), [], 0, 0),
+  )
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(protocol_string_rule(Some("typed_json_row_array"), [], 0, 0))
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 8971),
+        ("source_view_contract_cid", 8972),
+        ("request_schema_cid", 8973),
+        ("response_schema_cid", 8974),
+        ("response_encoding", 8975),
+      ],
+      [
+        "version", "source_view_contract_cid", "request_schema_cid", "response_schema_cid",
+        "response_encoding",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[8971])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[8975])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 8977),
+        ("source_view_contract_cid", 8978),
+        ("request_schema_cid", 8979),
+        ("response_schema_cid", 8980),
+        ("response_encoding", 8981),
+        ("transport_cid", 8982),
+      ],
+      [
+        "version", "source_view_contract_cid", "request_schema_cid", "response_schema_cid",
+        "response_encoding", "transport_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
 }
 
 ///|
@@ -24826,6 +24877,8 @@ fn generated_protocol_schema_root(name : String, complete : Bool) -> Int? {
     ("native_file_lookup_attempt_event", true) => Some(8931)
     ("native_file_lookup_adoption", false) => Some(8950)
     ("native_file_lookup_adoption", true) => Some(8970)
+    ("installed_row_source_read", false) => Some(8976)
+    ("installed_row_source_read", true) => Some(8983)
     _ => None
   }
 }
