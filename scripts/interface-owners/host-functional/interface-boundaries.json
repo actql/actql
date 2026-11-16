@@ -2997,8 +2997,8 @@
                 "anchor": "publication computation lifetime retires capture cancelled before publication entry without replacing payload cleanup"
               },
               {
-                "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
-                "anchor": "test('actual Local STORE cold Content settles its original response through final publication'"
+                "path": "adapters/host-node/ordinary-project-store-host.actual.test.mjs",
+                "anchor": "ordinary Project STORE ${variant.name} closes and preserves exact separate-process Saved without resend"
               },
               {
                 "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
@@ -3429,8 +3429,8 @@
                 "anchor": "publication computation lifetime retires capture cancelled before publication entry without replacing payload cleanup"
               },
               {
-                "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
-                "anchor": "test('actual Local STORE cold Content settles its original response through final publication'"
+                "path": "adapters/host-node/ordinary-project-store-host.actual.test.mjs",
+                "anchor": "ordinary Project STORE ${variant.name} closes and preserves exact separate-process Saved without resend"
               },
               {
                 "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",

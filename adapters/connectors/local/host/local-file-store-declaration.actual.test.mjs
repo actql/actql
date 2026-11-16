@@ -28,7 +28,6 @@ import {acquiredEffectPublicationAdmission,sourceFreeContentEffectPublicationPla
 import {createLocalFileStoreDriver,LOCAL_STORE_LIMITS} from './installed-project-file-effects.mjs';
 import {releaseCompletedRunPreparedPayloads, suspendCompletedEffectfulComputation,
   recoverCompletedEffectfulComputation} from '../../../host-common/completed-run-publication.mjs';
-import {refusedEffectPreparation} from '../../../host-common/effect-preparation-result.mjs';
 
 const commonRuntime=process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME
   ?pathToFileURL(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME)
@@ -520,14 +519,13 @@ test('actual Local STORE authored Content captures Preview with its original pub
   }
 });
 
-test('actual Local STORE cold Content restores its retained generation before send',async t=>{
+test('actual Local STORE cold capture retains Source artifact and saved Run ownership',async t=>{
   const f=await storeOwnerFixture({withContentContracts:true,authoredResult:true,withCollection:true,withLocalDriver:true});
   const core=runtimeCore(moon),control=core.publicationControl;
   const directory=await mkdtemp(join(tmpdir(),'actql-store-cold-component-'));
   t.diagnostic(`Fresh component Store retained at ${directory}`);
   const storeAuthorityCid='sha256:'+'8'.repeat(64);
-  let store,family,execution,stage,recoveredStage,recoveredComputation,suspended=false;
-  const recoveryOwners=[];
+  let store,family,execution,stage,recoveredComputation,suspended=false;
   try{
     const {registry,values,fragment,ordered}=f.contentBodies;
     const allowed=checked(moon.clientProgramIssueAllowedEffectRun(f.compilation,
@@ -576,7 +574,6 @@ test('actual Local STORE cold Content restores its retained generation before se
     assert.deepEqual(preview.effects[0].changes[0].target_row_identity,JSON.parse(f.target.resourceWire));
     const materials=JSON.parse(JSON.stringify(f.originals.captureRun({
       prepared:f.prepared,compilation:f.compilation,allowed,definition,identity})));
-    const continuation=JSON.parse(stage.continuationWire);
     // The actual Host beforeDefer callback prepares these SAME unsent intents
     // before suspending capture. This creates no dispatch or send permission.
     assert.equal(stage.apply.ledger.prepareCapturedSetIntents(
@@ -592,52 +589,25 @@ test('actual Local STORE cold Content restores its retained generation before se
     recoveredComputation=await recoverCompletedEffectfulComputation({store,control,runDefinition,
       contractLimits:{maxWireBytes:1000000,maxNodes:100000,maxDepth:100}});
     const restored=f.originals.restoreRun(materials,runDefinition,identity);
-    const recovered=Object.freeze({...restored,requestIdentity:identity,
-      requestScope:moon.clientRequestLogicalScope(identity),runDefinition,computation:recoveredComputation});
-    const embedded=await readFile(new URL('../../../host-node/embedded-local.mjs',import.meta.url),'utf8');
-    const begin=embedded.indexOf('  function recoveredInstalledEffect(facts) {');
-    const end=embedded.indexOf('\n  try {\n    const installationSourcePreparation',begin);
-    assert(begin>0&&end>begin);
-    const actualSelector=new Function('updateTargetOriginals','installedEffect',
-      'validateInstalledUpdateOwnerSelections','installedEffectFor','refusedEffectPreparation',
-      'clientOperationError',`return (${embedded.slice(begin,end).trim()});`)(
-      f.originals,f.owner,validateInstalledUpdateOwnerSelections,
-      ()=>assert.fail('The singular actual installation is the selected component'),
-      refusedEffectPreparation,code=>Object.assign(new Error(code),{code}));
-    const facts=Object.freeze({moon,control,store,recovered,continuation,contentRun:content,
-      principalId:'component',retainRecoveryOwner:owner=>recoveryOwners.push(owner)});
-    // Same actual Host selector and callback argument shape. In particular do
-    // not supply additional prepared/Plan/definition hints to mask a gap.
-    const selected=actualSelector(facts);
-    recoveredStage=await selected.prepareRecovered({...facts,
-      updateTargetSelections:recovered.updateTargetSelections,
-      assertUpdateSelectionCurrent:recovered.assertUpdateSelectionCurrent});
-    assert.strictEqual(recoveredStage.preview,recoveredComputation.preview);
-    assert.strictEqual(recoveredStage.computation,recoveredComputation.computation);
-    assert.strictEqual(recoveredStage.storedResults,recoveredComputation.storedResults);
-    assert(recoveryOwners.length>0);
-    const copiedSource=Object.freeze({...recoveredComputation.effectSources[0].source});
-    const copiedComputation=Object.freeze({...recoveredComputation,effectSources:Object.freeze(
-      recoveredComputation.effectSources.map((entry,index)=>index===0
-        ? Object.freeze({...entry,source:copiedSource}) : entry))});
-    const copied=Object.freeze({...recovered,computation:copiedComputation});
-    await assert.rejects(selected.prepareRecovered({...facts,recovered:copied,
-      updateTargetSelections:copied.updateTargetSelections,
-      assertUpdateSelectionCurrent:copied.assertUpdateSelectionCurrent}),
+    restored.assertUpdateSelectionCurrent();
+    assert.deepEqual(f.originals.captureRun({...restored,identity}),materials);
+    assert.deepEqual(JSON.parse(control.effectComputationPreviewWire(recoveredComputation.preview)),preview);
+    assert.equal(recoveredComputation.effectSources.length,1);
+    const savedSource=recoveredComputation.effectSources[0];
+    assert.equal(savedSource.memberIndex,0);
+    assert.equal(control.capturedEffectSourceArtifactCid(savedSource.source),savedSource.artifact.identity);
+    assert.equal(control.capturedEffectSourceStoreAuthorityCid(savedSource.source),storeAuthorityCid);
+    assert.match(control.capturedEffectSourceHoldingCid(savedSource.source),/^sha256:[0-9a-f]{64}$/u);
+    // The actual imported recovery boundary returned this exact nominal
+    // Source owner. Equal DATA cannot reconstruct its original capability.
+    assert.throws(()=>control.capturedEffectSourceArtifactCid(Object.freeze({...savedSource.source})),
       /Foreign captured Effect source artifact/);
     const foreignDefinition=control.admit('run_definition',moon.strategyPublicationContractJson(
       checked(moon.clientProgramIssueEffectRunDefinition(allowed,'store-reference-component',
         'foreign-cold-content-run','2026-10-21T00:00:00.000Z','2098-01-01T00:00:00.000Z'))),
       {maxWireBytes:1000000,maxNodes:100000,maxDepth:100});
-    const foreign=Object.freeze({...recovered,runDefinition:foreignDefinition});
-    await assert.rejects(selected.prepareRecovered({...facts,recovered:foreign,
-      updateTargetSelections:foreign.updateTargetSelections,
-      assertUpdateSelectionCurrent:foreign.assertUpdateSelectionCurrent}));
+    assert.throws(()=>f.originals.restoreRun(materials,foreignDefinition,identity));
   }finally{
-    // Match installed Effect custody: close the original physical recovery
-    // child before disposing the stage whose pending check protects it.
-    for(const owner of recoveryOwners)await owner.close();
-    await recoveredStage?.dispose();
     await stage?.dispose();
     if(recoveredComputation)await suspendCompletedEffectfulComputation({execution:null,store,
       storedResults:recoveredComputation.storedResults,control,

@@ -4738,8 +4738,12 @@
                 "anchor": "test('recovered Command retains the same Store original"
               },
               {
+                "path": "adapters/host-node/ordinary-project-store-host.actual.test.mjs",
+                "anchor": "ordinary Project STORE ${variant.name} closes and preserves exact separate-process Saved without resend"
+              },
+              {
                 "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
-                "anchor": "test('actual Local STORE cold Content restores its retained generation before send'"
+                "anchor": "test('actual Local STORE cold capture retains Source artifact and saved Run ownership'"
               },
               {
                 "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
