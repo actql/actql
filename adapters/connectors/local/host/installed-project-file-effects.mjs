@@ -90,11 +90,11 @@ export async function installPreparedProjectLocalFileEffects({moon,preparation,s
       // both scalar occurrences on the SAME installation material before
       // constructing either closure; no Request pays for standing profile DATA.
       // Two native value slots conservatively cover those two scalar words.
-      const {driver,site}=installedSourceConfigurationReader(installationServices).prepareNativeInput({
+      const {driver,site}=installedSourceConfigurationReader(installationServices).prepareNativeInput(Object.freeze({
         capacity:()=>checked(moon.clientProgramInstalledSourceConstructionCapacity(2n,0n,0n,0n,0n,0n)),
         project:()=>createLocalFileStoreDriver({entry,target,command,bindingCid,principalId,
           authorization,assertCurrent:current,resources,limits,nativeFilesystem,writerProfile,
-          maxRecoveryBytes:inputLimits.preview.maxWireBytes})});
+          maxRecoveryBytes:inputLimits.preview.maxWireBytes})}));
       // Counts come from the same checked managed Plan and retained input
       // inventory. These defaults still size the legacy recipe's byte limits;
       // they are not an operator-selected row/member policy.
