@@ -65,11 +65,11 @@ function observedImage(tree, closed) {
 
 export async function archiveFixture(t, {repository = root, revision: suppliedRevision,
   runId = 3, attempt = 4, jobId = 5, artifactId = 6, event = 'workflow_dispatch', branch = 'main',
-  closed = false, comparisonFor = null, readReady = null, reusedOriginal = null, requestFor = null} = {}) {
+  closed = false, comparisonFor = null, readReady = null, reusedOriginal = null, requestFor = null, treeAt = revision => gitTree(repository, revision)} = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-final-archive-'));
   t.after(() => rm(directory, {recursive: true, force: true}));
   const revision = suppliedRevision ?? execFileSync('git', ['rev-parse', 'HEAD'], {cwd: repository, encoding: 'utf8'}).trim();
-  const tree = gitTree(repository, revision), catalog = readCatalog();
+  const tree = treeAt(revision), catalog = readCatalog();
   const context = {repository: 'actql/actql', repositoryId: 1, headRepositoryId: 1, workflowId: 2,
     candidateRevision: revision, runHeadRevision: revision, runId, runAttempt: attempt, ancestors: []};
   const origin = {repository: context.repository, repositoryId: 1, workflowId: 2, workflowPath: '.github/workflows/ci.yml',

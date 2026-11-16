@@ -9,7 +9,7 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {archiveFixture, jsonBytes} from './final-archive-fixture.mjs';
 import {storedArchive, deflatedArchive} from './archive-fixture.mjs';
-import {hash, gitTree} from './inputs.mjs';
+import {hash, gitTree, gitInputScope} from './inputs.mjs';
 import {isolatedContract, isolatedExperimentPaths, isolatedExperimentDigest} from './isolated-contract.mjs';
 import {comparisonPlan} from './plan.mjs';
 import {verifyCurrentFamily} from './final.mjs';
@@ -54,6 +54,7 @@ test('real nested original/acceptance ZIPs satisfy the mixed final consumer and 
   assert.equal(isolatedExperimentDigest(gitTree(historical, first)), isolatedContract.experimentDigest);
   assert.equal(isolatedExperimentDigest(gitTree(historical, second)), isolatedContract.experimentDigest);
 
+  const treeAt = gitInputScope(historical);
   const runs = new Map(), jobs = new Map(), artifacts = new Map(), archives = new Map();
   const request = async path => {
     if (path === '/actions/workflows/ci.yml') return {id: 2, path: '.github/workflows/ci.yml', state: 'active'};
@@ -99,14 +100,14 @@ test('real nested original/acceptance ZIPs satisfy the mixed final consumer and 
   };
   t.after(() => {globalThis.fetch = priorFetch;});
   const compare = repository => ({context, catalog, runtime, actionRuntimes}) => comparisonPlan({root: repository,
-    context, runtime, actionRuntimes, directory, token: 'controlled-fixture-only', request});
+    context, runtime, actionRuntimes, directory, treeAt, token: 'controlled-fixture-only', request});
 
-  const a = await archiveFixture(t, {repository: historical, revision: first, closed: true, requestFor: request});
+  const a = await archiveFixture(t, {repository: historical, revision: first, closed: true, treeAt, requestFor: request});
   register(a, 7);
   const b = await archiveFixture(t, {repository: historical, revision: second, runId: 13, attempt: 1,
-    jobId: 15, artifactId: 16, closed: true, requestFor: request, comparisonFor: compare(historical)});
+    jobId: 15, artifactId: 16, closed: true, treeAt, requestFor: request, comparisonFor: compare(historical)});
   register(b, 17);
-  const accepted = await verifyCurrentFamily({...b.options, token: 'controlled-fixture-only'});
+  const accepted = await verifyCurrentFamily({...b.options, treeAt, token: 'controlled-fixture-only'});
   assert.equal(accepted.comparison.confirmation.status, 'confirmed');
   assert(accepted.applications.every(application => application.acquisition === 'fresh'));
   const {acceptanceInputs, ...result} = accepted;
@@ -122,11 +123,11 @@ test('real nested original/acceptance ZIPs satisfy the mixed final consumer and 
 
   git(['checkout', '--quiet', '--detach', current]);
   const candidate = await archiveFixture(t, {repository: historical, runId: 30, attempt: 1, jobId: 35, artifactId: 36,
-    event: 'pull_request', branch: 'controlled-feature', closed: true, requestFor: request, comparisonFor: compare(historical),
+    event: 'pull_request', branch: 'controlled-feature', closed: true, treeAt, requestFor: request, comparisonFor: compare(historical),
     reusedOriginal: {source: b.original, acceptance: acceptanceBytes, receipt: b.members.get('receipts/mutations-js.json')},
     readReady: (comparison, context) => readReadyOrigin({root: historical, catalog: b.catalog, sourceArchive: b.options.archive,
       sourceArtifact: {id: 16, digest: hash(b.original)}, baseline: comparison.baseline, candidateContext: context,
-      treeAt: revision => gitTree(historical, revision), request, token: 'controlled-fixture-only', directory,
+      treeAt, request, token: 'controlled-fixture-only', directory,
       artifactId: 18, archive: acceptanceArchive, expectedDigest: hash(acceptanceBytes)}),
   });
   register(candidate, 37);
@@ -139,7 +140,7 @@ test('real nested original/acceptance ZIPs satisfy the mixed final consumer and 
       members: members.size, decodedMemberBytes: [...members.values()].reduce((sum, value) => sum + value.length, 0),
       storedBytes: candidate.original.length, nestedOriginalBytes: b.original.length, deflatedBytes: bytes.length}));
     Object.assign(candidate.artifact, {digest: `sha256:${hash(bytes)}`, size_in_bytes: bytes.length});
-    return verifyCurrentFamily({...candidate.options, directory: out, archive, expectedDigest: hash(bytes), token: 'controlled-fixture-only'});
+    return verifyCurrentFamily({...candidate.options, directory: out, archive, expectedDigest: hash(bytes), treeAt, token: 'controlled-fixture-only'});
   };
   const checked = await consume();
   assert.equal(checked.lean.accepted, true); assert.equal(checked.requiredActions.length, 30);

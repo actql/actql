@@ -19,7 +19,7 @@ import {checkApplications} from './applications.mjs';
 import {leanInput} from './check.mjs';
 import {downloadArtifact} from './transport.mjs';
 import {checkRuntimeObservation} from './runtime.mjs';
-import {gitTree} from './inputs.mjs';
+import {gitInputScope} from './inputs.mjs';
 import {parseReceipt} from './receipts.mjs';
 import {compareFreshObservations, verifyComparison} from './plan.mjs';
 import {readActionRuntimes, readCandidateActionRuntimes} from './isolated-runtime.mjs';
@@ -41,7 +41,7 @@ export function checkCertificate({certificate, output, context, catalog, require
   return certificate.lean;
 }
 
-export async function verifyCurrentFamily({root, artifactId, expectedDigest, context, request, archive, token, directory}) {
+export async function verifyCurrentFamily({root, artifactId, expectedDigest, context, request, archive, token, directory, treeAt = gitInputScope(root)}) {
   const started = performance.now();
   const catalog = readCatalog(join(root, 'proofs/ci-evidence/bounded-session-actions.json'));
   checkExecutionRecipes(catalog);
@@ -64,7 +64,7 @@ export async function verifyCurrentFamily({root, artifactId, expectedDigest, con
     assert.equal(certificate.acquisitionDigest, hash(acquisitionBytes), 'Changed execution/reuse plan');
     const reused = acquisition.actions.filter(entry => entry.acquisition === 'reused');
     assert(reused.length <= 1 && reused.every(entry => entry.actionId === 'mutations-js'), 'Unreviewed reuse scope');
-    actionRuntimes = await (reused.length ? readCandidateActionRuntimes : readActionRuntimes)({zip, state, tree: gitTree(root, context.candidateRevision)});
+    actionRuntimes = await (reused.length ? readCandidateActionRuntimes : readActionRuntimes)({zip, state, tree: treeAt(context.candidateRevision)});
     const planBytes = await zip.read('comparison-plan.json'), observationsBytes = await zip.read('comparison-observations.json');
     assert.equal(certificate.comparisonDigest, hash(planBytes), 'Changed comparison plan');
     assert.equal(certificate.comparisonObservationsDigest, hash(observationsBytes), 'Changed fresh comparison observations');
@@ -94,7 +94,7 @@ export async function verifyCurrentFamily({root, artifactId, expectedDigest, con
   await verifyAcquisition({plan: acquisition, context, catalog, comparison, event: state.origin.event,
     readReady: async () => readReadyOrigin({root, catalog, sourceArchive: join(directory, 'retained-session-origin.zip'),
       sourceArtifact: {id: reused.origin.artifactId, digest: reused.origin.archiveDigest},
-      baseline: comparison.baseline, candidateContext: context, treeAt: revision => gitTree(root, revision), request, token, directory,
+      baseline: comparison.baseline, candidateContext: context, treeAt, request, token, directory,
       artifactId: reused.origin.acceptanceArtifactId, archive: join(directory, 'retained-session-applicability.zip'),
       expectedDigest: reused.origin.acceptanceArchiveDigest})});
   const entries = catalog.actions.map(action => {
@@ -109,7 +109,7 @@ export async function verifyCurrentFamily({root, artifactId, expectedDigest, con
   const result = await checkApplications({root, context: applicationContext, runtime: state.runtime, actionRuntimes,
     // All independently published obligations, including the Bridge. The
     // separately authenticated main original controls reuse, not this pin.
-    protectedRevision: protectedRegistrationRevision, entries, request,
+    protectedRevision: protectedRegistrationRevision, entries, request, treeAt,
     prove: (required, applications, {receiptDigests}) =>
       checkCertificate({certificate, output, context, catalog, required, applications, receiptDigests})});
   // The ancestor authorization is derived above from the live resolver and
@@ -119,9 +119,9 @@ export async function verifyCurrentFamily({root, artifactId, expectedDigest, con
   // rather than checking a certificate's hashes against itself.
   assert.deepEqual(result.applications.map(entry => ({actionId: entry.actionId, digest: entry.originReceiptDigest})), certificate.receiptDigests);
   assert.equal(encode(comparisonObservations), encode(compareFreshObservations({plan: comparison, context,
-    runtime: state.runtime, actionRuntimes, tree: gitTree(root, context.candidateRevision), receipts, mutationResult,
+    runtime: state.runtime, actionRuntimes, tree: treeAt(context.candidateRevision), receipts, mutationResult,
     acquisitions: acquisition.actions})), 'Wrong comparison of actual executions');
-  const confirmation = await verifyComparison({plan: comparison, root, context, runtime: state.runtime, actionRuntimes, request, token, directory});
+  const confirmation = await verifyComparison({plan: comparison, root, context, runtime: state.runtime, actionRuntimes, request, token, directory, treeAt});
   result.comparison = {baseline: comparison.baseline, recordedStatuses: comparison.actions.map(entry => ({actionId: entry.actionId, status: entry.status})),
     producerCosts: comparison.costs, confirmation, reuseAuthorized: false};
   result.acquisition = acquisition;

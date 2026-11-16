@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
+import {types} from 'node:util';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {packageConfigurationReviewFor, reviewedNestedFixture} from './package-configurations.mjs';
 
@@ -120,6 +121,85 @@ export function gitTree(root, revision) {
   }};
 }
 
+// Only this opt-in Git snapshot owns private immutable bytes and entries.
+// Legacy gitTree and caller-supplied trees retain their original semantics.
+const immutableSnapshots = new WeakMap();
+function plainData(value, seen = new Set()) {
+  if (value === null || ['string', 'boolean'].includes(typeof value)) return true;
+  if (typeof value === 'number') return Number.isSafeInteger(value) && !Object.is(value, -0);
+  if (typeof value !== 'object' || types.isProxy(value) || seen.has(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== Array.prototype) return false;
+  if (Object.getOwnPropertySymbols(value).length) return false;
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  const names = Object.keys(descriptors);
+  if (Array.isArray(value) && (names.length !== value.length + 1 ||
+      !Array.from({length: value.length}, (_, index) => String(index)).every(name => Object.hasOwn(descriptors, name)))) return false;
+  seen.add(value);
+  const valid = names.every(name => Array.isArray(value) && name === 'length' ||
+    descriptors[name].enumerable && Object.hasOwn(descriptors[name], 'value') && plainData(descriptors[name].value, seen));
+  seen.delete(value);
+  return valid;
+}
+// Inspect only descriptors: unsupported options must reach the original
+// destructuring exactly once, without first observing accessors or proxies.
+function stableOptions(options, names) {
+  if (!options || typeof options !== 'object' || types.isProxy(options) ||
+      Object.getPrototypeOf(options) !== Object.prototype || Object.getOwnPropertySymbols(options).length) return null;
+  const descriptors = Object.getOwnPropertyDescriptors(options);
+  if (!Object.values(descriptors).every(entry => entry.enumerable && Object.hasOwn(entry, 'value')) ||
+      !names.every(name => Object.hasOwn(descriptors, name))) return null;
+  return Object.fromEntries(names.map(name => [name, descriptors[name].value]));
+}
+function snapshotMemo(tree, family, input, calculate) {
+  const state = immutableSnapshots.get(tree);
+  if (!state || !plainData(input)) return calculate();
+  const key = encode(input), cache = state[family];
+  if (cache.has(key)) return structuredClone(cache.get(key));
+  const result = calculate();
+  // Neither caller input objects nor returned manifests alias cached DATA.
+  cache.set(key, structuredClone(result));
+  return structuredClone(cache.get(key));
+}
+
+export function immutableGitTree(root, revision) {
+  const original = gitTree(root, revision);
+  const entries = new Map([...original.entries].map(([path, entry]) =>
+    [path, Object.freeze({...entry})]));
+  const bytes = new Map(), facts = new Map();
+  const retained = path => {
+    const entry = entries.get(path);
+    assert(entry?.kind === 'blob', `Missing source input: ${path}`);
+    if (!bytes.has(entry.object)) bytes.set(entry.object, Buffer.from(original.read(path)));
+    return bytes.get(entry.object);
+  };
+  const view = Object.freeze({size: entries.size,
+    get: path => entries.get(path), has: path => entries.has(path),
+    keys: () => entries.keys(), values: () => entries.values(),
+    entries: () => entries.entries(), [Symbol.iterator]: () => entries[Symbol.iterator]()});
+  const tree = Object.freeze({revision, entries: view,
+    prefetch(paths) { original.prefetch(paths); },
+    read(path) { return Buffer.from(retained(path)); }});
+  immutableSnapshots.set(tree, {packages: new Map(), actions: new Map(), fact(path) {
+    const entry = entries.get(path), data = retained(path);
+    if (!facts.has(entry.object)) facts.set(entry.object, {bytes: data.length, digest: hash(data)});
+    return facts.get(entry.object);
+  }});
+  return tree;
+}
+
+// Scope only immutable Git DATA, never a remote receipt, permission, availability
+// or currentness result. Every tree lookup still refuses replaced Git history.
+export function gitInputScope(root) {
+  const trees = new Map();
+  return revision => {
+    assert(validSha(revision), 'Expected full input revision');
+    if (!trees.has(revision)) trees.set(revision, immutableGitTree(root, revision));
+    else assert.equal(execFileSync('git', ['replace', '-l'], {cwd: root, encoding: 'utf8'}).trim(), '', 'Replaced Git history');
+    return trees.get(revision);
+  };
+}
+
 // This is a deliberately limited parser, not a general MoonBit interpreter.
 // It accepts the existing literal import/supported-target syntax. Unknown
 // options or dependency expressions keep only the affected action fresh.
@@ -148,7 +228,12 @@ export function packageImports(source) {
 // Bind the selected compiler packages and their literal transitive imports.
 // Package members include tests and non-Moon files; nested unmodelled data and
 // configuration never become an inferred closed boundary.
-export function packageSourceInputs({tree, packages, target}) {
+export function packageSourceInputs(options) {
+  const stable = stableOptions(options, ['tree', 'packages', 'target']);
+  if (!stable) return buildPackageSourceInputs(options);
+  return snapshotMemo(stable.tree, 'packages', [stable.packages, stable.target], () => buildPackageSourceInputs(stable));
+}
+function buildPackageSourceInputs({tree, packages, target}) {
   const paths = new Set(), listings = new Map(), external = new Set(), unresolved = new Set(), configurations = [];
   const visited = new Set();
   let pending = [...packages];
@@ -241,7 +326,12 @@ export function mutationSourceInputs(tree) {
   return selected;
 }
 
-export function actionInputs({tree, revision, action, runtime}) {
+export function actionInputs(options) {
+  const stable = stableOptions(options, ['tree', 'revision', 'action', 'runtime']);
+  if (!stable) return buildActionInputs(options);
+  return snapshotMemo(stable.tree, 'actions', [inputVersion, stable.revision, stable.action, stable.runtime, sharedFiles], () => buildActionInputs(stable));
+}
+function buildActionInputs({tree, revision, action, runtime}) {
   assert(validSha(revision));
   assert(runtime && typeof runtime === 'object' && Array.isArray(runtime.unresolved), 'Missing runtime boundary');
   const included = new Set(), listings = new Map(), external = new Set(), unresolved = new Set(runtime.unresolved);
@@ -302,8 +392,10 @@ export function actionInputs({tree, revision, action, runtime}) {
   tree.prefetch?.(paths.filter(path => tree.entries.get(path).kind === 'blob'));
   const files = paths.map(path => {
     const entry = tree.entries.get(path);
-    const bytes = entry.kind === 'blob' ? tree.read(path) : null;
-    return {path, kind: entry.kind, mode: entry.mode, bytes: bytes?.length ?? 0, digest: bytes ? hash(bytes) : entry.object};
+    const fact = entry.kind === 'blob' ? immutableSnapshots.get(tree)?.fact(path) : null;
+    const bytes = entry.kind === 'blob' && !fact ? tree.read(path) : null;
+    return {path, kind: entry.kind, mode: entry.mode, bytes: fact?.bytes ?? bytes?.length ?? 0,
+      digest: fact?.digest ?? (bytes ? hash(bytes) : entry.object)};
   });
   const inputs = {action, files, directories: [...listings].sort(([a], [b]) => a.localeCompare(b)).map(([path, members]) => ({path, members})),
     externalPackages: [...external].sort(), packageConfigurations: configurations.sort((a, b) => a.path.localeCompare(b.path)),
