@@ -162,7 +162,10 @@ fn installed_effect_operation_control_capacity(
     recovery.record_headers,
     // Two captured original Core key methods extend the same JS control
     // closure. Mutable runtime properties cannot replace those constructors.
+    // The internal Ledger codec view copies one additional pure claim-facts
+    // method reference before row/frontier work, including legacy fallback.
     reference_slots: dependency_cache.reference_slots +
+    1L +
     2L +
     1L +
     4L +
@@ -217,7 +220,10 @@ fn installed_effect_operation_control_capacity(
   let workspace : @execution.PreparationRepresentationUnits = {
     record_headers: 2L + keys.record_headers + 16L * 8L + 8L,
     reference_slots: slots + keys.reference_slots + 16L * 64L + 32L,
-    scalar_words: keys.scalar_words + 16L * 64L + 16L + 1000L,
+    // One inline claim-facts status is live during a sequential row check.
+    // Its direct ten-argument call returns before any legacy codec fallback;
+    // the existing issuer call/vector envelope remains fully reserved.
+    scalar_words: keys.scalar_words + 16L * 64L + 16L + 1000L + 1L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }

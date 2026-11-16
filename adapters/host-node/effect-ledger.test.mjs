@@ -236,6 +236,129 @@ function admittedProgressFixture(firstPolicy = 'continue', firstRows = 2) {
   return {admitted, members: claims.map(rows => ({claims: rows})), claims};
 }
 
+function countedFrontierRuntime() {
+  const calls = {facts: 0, prepared: 0, next: 0, admit: 0};
+  const names = {
+    strategyEffectLedgerClaimFactsStatus: 'facts',
+    strategyEffectIssuePreparedLedgerEntry: 'prepared',
+    strategyEffectIssueNextLedgerEntry: 'next',
+    strategyEffectAdmitLedgerEntry: 'admit',
+  };
+  // Every selected call still enters the actual imported Core. These counts
+  // observe constructor selection; they provide no claim or send authority.
+  const countedMoon = new Proxy(moon, {get(target, name) {
+    const value = Reflect.get(target, name);
+    const counter = names[name];
+    return counter === undefined ? value : (...args) => {
+      calls[counter]++;
+      return value(...args);
+    };
+  }});
+  return {moon: countedMoon, calls,
+    reset() { for (const name of Object.keys(calls)) calls[name] = 0; }};
+}
+
+const frontierReady = value => Array.from(
+  {length: effect.setFrontierReadyCount(value)},
+  (_, index) => [effect.setFrontierReadyMember(value, index),
+    effect.setFrontierReadyRow(value, index)]);
+
+test('frontier checks immutable claim facts without draft issuers and keeps durable heads and flights fresh',
+  async t => {
+    const root = await fixture(t);
+    const counted = countedFrontierRuntime();
+    const reader = openEffectLedger({moon: counted.moon, root,
+      authorityScopeCid, callerRequestId: 'request-1', maxEntryBytes: 4096});
+    const writer = open(root);
+    t.after(() => reader.close());
+    t.after(() => writer.close());
+    const {admitted, members, claims} = admittedProgressFixture();
+    const ready = () => frontierReady(
+      reader.frontierFromDurableHeads(admitted, members, 48));
+    counted.reset();
+    assert.deepEqual(ready(), [[0, 0], [1, 0]]);
+    assert.deepEqual(counted.calls, {facts: 3, prepared: 0, next: 0, admit: 0});
+
+    const ownership = writer.claimDispatch(claims[0][0]);
+    assert.equal(ownership.claimed, true);
+    const finish = writer.beginPhysicalFlight(
+      ownership.dispatching, claims[0][0]);
+    t.after(finish);
+    counted.reset();
+    assert.deepEqual(ready(), [[1, 0]]);
+    assert.deepEqual(counted.calls, {facts: 3, prepared: 0, next: 0, admit: 1});
+    const unknown = effect.issueNextLedgerEntry(
+      ownership.dispatching, 'unknown', '', 4096, 64, 4);
+    writer.append(effect.ledgerEntryWire(unknown));
+    counted.reset();
+    // A new durable head does not pretend the original physical call ended.
+    assert.deepEqual(ready(), [[1, 0]]);
+    assert.deepEqual(counted.calls, {facts: 3, prepared: 0, next: 0, admit: 1});
+    finish(); finish();
+    counted.reset();
+    assert.deepEqual(ready(), [[0, 1], [1, 0]]);
+    assert.deepEqual(counted.calls, {facts: 3, prepared: 0, next: 0, admit: 1});
+    reader.close();
+    const reopened = openEffectLedger({moon: counted.moon, root,
+      authorityScopeCid, callerRequestId: 'request-1', maxEntryBytes: 4096});
+    t.after(() => reopened.close());
+    counted.reset();
+    assert.deepEqual(frontierReady(reopened.frontierFromDurableHeads(
+      admitted, members, 48)), [[0, 1], [1, 0]]);
+    assert.deepEqual(counted.calls, {facts: 3, prepared: 0, next: 0, admit: 1});
+    assert.equal(reopened.claimDispatch(claims[0][0]).claimed, false);
+  });
+
+test('frontier preserves the original tight byte node and depth codec refusals',
+  async t => {
+    const {admitted, members, claims} = admittedProgressFixture();
+    for (const limits of [
+      {maxEntryBytes: 512}, {maxNodes: 1}, {maxDepth: 0},
+    ]) {
+      const root = await fixture(t);
+      const counted = countedFrontierRuntime();
+      const ledger = openEffectLedger({moon: counted.moon, root,
+        authorityScopeCid, callerRequestId: 'request-1',
+        maxEntryBytes: 4096, ...limits});
+      t.after(() => ledger.close());
+      counted.reset();
+      assert.throws(() => ledger.frontierFromDurableHeads(
+        admitted, members, 48), {code: 'MoonBitHostFailure'});
+      assert.deepEqual(counted.calls,
+        {facts: 1, prepared: 1, next: 0, admit: 0});
+      assert.equal(ledger.current(effect.logicalItemLocatorCid(
+        claims[0][0].locator)), undefined);
+    }
+  });
+
+test('frontier rejects foreign duplicated claim facts without issuing draft entries',
+  async t => {
+    const root = await fixture(t);
+    const counted = countedFrontierRuntime();
+    const ledger = openEffectLedger({moon: counted.moon, root,
+      authorityScopeCid, callerRequestId: 'request-1', maxEntryBytes: 4096});
+    t.after(() => ledger.close());
+    const {admitted, members, claims} = admittedProgressFixture();
+    const original = claims[0][0];
+    const foreignScope = effect.logicalRequestScope(
+      authorityScopeCid, 'foreign-request', 32);
+    for (const changed of [
+      {scope: foreignScope}, {locator: claims[0][1].locator},
+      {key: claims[0][1].key}, {intentFingerprintCid: cid('9')},
+      {canonicalRequestCid: cid('9')},
+    ]) {
+      const selected = [{claims: [{...original, ...changed}, claims[0][1]]},
+        members[1]];
+      counted.reset();
+      assert.throws(() => ledger.frontierFromDurableHeads(
+        admitted, selected, 48), {code: 'EffectProgressBindingMismatch'});
+      assert.deepEqual(counted.calls,
+        {facts: 1, prepared: 0, next: 0, admit: 0});
+    }
+    assert.equal(ledger.current(effect.logicalItemLocatorCid(
+      original.locator)), undefined);
+  });
+
 test('whole-set intents are durable and atomic before any dispatch',
   async t => {
     const root = await fixture(t);
