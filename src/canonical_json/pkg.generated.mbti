@@ -76,8 +76,6 @@ pub fn object_without_field(CanonicalValue, String) -> CanonicalValue?
 
 pub fn representation_extent(CanonicalValue, Int, Int, Int) -> Result[CanonicalRepresentationExtent, CanonicalFailure]
 
-pub fn representation_extent_with_work(CanonicalValue, Int, Int, Int, (Int) -> Bool) -> Result[CanonicalRepresentationExtent, CanonicalFailure]
-
 pub fn source_conversion_construction_extent(Int, Int, Int, Int, Int, Int) -> SourceConversionConstructionExtent?
 
 pub fn start_cursor_admission(@decode_core.Cursor, Int, Int, Int, Int, data_keys? : Bool) -> CursorAdmission?
