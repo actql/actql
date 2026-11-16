@@ -7,7 +7,7 @@ import test from 'node:test';
 import {inspect} from 'node:util';
 import {connectEmbeddedLocal} from './embedded-local.mjs';
 import {canonicalJson} from './local-account-config.mjs';
-import {assertRetainedRelationSnapshots} from './fixtures/retained-relation-snapshot.mjs';
+import {createRetainedRowStoreProbe} from './fixtures/retained-row-store.mjs';
 
 test('public retained membership preserves duplicate Text matches and NULL',
   {timeout: 60_000}, async t => {
@@ -21,7 +21,7 @@ test('public retained membership preserves duplicate Text matches and NULL',
     const keys = generateKeyPairSync('ed25519');
     let advances = 0;
     let completions = 0;
-    let relationSnapshots;
+    const store = createRetainedRowStoreProbe(directory);
     const authorization = {
       accountConfiguration: canonicalJson({
         version: 'actql-execution-account-config/0.1',
@@ -38,14 +38,15 @@ test('public retained membership preserves duplicate Text matches and NULL',
         publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
       hostKey: {keyId: 'host', privateKey: keys.privateKey.export({
         type: 'pkcs8', format: 'pem'})},
-      faultInjection(step) {
+      async faultInjection(step, detail) {
         if (step === 'local_compute_advanced') advances++;
+        await store.faultInjection(step, detail);
       },
       observe(step, detail) {
         if (step === 'computed') {
           completions++;
-          relationSnapshots = detail.relationSnapshots;
         }
+        store.observe(step, detail);
       },
     };
     // Both Text operands cross the comparison cursor boundary, without raising
@@ -93,10 +94,11 @@ test('public retained membership preserves duplicate Text matches and NULL',
     for (const name of ['published', 'consumed_a', 'consumed_b']) {
       assert.deepEqual(await execution.result(name).all(), expected, name);
     }
-    assertRetainedRelationSnapshots(relationSnapshots, expected, 3);
+    store.assertCompleted(expected, {minimum: 3});
     assert.ok(advances > 0, 'the actual bounded execution yielded');
     assert.equal(completions, 1);
     const completedAdvances = advances;
+    const savedWrites = store.checkpoint();
     const repeated = await client.startSource(source, options);
     assert.deepEqual(repeated.ref, execution.ref);
     assert.deepEqual(await repeated.result('published').all(), expected);
@@ -105,4 +107,7 @@ test('public retained membership preserves duplicate Text matches and NULL',
     assert.equal(completions, 1);
     assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), [],
       'temporary retained input/output files are reclaimed');
+    store.assertUnchanged(savedWrites);
+    await client.close();
+    await store.assertReclaimed();
   });
