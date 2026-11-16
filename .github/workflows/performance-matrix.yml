@@ -33,6 +33,11 @@ on:
         type: boolean
         default: false
         required: false
+      native-source-free-shape-diagnostic:
+        description: One fresh small-input-large-output Native Run with existing failure tags; not acceptance
+        type: boolean
+        default: false
+        required: false
       native-approval-runner:
         description: Hosted Linux Local runner; Darwin has no hosted Local producer yet
         type: choice
@@ -119,6 +124,10 @@ on:
         default: false
         required: false
       native-approval-cpu-diagnostic:
+        type: boolean
+        default: false
+        required: false
+      native-source-free-shape-diagnostic:
         type: boolean
         default: false
         required: false
@@ -228,7 +237,7 @@ jobs:
 
   native-approval:
     name: Native approval ${{ inputs.native-approval-runner }}
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && (inputs['native-approval-only'] || inputs['native-approval-cpu-diagnostic']) && !inputs['node-wait-cpu-diagnostic'] }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && (inputs['native-approval-only'] || inputs['native-approval-cpu-diagnostic'] || inputs['native-source-free-shape-diagnostic']) && !inputs['node-wait-cpu-diagnostic'] }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
@@ -249,6 +258,17 @@ jobs:
             ubuntu-24.04) ;;
             *) echo '::error::Unsupported Native approval runner'; exit 1 ;;
           esac
+      - name: Require one selected Native diagnostic or acceptance mode
+        env:
+          NATIVE_APPROVAL_ONLY: ${{ inputs['native-approval-only'] }}
+          NATIVE_APPROVAL_CPU: ${{ inputs['native-approval-cpu-diagnostic'] }}
+          NATIVE_SOURCE_FREE_SHAPE: ${{ inputs['native-source-free-shape-diagnostic'] }}
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          assert.equal(['NATIVE_APPROVAL_ONLY', 'NATIVE_APPROVAL_CPU', 'NATIVE_SOURCE_FREE_SHAPE']
+            .filter(name => process.env[name] === 'true').length, 1);
+          JS
       - name: Install verification tooling without runtime preparation
         run: npm ci --ignore-scripts
       - name: Install pinned MoonBit for source and generation verification only
@@ -260,7 +280,7 @@ jobs:
       - name: Validate the original normal Native artifact and producer job
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          NATIVE_APPROVAL_CPU_DIAGNOSTIC: ${{ inputs['native-approval-cpu-diagnostic'] }}
+          NATIVE_APPROVAL_CPU_DIAGNOSTIC: ${{ inputs['native-approval-cpu-diagnostic'] || inputs['native-source-free-shape-diagnostic'] }}
           PACKAGE_ADAPTER: native
           PACKAGE_RUN_ID: ${{ inputs.native-package-run-id }}
           PACKAGE_ARTIFACT_ID: ${{ inputs.native-package-artifact-id }}
@@ -282,7 +302,7 @@ jobs:
           assert.equal(producer.artifactName, `native-cli-linux-local-${producer.runId}-${producer.attempt}`);
           JS
       - name: Reuse only the exact formal Native artifact
-        if: ${{ !inputs['native-approval-cpu-diagnostic'] }}
+        if: ${{ !inputs['native-approval-cpu-diagnostic'] && !inputs['native-source-free-shape-diagnostic'] }}
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           github-token: ${{ github.token }}
@@ -291,7 +311,7 @@ jobs:
           path: ${{ runner.temp }}/native-approval/packages
           merge-multiple: true
       - name: Reuse the digest-verified original artifact for CPU diagnosis only
-        if: ${{ inputs['native-approval-cpu-diagnostic'] }}
+        if: ${{ inputs['native-approval-cpu-diagnostic'] || inputs['native-source-free-shape-diagnostic'] }}
         env:
           GH_TOKEN: ${{ github.token }}
           PACKAGE_ARTIFACT_ID: ${{ inputs.native-package-artifact-id }}
@@ -318,10 +338,16 @@ jobs:
           assert(perf, 'Distribution perf binary unavailable');
           appendFileSync(process.env.GITHUB_ENV, `NATIVE_APPROVAL_PERF=${perf}\n`);
           JS
+      - name: Stage the narrow source-free diagnostic before original source checkout
+        if: ${{ inputs['native-source-free-shape-diagnostic'] }}
+        run: |
+          echo "NATIVE_SHAPE_COLLECTOR_SOURCE=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          cp scripts/test-native-source-free-shape-diagnostic.mjs "$RUNNER_TEMP/native-approval/source-free-shape-diagnostic.mjs"
+          cp scripts/native-source-free-resource-shape.mjs "$RUNNER_TEMP/native-approval/native-source-free-resource-shape.mjs"
       - name: Bind the original Native build source before collection
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          NATIVE_APPROVAL_CPU_DIAGNOSTIC: ${{ inputs['native-approval-cpu-diagnostic'] }}
+          NATIVE_APPROVAL_CPU_DIAGNOSTIC: ${{ inputs['native-approval-cpu-diagnostic'] || inputs['native-source-free-shape-diagnostic'] }}
           PACKAGE_RUN_ID: ${{ inputs.native-package-run-id }}
           PACKAGE_ARTIFACT_ID: ${{ inputs.native-package-artifact-id }}
           PACKAGE_PRODUCER_JOB: ${{ inputs.native-package-producer-job }}
@@ -341,7 +367,7 @@ jobs:
           git fetch --no-tags --depth=1 origin "$source_sha"
           git checkout --detach "$source_sha"
       - name: Measure thirty complete approvals for each original Native template
-        if: ${{ !inputs['native-approval-cpu-diagnostic'] }}
+        if: ${{ !inputs['native-approval-cpu-diagnostic'] && !inputs['native-source-free-shape-diagnostic'] }}
         env:
           NATIVE_APPROVAL_RUNNER: ${{ inputs.native-approval-runner }}
         run: |
@@ -418,8 +444,32 @@ jobs:
             --binding "$RUNNER_TEMP/native-approval/source.json" \
             --perf "$NATIVE_APPROVAL_PERF" \
             --output "$RUNNER_TEMP/native-approval/cpu.json"
+      - name: Diagnose one original source-free small-input-large-output case
+        if: ${{ inputs['native-source-free-shape-diagnostic'] }}
+        run: |
+          node "$RUNNER_TEMP/native-approval/source-free-shape-diagnostic.mjs" \
+            --root "$GITHUB_WORKSPACE" \
+            --collector-source "$NATIVE_SHAPE_COLLECTOR_SOURCE" \
+            --normal "$RUNNER_TEMP/native-approval/packages/release" \
+            --binding "$RUNNER_TEMP/native-approval/source.json" \
+            --output "$RUNNER_TEMP/native-approval/shape"
+      - name: Retain only source-free failure tags command outcomes and original package metadata
+        if: ${{ always() && inputs['native-source-free-shape-diagnostic'] }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: native-source-free-shape-diagnostic-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/native-approval/shape/report.json
+            ${{ runner.temp }}/native-approval/shape/commands/*.json
+            ${{ runner.temp }}/native-approval/shape/commands/*.stdout
+            ${{ runner.temp }}/native-approval/shape/commands/*.stderr
+            ${{ runner.temp }}/native-approval/producer.json
+            ${{ runner.temp }}/native-approval/source.json
+            ${{ runner.temp }}/native-approval/packages/release/release.json
+          if-no-files-found: error
+          retention-days: 14
       - name: Retain Native approval failures partial samples and actual receipts
-        if: ${{ always() && !inputs['native-approval-cpu-diagnostic'] }}
+        if: ${{ always() && !inputs['native-approval-cpu-diagnostic'] && !inputs['native-source-free-shape-diagnostic'] }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: native-approval-${{ inputs.native-approval-runner }}-${{ github.sha }}
@@ -446,7 +496,7 @@ jobs:
           retention-days: 14
   ordinary-operations:
     name: Required ordinary operation performance
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && !inputs['node-wait-cpu-diagnostic'] }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && !inputs['native-source-free-shape-diagnostic'] && !inputs['node-wait-cpu-diagnostic'] }}
     runs-on: ubuntu-24.04
     outputs:
       source-sha: ${{ steps.package-source.outputs.source-sha }}
@@ -574,7 +624,7 @@ jobs:
           retention-days: 30
   ordinary-native:
     name: Ordinary native ${{ matrix.operation }}
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && !inputs['node-wait-cpu-diagnostic'] }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && !inputs['native-source-free-shape-diagnostic'] && !inputs['node-wait-cpu-diagnostic'] }}
     runs-on: macos-15
     outputs:
       source-sha: ${{ steps.package-source.outputs.source-sha }}
@@ -686,7 +736,7 @@ jobs:
           retention-days: 30
   ordinary-python:
     name: Ordinary python ${{ matrix.operation }}
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && !inputs['node-wait-cpu-diagnostic'] }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && !inputs['native-source-free-shape-diagnostic'] && !inputs['node-wait-cpu-diagnostic'] }}
     runs-on: macos-15
     outputs:
       source-sha: ${{ steps.package-source.outputs.source-sha }}
@@ -812,7 +862,7 @@ jobs:
           retention-days: 30
   ordinary-python-priority:
     name: Ordinary Python priority collector
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && !inputs['node-wait-cpu-diagnostic'] }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && !inputs['native-source-free-shape-diagnostic'] && !inputs['node-wait-cpu-diagnostic'] }}
     runs-on: macos-15
     timeout-minutes: 30
     permissions:
@@ -931,7 +981,7 @@ jobs:
           retention-days: 30
   ordinary-node-priority:
     name: Ordinary Node priority collector
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && !inputs['node-wait-cpu-diagnostic'] }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && !inputs['native-source-free-shape-diagnostic'] && !inputs['node-wait-cpu-diagnostic'] }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
@@ -1021,7 +1071,7 @@ jobs:
   ordinary-priority-assessment:
     name: Ordinary Node and Python priority checkpoint
     needs: [ordinary-node-priority, ordinary-python-priority]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && always() && !inputs['node-wait-cpu-diagnostic'] }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && !inputs['native-source-free-shape-diagnostic'] && always() && !inputs['node-wait-cpu-diagnostic'] }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -1090,7 +1140,7 @@ jobs:
           retention-days: 30
   ordinary-platform-assessment:
     needs: [ordinary-operations, ordinary-native, ordinary-python]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && always() && !inputs['node-wait-cpu-diagnostic'] }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && !inputs['native-source-free-shape-diagnostic'] && always() && !inputs['node-wait-cpu-diagnostic'] }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -1111,7 +1161,7 @@ jobs:
             }
           '
   registered-cases:
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && !inputs['node-wait-cpu-diagnostic'] }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && !inputs['native-source-free-shape-diagnostic'] && !inputs['node-wait-cpu-diagnostic'] }}
     runs-on: ubuntu-24.04
     outputs:
       cases: ${{ steps.list.outputs.cases }}
@@ -1123,7 +1173,7 @@ jobs:
         run: echo "cases=$(node benchmarks/retained-results/equivalent-matrix-cases.mjs)" >> "$GITHUB_OUTPUT"
 
   equivalent-obligations:
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && !inputs['node-wait-cpu-diagnostic'] }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && !inputs['native-source-free-shape-diagnostic'] && !inputs['node-wait-cpu-diagnostic'] }}
     needs: registered-cases
     runs-on: ubuntu-24.04
     timeout-minutes: 240
@@ -1178,7 +1228,7 @@ jobs:
 
   equivalent-assessment:
     needs: [registered-cases, equivalent-obligations]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && always() && needs.registered-cases.result == 'success' && !inputs['node-wait-cpu-diagnostic'] }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && !inputs['native-source-free-shape-diagnostic'] && always() && needs.registered-cases.result == 'success' && !inputs['node-wait-cpu-diagnostic'] }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
