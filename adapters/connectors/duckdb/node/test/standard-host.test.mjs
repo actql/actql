@@ -1887,6 +1887,12 @@ async function exerciseStrategyGraph(
       configuration, leases, cleanupFailure,
       permitCleanup() { permitCleanup = true; },
       cleanupFailures: () => cleanupFailures,
+      async assertReclaimed() {
+        assert.equal(store.status().reservedBytes, 0);
+        for (const namespace of await readdir(directory)) {
+          assert.deepEqual(await readdir(join(directory, namespace)), []);
+        }
+      },
       async close() {
         await store.close();
         await rm(directory, {recursive: true, force: true});
@@ -2515,7 +2521,34 @@ async function exerciseStrategyGraph(
       if (sgaPublicationOwner !== undefined) {
         if (publicationCase.name === 'retained-node-match' ||
             publicationCase.name === 'retained-normalized-node-match') {
-          assert.equal(sgaRetained.leases.length, 1);
+          // One row-file and the other completed managed generations have
+          // distinct physical leases. Snapshot readback/reclamation is part
+          // of those originals, including the later Named Result producers.
+          const physicalOutputs = sgaPublicationOwner.execution.completed.filter(
+            value => value.outputRepresentation === 'retained-file' ||
+              value.snapshot !== undefined || value.relationSnapshot !== undefined);
+          const resultTasks = new Set(sgaPublicationOwner.execution
+            .publicationInventory.occurrences.map(value => value.task));
+          assert.equal(sgaRetained.leases.length, physicalOutputs.length,
+            'each original row-file or snapshot owns its physical Store lease');
+          assert(physicalOutputs.some(value => value.outputRepresentation === 'retained-file'));
+          for (const output of physicalOutputs) {
+            const snapshot = output.snapshot ?? output.relationSnapshot;
+            if (snapshot === undefined) continue;
+            assert.equal(snapshot.verifiedReadBytes, snapshot.bytes);
+            assert.equal(snapshot.sourceReleased, true);
+            assert.equal(snapshot.restored, true);
+            assert.equal(snapshot.temporaryBodyReclaimed, true);
+            if (output.relationSnapshot !== undefined) {
+              assert.equal(snapshot.sourceReadRejected, true);
+            }
+          }
+          for (const task of resultTasks) {
+            assert(physicalOutputs.some(value => value.task === task),
+              'each explicit Result keeps its original physical Store producer');
+          }
+          assert(physicalOutputs.some(value => !resultTasks.has(value.task)),
+            'ordinary intermediate generations also use the physical Store');
           await assert.rejects(
             async () => sgaPublicationOwner.close(),
             error => assertCarrierRetainedCleanupFailure(error, sgaRetained),
@@ -2533,6 +2566,7 @@ async function exerciseStrategyGraph(
           sgaPublicationOwner.execution.usage().reservedExecutionBytes,
           0n,
         );
+        await sgaRetained?.assertReclaimed();
       }
       sgaCapture.close();
       await sgaPublicationStore?.close();
@@ -4406,7 +4440,8 @@ async function exerciseStrategyGraph(
     const observed = new Proxy(hostRuntime, {
       get(target, property, receiver) {
         if (property !== 'strategyModule_local_Dispatch' &&
-            property !== 'strategyModule_local_ManagedStart') {
+            property !== 'strategyModule_local_ManagedStart' &&
+            property !== 'strategyModule_local_ManagedStartRetained') {
           return Reflect.get(target, property, receiver);
         }
         return (...args) => {
@@ -6512,15 +6547,14 @@ async function exerciseStrategyGraph(
       );
       const observedRuntime = new Proxy(hostRuntime, {
         get(target, property, receiver) {
-          if (property !== 'strategyModule_local_ManagedStart') {
+          if (property !== 'strategyModule_local_ManagedStart' &&
+              property !== 'strategyModule_local_ManagedStartRetained') {
             return Reflect.get(target, property, receiver);
           }
-          return configuration => {
+          return (...args) => {
             const start = ++managedStarts;
             managedTaskByStart[start] = target.strategyHostNextTask(setup);
-            const started = target.strategyModule_local_ManagedStart(
-              configuration,
-            );
+            const started = target[property](...args);
             const execution = checked(started);
             const observed = new Proxy(execution, {
               get(operation, name, operationReceiver) {
@@ -10714,7 +10748,7 @@ async function exerciseStrategyGraph(
     const computeFailure = mode === 'compute-failure' ||
       mode === 'compute-cleanup-failure';
     // Events construction is task 3; as-of and the later row filter own
-    // separate checked generations. Neither is disguised as a row file.
+    // separate checked row generations after that managed Carrier.
     const producerTask = eventsAsOf ? (computeFailure ? 5 : 4)
       : series ? 1 : sequence || session ? 2 : 3;
     const priorTasks = eventsAsOf ? (computeFailure ? [1, 2, 3, 4] : [1, 2, 3])
@@ -10872,7 +10906,8 @@ async function exerciseStrategyGraph(
     const observedRuntime = new Proxy(hostRuntime, {
       get(target, property, receiver) {
         if (property !== 'strategyModule_local_Dispatch' &&
-            property !== 'strategyModule_local_ManagedStart') {
+            property !== 'strategyModule_local_ManagedStart' &&
+            property !== 'strategyModule_local_ManagedStartRetained') {
           return Reflect.get(target, property, receiver);
         }
         return (...callArguments) => {
@@ -10991,7 +11026,23 @@ async function exerciseStrategyGraph(
         assert.equal(execution.failure?.name, 'AbortError');
         assert.equal(leases, eventsAsOf ? 2 : priorTasks.length);
       } else if (computeFailure) {
-        assert.equal(leases, session ? 1 : 2);
+        if (eventsAsOf) {
+          const physicalOutputs = execution.completed.filter(value =>
+            value.outputRepresentation === 'retained-file' ||
+            value.snapshot !== undefined || value.relationSnapshot !== undefined);
+          assert.equal(leases, physicalOutputs.length,
+            'completed ordinary physical outputs retain distinct Store leases');
+          assert(physicalOutputs.some(value =>
+            value.outputRepresentation === 'retained-file'));
+          for (const output of physicalOutputs) {
+            const snapshot = output.snapshot ?? output.relationSnapshot;
+            if (snapshot === undefined) continue;
+            assert.equal(snapshot.verifiedReadBytes, snapshot.bytes);
+            assert.equal(snapshot.sourceReleased, true);
+            assert.equal(snapshot.restored, true);
+            assert.equal(snapshot.temporaryBodyReclaimed, true);
+          }
+        } else assert.equal(leases, session ? 1 : 2);
         assert.equal(execution.failure?.code, 'MoonBitHostFailure');
         const arithmeticFailure = eventsAsOf
           ? fixture.strategyFixtureRetainedEventsAsOfArithmetic
