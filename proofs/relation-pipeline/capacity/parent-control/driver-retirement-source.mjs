@@ -426,10 +426,8 @@ export function checkDriverRetirementSource(read) {
   assert.equal(clean(blockAfter(roots,'advance_local_managed_scratch_retirement(')),clean(rootSlice),'Changed bounded scratch root retirement slice');
   assert.equal(clean(blockAfter(roots,'fn local_managed_input_writes_open(')),clean('{ live && !settled && !disposed }'),'Changed late input write rejection');
   assert.equal((driver.match(/let scratch_retirement = local_managed_scratch_retirement\(\)/g)??[]).length,1,'Changed installed scratch cursor construction');
-  // The sixth guard rechecks the same bridge after import grow/current. The
-  // shared mutation scope must already enclose the earlier transfer/current;
-  // counting a new call alone cannot admit a weakened guard or per-copy latch.
-  assert.equal((driver.match(/local_managed_input_writes_open\(/g)??[]).length,6,'Changed import/bridge write guards');
+  // Each selected import must recheck its SAME owner after grow/current.
+  // Whole-file call counts cannot distinguish a guard from an unrelated use.
   assert.equal(clean(blockAfter(driver,'fn[A] with_local_managed_import_mutation(')),clean(`{
     if active.val { return Err(Configuration(InputUnavailable)) }
     active.val = true
@@ -462,6 +460,33 @@ export function checkDriverRetirementSource(read) {
   ];
   assert(ordered.every((at,index)=>at>=0&&(index===0||at>ordered[index-1])),
     'Original import calculation/current/bridge checks must precede counter commit and copy');
+  const retainedTransfer=blockAfter(driver,'retained_transfers.push(');
+  const retainedAppend=blockAfter(retainedTransfer,'append: row =>');
+  const retainedMutation=blockAfter(retainedAppend,'with_local_managed_import_mutation(import_mutating, fn()');
+  assert.equal(clean(retainedAppend),clean(`{ with_local_managed_import_mutation(import_mutating, fn() ${retainedMutation}) }`),
+    'Retained import grow/current and append must stay inside the SAME Task mutation fence');
+  const retained=clean(retainedMutation);
+  const retainedCurrent=clean(`guard local_managed_input_writes_open(live.val, settled.val, disposed.val) &&
+    importer.val is Some(current) && physical_equal(current, active) else {
+      return Err(Configuration(InputUnavailable))
+    }`);
+  const retainedOrder=[retained.indexOf(clean(`guard importer.val is Some(active) &&
+    local_managed_input_writes_open(live.val, settled.val, disposed.val)`)),
+    retained.indexOf('local_managed_import_next_extent('),retained.indexOf('reserve_import(next,None)'),
+    retained.indexOf(retainedCurrent),retained.indexOf('copied_rows.val=rows'),
+    retained.indexOf('@execution.append_completed_output_import_wire(')];
+  assert(retainedOrder.every((at,index)=>at>=0&&(index===0||at>retainedOrder[index-1])),
+    'Retained import calculation/current/original importer checks must precede counter commit and copy');
+  for(const [method,prefix] of [
+    ['begin: fn()',`{ guard local_managed_input_writes_open(live.val, settled.val, disposed.val) &&
+      importer.val is None && !import_mutating.val else { return Err(Configuration(InputUnavailable)) }`],
+    ['finish: fn()',`{ guard !import_mutating.val && importer.val is Some(active) &&
+      local_managed_input_writes_open(live.val, settled.val, disposed.val) else { return Err(Configuration(InputUnavailable)) }`],
+  ]) {
+    const body=clean(blockAfter(retainedTransfer,method));
+    assert(body.startsWith(clean(prefix)),
+    'Retained import begin/finish must refuse during mutation and after cancellation');
+  }
   assert.equal(clean(blockAfter(strategy,'fn release_task_execution(')),clean(retirementObservation),'Changed common cleanup reentry/refusal observation boundary');
   assert.equal(clean(blockAfter(strategy,'fn release_task_execution_owned(')),clean(retirement),'Changed common reservation retirement boundary');
   assert.match(driver.replace(/\s+/g,' '),/let provider_execution : Ref\[@local\.ManagedProviderExecution\?\] = Ref\(None\)/);

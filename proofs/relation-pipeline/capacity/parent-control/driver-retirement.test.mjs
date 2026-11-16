@@ -68,8 +68,9 @@ for(const [name,from,to] of [
 for(const [name,from,to,anchor,reason] of [
   ['shared import latch bypass', 'if active.val {', 'if false {',
     'fn[A] with_local_managed_import_mutation(', /Changed shared import mutation fence/],
-  ['per-copy import latch', 'let copied_rows = Ref(0L)',
-    'let import_mutating = Ref(false)\nlet copied_rows = Ref(0L)', undefined, /same Task mutation fence/],
+  ['per-copy import latch', 'let handle = bridges[bridge_index]\nbridge_index += 1\nlet copied_rows = Ref(0L)',
+    'let handle = bridges[bridge_index]\nbridge_index += 1\nlet import_mutating = Ref(false)\nlet copied_rows = Ref(0L)',
+    undefined, /same Task mutation fence/],
   ['transfer current before import latch',
     'with_local_managed_import_mutation(import_mutating, fn()',
     '@strategy.charge_task_execution_transfer(setup.run, execution, 0L) |> ignore\nwith_local_managed_import_mutation(import_mutating, fn()',
@@ -77,6 +78,20 @@ for(const [name,from,to,anchor,reason] of [
   ['after-grow original bridge check omitted', 'physical_equal(current, bridge)',
     'true', ['transfers.push(LocalManagedInputTransfer::', 'append: row =>'], /Original import calculation\/current\/bridge checks/],
 ]) test('import mutation source rejects '+name,()=>{
+  assert.throws(()=>checkDriverRetirementSource(changed(driverPath,from,to,anchor)),reason);
+});
+
+for(const [name,from,to,anchor,reason] of [
+  ['retained current before Task fence','with_local_managed_import_mutation(import_mutating, fn()',
+    '@strategy.charge_task_execution_transfer(setup.run, execution, 0L) |> ignore\nwith_local_managed_import_mutation(import_mutating, fn()',
+    ['retained_transfers.push(','append: row =>'],/SAME Task mutation fence/],
+  ['retained after-grow owner check omitted','physical_equal(current, active)','true',
+    ['retained_transfers.push(','append: row =>'],/Retained import calculation\/current\/original importer/],
+  ['retained begin permits mutation','!import_mutating.val','true',
+    ['retained_transfers.push(','begin: fn()'],/Retained import begin\/finish/],
+  ['retained finish permits mutation','!import_mutating.val','true',
+    ['retained_transfers.push(','finish: fn()'],/Retained import begin\/finish/],
+]) test('retained import source rejects '+name,()=>{
   assert.throws(()=>checkDriverRetirementSource(changed(driverPath,from,to,anchor)),reason);
 });
 
@@ -126,6 +141,21 @@ test('selected Host helper retains transitive declarations and enum variants wit
   assert(!imports.text.includes('x/unused'));assert(imports.text.includes('options(link: {})'));
   assert.deepEqual(imports.omitted,[{path:'x/unused',alias:'unused'}]);
   assert.throws(()=>helperImports(pkg.replace('"x/used" @used,','dynamic_import()'),r.referencedText));
+});
+
+test('omitted target-selected test retires only its adjacent literal attribute',()=>{
+  const helper='fn run_current_host_graph_relation_path() { leaf() }\nfn leaf() {}\n';
+  const selected='test { run_current_host_graph_relation_path() }';
+  for(const target of ['js','wasm','native']) {
+    const omitted=`#cfg(target="${target}")\ntest "unselected" { abort("unreachable") }`;
+    const result=helperCompilation({a:omitted+'\n'+helper},selected);
+    assert.equal(result.overlay.a.trim(),helper.trim());
+    assert.equal(result.inputs.a.omittedTests.length,1);
+    assert.equal(result.inputs.a.omittedTests[0].digest,hash(omitted));
+  }
+  for(const attribute of ['#cfg(target=choose_target())','#cfg(target="foreign")','#cfg(other="js")'])
+    assert.throws(()=>helperCompilation({a:attribute+'\ntest "unselected" {}\n'+helper},selected),/Unsupported helper/);
+  assert.throws(()=>helperCompilation({a:'#cfg(target="js")\n'+helper},selected),/Unsupported helper/);
 });
 
 test('Native fixture projection retains both original JS-only targets and native link metadata',()=>{
