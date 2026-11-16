@@ -27135,6 +27135,33 @@
           "async": false
         },
         {
+          "name": "originalKeyedLookupPublication/cleanupStoreReads/cleanupStoreReads/cleanupStoreReads",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "originalKeyedLookupPublication/cleanupStoreReads/cleanupStoreReads/cleanupStoreReads#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "originalKeyedLookupPublication/cleanupStoreReads/cleanupStoreReads/cleanupStoreReads#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "originalKeyedLookupPublication/cleanupStoreReads/cleanupStoreReads/cleanupStoreReads#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "originalKeyedLookupPublication/confirmRaw/confirmRaw",
+          "parameters": [
+            "binding"
+          ],
+          "async": true
+        },
+        {
           "name": "originalKeyedLookupPublication/init:activate/init:activate",
           "parameters": [
             "original",
@@ -27180,6 +27207,18 @@
           "async": false
         },
         {
+          "name": "originalKeyedLookupPublication/init:responseBackingReleased/init:responseBackingReleased",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "originalKeyedLookupPublication/init:responseBackingReleased/init:responseBackingReleased/init:responseBackingReleased",
+          "parameters": [
+            "holding"
+          ],
+          "async": false
+        },
+        {
           "name": "originalKeyedLookupPublication/init:retainRawResponse/init:retainRawResponse",
           "parameters": [
             "original",
@@ -27188,6 +27227,20 @@
             "bytes"
           ],
           "async": true
+        },
+        {
+          "name": "originalKeyedLookupPublication/init:retainRawResponse/init:retainRawResponse/holding/holding",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalKeyedLookupPublication/init:retainRawResponse/init:retainRawResponse/holding/holding#2",
+          "parameters": [
+            "args"
+          ],
+          "async": false
         },
         {
           "name": "prepareAcquiredEffectKeyedCapture",
@@ -27243,13 +27296,22 @@
             "originalGenericKeyedLookupPublication/init:cleanup/init:cleanup",
             "originalGenericKeyedLookupPublication/init:finishInput/init:finishInput",
             "originalGenericKeyedLookupPublication/init:initialize/init:initialize",
+            "originalKeyedLookupPublication/cleanupStoreReads/cleanupStoreReads/cleanupStoreReads",
+            "originalKeyedLookupPublication/cleanupStoreReads/cleanupStoreReads/cleanupStoreReads#2",
+            "originalKeyedLookupPublication/cleanupStoreReads/cleanupStoreReads/cleanupStoreReads#3",
+            "originalKeyedLookupPublication/cleanupStoreReads/cleanupStoreReads/cleanupStoreReads#4",
+            "originalKeyedLookupPublication/confirmRaw/confirmRaw",
             "originalKeyedLookupPublication/init:activate/init:activate",
             "originalKeyedLookupPublication/init:adopt/init:adopt",
             "originalKeyedLookupPublication/init:cleanup/init:cleanup",
             "originalKeyedLookupPublication/init:finishInput/init:finishInput",
             "originalKeyedLookupPublication/init:finishInput/init:finishInput/init:finishInput",
             "originalKeyedLookupPublication/init:initialize/init:initialize",
+            "originalKeyedLookupPublication/init:responseBackingReleased/init:responseBackingReleased",
+            "originalKeyedLookupPublication/init:responseBackingReleased/init:responseBackingReleased/init:responseBackingReleased",
             "originalKeyedLookupPublication/init:retainRawResponse/init:retainRawResponse",
+            "originalKeyedLookupPublication/init:retainRawResponse/init:retainRawResponse/holding/holding",
+            "originalKeyedLookupPublication/init:retainRawResponse/init:retainRawResponse/holding/holding#2",
             "prepareAcquiredEffectKeyedCapture",
             "prepareAcquiredEffectKeyedPrefix",
             "prepareOriginalEffectKeyedInput/cleanup/cleanup",
@@ -27333,6 +27395,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "function originalGenericKeyedLookupPublication("
+              },
+              {
+                "path": "docs/design/semantic-decisions.md",
+                "anchor": "## Installed RowSource lookup execution evidence"
               }
             ],
             "synchronization": [
@@ -27405,6 +27471,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "function originalGenericKeyedLookupPublication("
+              },
+              {
+                "path": "docs/design/semantic-decisions.md",
+                "anchor": "## Installed RowSource lookup execution evidence"
               }
             ],
             "extension": [
@@ -27437,6 +27507,14 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.test.mjs",
                 "anchor": "test('generic Source-only keyed publication uses original metadata and completion without Native history'"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_generic_keyed_completion_wbtest.mbt",
+                "case_id": "installed_row_lookup_full_closure"
+              },
+              {
+                "path": "adapters/host-node/installed-keyed-original-read.test.mjs",
+                "anchor": "installed identity response retains original RowRun credit through failed raw commit until byte-holder release"
               }
             ]
           }

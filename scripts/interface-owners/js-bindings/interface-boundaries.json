@@ -87725,7 +87725,8 @@
             "keyed",
             "originalRead",
             "originalKeyedRead",
-            "wholeInput"
+            "wholeInput",
+            "responseBackingReleased"
           ],
           "async": false
         },
@@ -87856,6 +87857,11 @@
           "async": false
         },
         {
+          "name": "startInstalledRowRun/physicalAndBackingStopped/physicalAndBackingStopped",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "startInstalledRowRun/readerRetired/readerRetired",
           "parameters": [],
           "async": false
@@ -87925,20 +87931,6 @@
           "async": false
         },
         {
-          "name": "startInstalledRowRun/run/run#10",
-          "parameters": [
-            "attempt"
-          ],
-          "async": false
-        },
-        {
-          "name": "startInstalledRowRun/run/run#11",
-          "parameters": [
-            "attempt"
-          ],
-          "async": false
-        },
-        {
           "name": "startInstalledRowRun/run/run#2",
           "parameters": [
             "attempt"
@@ -87947,7 +87939,9 @@
         },
         {
           "name": "startInstalledRowRun/run/run#3",
-          "parameters": [],
+          "parameters": [
+            "attempt"
+          ],
           "async": false
         },
         {
@@ -87959,7 +87953,9 @@
         },
         {
           "name": "startInstalledRowRun/run/run#5",
-          "parameters": [],
+          "parameters": [
+            "attempt"
+          ],
           "async": false
         },
         {
@@ -88153,6 +88149,7 @@
             "startInstalledRowRun/complete/source/source",
             "startInstalledRowRun/consumeKeyedPage",
             "startInstalledRowRun/init:confirmTransportStopped/init:confirmTransportStopped",
+            "startInstalledRowRun/physicalAndBackingStopped/physicalAndBackingStopped",
             "startInstalledRowRun/readProvider",
             "startInstalledRowRun/readProvider/readProvider",
             "startInstalledRowRun/readProvider/readProvider#2",
@@ -88270,6 +88267,10 @@
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
                 "anchor": "readerPrepared = borrow;"
+              },
+              {
+                "path": "docs/design/semantic-decisions.md",
+                "anchor": "## Installed RowSource lookup execution evidence"
               }
             ],
             "synchronization": [
@@ -88300,6 +88301,10 @@
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
                 "anchor": "readerPrepared = borrow;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "const physicalAndBackingStopped = () => transportStopped &&"
               }
             ],
             "failure": [
@@ -88382,6 +88387,10 @@
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
                 "anchor": "readerPrepared = borrow;"
+              },
+              {
+                "path": "docs/design/semantic-decisions.md",
+                "anchor": "## Installed RowSource lookup execution evidence"
               }
             ],
             "extension": [
@@ -88446,6 +88455,10 @@
               {
                 "path": "adapters/connectors/kintone/test/kintone-public-client.integration.test.mjs",
                 "anchor": "{entrance: 'LocalJSON', format: 'json', program: wholeSource}"
+              },
+              {
+                "path": "adapters/host-node/installed-keyed-original-read.test.mjs",
+                "anchor": "installed identity response retains original RowRun credit through failed raw commit until byte-holder release"
               }
             ]
           }
@@ -88637,9 +88650,7 @@
           }
         },
         {
-          "operations": [
-            "startInstalledRowRun/run/run#10"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -88745,9 +88756,7 @@
           }
         },
         {
-          "operations": [
-            "startInstalledRowRun/run/run#11"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -88942,7 +88951,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "capacity, keyed = false, originalRead, originalKeyedRead, wholeInput = false}) {"
+                "anchor": "export function startInstalledRowRun"
               }
             ],
             "identity": [
@@ -89520,6 +89529,7 @@
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "createInstalledRowSource",
+        "encodeTypedResponseJson",
         "installRowSourceAuthorization",
         "installedRowCredentialOperationSite",
         "loadRowSourceCredentialCustody",
@@ -89980,10 +89990,15 @@
             "rows",
             "charge"
           ],
-          "async": false
+          "async": true
         },
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed#9",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed/responseBackingReleased/responseBackingReleased",
           "parameters": [],
           "async": false
         },
@@ -90287,6 +90302,14 @@
             "signal"
           ],
           "async": true
+        },
+        {
+          "name": "encodeTypedResponseJson",
+          "parameters": [
+            "value",
+            "maxBytes"
+          ],
+          "async": false
         },
         {
           "name": "installedRowCredentialOperationSite",
@@ -91496,6 +91519,7 @@
             "createInstalledRowSource/openKeyed/openKeyed#8",
             "createInstalledRowSource/openKeyed/openKeyed#9",
             "createInstalledRowSource/openKeyed/openKeyed/expire/expire",
+            "createInstalledRowSource/openKeyed/responseBackingReleased/responseBackingReleased",
             "createInstalledRowSource/openKeyed/verifyRead/verifyRead",
             "createInstalledRowSource/openKeyedLookup",
             "createInstalledRowSource/openKeyedLookup/cleanup/cleanup",
@@ -91525,12 +91549,14 @@
             "createInstalledRowSource/prepareRetained/prepareRetained",
             "createInstalledRowSource/resources/resources",
             "createInstalledRowSource/verifyKeyedRead",
+            "encodeTypedResponseJson",
             "prepareImmutablePhysicalTargets/init:prepare/init:prepare",
             "prepareImmutablePhysicalTargets/init:prepare/init:prepare/init:prepare",
             "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets"
           ],
           "exports": [
-            "createInstalledRowSource"
+            "createInstalledRowSource",
+            "encodeTypedResponseJson"
           ],
           "attributes": {
             "responsibility": [
@@ -91575,6 +91601,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "if (!text(childOperation) || !Number.isSafeInteger(index) || index !== readChildIndex || index >= limits.maxPages) {"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "export function encodeTypedResponseJson(value, maxBytes)"
               }
             ],
             "identity": [
@@ -91609,6 +91639,18 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "if (!text(childOperation) || !Number.isSafeInteger(index) || index !== readChildIndex || index >= limits.maxPages) {"
+              },
+              {
+                "path": "src/client_row_source_host/installed_row_read_profile_wbtest.mbt",
+                "case_id": "installed_row_profile_original"
+              },
+              {
+                "path": "src/client_row_source_host/installed_row_read_profile_wbtest.mbt",
+                "case_id": "installed_row_profile_wrong_kind"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_declared_file_read_profile_bridge.mbt",
+                "anchor": "pub fn client_program_keyed_source_response_encoding("
               }
             ],
             "ownership": [
@@ -91643,6 +91685,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "// Spend this original ordinal before an external current callback."
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "const exact = Buffer.allocUnsafeSlow(position);"
               }
             ],
             "synchronization": [
@@ -91681,6 +91727,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "// Spend this original ordinal before an external current callback."
+              },
+              {
+                "path": "docs/design/semantic-decisions.md",
+                "anchor": "## Installed RowSource lookup execution evidence"
               }
             ],
             "failure": [
@@ -91771,6 +91821,14 @@
               {
                 "path": "src/client_local_host/installed_effect_keyed_lookup.mbt",
                 "anchor": "pub fn installed_effect_keyed_input_work_limit("
+              },
+              {
+                "path": "docs/design/semantic-decisions.md",
+                "anchor": "## Installed RowSource lookup execution evidence"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "anchor": "public Local installer funds and forwards its same installed row read profile and transport"
               }
             ],
             "extension": [
@@ -91871,6 +91929,46 @@
               {
                 "path": "adapters/host-node/installed-keyed-original-read.test.mjs",
                 "anchor": "test('Source work selector preserves standalone and explicit tighter work and node limits'"
+              },
+              {
+                "path": "src/client_row_source_host/installed_row_read_profile_wbtest.mbt",
+                "case_id": "installed_row_profile_original"
+              },
+              {
+                "path": "src/client_row_source_host/installed_row_read_profile_wbtest.mbt",
+                "case_id": "installed_row_profile_wrong_kind"
+              },
+              {
+                "path": "adapters/host-node/typed-response-json-codec.test.mjs",
+                "anchor": "identity response encoder preserves Unicode, wire references, sparse arrays and JSON values"
+              },
+              {
+                "path": "adapters/host-node/typed-response-json-codec.test.mjs",
+                "anchor": "identity response encoder refuses getters and proxies without invoking them"
+              },
+              {
+                "path": "adapters/host-node/typed-response-json-codec.test.mjs",
+                "anchor": "identity response encoder ignores Object and Array prototype toJSON hooks"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "anchor": "public Local profile constructor refuses before projection on the original Source budget"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "anchor": "public Local profile construction observes original retirement before authorization or Source publication"
+              },
+              {
+                "path": "adapters/host-node/installed-keyed-original-read.test.mjs",
+                "anchor": "installed identity response encodes after awaited mutation and passes the same exact raw bytes to decode"
+              },
+              {
+                "path": "adapters/host-node/installed-keyed-original-read.test.mjs",
+                "anchor": "installed identity response refuses an accessor introduced by awaited current checking without invoking it"
+              },
+              {
+                "path": "adapters/host-node/installed-keyed-original-read.test.mjs",
+                "anchor": "installed identity response retains original RowRun credit through failed raw commit until byte-holder release"
               }
             ]
           }
@@ -156528,6 +156626,33 @@
           "async": false
         },
         {
+          "name": "originalKeyedLookupPublication/cleanupStoreReads/cleanupStoreReads/cleanupStoreReads",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "originalKeyedLookupPublication/cleanupStoreReads/cleanupStoreReads/cleanupStoreReads#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "originalKeyedLookupPublication/cleanupStoreReads/cleanupStoreReads/cleanupStoreReads#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "originalKeyedLookupPublication/cleanupStoreReads/cleanupStoreReads/cleanupStoreReads#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "originalKeyedLookupPublication/confirmRaw/confirmRaw",
+          "parameters": [
+            "binding"
+          ],
+          "async": true
+        },
+        {
           "name": "originalKeyedLookupPublication/init:activate/init:activate",
           "parameters": [
             "original",
@@ -156573,6 +156698,18 @@
           "async": false
         },
         {
+          "name": "originalKeyedLookupPublication/init:responseBackingReleased/init:responseBackingReleased",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "originalKeyedLookupPublication/init:responseBackingReleased/init:responseBackingReleased/init:responseBackingReleased",
+          "parameters": [
+            "holding"
+          ],
+          "async": false
+        },
+        {
           "name": "originalKeyedLookupPublication/init:retainRawResponse/init:retainRawResponse",
           "parameters": [
             "original",
@@ -156581,6 +156718,20 @@
             "bytes"
           ],
           "async": true
+        },
+        {
+          "name": "originalKeyedLookupPublication/init:retainRawResponse/init:retainRawResponse/holding/holding",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalKeyedLookupPublication/init:retainRawResponse/init:retainRawResponse/holding/holding#2",
+          "parameters": [
+            "args"
+          ],
+          "async": false
         },
         {
           "name": "prepareAcquiredEffectKeyedCapture",
@@ -156633,13 +156784,22 @@
             "originalGenericKeyedLookupPublication/init:cleanup/init:cleanup",
             "originalGenericKeyedLookupPublication/init:finishInput/init:finishInput",
             "originalGenericKeyedLookupPublication/init:initialize/init:initialize",
+            "originalKeyedLookupPublication/cleanupStoreReads/cleanupStoreReads/cleanupStoreReads",
+            "originalKeyedLookupPublication/cleanupStoreReads/cleanupStoreReads/cleanupStoreReads#2",
+            "originalKeyedLookupPublication/cleanupStoreReads/cleanupStoreReads/cleanupStoreReads#3",
+            "originalKeyedLookupPublication/cleanupStoreReads/cleanupStoreReads/cleanupStoreReads#4",
+            "originalKeyedLookupPublication/confirmRaw/confirmRaw",
             "originalKeyedLookupPublication/init:activate/init:activate",
             "originalKeyedLookupPublication/init:adopt/init:adopt",
             "originalKeyedLookupPublication/init:cleanup/init:cleanup",
             "originalKeyedLookupPublication/init:finishInput/init:finishInput",
             "originalKeyedLookupPublication/init:finishInput/init:finishInput/init:finishInput",
             "originalKeyedLookupPublication/init:initialize/init:initialize",
+            "originalKeyedLookupPublication/init:responseBackingReleased/init:responseBackingReleased",
+            "originalKeyedLookupPublication/init:responseBackingReleased/init:responseBackingReleased/init:responseBackingReleased",
             "originalKeyedLookupPublication/init:retainRawResponse/init:retainRawResponse",
+            "originalKeyedLookupPublication/init:retainRawResponse/init:retainRawResponse/holding/holding",
+            "originalKeyedLookupPublication/init:retainRawResponse/init:retainRawResponse/holding/holding#2",
             "prepareAcquiredEffectKeyedCapture",
             "prepareAcquiredEffectKeyedPrefix",
             "prepareOriginalEffectKeyedInput/cleanup/cleanup",
@@ -156723,6 +156883,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
                 "anchor": "function originalGenericKeyedLookupPublication("
+              },
+              {
+                "path": "docs/design/semantic-decisions.md",
+                "anchor": "## Installed RowSource lookup execution evidence"
               }
             ],
             "synchronization": [
@@ -156799,6 +156963,10 @@
               {
                 "path": "src/client_local_host/installed_effect_keyed_lookup.mbt",
                 "anchor": "pub fn installed_effect_keyed_input_work_limit("
+              },
+              {
+                "path": "docs/design/semantic-decisions.md",
+                "anchor": "## Installed RowSource lookup execution evidence"
               }
             ],
             "extension": [
@@ -156835,6 +157003,14 @@
               {
                 "path": "adapters/host-node/acquired-effect-keyed-prefix.test.mjs",
                 "anchor": "test('Source work selector reaches the first capacity quote and the same start/open'"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_generic_keyed_completion_wbtest.mbt",
+                "case_id": "installed_row_lookup_full_closure"
+              },
+              {
+                "path": "adapters/host-node/installed-keyed-original-read.test.mjs",
+                "anchor": "installed identity response retains original RowRun credit through failed raw commit until byte-holder release"
               }
             ]
           }
