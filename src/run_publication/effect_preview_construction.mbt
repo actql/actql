@@ -22,7 +22,9 @@ pub fn effect_preview_identity_construction_inventory(
   depth : Int,
 ) -> EffectPreviewIdentityConstructionInventory? {
   guard protocol_wire_codec_construction_inventory(bytes, nodes, depth)
-    is Some(codec) else { return None }
+    is Some(codec) else {
+    return None
+  }
   let count = Int::min(bytes, nodes).to_int64()
   guard preview_identity_member_row_inventory(count) is Some(identity) else {
     return None
@@ -60,7 +62,9 @@ fn preview_identity_member_row_inventory(
       maps: 2L + count,
       map_entries: 3L * count,
     })
-    is Some(identity) else { return None }
+    is Some(identity) else {
+    return None
+  }
   Some({
     record_headers: identity.record_headers,
     reference_slots: identity.reference_slots,
@@ -88,58 +92,65 @@ fn protocol_wire_codec_construction_inventory(
   let count = n.to_int64()
   let d = Int::min(n, depth).to_int64()
   let parser = match geometry {
-    None => @decode.preserving_json_parser_construction_inventory(bytes, n, depth)
-    Some(value) => @source.json_shaped_construction_extent(
-      bytes, n, depth, value.fields, value.objects + value.arrays,
-      value.objects, value.largest_object, value.strings, normalize_keys=false,
-    ).map(value => { ..value,
-      record_headers: value.record_headers + 1L,
-      owned_utf16_units: value.owned_utf16_units + bytes.to_int64(),
-    })
+    None =>
+      @decode.preserving_json_parser_construction_inventory(bytes, n, depth)
+    Some(value) =>
+      @source.json_shaped_construction_extent(
+        bytes,
+        n,
+        depth,
+        value.fields,
+        value.objects + value.arrays,
+        value.objects,
+        value.largest_object,
+        value.strings,
+        normalize_keys=false,
+      ).map(value => {
+        ..value,
+        record_headers: value.record_headers + 1L,
+        owned_utf16_units: value.owned_utf16_units + bytes.to_int64(),
+      })
   }
   let canonical = match geometry {
-    Some(value) => @json.source_conversion_construction_extent(
-      n, value.fields, value.objects, value.arrays, depth, 0,
-    ).bind(value => @shape.add_collection_construction_extents(
-      value.retained, value.scratch,
-    ))
-    None => @shape.collection_construction_extent({
-      // Canonical alternatives/FrozenArray wrappers, object-entry tuples,
-      // input budget and recursive conversion controls. Key maps and sorted
-      // fields belong to this conversion, not the already charged Source.
-      records: 3L * count + 3L * d + 1L,
-      record_references: 4L * count + 6L * d,
-      record_words: 2L * count + 4L * d + 3L,
-      reference_arrays: 2L * count,
-      reference_items: 3L * count,
-      scalar_arrays: 0L,
-      scalar_items: 0L,
-      maps: count,
-      map_entries: count,
-    })
+    Some(value) =>
+      @json.source_conversion_construction_extent(
+        n,
+        value.fields,
+        value.objects,
+        value.arrays,
+        depth,
+        0,
+      ).bind(value => {
+        @shape.add_collection_construction_extents(
+          value.retained,
+          value.scratch,
+        )
+      })
+    None =>
+      @shape.collection_construction_extent({
+        // Canonical alternatives/FrozenArray wrappers, object-entry tuples,
+        // input budget and recursive conversion controls. Key maps and sorted
+        // fields belong to this conversion, not the already charged Source.
+        records: 3L * count + 3L * d + 1L,
+        record_references: 4L * count + 6L * d,
+        record_words: 2L * count + 4L * d + 3L,
+        reference_arrays: 2L * count,
+        reference_items: 3L * count,
+        scalar_arrays: 0L,
+        scalar_items: 0L,
+        maps: count,
+        map_entries: count,
+      })
   }
   // CanonicalValue traversals use ordered frames. Closed callers supply the
   // simultaneous unordered vocabulary of their actual manual emitters.
   // General/unknown callers retain the unchanged full-node key inventory.
   let keys = live_keys.unwrap_or(n)
-  guard parser is Some(parser) && canonical is Some(canonical) &&
+  guard parser is Some(parser) &&
+    canonical is Some(canonical) &&
     @encode.text_writer_live_key_inventory(bytes, keys, depth) is Some(text) &&
     @encode.hash_writer_live_key_inventory(keys, depth) is Some(hash) &&
-    @shape.collection_construction_extent({
-      // Protocol visit/result continuations consume the existing <=8N work
-      // budget. Include unique-array comparison/index material, row/create
-      // inventory sorting and detached object_fields/array_values copies.
-      records: 8L * count + 16L,
-      record_references: 40L * count + 32L,
-      record_words: 32L * count + 16L,
-      reference_arrays: 8L,
-      reference_items: 8L * count,
-      scalar_arrays: 1L,
-      scalar_items: count,
-      maps: 1L,
-      map_entries: count,
-    })
-    is Some(controls) else {
+    protocol_wire_validation_construction_extent(count) is Some(controls) else {
     return None
   }
   Some({
@@ -168,5 +179,28 @@ fn protocol_wire_codec_construction_inventory(
     4L * bytes.to_int64(),
     // Original UTF8 encode(wire) and the one active incremental hash sink.
     owned_wire_bytes: bytes.to_int64() + hash.owned_wire_bytes,
+  })
+}
+
+///|
+// Shared closed protocol validators. Borrowing an already admitted contract
+// still constructs these checks, but does not construct a new Source parser
+// or canonical conversion forest.
+fn protocol_wire_validation_construction_extent(
+  count : Int64,
+) -> @shape.CollectionConstructionExtent? {
+  @shape.collection_construction_extent({
+    // Protocol visit/result continuations consume the existing <=8N work
+    // budget. Include unique-array comparison/index material, row/create
+    // inventory sorting and detached object_fields/array_values copies.
+    records: 8L * count + 16L,
+    record_references: 40L * count + 32L,
+    record_words: 32L * count + 16L,
+    reference_arrays: 8L,
+    reference_items: 8L * count,
+    scalar_arrays: 1L,
+    scalar_items: count,
+    maps: 1L,
+    map_entries: count,
   })
 }

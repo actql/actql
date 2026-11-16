@@ -278,11 +278,26 @@ fn request_effect_capture_recovery_capacity(
       // three borrowed method selections remain live through that call (3R).
       // Fund the complete fixed5H14R before this Read view escapes, while
       // retaining the existing publication carrier and all returned outputs.
+      // Publication begin/limit ports and original-method selections add3R;
+      // two literal six-name argument-selection Arrays add4H12R.
+      // their four-argument call carrier and returned Result[Int] use3H7R2W.
+      // The sequential allocation-free receipt geometry cursor is17H35R58W.
+      // Its returned quantity/cost tuples and checked arithmetic stay on this
+      // same prepaid fixed frame (8H8R16W); publication_retained adds1W.
       record_headers: work.record_headers +
       26L +
+      4L +
+      3L +
+      17L +
+      8L +
       (if staged_envelope { utf8_h + 1L } else { 0L }),
       reference_slots: work.reference_slots +
       71L +
+      12L +
+      3L +
+      7L +
+      35L +
+      8L +
       (if staged_envelope { utf8_r } else { 0L }),
       // The same Read distinguishes its prepared-token retirement from the
       // ordinary admitted capture's alias release with one retained Bool.
@@ -290,6 +305,10 @@ fn request_effect_capture_recovery_capacity(
       // reference exist before its first construction, not at later reentry.
       scalar_words: work.scalar_words +
       21L +
+      2L +
+      58L +
+      16L +
+      1L +
       (if staged_envelope { utf8_w + 1L } else { 0L }),
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
@@ -300,6 +319,34 @@ fn request_effect_capture_recovery_capacity(
   }
   guard installed_effect_dependency_fixed_capacity(0, 0, max_depth)
     is Some(lexical) else {
+    return None
+  }
+  // Before publication metadata Arrays are created, the original captured
+  // node envelope bounds their aggregate element count. Token maps, flattened
+  // contract/wire vectors and their old/new growth may coexist; none copies
+  // the nominal contracts. The Host checks lengths before allocating them.
+  guard @shape.collection_construction_extent({
+      records: 0L,
+      record_references: 0L,
+      record_words: 0L,
+      reference_arrays: 10L,
+      reference_items: 4L * tree_nodes.to_int64(),
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(metadata) &&
+    @execution.preparation_representation_cost({
+      record_headers: metadata.record_headers,
+      reference_slots: metadata.reference_slots,
+      scalar_words: metadata.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(metadata_bytes) &&
+    @execution.execution_capacity(metadata_bytes, metadata_bytes)
+    is Some(metadata_capacity) else {
     return None
   }
   if staged_envelope {
@@ -313,12 +360,12 @@ fn request_effect_capture_recovery_capacity(
       return None
     }
     standard_create_sum_capacities(
-      [base, fixed, lexical, wire],
+      [base, fixed, lexical, metadata_capacity, wire],
       sequential_workspace=false,
     )
   } else {
     standard_create_sum_capacities(
-      [base, fixed, lexical],
+      [base, fixed, lexical, metadata_capacity],
       sequential_workspace=false,
     )
   }

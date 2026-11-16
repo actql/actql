@@ -41,6 +41,30 @@ pub fn client_program_begin_installed_effect_capture_validation(
 }
 
 ///|
+#export_name("clientProgramInstalledEffectCapturePublicationInputLimit")
+pub fn client_program_installed_effect_capture_publication_input_limit(
+  original : @client_local_host.ClientInstalledEffectCaptureRecovery,
+) -> Result[Int, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.installed_effect_capture_publication_input_limit(original)
+}
+
+///|
+#export_name("clientProgramBeginInstalledEffectCapturePublication")
+pub fn client_program_begin_installed_effect_capture_publication(
+  original : @client_local_host.ClientInstalledEffectCaptureRecovery,
+  issue : Bool,
+  contracts : Array[@publication.PublicationContract],
+  receipt_wires : Array[String],
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.begin_installed_effect_capture_publication(
+    original, issue, contracts, receipt_wires, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 #export_name("clientProgramReserveInstalledEffectCaptureRecovery")
 pub fn client_program_reserve_installed_effect_capture_recovery(
   original : @client_local_host.ClientInstalledEffectCaptureRecovery,
