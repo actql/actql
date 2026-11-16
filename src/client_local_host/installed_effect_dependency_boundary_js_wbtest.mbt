@@ -246,6 +246,7 @@ fn dependency_boundary_execute_static(
   program_id_width? : Int = 0,
   expect_execution_refusal? : Bool = false,
   selected_memory? : Int64? = None,
+  duplicate_root? : Bool = false,
 ) -> Unit raise {
   // The 2050-port component retains its original Request/Source alongside
   // the materializing Compute quote. Complete variants additionally retain
@@ -599,6 +600,7 @@ fn dependency_boundary_execute_static(
       } else {
         0L
       },
+      duplicate_root~,
     )
   }
   let interfaces = bodies
@@ -758,6 +760,7 @@ fn dependency_boundary_complete_inventory(
   captured_run : @strategy.CapturedEffectRunDAG,
   consumer_static : Array[(String, @checked.CheckedLocalDependencyBody)],
   minimum_data_bytes : Int64,
+  duplicate_root? : Bool = false,
 ) -> Unit raise {
   let plan = original.plan
   let max_bytes = 1000000
@@ -1109,13 +1112,17 @@ fn dependency_boundary_complete_inventory(
       @publication.publication_contract_json(retention),
     )
   }
+  let selected_artifacts = [producer, consumer]
+  if duplicate_root {
+    selected_artifacts.push(consumer)
+  }
   reserve_installed_effect_dependency_group(
     original.run,
     plan.prepared,
     plan.request,
     plan,
     wires.length(),
-    2,
+    selected_artifacts.length(),
   ).unwrap()
   let inventory_result = prepare_installed_effect_dependency_inventory(
     original.run,
@@ -1125,7 +1132,7 @@ fn dependency_boundary_complete_inventory(
     kinds,
     identities,
     wires,
-    [producer, consumer],
+    selected_artifacts,
     max_bytes,
     max_nodes,
     depth,
@@ -1154,6 +1161,13 @@ fn dependency_boundary_complete_inventory(
     Err(InsufficientCapacity) => fail("DependencyBoundary.Inventory.Capacity")
     Err(_) => fail("DependencyBoundary.Inventory.Other")
   }
+  assert_true(
+    physical_equal(
+      original.run.effect_operation_controls.unwrap().dependency_inputs.unwrap(),
+      inputs,
+    ),
+  )
+  assert_true(@strategy.captured_effect_inputs_retained(inputs))
   guard @json.parse(inventory) is Array(entries) else {
     fail("DependencyBoundary.Inventory.Array")
   }
@@ -1222,6 +1236,11 @@ fn dependency_boundary_complete_inventory(
 ///|
 test "genuine two-import complete producer consumer Artifact Manifest inventory" {
   dependency_boundary_execute_static(2, complete=true)
+}
+
+///|
+test "same original Result selected twice keeps complete inventory and retained inputs" {
+  dependency_boundary_execute_static(2, complete=true, duplicate_root=true)
 }
 
 ///|

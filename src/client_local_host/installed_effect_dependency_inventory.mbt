@@ -342,7 +342,49 @@ fn prepare_installed_effect_dependency_inventory_original(
           @publication_host.client_effect_local_artifact_dependency_root(
             artifact, max_bytes, max_nodes, max_depth,
           ) {
-          Ok(root) => roots.push(root)
+          Ok(root) => {
+            // Members can select the SAME Result. Every Artifact above still
+            // passes original Run/input checks and owns its funded root body;
+            // only this semantic graph's root references are a set.
+            let kind = @publication.captured_effect_dependency_body_kind(root)
+            let cid = @publication.captured_effect_dependency_body_cid(root)
+            let mut duplicate = false
+            for previous in roots {
+              let previous_kind = @publication.captured_effect_dependency_body_kind(
+                previous,
+              )
+              let previous_cid = @publication.captured_effect_dependency_body_cid(
+                previous,
+              )
+              // These admitted kind/CID spellings are bounded contract keys.
+              // Borrow the already funded array; allocate no index or key.
+              if !work(
+                  1 +
+                  kind.length() +
+                  previous_kind.length() +
+                  cid.length() +
+                  previous_cid.length(),
+                ) {
+                return Err(InsufficientCapacity)
+              }
+              if kind == previous_kind && cid == previous_cid {
+                let previous_wire = @publication.captured_effect_dependency_body_json(
+                  previous,
+                )
+                if !work(wire.length()) || !work(previous_wire.length()) {
+                  return Err(InsufficientCapacity)
+                }
+                if wire != previous_wire {
+                  return Err(ForeignOriginal)
+                }
+                duplicate = true
+                break
+              }
+            }
+            if !duplicate {
+              roots.push(root)
+            }
+          }
           Err(_) => return Err(Unsupported)
         }
       }
