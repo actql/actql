@@ -31,6 +31,10 @@
           "declaration": "local_dispatch_original_preparation ( installed : LocalDispatchModule , ) - > LocalDispatchPreparation ?"
         },
         {
+          "name": "local_dispatch_preparation_input_scan_work",
+          "declaration": "local_dispatch_preparation_input_scan_work ( original : LocalDispatchPreparation , task : Int , ) - > Int ?"
+        },
+        {
           "name": "local_dispatch_preparation_policies",
           "declaration": "local_dispatch_preparation_policies ( original : LocalDispatchPreparation , inputs : ( @ local . LocalImportLimits , Int64 ? ) ? , metadata : LocalManagedMetadataLimits ? , output : ( @ local . LocalExportLimits , Int64 ? ) ? , ) - > LocalDispatchPreparation"
         },
@@ -74,7 +78,8 @@
             "local_dispatch_preparation_transfer_bytes",
             "local_retained_input_metadata",
             "local_retained_output_policy_valid",
-            "prepare_local_dispatch_plan"
+            "prepare_local_dispatch_plan",
+            "local_dispatch_preparation_input_scan_work"
           ],
           "exports": [],
           "attributes": {
@@ -356,6 +361,10 @@
           "declaration": "local_module_managed_sequence_supported ( installed : LocalComputeModule , slot : Int , ) - > Bool"
         },
         {
+          "name": "local_module_materializing_start_capacity",
+          "declaration": "local_module_materializing_start_capacity ( installed : LocalComputeModule , slot : Int , ) - > ( @ execution . ExecutionCapacity , Bool ) ?"
+        },
+        {
           "name": "local_module_max_work",
           "declaration": "local_module_max_work ( installed : LocalComputeModule ) - > Int"
         },
@@ -370,6 +379,10 @@
         {
           "name": "local_module_original_occurrence",
           "declaration": "local_module_original_occurrence ( installed : LocalComputeModule , slot : Int , sequence : @ execution . GeneratedSequence , ) - > Bool"
+        },
+        {
+          "name": "local_module_provider_field_inventory",
+          "declaration": "local_module_provider_field_inventory ( tasks : Int , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "local_module_relation_obligation_segment",
@@ -443,7 +456,9 @@
             "local_sequence_contains_exact_step",
             "prepare_local_compute_module",
             "prepare_local_module_compute",
-            "local_module_default_output_start_capacity"
+            "local_module_default_output_start_capacity",
+            "local_module_materializing_start_capacity",
+            "local_module_provider_field_inventory"
           ],
           "exports": [],
           "attributes": {
@@ -473,6 +488,10 @@
               {
                 "path": "src/connectors/local/metered_output_start_wbtest.mbt",
                 "anchor": "test \"singleton SnapshotMap"
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "pub fn local_module_materializing_start_capacity("
               }
             ],
             "identity": [
@@ -501,6 +520,10 @@
               {
                 "path": "src/connectors/local/metered_output_start_wbtest.mbt",
                 "anchor": "test \"singleton SnapshotMap"
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "pub fn local_module_materializing_start_capacity("
               }
             ],
             "synchronization": [
@@ -557,6 +580,10 @@
               {
                 "path": "src/connectors/local/metered_output_start_wbtest.mbt",
                 "anchor": "test \"singleton SnapshotMap"
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "pub fn local_module_materializing_start_capacity("
               }
             ],
             "extension": [
@@ -571,6 +598,10 @@
               {
                 "path": "src/connectors/local/metered_output_start_wbtest.mbt",
                 "anchor": "test \"singleton SnapshotMap"
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "pub fn local_module_materializing_start_capacity("
               }
             ],
             "verification": [
@@ -585,6 +616,18 @@
               {
                 "path": "src/connectors/local/metered_output_start_wbtest.mbt",
                 "anchor": "test \"singleton SnapshotMap"
+              },
+              {
+                "path": "src/query_integration/materializing_funded_growth_wbtest.mbt",
+                "anchor": "test \"materializing output keeps only its same physically funded retention through completion\""
+              },
+              {
+                "path": "src/connectors/local/materializing_transport_wbtest.mbt",
+                "anchor": "test \"materializing transport starts independently of unallocated future wire storage\""
+              },
+              {
+                "path": "src/query_integration/materializing_funded_growth_wbtest.mbt",
+                "anchor": "test \"materializing growth keeps the original current callback and cancellation prefix\""
               }
             ]
           }
@@ -609,8 +652,16 @@
           "declaration": "bounded_immediate_binding_schema ( schema : @ schema . Schema ) - > Bool"
         },
         {
-          "name": "bounded_inner_join_borrows_input",
-          "declaration": "bounded_inner_join_borrows_input ( kernel : @ lower . PreparedJoinKernel ) - > Bool"
+          "name": "bounded_join_borrows_input",
+          "declaration": "bounded_join_borrows_input ( kernel : @ lower . PreparedJoinKernel ) - > Bool"
+        },
+        {
+          "name": "bounded_number_group_borrows_input",
+          "declaration": "bounded_number_group_borrows_input ( kernel : @ lower . PreparedKernel , ) - > Bool"
+        },
+        {
+          "name": "bounded_number_group_scalar_schema",
+          "declaration": "bounded_number_group_scalar_schema ( schema : @ schema . Schema ) - > Bool"
         },
         {
           "name": "capacity_uses_fragment_step",
@@ -655,7 +706,7 @@
             "<module>",
             "bounded_count_group_borrows_input",
             "bounded_immediate_binding_schema",
-            "bounded_inner_join_borrows_input",
+            "bounded_join_borrows_input",
             "capacity_uses_fragment_step",
             "execution_capacity",
             "execution_capacity_execution_bytes",
@@ -664,7 +715,9 @@
             "generated_bounded_sequence_capacity",
             "generated_sequence_capacity",
             "generated_sequence_capacity_with_roots",
-            "json_leaf_representation_contract"
+            "json_leaf_representation_contract",
+            "bounded_number_group_borrows_input",
+            "bounded_number_group_scalar_schema"
           ],
           "exports": [],
           "attributes": {
@@ -977,6 +1030,191 @@
               {
                 "path": "src/execution_relation/execution_capacity_wbtest.mbt",
                 "anchor": "test \"bounded Interval quotes full output with actual workspace and borrowed flat inputs\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/local/materializing_transport.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "35506c2b58f82c4a4633d1dd0f49e1b846caeade2c598568b76a624e7f3a74ac",
+      "role": "connector-semantics",
+      "owner": "Existing Local materializing transport and same-task reservation; quantities do not grant read, write or cleanup authority",
+      "referenceQualification": "Original constructor, monotonic same-task funding and focused resource/caller evidence; no physical or normal-package acceptance claim",
+      "exports": [],
+      "operations": [
+        {
+          "name": "local_import_next_retention_extent",
+          "declaration": "local_import_next_retention_extent ( limits : LocalImportLimits , rows : Int64 , nodes : Int64 , text : Int64 , wire_bytes : Int64 , ) - > ( Int64 , Int64 , Int64 , Int64 ) ?"
+        },
+        {
+          "name": "local_import_start_retention_capacity",
+          "declaration": "local_import_start_retention_capacity ( limits : LocalImportLimits , ) - > Int64 ?"
+        },
+        {
+          "name": "local_materializing_export_start_capacity",
+          "declaration": "local_materializing_export_start_capacity ( limits : LocalExportLimits , ) - > Int64 ?"
+        },
+        {
+          "name": "local_materializing_import_start_capacity",
+          "declaration": "local_materializing_import_start_capacity ( limits : LocalImportLimits , ) - > Int64 ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "local_import_next_retention_extent",
+            "local_import_start_retention_capacity",
+            "local_materializing_export_start_capacity",
+            "local_materializing_import_start_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "pub fn local_module_materializing_start_capacity("
+              },
+              {
+                "path": "src/connectors/local/materializing_transport_wbtest.mbt",
+                "anchor": "test \"materializing transport starts independently of unallocated future wire storage\""
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/local/materializing_transport.mbt",
+                "anchor": "pub fn local_import_next_retention_extent("
+              },
+              {
+                "path": "src/connectors/local/materializing_transport.mbt",
+                "anchor": "pub fn local_materializing_export_start_capacity("
+              },
+              {
+                "path": "src/connectors/local/materializing_transport_wbtest.mbt",
+                "anchor": "test \"materializing transport starts independently of unallocated future wire storage\""
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "pub fn local_module_materializing_start_capacity("
+              },
+              {
+                "path": "src/physical_strategy_host/task_execution.mbt",
+                "anchor": "pub fn retain_materializing_task_execution_capacity("
+              },
+              {
+                "path": "src/query_integration/materializing_funded_growth_wbtest.mbt",
+                "anchor": "test \"materializing output keeps only its same physically funded retention through completion\""
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/physical_strategy_host/task_execution.mbt",
+                "anchor": "pub fn retain_materializing_task_execution_capacity("
+              },
+              {
+                "path": "src/physical_strategy_host/task_execution.mbt",
+                "anchor": "pub fn grow_task_execution_workspace("
+              },
+              {
+                "path": "src/query_integration/materializing_funded_growth_wbtest.mbt",
+                "anchor": "test \"materializing output keeps only its same physically funded retention through completion\""
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/physical_strategy_host/task_execution.mbt",
+                "anchor": "pub fn grow_task_execution_workspace("
+              },
+              {
+                "path": "src/connectors/local/export.mbt",
+                "anchor": "pub fn advance_local_output_export("
+              },
+              {
+                "path": "src/execution_relation/completed_export_growth_wbtest.mbt",
+                "anchor": "test \"physical batch growth callback cannot keep revoked or closed original usable\""
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/physical_strategy_host/task_execution.mbt",
+                "anchor": "pub fn grow_task_execution_workspace("
+              },
+              {
+                "path": "src/query_integration/materializing_funded_growth_wbtest.mbt",
+                "anchor": "test \"refused materializing growth cannot become retained output or erase its initial prefix\""
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/query_integration/materializing_funded_growth_wbtest.mbt",
+                "anchor": "test \"materializing growth keeps the original current callback and cancellation prefix\""
+              },
+              {
+                "path": "src/execution_relation/completed_export_growth_wbtest.mbt",
+                "anchor": "test \"physical batch growth callback cannot keep revoked or closed original usable\""
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/local/materializing_transport.mbt",
+                "anchor": "pub fn local_materializing_import_start_capacity("
+              },
+              {
+                "path": "src/connectors/local/materializing_transport.mbt",
+                "anchor": "pub fn local_materializing_export_start_capacity("
+              },
+              {
+                "path": "src/connectors/local/materializing_transport_wbtest.mbt",
+                "anchor": "test \"materializing transport starts independently of unallocated future wire storage\""
+              },
+              {
+                "path": "src/query_integration/materializing_funded_growth_wbtest.mbt",
+                "anchor": "test \"refused materializing growth cannot become retained output or erase its initial prefix\""
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "pub fn local_module_materializing_start_capacity("
+              },
+              {
+                "path": "src/connectors/local/materializing_transport_wbtest.mbt",
+                "anchor": "test \"materializing transport starts independently of unallocated future wire storage\""
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/local/materializing_transport_wbtest.mbt",
+                "anchor": "test \"materializing transport starts independently of unallocated future wire storage\""
+              },
+              {
+                "path": "src/query_integration/materializing_funded_growth_wbtest.mbt",
+                "anchor": "test \"materializing output keeps only its same physically funded retention through completion\""
+              },
+              {
+                "path": "src/query_integration/materializing_funded_growth_wbtest.mbt",
+                "anchor": "test \"refused materializing growth cannot become retained output or erase its initial prefix\""
+              },
+              {
+                "path": "src/query_integration/materializing_funded_growth_wbtest.mbt",
+                "anchor": "test \"materializing growth keeps the original current callback and cancellation prefix\""
+              },
+              {
+                "path": "src/execution_relation/completed_export_growth_wbtest.mbt",
+                "anchor": "test \"physical batch growth callback cannot keep revoked or closed original usable\""
               }
             ]
           }
