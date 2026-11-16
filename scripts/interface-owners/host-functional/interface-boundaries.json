@@ -91040,7 +91040,8 @@
             "maxEntryBytes",
             "maxResponseBytes",
             "maxReadResponseBytes",
-            "maxStoredBytes"
+            "maxStoredBytes",
+            "beforeHistoryRead"
           ],
           "async": false
         },
@@ -91159,6 +91160,11 @@
         },
         {
           "name": "openSqliteEffectLedger/init:history/init:history/init:history",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteEffectLedger/init:history/init:history/init:history/init:history",
           "parameters": [
             "row",
             "index"
@@ -91207,7 +91213,8 @@
           "name": "openSqliteEffectLedger/init:outcomeForLocator/init:outcomeForLocator",
           "parameters": [
             "locatorCid",
-            "batchEvidence"
+            "batchEvidence",
+            "singleOnly"
           ],
           "async": false
         },
@@ -91252,7 +91259,8 @@
             "responsePhysicalSha256",
             "outcomeCid",
             "outcomeJson",
-            "batchEvidence"
+            "batchEvidence",
+            "singleOnly"
           ],
           "async": false
         },
@@ -91322,21 +91330,24 @@
         {
           "name": "openSqliteEffectLedger/outcome/outcome",
           "parameters": [
-            "dispatchEntryCid"
+            "dispatchEntryCid",
+            "singleOnly"
           ],
           "async": false
         },
         {
           "name": "openSqliteEffectLedger/response/response",
           "parameters": [
-            "dispatchEntryCid"
+            "dispatchEntryCid",
+            "singleOnly"
           ],
           "async": false
         },
         {
           "name": "openSqliteEffectLedger/responseForLocator/responseForLocator",
           "parameters": [
-            "locatorCid"
+            "locatorCid",
+            "singleOnly"
           ],
           "async": false
         },
@@ -91376,6 +91387,7 @@
             "openSqliteEffectLedger/init:dispatchForLocator/init:dispatchForLocator",
             "openSqliteEffectLedger/init:history/init:history",
             "openSqliteEffectLedger/init:history/init:history/init:history",
+            "openSqliteEffectLedger/init:history/init:history/init:history/init:history",
             "openSqliteEffectLedger/init:historyPage/init:historyPage",
             "openSqliteEffectLedger/init:historyPage/init:historyPage/init:historyPage",
             "openSqliteEffectLedger/init:historyPage/init:historyPage/init:historyPage/bytes/bytes",
@@ -91418,6 +91430,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "History construction obtains its actual count and total text geometry before"
               }
             ],
             "inputsOutputs": [
@@ -91460,6 +91476,10 @@
               {
                 "path": "docs/design/effect-refusal-settlement.md",
                 "anchor": "# Settling Effect evidence after a resume refusal"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "History construction obtains its actual count and total text geometry before"
               }
             ],
             "synchronization": [
@@ -91524,6 +91544,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "Selected head and entry metadata use bounded SQL text projections before"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "History construction obtains its actual count and total text geometry before"
               }
             ],
             "extension": [
@@ -91556,6 +91580,18 @@
               {
                 "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
                 "anchor": "test('standard Ledger snapshot retains exact selected UTF8 and UTF16 heads and missing-head distinction'"
+              },
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "anchor": "test('Effect whole history funds actual count and wire backing before native materialization in the same transaction'"
+              },
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "anchor": "test('Effect whole history preserves funding refusal and non-Unit failure before allocation and permits healthy recovery'"
+              },
+              {
+                "path": "adapters/host-node/sqlite-effect-ledger.test.mjs",
+                "anchor": "test('Effect selected single response and outcome refuse batch presence before any member array materializes'"
               }
             ]
           }
