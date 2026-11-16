@@ -247,11 +247,106 @@ pub fn begin_installed_effect_capture_publication(
   owner.transitioning = true
   preparation_module_call(
     () => {
-      guard @publication.effectful_publication_construction_inventory(
-          issue, contracts, receipt_wires, max_bytes, max_nodes, max_depth,
+      guard @publication.effectful_publication_measurement_construction_inventory(
+          owner.max_depth,
         )
-        is Some((returned, peak)) &&
-        @execution.preparation_representation_cost({
+        is Some(measurement) &&
+        installed_effect_publication_inventory_bytes(measurement)
+        is Some(census_workspace) else {
+        return Err(InsufficientCapacity)
+      }
+      // The census creates only depth-bounded writer/cursor DATA. Fund it on
+      // this SAME material token now, never as an early standing output floor.
+      match
+        grow_installed_effect_capture_publication(owner, 0L, census_workspace) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      guard owner.parent is Some(parent) &&
+        owner.prepared is Some(prepared) &&
+        owner.request is Some(request) &&
+        owner.ledger is Some(ledger) &&
+        owner.material is Some(material) &&
+        parent.preparation is Some(preparation) &&
+        preparation is PlannedEffectManaged(admission, plan) &&
+        parent.effect_operation_controls is Some(control) else {
+        return Err(Retired)
+      }
+      let (returned, peak) = match
+        with_installed_effect_dependency_work(
+          control,
+          admission,
+          plan,
+          ledger,
+          () => {
+            guard owner.transitioning &&
+              !owner.closing &&
+              owner.material is Some(same) &&
+              physical_equal(same, material) else {
+              return Err(Retired)
+            }
+            match
+              check_installed_effect_managed_run_binding(
+                parent, prepared, request,
+              ) {
+              Err(issue) => return Err(issue)
+              Ok(_) => ()
+            }
+            check_installed_managed_run_original(parent, ledger, preparation).map(_ => {
+                ()
+              },
+            )
+          },
+          material,
+          () => {
+            owner.transitioning &&
+            !owner.closing &&
+            owner.material is Some(same) &&
+            physical_equal(same, material)
+          },
+          spend => {
+            let refused : Ref[@resources.LedgerIssue?] = Ref(None)
+            let inventory = @publication.effectful_publication_construction_inventory(
+              issue,
+              contracts,
+              receipt_wires,
+              max_bytes,
+              max_nodes,
+              max_depth,
+              prepared=Some(captured),
+              work=Some(units => {
+                match spend(units) {
+                  Ok(_) => true
+                  Err(issue) => {
+                    refused.val = Some(issue)
+                    false
+                  }
+                }
+              }),
+            )
+            match refused.val {
+              Some(issue) =>
+                Err(@resources.NodeManagedRunOperationIssue::Control(issue))
+              None =>
+                match inventory {
+                  Some(value) => Ok(value)
+                  None =>
+                    Err(
+                      @resources.NodeManagedRunOperationIssue::Original(
+                        InsufficientCapacity,
+                      ),
+                    )
+                }
+            }
+          },
+        ) {
+        Ok(value) => value
+        Err(issue) =>
+          return Err(installed_effect_operation_reservation_issue(issue))
+      }
+      // Every temporary measurement frame and borrowed Work view has returned
+      // before the final fresh original/current reservation and constructor.
+      guard @execution.preparation_representation_cost({
           record_headers: returned.record_headers,
           reference_slots: returned.reference_slots,
           scalar_words: returned.scalar_words,
@@ -273,6 +368,19 @@ pub fn begin_installed_effect_capture_publication(
     },
     () => owner.transitioning = false,
   )
+}
+
+///|
+fn installed_effect_publication_inventory_bytes(
+  value : @publication.EffectPreviewIdentityConstructionInventory,
+) -> Int64? {
+  @execution.preparation_representation_cost({
+    record_headers: value.record_headers,
+    reference_slots: value.reference_slots,
+    scalar_words: value.scalar_words,
+    owned_utf16_units: value.owned_utf16_units,
+    owned_wire_bytes: value.owned_wire_bytes,
+  })
 }
 
 ///|

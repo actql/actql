@@ -156,6 +156,70 @@ fn publication_returned_contract_inventory(
 }
 
 ///|
+/// Depth-bounded measurement on the same immutable canonical values. This
+/// writer constructs no text, parser, canonical forest, hash or semantic proof.
+/// The caller reserves this scratch before invoking any subtree census.
+pub fn effectful_publication_measurement_construction_inventory(
+  depth : Int,
+) -> EffectPreviewIdentityConstructionInventory? {
+  if depth < 1 {
+    return None
+  }
+  let d = depth.to_int64()
+  let operation = @encode.measurement_operation_construction_extent()
+  guard @encode.measuring_writer_construction_extent(0, depth) is Some(writer) &&
+    @shape.collection_construction_extent({
+      // SyncEmitParent and its cursor per open container, the current popped
+      // parent/next cursor and the original growing parent stack.
+      records: 4L + 2L * d,
+      record_references: 8L + 2L * d,
+      record_words: 6L + 2L * d,
+      reference_arrays: 1L,
+      reference_items: d,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(emit) else {
+    return None
+  }
+  Some({
+    record_headers: writer.record_headers +
+    emit.record_headers +
+    operation.collections.record_headers +
+    4L,
+    reference_slots: writer.reference_slots +
+    emit.reference_slots +
+    operation.collections.reference_slots +
+    3L,
+    scalar_words: writer.scalar_words +
+    emit.scalar_words +
+    operation.collections.scalar_words +
+    18L,
+    owned_utf16_units: operation.owned_utf16_units,
+    owned_wire_bytes: 0L,
+  })
+}
+
+///|
+fn publication_canonical_construction_geometry(
+  value : @json.CanonicalValue,
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+  work? : ((Int) -> Bool)? = None,
+) -> @encode.EncodingConstructionGeometry? {
+  let writer = match work {
+    None => @encode.construction_measuring_writer(bytes, nodes, depth)
+    Some(spend) => @encode.work_construction_measuring_writer(bytes, nodes, depth, spend)
+  } catch { _ => return None }
+  @json.emit_value(value, writer) catch { _ => return None }
+  try { Some(@encode.finish_construction_measurement(writer)) }
+  catch { _ => None }
+}
+
+///|
 /// Constructor DATA for the exact prepared final-publication methods. Original
 /// contracts remain with the completed Read. Returned inventories additionally
 /// keep the newly issued/admitted Receipt and Host adoption envelopes alive
@@ -168,6 +232,8 @@ pub fn effectful_publication_construction_inventory(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  prepared? : PreparedCapturedEffectRun? = None,
+  work? : ((Int) -> Bool)? = None,
 ) -> (
   EffectPreviewIdentityConstructionInventory,
   EffectPreviewIdentityConstructionInventory,
@@ -194,9 +260,29 @@ pub fn effectful_publication_construction_inventory(
   let mut codecs = zero
   let mut adoption = zero
   for contract in contracts {
-    guard contract.wire_usage is Some((bytes, nodes, depth)) &&
-      publication_borrowed_contract_inventory(bytes, nodes, depth)
-      is Some((control, value)) &&
+    guard contract.wire_usage is Some((bytes, nodes, depth)) else {
+      return None
+    }
+    let pair = match prepared {
+      Some(original) if physical_equal(contract, contracts[0]) &&
+        physical_equal(contract, original.captured) =>
+        match
+          publication_prepared_capture_borrowed_inventory(
+            contract,
+            original,
+            Int::max(max_bytes, original.max_bytes),
+            Int::max(max_nodes, original.max_nodes),
+            Int::max(max_depth, original.max_depth),
+            work~,
+          ) {
+          Some(value) => Some(value)
+          // In particular a declined Work view must end this census now;
+          // generic fallback cannot continue inspecting later bodies.
+          None => return None
+        }
+      _ => publication_borrowed_contract_inventory(bytes, nodes, depth)
+    }
+    guard pair is Some((control, value)) &&
       publication_inventory_add(checks, control) is Some(next_checks) else {
       return None
     }

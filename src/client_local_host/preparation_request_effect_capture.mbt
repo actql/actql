@@ -250,6 +250,7 @@ fn request_effect_capture_recovery_capacity(
   )
   guard base is Some(base) else { return None }
   let work = @resources.preparation_phase_work_continuation64_construction_inventory()
+  let census_quote = @shape.collection_construction_quotation_extent()
   let (utf8_h, utf8_r, utf8_w) = @scalar.utf8_length_admission_construction_units()
   guard @execution.preparation_representation_cost({
       // Re-entry adds the constructCaptured closure (state/view captures and
@@ -289,6 +290,11 @@ fn request_effect_capture_recovery_capacity(
       // Exact metadata counting borrows the already parsed record. Its literal
       // six-name Array/call controls, result tuple and scalar Some add6H12R4W,
       // including the original Read's quantity reference before first use.
+      // Late measurement first quotes only depth-sized DATA. Its shared
+      // collection quotation controls plus10H16R40W cover live extent/cost
+      // records/Some/argument specifications. The synchronous Work task,
+      // refusal Ref and callback/result carriers add4H12R4W. Variable writer
+      // and Canonical cursor storage is reserved later as W, never standing R.
       record_headers: work.record_headers +
       26L +
       4L +
@@ -296,9 +302,15 @@ fn request_effect_capture_recovery_capacity(
       17L +
       8L +
       6L +
+      census_quote.record_headers +
+      10L +
+      4L +
       (if staged_envelope { utf8_h + 1L } else { 0L }),
       reference_slots: work.reference_slots +
       71L +
+      12L +
+      census_quote.reference_slots +
+      16L +
       12L +
       3L +
       7L +
@@ -316,6 +328,9 @@ fn request_effect_capture_recovery_capacity(
       58L +
       16L +
       1L +
+      4L +
+      census_quote.scalar_words +
+      40L +
       4L +
       (if staged_envelope { utf8_w + 1L } else { 0L }),
       owned_utf16_units: 0L,

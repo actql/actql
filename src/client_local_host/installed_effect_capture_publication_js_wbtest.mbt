@@ -215,6 +215,78 @@ test "publication exact execution boundary and one-short refusal preserve the sa
 }
 
 ///|
+test "late publication census keeps its failed workspace prefix and original spent Work" {
+  let (run, ledger, read, _) = capture_validation_geometry_fixture()
+  let prepared = read.prepared.unwrap()
+  let request = read.request.unwrap()
+  let preparation = run.preparation.unwrap()
+  guard preparation is PlannedEffectManaged(admission, plan) else {
+    fail("original Effect Plan")
+  }
+  let control = run.effect_operation_controls.unwrap()
+  let receipt = control.dependency_work.unwrap()
+  let material = read.material.unwrap()
+  let before = @resources.ledger_usage(ledger)
+  let measurement = @publication.effectful_publication_measurement_construction_inventory(
+    64,
+  ).unwrap()
+  let workspace = installed_effect_publication_inventory_bytes(measurement).unwrap()
+  enter_capture_publication_demand(read, 0L, workspace).unwrap()
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_retention_bytes,
+    before.reserved_retention_bytes,
+  )
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_execution_bytes,
+    before.reserved_execution_bytes + workspace,
+  )
+  @resources.resume_preparation_phase_work_continuation64(receipt).unwrap()
+  let remaining = @resources.remaining_preparation_phase_work_continuation64(
+    receipt,
+  ).unwrap()
+  @resources.spend_preparation_phase_work_continuation64(
+    receipt,
+    remaining - 1L,
+  ).unwrap()
+  @resources.return_preparation_phase_work_continuation64(receipt).unwrap()
+  let prefix = @resources.ledger_usage(ledger)
+  read.transitioning = true
+  let result = with_installed_effect_dependency_work(
+    control,
+    admission,
+    plan,
+    ledger,
+    () => check_installed_effect_managed_run_binding(run, prepared, request),
+    material,
+    () => read.transitioning && !read.closing,
+    spend => {
+      spend(2).map_err(issue => {
+        @resources.NodeManagedRunOperationIssue::Control(issue)
+      })
+    },
+  )
+  read.transitioning = false
+  assert_true(
+    result
+    is Err(
+      @resources.NodeManagedRunOperationIssue::Control(@resources.PlanningLimit)
+    ),
+  )
+  assert_eq(@resources.ledger_usage(ledger), prefix)
+  assert_eq(read.publication_retained, 0L)
+  assert_false(read.material_completed)
+  assert_true(physical_equal(read.material.unwrap(), material))
+  assert_true(physical_equal(control.dependency_work.unwrap(), receipt))
+  @resources.resume_preparation_phase_work_continuation64(receipt).unwrap()
+  assert_eq(
+    @resources.remaining_preparation_phase_work_continuation64(receipt),
+    Ok(1L),
+  )
+  @resources.return_preparation_phase_work_continuation64(receipt).unwrap()
+  close_capture_validation_fixture(run, ledger, read)
+}
+
+///|
 test "publication current reentry closing and foreign backing refusal preserve the original demand prefix" {
   // A failed current check poisons that original Run. Each independent mode
   // needs its own genuine fixture; no later success can erase that refusal.
