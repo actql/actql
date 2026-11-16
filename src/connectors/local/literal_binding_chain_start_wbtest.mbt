@@ -362,3 +362,166 @@ test "literal StringAgg chain proof excludes wider distinct and injected provide
   )
   @connector.close_capability_registry(registry)
 }
+
+///|
+fn source_string_group_chain_fixture(
+  distinct? : Bool = false,
+) -> (
+  @execution.GeneratedSequence,
+  @execution.ProducerRead,
+  @execution.CompletedOutput,
+) raise {
+  chain_lifetime_fixture(
+    "[{\"from\":\"source\",\"derive\":{\"name\":{\"case\":{\"when\":[{\"when\":{\"eq\":[{\"field\":\"id\"},{\"literal\":1}]},\"then\":{\"literal\":\"z\"}}],\"else\":{\"literal\":\"a\"}}}}},{\"select\":[\"id\",\"name\"]},{\"derive\":{\"key\":{\"literal\":7}}},{\"group\":{\"by\":[],\"aggregates\":{\"names\":{\"fn\":\"string_agg\",\"field\":\"name\",\"order_by\":[{\"key\":\"desc\"},{\"id\":\"asc\"}],\"delimiter\":\"|\",\"max_bytes\":65536" +
+    (if distinct { ",\"distinct\":true" } else { "" }) +
+    "}}}}]",
+  )
+}
+
+///|
+test "Source ordered StringAgg chain keeps full retention and funds bounded children without a legacy table" {
+  let (sequence, read, source) = source_string_group_chain_fixture()
+  let values : @execution.ValueLimits = {
+    max_nodes: 2800,
+    max_text_bytes: 20000000,
+    max_depth: 100,
+    max_work: 20000000,
+  }
+  let limits = {
+    ..chain_lifetime_limits(),
+    rows: {
+      ..chain_lifetime_limits().rows,
+      input_values: values,
+      output_values: values,
+    },
+    max_work: 20000000,
+  }
+  let measurement = {
+    ..chain_lifetime_measurement(),
+    max_bytes: 120040633,
+    max_nodes: 20000,
+  }
+  let registry = @connector.prepare_capability_registry(
+    [{ name: "local", acquisition: false, fixed_compute: true, effect: false, }],
+    1,
+    100,
+  ).unwrap()
+  let registration = @connector.capability_registration_at(registry, 0).unwrap()
+  let installed = prepare_local_compute_module(
+    registry,
+    registration,
+    [sequence],
+    limits,
+    measurement,
+    100000,
+    1,
+  ).unwrap()
+  let full = local_module_capacity(installed, 0).unwrap()
+  let startup = local_module_metered_output_start_capacity(
+    installed, 0, sequence,
+  ).unwrap()
+  assert_eq(startup.retained_bytes, full.retained_bytes)
+  assert_true(startup.execution_bytes < full.execution_bytes)
+  assert_true(startup.retained_bytes + startup.execution_bytes < 536870912L)
+  let reserve_calls = Ref(0)
+  let sequence = @execution.bind_generated_workspace_growth(
+    sequence,
+    limits,
+    536870912L,
+    _ => {
+      reserve_calls.val += 1
+      Ok(())
+    },
+    meter_retained_outputs=true,
+  ).unwrap()
+  let (active, state) = bounded_relation_chain_execution_state(
+    sequence,
+    [managed_provider_relation_input(read)],
+    limits,
+    measurement,
+    120040633,
+    None,
+    [],
+  ).unwrap()
+  let mut complete = false
+  for _ in 0..<100000 {
+    match advance_managed_provider(active, 1).unwrap() {
+      Continue(..) | Waiting(..) => ()
+      Complete(output, ..) => {
+        assert_eq(@execution.completed_row_count(output), 1)
+        assert_true(
+          @execution.completed_cell(output, 0, 0)
+          is Some(@execution.Text("z|a|a")),
+        )
+        complete = true
+        break
+      }
+      _ => fail("original Source StringAgg chain did not complete")
+    }
+  }
+  assert_true(complete)
+  assert_true(reserve_calls.val > 0)
+  assert_true(state.completed[0] is Some(_))
+  assert_true(state.completed[1] is Some(_))
+  assert_true(state.completed[2] is Some(_))
+  assert_true(@execution.completed_output_available(source))
+  assert_true(cleanup_managed_provider(active).unwrap())
+  assert_true(state.completed.is_empty())
+  assert_true(@execution.completed_output_available(source))
+  @connector.close_capability_registry(registry)
+}
+
+///|
+test "Source StringAgg startup retains distinct and injected constructor fallback" {
+  let (sequence, _, _) = source_string_group_chain_fixture(distinct=true)
+  let registry = @connector.prepare_capability_registry(
+    [{ name: "local", acquisition: false, fixed_compute: true, effect: false, }],
+    1,
+    100,
+  ).unwrap()
+  let registration = @connector.capability_registration_at(registry, 0).unwrap()
+  let original = prepare_local_compute_module(
+    registry,
+    registration,
+    [sequence],
+    chain_lifetime_limits(),
+    chain_lifetime_measurement(),
+    100000,
+    1,
+  ).unwrap()
+  assert_true(
+    local_module_metered_output_start_capacity(original, 0, sequence) is None,
+  )
+  let (sequence, _, _) = source_string_group_chain_fixture()
+  let original = prepare_local_compute_module(
+    registry,
+    registration,
+    [sequence],
+    chain_lifetime_limits(),
+    chain_lifetime_measurement(),
+    100000,
+    1,
+  ).unwrap()
+  let full = local_module_capacity(original, 0).unwrap()
+  let injected = prepare_local_compute_module(
+    registry,
+    registration,
+    [sequence],
+    chain_lifetime_limits(),
+    chain_lifetime_measurement(),
+    100000,
+    1,
+    managed_providers=[
+      managed_provider(_ => true, _ => Some(full), (_, _, _, _, _) => {
+        Err(@connector.InvalidLimits)
+      }),
+    ],
+  ).unwrap()
+  assert_true(
+    local_module_metered_output_start_capacity(injected, 0, sequence) is None,
+  )
+  let unchanged = local_module_capacity(injected, 0).unwrap()
+  assert_eq(unchanged.retained_bytes, full.retained_bytes)
+  assert_eq(unchanged.execution_bytes, full.execution_bytes)
+  @connector.close_capability_registry(registry)
+}

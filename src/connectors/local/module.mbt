@@ -529,7 +529,10 @@ fn local_module_default_output_start_capacity(
   for index in 0..<count {
     match @execution.generated_sequence_step_at(sequence, index) {
       Some(@lower.RowStep(kernel)) => {
-        if !selected_binding_rows_supported(kernel) ||
+        if (
+            !selected_binding_rows_supported(kernel) &&
+            !@execution.bounded_string_group_borrows_input(kernel)
+          ) ||
           !@schema.all_fields_required(@lower.kernel_input_schema(kernel)) ||
           !@schema.all_fields_required(@lower.kernel_output_schema(kernel)) {
           required_row_chain = false
@@ -786,6 +789,15 @@ fn local_module_default_output_start_capacity(
           }
         }
       }
+      Some(@lower.RowStep(kernel)) if count > 1 &&
+        required_row_chain &&
+        @execution.bounded_string_group_borrows_input(kernel) =>
+        // The exact built-in ordered StringAgg reserves its UTF16 builder
+        // and completed Text in the same finite RowWorkspace before allocation.
+        // CommitOutput then funds persistent output before releasing that row
+        // scope. Keep the complete final-output R; only the already qualified
+        // child chain replaces the absent legacy sequence-table workspace.
+        metered_retention = false
       Some(@lower.RowStep(kernel)) if @lower.kernel_count_group(kernel)
         is Some(group) => {
         // Bounded COUNT now shares this task's before-commit output funding.
@@ -824,18 +836,22 @@ fn local_module_default_output_start_capacity(
           | @lower.AssertAll(_)
           | @lower.AssertUnique(_) => ()
           @lower.DistinctRows => {
-            // The bounded comparator keeps original immediate cells and row
-            // indices. CommitOutputRow funds each accepted output on this
-            // same attachment; recursive/text/presence shapes keep the full
-            // retained envelope and their original constructor recipe.
+            // The bounded comparator keeps original scalar cells, including
+            // immutable Text and NULL, while its original input roots live.
+            // CommitOutputRow funds complete output before persistent transfer
+            // on this same attachment. Recursive/reference/optional presence
+            // keeps the full retained envelope and original constructor recipe.
             let input = @lower.kernel_input_schema(kernel)
             let output = @lower.kernel_output_schema(kernel)
             let mut immediate = @schema.all_fields_required(input) &&
               @schema.all_fields_required(output)
-            for field in 0..<@schema.field_count(input) {
-              match @schema.field_at(input, field).unwrap().contract.shape {
-                @contract.Number | @contract.Boolean => ()
-                _ => immediate = false
+            for port in 0..<2 {
+              let schema = if port == 0 { input } else { output }
+              for field in 0..<@schema.field_count(schema) {
+                match @schema.field_at(schema, field).unwrap().contract.shape {
+                  @contract.Number | @contract.Boolean | @contract.Text(_) => ()
+                  _ => immediate = false
+                }
               }
             }
             if !immediate {

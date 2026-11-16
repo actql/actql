@@ -4,7 +4,9 @@
 // RowWorkspace before allocation, including the builder/to_string overlap.
 // Complete output Text DATA remains independently charged by the row limits.
 // Dynamic/recursive/distinct/mixed aggregate families keep the full recipe.
-fn bounded_string_group_borrows_input(kernel : @lower.PreparedKernel) -> Bool {
+pub fn bounded_string_group_borrows_input(
+  kernel : @lower.PreparedKernel,
+) -> Bool {
   guard @lower.kernel_group(kernel) is Some(group) &&
     !@lower.group_is_window(group) &&
     @lower.group_aggregate_count(group) == 1 &&

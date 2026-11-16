@@ -1685,3 +1685,97 @@ test "joined branch Append keeps recursive outer and injected provider fallbacks
     @connector.close_capability_registry(registry)
   }
 }
+
+///|
+test "nullable Text DISTINCT defers only actual same-task output and keeps recursive or injected retention" {
+  for recursive in [false, true] {
+    let (chain, _, _) = chain_lifetime_fixture(
+      "[{\"from\":\"source\",\"derive\":{\"tag\":" +
+      (if recursive {
+        "{\"array\":[{\"field\":\"id\"}]}"
+      } else {
+        "{\"case\":{\"when\":[{\"when\":{\"eq\":[{\"field\":\"id\"},{\"literal\":1}]},\"then\":{\"literal\":\"x\"}}],\"else\":{\"literal\":null}}}"
+      }) +
+      "}},{\"distinct\":[\"id\"" +
+      (if recursive { "" } else { ",\"tag\"" }) +
+      "]}]",
+    )
+    let sequence = @execution.select_generated_sequence_step(
+      chain,
+      @execution.generated_sequence_step_index_at(chain, 1).unwrap(),
+    ).unwrap()
+    let values = {
+      ..chain_lifetime_limits().rows.output_values,
+      max_nodes: 590000,
+      max_text_bytes: 20000000,
+    }
+    let limits = {
+      ..chain_lifetime_limits(),
+      rows: {
+        ..chain_lifetime_limits().rows,
+        input_values: values,
+        output_values: values,
+      },
+    }
+    let registry = @connector.prepare_capability_registry(
+      [
+        {
+          name: "local",
+          acquisition: false,
+          fixed_compute: true,
+          effect: false,
+        },
+      ],
+      1,
+      100,
+    ).unwrap()
+    let registration = @connector.capability_registration_at(registry, 0).unwrap()
+    let original = prepare_local_compute_module(
+      registry,
+      registration,
+      [sequence],
+      limits,
+      chain_lifetime_measurement(),
+      100000,
+      1,
+    ).unwrap()
+    let full = local_module_capacity(original, 0).unwrap()
+    let startup = local_module_metered_output_start_capacity(
+      original, 0, sequence,
+    ).unwrap()
+    if recursive {
+      assert_eq(startup.retained_bytes, full.retained_bytes)
+    } else {
+      assert_true(startup.retained_bytes < full.retained_bytes)
+      assert_true(startup.execution_bytes < full.execution_bytes)
+      assert_true(startup.retained_bytes + startup.execution_bytes < 536870912L)
+    }
+    let unchanged = local_module_capacity(original, 0).unwrap()
+    assert_eq(unchanged.retained_bytes, full.retained_bytes)
+    assert_eq(unchanged.execution_bytes, full.execution_bytes)
+    let replacement = managed_provider(_ => true, _ => Some(full), (
+      _,
+      _,
+      _,
+      _,
+      _,
+    ) => Err(@connector.InvalidLimits))
+    let injected = prepare_local_compute_module(
+      registry,
+      registration,
+      [sequence],
+      limits,
+      chain_lifetime_measurement(),
+      100000,
+      1,
+      managed_providers=[replacement],
+    ).unwrap()
+    assert_true(
+      local_module_metered_output_start_capacity(injected, 0, sequence) is None,
+    )
+    let fallback = local_module_capacity(injected, 0).unwrap()
+    assert_eq(fallback.retained_bytes, full.retained_bytes)
+    assert_eq(fallback.execution_bytes, full.execution_bytes)
+    @connector.close_capability_registry(registry)
+  }
+}

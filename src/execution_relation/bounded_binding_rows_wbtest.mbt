@@ -215,6 +215,7 @@ fn bounded_binding_rows_fixture(
   max_frames? : Int = 100,
   fragment_rows? : Int64 = 2L,
   logical_limits? : LogicalLimits? = None,
+  constrain? : ((GeneratedSequence) -> GeneratedSequence)? = None,
 ) -> (@bounded.Control, BoundedBindingRowsExecution, ProducerRead) raise {
   let (source_owner, source) = bounded_binding_rows_source(
     rows,
@@ -296,6 +297,10 @@ fn bounded_binding_rows_fixture(
     select_generated_sequence_step(generated, 0).unwrap()
   } else {
     generated
+  }
+  let generated = match constrain {
+    Some(constrain) => constrain(generated)
+    None => generated
   }
   let bound = bind_completed_input(receiver, 0, source_owner, source).unwrap()
   let input = prepare_producer_read(receiver, bound, 100, 10000).unwrap()
@@ -3413,4 +3418,85 @@ test "bounded selected filter retains more input rows than expression frames" {
   assert_true(completed_cell(output, 6, 0) is Some(Number(8.0)))
   assert_true(cleanup_bounded_binding_rows(execution).unwrap())
   assert_true(producer_read_available(input))
+}
+
+///|
+test "nullable Text DISTINCT funds original output before transfer and preserves refusal and close" {
+  for (refuse, close) in [(false, false), (true, false), (false, true)] {
+    let calls = Ref(0)
+    let before_transfer = Ref(true)
+    let active : Ref[BoundedBindingRowsExecution?] = Ref(None)
+    let (_, execution, input) = bounded_binding_rows_fixture(
+      "[{\"id\":1,\"tag\":\"x\"},{\"id\":1,\"tag\":\"x\"},{\"id\":2,\"tag\":\"x\"},{\"id\":null,\"tag\":null},{\"id\":null,\"tag\":null}]",
+      id_nullable=true,
+      distinct=true,
+      constrain=Some(generated => {
+        bind_generated_workspace_growth(
+          generated,
+          compute_test_limits(),
+          536870912L,
+          _ => Ok(()),
+          meter_retained_outputs=true,
+          reserve_retained=Some((retained, execution) => {
+            calls.val += 1
+            before_transfer.val = before_transfer.val &&
+              retained > 0L &&
+              execution >= retained &&
+              active.val
+              .map(value => {
+                value.state.output
+                .map(output => output.buffer.rows.is_empty())
+                .unwrap_or(false)
+              })
+              .unwrap_or(false)
+            if close {
+              active.val
+              .bind(value => value.state.output)
+              .map(output => cancel_admitted_output(output) |> ignore)
+              |> ignore
+            }
+            if refuse {
+              Err(WorkspaceBudgetUnavailable)
+            } else {
+              Ok(())
+            }
+          }),
+        ).unwrap()
+      }),
+    )
+    active.val = Some(execution)
+    let mut terminal = false
+    for _ in 0..<10000 {
+      if terminal {
+        break
+      }
+      match advance_bounded_binding_rows(execution, 1).unwrap() {
+        BoundedBindingRowsContinue(..) => ()
+        BoundedBindingRowsComplete(output, ..) => {
+          assert_false(refuse || close)
+          assert_eq(completed_row_count(output), 3)
+          assert_true(completed_cell(output, 0, 0) is Some(Number(1.0)))
+          assert_true(completed_cell(output, 1, 0) is Some(Number(2.0)))
+          assert_true(completed_cell(output, 2, 0) is Some(Null))
+          assert_true(completed_cell(output, 2, 1) is Some(Null))
+          terminal = true
+        }
+        BoundedBindingRowsFailed(Capture(CaptureLimit), ..) => {
+          assert_true(refuse || close)
+          terminal = true
+        }
+        _ => fail("nullable Text DISTINCT ended with another outcome")
+      }
+    }
+    assert_true(terminal)
+    assert_true(calls.val > 0)
+    // On the first grow no row has been committed. Later successful rows
+    // may grow the same cumulative reservation while earlier outputs remain.
+    if refuse || close {
+      assert_true(before_transfer.val)
+    }
+    assert_true(producer_read_available(input))
+    assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+    assert_true(producer_read_available(input))
+  }
 }

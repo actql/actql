@@ -233,15 +233,24 @@ fn chain_lifetime_fixture(
     @lower.pipeline(@lower.bound_preparation(source_owner)),
     @pipeline.Step(0),
   ).unwrap()
-  let receiver = chain_lifetime_bind(
+  let checked = match
     @pipeline.check_with_evidence(
       chain_lifetime_cursor(body),
       [("source", @pipeline.ProducedInput(producer))],
       None,
       None,
       check_limits,
-    ).unwrap(),
-  )
+    ) {
+    Ok(checked) => checked
+    Err(issue) => {
+      debug_inspect(
+        issue.kind,
+        content="accepted checked chain lifetime fixture",
+      )
+      fail("chain lifetime fixture did not check")
+    }
+  }
+  let receiver = chain_lifetime_bind(checked)
   let read = @execution.prepare_producer_read(
     receiver,
     @execution.bind_completed_input(receiver, 0, source_owner, source).unwrap(),
