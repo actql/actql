@@ -2,11 +2,20 @@
 test "generated protocol table shares identical immutable rules without merging constraints" {
   let first = generated_protocol_schema_nodes()
   let second = generated_protocol_schema_nodes()
-  // Original8879 + closed json_file53 + declared-file body19/complete20
-  // = 8971 descriptor slots.
-  // Constructor sharing keeps each registered array slot and its constraints.
-  assert_eq(first.length(), 8971)
+  // Sharing must preserve the registered descriptors and their constraints;
+  // adding an unrelated protocol does not change this constructor contract.
+  assert_true(first.length() > 3)
   assert_eq(second.length(), first.length())
+  for
+    name in [
+      "control_profile", "native_file_lookup_adoption", "installed_row_source_read",
+    ] {
+    for complete in [false, true] {
+      let root = generated_protocol_schema_root(name, complete).unwrap()
+      assert_true(root >= 0 && root < first.length())
+      assert_true(root < second.length())
+    }
+  }
   // Slots 1 and 3 describe the same nonempty String rule. The CID
   // pattern at slot 2 is distinct, and another construction owns its own data.
   guard first[1] is StringRule(None, choices, 0, 1) else {
