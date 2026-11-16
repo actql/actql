@@ -492,7 +492,8 @@ test('Host independent failures are collected while failed prerequisites and can
     'run-host-preparation': new Set(['Check Run Host types',
       'Test portable Run Host compilation package', 'Test packed Run Host compilation package',
       'Test original Local result authorization']),
-    'cold-runtime-preparation': new Set(['Test actual bound connector initialization and cleanup']),
+    'cold-runtime-preparation': new Set(['Test actual bound connector initialization and cleanup',
+      'Test ordinary Project Source and STORE original recovery']),
   };
   const setup = steps.find(row => row.id === 'host-toolchain');
   assert.equal(setup.uses, './.github/actions/setup-toolchain');

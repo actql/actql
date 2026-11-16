@@ -1503,6 +1503,9 @@ jobs:
         if: ${{ !cancelled() && steps.cold-runtime-preparation.outcome == 'success' }}
         # Reuse the ordinary Local build above; external provider I/O is loopback-only.
         run: node --test adapters/host-node/installed-bound-construction.actual.test.mjs adapters/host-node/installed-bound-construction-failures.actual.test.mjs adapters/host-node/installed-source-construction-geometry.test.mjs
+      - name: Test ordinary Project Source and STORE original recovery
+        if: ${{ !cancelled() && steps.cold-runtime-preparation.outcome == 'success' }}
+        run: node scripts/local-checks.mjs test node -- adapters/host-node/ordinary-project-files-host.actual.test.mjs adapters/host-node/ordinary-project-store-host.actual.test.mjs
       - name: Test Local runtime source and external connector builds
         if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: npm run check:local-node-source-assets
