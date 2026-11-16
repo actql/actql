@@ -123,6 +123,7 @@ export const nativeScopedTestFiles = Object.freeze([
   'src/platform_native/installed_arena_control/store_operation_reentry_physical_scoped_wbtest.mbt',
   'src/platform_native/installed_arena_control/store_result_return_physical_scoped_wbtest.mbt',
   'src/platform_native/installed_arena_control/store_wal_original_physical_scoped_wbtest.mbt',
+  'src/platform_native/installed_arena_control/publication_read_construction_physical_scoped_wbtest.mbt',
   ...nativeRelationCaptureTestFiles,
   nativeRelationTargetIOTestFile,
   nativeRelationTargetIOLineageTestFile,
