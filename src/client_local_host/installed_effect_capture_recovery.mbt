@@ -25,6 +25,7 @@ struct ClientInstalledEffectCaptureRecovery {
   mut material_ready : Bool
   mut material_completed : Bool
   mut publication_retained : Int64
+  mut publication_inputs : Int?
   mut transitioning : Bool
   mut closing : Bool
 }
@@ -89,6 +90,7 @@ pub fn prepare_installed_effect_capture_recovery(
     material_ready: false,
     material_completed: false,
     publication_retained: 0L,
+    publication_inputs: None,
     transitioning: false,
     closing: false,
   })
@@ -174,7 +176,7 @@ pub fn installed_effect_capture_publication_input_limit(
     owner.material_ready &&
     owner.material_completed &&
     owner.material_captured is Some(captured) &&
-    owner.material_nodes is Some(nodes) &&
+    owner.publication_inputs is Some(inputs) &&
     owner.parent is Some(parent) &&
     owner.prepared is Some(prepared) &&
     owner.request is Some(request) else {
@@ -202,10 +204,10 @@ pub fn installed_effect_capture_publication_input_limit(
         physical_equal(m, material) &&
         owner.material_captured is Some(c) &&
         physical_equal(c, captured) &&
-        owner.material_nodes == Some(nodes) else {
+        owner.publication_inputs == Some(inputs) else {
         return Err(Retired)
       }
-      Ok(nodes)
+      Ok(inputs)
     },
     () => owner.transitioning = false,
   )
@@ -359,6 +361,7 @@ fn installed_effect_capture_completed_material_retention(
       staged_envelope=owner.material_staged_envelope,
       envelope_nodes=owner.material_envelope_nodes,
       plaintext_bytes=owner.material_plaintext_bytes,
+      publication_inputs=owner.publication_inputs.unwrap_or(0),
       envelope_units=owner.material_envelope_wire
         .map(String::length)
         .unwrap_or(0),
@@ -825,6 +828,7 @@ fn resize_installed_effect_capture_recovery_material(
       staged_envelope=owner.material_staged_envelope,
       envelope_nodes=owner.material_envelope_nodes,
       plaintext_bytes~,
+      publication_inputs=owner.publication_inputs.unwrap_or(0),
       envelope_units=owner.material_envelope_wire
         .map(String::length)
         .unwrap_or(0),
@@ -955,6 +959,7 @@ pub fn retire_installed_effect_capture_recovery(
   owner.material_plaintext_bytes = None
   owner.material_ready = false
   owner.material_completed = false
+  owner.publication_inputs = None
   owner.transitioning = true
   preparation_module_call(
     () => {

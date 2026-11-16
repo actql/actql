@@ -246,7 +246,7 @@ pub fn admit_installed_effect_captured_run(
           Err(ForeignOriginal)
         }
       }
-      let value = match
+      let (value, publication_inputs) = match
         with_installed_effect_dependency_work(
           control,
           admission,
@@ -318,6 +318,17 @@ pub fn admit_installed_effect_captured_run(
                 ),
               )
             }
+            let publication_inputs = match
+              installed_effect_capture_publication_metadata_count(
+                record,
+                plan.operations.length(),
+              ) {
+              Some(value) => value
+              None =>
+                return Err(
+                  @resources.NodeManagedRunOperationIssue::Original(Unsupported),
+                )
+            }
             let captured = match
               @publication.admit_publication_contract(
                 "captured_run",
@@ -332,7 +343,7 @@ pub fn admit_installed_effect_captured_run(
                 )
               Ok(value) => value
             }
-            match control.dependency_inventory {
+            let recovered = match control.dependency_inventory {
               Some(inventory) =>
                 @publication.bind_prepared_captured_effect_run(
                   captured, inventory,
@@ -377,6 +388,7 @@ pub fn admit_installed_effect_captured_run(
                 }
               }
             }
+            recovered.map(value => (value, publication_inputs))
           },
         ) {
         Err(issue) =>
@@ -384,8 +396,53 @@ pub fn admit_installed_effect_captured_run(
         Ok(value) => value
       }
       owner.material_captured = Some(value)
+      owner.publication_inputs = Some(publication_inputs)
+      // The actual record and original Plan supplied this scalar while their
+      // existing full constructor was funded. Retain the completed original
+      // before fallible growth, then fund its future metadata Arrays BEFORE
+      // any Host caller may obtain the limit or flatten those Arrays.
+      match resize_installed_effect_capture_recovery_material(owner, false) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
       Ok(value)
     },
     () => owner.transitioning = false,
   )
+}
+
+///|
+// Quantity DATA from the SAME already-parsed authenticated record. No child
+// contract is re-admitted, no Array is copied and no authority is minted.
+// The original Plan bounds the member-receipt vector independently of the
+// number of Source artifacts; a Source-free member still needs its Receipt.
+fn installed_effect_capture_publication_metadata_count(
+  record : @identity.CanonicalValue,
+  members : Int,
+) -> Int? {
+  if members < 0 {
+    return None
+  }
+  let mut count = 5L + members.to_int64() + 2L
+  for
+    name in [
+      "definitions", "artifacts", "derivations", "orderings", "retentions", "durable_bindings",
+    ] {
+    guard @identity.object_field(record, name) is Some(@identity.Array(values)) else {
+      return None
+    }
+    count += @identity.array_count(values).to_int64()
+  }
+  guard @identity.object_field(record, "effect_source_artifacts")
+    is Some(@identity.Array(values)) else {
+    return None
+  }
+  // Issuance receives Source artifacts; commit instead receives exactly the
+  // stored publication Request/Attempt/Index. Reserve their larger vector.
+  count += Int::max(3, @identity.array_count(values)).to_int64()
+  if count > 2147483647L {
+    None
+  } else {
+    Some(count.to_int())
+  }
 }

@@ -16,6 +16,100 @@ fn enter_capture_publication_demand(
 }
 
 ///|
+test "publication metadata counts original lists and members independently of unrelated capture DATA" {
+  // Quantity-only record geometry: null elements grant no contract/capture
+  // authority. The production entrance uses its SAME authenticated record.
+  let record = @identity.from_json(
+    Json::object({
+      "definitions": Json::array([Json::null]),
+      "artifacts": Json::array([Json::null]),
+      "derivations": Json::array([Json::null]),
+      "orderings": Json::array([Json::null]),
+      "retentions": Json::array([Json::null]),
+      "durable_bindings": Json::array([Json::null]),
+      "effect_source_artifacts": Json::array([Json::null]),
+    }),
+    100,
+    10,
+    10000,
+  )
+  assert_eq(
+    installed_effect_capture_publication_metadata_count(record, 1),
+    Some(17),
+  )
+  let with_unrelated = @identity.object_with_string_field(
+    record,
+    "unrelated_capture_DATA",
+    "x".repeat(10000),
+  ).unwrap()
+  assert_eq(
+    installed_effect_capture_publication_metadata_count(with_unrelated, 1),
+    Some(17),
+  )
+  assert_eq(
+    installed_effect_capture_publication_metadata_count(record, 17),
+    Some(33),
+  )
+  assert_eq(
+    installed_effect_capture_publication_metadata_count(record, -1),
+    None,
+  )
+  assert_eq(
+    installed_effect_capture_publication_metadata_count(record, 2147483647),
+    None,
+  )
+  assert_eq(
+    installed_effect_capture_publication_metadata_count(
+      @identity.object_with_replaced_fields(record, [
+        ("definitions", @identity.String("foreign array")),
+      ]).unwrap(),
+      1,
+    ),
+    None,
+  )
+  for nodes in [100, 10000] {
+    let without_metadata = request_effect_capture_recovery_capacity(
+      400000,
+      800,
+      8000000,
+      100000,
+      64,
+      nodes=Some(nodes),
+      staged_envelope=true,
+      envelope_nodes=Some(4),
+      plaintext_bytes=Some(300000),
+      envelope_units=400000,
+    ).unwrap()
+    let with_metadata = request_effect_capture_recovery_capacity(
+      400000,
+      800,
+      8000000,
+      100000,
+      64,
+      nodes=Some(nodes),
+      staged_envelope=true,
+      envelope_nodes=Some(4),
+      plaintext_bytes=Some(300000),
+      envelope_units=400000,
+      publication_inputs=17,
+    ).unwrap()
+    // Four temporary vectors per element, each shared Array growth tariff
+    // contributes three reference slots. All actual capture trees stay priced
+    // independently, even when their unrelated node envelope is much larger.
+    assert_eq(
+      @execution.execution_capacity_retained_bytes(with_metadata) -
+      @execution.execution_capacity_retained_bytes(without_metadata),
+      17L * 4L * 3L * 8L,
+    )
+    assert_eq(
+      @execution.execution_capacity_execution_bytes(with_metadata) -
+      @execution.execution_capacity_execution_bytes(without_metadata),
+      17L * 4L * 3L * 8L,
+    )
+  }
+}
+
+///|
 test "publication demand preserves completed Read originals and retains output through completion and retirement" {
   let (run, ledger, read, _) = capture_validation_geometry_fixture()
   let before = @resources.ledger_usage(ledger)

@@ -109,6 +109,7 @@ fn request_effect_capture_recovery_capacity(
   envelope_nodes? : Int? = None,
   plaintext_bytes? : Int? = None,
   envelope_units? : Int = 0,
+  publication_inputs? : Int = 0,
 ) -> @execution.ExecutionCapacity? {
   let tree_nodes = nodes.unwrap_or(
     if staged_envelope {
@@ -124,6 +125,7 @@ fn request_effect_capture_recovery_capacity(
     decoded_bytes > encrypted_bytes ||
     envelope_units < 0 ||
     envelope_units > encrypted_bytes ||
+    publication_inputs < 0 ||
     (plaintext_bytes is Some(_) && !staged_envelope) ||
     tree_nodes < 0 ||
     definition_units < 0 ||
@@ -284,12 +286,16 @@ fn request_effect_capture_recovery_capacity(
       // The sequential allocation-free receipt geometry cursor is17H35R58W.
       // Its returned quantity/cost tuples and checked arithmetic stay on this
       // same prepaid fixed frame (8H8R16W); publication_retained adds1W.
+      // Exact metadata counting borrows the already parsed record. Its literal
+      // six-name Array/call controls, result tuple and scalar Some add6H12R4W,
+      // including the original Read's quantity reference before first use.
       record_headers: work.record_headers +
       26L +
       4L +
       3L +
       17L +
       8L +
+      6L +
       (if staged_envelope { utf8_h + 1L } else { 0L }),
       reference_slots: work.reference_slots +
       71L +
@@ -298,6 +304,7 @@ fn request_effect_capture_recovery_capacity(
       7L +
       35L +
       8L +
+      12L +
       (if staged_envelope { utf8_r } else { 0L }),
       // The same Read distinguishes its prepared-token retirement from the
       // ordinary admitted capture's alias release with one retained Bool.
@@ -309,6 +316,7 @@ fn request_effect_capture_recovery_capacity(
       58L +
       16L +
       1L +
+      4L +
       (if staged_envelope { utf8_w + 1L } else { 0L }),
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
@@ -321,8 +329,9 @@ fn request_effect_capture_recovery_capacity(
     is Some(lexical) else {
     return None
   }
-  // Before publication metadata Arrays are created, the original captured
-  // node envelope bounds their aggregate element count. Token maps, flattened
+  // Before publication metadata Arrays are created, the SAME authenticated
+  // record supplies their actual list/member count under its funded parser.
+  // Before that admission only the fixed controls exist. Token maps, flattened
   // contract/wire vectors and their old/new growth may coexist; none copies
   // the nominal contracts. The Host checks lengths before allocating them.
   guard @shape.collection_construction_extent({
@@ -330,7 +339,7 @@ fn request_effect_capture_recovery_capacity(
       record_references: 0L,
       record_words: 0L,
       reference_arrays: 10L,
-      reference_items: 4L * tree_nodes.to_int64(),
+      reference_items: 4L * publication_inputs.to_int64(),
       scalar_arrays: 0L,
       scalar_items: 0L,
       maps: 0L,
