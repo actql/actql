@@ -126519,6 +126519,16 @@
           "async": false
         },
         {
+          "name": "recoveryView/init:constructCapturedValidation/init:constructCapturedValidation",
+          "parameters": [
+            "captured",
+            "receiver",
+            "method",
+            "argument"
+          ],
+          "async": false
+        },
+        {
           "name": "recoveryView/init:finish/init:finish",
           "parameters": [
             "failed",
@@ -126761,6 +126771,114 @@
               {
                 "path": "adapters/host-node/effect-capture-resources.test.mjs",
                 "anchor": "cold prepared DATA stays with the original Read through failed schema cleanup and is cut before parent settlement"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "recoveryView/init:constructCapturedValidation/init:constructCapturedValidation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_validation("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_validation("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_validation("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_validation("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_validation("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_validation("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_validation("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_validation("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
+                "anchor": "pub fn begin_installed_effect_capture_validation("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_effect_capture_validation_js_wbtest.mbt",
+                "anchor": "validation exact execution boundary succeeds and one short preserves its failed original prefix"
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "anchor": "retained validation funding and callback failures keep the original primary and unfinished cleanup"
               }
             ]
           }

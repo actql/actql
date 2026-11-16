@@ -173,3 +173,12 @@ frame; subsequent constructors enter a fresh frame under the same current Read.
 The recovery parent retains the child before asynchronous physical preparation.
 Cancellation, current-state changes and failed reader closes keep their cleanup
 duties; an earlier authorization result never replaces a fresh current check.
+
+After the same Read completes its trusted Store return, retained-value
+validation keeps the returned trees, Strings and schema inventory on that
+Read's original reservation. It funds the full validator workspace without
+re-reserving the ended physical receive/decrypt buffers or parsed container.
+Physical read and reserve entrances invalidate this completed-state proof and
+retain their full construction quote. Failed validation keeps its acquired
+prefix for the original cleanup; it cannot reuse an earlier completion as a
+new physical cleanup acknowledgement.
