@@ -214,10 +214,25 @@ fn installed_effect_operation_control_capacity(
   // fixed frame prepaid in idle controls; it is not per occurrence or byte.
   // One fixed-size metadata coordinate vector has <=1000 scalar slots;
   // DATA descriptor probes are transient inside this same fixed overhead.
+  // The original wire can be observed before its forest grows. This fixed
+  // lexical cursor creates no grammar tree, key map or decoded String.
+  let preflight = @source.json_source_preflight_control_extent()
   let workspace : @execution.PreparationRepresentationUnits = {
-    record_headers: 2L + keys.record_headers + 16L * 8L + 8L,
-    reference_slots: slots + keys.reference_slots + 16L * 64L + 32L,
-    scalar_words: keys.scalar_words + 16L * 64L + 16L + 1000L,
+    record_headers: 2L +
+    keys.record_headers +
+    16L * 8L +
+    8L +
+    preflight.record_headers,
+    reference_slots: slots +
+    keys.reference_slots +
+    16L * 64L +
+    32L +
+    preflight.reference_slots,
+    scalar_words: keys.scalar_words +
+    16L * 64L +
+    16L +
+    1000L +
+    preflight.scalar_words,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
@@ -2083,13 +2098,15 @@ fn resize_installed_effect_operation_control_construction(
 }
 
 ///|
-// The actual same-Run Preview wire already belongs to its producer. Scan only
-// UTF8 length here; do not parse, normalize, encode, check or compile it again.
+// The actual same-Run Preview wire already belongs to its producer. Observe
+// its byte/node geometry without parsing, normalization or semantic admission.
 fn installed_effect_host_preview_input_capacity(
   plan : ClientInstalledEffectManagedPlan,
   wire : String,
 ) -> Result[@execution.ExecutionCapacity, ClientInstalledManagedRunIssue] {
   let mut maximum : Int? = None
+  let mut maximum_nodes : Int? = None
+  let mut maximum_depth : Int? = None
   for demand in plan.operations {
     for extent in demand.member_extents {
       if extent.host_input_limits is Some(limits) {
@@ -2099,17 +2116,56 @@ fn installed_effect_host_preview_input_capacity(
             Some(old) => Int::min(old, limits.max_input_bytes)
           },
         )
+        maximum_nodes = Some(
+          maximum_nodes
+          .map(old => Int::min(old, limits.max_nodes))
+          .unwrap_or(limits.max_nodes),
+        )
+        maximum_depth = Some(
+          maximum_depth
+          .map(old => Int::min(old, limits.max_depth))
+          .unwrap_or(limits.max_depth),
+        )
       }
     }
   }
-  guard maximum is Some(maximum) else { return Err(Unsupported) }
-  let bytes = match @scalar.admit_utf8_length(wire, maximum) {
-    Err(_) => return Err(Unsupported)
-    Ok(value) => value
-  }
-  if bytes < 1 {
+  guard maximum is Some(maximum) &&
+    maximum_nodes is Some(maximum_nodes) &&
+    maximum_depth is Some(maximum_depth) else {
     return Err(Unsupported)
   }
+  let cursor = match
+    @source.start_json_source_preflight(
+      wire,
+      {
+        max_input_bytes: maximum,
+        max_nodes: maximum_nodes,
+        max_depth: maximum_depth,
+      },
+      data_keys=true,
+    ) {
+    Err(_) => return Err(Unsupported)
+    Ok(cursor) => cursor
+  }
+  defer @source.cancel_json_source_preflight(cursor)
+  let mut observed : @source.JsonSourceGeometry? = None
+  while observed is None {
+    match @source.advance_json_source_preflight(cursor, 4096) {
+      Ok(@source.JsonSourceReady(geometry, ..)) => observed = Some(geometry)
+      Ok(@source.JsonSourceContinue(..)) => ()
+      _ => return Err(Unsupported)
+    }
+  }
+  let geometry = observed.unwrap()
+  if geometry.input_bytes < 1 ||
+    geometry.node_upper > maximum_nodes ||
+    geometry.depth_upper > maximum_depth {
+    return Err(Unsupported)
+  }
+  // A malformed prefix with no value still needs the original one-node
+  // parser refusal. The geometry never substitutes for JSON/Preview checks.
+  let nodes = Int::max(1, geometry.node_upper)
+  let bytes = geometry.input_bytes
   let mut retained = 0L
   let mut workspace = 0L
   for demand in plan.operations {
@@ -2120,6 +2176,7 @@ fn installed_effect_host_preview_input_capacity(
             limits.max_nodes,
             limits.max_depth,
             Some(bytes),
+            input_nodes=Some(nodes),
           )
           is Some((held, scratch)) &&
           standard_create_representation_capacity(

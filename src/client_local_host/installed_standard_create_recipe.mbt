@@ -772,6 +772,7 @@ fn installed_standard_host_preview_input_parts(
   policy_nodes : Int,
   policy_depth : Int,
   input_bytes : Int?,
+  input_nodes? : Int? = None,
 ) -> (
   @execution.PreparationRepresentationUnits,
   @execution.PreparationRepresentationUnits,
@@ -783,7 +784,9 @@ fn installed_standard_host_preview_input_parts(
     return None
   }
   let bytes = input_bytes.unwrap_or(policy_bytes)
-  if bytes < 0 || bytes > policy_bytes {
+  if bytes < 0 ||
+    bytes > policy_bytes ||
+    (input_nodes is Some(_) && (input_bytes is None || bytes == 0)) {
     return None
   }
   let empty : @execution.PreparationRepresentationUnits = {
@@ -798,10 +801,19 @@ fn installed_standard_host_preview_input_parts(
       ({ ..empty, owned_utf16_units: policy.owned_utf16_units, }, empty),
     )
   }
-  let nodes = if input_bytes is Some(_) {
-    Int::min(policy_nodes, bytes)
-  } else {
-    policy_nodes
+  let nodes = match input_nodes {
+    Some(nodes) => {
+      if nodes < 1 || nodes > policy_nodes || nodes > bytes {
+        return None
+      }
+      nodes
+    }
+    None =>
+      if input_bytes is Some(_) {
+        Int::min(policy_nodes, bytes)
+      } else {
+        policy_nodes
+      }
   }
   guard @source.json_literal_construction_extent(bytes, nodes, policy_depth)
     is Some(tree) &&

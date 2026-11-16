@@ -137,6 +137,108 @@ test "Host Preview deferred forest keeps original full text and codec maxima" {
 }
 
 ///|
+test "Host Preview observes structure rather than counting quoted text as nodes" {
+  let (prepared, request, plan, owner, ledger) = effect_host_preview_input_fixture()
+  let wire = "{\"rows\":[{\"text\":\"" + "\\u005b".repeat(44000) + "\"}]}"
+  let before = @resources.ledger_usage(ledger)
+  let actual = installed_effect_host_preview_input_capacity(plan, wire).unwrap()
+  let (old, old_work) = installed_standard_host_preview_input_parts(
+    1000000,
+    100000,
+    64,
+    Some(wire.length()),
+  ).unwrap()
+  let former = standard_create_representation_capacity(
+    { ..old, owned_utf16_units: 0L, },
+    { ..old_work, owned_utf16_units: 0L, },
+  ).unwrap()
+  assert_true(
+    @execution.execution_capacity_retained_bytes(actual) <
+    @execution.execution_capacity_retained_bytes(former),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  begin_installed_effect_operation_control_input(
+    owner, prepared, request, plan, wire,
+  ).unwrap()
+  let active = @resources.ledger_usage(ledger)
+  assert_eq(active.attempts, before.attempts)
+  assert_eq(active.transferred_bytes, before.transferred_bytes)
+  assert_eq(
+    owner.effect_operation_controls.unwrap().host_input.unwrap().0,
+    wire,
+  )
+  complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  let held = @resources.ledger_usage(ledger)
+  assert_eq(held.reserved_retention_bytes, active.reserved_retention_bytes)
+  assert_true(held.reserved_execution_bytes <= active.reserved_execution_bytes)
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+}
+
+///|
+test "Host Preview retains selected node limits before forest construction" {
+  let (prepared, request, plan, owner, ledger) = effect_host_preview_input_fixture()
+  let before = @resources.ledger_usage(ledger)
+  let wire = "[" + "0,".repeat(100000) + "0]"
+  assert_true(
+    begin_installed_effect_operation_control_input(
+      owner, prepared, request, plan, wire,
+    )
+    is Err(Unsupported),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_true(owner.effect_operation_controls.unwrap().host_input is None)
+  retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "Host Preview measured File101 input keeps the original text envelope" {
+  let (old, old_work) = installed_standard_host_preview_input_parts(
+    1000000,
+    100000,
+    64,
+    Some(267145),
+  ).unwrap()
+  let (actual, actual_work) = installed_standard_host_preview_input_parts(
+    1000000,
+    100000,
+    64,
+    Some(267145),
+    input_nodes=Some(5406),
+  ).unwrap()
+  assert_eq(actual.owned_utf16_units, old.owned_utf16_units)
+  let quote = fn(held, scratch) {
+    standard_create_representation_capacity(
+      { ..held, owned_utf16_units: 0L, },
+      { ..scratch, owned_utf16_units: 0L, },
+    ).unwrap()
+  }
+  let before = quote(old, old_work)
+  let after = quote(actual, actual_work)
+  assert_true(
+    @execution.execution_capacity_retained_bytes(after) <
+    @execution.execution_capacity_retained_bytes(before),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(after) <
+    @execution.execution_capacity_execution_bytes(before),
+  )
+  println(
+    "ACTQL_HOST_PREVIEW_QUOTE " +
+    @execution.execution_capacity_retained_bytes(before).to_string() +
+    "/" +
+    @execution.execution_capacity_execution_bytes(before).to_string() +
+    " -> " +
+    @execution.execution_capacity_retained_bytes(after).to_string() +
+    "/" +
+    @execution.execution_capacity_execution_bytes(after).to_string(),
+  )
+}
+
+///|
 test "Host Preview grows same original control before parse and keeps its returned forest across later children" {
   let (prepared, request, plan, owner, ledger) = effect_host_preview_input_fixture()
   assert_true(owner.effect_operation_controls.unwrap().host_input is None)
@@ -201,15 +303,15 @@ test "Host Preview grows same original control before parse and keeps its return
 test "Host Preview refused growth leaves same original usage and input selection unchanged" {
   let (prepared, request, plan, owner, ledger) = effect_host_preview_input_fixture()
   let before = @resources.ledger_usage(ledger)
+  // The 50,001-node tree stays inside the selected 100,000-node policy;
+  // its actual forest, rather than a codec limit, exceeds this small parent.
+  let dense = "[" + "0,".repeat(49999) + "0]"
+  let refused = begin_installed_effect_operation_control_input(
+    owner, prepared, request, plan, dense,
+  )
   assert_true(
-    begin_installed_effect_operation_control_input(
-      owner,
-      prepared,
-      request,
-      plan,
-      "x".repeat(500000),
-    )
-    is Err(_),
+    refused is Err(Ledger(@resources.RetentionLimit)) ||
+    refused is Err(Ledger(@resources.ExecutionLimit)),
   )
   assert_eq(@resources.ledger_usage(ledger), before)
   assert_true(owner.effect_operation_controls.unwrap().host_input is None)
@@ -229,15 +331,13 @@ test "standard two-role capture grows the same original Preview forest and keeps
   )
   assert_true(owner.effect_operation_controls.unwrap().host_input is None)
   let before = @resources.ledger_usage(ledger)
+  let dense = "[" + "0,".repeat(49999) + "0]"
+  let refused = begin_installed_effect_operation_control_input(
+    owner, prepared, request, plan, dense,
+  )
   assert_true(
-    begin_installed_effect_operation_control_input(
-      owner,
-      prepared,
-      request,
-      plan,
-      "x".repeat(500000),
-    )
-    is Err(_),
+    refused is Err(Ledger(@resources.RetentionLimit)) ||
+    refused is Err(Ledger(@resources.ExecutionLimit)),
   )
   assert_eq(@resources.ledger_usage(ledger), before)
   assert_true(owner.effect_operation_controls.unwrap().host_input is None)
