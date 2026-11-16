@@ -273,11 +273,16 @@ fn request_effect_capture_recovery_capacity(
       // references and optional scalar carriers (3H3R3W) before issue.
       // The selected retained-validation method adds1H3R and its captured
       // Core entry adds1R. Its completion-phase scalar is priced below.
+      // The publication-only selector reuses that SAME state/view (1H3R).
+      // Its two nested Reflect.apply four-argument Arrays/backings add4H8R;
+      // three borrowed method selections remain live through that call (3R).
+      // Fund the complete fixed5H14R before this Read view escapes, while
+      // retaining the existing publication carrier and all returned outputs.
       record_headers: work.record_headers +
-      21L +
+      26L +
       (if staged_envelope { utf8_h + 1L } else { 0L }),
       reference_slots: work.reference_slots +
-      57L +
+      71L +
       (if staged_envelope { utf8_r } else { 0L }),
       // The same Read distinguishes its prepared-token retirement from the
       // ordinary admitted capture's alias release with one retained Bool.
