@@ -562,6 +562,56 @@ pub fn client_program_installed_effect_operation_ledger_family_begin(
 }
 
 ///|
+#export_name("clientProgramInstalledEffectOperationLedgerRowBegin")
+pub fn client_program_installed_effect_operation_ledger_row_begin(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  kind : String,
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+  response_bytes : Int,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.begin_installed_effect_operation_ledger_row(
+    owner, prepared, request, plan, kind, bytes, nodes, depth, response_bytes,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationLedgerHistoryGrow")
+pub fn client_program_installed_effect_operation_ledger_history_grow(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  count : Int,
+  wire_units : Int64,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.grow_installed_effect_operation_ledger_history(
+    owner, prepared, request, plan, count, wire_units,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationReceiptCodecBegin")
+pub fn client_program_installed_effect_operation_receipt_codec_begin(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  wire : String,
+  nodes : Int,
+  depth : Int,
+  receipt_wire : Bool,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.begin_installed_effect_operation_receipt_codec(
+    owner, prepared, request, plan, wire, nodes, depth, receipt_wire,
+  )
+}
+
+///|
 #export_name("clientProgramInstalledEffectDependencySourcesPin")
 pub fn client_program_installed_effect_dependency_sources_pin(
   owner : @client_local_host.ClientInstalledManagedRun,

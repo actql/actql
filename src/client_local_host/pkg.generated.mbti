@@ -133,7 +133,11 @@ pub fn begin_installed_effect_operation_ledger_family(ClientInstalledManagedRun,
 
 pub fn begin_installed_effect_operation_ledger_open(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, String) -> Result[Unit, ClientInstalledManagedRunIssue]
 
+pub fn begin_installed_effect_operation_ledger_row(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, String, Int, Int, Int, Int) -> Result[Unit, ClientInstalledManagedRunIssue]
+
 pub fn begin_installed_effect_operation_member_receipt_construction(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, @execution_relation.ExecutionCapacity) -> Result[Unit, ClientInstalledManagedRunIssue]
+
+pub fn begin_installed_effect_operation_receipt_codec(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, String, Int, Int, Bool) -> Result[Unit, ClientInstalledManagedRunIssue]
 
 pub fn begin_installed_effect_operation_request_projection(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, Int, Int, Int) -> Result[Unit, ClientInstalledManagedRunIssue]
 
@@ -520,6 +524,8 @@ pub fn[I] finish_request_result_metadata(ClientRequestPreparation[I], I) -> Resu
 pub fn[I] finish_request_submitted_intent(ClientRequestPreparation[I], I) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn grow_installed_effect_operation_input(ClientInstalledEffectOperationBorrow, ClientInstalledEffectOperationExtent) -> Result[Unit, ClientInstalledManagedRunIssue]
+
+pub fn grow_installed_effect_operation_ledger_history(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, Int, Int64) -> Result[Unit, ClientInstalledManagedRunIssue]
 
 pub fn[I] grow_request_result_read_frame(ClientRequestPreparation[I], I, Int) -> Result[(Int, Int), ClientRequestPreparationIssue]
 

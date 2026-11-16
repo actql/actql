@@ -10,7 +10,7 @@ import {effectLedgerImplementationBounds} from '../../../host-node/effect-ledger
 import {physicalContentReadWindowBytes} from '../../../store-local/publication-store.mjs';
 import {localFileWriteMaxComponents} from '../site/root-file-writer.mjs';
 
-export function prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writerProfile, requestHeaderUnits, grantIssuer}) {
+export function prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writerProfile, requestHeaderUnits, grantIssuer, responseProjector}) {
   // recoveryEntry can retain the accepted prefix and the next already-admitted
   // record before its aggregate guard. The joined frame exists only after
   // that guard succeeds. Both peaks use this SAME original member extent.
@@ -28,13 +28,13 @@ export function prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writ
     BigInt(writerProfile.nativeOriginalBytes), writerProfile.maxRootBytes, writerProfile.maxNameBytes,
     localFileWriteMaxComponents, writerProfile.maxDepth, physicalContentReadWindowBytes, controlWireBytes, controlResponseBytes));
   const quantities = quote(controlEntryBytes, limits.maxResponseBytes), fallback = quote(undefined, undefined);
-  if (!Array.isArray(quantities) || ![6, 7].includes(quantities.length)) {
+  if (!Array.isArray(quantities) || ![6, 7, 8].includes(quantities.length)) {
     throw new TypeError('InvalidLocalFileStoreConstructionGeometry');
   }
   const capture = checked(moon.clientProgramInstalledEffectCaptureRecipeExtentPrepare('files.write.capture',
     quantities.length === 6 ? quantities : quantities.slice(0, 6)));
   let grantConstruction;
-  if (quantities.length === 7 && grantIssuer !== undefined) {
+  if (quantities.length >= 7 && grantIssuer !== undefined) {
     if (grantIssuer === null || typeof grantIssuer !== 'object' ||
         nodeTypes.isProxy(grantIssuer) || !Object.isFrozen(grantIssuer)) {
       throw new TypeError('InvalidLocalFileStoreConstructionGeometry');
@@ -45,6 +45,19 @@ export function prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writ
       throw new TypeError('InvalidLocalFileStoreConstructionGeometry');
     }
     grantConstruction = Object.freeze({receiver: grantIssuer, method: method.value, capacity: quantities[6]});
+  }
+  let projectConstruction;
+  if (quantities.length === 8 && responseProjector !== undefined) {
+    if (responseProjector === null || typeof responseProjector !== 'object' ||
+        nodeTypes.isProxy(responseProjector) || !Object.isFrozen(responseProjector)) {
+      throw new TypeError('InvalidLocalFileStoreConstructionGeometry');
+    }
+    const method = Object.getOwnPropertyDescriptor(responseProjector, 'project');
+    if (!method || !Object.hasOwn(method, 'value') || typeof method.value !== 'function' ||
+        nodeTypes.isProxy(method.value) || nodeTypes.isAsyncFunction(method.value)) {
+      throw new TypeError('InvalidLocalFileStoreConstructionGeometry');
+    }
+    projectConstruction = Object.freeze({receiver: responseProjector, method: method.value, capacity: quantities[7]});
   }
   const request = checked(moon.clientProgramInstalledEffectOperationExtentFromCapacityPrepare(
     'files.write.request', quantities[2], 0n, false));
@@ -173,5 +186,6 @@ export function prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writ
       ...(requestInput === undefined ? {} : {inputExtent: requestInput})}),
     physicalWrite: Object.freeze({operationIndex: 1, transferBytes: BigInt(limits.maxFileBytes)}),
     ...(grantConstruction === undefined ? {} : {grantConstruction}),
+    ...(projectConstruction === undefined ? {} : {projectConstruction}),
   }), 5);
 }

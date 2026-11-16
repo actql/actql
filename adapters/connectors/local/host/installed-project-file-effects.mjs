@@ -105,12 +105,12 @@ export async function installPreparedProjectLocalFileEffects({moon,preparation,s
       // The new aggregate bound remains with recover and recoveryEntry. Quote
       // both scalar occurrences on the SAME installation material before
       // constructing either closure; no Request pays for standing profile DATA.
-      // Four additional native value slots cover the owned three-field Grant
-      // selector, opaque quote, captured copies and fixed recipe carriers.
+      // Eight additional native value slots cover the owned three-field Grant
+      // and projector selectors, opaque quotes, captured copies and fixed recipe carriers.
       // This standing metadata is funded before the original factory; the
       // per-row proof population belongs to its later same-Run control quote.
       const {driver,site}=installedSourceConfigurationReader(installationServices).prepareNativeInput(Object.freeze({
-        capacity:()=>checked(moon.clientProgramInstalledSourceConstructionCapacity(6n,0n,0n,0n,0n,0n)),
+        capacity:()=>checked(moon.clientProgramInstalledSourceConstructionCapacity(10n,0n,0n,0n,0n,0n)),
         project:()=>createLocalFileStoreDriver({entry,target,command,bindingCid,principalId,
           authorization,assertCurrent:current,resources,limits,nativeFilesystem,writerProfile,
           maxRecoveryBytes:inputLimits.preview.maxWireBytes})}));
@@ -123,7 +123,7 @@ export async function installPreparedProjectLocalFileEffects({moon,preparation,s
         // application value or a replacement input/permission profile.
         const requestHeaderUnits=bindingCid.length+command.contract_cid.length+
           target.resourceWire.length+'{"binding":"","command":"","target":,"value":}'.length;
-        const managedPlanRecipe=prepareLocalFileStorePlanRecipe({moon,inputLimits,limits,writerProfile,requestHeaderUnits,grantIssuer:site});
+        const managedPlanRecipe=prepareLocalFileStorePlanRecipe({moon,inputLimits,limits,writerProfile,requestHeaderUnits,grantIssuer:site,responseProjector:driver});
         effect=await createInstalledRowEffect({moon,
           mappings:[{resource:'files',mappingRef:mapping.mapping_ref,
             mappingCid:mapping.mapping_contract_cid,body:target.mappingWire}],

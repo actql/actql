@@ -41,6 +41,9 @@ impl Hash for ClientEffectOperationCoordinate with fn hash_combine(self, hasher)
 priv enum ClientEffectControlConstructorFrame {
   Fixed(Int64, ClientInstalledEffectOperationBorrow?)
   Ledger(Int64)
+  // Sequential history arrays end inside the same outer constructor. Keep
+  // their largest actual peak separately from the coheld original base.
+  LedgerHistory(Int64, Int64)
 }
 
 ///|

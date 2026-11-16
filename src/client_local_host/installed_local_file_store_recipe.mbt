@@ -436,7 +436,13 @@ pub fn installed_local_file_store_recipe_capacities(
       @execution.execution_capacity_execution_bytes(grant) -
       @execution.execution_capacity_retained_bytes(grant),
     )
-    is Some(grant_workspace) else {
+    is Some(grant_workspace) &&
+    @execution.execution_capacity(
+      0L,
+      @execution.execution_capacity_execution_bytes(projected) -
+      @execution.execution_capacity_retained_bytes(projected),
+    )
+    is Some(project_workspace) else {
     return Err(Unsupported)
   }
   // Local's saved request envelope has no separately copied effect-id field.
@@ -448,7 +454,7 @@ pub fn installed_local_file_store_recipe_capacities(
     // R is already multiplied by the SAME checked row count in controls.
     // Native construction selects only this synchronous W; it adds no R a
     // second time and completion never returns the retained proof population.
-     grant_workspace,
+     grant_workspace, project_workspace,
   ])
 }
 

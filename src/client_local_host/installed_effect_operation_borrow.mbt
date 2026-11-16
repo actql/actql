@@ -126,6 +126,14 @@ fn installed_effect_operation_control_capacity(
     maps: 1L,
     map_entries: 0L,
   }).unwrap()
+  // Three closed row/Receipt/history ports use the existing selector carrier
+  // bound (4H14R3W each). Six Receipt wrappers each keep their original
+  // method/context (2H7R3W), and one SQL history callback has2H7R.
+  // Three captured Core methods, the original receiver policy word and
+  // history reentry latch stay fixed. Prepay the actual allocation-free
+  // Source preflight cursor here, before any Receipt geometry scan. These
+  // controls remain conservative retained standing metadata until retirement.
+  let receipt_preflight = @source.json_source_preflight_control_extent()
   let retained : @execution.PreparationRepresentationUnits = {
     // Optional Host input tuple/Some and its retained opaque capacity. Wire
     // text remains with the already-funded original Preview producer.
@@ -149,6 +157,8 @@ fn installed_effect_operation_control_capacity(
     // its temporary spread record and one WeakMap entry before registration.
     // Its current function is borrowed from the existing control.
     record_headers: dependency_cache.record_headers +
+    26L +
+    receipt_preflight.record_headers +
     4L +
     8L +
     13L +
@@ -165,6 +175,8 @@ fn installed_effect_operation_control_capacity(
     // The internal Ledger codec view copies one additional pure claim-facts
     // method reference before row/frontier work, including legacy fallback.
     reference_slots: dependency_cache.reference_slots +
+    94L +
+    receipt_preflight.reference_slots +
     1L +
     2L +
     1L +
@@ -182,6 +194,8 @@ fn installed_effect_operation_control_capacity(
     recovery.reference_slots,
     // The active codec retains its separately charged original output bound.
     scalar_words: dependency_cache.scalar_words +
+    30L +
+    receipt_preflight.scalar_words +
     2L +
     8L +
     27L +
@@ -1582,6 +1596,47 @@ pub fn begin_installed_effect_operation_ledger_family(
 }
 
 ///|
+pub fn begin_installed_effect_operation_ledger_row(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledEffectManagedPlan,
+  kind : String,
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+  response_bytes : Int,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  resize_installed_effect_operation_control_construction(
+    owner,
+    prepared,
+    request,
+    plan,
+    true,
+    ledger_row=Some((kind, bytes, nodes, depth, response_bytes)),
+  )
+}
+
+///|
+pub fn grow_installed_effect_operation_ledger_history(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledEffectManagedPlan,
+  count : Int,
+  wire_units : Int64,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  resize_installed_effect_operation_control_construction(
+    owner,
+    prepared,
+    request,
+    plan,
+    true,
+    ledger_history=Some((count, wire_units)),
+  )
+}
+
+///|
 fn installed_effect_ledger_open_workspace(root : String) -> Int64? {
   let scope = @request_scope.logical_request_scope_construction_inventory()
   // Ordinary filesystem/SQLite acquisition retains its existing owner. The
@@ -1690,6 +1745,31 @@ pub fn begin_installed_effect_operation_ledger_codec(
 }
 
 ///|
+// Same nested codec flight as the normalizing Ledger entrance. The original
+// Receipt methods still perform their full parse, seal, identity and binding
+// checks; only their actual immutable wire supplies constructor geometry.
+pub fn begin_installed_effect_operation_receipt_codec(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledEffectManagedPlan,
+  wire : String,
+  nodes : Int,
+  depth : Int,
+  receipt_wire : Bool,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  resize_installed_effect_operation_control_construction(
+    owner,
+    prepared,
+    request,
+    plan,
+    true,
+    ledger_codec=Some((true, Some(wire), nodes, depth)),
+    receipt_codec=Some(receipt_wire),
+  )
+}
+
+///|
 pub fn complete_installed_effect_operation_ledger_codec(
   owner : ClientInstalledManagedRun,
   prepared : @publication_host.PreparedClientEffectComputation,
@@ -1719,6 +1799,9 @@ fn resize_installed_effect_operation_control_construction(
   footprint_construction? : (Int, Int)? = None,
   ledger_open? : String? = None,
   ledger_family? : (Array[Int], Int, Int, Int, Int)? = None,
+  ledger_row? : (String, Int, Int, Int, Int)? = None,
+  ledger_history? : (Int, Int64)? = None,
+  receipt_codec? : Bool? = None,
   ledger_codec? : (Bool, String?, Int, Int)? = None,
   native_construction? : @execution.ExecutionCapacity? = None,
   member_receipt_construction? : @execution.ExecutionCapacity? = None,
@@ -1752,9 +1835,32 @@ fn resize_installed_effect_operation_control_construction(
   if !control.construction_deferred {
     return Err(Unsupported)
   }
+  if receipt_codec is Some(_) && !(ledger_codec is Some((true, Some(_), _, _))) {
+    return Err(Unsupported)
+  }
+  if ledger_history is Some(_) &&
+    (
+      !active ||
+      !control.construction_active ||
+      control.ledger_codec_active ||
+      control.constructor_frame is Some(Fixed(_, _)) ||
+      ledger_row is Some(_) ||
+      ledger_family is Some(_) ||
+      ledger_open is Some(_) ||
+      ledger_codec is Some(_) ||
+      input_wire is Some(_) ||
+      grant_construction ||
+      request_projection is Some(_) ||
+      footprint_construction is Some(_) ||
+      native_construction is Some(_) ||
+      member_receipt_construction is Some(_)
+    ) {
+    return Err(AlreadyBound)
+  }
   match ledger_codec {
     None =>
-      if control.construction_active == active || control.ledger_codec_active {
+      if (ledger_history is None && control.construction_active == active) ||
+        control.ledger_codec_active {
         return Err(AlreadyBound)
       }
     Some((entering, _, _, _)) =>
@@ -1783,12 +1889,19 @@ fn resize_installed_effect_operation_control_construction(
             Err(issue) => return Err(issue)
           }
       }
-      guard installed_effect_contract_response_construction_capacity(
-          bytes, nodes, depth,
-        )
-        is Some(codec) else {
-        return Err(Unsupported)
+      let codec = match receipt_codec {
+        Some(receipt_wire) =>
+          wire.bind(wire => {
+            installed_effect_receipt_codec_capacity(
+              wire, nodes, depth, receipt_wire,
+            )
+          })
+        None =>
+          installed_effect_contract_response_construction_capacity(
+            bytes, nodes, depth,
+          )
       }
+      guard codec is Some(codec) else { return Err(Unsupported) }
       (
         @execution.execution_capacity_execution_bytes(codec) -
         @execution.execution_capacity_retained_bytes(codec),
@@ -1823,7 +1936,11 @@ fn resize_installed_effect_operation_control_construction(
       }
     }
   }
-  if (ledger_open is Some(_) || ledger_family is Some(_)) &&
+  if (
+      ledger_open is Some(_) ||
+      ledger_family is Some(_) ||
+      ledger_row is Some(_)
+    ) &&
     (
       !active ||
       input_wire is Some(_) ||
@@ -1832,7 +1949,11 @@ fn resize_installed_effect_operation_control_construction(
       footprint_construction is Some(_) ||
       ledger_codec is Some(_) ||
       member_receipt_construction is Some(_) ||
-      (ledger_open is Some(_) && ledger_family is Some(_))
+      (
+        ledger_open is Some(_) &&
+        (ledger_family is Some(_) || ledger_row is Some(_))
+      ) ||
+      (ledger_family is Some(_) && ledger_row is Some(_))
     ) {
     return Err(Unsupported)
   }
@@ -1848,6 +1969,7 @@ fn resize_installed_effect_operation_control_construction(
       footprint_construction is Some(_) ||
       ledger_open is Some(_) ||
       ledger_family is Some(_) ||
+      ledger_row is Some(_) ||
       ledger_codec is Some(_) ||
       member_receipt_construction is Some(_)
     ) {
@@ -1863,13 +1985,38 @@ fn resize_installed_effect_operation_control_construction(
       footprint_construction is Some(_) ||
       ledger_open is Some(_) ||
       ledger_family is Some(_) ||
+      ledger_row is Some(_) ||
       ledger_codec is Some(_) ||
       native_construction is Some(_)
     ) {
     return Err(Unsupported)
   }
-  let constructor_frame : ClientEffectControlConstructorFrame? = if member_receipt_construction
-    is Some(scratch) {
+  let constructor_frame : ClientEffectControlConstructorFrame? = if ledger_history
+    is Some((count, units)) {
+    let (previous, peak) = match control.constructor_frame {
+      Some(Ledger(previous)) => (previous, 0L)
+      Some(LedgerHistory(previous, peak)) => (previous, peak)
+      None => {
+        // A public history call keeps its complete generic constructor too.
+        // Adding the actual history must never narrow that existing frame.
+        guard installed_effect_control_capacity(Some(control), plan)
+          is Some((capacity, _)) else {
+          return Err(Unsupported)
+        }
+        (
+          @execution.execution_capacity_execution_bytes(capacity) -
+          @execution.execution_capacity_retained_bytes(capacity),
+          0L,
+        )
+      }
+      _ => return Err(AlreadyBound)
+    }
+    guard installed_effect_ledger_history_workspace(count, units)
+      is Some(history) else {
+      return Err(Unsupported)
+    }
+    Some(LedgerHistory(previous, Int64::max(peak, history)))
+  } else if member_receipt_construction is Some(scratch) {
     Some(Ledger(@execution.execution_capacity_execution_bytes(scratch)))
   } else if native_construction is Some(native) {
     Some(
@@ -1968,6 +2115,11 @@ fn resize_installed_effect_operation_control_construction(
     // generic frame and all original method checks in their original order.
     installed_effect_ledger_family_workspace(
       counts, entries, bytes, nodes, depth,
+    ).map(workspace => Ledger(workspace))
+  } else if ledger_row is Some((kind, bytes, nodes, depth, response_bytes)) {
+    // Unsupported policies keep the complete existing generic constructor.
+    installed_effect_ledger_row_workspace(
+      kind, bytes, nodes, depth, response_bytes,
     ).map(workspace => Ledger(workspace))
   } else if grant_construction {
     if !active || input_wire is Some(_) || ledger_codec is Some(_) {
@@ -2577,6 +2729,17 @@ fn installed_effect_control_capacity(
       }
       Int64::max(base_idle, execution)
     }
+    Some(LedgerHistory(workspace, history)) => {
+      guard workspace >= 0L &&
+        history >= 0L &&
+        @execution.checked_preparation_add_product(workspace, history, 1L)
+        is Some(workspace) &&
+        @execution.checked_preparation_add_product(base_retained, workspace, 1L)
+        is Some(execution) else {
+        return None
+      }
+      Int64::max(base_idle, execution)
+    }
   }
   // The next actual wire's decoder coexists with these original controls.
   // Its retained tree/output and scratch are additional demand on the SAME
@@ -2590,6 +2753,13 @@ fn installed_effect_control_capacity(
   // cannot enter the nested codec at all. Only Ledger adds its coheld scratch.
   let coheld_workspace = match constructor_frame {
     Some(Ledger(workspace)) => workspace
+    Some(LedgerHistory(workspace, history)) => {
+      guard @execution.checked_preparation_add_product(workspace, history, 1L)
+        is Some(workspace) else {
+        return None
+      }
+      workspace
+    }
     _ => 0L
   }
   guard @execution.checked_preparation_add_product(
