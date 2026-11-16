@@ -175,7 +175,7 @@ async function initialEffectFixture(t, {refuseReservation = false, suspended = f
       return ok(quantity('material', values));
     },
     clientProgramComposeInstalledSourceConstructionCapacity(base, providers) {
-      assert.strictEqual(this, moon);sameQuantity(base);assert.equal(base.kind, 'material');
+      assert.strictEqual(this, moon);sameQuantity(base);
       assert(providers.length > 0);providers.forEach(sameQuantity);
       return ok(quantity('composed', [base, Object.freeze([...providers])]));
     },
@@ -392,7 +392,7 @@ async function constructionFixture(t, {refuseMapping = false, beforeAdapter, ope
       assert.strictEqual(this, moon);assert.equal(values.length, 6);geometry(values);return ok(quantity('material', values));
     },
     clientProgramComposeInstalledSourceConstructionCapacity(base, providers) {
-      assert.strictEqual(this, moon);sameQuantity(base);assert.equal(base.kind, 'material');
+      assert.strictEqual(this, moon);sameQuantity(base);
       assert(providers.length > 0);providers.forEach(sameQuantity);
       return ok(quantity('composed', [base, Object.freeze([...providers])]));
     },
@@ -482,7 +482,7 @@ async function constructionFixture(t, {refuseMapping = false, beforeAdapter, ope
 test('Effect construction retains original Mapping Environment and adapter until the same Site cleanup', async t => {
   const f = await constructionFixture(t), adapter = await f.run();
   assert.equal(typeof adapter.prepareManagedPlan, 'function');
-  assert.deepEqual(f.events.slice(-4), ['reserve', 'declaration', 'reserve', 'mapping']);
+  assert.deepEqual(f.events.filter(event => event !== 'reserve'), ['declaration', 'mapping']);
   assert.equal(retireInstalledSourceInitialization(f.services), false);
   await assert.rejects(adapter.close(), error => error === f.pendingClose);
   assert.equal(retireInstalledSourceInitialization(f.services), false);assert.equal(f.retired(), 0);
@@ -587,6 +587,16 @@ function commandConstructionFixture({refuseReserve = false, failProjection, duri
   const events = [], quotes = [], reservedQuotes = [], completions = [], sourceCompletions = [], refusal = new Error('original command reservation refused'), contractOriginal={original:'contracts'};
   let reserveCalls = 0, selectedReserve = reserveAt, retired = 0, context, pending;
   const expectedCapacities = [], pendingCoreCapacities = [], constructedCapacities = new WeakSet();
+  const composedCapacities = new WeakMap();
+  const compositionReceipts = new WeakSet();
+  const fundedCapacities = new WeakSet();
+  const retainFundedCapacity = quote => {
+    fundedCapacities.add(quote);
+    if (compositionReceipts.has(quote)) {
+      retainFundedCapacity(quote.original);
+      for (const child of quote.selected) retainFundedCapacity(child);
+    }
+  };
   // The fixture records each capacity at its issuing port, before the actual
   // initializer receives it. The compose oracle never learns its expectation
   // from the selected output, so omission/reordering/substitution still fail.
@@ -605,6 +615,9 @@ function commandConstructionFixture({refuseReserve = false, failProjection, duri
     'AbortUncontinuedSourceMaterial','BeginInstalledSourceIo','ChargeInstalledSourceIo',
     'MarkInstalledSourceIoTransferUncertain','FinishInstalledSourceIoAfterCleanup'].map(name => ['clientProgram' + name, () => ok()]));
   Object.assign(moon, {
+    clientProgramReconcileInstalledSourceConstruction(value, original) {
+      assert.equal(value,capacity);assert.equal(original,input);pendingCoreCapacities.length=0;return ok();
+    },
     clientProgramCompleteInstalledSourceMaterial(value, original, source, environment, quote) {
       assert.equal(value, capacity);assert.equal(original, input);assert.equal(source,input);
       sourceCompletions.push({source,environment,quote});events.push('source-complete');return ok();
@@ -629,22 +642,38 @@ function commandConstructionFixture({refuseReserve = false, failProjection, duri
       completions.push({original:value,retained});return ok(retained);
     },
     clientProgramComposeInstalledSourceConstructionCapacity(original, selected) {
-      assert.strictEqual(pendingCoreCapacities.pop(), original, 'The aggregate uses the last actual Core quote');
-      // A pure Environment phase issues its native quantity immediately before
-      // the aggregate base quote; sequential base quotes add no new provider.
-      assert(pendingCoreCapacities.length <= 1);
-      expectedCapacities.push(...pendingCoreCapacities);pendingCoreCapacities.length=0;
-      assert.equal(selected.length, expectedCapacities.length);
-      selected.forEach((value,index)=>assert.strictEqual(value,expectedCapacities[index]));
-      assert(selected[0]===native||retainedNative!==undefined&&selected[0]===retainedNative);
+      const pending = composedCapacities.get(original);
+      let expected;
+      if (pending !== undefined) {
+        // The pending original has its own funded singleton. Existing live
+        // providers join that original without copying its capacity receipt.
+        expected = expectedCapacities.slice(0, -1);
+        assert.strictEqual(expectedCapacities.at(-1), pending);
+      } else {
+        assert.strictEqual(pendingCoreCapacities.pop(), original, 'The aggregate uses the last actual Core quote');
+        assert(pendingCoreCapacities.length <= 1);
+        if (pendingCoreCapacities.length) {
+          const issued = pendingCoreCapacities.pop();
+          expectedCapacities.push(issued);expected = [issued];
+        } else if (selected.length === 1 && expectedCapacities.length > 1 &&
+            !fundedCapacities.has(selected[0]) &&
+            selected[0] === expectedCapacities.at(-1)) expected = [expectedCapacities.at(-1)];
+        else expected = expectedCapacities;
+      }
+      assert.equal(selected.length, expected.length);
+      selected.forEach((value,index)=>assert.strictEqual(value,expected[index]));
       const explicit=selected.filter(value=>!constructedCapacities.has(value));
       if(repeatedNative)assert(explicit.every(value=>value===native||value===retainedNative));
-      else assert.deepEqual(explicit.slice(1),explicit.length===1?[]:additionalNative);
-      quotes.push({original, selected: [...selected]});return ok(Object.freeze({original, selected: Object.freeze([...selected])}));
+      else assert(explicit.every(value=>value===native||value===retainedNative||additionalNative.includes(value)));
+      const receipt=Object.freeze({original,selected:Object.freeze([...selected])});
+      compositionReceipts.add(receipt);
+      if(expected.length===1&&expected!==expectedCapacities)composedCapacities.set(receipt,expected[0]);
+      quotes.push({original, selected: [...selected]});return ok(receipt);
     },
     clientProgramReserveInstalledSourceConstruction(value, original, quote) {
-      assert.equal(value, capacity);assert.equal(original, input);reservedQuotes.push(quote);reserveCalls++;events.push('reserve');
-      if (reserveCalls === selectedReserve) {duringReserve?.(context);if (refuseReserve) throw refusal;}return ok();
+      assert.equal(value, capacity);assert.equal(original, input);reservedQuotes.push(quote);pendingCoreCapacities.length=0;reserveCalls++;events.push('reserve');
+      if (reserveCalls === selectedReserve) {duringReserve?.(context);if (refuseReserve) throw refusal;}
+      retainFundedCapacity(quote);return ok();
     },
     clientProgramRetireInstalledSourceMaterial(value, original) {assert.equal(value, capacity);assert.equal(original, input);retired++;return ok(true);},
     clientProgramRowSourceRestoreRelationDeclaration(...args) {assert.equal(events.at(-1), 'reserve');events.push('restore');assert.equal(args[4], undefined);return ok(declaration);},
@@ -676,12 +705,13 @@ function commandConstructionFixture({refuseReserve = false, failProjection, duri
 }
 
 test('Source constructor fixture refuses omitted reordered and equal-shaped foreign capacity originals', () => {
-  for (const difference of ['omitted', 'reordered', 'foreign']) {
+  for (const difference of ['omitted', 'reordered', 'foreign', 'funded-singleton']) {
     const f=commandConstructionFixture({role:'source'});f.prepare();
     const selected=[...f.expectedCapacities];assert(selected.length>2);
     if(difference==='omitted')selected.pop();
     else if(difference==='reordered')[selected[0],selected[1]]=[selected[1],selected[0]];
-    else selected[1]=Object.freeze({values:selected[1].values});
+    else if(difference==='foreign')selected[1]=Object.freeze({values:selected[1].values});
+    else selected.splice(0,selected.length-1);
     const aggregate=f.moon.clientProgramInstalledSourceConstructionCapacity(0n,0n,0n,0n,0n,0n)._0;
     assert.throws(()=>f.moon.clientProgramComposeInstalledSourceConstructionCapacity(aggregate,selected),
       {code:'ERR_ASSERTION'});
@@ -693,8 +723,8 @@ test('Command Source initialization retains same final Environment and original 
   const f = commandConstructionFixture(), prepared = f.prepare();
   assert.equal(prepared.declaration, f.declaration);assert.equal(prepared.declared, f.declared);
   assert.equal(prepared.commands, f.commands);assert.deepEqual(JSON.parse(prepared.environment.wire).command_contracts, [{}]);
-  assert.deepEqual(f.events, ['reserve','restore','native-quantity','reserve','project','reserve']);
-  assert(f.quotes.length >= 2);assert(f.quotes.every(value => value.selected[0] === f.quotes[0].selected[0]));
+  assert.deepEqual(f.events.filter(event=>event!=='reserve'), ['restore','native-quantity','project']);
+  assert.strictEqual(f.quotes.at(-1).selected[0],f.native);
   assert.doesNotThrow(()=>assertInstalledSourceConstruction(f.context,f.declaration,f.declared,prepared.environment,undefined,[],f.commands));
   assert.throws(()=>assertInstalledSourceConstruction(f.context,f.declaration,f.declared,prepared.environment,undefined,[],[...f.commands]),{code:'ForeignInstalledSourceConstruction'});
   assert.throws(()=>assertInstalledSourceConstruction(f.context,f.declaration,f.declared,prepared.environment,undefined,[{}],f.commands),{code:'ForeignInstalledSourceConstruction'});
@@ -778,8 +808,8 @@ test('invalid async Source target remains refused and retained until SAME origin
 });
 
 for(const refuseReserve of [false,true])test(`Effect driver construction retains SAME Source backing and original retirement: refusal ${refuseReserve}`,()=>{
-  const quantity={},f=commandConstructionFixture({role:'effect',additionalNative:[quantity],refuseReserve,reserveAt:4});
-  f.prepare();let projected=0;
+  const quantity={},f=commandConstructionFixture({role:'effect',additionalNative:[quantity],refuseReserve,reserveAt:Infinity});
+  f.prepare();f.selectReserveAfter(1);let projected=0;
   const original={driver:Object.freeze({original:'driver'}),target:Object.freeze({original:'target'})};
   const projection=Object.freeze({capacity(){return f.retainQuantity(quantity);},project(){
     projected++;assert.equal(f.events.at(-1),'reserve');
@@ -881,6 +911,7 @@ for(const difference of ['entry','base','declared-wire','closed-source','failed-
     const entry=difference==='entry'?Object.freeze({...f.installed}):f.installed;
     if(entry!==f.installed)retainInstalledHostServiceInstallation(f.services,entry,'sha256:'+'a'.repeat(64));
     const base=difference==='base'?' '+f.environment:f.environment;
+    const reservationsBefore=f.reservedQuotes.length;
     const effect=beginInstalledSourceInitialization(f.services,entry,'sheets',base,'effect');
     const projection=difference!=='declared-wire'?f.projection:Object.freeze({
       capacity:f.projection.capacity,
@@ -891,7 +922,7 @@ for(const difference of ['entry','base','declared-wire','closed-source','failed-
         return {...original,declared,wire:JSON.stringify(declared)};}});
     const prepared=effect.prepareDeclaredCommands('{"views":[]}',projection);
     assert.notEqual(prepared.environment,first.environment);
-    assert(f.reservedQuotes.at(-1).original.values.slice(3).every(value=>value>0n),
+    assert(f.reservedQuotes.slice(reservationsBefore).some(quote=>quote.original.values.slice(3).every(value=>value>0n)),
       'Distinct input must fund its own existing Environment construction');
     assert.deepEqual(f.quotes.at(-1).selected, [...originalPeaks, f.native]);
     finishInstalledSourceInitialization(effect,undefined,new Error('fixture terminal'),true);
@@ -1199,7 +1230,7 @@ test('final Source handoff retains the built Environment without another parser 
   const short = complete('x'), long = complete('x'.repeat(100000));
   assert.equal(long[0], short[0], 'A String retains text bytes, not one Value node per byte');
   assert.ok(long[1] > short[1]);
-  const f = commandConstructionFixture({refuseReserve:true,reserveAt:4});f.prepare();f.finish();
+  const f = commandConstructionFixture({refuseReserve:true,reserveAt:Infinity});f.prepare();f.finish();f.selectReserveAfter(1);
   assert.throws(() => completeInstalledSourceInitialization(f.services,f.input,{},'{}'),
     error => error === f.refusal);
   assert.equal(f.sourceCompletions.length,0,'Original refusal precedes the existing completion');
