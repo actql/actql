@@ -35,13 +35,13 @@ theorem retained_core_union (count : Nat) (registry : RelationCapacity.Registry)
   have unionBound := RelationCapacity.charge_union registry.ids registry.size coreLive selectionLive
   omega
 
--- Current source has five pointer-sized fields; the optional Infer recipe is
+-- Current source has six pointer-sized fields; optional bounded quote and Infer recipes are
 -- None in all eleven candidates. The separate Model-bound tuple is excluded.
 -- These conditional arithmetic laws are not compiler or observation evidence.
 theorem current_candidate_component (s : Footprint)
-    (records : s.records ≤ 11 * 48) (callbacks : s.callbacks ≤ 44 * 40)
+    (records : s.records ≤ 11 * 56) (callbacks : s.callbacks ≤ 44 * 40)
     (candidates : s.candidates ≤ 120) (family : s.defaultFamily ≤ 24) :
-    s.bytes ≤ 2432 := by
+    s.bytes ≤ 2520 := by
   unfold Footprint.bytes
   omega
 
@@ -49,12 +49,12 @@ theorem current_retained_core_union (count : Nat) (registry : RelationCapacity.R
     (coreLive selectionLive : Nat → Bool)
     (core : NativeParentCore.Footprint) (selection : Footprint)
     (coreBound : core.bytes ≤ NativeParentCore.envelope count)
-    (selectionBound : selection.bytes ≤ 2432)
+    (selectionBound : selection.bytes ≤ 2520)
     (coreCoverage : RelationCapacity.charge registry.ids registry.size coreLive ≤ core.bytes)
     (selectionCoverage : RelationCapacity.charge registry.ids registry.size selectionLive ≤ selection.bytes) :
     RelationCapacity.charge registry.ids registry.size
       (fun id => coreLive id || selectionLive id) ≤
-        NativeParentCore.envelope count + 2432 := by
+        NativeParentCore.envelope count + 2520 := by
   have unionBound := RelationCapacity.charge_union registry.ids registry.size coreLive selectionLive
   omega
 

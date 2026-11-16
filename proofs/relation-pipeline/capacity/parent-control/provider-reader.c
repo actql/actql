@@ -24,13 +24,17 @@ moonbit_string_t actql_proof_provider_construction(void *candidates,
     seen[seen_count++] = records[i];
     assert(Moonbit_rc_count(Moonbit_object_header(records[i])) >= 0);
     const uint32_t *s = layout(records[i]);
-    assert(s[0] == 10 && s[1] == 5);
+    assert(s[0] == 12 && s[1] == 6);
     /* The separate Model-bound family tuple is outside these eleven candidates. */
-    assert(s[6] == 16);
-    void *infer_prefix; memcpy(&infer_prefix, (uint8_t *)records[i] + 32, sizeof infer_prefix);
+    assert(s[7] == 20);
+    void *infer_prefix; memcpy(&infer_prefix, (uint8_t *)records[i] + 40, sizeof infer_prefix);
     assert(infer_prefix == NULL);
+    /* The optional bounded recipe belongs to separately installed families;
+     * none of these eleven constructor candidates owns that callback. */
+    void *bounded_quote; memcpy(&bounded_quote, (uint8_t *)records[i] + 16, sizeof bounded_quote);
+    assert(bounded_quote == NULL);
     bytes += regular_bytes(records[i]);
-    for (int j = 0; j < 4; j++) {
+    for (int j = 0; j < 5; j++) {
       assert(s[2 + j] == (uint32_t)j * 4);
       void *callback; memcpy(&callback, (uint8_t *)records[i] + j * 8, sizeof callback);
       if (callback) { assert(queued < 128); queue[queued++] = callback; }
@@ -83,7 +87,7 @@ moonbit_string_t actql_proof_provider_construction(void *candidates,
   }
   struct current_json json = {.used = 0};
   current_add(&json,
-    "ACTQL_PIPELINE_FAULT:{\"kind\":\"provider construction observation\",\"providers\":11,\"providerRecordFields\":5,\"records\":11,\"arraySlots\":11,\"callbacks\":%d,\"defaultArrays\":%d,\"indexedBytes\":%" PRIu64 ",\"unclassifiedCaptures\":%d,\"scalarDynamicCallbacks\":%d,\"scalarCodes\":[",
+    "ACTQL_PIPELINE_FAULT:{\"kind\":\"provider construction observation\",\"providers\":11,\"providerRecordFields\":6,\"records\":11,\"arraySlots\":11,\"callbacks\":%d,\"defaultArrays\":%d,\"indexedBytes\":%" PRIu64 ",\"unclassifiedCaptures\":%d,\"scalarDynamicCallbacks\":%d,\"scalarCodes\":[",
     callbacks, arrays, bytes, unclassified, scalar);
   for (int i = 0; i < scalar; i++) {
     current_add(&json, "%s{\"identity\":\"%" PRIxPTR "\",\"codeDelta\":\"%" PRIdPTR "\"}",

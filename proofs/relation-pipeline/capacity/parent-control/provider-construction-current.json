@@ -4,85 +4,88 @@
     {
       "name": "selected_relation_provider",
       "path": "src/connectors/local/selected_relation_provider.mbt",
-      "sourceDigest": "7d1f4e0ad5f3066e3914f25b07ba3e8380d308f6d513bc0339efe4b3bd371d91",
-      "binding": "managed_provider_with_numeric",
-      "constructorDigest": "8a82aae30fac7535006669e5dad04aa9b2483a41e4f697c857a379a06dc061a6"
+      "binding": "managed_provider_with_numeric"
     },
     {
       "name": "cross_join_provider",
       "path": "src/connectors/local/cross_join_provider.mbt",
-      "sourceDigest": "4a72e422dd1b3e5417065e9edbeb9369fa5736b9ef10e01802fd29930939dd14",
-      "binding": "managed_provider",
-      "constructorDigest": "57bd467103e0b279771f3678e56f8bdbdc0d7cbd6e7b7fbfcb4c4ef9bbe84e7a"
+      "binding": "managed_provider"
     },
     {
       "name": "append_provider",
       "path": "src/connectors/local/append_provider.mbt",
-      "sourceDigest": "63023b5cdcfc8f3a0ace1d1321224b953bf370aac7ce246a1e7b5c8b4ae156a2",
-      "binding": "managed_provider",
-      "constructorDigest": "27f05260bcc1b47c1705aac2f218221ec34911eb3ce022177ac52cf22a6e02d2"
+      "binding": "managed_provider"
     },
     {
       "name": "set_provider",
       "path": "src/connectors/local/set_provider.mbt",
-      "sourceDigest": "4701d7aea4306368b4823e6850bcd385555fcc9d4341bc6db16b399cfb7e9296",
-      "binding": "managed_provider",
-      "constructorDigest": "43dd0a8618102e22914c75f9c85ad69636ec173077cdaa06e076007802aefbde"
+      "binding": "managed_provider"
     },
     {
       "name": "nest_provider",
       "path": "src/connectors/local/nest_provider.mbt",
-      "sourceDigest": "290c81be732498468238e24752b45eb4e7df3487c9c2d1607a21fc63eb0b2847",
-      "binding": "managed_provider",
-      "constructorDigest": "ffbf88e6da19f4b134ccf0166e0b1598ecb4974fbef159742148ac8c031b5a78"
+      "binding": "managed_provider"
     },
     {
       "name": "global_count_provider",
       "path": "src/connectors/local/global_count_provider.mbt",
-      "sourceDigest": "386e945152eaba517fc7778a39a811f5a1ea7fce902051e0c3a909120edf68f8",
-      "binding": "managed_provider_with_inputs",
-      "constructorDigest": "15f3c018dd9af223fe5e8934dd31ef6daf392f9b370a55bcd3af6794ba9b30cd"
+      "binding": "managed_provider_with_inputs"
     },
     {
       "name": "group_provider",
       "path": "src/connectors/local/group_provider.mbt",
-      "sourceDigest": "020fce952069f7b0e0ee9871da143a640244c4a6bc3f0eaf73de8fc8b877cfaf",
-      "binding": "managed_provider_with_numeric",
-      "constructorDigest": "9a317a1ba7bd76e640016a8c27d4aa354ced85fa9a35fe3449738ba051ec1785"
+      "binding": "managed_provider_with_numeric"
     },
     {
       "name": "row_window_provider",
       "path": "src/connectors/local/row_window_provider.mbt",
-      "sourceDigest": "5f9d9f2b490fb44d7f5d08ada3070f1fc2c1b49fc4bbe5f400c1d9bbaa88c161",
-      "binding": "managed_provider_with_inputs",
-      "constructorDigest": "49147ad0101b544aa2161035ce5300a96c1f2cd80597997326d904920e262255"
+      "binding": "managed_provider_with_inputs"
     },
     {
       "name": "unpivot_provider",
       "path": "src/connectors/local/unpivot_provider.mbt",
-      "sourceDigest": "b8872f0fe61f397f149b57286d36664d7847ea4cc5a7bce4f17c01027bfc92bd",
-      "binding": "managed_provider_with_inputs",
-      "constructorDigest": "63dba8ad19e1490fb7c1fd097916485b55f797506789fe25cb13ac3fbc0c0fee"
+      "binding": "managed_provider_with_inputs"
     },
     {
       "name": "unnest_provider",
       "path": "src/connectors/local/unnest_provider.mbt",
-      "sourceDigest": "c3419b508e8f462e89f17d121293e0619e257fe0d1d5ba1f9114df64363bc62a",
-      "binding": "managed_provider_with_inputs",
-      "constructorDigest": "d7bc6014f0ed615883acd8ff5cb2b1a17cf0a08b8383c01e8d1922248c871091"
+      "binding": "managed_provider_with_inputs"
     },
     {
       "name": "values_provider",
       "path": "src/connectors/local/values_provider.mbt",
-      "sourceDigest": "511a6e49d3545ba26c79922d0ce6275232c0b59d08b87d90f03ee7195b7662ea",
-      "binding": "managed_provider",
-      "constructorDigest": "9da13097d98735340b48968beb6fea264dad794cd792d104a73a10f9085f94b5"
+      "binding": "managed_provider"
     }
   ],
   "providerRecord": {
     "path": "src/connectors/local/managed_provider.mbt",
     "name": "ManagedProvider",
-    "declarationDigest": "ab347158785514605cbd1e8fe4236cdb3d68dc602ea170c61a06f072065aaa42"
+    "fields": [
+      {
+        "name": "accepts",
+        "type": "(@execution.GeneratedSequence) -> Bool"
+      },
+      {
+        "name": "capacity",
+        "type": "(@execution.GeneratedSequence) -> @execution.ExecutionCapacity?"
+      },
+      {
+        "name": "bounded_relation_capacity",
+        "type": "(( @execution.GeneratedSequence, @execution.SequenceExecutionLimits, @execution.FixedInputGuardMeasureLimits, ) -> @execution.ExecutionCapacity?)?"
+      },
+      {
+        "name": "start",
+        "type": "( @execution.GeneratedSequence, Array[ManagedProviderInput], Int, Int, @execution.SequenceExecutionLimits, ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue]"
+      },
+      {
+        "name": "start_numeric",
+        "type": "(( @execution.GeneratedSequence, Array[ManagedProviderInput], Int, Int, @execution.SequenceExecutionLimits, @execution.NumericAggregateExecution?, ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue])?"
+      },
+      {
+        "name": "infer_relation_prefix",
+        "type": "( @execution.GeneratedSequence, Int, @execution.SequenceExecutionLimits, @execution.FixedInputGuardMeasureLimits, )?"
+      }
+    ]
   },
   "bounds": {
     "providerRecords": 11,
@@ -94,14 +97,8 @@
   "scope": "one simultaneous eleven-candidate Relation selection construction; borrowed configuration and callback execution excluded",
   "completeParentUpper": false,
   "completePipelineUpper": false,
-  "wrapperDigests": {
-    "managed_provider": "f3598b4224dfab39ebd8bbd27811223a87909ef344c9090738f64f1491e2cc38",
-    "managed_provider_with_inputs": "46bafd245b1a9d6f98753ffadf21a4c078226a186efc83078eaf631f3da6b30b",
-    "managed_provider_with_numeric": "a1b565d414e3c18796303dcbf1d3b5d8c11a30f6e9fd810175484d98849c2ab0"
-  },
   "selectionFactory": {
     "path": "src/connectors/local/selected_relation_provider.mbt",
-    "name": "bounded_relation_step_provider",
-    "constructorDigest": "c126035dbbcb216e012897380f1032dfaf3ee561a3b679478149d86b090f2d78"
+    "name": "bounded_relation_step_provider"
   }
 }

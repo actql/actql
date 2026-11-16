@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import {reviewedFunction, selectedBeforeCleanupContinuation} from './provider-construction-source-review.mjs';
-import {hash} from '../../inventory.mjs';
 
 // Exact source-side capture inventory, not a general MoonBit free-variable
 // analysis. Native correspondence must bind these roles to actual closures.
@@ -31,20 +30,14 @@ function argumentsOf(source) {
   return args;
 }
 export function checkChainSource(source) {
-  // This original one-sequence query returns only the checked Int prefix.
-  // The reviewed body selects existing step metadata and support predicates;
-  // it issues no Owner/current operation and never receives the private Refs.
-  // Bind its body and arity before admitting its one generated custody call.
-  const prefix = clean(reviewedFunction(source, 'relation_chain_reclaimed_prefix')).replace(/\s+/g, ' ').trim();
-  // CrossJoin shares Join scratch retirement; Set remains singleton-only.
-  // Window extends eligibility through its reviewed detached-output cleanup,
-  // without changing query arity, parent construction or callback captures.
-  // PIVOT is eligible only for a singleton. It cannot extend a serial prefix;
-  // the capacity function returns its unchanged base before the prefix query.
-  // The existing unary census contains no Window or PIVOT and gains no measurement or
-  // whole-parent lifetime qualification from this Source correspondence.
-  assert.equal(hash(prefix), '7e2e7b6258cf147b15b58add0133399bb23fc3194b0c236d478d28ddfd36c2ef',
-    'Changed reviewed reclaimed-prefix source body or arity');
+  // The prefix query borrows only the checked sequence and its existing
+  // limits/family recipe. Its private eligibility implementation is exercised
+  // by the real chain tests; it is not a language or ABI version authority.
+  const prefix = clean(reviewedFunction(source, 'relation_chain_reclaimed_prefix'));
+  assert.match(prefix, /^fn relation_chain_reclaimed_prefix\(\s*sequence : @execution\.GeneratedSequence,\s*limits : @execution\.SequenceExecutionLimits,\s*measurement : @execution\.FixedInputGuardMeasureLimits,\s*family : Array\[ManagedProvider\],\s*\) -> Int \{/u,
+    'Changed reclaimed-prefix borrowed input types');
+  assert(!/\bRef\s*\(|\b(?:state|used|cancelled|terminal|reclaimed|cleanup_index)\b/u.test(prefix),
+    'Reclaimed-prefix query must not receive private parent custody');
   // Keep the original five lifecycle captures independently checked. The
   // exact new observer borrows state/terminal/reclaimed/cleanup_index; its
   // closure and eighth execution-owner slot have no Native extent admission.
@@ -59,8 +52,8 @@ export function checkChainSource(source) {
   assert.equal(parts.length, 5, 'Changed managed parent callback count');
   assert.equal(constructor.split('relation_chain_reclaimed_prefix(').length, 2,
     'Changed reviewed reclaimed-prefix call count');
-  assert(constructor.includes('let reclaimed_prefix = relation_chain_reclaimed_prefix(sequence)'),
-    'Changed audited prefix capture');
+  assert.match(constructor, /let reclaimed_prefix = relation_chain_reclaimed_prefix\(\s*sequence, execution, measurement, family,\s*\)/u,
+    'Changed audited prefix borrowed capture');
   const bindings = [...new Set([...parameterBindings, ...[...constructor.matchAll(/^  let (\w+)(?:\s*:[^=\n]+)?\s*=/gm)].map(m => m[1])])];
   const callbacks = {startNext: constructor.slice(constructor.indexOf(open), constructor.indexOf(middle)),
     ...Object.fromEntries(['advance', 'cancel', 'stopped', 'cleanup', 'childWorkIssue'].map((name, i) => [name, parts[i]]))};

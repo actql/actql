@@ -53,6 +53,10 @@
           "type": "(@execution.GeneratedSequence) -> @execution.ExecutionCapacity?"
         },
         {
+          "name": "bounded_relation_capacity",
+          "type": "(( @execution.GeneratedSequence, @execution.SequenceExecutionLimits, @execution.FixedInputGuardMeasureLimits, ) -> @execution.ExecutionCapacity?)?"
+        },
+        {
           "name": "start",
           "type": "( @execution.GeneratedSequence, Array[ManagedProviderInput], Int, Int, @execution.SequenceExecutionLimits, ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue]"
         },

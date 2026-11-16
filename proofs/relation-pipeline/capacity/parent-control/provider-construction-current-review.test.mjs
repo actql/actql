@@ -25,7 +25,7 @@ test('current constructor admission binds current sources and keeps the conditio
   const bound = providerConstructionBound(read);
   assert.equal(bound.providerCount, 11);
   assert.equal(bound.callbackCount, 44);
-  assert.equal(bound.bytes, 2432);
+  assert.equal(bound.bytes, 2520);
   assert.equal(bound.completeConstructorByteCorrespondence, false);
   assert.equal(bound.completeParentUpper, false);
   assert.equal(bound.completePipelineUpper, false);
@@ -113,7 +113,7 @@ test('unrelated runtime helpers retain complete source provenance without changi
     const changed = change(original);
     assert.notEqual(changed, original);
     const bound = providerConstructionBound(file => file === path ? changed : read(file));
-    assert.equal(bound.bytes, 2432);
+    assert.equal(bound.bytes, 2520);
     assert.equal(bound.completeConstructorByteCorrespondence, false);
     assert.equal(bound.completeParentUpper, false);
     assert.equal(bound.completePipelineUpper, false);
@@ -129,7 +129,7 @@ test('borrowed generated inputs and deferred execution are outside the candidate
     'struct GeneratedSequence {\n  unrelated_borrowed_field : Int');
   assert.notEqual(changed, original);
   const bound = providerConstructionBound(path => path === generatedPath ? changed : read(path));
-  assert.equal(bound.bytes, 2432);
+  assert.equal(bound.bytes, 2520);
   assert.equal(bound.sourceReview.generatedDigest, hash(changed));
   assert.equal(bound.completeConstructorByteCorrespondence, false);
   assert.equal(bound.completeParentUpper, false);
@@ -137,7 +137,7 @@ test('borrowed generated inputs and deferred execution are outside the candidate
   const source = read(selectedPath).toString();
   const brokenCleanup = source.replace('        if reclaimed.val {', '        if true {');
   assert.notEqual(brokenCleanup, source);
-  assert.equal(providerConstructionBound(path => path === selectedPath ? brokenCleanup : read(path)).bytes, 2432);
+  assert.equal(providerConstructionBound(path => path === selectedPath ? brokenCleanup : read(path)).bytes, 2520);
   assert.throws(() => checkParentCensus(path => path === selectedPath ? brokenCleanup : read(path)),
     /Unreviewed .* source captures|Changed row cleanup stop\/ACK boundary/);
 });
@@ -153,7 +153,7 @@ test('current construction requires no historical recipe, review or Git source',
     assert(file.startsWith('src/') || file === current, `Unexpected historical input ${file}`);
     return read(file);
   });
-  assert.equal(bound.bytes, 2432);
+  assert.equal(bound.bytes, 2520);
   assert.equal(bound.sourceReview.historicalSourceReview, undefined);
   assert.equal(bound.sourceReview.retainedSourceReview, undefined);
 });
@@ -174,4 +174,32 @@ test('literal reversal refuses duplicate current occurrences even with a substit
   const source = beforeAdoptedConstructionSource(adoptedConstructionFixtureRead(entry.path).toString(), entry.path) + entry.hunks[0].after;
   assert.throws(() => historicalConstructionSource(source, {...entry, currentSha256: hash(source)}),
     /Changed reviewed constructor delta/);
+});
+
+// Capacity and execution callback bodies do not run during candidate creation.
+// Their actual current bytes remain in the compiled source/artifact boundary.
+test('deferred callback implementation changes retain current construction provenance', () => {
+  const path = 'src/connectors/local/cross_join_provider.mbt';
+  const source = read(path).toString();
+  const changed = source.replace('bounded_cross_join_issue(issue, step)', 'bounded_cross_join_issue(issue, step + 0)');
+  assert.notEqual(changed, source);
+  const bound = providerConstructionBound(file => file === path ? changed : read(file));
+  assert.equal(bound.bytes, 2520);
+  assert.equal(bound.completeConstructorByteCorrespondence, false);
+});
+
+test('constructor census refuses eager allocations and replacement callback owners', () => {
+  const source = read(managedPath).toString();
+  const changed = source.replace('    accepts,\n    capacity,\n    bounded_relation_capacity,',
+    '    accepts: sequence => true,\n    capacity,\n    bounded_relation_capacity,');
+  assert.notEqual(changed, source);
+  assert.throws(() => providerConstructionBound(file => file === managedPath ? changed : read(file)),
+    /construction wrapper accepts/);
+  const path = 'src/connectors/local/cross_join_provider.mbt';
+  const factory = read(path).toString();
+  const allocated = factory.replace(') -> ManagedProvider {\n  managed_provider(',
+    ') -> ManagedProvider {\n  let extra = Array::make(100, None)\n  managed_provider(');
+  assert.notEqual(allocated, factory);
+  assert.throws(() => providerConstructionBound(file => file === path ? allocated : read(file)),
+    /constructor source allocations/);
 });

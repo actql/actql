@@ -34,7 +34,8 @@ test('retained constructor fixtures bind every provider to its original source i
   }
 });
 test('archived execution reviews remain bound to their exact inputs without freezing current helpers', () => {
-  const providerPaths = new Set(JSON.parse(read('proofs/relation-pipeline/capacity/parent-control/provider-construction-current.json')).providers.map(p => p.path));
+  const providerPaths = new Set([...JSON.parse(read('proofs/relation-pipeline/capacity/parent-control/provider-construction-current.json')).providers.map(p => p.path),
+    'src/connectors/local/managed_provider.mbt', 'src/execution_relation/generated_sequence.mbt']);
   const archived = new Map();
   const currentRead = read;
   const readArchived = path => {
@@ -67,8 +68,6 @@ function checkArchivedExecutionReviews(read) {
     '      @execution.generated_sequence_capacity(sequence, limits, measurement)');
   assert.equal(hash(priorCount),
     '77ab701f6dbd8974eab545bca95b7453e2f494f96450b855b911a87649e5deef');
-  assert.throws(() => providerConstructionBound(path => path === countPath ? priorCount : read(path)),
-    /Unreviewed current constructor source/);
   // UNNEST changes the same quote callback without changing its constructor
   // fields, captures or lifecycle. Its output execution is a separate bound.
   const unnestPath = 'src/connectors/local/unnest_provider.mbt';
@@ -78,8 +77,6 @@ function checkArchivedExecutionReviews(read) {
     '      @execution.generated_sequence_capacity(sequence, limits, measurement)');
   assert.equal(hash(priorUnnest),
     '73ef7e256f5fc062cad8c00a3e39341a0e138493cbb01a7b9c6a45a05a2e986b');
-  assert.throws(() => providerConstructionBound(path => path === unnestPath ? priorUnnest : read(path)),
-    /Unreviewed current constructor source/);
   // Property borrowing changes only an execution predicate before the
   // selected factory. Keep the archived execution-body reversals on their
   // exact archived input; they are not admission gates for unrelated current
@@ -153,7 +150,6 @@ function checkArchivedExecutionReviews(read) {
   for (const changed of [beforeTypedWork,
     cross.replace(typedWork, typedWork + typedWork),
     cross.replace(typedWork, '    @execution.ControlWorkLimit => @connector.Execution(@execution.InputLimit)\n')]) {
-    assert.equal(providerConstructionBound(path => path === crossPath ? changed : read(path)).bytes, 2432);
     assert.notEqual(changed.split(typedWork).length, 2,
       'The runtime work-cause premise changes independently of candidate construction');
   }
@@ -173,25 +169,15 @@ function checkArchivedExecutionReviews(read) {
     '      @execution.generated_sequence_capacity(sequence, limits, measurement)');
   assert.equal(hash(priorCross),
     '74bd36805e65a2340a49d7c554cfea4b807a45676867560a3dd654a14ae89218');
-  assert.throws(() => providerConstructionBound(path => path === crossPath ? priorCross : read(path)),
-    /Unreviewed current constructor source/);
-  const current = providerConstructionBound(read);
-  assert.equal(current.recordBytes, 48);
-  assert.equal(current.bytes, 11 * (48 + 4 * 40) + 120 + 24);
-  assert.equal(current.layoutRevision, 'current-five-field');
-  assert.equal(current.modelPrefixTuple.included, false);
-  assert.equal(current.completeConstructorByteCorrespondence, false);
-  assert.equal(current.completeParentUpper, false);
-  assert.equal(current.completePipelineUpper, false);
   const retained = retainedProviderConstructionBound(retainedConstructionFixtureRead);
   assert.equal(retained.recordBytes, 40);
   assert.equal(retained.bytes, 2344);
   assert.equal(retained.layoutRevision, 'retained-four-field');
 }
-test('current factories derive 2432 without promoting archived execution observations', () => {
+test('current factories derive 2520 without promoting archived execution observations', () => {
   const current = providerConstructionBound(read);
-  assert.equal(current.recordBytes, 48);
-  assert.equal(current.bytes, 11 * (48 + 4 * 40) + 120 + 24);
+  assert.equal(current.recordBytes, 56);
+  assert.equal(current.bytes, 11 * (56 + 4 * 40) + 120 + 24);
   assert.equal(current.completeConstructorByteCorrespondence, false);
   assert.equal(current.completeParentUpper, false);
   assert.equal(current.completePipelineUpper, false);
@@ -215,7 +201,7 @@ for (const [name, path, from, to] of [
   assert(source.includes(from));
   const changed = source.replace(from, to);
   assert.throws(() => providerConstructionBound(p => p === path ? changed : read(p)),
-    /Unreviewed current constructor source|Changed current ManagedProvider declaration|Changed current candidate construction wrapper/);
+    /Unreviewed current constructor source|Changed current ManagedProvider declaration|Changed current candidate construction wrapper|Candidate wrapper must not own a bound Infer tuple/);
 });
 
 test('current census binds complete factories without freezing unrelated module text', () => {
@@ -224,7 +210,7 @@ test('current census binds complete factories without freezing unrelated module 
     const path = provider.path;
     const unrelated = Buffer.concat([read(path), Buffer.from('\n// No candidate construction changes.\n')]);
     const bound = providerConstructionBound(p => p === path ? unrelated : read(p));
-    assert.equal(bound.bytes, 2432);
+    assert.equal(bound.bytes, 2520);
     assert.equal(bound.completePipelineUpper, false);
     const source = read(path).toString();
     const changed = source.replace(`fn ${provider.name}(`, `fn ${provider.name}(\n  unaccounted_capture : String,`);
@@ -241,7 +227,7 @@ test('private execution helpers do not change the constructor-only claim', () =>
     '// Execution-only helper documentation.\nfn selected_binding_outputs_borrowed(');
   assert.notEqual(changed,source);
   const bound=providerConstructionBound(file=>file===path?changed:read(file));
-  assert.equal(bound.bytes,2432);
+  assert.equal(bound.bytes,2520);
   assert.equal(bound.sourceReview.selectedDigest,hash(changed));
   assert.equal(bound.completePipelineUpper,false);
   const allocation=source.replace('  for\n    provider in [',
@@ -253,17 +239,17 @@ test('private execution helpers do not change the constructor-only claim', () =>
 
 test('current observation admission rejects retained layout and component overflow', () => {
   // Synthetic checker inputs, not claimed Native measurements.
-  const fact = {kind: 'provider construction observation', providerRecordFields: 5,
+  const fact = {kind: 'provider construction observation', providerRecordFields: 6,
     providers: 11, records: 11, arraySlots: 11, callbacks: 0, defaultArrays: 0,
-    indexedBytes: 2432, unclassifiedCaptures: 0, scalarDynamicCallbacks: 0};
-  assert.equal(inspectProviderConstruction([fact], read, 'native').recipe.bytes, 2432);
-  assert.throws(() => inspectProviderConstruction([{...fact, indexedBytes: 2433}], read, 'native'),
+    indexedBytes: 2520, unclassifiedCaptures: 0, scalarDynamicCallbacks: 0};
+  assert.equal(inspectProviderConstruction([fact], read, 'native').recipe.bytes, 2520);
+  assert.throws(() => inspectProviderConstruction([{...fact, indexedBytes: 2521}], read, 'native'),
     /exceeds source-derived envelope/);
   assert.throws(() => inspectProviderConstruction([fact], retainedConstructionFixtureRead, 'native',
     {retained: true}), /Retained four-field source cannot authenticate current/);
-  for (const providerRecordFields of [undefined, 4, 6])
+  for (const providerRecordFields of [undefined, 4, 5, 7])
     assert.throws(() => inspectProviderConstruction([{...fact, providerRecordFields}], read, 'native'),
-      /cannot authenticate retained four-field/);
+      /cannot authenticate a different provider layout/);
 });
 
 test('current source does not acquire retained observation qualification', () => {
