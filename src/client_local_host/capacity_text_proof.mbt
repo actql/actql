@@ -209,8 +209,9 @@ fn client_local_decimal_text_bound(
 
 ///|
 // Borrow cached literal geometry only through the same closed checked graph.
-// Field selection, filtering, stable sorting and limiting cannot create Text.
-// Other sources, families and value-producing expressions keep the old policy.
+// Field selection, filtering, sorting, limiting and proved scalar bindings
+// cannot create Text. Actual immutable parameter literals contribute their own
+// finite geometry; other sources and value-producing expressions keep policy.
 fn client_local_original_values_copy_text_bound(
   sequences : Array[@execution.GeneratedSequence],
   demand : ClientLocalValueNodeDemand,
@@ -315,6 +316,21 @@ fn client_local_original_values_copy_text_bound(
               }
             @lower.Select(_) | @lower.Limit(_, _, _) | @lower.StableSort(_) =>
               ()
+            @lower.SnapshotMap(bindings) | @lower.OrderedBindings(bindings) =>
+              for (_, expression) in bindings {
+                // These bindings add only scalar DATA. Their complete child
+                // expressions still need the same literal/copy proof; an
+                // unbounded Text-producing intermediate keeps general policy.
+                match @lower.expression_contract(expression).shape {
+                  @contract.Number | @contract.Boolean =>
+                    if !client_local_copy_filter_text(
+                        expression, remaining, literal_text,
+                      ) {
+                      return None
+                    }
+                  _ => return None
+                }
+              }
             _ => return None
           }
         _ => return None
@@ -379,20 +395,26 @@ fn client_local_copy_filter_text(
   remaining.val -= 1
   match @lower.expression_body(expression) {
     @lower.Field(_, _) => true
-    @lower.Literal(_) =>
-      match @lower.expression_contract(expression).shape {
-        @contract.Text(bounds) => {
-          guard bounds.max_utf8_bytes is Some(bytes) &&
-            bytes >= 0L &&
-            @execution.checked_preparation_add_product(text.val, bytes, 1L)
-            is Some(next) else {
+    @lower.Literal(value) =>
+      match value.value {
+        @admitted.Array(items) => {
+          // Lowering retains the actual bound parameter's immutable admitted
+          // value here. A declaration's unbounded array type is not a bound.
+          // Inspect only this original flat primitive inventory, without
+          // rebuilding, encoding or retaining another parameter representation.
+          let count = @admitted.element_count(items)
+          if count > remaining.val {
             return false
           }
-          text.val = next
+          for index in 0..<count {
+            guard @admitted.element_at(items, index) is Some(item) &&
+              client_local_copy_scalar_literal_text(item, remaining, text) else {
+              return false
+            }
+          }
           true
         }
-        @contract.Number | @contract.Boolean => true
-        _ => false
+        scalar => client_local_copy_scalar_literal_text(scalar, remaining, text)
       }
     @lower.TypedNull => true
     @lower.Unary(_, child) =>
@@ -408,6 +430,37 @@ fn client_local_copy_filter_text(
           client_local_copy_filter_text(right, remaining, text)
         _ => false
       }
+    _ => false
+  }
+}
+
+///|
+// UTF-16 length times three bounds every valid UTF-8 Text, including surrogate
+// pairs. Use the original immutable value, not a fresh encoded buffer or a type
+// maximum. References, objects and nested arrays keep the general envelope.
+fn client_local_copy_scalar_literal_text(
+  value : @admitted.Value,
+  remaining : Ref[Int],
+  text : Ref[Int64],
+) -> Bool {
+  if remaining.val < 1 {
+    return false
+  }
+  remaining.val -= 1
+  match value {
+    @admitted.Null | @admitted.Number(_) | @admitted.Boolean(_) => true
+    @admitted.Text(value) => {
+      guard @execution.checked_preparation_add_product(
+          text.val,
+          value.length().to_int64(),
+          3L,
+        )
+        is Some(next) else {
+        return false
+      }
+      text.val = next
+      true
+    }
     _ => false
   }
 }
