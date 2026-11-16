@@ -14,9 +14,9 @@ const fail = code => {
   throw Object.assign(new Error(code), {code});
 };
 
-// The normalizing Ledger parser alone uses the staged Unicode workspace.
-// Receipt/data-key constructors keep their complete unchanged envelope. These
-// original methods are closed installing-code calls, never caller callbacks.
+// Ledger and Receipt codecs keep their genuine parser/writer families. Their
+// immutable original wires can refine workspace without supplying admission.
+// These are closed installing-code methods, never caller callbacks.
 function bindEffectLedgerCodecs(original, construction) {
   if (typeof construction?.ledgerCodec !== 'function') return original;
   const codec = construction.ledgerCodec;
@@ -51,9 +51,9 @@ function bindEffectLedgerCodecs(original, construction) {
 
 // MoonBit admits the canonical fact and its transition. SQLite only owns
 // durable bytes and the atomic compare-and-swap of one item head.
-// Same original receiver and methods; only these single-head/frontier constructors
-// use the finite family. Receipt/history/unknown work keeps the generic frame.
-// The already-funded generic call constructs only a fixed numeric quote.
+// Original receivers select closed row or frontier construction classes;
+// unknown work keeps the generic frame. The funded quantity call below
+// constructs only a fixed numeric quote before the real member Receipt body.
 // Its returned carrier stays on the same control until the next body call;
 // the body then grows its aggregate workspace before any Receipt allocation.
 function prepareMemberReceiptConstruction(args) {
