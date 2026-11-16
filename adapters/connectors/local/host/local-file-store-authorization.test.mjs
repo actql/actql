@@ -7,7 +7,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createLocalAuthorizationGate, canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {authorizationDispatchFacts} from '../../../host-common/authorization-gate.mjs';
-import {createLocalFileStoreDriver} from './installed-project-file-effects.mjs';
+import {createLocalFileStoreDriver, LOCAL_STORE_LIMITS} from './installed-project-file-effects.mjs';
 
 const cid = digit => 'sha256:' + digit.repeat(64);
 const tuple = Object.freeze({connection: 'local', resource: 'files', operation: 'effect'});
@@ -25,7 +25,7 @@ function local(t, authorization, principalId = 'owner') {
   const noUse = new Proxy({}, {get() {assert.fail('grant-only test must not acquire Run, Content or native resources');}});
   const {site} = createLocalFileStoreDriver({entry: {connection: 'local'}, target: {}, command: {},
     bindingCid: cid('1'), principalId, authorization, assertCurrent() {},
-    resources: noUse, limits: {}, nativeFilesystem: noUse});
+    resources: noUse, limits: LOCAL_STORE_LIMITS, nativeFilesystem: noUse});
   t.after(() => site.close());
   return {site, grant(decision, changes = {}) {
     return site.issueEffectGrant({operation: 'files.write', resource: 'files',
