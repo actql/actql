@@ -454,8 +454,16 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
       }));
       current();
     }
+    if(bundle.sources.length!==originalBundle.sources.length)fail('ForeignLocalFilesPreparation');
     for(let entryIndex=0;entryIndex<bundle.sources.length;entryIndex++){
-      const entry=bundle.sources[entryIndex];
+      const entry=bundle.sources[entryIndex],originalEntry=originalBundle.sources[entryIndex];
+      // The funded map changes only read declaration/export DATA. Keep this
+      // exact original entry/order and retained installation aliases for the
+      // physical connection shared with STORE; equal CIDs cannot replace it.
+      if(entry.queryAliases!==originalEntry.queryAliases||entry.limits!==originalEntry.limits||
+          entry.connection!==originalEntry.connection||entry.connectorId!==originalEntry.connectorId||
+          entry.rootPath!==originalEntry.rootPath||entry.scopeCid!==originalEntry.scopeCid)
+        fail('ForeignLocalFilesPreparation');
       current();
       const authorization=await authorizationFor(entry.connection);current();
       const assertAccountCurrent=authorization.assertAccountCurrent;
@@ -474,7 +482,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
       };
       const adapter=await createInstalledRowSource({moon,declaration:entry.declaration,declared,
         environmentWire:environment.wire,connectorId:entry.connectorId,connectorRegistration:'local',
-        connectorRevision:'local/0.1',bindingCid:cid({scope:entry.scopeCid,declaration:entry.wire,
+        connectorRevision:'local/0.1',bindingCid:cid({scope:originalEntry.scopeCid,declaration:originalEntry.wire,
           account_context:authorization.context.contextCid}),authorization,readOperation:'read',referenceIssuer:issuer,
         site:Object.freeze({connection:entry.connection,
           issueReadGrant({operation,decision,resource,runInvocationCid,dispatchRequestCid,maxUses}){
