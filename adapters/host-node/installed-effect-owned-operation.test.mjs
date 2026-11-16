@@ -96,6 +96,17 @@ test('physical workspace completion retains its original failure and cannot be r
   assert.equal(completions, 1);
 });
 
+test('a reentrant original status cannot complete workspace after retirement has begun', async () => {
+  let f, child;
+  f = fixture(({retainPhysicalChild}, original) => {retainPhysicalChild(original); f.close(); return 'response';});
+  f.original.status = function() {assert.strictEqual(this, f.original); assert.equal(child.release(), false); return {pending: false};};
+  f.runtime.clientProgramInstalledEffectOwnedPhysicalOperationComplete = () => assert.fail('completion after close reentry');
+  child = f.create();
+  assert.equal(await child.prepare(), 'response');
+  assert.equal(child.status().pending, true);
+  f.retireAliases(); assert.equal(child.retry(), true);
+});
+
 test('original undefined failure keeps its physical child until actual cleanup and request retirement', async () => {
   const f = fixture(({retainPhysicalChild}, original) => {retainPhysicalChild(original); throw undefined;});
   const child = f.create(); let caught = false;
