@@ -17216,6 +17216,7 @@
             "publicationControl/init:adoptCheckedClientEffectSerializationRun/init:adoptCheckedClientEffectSerializationRun",
             "publicationControl/init:advanceCheckedClientInferNodeReadState/init:advanceCheckedClientInferNodeReadState",
             "publicationControl/init:beginCheckedClientInferOriginalReadScope/init:beginCheckedClientInferOriginalReadScope",
+            "publicationControl/init:beginEffectfulPublicationConstruction/init:beginEffectfulPublicationConstruction",
             "publicationControl/init:beginResultAccessProgress/init:beginResultAccessProgress",
             "publicationControl/init:beginResultDelivery/init:beginResultDelivery",
             "publicationControl/init:bindCheckedClientEffectRun/init:bindCheckedClientEffectRun",
@@ -17653,6 +17654,10 @@
               {
                 "path": "adapters/host-common/deferred-catalog-control.test.mjs",
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
               }
             ],
             "inputsOutputs": [
@@ -17711,6 +17716,10 @@
               {
                 "path": "adapters/host-common/deferred-catalog-control.test.mjs",
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
               }
             ],
             "identity": [
@@ -17769,6 +17778,10 @@
               {
                 "path": "adapters/host-common/deferred-catalog-control.test.mjs",
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
               }
             ],
             "ownership": [
@@ -17831,6 +17844,10 @@
               {
                 "path": "adapters/host-common/deferred-catalog-control.test.mjs",
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
               }
             ],
             "synchronization": [
@@ -17893,6 +17910,10 @@
               {
                 "path": "adapters/host-common/deferred-catalog-control.test.mjs",
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
               }
             ],
             "failure": [
@@ -17951,6 +17972,10 @@
               {
                 "path": "adapters/host-common/deferred-catalog-control.test.mjs",
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
               }
             ],
             "cancellation": [
@@ -18005,6 +18030,10 @@
               {
                 "path": "adapters/host-common/deferred-catalog-control.test.mjs",
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
               }
             ],
             "resources": [
@@ -18071,6 +18100,10 @@
               {
                 "path": "adapters/host-common/deferred-catalog-control.test.mjs",
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
               }
             ],
             "extension": [
@@ -18129,6 +18162,10 @@
               {
                 "path": "adapters/host-common/deferred-catalog-control.test.mjs",
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
               }
             ],
             "verification": [
@@ -18235,6 +18272,10 @@
               {
                 "path": "adapters/host-common/deferred-catalog-control.test.mjs",
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "publication metadata is bounded by its original Read before token-array construction"
               }
             ]
           }
@@ -25547,6 +25588,16 @@
             "maxReservations",
             "maxHoldings",
             "maxDelegations"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:beginEffectfulPublicationConstruction/init:beginEffectfulPublicationConstruction",
+          "parameters": [
+            "owner",
+            "issue",
+            "args",
+            "additionalContracts"
           ],
           "async": false
         },

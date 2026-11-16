@@ -11484,7 +11484,8 @@
             "captured",
             "receiver",
             "method",
-            "args"
+            "args",
+            "additionalContracts"
           ],
           "async": false
         },
@@ -126543,6 +126544,14 @@
       ],
       "operations": [
         {
+          "name": "invokePublication",
+          "parameters": [
+            "method",
+            "args"
+          ],
+          "async": false
+        },
+        {
           "name": "pending/pending",
           "parameters": [
             "value"
@@ -126617,7 +126626,8 @@
             "captured",
             "receiver",
             "method",
-            "argument"
+            "args",
+            "additionalContracts"
           ],
           "async": false
         },
@@ -126880,6 +126890,7 @@
         },
         {
           "operations": [
+            "invokePublication",
             "recoveryView/init:constructCapturedForPublication/init:constructCapturedForPublication",
             "recoveryView/init:constructCapturedValidation/init:constructCapturedValidation"
           ],
@@ -126897,6 +126908,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed capture-recovery Definition construction"
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "constructCapturedForPublication(captured, receiver, method, args, additionalContracts)"
               }
             ],
             "inputsOutputs": [
@@ -126907,6 +126922,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Saved Source Command Content"
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "constructCapturedForPublication(captured, receiver, method, args, additionalContracts)"
               }
             ],
             "identity": [
@@ -126917,6 +126936,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Saved Source Command Content"
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "constructCapturedForPublication(captured, receiver, method, args, additionalContracts)"
               }
             ],
             "ownership": [
@@ -126931,6 +126954,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed capture-recovery Definition construction"
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "constructCapturedForPublication(captured, receiver, method, args, additionalContracts)"
               }
             ],
             "synchronization": [
@@ -126941,6 +126968,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Saved Source Command Content"
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "constructCapturedForPublication(captured, receiver, method, args, additionalContracts)"
               }
             ],
             "failure": [
@@ -126951,6 +126982,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Saved Source Command Content"
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "constructCapturedForPublication(captured, receiver, method, args, additionalContracts)"
               }
             ],
             "cancellation": [
@@ -126961,6 +126996,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Saved Source Command Content"
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "constructCapturedForPublication(captured, receiver, method, args, additionalContracts)"
               }
             ],
             "resources": [
@@ -126975,6 +127014,10 @@
               {
                 "path": "docs/design/effect-constructor-frames.md",
                 "anchor": "### Completed capture-recovery Definition construction"
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "constructCapturedForPublication(captured, receiver, method, args, additionalContracts)"
               }
             ],
             "extension": [
@@ -126985,6 +127028,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Saved Source Command Content"
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "constructCapturedForPublication(captured, receiver, method, args, additionalContracts)"
               }
             ],
             "verification": [
@@ -127007,6 +127054,18 @@
               {
                 "path": "adapters/host-node/effect-capture-resources.test.mjs",
                 "anchor": "test('publication construction preserves full Read funding for nonlive and older Core resources'"
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "anchor": "final publication selects original closed issue and commit methods on the same completed Read"
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "anchor": "publication class refusal preserves primary without generic retry or issuer entry"
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "anchor": "publication class checks captured identity and reentry while unknown methods keep full validation"
               }
             ]
           }
