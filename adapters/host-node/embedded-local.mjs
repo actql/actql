@@ -4395,7 +4395,18 @@ async function openInstalledHost(originalInstallation, preparation) {
           }
         }
         originalSubmittedIntent?.assertCurrent();
-        return Object.freeze({...restored, originalSubmittedIntent});
+        // A live Plan retains its own original Request. The independently
+        // readmitted Journal Request confirms that identity; it cannot replace
+        // the physical owner's nominal handle during same-Host recovery.
+        if (managed !== undefined && (managed.closed ||
+            managed.definitionOriginal?.identity !== managed.request ||
+            restored.prepared !== managed.prepared ||
+            restored.compilation !== originalCompilation ||
+            moon.clientRequestRelation(managed.request, requestIdentity) !== 1)) {
+          throw clientOperationError('EffectRecoveryOriginalSelectionUnavailable');
+        }
+        return Object.freeze({...restored,
+          ...(managed === undefined ? {} : {identity: managed.request}), originalSubmittedIntent});
       },
       authorizeEvidenceRead: binding => hostConnection({principalId,
         connection: {mode, owner: mode}, ref}) &&

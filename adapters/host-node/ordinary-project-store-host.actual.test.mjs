@@ -55,6 +55,7 @@ for (const variant of [
     await writeFile(join(directory, 'connectors.json'), JSON.stringify({version: 'actql-connectors/0.1',
       connections: {local: {connector: 'local', root: './data', tables: {}}}}));
     const keys = generateKeyPairSync('ed25519');
+    const failures = [];
     // Explicit test-operator configuration. No product Account is changed.
     const authorization = {accountConfiguration: JSON.stringify({
       version: 'actql-execution-account-config/0.1', account_id: 'ordinary-project-store', entries: [
@@ -63,6 +64,15 @@ for (const variant of [
         {entry_id: 'read-write', outcome: 'allow', principal: {all: true},
           connection: {all: true}, resource: {all: true}, operation: {any_of: ['read', 'write']}, exclusions: []},
       ]}), hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},
+    observe(name, detail) {
+      if (!name.endsWith('_failed') || failures.length >= 8) return;
+      const error = detail?.cause;
+      failures.push({name, code: detail?.code, causeCode: error?.code,
+        causeMessage: typeof error?.message === 'string' ? error.message.slice(0, 256) : undefined,
+        issueTag: error?.cause?.$tag, nestedIssueTag: error?.cause?._0?.$tag,
+        causeOrdinal: typeof error?.cause?._0 === 'number' ? error.cause._0 : undefined,
+        codeSites: typeof error?.stack === 'string' ? error.stack.split('\n').slice(1, 7) : undefined});
+    },
     reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId: userInfo().username,
       publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}]};
     const options = {mode: 'local', owner: 'local', installation: {
@@ -135,7 +145,7 @@ for (const variant of [
         'closed writers leave no temporary files and rejected/Saved Runs never write');
     } catch (cause) {
       primary = cause;
-      t.diagnostic(JSON.stringify({phase, code: cause.code, failure: inspect(cause, {depth: 5})}));
+      t.diagnostic(JSON.stringify({phase, code: cause.code, failure: inspect(cause, {depth: 5}), failures}));
       if (cause.code === 'SubmissionUnknown' && cause.submissionRef !== undefined) {
         // Observe only this exact intent; a failed acknowledgement never
         // authorizes a second startSource or replacement business Run.
