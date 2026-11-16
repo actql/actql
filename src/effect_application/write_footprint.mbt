@@ -40,7 +40,6 @@ pub fn check_effect_set_footprint_conflicts(
   if max_members < 1 ||
     max_members > 1000 ||
     max_targets < 0 ||
-    max_targets > 100000 ||
     max_work < 1 ||
     max_work > 100000000 ||
     members.is_empty() ||

@@ -152,3 +152,54 @@ test "Effect Set footprint scan is bounded and validates every target" {
     is Err(CapacityExceeded),
   )
 }
+
+///|
+test "Effect Set footprint ceilings constrain actual targets without allocating their maximum" {
+  let targets = Array::makei(101, index => {
+    "sha256:" + @sha.text_hex(index.to_string()).unwrap()
+  })
+  let entry = footprint(
+    "write",
+    ExactTargets,
+    footprint_test_cid("a"),
+    footprint_test_cid("b"),
+    targets,
+  )
+  for ceiling in [100000, 1000000] {
+    assert_true(
+      check_effect_set_footprint_conflicts([entry], 1, ceiling, 10000) is Ok(_),
+    )
+  }
+  assert_true(
+    check_effect_set_footprint_conflicts([entry], 1, 100, 10000)
+    is Err(CapacityExceeded),
+  )
+  assert_true(
+    check_effect_set_footprint_conflicts([entry], 1, 1000000, 100)
+    is Err(CapacityExceeded),
+  )
+  let overlapping = targets.copy()
+  overlapping[100] = overlapping[0]
+  assert_true(
+    check_effect_set_footprint_conflicts(
+      [{ ..entry, provider_object_identity_cids: overlapping, }],
+      1,
+      1000000,
+      10000,
+    )
+    is Err(OverlappingTarget),
+  )
+  assert_true(
+    check_effect_set_footprint_conflicts(
+      [{ ..entry, provider_boundary_cid: "foreign", }],
+      1,
+      1000000,
+      10000,
+    )
+    is Err(InvalidFootprint),
+  )
+  assert_true(
+    check_effect_set_footprint_conflicts([entry], 1, -1, 10000)
+    is Err(InvalidLimits),
+  )
+}
