@@ -358,14 +358,12 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
     },
     recoverRequests:recover,recoverMemberRequests:recover,
     prepareRecoveredContentChild({recovered,members,entries,memberIndexes,control,store,
-      contentRun,principalId:actor,assertCurrent:checkCurrent,signal,limits:inputLimits,runOriginal}){
+      contentRun,principalId:actor,assertCurrent:checkCurrent,signal,limits:inputLimits,runOriginal,managedContext}){
       const runLimits=runCurrent(runOriginal);
       const maxRows=Math.min(runLimits.maxRows,limits.maxRows??runLimits.maxRows);
       if(typeof contentRun?.prepareRecoveredCommandContent!=='function'||
           recovered?.prepared===undefined||recovered.allowed===undefined||actor!==principalId)
         fail('OriginalEffectContentUnavailable');
-      const compiled=control.adoptCheckedClientEffectSerializationRun(
-        recovered.allowed,recovered.runDefinition);
       const selected=[];
       for(const index of memberIndexes){
         memberCurrent(members[index]);
@@ -386,23 +384,32 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
               const sources=recovered.computation.effectSources?.filter(source=>
                 source.memberIndex===members[index].memberIndex);
               if(sources?.length!==1)fail('OriginalEffectContentUnavailable');
-              const contentChild=contentRun.prepareRecoveredCommandContent({
-                prepared:recovered.prepared,compiled,definition:recovered.runDefinition,
-                captured:recovered.computation.computation.capturedRun,
-                preview:recovered.computation.preview,invocation:recovered.computation.invocation,
-                source:sources[0].source,store,principalId:actor,
-                memberIndex:members[index].memberIndex,
-                row:entries[index].findIndex(entry=>requests.get(entry.request)===state),
-                inputName:'content',referenceWire:wire(state.record.value.content),signal,
-                recoveryResources:recovered.recoveryResources,
-                limits:{maxFields:inputLimits.maxFields,maxWork:inputLimits.maxWork,
-                  maxWireBytes:inputLimits.body.maxBytes,maxNodes:inputLimits.body.maxNodes,
-                  maxDepth:inputLimits.body.maxDepth},
-                assertCurrent(){
-                  if(stopping)fail('LocalStoreRequestClosing');
-                  runCurrent(runOriginal);checkCurrent?.();
-                }});
-              retained.push(contentChild); // Before current callbacks or Store I/O.
+              const prepareContent=()=>{
+                const contentChild=contentRun.prepareRecoveredCommandContent({
+                  prepared:recovered.prepared,allowed:recovered.allowed,managedContext,
+                  definition:recovered.runDefinition,
+                  captured:recovered.computation.computation.capturedRun,
+                  preview:recovered.computation.preview,invocation:recovered.computation.invocation,
+                  source:sources[0].source,store,principalId:actor,
+                  memberIndex:members[index].memberIndex,
+                  row:entries[index].findIndex(entry=>requests.get(entry.request)===state),
+                  inputName:'content',referenceWire:wire(state.record.value.content),signal,
+                  recoveryResources:recovered.recoveryResources,
+                  limits:{maxFields:inputLimits.maxFields,maxWork:inputLimits.maxWork,
+                    maxWireBytes:inputLimits.body.maxBytes,maxNodes:inputLimits.body.maxNodes,
+                    maxDepth:inputLimits.body.maxDepth},
+                  assertCurrent(){
+                    if(stopping)fail('LocalStoreRequestClosing');
+                    runCurrent(runOriginal);checkCurrent?.();
+                  }});
+                // Retain before the same Read's post-constructor current cut,
+                // not only before the child's later physical Store I/O.
+                retained.push(contentChild);
+                return contentChild;
+              };
+              const contentChild=recovered.recoveryResources===undefined?prepareContent():
+                recovered.recoveryResources.constructCaptured(
+                  recovered.computation.computation.capturedRun,undefined,prepareContent,undefined);
               if(stopping)fail('LocalStoreRequestClosing');
               const restored=await contentChild.prepare();
               if(stopping)fail('LocalStoreRequestClosing');

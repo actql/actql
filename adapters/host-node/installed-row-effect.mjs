@@ -3697,7 +3697,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         const child = owner.owned.prepareRecoveredContentChild({
           recovered, members, entries, memberIndexes, control, store, signal,
           contentRun: facts.contentRun, principalId: facts.principalId,
-          assertCurrent, limits, ...resourceFields(members[memberIndexes[0]])});
+          assertCurrent, limits, ...resourceFields(members[memberIndexes[0]]),
+          managedContext: managedEffect});
         if (typeof child?.prepare !== 'function' || typeof child.release !== 'function' ||
             typeof child.status !== 'function') {
           fail('InvalidInstalledEffectRecoveryChild');
