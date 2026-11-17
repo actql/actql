@@ -81,6 +81,33 @@ provider request. Keep the same configured endpoint, model, Task files and
 software originals. Credential bytes are never Program input and must not be
 printed in logs or committed.
 
+## Explicit physical phase timeouts (development)
+
+The normal factory accepts optional `transportTimeouts` with positive finite
+`connectMs`, `headersMs`, and `bodyMs` in milliseconds (integers up to
+2,147,483,647). It freezes the values
+under the initial construction Resource, includes them in the same original
+configuration/contract bodies through Common's canonical constructor, and
+passes that selection to the fixed physical transport. Each value must fit
+the declared `budget.maxDurationMs`; that validation does not turn a quantity
+reservation into an observed duration or a timer.
+
+The existing Undici connector applies `connectMs` through TCP/TLS setup;
+`headersMs` waits for complete HTTP headers and `bodyMs` bounds the idle time
+between body data. Omission preserves the existing Undici selection. These are
+**not** an absolute whole-Call or total-body deadline. Timer granularity and
+event-loop scheduling can delay their observation. The original public
+low-level registration contract does not accept an unbound timeout override;
+the new normal configuration continuation carries the same admitted inputs.
+
+A physical timeout is distinct from a caller's wait timeout and Run cancellation.
+It proves neither provider nonacceptance nor remote stop. Entered Unknown and
+partial raw originals keep their original attempt, Store and cleanup duties;
+there is no automatic retry, fresh Run or fabricated EOF/Result. Connection,
+IO and SDK/raw retirement remain separate observations. This does not establish
+normal-installed or live acceptance, or close the separate whole-Call deadline
+boundary.
+
 ## Optional usage-only disclosure (development)
 
 `installation.inferEvidence.kind: 'usage'` is a **new explicit opt-in** to a

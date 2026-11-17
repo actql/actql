@@ -1996,10 +1996,11 @@
     {
       "module": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "60667136fad8cfa1acbe6a4fffdf955e15d299da901147ce0af2cc8e92b7ef73",
+      "sha256": "7f3c075257e4386db30bebea34b2d10d6b98f3fbac1dcf7ce6d87c2f79eff648",
       "exports": [
         "createOriginalUndiciFetch",
         "fixedOriginalAcquisitionLimits",
+        "fixedOriginalTransportTimeouts",
         "prepareOriginalUndiciFetch"
       ],
       "operations": [
@@ -2021,7 +2022,8 @@
             "endpoint",
             "requestLimits",
             "responseLimits",
-            "physicalAcquisitionLimits"
+            "physicalAcquisitionLimits",
+            "transportTimeouts"
           ],
           "async": false
         },
@@ -2053,6 +2055,35 @@
         },
         {
           "name": "fixedOriginalAcquisitionLimits/fixedOriginalAcquisitionLimits#2",
+          "parameters": [
+            "key",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "fixedOriginalTransportTimeouts",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "fixedOriginalTransportTimeouts/fields/fields",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "fixedOriginalTransportTimeouts/fixedOriginalTransportTimeouts",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "fixedOriginalTransportTimeouts/fixedOriginalTransportTimeouts#2",
           "parameters": [
             "key",
             "index"
@@ -2251,12 +2282,17 @@
             "prepareOriginalUndiciFetch/invoke/invoke/response/response/response#2",
             "prepareOriginalUndiciFetch/invoke/invoke/settled/settled",
             "prepareOriginalUndiciFetch/onread/init:callback/init:callback",
-            "prepareOriginalUndiciFetch/prepareOriginalUndiciFetch"
+            "prepareOriginalUndiciFetch/prepareOriginalUndiciFetch",
+            "fixedOriginalTransportTimeouts",
+            "fixedOriginalTransportTimeouts/fields/fields",
+            "fixedOriginalTransportTimeouts/fixedOriginalTransportTimeouts",
+            "fixedOriginalTransportTimeouts/fixedOriginalTransportTimeouts#2"
           ],
           "exports": [
             "createOriginalUndiciFetch",
             "fixedOriginalAcquisitionLimits",
-            "prepareOriginalUndiciFetch"
+            "prepareOriginalUndiciFetch",
+            "fixedOriginalTransportTimeouts"
           ],
           "attributes": {
             "responsibility": [
@@ -2354,7 +2390,7 @@
     {
       "module": "packages/provider-ai-sdk/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "4b63bac42aed35e8691c488d1672ab474bed93c4191d40a79fde7c177c850821",
+      "sha256": "b70e0978a7998d020d66d4e58dd3bf18fef93e862667f00b012b7c9626361316",
       "exports": [
         "ConfiguredModelProviderRegistration",
         "ModelProviderRegistration",
@@ -2369,6 +2405,7 @@
         "OriginalReadRecipeData",
         "OriginalStringLimits",
         "PhysicalAcquisitionLimits",
+        "PhysicalTransportTimeouts",
         "ProjectionLimits",
         "QuantityCapacity",
         "RequestLimits",
@@ -2513,7 +2550,8 @@
             "createInstalledUndiciOpenAIChatRegistration",
             "ConfiguredModelProviderRegistration",
             "OpenAIChatProviderOptions",
-            "createOpenAIChatProvider"
+            "createOpenAIChatProvider",
+            "PhysicalTransportTimeouts"
           ],
           "attributes": {
             "responsibility": [
@@ -3277,7 +3315,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e21cfdf5b6a7840e949b0e083eadd7ce66a275668d4af76451d30a20b8e4c262",
+      "sha256": "f9cbbc4fda78ed392d9348d785e4175d79730c34f2c06b4fbe103d73e377f931",
       "exports": [
         "createOpenAIChatProvider"
       ],
@@ -3286,6 +3324,13 @@
           "name": "amount/amount",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "configuration/configuration",
+          "parameters": [
+            "ms"
           ],
           "async": false
         },
@@ -3455,7 +3500,8 @@
             "observation/observation",
             "observation/observation/fields/fields",
             "observation/observation/observation",
-            "observation/observation/observation#2"
+            "observation/observation/observation#2",
+            "configuration/configuration"
           ],
           "exports": [
             "createOpenAIChatProvider"

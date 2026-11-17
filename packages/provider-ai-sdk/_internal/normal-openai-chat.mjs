@@ -1,5 +1,6 @@
 import {types} from 'node:util';
-import {createInstalledUndiciOpenAIChatRegistration} from './installed-openai-chat.mjs';
+import {fixedOriginalTransportTimeouts} from './original-undici-transport.mjs';
+import {createConfiguredUndiciOpenAIChatRegistration} from './installed-openai-chat.mjs';
 import {runtimeTupleFromFields} from './compiler-binding.generated.mjs';
 
 const refuse = code => {throw Object.assign(new TypeError(code), {code});};
@@ -60,12 +61,13 @@ const readEnvelopeBytes = rows => BigInt(rows) * (16384n +
 
 function configuration(options) {
   const value = data(options, ['providerId', 'modelId', 'apiKeyFile', 'generation', 'budget', 'observeEgress'],
-    ['modelSelector', 'baseURL', 'maxSecretBytes']);
+    ['modelSelector', 'baseURL', 'maxSecretBytes', 'transportTimeouts']);
   const generation = data(value.generation, ['temperature', 'topP', 'maxOutputTokens'], ['seed']);
   const budget = data(value.budget, ['maxCalls', 'maxRows', 'maxTokens', 'maxCostUnits', 'maxDurationMs']);
   const selector = value.modelSelector ?? value.modelId;
   const baseURL = value.baseURL ?? 'https://api.openai.com/v1';
   const maxSecretBytes = value.maxSecretBytes ?? 4096;
+  const transportTimeouts = fixedOriginalTransportTimeouts(value.transportTimeouts);
   if (!text(value.providerId, 256) || !text(value.modelId, 256) || !text(selector, 256) ||
       !text(baseURL, 2048) || !text(value.apiKeyFile, 4096) ||
       !integer(maxSecretBytes, 1, 4096) || typeof value.observeEgress !== 'function' ||
@@ -76,13 +78,17 @@ function configuration(options) {
       ![budget.maxCalls, budget.maxTokens, budget.maxCostUnits, budget.maxDurationMs].every(amount)) {
     refuse('InvalidOpenAIProviderConfiguration');
   }
+  if (transportTimeouts !== undefined && Object.values(transportTimeouts).some(ms => BigInt(ms) > budget.maxDurationMs)) {
+    refuse('OpenAIProviderTimeoutBudgetExceeded');
+  }
   const endpoint = new URL(baseURL + '/chat/completions');
   if (!['https:', 'http:'].includes(endpoint.protocol) || endpoint.username || endpoint.password ||
       endpoint.search || endpoint.hash || endpoint.href !== baseURL + '/chat/completions' || baseURL.endsWith('/')) {
     refuse('InvalidOpenAIProviderConfiguration');
   }
   return Object.freeze({...value, modelSelector: selector, baseURL, maxSecretBytes,
-    generation: Object.freeze(generation), budget: Object.freeze(budget)});
+    generation: Object.freeze(generation), budget: Object.freeze(budget),
+    ...(transportTimeouts === undefined ? {} : {transportTimeouts})});
 }
 
 function observation(callback) {
@@ -120,13 +126,15 @@ export function createOpenAIChatProvider(options) {
         runtime_artifact_cid: runtimeCid, builder_artifact_cid: builderCid, lock_artifact_cid: lockCid}),
       JSON.stringify({provider_id: config.providerId, required: ['endpoint', 'selector', 'model_defaults'],
         physical_profile: limits, prepared_rows: config.budget.maxRows, transport: 'undici-serial-chat',
+        ...(config.transportTimeouts === undefined ? {} : {transport_timeouts: config.transportTimeouts}),
         runtime_artifact_cid: runtimeCid, layout_artifact_cid: layoutCid,
         read_retained_bytes: String(readEnvelopeBytes(config.budget.maxRows)),
         read_execution_bytes: String(readEnvelopeBytes(config.budget.maxRows)),
         model_retained_bytes: String(limits.adapter_holding_bytes),
         model_execution_bytes: String(limits.adapter_workspace_bytes)}),
       JSON.stringify({provider_id: config.providerId, endpoint: config.baseURL + '/chat/completions',
-        selector: config.modelSelector, model_defaults: {default_model: config.modelSelector,
+        selector: config.modelSelector,
+        ...(config.transportTimeouts === undefined ? {} : {transport_timeouts: config.transportTimeouts}), model_defaults: {default_model: config.modelSelector,
           models: [{model: config.modelSelector, data_handling: handling,
             generation_config: {temperature: config.generation.temperature, top_p: config.generation.topP,
               max_output_tokens: config.generation.maxOutputTokens,
@@ -203,7 +211,7 @@ export function createOpenAIChatProvider(options) {
           selectedAt: at(now), availableUntil: at(now + 86400000), deleteBy: at(now + 172800000),
           extensionCeilingAt: at(now + 172800000), metadataDeleteBy: at(now + 259200000),
           selectionAvailable: () => Date.now() < now + 86400000});
-        const register = createInstalledUndiciOpenAIChatRegistration({providerId: config.providerId,
+        const register = createConfiguredUndiciOpenAIChatRegistration({providerId: config.providerId,
           modelSelector: task.modelSelector, modelId: config.modelId, baseURL: config.baseURL, apiKey,
           originalStringLimits: {maxApiKeyCodeUnits: config.maxSecretBytes, maxBaseURLCodeUnits: 2048, maxModelIdCodeUnits: 256},
           taskCid: task.taskCid, promptCid: task.promptCid, outputSchemaCid: task.outputSchemaCid,
@@ -212,7 +220,7 @@ export function createOpenAIChatProvider(options) {
           responseLimits: {maxBytes: limits.response_bytes, maxChunkBytes: limits.chunk_bytes, maxChunks: limits.chunks,
             maxHeaderBytes: limits.header_bytes, observedHeaders: ['content-type', 'x-request-id']},
           physicalAcquisitionLimits: {maxPlaintextBytes: 131072, maxBorrowedBackingBytes: 262144, maxReads: 256},
-          observeAt: () => new Date().toISOString(), observeEgress: observation(config.observeEgress)});
+          observeAt: () => new Date().toISOString(), observeEgress: observation(config.observeEgress)}, config.transportTimeouts);
         return Object.freeze({taskCid: task.taskCid, entry: register(moon)[0]});
       });
       return [Object.freeze({...entries[0].entry,

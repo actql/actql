@@ -22,6 +22,11 @@ export type ResponseLimits = Readonly<{
 export type PhysicalAcquisitionLimits = Readonly<{
   maxPlaintextBytes: number; maxBorrowedBackingBytes: number; maxReads: number;
 }>;
+/** Explicit positive finite milliseconds. Header completion/body idle and
+ * connect timeouts are distinct from a whole-call timer or observed duration. */
+export type PhysicalTransportTimeouts = Readonly<{
+  connectMs: number; headersMs: number; bodyMs: number;
+}>;
 /** Borrowed existing Host selections. These DATA types issue no grants. */
 export type QuantityCapacity = Readonly<{
   limits: Readonly<{tokens: bigint; costUnits: bigint; durationMs: bigint}>;
@@ -45,6 +50,9 @@ export type OpenAIChatProviderOptions = Readonly<{
   apiKeyFile: string;
   maxSecretBytes?: number;
   baseURL?: string;
+  /** Opt-in physical settings, fixed in the same original binding. Each must
+   * fit maxDurationMs; that check does not make idle timeouts a whole-call cap. */
+  transportTimeouts?: PhysicalTransportTimeouts;
   generation: Readonly<{temperature: number; topP: number; maxOutputTokens: number; seed?: number}>;
   budget: Readonly<{maxCalls: bigint; maxRows: number; maxTokens: bigint;
     maxCostUnits: bigint; maxDurationMs: bigint}>;

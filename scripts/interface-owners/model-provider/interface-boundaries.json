@@ -5,8 +5,9 @@
     {
       "module": "packages/provider-ai-sdk/_internal/installed-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4630f17e8b54041a294f3fe5dd39b9abdfda04c3cbfee907c678ad131a9a4af3",
+      "sha256": "d3fa40204c96bab9469c62ed63d0acefef3a397d3674ded0aabcf55840c7277e",
       "exports": [
+        "createConfiguredUndiciOpenAIChatRegistration",
         "createInstalledOpenAIChatRegistration",
         "createInstalledUndiciOpenAIChatRegistration"
       ],
@@ -22,6 +23,14 @@
           "name": "cid/cid",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createConfiguredUndiciOpenAIChatRegistration",
+          "parameters": [
+            "config",
+            "transportTimeouts"
           ],
           "async": false
         },
@@ -178,11 +187,13 @@
             "snapshotData/entries/entries",
             "snapshotData/snapshotData",
             "snapshotData/snapshotData#2",
-            "text/text"
+            "text/text",
+            "createConfiguredUndiciOpenAIChatRegistration"
           ],
           "exports": [
             "createInstalledOpenAIChatRegistration",
-            "createInstalledUndiciOpenAIChatRegistration"
+            "createInstalledUndiciOpenAIChatRegistration",
+            "createConfiguredUndiciOpenAIChatRegistration"
           ],
           "attributes": {
             "responsibility": [
