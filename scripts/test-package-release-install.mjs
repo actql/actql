@@ -125,6 +125,9 @@ try {
   assert.equal(readmeResult.stdout.trim(), '[ { id: 1 } ]', 'Independent README result');
   results.push(readmeResult);
   await copyFile(join(repository, 'packages/sdk/fixtures/values.json'), join(local, 'values.json'));
+  await copyFile(join(repository, 'adapters/host-node/fixtures/query-amount-environment.json'),
+    join(local, 'source-environment.json'));
+  await copyFile(join(repository, 'spec/local-check-environment.json'), join(local, 'base-environment.json'));
   await copyFile(join(repository, 'scripts/fixtures/packed-local-without-duckdb.mjs'), join(local, 'acceptance.mjs'));
   results.push(await run(process.execPath, ['acceptance.mjs', 'initial'], local));
   results.push(await run(process.execPath, ['acceptance.mjs', 'restart'], local));
