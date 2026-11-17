@@ -1144,3 +1144,12 @@ new wire and self CID with two bounded traversals. This DATA must still enter th
 existing complete profile reader and Task/installation binding check. The Host
 funds simultaneous template, encoder and output retention before construction;
 neither the template nor its re-emission supplies physical adequacy or permission.
+
+Normal Task execution material uses explicit finite Host ceilings and the shared
+canonical no-retry/no-backoff bodies. The constructor fixes one attempt per slot,
+preserves every supplied total ceiling in the existing safe-integer domain, and
+binds the execution wire to the same non-Mock normalized Task. It does not adopt a
+Mock profile or its fixed limits. The ordinary execution and dependency readers
+still check the Task reference and original prompt/retry/backoff before any Run
+can use that DATA. A cost ceiling is not a pricing observation: an OpenAI recipe
+must preserve unknown-cost accounting and cannot choose zero to make a request fit.

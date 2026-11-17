@@ -3178,6 +3178,8 @@ pub fn client_program_normalize_project_model_task(@run_publication_host.ClientP
 
 pub fn client_program_normalized_public_model_task_materials(@check_environment.NormalizedPublicModelTask) -> (String, String, String, String)
 
+pub fn client_program_normalized_public_model_task_no_retry_materials(@check_environment.NormalizedPublicModelTask, Int64, Int64, Int64, Int64, Int64, Int, Int, Int, Int) -> Result[(String, String, String, String, String, String), @check_environment.ModelTaskIssue]
+
 pub fn client_program_normalized_public_model_task_provider_data(@check_environment.NormalizedPublicModelTask, Int, Int, Int, Int) -> Result[(String, String, String), @check_environment.ModelTaskIssue]
 
 pub fn client_program_normalized_public_model_task_response_profile(@check_environment.NormalizedPublicModelTask, @check_environment.ModelResponseProfile, Int, Int, Int, Int) -> Result[(String, String), @check_environment.ModelTaskIssue]
