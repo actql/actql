@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {spawnSync} from 'node:child_process';
-import {mkdtempSync, mkdirSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -10,6 +10,26 @@ import {nodeTestArguments, parseTestExecution, testExecutionResult}
 
 const childEnv = {...process.env};
 delete childEnv.NODE_TEST_CONTEXT;
+
+test('direct library invocation cannot succeed without executing tests', t => {
+  const library = fileURLToPath(new URL('./test-execution.mjs', import.meta.url));
+  const linked = join(fixture(t), 'scripts');
+  symlinkSync(fileURLToPath(new URL('.', import.meta.url)), linked);
+  for (const args of [[library], [library, 'moon', '--', '--target', 'js'],
+    ['--preserve-symlinks-main', join(linked, 'test-execution.mjs'), 'moon']]) {
+    const result = spawnSync(process.execPath, args,
+      {env: childEnv, encoding: 'utf8', timeout: 10000});
+    assert.equal(result.status, 1);
+    assert.equal(result.signal, null);
+    assert.match(result.stderr, /import-only library/u);
+    assert.equal(result.stdout, '');
+  }
+  const imported = spawnSync(process.execPath, ['--input-type=module', '-e',
+    "import {pathToFileURL} from 'node:url'; const library = await import(pathToFileURL(process.argv[1])); process.stdout.write(typeof library.runFocusedTests);", library],
+  {env: childEnv, encoding: 'utf8', timeout: 10000});
+  assert.equal(imported.status, 0, imported.stderr);
+  assert.equal(imported.stdout, 'function');
+});
 
 const counts = (values = {}) => ({tests: 0, passed: 0, failed: 0,
   cancelled: 0, skipped: 0, todo: 0, ...values});
