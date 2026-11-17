@@ -1532,6 +1532,7 @@ fn managed_capture_fixture_work(
           Sequence(_) => "Sequence"
           SerializationPrefix(_) => "SerializationPrefix"
           MetadataCapacityUnavailable => "MetadataCapacityUnavailable"
+          RuntimeFragmentWorkLimit(_, _) => "RuntimeFragmentWorkLimit"
         }
         fail("original stage 211: \{reason}")
       }
