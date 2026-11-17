@@ -19,6 +19,7 @@ import './record-approval-ci-input.test.mjs';
 import './hubspot-oauth-operator.test.mjs';
 import {parse} from 'yaml';
 import {parse as parseJavaScript} from 'acorn';
+import {runRestActualCommon} from './ci-rest-actual-common.mjs';
 import {optionalEffectCases} from './fixtures/two-source-optional-effect.mjs';
 import {compositionProgram, compositionTemplate, compositionExpectations, compositionText, compositionTextTemplate,
   publicFixtureEnvironment} from
@@ -106,6 +107,61 @@ test('Host configuration controls share the prepared original Common and Resourc
   const runtime = gate.env.ACTQL_TEST_PUBLIC_MODEL_TASK_RUNTIME;
   assert(runtime.startsWith('${{ github.workspace }}/_build/js/release/build/'));
   assert.equal(gate.env.ACTQL_TEST_BOUND_CONSTRUCTION_RUNTIME, runtime);
+});
+
+for (const status of [0, 73]) test(`REST compiled-boundary runner preserves ${status === 0 ? 'success' : 'failure'} and the original Common input`, () => {
+  const env = Object.freeze({ACTQL_METADATA_COMMON_RUNTIME: '/original/host/connectors_builtin_node.js'});
+  const calls = [];
+  assert.equal(runRestActualCommon({env, run: (kind, args, options) => {
+    calls.push({kind, args, options});return status;
+  }}), status);
+  assert.equal(calls.length, 1);
+  const [{kind, args, options}] = calls;
+  assert.equal(kind, 'node');
+  assert.equal(args.filter(arg => arg === 'adapters/host-node/rest-source-page-typed.test.mjs').length, 1);
+  assert.equal(args[args.indexOf('--test-name-pattern') + 1], '^REST actual Common');
+  assert.equal(options.expectedTests, 2);
+  assert(options.timeout > 0 && options.timeout <= 120000);
+  assert.equal(options.cwd, root);assert.equal(options.env, env);
+});
+
+test('REST compiled-boundary runner cannot turn absent or relative Common input into skipped acceptance', () => {
+  for (const runtime of [undefined, '', 'relative/Common.js']) {
+    let calls = 0;
+    assert.throws(() => runRestActualCommon({env: {ACTQL_METADATA_COMMON_RUNTIME: runtime},
+      run: () => {calls++;return 0;}}), /original prepared Host Common/u);
+    assert.equal(calls, 0);
+  }
+});
+
+test('Host REST controls reuse the Model Common build and cannot run after the preceding gate fails', t => {
+  const steps = jobs.host.steps;
+  const gates = steps.filter(step => step.run?.split(/\s+/u).includes('scripts/ci-rest-actual-common.mjs'));
+  assert.equal(gates.length, 1);
+  const [gate] = gates, preparation = steps.find(step => step.id === 'host-runtime-preparation');
+  assert(steps.indexOf(preparation) < steps.indexOf(gate));
+  assert(gate.if.includes("steps.host-runtime-preparation.outcome == 'success'"));
+  assert.equal(gate['continue-on-error'], undefined);
+  assert.equal(gate.env.ACTQL_METADATA_COMMON_RUNTIME, gate.env.ACTQL_TEST_PUBLIC_MODEL_TASK_RUNTIME);
+  assert.equal(gate.env.ACTQL_METADATA_COMMON_RUNTIME, gate.env.ACTQL_TEST_BOUND_CONSTRUCTION_RUNTIME);
+  assert(gate.env.ACTQL_METADATA_COMMON_RUNTIME.endsWith('/connectors_builtin_node/connectors_builtin_node.js'));
+  assert.equal(steps.filter(step => step.run?.includes('moon build') &&
+    step.run.includes('src/connectors_builtin_node')).length, 1);
+  const directory = mkdtempSync(join(tmpdir(), 'actql-rest-common-ci-')), bin = join(directory, 'bin');
+  t.after(() => rmSync(directory, {recursive: true, force: true}));mkdirSync(bin);
+  const callsPath = join(directory, 'calls.txt');
+  writeFileSync(join(bin, 'node'), '#!/bin/sh\n' +
+    'printf "%s\\n" "$1" >> "$ACTQL_CI_CALLS"\n' +
+    'if [ "$1" = "scripts/local-checks.mjs" ]; then exit "$ACTQL_CI_MODEL_STATUS"; fi\n', {mode: 0o755});
+  for (const status of [0, 73]) {
+    writeFileSync(callsPath, '');
+    const result = run(gate.run, {PATH: bin + ':' + process.env.PATH,
+      ACTQL_CI_CALLS: callsPath, ACTQL_CI_MODEL_STATUS: String(status)});
+    assert.equal(result.status, status, result.stderr);
+    const calls = readFileSync(callsPath, 'utf8').trim().split('\n');
+    assert.equal(calls.filter(value => value === 'scripts/local-checks.mjs').length, 1);
+    assert.equal(calls.filter(value => value === 'scripts/ci-rest-actual-common.mjs').length, status === 0 ? 1 : 0);
+  }
 });
 
 test('packed INFER original preparation evidence excludes opaque values getters and proxy traps', () => {
