@@ -1013,11 +1013,17 @@ test('local commands remain available for each independently retryable group', (
 test('download fails closed before the action for empty, malformed or multiple IDs', () => {
   const action = parse(readFileSync(new URL('../.github/actions/download-client-packages/action.yml', import.meta.url), 'utf8'));
   assert.equal(action.runs.using, 'composite');
-  assert.equal(action.runs.steps.length, 3);
-  const [guard, download] = action.runs.steps;
+  const guards = action.runs.steps.filter(step => Object.hasOwn(step.env ?? {}, 'ARTIFACT_ID'));
+  const downloads = action.runs.steps.filter(step => step.uses?.startsWith('actions/download-artifact@'));
+  assert.equal(guards.length, 1, 'The exact artifact ID has one required guard');
+  assert.equal(downloads.length, 1, 'The original artifact is downloaded once');
+  const [guard] = guards, [download] = downloads;
+  assert(action.runs.steps.indexOf(guard) < action.runs.steps.indexOf(download));
   assert.equal(guard.env.ARTIFACT_ID, '${{ inputs.artifact-id }}');
+  assert.equal(guard.if, undefined);
   assert.equal(guard['continue-on-error'], undefined);
   assert.equal(download.if, undefined, 'download requires the preceding guard to succeed');
+  assert.equal(download['continue-on-error'], undefined);
   assert.equal(download.uses, 'actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093');
   assert.deepEqual(download.with, {'artifact-ids': '${{ inputs.artifact-id }}', path: '${{ inputs.path }}', 'merge-multiple': true});
   for (const id of ['', ' ', '0', '-1', '01', '1,2', '1\n2', 'undefined', '1.2', '1e3', '${{ missing }}']) {
@@ -1030,7 +1036,12 @@ test('download fails closed before the action for empty, malformed or multiple I
 
 test('runner-private package/cache environment is set only after successful download', t => {
   const action = parse(readFileSync(new URL('../.github/actions/download-client-packages/action.yml', import.meta.url), 'utf8'));
-  const step = action.runs.steps[2];
+  const setters = action.runs.steps.filter(step => Object.hasOwn(step.env ?? {}, 'PACKAGES_PATH'));
+  const downloads = action.runs.steps.filter(step => step.uses?.startsWith('actions/download-artifact@'));
+  assert.equal(setters.length, 1, 'Verified package inputs have one environment publisher');
+  assert.equal(downloads.length, 1);
+  const [step] = setters;
+  assert(action.runs.steps.indexOf(downloads[0]) < action.runs.steps.indexOf(step));
   assert.equal(step.if, undefined);
   assert.equal(step['continue-on-error'], undefined);
   assert.equal(step.env.PACKAGES_PATH, '${{ inputs.path }}');
