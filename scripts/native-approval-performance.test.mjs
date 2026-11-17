@@ -14,6 +14,51 @@ const series = () => ({mode: 'final', sourceSha, fixtureSha256, runnerSha256,
   samples: Array.from({length: 30}, (_, iteration) => ({iteration, sourceSha, fixtureSha256,
     runnerSha256, wallNs: 2000000000, cpuUserUs: 1000, cpuSystemUs: 1000, cpuScope: 'synthetic OS sample', peakRssBytes: 4096, rssScope: 'synthetic OS sample', completed: true, verified: true}))});
 
+test('Mock harness observation waits for the original operation and returns its original value', async () => {
+  const records = [], original = {installed: true};
+  let release;
+  const pending = performance.observeNativeMockHarnessPhase(records, 'installation',
+    () => new Promise(resolve => { release = resolve; }));
+  assert.deepEqual(records, [{phase: 'installation', state: 'running'}]);
+  assert.equal(Object.hasOwn(records[0], 'wallNs'), false);
+  release(original);
+  assert.equal(await pending, original);
+  assert.equal(records[0].state, 'completed');
+  assert(Number.isSafeInteger(records[0].wallNs) && records[0].wallNs >= 0);
+});
+
+test('Mock harness observation retains original failures including unconfirmed registry closure', async () => {
+  for (const [phase, template] of [['scenario', 'deal-review-mock'], ['registry-close', undefined]]) {
+    const records = [], primary = new Error('original failed operation');
+    await assert.rejects(performance.observeNativeMockHarnessPhase(records, phase,
+      () => { throw primary; }, template), error => error === primary);
+    assert.equal(records[0].state, 'failed');
+    assert(Number.isSafeInteger(records[0].wallNs));
+    assert.throws(() => performance.nativeMockWorkflowTiming({harnessPhases: records, scenarios: []}), /Incomplete/u);
+  }
+});
+
+test('Mock workflow timing keeps harness and original command scopes separate and refuses missing observations', () => {
+  const receipt = {harnessPhases: [{phase: 'scenario', template: 'deal-review-mock', state: 'completed', wallNs: 100},
+    {phase: 'registry-close', state: 'completed', wallNs: 7}], scenarios: [{template: 'deal-review-mock', commands: [
+    {workflowPhase: 'approval', wallNs: 20, launcherTiming: {preparation: 2, child: 15, total: 17}},
+    {workflowPhase: 'saved-result', wallNs: 9}]}]};
+  const result = performance.nativeMockWorkflowTiming(receipt);
+  assert.equal(result.harnessPhases, receipt.harnessPhases);
+  assert.deepEqual(result.scenarios, receipt.scenarios);
+  assert.equal(result.scenarios[0].commands[0].launcherTiming, receipt.scenarios[0].commands[0].launcherTiming);
+  for (const mutate of [
+    value => { value.harnessPhases.pop(); },
+    value => { value.harnessPhases[0].state = 'running'; },
+    value => { value.harnessPhases[0].observationIssue = 'unavailable'; },
+    value => { delete value.scenarios[0].commands[0].wallNs; },
+    value => { delete value.scenarios[0].commands[1].workflowPhase; },
+  ]) {
+    const changed = structuredClone(receipt); mutate(changed);
+    assert.throws(() => performance.nativeMockWorkflowTiming(changed));
+  }
+});
+
 test('formal collector refuses a diagnostic binding before any artifact or workflow executes', t => {
   const root = mkdtempSync(join(tmpdir(), 'native-formal-binding-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));

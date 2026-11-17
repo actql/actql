@@ -10,7 +10,7 @@ import {fileURLToPath} from 'node:url';
 import {parseArgs} from 'node:util';
 import {verifyNativeCliRelease} from './native-cli-release.mjs';
 import {checkoutState} from './packed-client-packages.mjs';
-import {approvalCallCounts, assertApprovalCallCounts, assessNativeApproval, approvalPhases, assertNativeApprovalAcceptanceBinding, assertNativeApprovalObservation} from './native-approval-performance.mjs';
+import {approvalCallCounts, assertApprovalCallCounts, assessNativeApproval, approvalPhases, assertNativeApprovalAcceptanceBinding, assertNativeApprovalObservation, nativeMockWorkflowTiming} from './native-approval-performance.mjs';
 
 const {values} = parseArgs({options: {normal: {type: 'string'}, output: {type: 'string'},
   runner: {type: 'string'}, binding: {type: 'string'}, diagnostic: {type: 'boolean', default: false}}});
@@ -37,20 +37,22 @@ const series = ['deal-review-mock', 'churn-risk-mock'].map(template => ({templat
 const report = {version: 'actql-native-approval-performance/0.1', mode, sourceSha: source.revision,
   runner, runnerSha256, fixtureSha256, observation: 'existing opt-in Native timings and acceptance events',
   timer: 'monotonic parent clock around the complete approve process and OS sampler through exit',
-  concurrentLoad: 'observed load averages, not an exclusive-machine reservation', loadSnapshots: [], receipts: [], series, failures: [],
+  concurrentLoad: 'observed load averages, not an exclusive-machine reservation', loadSnapshots: [], receipts: [], workflowTimings: [], series, failures: [],
   unverified: ['other runners and platforms', 'live providers', 'fault-injection campaign']};
 const output = resolve(values.output);
 writeFileSync(output, JSON.stringify(report, null, 2) + '\n', {flag: 'wx'});
 const persist = () => writeFileSync(output, JSON.stringify(report, null, 2) + '\n');
 for (let iteration = 0; iteration < count; iteration++) {
   report.loadSnapshots.push({iteration, loadAverage: loadavg()});
+  const started = process.hrtime.bigint();
   const result = spawnSync(process.execPath,
     [fileURLToPath(new URL('./test-native-cli-mock-install.mjs', import.meta.url)), directory, '--measure-approval-resources'],
     {cwd: root, env: process.env, encoding: 'utf8', timeout: 240000,
       killSignal: 'SIGKILL', maxBuffer: 8 * 1024 ** 2});
+  const consumerWallNs = Number(process.hrtime.bigint() - started);
   if (result.error || result.signal || result.status !== 0) {
     report.failures.push({iteration, stage: 'original installed consumer',
-      code: result.status, signal: result.signal ?? null, error: result.error?.message ?? null,
+      code: result.status, signal: result.signal ?? null, error: result.error?.message ?? null, consumerWallNs,
       stdout: result.stdout ?? '', stderr: result.stderr ?? ''});
     persist(); break;
   }
@@ -63,6 +65,7 @@ for (let iteration = 0; iteration < count; iteration++) {
     assert.equal(receipt.cliSourceSha, source.revision);
     assert.equal(receipt.scenarios.length, 2);
     report.receipts.push({iteration, path: receiptPath, sha256: hash(bytes)});
+    report.workflowTimings.push({iteration, consumerWallNs, ...nativeMockWorkflowTiming(receipt)});
     for (const selected of series) {
       const scenario = receipt.scenarios.find(value => value.template === selected.template);
       assert(scenario, 'Missing original template workflow');

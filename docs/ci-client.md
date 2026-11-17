@@ -80,6 +80,19 @@ individual job/step intervals separately; a shorter dependency path alone is
 not a measured speedup. The thirty approvals for each original Mock workflow,
 all source-free cases and their original limits remain unchanged.
 
+The successful Mock report retains each iteration's complete child-process wall time,
+release verification, source/platform admission, scratch and registry setup,
+installation, installed-package admission, both scenarios, final integrity check
+and confirmed registry close. Command observations distinguish scaffolding,
+preparation, waiting status/review, approval, completed status, first Result and
+Saved status/Result. These are monotonic harness durations: scenarios contain
+their commands, and the child-process total also includes receipt publication
+and process-exit scratch cleanup. Do not add these nested observations or treat
+registry close as Native close acknowledgement. Original Native close phases
+remain in the command diagnostics and approval phase observations. The formal
+approval samples, thirty-per-template requirement and p95/maximum limits use
+their original timers and are independent of this harness breakdown.
+
 ## Private cause diagnostics
 
 Ordinary packed acceptance does not attach an Inspector or depend on private
