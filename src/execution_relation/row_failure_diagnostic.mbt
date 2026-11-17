@@ -14,6 +14,8 @@ pub fn row_failure_diagnostic_cause(issue : RowIssue) -> String? {
         QueryEvaluationTimeUnavailable =>
           Some("evaluation.query_evaluation_time_unavailable")
         NumberConversion(_) => Some("evaluation.number_conversion_failure")
+        TimestampCanonicalRequired =>
+          Some("evaluation.timestamp_canonical_required")
         TextBounds(cause) =>
           match cause {
             @text_bounds.InvalidLimits =>
