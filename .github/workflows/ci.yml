@@ -652,10 +652,12 @@ jobs:
     name: core (${{ matrix.target }}${{ matrix.target == 'native' && format(' {0}', matrix.partition) || '' }})
     strategy:
       fail-fast: false
-      max-parallel: 5
+      # Leave one of the five macOS runners available for physical workloads.
+      max-parallel: 4
       matrix:
         target: [native]
-        partition: [scoped-runtime, scoped-review, source, '1/2', '2/2']
+        # Start the longest observed partitions first; all five remain required.
+        partition: [scoped-runtime, '2/2', scoped-review, '1/2', source]
     runs-on: macos-15
     timeout-minutes: ${{ matrix.target == 'native' && 90 || 30 }}
     steps: *core_steps
@@ -2551,10 +2553,7 @@ jobs:
             --source "$(git rev-parse HEAD)" --clang "$(realpath /usr/bin/clang-19)" \
             --crypto-producer "$RUNNER_TEMP/native-cli-linux-local/production/crypto/producer.json" \
             --output "$RUNNER_TEMP/native-cli-linux-local/crypto-allocator" --seconds 150
-      - name: Require actual fresh installed source-free Local execution
-        if: ${{ !cancelled() && steps.local_cohort.outcome == 'success' }}
-        run: node scripts/test-native-cli-source-free-install.mjs "$RUNNER_TEMP/native-cli-linux-local/release"
-      - name: Retain exact component, artifact and installed Local receipts
+      - name: Retain exact component and Local artifact receipts
         id: local_evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -2570,6 +2569,45 @@ jobs:
             ${{ runner.temp }}/native-cli-linux-local/release/release.json
             ${{ runner.temp }}/native-cli-linux-local/release/actql-0.0.2.tgz
             ${{ runner.temp }}/native-cli-linux-local/release/actql-cli-linux-x64-gnu-0.0.2.tgz
+          if-no-files-found: warn
+          retention-days: 14
+  # Independent installed and Mock consumers share only the fixed producer artifact.
+  native-cli-linux-local-installed:
+    needs: [select-targets, native-cli-linux-local]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.native-cli-linux-local.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          python: 'true'
+      - name: Require the exact successful same-attempt Local artifact
+        env:
+          ARTIFACT_ID: ${{ needs.native-cli-linux-local.outputs.artifact-id }}
+          ARTIFACT_RUN_ID: ${{ needs.native-cli-linux-local.outputs.artifact-run-id }}
+          ARTIFACT_RUN_ATTEMPT: ${{ needs.native-cli-linux-local.outputs.artifact-run-attempt }}
+          ARTIFACT_SOURCE_SHA: ${{ needs.native-cli-linux-local.outputs.artifact-source-sha }}
+          EXPECTED_RUN_ID: ${{ github.run_id }}
+          EXPECTED_RUN_ATTEMPT: ${{ github.run_attempt }}
+          EXPECTED_SOURCE_SHA: ${{ github.sha }}
+        run: node scripts/native-cli-ci-artifact.mjs
+      - name: Download the exact Local artifact without rebuilding
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          artifact-ids: ${{ needs.native-cli-linux-local.outputs.artifact-id }}
+          path: ${{ runner.temp }}/native-cli-linux-local
+          merge-multiple: true
+      - name: Require actual fresh installed source-free Local execution
+        run: node scripts/test-native-cli-source-free-install.mjs "$RUNNER_TEMP/native-cli-linux-local/release"
+      - name: Retain independent installed Local acceptance receipts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-cli-linux-local-installed-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
             ${{ runner.temp }}/native-cli-linux-local/release/source-free-install-*.json
             ${{ runner.temp }}/native-cli-linux-local/release/source-free-observed-*.json
           if-no-files-found: warn
@@ -2599,17 +2637,7 @@ jobs:
           EXPECTED_RUN_ID: ${{ github.run_id }}
           EXPECTED_RUN_ATTEMPT: ${{ github.run_attempt }}
           EXPECTED_SOURCE_SHA: ${{ github.sha }}
-        run: |
-          node --input-type=module <<'NODE'
-          import assert from 'node:assert/strict';
-          const e = process.env;
-          for (const key of ['ARTIFACT_ID', 'ARTIFACT_RUN_ID', 'ARTIFACT_RUN_ATTEMPT'])
-            assert.match(e[key], /^[1-9][0-9]*$/u, key);
-          assert.match(e.ARTIFACT_SOURCE_SHA, /^[a-f0-9]{40}$/u);
-          assert.equal(e.ARTIFACT_RUN_ID, e.EXPECTED_RUN_ID);
-          assert.equal(e.ARTIFACT_RUN_ATTEMPT, e.EXPECTED_RUN_ATTEMPT);
-          assert.equal(e.ARTIFACT_SOURCE_SHA, e.EXPECTED_SOURCE_SHA);
-          NODE
+        run: node scripts/native-cli-ci-artifact.mjs
       - name: Download the exact Local artifact without rebuilding
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
@@ -2882,6 +2910,7 @@ jobs:
       - select-targets
       - native-workloads
       - native-http
+      - native-cli-linux-local-installed
       - native-cli-linux-local-mock
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
@@ -2893,7 +2922,7 @@ jobs:
         run: |
           node -e '
             const results = JSON.parse(process.env.RESULTS);
-            for (const job of ["native-workloads", "native-http", "native-cli-linux-local-mock"]) {
+            for (const job of ["native-workloads", "native-http", "native-cli-linux-local-installed", "native-cli-linux-local-mock"]) {
               if (results[job]?.result !== "success") {
                 console.error(`${job}: ${results[job]?.result ?? "missing"}`);
                 process.exitCode = 1;
@@ -2902,7 +2931,7 @@ jobs:
           '
   check:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
-    needs: [select-targets, preflight, lint, core, host, client, native-cli-installed, native-cli-linux-local, native-cli-linux-local-mock, native, spec, session-evidence, session-controls, pipeline-evidence, pipeline-validation, native-macos, python-wheels,
+    needs: [select-targets, preflight, lint, core, host, client, native-cli-installed, native-cli-linux-local, native-cli-linux-local-installed, native-cli-linux-local-mock, native, spec, session-evidence, session-controls, pipeline-evidence, pipeline-validation, native-macos, python-wheels,
       native-separated-network, workers, connector-addition, duckdb-node, focused-tests, main-performance, health-quick, client-readme-packed]
     runs-on: ubuntu-24.04
     timeout-minutes: 5

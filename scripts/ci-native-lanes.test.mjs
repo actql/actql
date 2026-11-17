@@ -26,8 +26,8 @@ test('Darwin Core starts from selected targets while Python retains its original
   assert.deepEqual(js.strategy.matrix, {target: ['js'], partition: ['1/4']});
   assert.equal(js.name, common.name);
   assert.equal(js.steps, common.steps); assert.equal(js.steps, darwin.steps);
-  assert.equal(darwin.strategy['max-parallel'], 5);
-  assert.deepEqual(darwin.strategy.matrix.partition.slice(0, 3), ['scoped-runtime', 'scoped-review', 'source']);
+  assert(darwin.strategy['max-parallel'] > 0 && darwin.strategy['max-parallel'] < 5,
+    'Core must leave a macOS runner for independent physical workloads');
   assert.deepEqual(darwin.needs, ['select-targets']);
   assert.deepEqual(workflow.jobs['python-wheels'].needs, ['select-targets', 'lint', 'core-js']);
   assert.deepEqual(workflow.jobs['native-macos-workloads'].needs, ['select-targets']);
@@ -85,11 +85,9 @@ test('Core runner split caps only Darwin and retains the complete original matri
   assert.equal(common['runs-on'], 'ubuntu-24.04');
   assert.equal(common.strategy['max-parallel'], undefined);
   assert.equal(darwin['runs-on'], 'macos-15');
-  assert.equal(darwin.strategy['max-parallel'], 5);
+  assert(darwin.strategy['max-parallel'] > 0 && darwin.strategy['max-parallel'] < 5);
   assert.deepEqual({...darwin.strategy.matrix, partition: [...darwin.strategy.matrix.partition].sort()},
     {target: ['native'], partition: [...nativeCoreCiPartitions].sort()});
-  assert.deepEqual(darwin.strategy.matrix.partition,
-    ['scoped-runtime', 'scoped-review', 'source', '1/2', '2/2']);
   assert.equal(common.strategy.matrix.target, '${{ fromJSON(needs.select-targets.outputs.targets) }}');
   assert.deepEqual(common.strategy.matrix.partition, ['1/4', ...nativeCoreLinuxCommonPartitions]);
   const rows = job => ['js', 'wasm', 'native'].flatMap(target => job.strategy.matrix.partition.map(partition => ({target, partition})))

@@ -56,6 +56,30 @@ cancellation and unexpected skip. The existing global `check` still requires
 conditional behavior, as does
 the optional macOS gate.
 
+## Native scheduling and package consumers
+
+The Darwin Core matrix uses at most four of the five available macOS runners,
+leaving capacity for the independent physical-workload and Python wheel jobs.
+All five Darwin partitions remain required; the longest recently observed
+partitions are listed first. Linux jobs retain their separate runner pool.
+Scheduling order is a hint, not a reservation or a claim of an isolated runner.
+
+`native-cli-linux-local` produces and uploads one exact-source Native package
+cohort and retains the Crypto allocator check. Source-free installed acceptance
+and the complete Mock approval campaign consume that same artifact independently;
+neither rebuilds it or waits for the other's tests. Their shared handoff checks
+the exact artifact ID, run, attempt and source before download. Both consumers
+require the successful producer, including allocator conformance. A failed
+producer cannot qualify an installed consumer. The Native aggregate and final
+`check` require both consumers and the producer. Missing, failed, cancelled or
+unexpectedly skipped work cannot become acceptance.
+
+Compare completed hosted runs using the existing `ci-evidence` / `ci-timing`
+reporter. Report aggregate-check completion, distinct runner consumption and
+individual job/step intervals separately; a shorter dependency path alone is
+not a measured speedup. The thirty approvals for each original Mock workflow,
+all source-free cases and their original limits remain unchanged.
+
 ## Change-scoped PR verification
 
 Main integration retains all runtime families. Ready PRs may use the existing

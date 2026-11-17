@@ -1,3 +1,4 @@
+import './native-cli-ci-artifact.test.mjs';
 import assert from 'node:assert/strict';
 import {chmodSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
@@ -11,6 +12,7 @@ import {classifyJob} from './local-checks-policy.mjs';
 
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const job = workflow.jobs['native-cli-linux-local'];
+const installedJob = workflow.jobs['native-cli-linux-local-installed'];
 const mockJob = workflow.jobs['native-cli-linux-local-mock'];
 
 test('normal Linux Local job is separate, mandatory and explicitly bounded', () => {
@@ -27,12 +29,12 @@ test('normal Linux Local job is separate, mandatory and explicitly bounded', () 
     'Source-free acceptance cannot borrow a Node Host package cohort');
 });
 
-test('Local CI uses the normal selected producer and Local-required packaging before actual install', () => {
+test('Local CI finishes normal production and packaging before independent installed acceptance', () => {
   const commands = job.steps.filter(step => step.run).map(step => step.run);
   const producer = commands.findIndex(command => command.includes('node scripts/produce-native-cli-linux-local.mjs'));
   const pack = commands.findIndex(command => command.includes('node scripts/native-cli-release.mjs prepare-local'));
-  const install = commands.findIndex(command => command.includes('node scripts/test-native-cli-source-free-install.mjs'));
-  assert(producer >= 0 && producer < pack && pack < install);
+  assert(producer >= 0 && producer < pack);
+  assert(!commands.some(command => command.includes('node scripts/test-native-cli-source-free-install.mjs')));
   assert(!commands.some(command => command.includes('node scripts/test-native-cli-mock-install.mjs')));
   const command = commands[producer];
   for (const selected of ['--source "$(git rev-parse HEAD)"', '--package-version 0.0.2',
@@ -47,28 +49,36 @@ test('Local CI uses the normal selected producer and Local-required packaging be
     assert.equal(step.if, undefined); assert.equal(step['continue-on-error'], undefined);
   }
   assert.equal(job.steps.find(value => value.run === commands[pack]).id, 'local_cohort');
-  for (const index of [install]) {
-    const step = job.steps.find(value => value.run === commands[index]);
-    assert.equal(step['continue-on-error'], undefined);
-    assert.equal(step.run.split(' ').at(-1), '"$RUNNER_TEMP/native-cli-linux-local/release"');
-  }
 });
 
-test('source-free Local consumer remains required after allocator failure', () => {
-  const consumer = job.steps.find(step => step.run?.includes('node scripts/test-native-cli-source-free-install.mjs'));
+test('installed Local acceptance consumes the successful producer independently of Mock acceptance', () => {
+  assert.deepEqual(installedJob.needs, ['select-targets', 'native-cli-linux-local']);
+  assert.equal(installedJob['runs-on'], 'ubuntu-24.04');
+  assert(Number.isFinite(installedJob['timeout-minutes']) && installedJob['timeout-minutes'] > 0);
+  assert(gateJobs.includes('native-cli-linux-local-installed'));
+  assert(workflow.jobs.check.needs.includes('native-cli-linux-local-installed'));
+  assert(workflow.jobs.native.needs.includes('native-cli-linux-local-installed'));
+  assert.equal(classifyJob('native-cli-linux-local-installed').heavy, true);
+  assert.equal(installedJob['continue-on-error'], undefined);
+  assert(!installedJob.steps.some(step => /produce-native|native-cli-release|test-native-cli-mock-install/u.test(step.run ?? '')));
+  const consumer = installedJob.steps.find(step => step.run?.includes('node scripts/test-native-cli-source-free-install.mjs'));
   assert(consumer);
-  assert.match(consumer.if, /!cancelled\(\)/u, 'explicit status guard must not inherit success()');
-  assert.match(consumer.if, /steps\.local_cohort\.outcome/u);
+  assert.equal(consumer.if, undefined);
   assert.equal(consumer['continue-on-error'], undefined);
-  const condition = consumer.if.replace(/^\$\{\{\s*|\s*\}\}$/gu, '');
-  const evaluate = Function('steps', 'cancelled', 'success', `return (${condition});`);
-  for (const prepared of ['success', 'failure', 'skipped', 'cancelled']) {
-    for (const sibling of ['success', 'failure', 'skipped', 'cancelled']) {
-      for (const cancelled of [false, true]) {
-        assert.equal(evaluate({local_cohort: {outcome: prepared}, sibling: {outcome: sibling}},
-          () => cancelled, () => sibling === 'success'), prepared === 'success' && !cancelled);
-      }
-    }
+  assert.equal(consumer.run.split(' ').at(-1), '"$RUNNER_TEMP/native-cli-linux-local/release"');
+  const download = installedJob.steps.find(step => step.uses?.startsWith('actions/download-artifact@'));
+  assert.deepEqual(download.with, {
+    'artifact-ids': '${{ needs.native-cli-linux-local.outputs.artifact-id }}',
+    path: '${{ runner.temp }}/native-cli-linux-local', 'merge-multiple': true,
+  });
+  assert(installedJob.steps.indexOf(download) < installedJob.steps.indexOf(consumer));
+  const condition = installedJob.if.replace(/^\$\{\{\s*|\s*\}\}$/gu, '')
+    .replace(/needs\.([a-z][a-z0-9-]*)/gu, (_, name) => `needs[${JSON.stringify(name)}]`);
+  const enabled = Function('needs', 'github', 'inputs', 'toJSON', `return (${condition});`);
+  for (const result of ['success', 'failure', 'cancelled', 'skipped', undefined]) {
+    assert.equal(enabled({'select-targets': {outputs: {profile: 'full'}},
+      'native-cli-linux-local': {result}}, {event: {repository: {visibility: 'public', private: false}}},
+    {}, JSON.stringify), result === 'success');
   }
 });
 
@@ -143,40 +153,45 @@ test('Mock workflows require a fresh runner and the successful exact producer co
 });
 
 test('exact Local artifact preflight refuses other attempts sources and missing or multiple IDs', () => {
-  const preflight = mockJob.steps.find(step => step.env?.ARTIFACT_ID === '${{ needs.native-cli-linux-local.outputs.artifact-id }}');
-  assert.deepEqual(preflight.env, {
-    ARTIFACT_ID: '${{ needs.native-cli-linux-local.outputs.artifact-id }}',
-    ARTIFACT_RUN_ID: '${{ needs.native-cli-linux-local.outputs.artifact-run-id }}',
-    ARTIFACT_RUN_ATTEMPT: '${{ needs.native-cli-linux-local.outputs.artifact-run-attempt }}',
-    ARTIFACT_SOURCE_SHA: '${{ needs.native-cli-linux-local.outputs.artifact-source-sha }}',
-    EXPECTED_RUN_ID: '${{ github.run_id }}', EXPECTED_RUN_ATTEMPT: '${{ github.run_attempt }}',
-    EXPECTED_SOURCE_SHA: '${{ github.sha }}',
-  });
-  const original = {ARTIFACT_ID: '101', ARTIFACT_RUN_ID: '42', ARTIFACT_RUN_ATTEMPT: '3',
-    ARTIFACT_SOURCE_SHA: 'a'.repeat(40), EXPECTED_RUN_ID: '42', EXPECTED_RUN_ATTEMPT: '3',
-    EXPECTED_SOURCE_SHA: 'a'.repeat(40)};
-  const execute = changed => spawnSync('bash', ['-eo', 'pipefail', '-c', preflight.run],
-    {encoding: 'utf8', timeout: 3000, env: {...process.env, ...original, ...changed}});
-  assert.equal(execute({}).status, 0);
-  for (const changed of [{ARTIFACT_ID: ''}, {ARTIFACT_ID: '0'}, {ARTIFACT_ID: '101,102'},
-    {ARTIFACT_RUN_ID: '43'}, {ARTIFACT_RUN_ATTEMPT: '2'}, {ARTIFACT_SOURCE_SHA: 'b'.repeat(40)}]) {
-    const result = execute(changed);
-    assert.equal(result.error, undefined);assert.equal(result.signal, null);
-    assert.notEqual(result.status, 0, JSON.stringify(changed));
+  for (const consumer of [installedJob, mockJob]) {
+    const preflight = consumer.steps.find(step => step.env?.ARTIFACT_ID === '${{ needs.native-cli-linux-local.outputs.artifact-id }}');
+    assert.deepEqual(preflight.env, {
+      ARTIFACT_ID: '${{ needs.native-cli-linux-local.outputs.artifact-id }}',
+      ARTIFACT_RUN_ID: '${{ needs.native-cli-linux-local.outputs.artifact-run-id }}',
+      ARTIFACT_RUN_ATTEMPT: '${{ needs.native-cli-linux-local.outputs.artifact-run-attempt }}',
+      ARTIFACT_SOURCE_SHA: '${{ needs.native-cli-linux-local.outputs.artifact-source-sha }}',
+      EXPECTED_RUN_ID: '${{ github.run_id }}', EXPECTED_RUN_ATTEMPT: '${{ github.run_attempt }}',
+      EXPECTED_SOURCE_SHA: '${{ github.sha }}',
+    });
+    const original = {ARTIFACT_ID: '101', ARTIFACT_RUN_ID: '42', ARTIFACT_RUN_ATTEMPT: '3',
+      ARTIFACT_SOURCE_SHA: 'a'.repeat(40), EXPECTED_RUN_ID: '42', EXPECTED_RUN_ATTEMPT: '3',
+      EXPECTED_SOURCE_SHA: 'a'.repeat(40)};
+    const execute = changed => spawnSync('bash', ['-eo', 'pipefail', '-c', preflight.run],
+      {encoding: 'utf8', timeout: 3000, env: {...process.env, ...original, ...changed}});
+    assert.equal(execute({}).status, 0);
+    for (const changed of [{ARTIFACT_ID: ''}, {ARTIFACT_ID: '0'}, {ARTIFACT_ID: '101,102'},
+      {ARTIFACT_RUN_ID: '43'}, {ARTIFACT_RUN_ATTEMPT: '2'}, {ARTIFACT_SOURCE_SHA: 'b'.repeat(40)}]) {
+      const result = execute(changed);
+      assert.equal(result.error, undefined);assert.equal(result.signal, null);
+      assert.notEqual(result.status, 0, JSON.stringify(changed));
+    }
+    const download = consumer.steps.findIndex(step => step.uses?.startsWith('actions/download-artifact@'));
+    assert(consumer.steps.indexOf(preflight) < download);
   }
-  const download = mockJob.steps.findIndex(step => step.uses?.startsWith('actions/download-artifact@'));
-  assert(mockJob.steps.indexOf(preflight) < download);
 });
 
-test('Native aggregate rejects a failed missing or skipped independent Mock consumer', () => {
+test('Native aggregate rejects a failed missing or skipped independent Local consumer', () => {
   const step = workflow.jobs.native.steps.find(step => step.run);
-  for (const result of ['success', 'failure', 'cancelled', 'skipped', undefined]) {
-    const needs = {'native-workloads': {result: 'success'}, 'native-http': {result: 'success'},
-      'native-cli-linux-local-mock': {result}};
-    const checked = spawnSync('bash', ['-eo', 'pipefail', '-c', step.run],
-      {encoding: 'utf8', timeout: 3000, env: {...process.env, RESULTS: JSON.stringify(needs)}});
-    assert.equal(checked.error, undefined);assert.equal(checked.signal, null);
-    assert.equal(checked.status === 0, result === 'success', String(result));
+  for (const name of ['native-cli-linux-local-installed', 'native-cli-linux-local-mock']) {
+    for (const result of ['success', 'failure', 'cancelled', 'skipped', undefined]) {
+      const needs = {'native-workloads': {result: 'success'}, 'native-http': {result: 'success'},
+        'native-cli-linux-local-installed': {result: 'success'}, 'native-cli-linux-local-mock': {result: 'success'}};
+      needs[name] = {result};
+      const checked = spawnSync('bash', ['-eo', 'pipefail', '-c', step.run],
+        {encoding: 'utf8', timeout: 3000, env: {...process.env, RESULTS: JSON.stringify(needs)}});
+      assert.equal(checked.error, undefined);assert.equal(checked.signal, null);
+      assert.equal(checked.status === 0, result === 'success', String(result));
+    }
   }
 });
 
@@ -232,10 +247,16 @@ test('CI downloads original hash-bounded archives and retains exact production a
   const retain = job.steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
   assert.equal(retain.if, 'always()');
   for (const path of ['sqlite/process-producer.json', 'crypto/producer.json', 'recipe/',
-    'artifact/artifact.json', 'native-producer/build.json', 'release/release.json', 'release/source-free-install-*.json', 'release/source-free-observed-*.json']) {
+    'artifact/artifact.json', 'native-producer/build.json', 'release/release.json']) {
     assert(retain.with.path.includes(path), path);
   }
   assert(!retain.with.path.includes('mock-install-'), 'Mock evidence belongs to its independent job');
+  assert(!retain.with.path.includes('source-free-install-'), 'Installed evidence belongs to its independent job');
+  const installedRetain = installedJob.steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
+  assert.equal(installedRetain.if, 'always()');
+  assert.equal(installedRetain.with.name, 'native-cli-linux-local-installed-${{ github.run_id }}-${{ github.run_attempt }}');
+  assert(installedRetain.with.path.includes('/release/source-free-install-*.json'));
+  assert(installedRetain.with.path.includes('/release/source-free-observed-*.json'));
   const mockRetain = mockJob.steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
   assert.equal(mockRetain.if, 'always()');
   assert.equal(mockRetain.with.name, 'native-cli-linux-local-mock-${{ github.run_id }}-${{ github.run_attempt }}');
