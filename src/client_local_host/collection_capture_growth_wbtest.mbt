@@ -62,35 +62,36 @@ fn collection_capture_execution_case(
   assert_true(demand.name_bytes > 500000)
   assert_eq(plan.execution.rows.output_values.max_text_bytes, demand.name_bytes)
   assert_eq(plan.execution.rows.input_values.max_text_bytes, demand.name_bytes)
+  let mut filter : (Int, Int)? = None
+  for task, sequence in original.sequences {
+    for index in 0..<@execution.generated_sequence_step_count(sequence) {
+      if @execution.generated_sequence_step_at(sequence, index)
+        is Some(@lower.RowStep(kernel)) &&
+        @lower.kernel_is_filter(kernel) {
+        assert_true(filter is None)
+        filter = Some(
+          (
+            task,
+            @execution.generated_sequence_step_index_at(sequence, index).unwrap(),
+          ),
+        )
+      }
+    }
+  }
+  guard filter is Some((filter_task, filter_step)) else {
+    fail("original collection predicate required")
+  }
   let requirements = @execution.generated_sequence_requirements(
-    original.sequences[43],
+    original.sequences[filter_task],
     10000,
   ).unwrap()
   let fragment = @lower.sequence_requirements_fragment_for_step(
-    requirements, 43,
+    requirements, filter_step,
   ).unwrap()
   assert_eq(
     fragment.logical.max_work,
     plan.execution.rows.input_values.max_work.to_int64(),
   )
-  let reported = Ref(false)
-  for slot, sequence in original.sequences {
-    for index in 0..<@execution.generated_sequence_step_count(sequence) {
-      if @execution.generated_sequence_step_index_at(sequence, index) ==
-        Some(41) &&
-        !reported.val {
-        reported.val = true
-        let kind = match
-          @execution.generated_sequence_step_at(sequence, index) {
-          Some(@lower.CrossJoinStep(_)) => "cross_join"
-          Some(@lower.AppendStep(_)) => "append"
-          Some(@lower.RowStep(_)) => "row"
-          _ => "other"
-        }
-        assert_eq((slot, kind), (41, "cross_join"))
-      }
-    }
-  }
   // A quote is not the ordinary admission. Supply the original finite Run
   // authority explicitly, as the existing whole-Source chain fixtures do.
   let limits = {
@@ -120,16 +121,23 @@ fn collection_capture_execution_case(
     @builtin.configured_host_driver(setup),
   )
   let blocker : Ref[@resources.CapacityReservation?] = Ref(None)
+  let attempts_before_filter : Ref[Int?] = Ref(None)
   let current = if refuse || retention_refuse {
     fn() {
       let usage = @resources.ledger_usage(ledger)
+      let next = @strategy.next_captured_task(captured)
+      if next == Some(filter_task) && attempts_before_filter.val is None {
+        attempts_before_filter.val = Some(usage.attempts)
+      }
       let selected = if retention_refuse {
         // The original attempt has started and paid its startup envelope.
         // Occupy only the remaining SAME Ledger retention before its first
         // imported row asks for actual DATA growth, preserving the policy.
-        usage.attempts == 44
+        attempts_before_filter.val
+        .map(before => usage.attempts > before)
+        .unwrap_or(false)
       } else {
-        @strategy.next_captured_task(captured) == Some(43)
+        next == Some(filter_task)
       }
       if blocker.val is None && selected {
         blocker.val = Some(
