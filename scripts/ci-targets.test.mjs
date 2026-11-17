@@ -1509,8 +1509,24 @@ test('automatic main integration remains full without cumulative evidence', () =
 
 test('distribution isolates pinned provider tests with their required GC recipe', () => {
   const scripts = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).scripts;
-  const provider = 'node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- --expose-gc packages/provider-ai-sdk/*.test.mjs';
-  assert.equal(scripts['check:provider-ai-sdk'], provider);
+  // client-ci executes this same recipe to check type-gate ordering and refusal.
+  const providerTests = scripts['check:provider-ai-sdk'].split(' && ')
+    .map(command => command.trim().split(/\s+/u))
+    .filter(args => args[1] === 'scripts/local-checks.mjs');
+  assert.equal(providerTests.length, 1);
+  const [provider] = providerTests;
+  assert.deepEqual(provider.slice(0, 4), ['node', 'scripts/local-checks.mjs', 'test', 'node']);
+  const separator = provider.indexOf('--');
+  assert(separator > 3);
+  for (const option of ['--timeout-seconds', '--kill-grace-seconds']) {
+    const index = provider.indexOf(option);
+    assert(index > 3 && index + 1 < separator, option);
+    const seconds = Number(provider[index + 1]);
+    assert(Number.isSafeInteger(seconds) && seconds > 0, option);
+  }
+  for (const required of ['--expose-gc', 'packages/provider-ai-sdk/*.test.mjs']) {
+    assert.equal(provider.slice(separator + 1).filter(value => value === required).length, 1, required);
+  }
   assert(!scripts['check:distribution-client'].includes('npm run check:provider-ai-sdk'));
   assert.equal(scripts['postcheck:distribution-client'], 'npm run check:provider-ai-sdk && npm run check:otel-node');
   assert(!scripts['check:distribution-client'].includes('packages/provider-ai-sdk/*.test.mjs'));
