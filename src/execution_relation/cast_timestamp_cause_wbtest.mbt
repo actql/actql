@@ -25,12 +25,12 @@ test "canonical Timestamp CAST refusal retains the original expression and close
 test "canonical Timestamp CAST accepts the same original text under nullable contracts" {
   for source in ["2026-01-02T03:04:05.123Z", "2026-01-02T03:04:05.123456789Z"] {
     for nullable in [false, true] {
-      let original = lowered(
-        cast_test_expression(
-          "{\"literal\":\"" + source + "\"}",
-          "{\"type\":\"timestamp\",\"nullable\":" + nullable.to_string() + "}",
-        ),
-      )
+      let operand = if nullable {
+        "if(true,'" + source + "',CAST(NULL AS STRING))"
+      } else {
+        "'" + source + "'"
+      }
+      let original = lowered("\"CAST(" + operand + " AS TIMESTAMP)\"")
       assert_eq(@lower.expression_contract(original).nullable, nullable)
       assert_true(
         evaluate_expression(original, {}, [], {
@@ -46,8 +46,8 @@ test "canonical Timestamp CAST accepts the same original text under nullable con
 
 ///|
 test "Timestamp canonical cause does not upgrade generic failure or replace TRY and control behavior" {
-  guard run_expr("\"CAST(12 AS TIMESTAMP)\"") is Err(generic) else {
-    fail("wrong type accepted")
+  guard run_expr("\"CAST('bad' AS NUMBER)\"") is Err(generic) else {
+    fail("invalid number accepted")
   }
   assert_eq(
     row_failure_diagnostic_cause(Evaluation(0, 0, generic)),
