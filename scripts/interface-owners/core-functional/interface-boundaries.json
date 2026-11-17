@@ -39232,7 +39232,7 @@
     },
     {
       "module": "src/client_local_host/installed_source_reader_capacity.mbt",
-      "sha256": "3c60c3abf7599d37085cbca283ba0f65451a60395c69c6e46b937c8e849e4fa4",
+      "sha256": "cbf3e8a20ca368cdf3b838c51935ec03317ceca164ce03cd9aecf88f3b5ca486",
       "operations": [
         {
           "name": "installed_gmail_thread_reader_capacity",
@@ -98070,7 +98070,7 @@
     },
     {
       "module": "src/client_row_source_host/json_page_cursor.mbt",
-      "sha256": "252492734209cce9a43c39e5761926c103b9e8589ad2a539769d87fa9f6afa54",
+      "sha256": "3b9d0a0a4c266448baadd045a55b51f8bed5ad98066049728e76238f0a6dd7f8",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common row Source pagination DATA; managed RowRun retains I/O, current authority, response charges and physical cleanup",

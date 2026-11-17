@@ -453,7 +453,10 @@ test('signed-source-zero note preserves productions and the complete original id
   assert.deepEqual(afterBody, {...beforeBody,
     expression_contract_cid: after.expression_contract_cid,
     expression_text_grammar_sha256: after.grammar_sha256});
-  assert.deepEqual(after.grammar_manifest, read('spec/manifests/actql-grammar-0.1.json'));
+  // This recorded transition keeps its original complete grammar. The
+  // independently reconstructed CURRENT grammar is checked separately below.
+  assert.equal(after.grammar_manifest.grammar_manifest_cid,
+    'sha256:b77c3bba7995f429d096b9852606a592999c9b290b1b51754872be0ae2150b55');
   assert.deepEqual(after.sequence_values.grammar, after.grammar_manifest);
   assert.equal(after.sequence_values.aoa_contract_cid, machineCid(next[aoaPath]));
   // The prior authored current fixture lagged actual structural/Program inputs;

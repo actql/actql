@@ -323,8 +323,11 @@ test('REST actual Common cursor capacity uses the original domain representation
     assert(original !== undefined && original !== null);
     assert(cursor !== undefined && cursor !== null);
     // Independent shared-tariff/domain vector from the exact/one-short Core
-    // fixture. Observe only the canonical compiler binding; issue no capacity.
-    assert.equal(runtimeField(original, 0), 3632n);
-    assert.equal(runtimeField(cursor, 0), 4366n);
-    assert.equal(runtimeField(cursor, 1) - runtimeField(original, 1), 774n);
+    // fixture. The original capacity is opaque; use its existing typed Common
+    // projection, then the canonical tuple binding. This issues no capacity.
+    const originalBytes = moon.clientProgramSerializationCapacityBytes(original);
+    const cursorBytes = moon.clientProgramSerializationCapacityBytes(cursor);
+    assert.equal(runtimeField(originalBytes, 0), 3632n);
+    assert.equal(runtimeField(cursorBytes, 0), 4366n);
+    assert.equal(runtimeField(cursorBytes, 1) - runtimeField(originalBytes, 1), 774n);
   });
