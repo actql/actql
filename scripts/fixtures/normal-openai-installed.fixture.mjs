@@ -13,7 +13,10 @@ import {fileURLToPath} from 'node:url';
 import {observeOwnScopedStateFds} from './conformance.mjs';
 
 const phase = process.argv[2];
-assert(['warm', 'cold'].includes(phase));
+assert(['warm', 'cold', 'usage-reported', 'usage-zero', 'usage-absent'].includes(phase));
+const usageMode = phase.startsWith('usage-') ? phase.slice(6) : undefined;
+const fresh = phase !== 'cold';
+const expectedCalls = usageMode === undefined ? 2 : 1;
 const modules = resolve(realpathSync(process.cwd()), 'node_modules');
 assert.equal(realpathSync(modules), modules, 'The fresh node_modules must not redirect to another installation');
 const publicModules = new Map(['@actql/node', '@actql/provider-ai-sdk']
@@ -30,7 +33,7 @@ for (const [name, url] of publicModules) {
 const {connect} = await import(publicModules.get('@actql/node'));
 const {createOpenAIChatProvider} = await import(publicModules.get('@actql/provider-ai-sdk'));
 
-if (phase === 'warm') {
+if (fresh) {
   await assert.rejects(access('.state'), {code: 'ENOENT'});
   const put = (path, value, mode = 0o600) => writeFile(path, value, {flag: 'wx', mode});
   await put('actql.config.json', JSON.stringify({version: 'actql-config/0.1', model_tasks: './model-tasks.json'}));
@@ -58,7 +61,7 @@ let calls = 0, egressChecks = 0;
 const schemas = [];
 const server = createServer({cert: certificate, key: await readFile('provider.key')}, async (request, response) => {
   calls++;
-  assert.equal(phase, 'warm', 'A Saved read must never contact the provider');
+  assert.equal(fresh, true, 'A Saved read must never contact the provider');
   assert.equal(request.url, '/v1/chat/completions');
   assert.equal(request.headers.authorization, 'Bearer not-an-external-secret');
   let wire = '';
@@ -74,11 +77,13 @@ const server = createServer({cert: certificate, key: await readFile('provider.ke
   response.end(JSON.stringify({id: 'installed-' + calls, object: 'chat.completion', created: 1,
     model: 'fixture-chat', choices: [{index: 0,
       message: {role: 'assistant', content: JSON.stringify(value)}, finish_reason: 'stop'}],
-    usage: {prompt_tokens: 2, completion_tokens: 3, total_tokens: 5}}));
+    ...(usageMode === 'absent' ? {} : {usage: usageMode === 'zero'
+      ? {prompt_tokens: 0, completion_tokens: 0, total_tokens: 0}
+      : {prompt_tokens: 2, completion_tokens: 3, total_tokens: 5}})}));
 });
-const port = phase === 'warm' ? 0 : Number(await readFile('endpoint.fixture', 'utf8'));
+const port = fresh ? 0 : Number(await readFile('endpoint.fixture', 'utf8'));
 await new Promise(resolve => server.listen(port, '127.0.0.1', resolve));
-if (phase === 'warm') await writeFile('endpoint.fixture', String(server.address().port), {flag: 'wx', mode: 0o600});
+if (fresh) await writeFile('endpoint.fixture', String(server.address().port), {flag: 'wx', mode: 0o600});
 const authorization = {
   hostKey: {keyId: 'fixture-host', privateKey: await readFile('operator-private.fixture', 'utf8')},
   reviewers: [{keyId: 'fixture-reviewer', reviewerId: 'fixture-reviewer', principalId: userInfo().username,
@@ -103,25 +108,89 @@ const program = (task, field, value, type) => ({version: 'actql/0.1', id: 'insta
     {infer: {contract: task, key: 'id', input: {[field]: {field}}}, as: 'inferred'}],
     results: {answer: {from: 'inferred', fields: ['id', 'outcome', 'value']}}}],
   results: {answer: {from: {stage: 'main', result: 'answer'}}}});
+// New explicit usage-aware local callback contract. This small authored Sink
+// persists only the bounded seven-field projection; it is not the old five-part
+// evidence Sink, an independent Model issuer or physical-cleanup observation.
+let originalRef, usageReceipt, usageCaptures = 0, usageAuthorizations = 0;
+const policy = {kind: 'data_policy',
+  wire: '{"classification":"unknown","source_data_policy_cids":[],"source_response_policy_cids":[],"unknown_provenance":true,"version":"actql-effective-data-policy/0.1"}',
+  cid: 'sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563'};
+const inferEvidence = usageMode === undefined ? undefined : {
+  kind: 'usage', target: 'inferred', destination: 'local:installed-usage', maxBytes: 4096,
+  authorize(binding) {
+    usageAuthorizations++;
+    assert.equal(binding.kind, 'usage'); assert.equal(binding.target, 'inferred');
+    assert.equal(binding.destination, 'local:installed-usage');
+    assert.deepEqual(binding.policy, policy);
+    assert.deepEqual(binding.subject, {runDefinitionCid: originalRef.runDefinitionCid,
+      authorityScopeCid: originalRef.authorityScopeCid});
+    return true;
+  },
+  sink: {
+    async capture(binding) {
+      usageCaptures++;
+      assert.deepEqual(Object.keys(binding.wires), ['usage']);
+      const wire = binding.wires.usage;
+      assert.equal(typeof wire, 'string'); assert(Buffer.byteLength(wire) <= 4096);
+      const value = JSON.parse(wire);
+      assert.deepEqual(Object.keys(value), ['input_tokens', 'invocation_evidence_cid', 'model_call_slot_cid',
+        'model_task_contract_cid', 'observation_origin', 'output_tokens', 'raw_response_artifact_cid']);
+      assert.equal(value.input_tokens, usageMode === 'absent' ? null : usageMode === 'zero' ? 0 : 2);
+      assert.equal(value.output_tokens, usageMode === 'absent' ? null : usageMode === 'zero' ? 0 : 3);
+      assert.equal(value.observation_origin, 'reported');
+      assert.equal(value.model_call_slot_cid, binding.original.modelCallSlotCid);
+      for (const cid of [value.invocation_evidence_cid, value.model_call_slot_cid,
+        value.model_task_contract_cid, binding.original.captureBundleCid, binding.attemptCid]) {
+        assert.match(cid, /^sha256:[0-9a-f]{64}$/);
+      }
+      assert(value.raw_response_artifact_cid === null || /^sha256:[0-9a-f]{64}$/.test(value.raw_response_artifact_cid));
+      assert.equal(wire.includes('not-an-external-secret'), false);
+      await writeFile('usage-original.json', wire, {flag: 'wx', mode: 0o600});
+      return {status: 'complete'};
+    },
+    async record(receipt) {
+      assert.equal(receipt.manifest.kind, 'usage'); assert.equal(receipt.manifest.status, 'complete');
+      assert.equal(receipt.manifest.items.length, 1);
+      assert.equal(receipt.manifest.items[0].status, 'complete');
+      const wire = JSON.stringify(receipt);
+      assert(Buffer.byteLength(wire) <= 4096);
+      await writeFile('usage-receipt.json', wire, {flag: 'wx', mode: 0o600});
+      usageReceipt = receipt;
+    },
+  },
+};
 let client, primary;
 try {
   client = await connect({mode: 'local', owner: 'local', installation: {directory: '.state',
-    registerModelProviders, authorization}});
-  if (phase === 'warm') {
-    for (const [index, args, expected] of [
+    registerModelProviders, authorization,
+    ...(inferEvidence === undefined ? {} : {inferEvidence, resultDataPolicy: policy})}});
+  if (fresh) {
+    const cases = [
       [0, ['model-task:first', 'text', 'first', 'string'], {id: 'original-text', outcome: 'ok', value: {answer: true}}],
       [1, ['model-task:second', 'quantity', 7, 'number'], {id: 'original-quantity', outcome: 'ok', value: {label: 'exact-label'}}],
-    ]) {
+    ];
+    if (usageMode !== undefined) cases.length = 1;
+    for (const [index, args, expected] of cases) {
       const submissionRef = client.newSubmission({nonce: 'installed-' + index});
       await writeFile('submission-' + index + '.json', JSON.stringify(submissionRef), {flag: 'wx', mode: 0o600});
       const run = await client.start(program(...args), {submissionRef});
       await writeFile('run-' + index + '.json', JSON.stringify(run.ref), {flag: 'wx', mode: 0o600});
+      originalRef = run.ref;
       assert.equal((await run.wait()).status, 'succeeded');
       assert.deepEqual(await run.result('answer').all(), [expected]);
       const lookup = await client.lookupSubmission(submissionRef);
       assert.equal(lookup.kind, 'ready'); assert.deepEqual(lookup.admission.ref, run.ref);
     }
-    assert.equal(calls, 2); assert.notDeepEqual(schemas[0], schemas[1]);
+    assert.equal(calls, expectedCalls);
+    if (usageMode === undefined) assert.notDeepEqual(schemas[0], schemas[1]);
+    else {
+      // The optional copy must have actually completed, not merely a successful
+      // Model Run or a provider spy reporting authored usage.
+      assert.equal(usageCaptures, 1); assert.equal(usageAuthorizations, 1);
+      assert(usageReceipt !== undefined);
+      assert.deepEqual(JSON.parse(await readFile('usage-receipt.json', 'utf8')), usageReceipt);
+      assert.equal(JSON.parse(await readFile('usage-original.json', 'utf8')).observation_origin, 'reported');
+    }
   } else {
     const ref = JSON.parse(await readFile('run-0.json', 'utf8'));
     const run = await client.attach(ref);
@@ -143,5 +212,5 @@ if (primary !== undefined) throw primary;
 assert.equal(close.aliveAfterClose, true); assert.equal(close.scopedStateFd0, true);
 await assert.rejects(access('.state/publication/owner/owner.json'), {code: 'ENOENT'});
 console.log(JSON.stringify({phase, calls, firstCloseReturned: true, aliveScopedFD0: true,
-  ...(phase === 'cold' ? {originalSavedFirst: true, egressChecks} : {tasks: 2, requests: 2}),
+  ...(phase === 'cold' ? {originalSavedFirst: true, egressChecks} : {tasks: expectedCalls, requests: expectedCalls, ...(usageMode === undefined ? {} : {usageMode, usageCaptures})}),
   node: process.versions.node, platform: process.platform, arch: process.arch}));
