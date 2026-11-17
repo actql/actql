@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {mkdtemp, mkdir, writeFile, readFile, copyFile, cp, rm} from 'node:fs/promises';
+import {access, lstat, mkdtemp, mkdir, writeFile, readFile, copyFile, cp, rm, glob} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -41,21 +41,33 @@ async function fixture(t) {
   await packClientPackages({repository, destination: retained, pack: pack(retained)});
   const optional = join(retained, 'optional-provider');
   await packClientPackages({repository, destination: optional, names: ['provider-ai-sdk'], pack: pack(optional)});
-  const phases = [], installs = [];
+  const phases = [], installs = [], preparations = [], phaseCalls = [];
   const command = async (cmd, args, options) => {
+    // Exercise the same exclusive output rule as execute(), so reusing one
+    // install-node raw filename across preparations is an actual fixture error.
+    if (options.raw) await writeFile(join(options.raw, options.name + '.stdout'), '', {flag: 'wx'});
     if (cmd === 'npm') {
       installs.push(args);
+      preparations.push({cwd: options.cwd, raw: options.raw});
       for (const name of [...CLIENT_PACKAGES, 'provider-ai-sdk']) {
         await cp(join(archives, name, 'package'), join(options.cwd, 'node_modules/@actql', name), {recursive: true});
       }
       return {stdout: '', pid: 70000};
     }
     const phase = args[1]; phases.push(phase);
-    return {pid: phase === 'warm' ? 70001 : 70002, stdout: JSON.stringify({phase,
-      firstCloseReturned: true, aliveScopedFD0: true, calls: phase === 'warm' ? 2 : 0,
-      ...(phase === 'warm' ? {tasks: 2, requests: 2} : {originalSavedFirst: true, egressChecks: 0})})};
+    const modules = await lstat(join(options.cwd, 'node_modules'));
+    assert(modules.isDirectory() && !modules.isSymbolicLink());
+    if (phase === 'cold') await access(join(options.cwd, '.state'));
+    else {await assert.rejects(access(join(options.cwd, '.state')), {code: 'ENOENT'}); await mkdir(join(options.cwd, '.state'));}
+    const pid = 70001 + phaseCalls.length;
+    phaseCalls.push({phase, cwd: options.cwd, raw: options.raw, modulesInode: modules.ino, pid});
+    return {pid, stdout: JSON.stringify({phase,
+      firstCloseReturned: true, aliveScopedFD0: true, calls: phase === 'cold' ? 0 : phase === 'warm' ? 2 : 1,
+      ...(phase === 'warm' ? {tasks: 2, requests: 2} : phase === 'cold'
+        ? {originalSavedFirst: true, egressChecks: 0}
+        : {tasks: 1, requests: 1, usageMode: phase.slice(6), usageCaptures: 1})})};
   };
-  return {root, repository, retained, optional, source, command, phases, installs};
+  return {root, repository, retained, optional, source, command, phases, installs, preparations, phaseCalls};
 }
 
 test('optional normal pack reuses lifecycle producer without changing required five', async t => {
@@ -71,14 +83,26 @@ test('optional normal pack reuses lifecycle producer without changing required f
   assert.deepEqual(await readFile(join(f.retained, 'packed-client-packages.json')), required);
 });
 
-test('optional install verifies original six payloads and runs warm then distinct cold ports', async t => {
+test('optional usage consumers retain separate fresh installations and warm shares only its cold original', async t => {
   const f = await fixture(t);
   const result = await runPackedProviderAI(join(f.root, 'consumer-case'), f);
-  assert.equal(result.complete, true); assert.deepEqual(f.phases, ['warm', 'cold']);
-  assert.equal(f.installs.length, 1);
-  const args = f.installs[0];
-  assert(args.includes('--ignore-scripts=false')); assert(!args.includes('--offline'));
-  assert.equal(args.filter(x => x.endsWith('.tgz')).length, CLIENT_PACKAGES.length + 1);
+  assert.equal(result.complete, true); assert(result.phases.every(row => row.status === 'passed'));
+  const [warm, cold, ...usage] = f.phaseCalls;
+  assert.equal(warm.cwd, cold.cwd); assert.notEqual(warm.pid, cold.pid);
+  assert.equal(warm.modulesInode, cold.modulesInode);
+  for (const value of usage) {
+    assert.notEqual(value.cwd, warm.cwd); assert.notEqual(value.modulesInode, warm.modulesInode);
+    const mode = value.phase.slice(6), actual = result.phases.find(row => row.phase === value.phase).actual;
+    assert.equal(actual.usageMode, mode); assert.equal(actual.usageCaptures, 1);
+  }
+  assert.equal(new Set(usage.map(row => row.cwd)).size, 3);
+  assert.equal(new Set(usage.map(row => row.modulesInode)).size, 3);
+  assert.equal(new Set(f.preparations.map(row => row.raw)).size, 4);
+  for (const args of f.installs) {
+    assert(args.includes('--ignore-scripts=false')); assert(!args.includes('--offline'));
+    assert.equal(args.filter(x => x.endsWith('.tgz')).length, CLIENT_PACKAGES.length + 1);
+  }
+  assert.equal(result.preparations.length, f.preparations.length);
 });
 
 test('required-five consumers remain offline and never discover optional siblings', async t => {
@@ -108,12 +132,52 @@ test('warm failure preserves primary and cannot start a cold replacement port', 
   const f = await fixture(t), primary = new Error('OriginalWarmFailure');
   await assert.rejects(runPackedProviderAI(join(f.root, 'failed'), {...f,
     command: async (cmd, args, options) => {
-      if (cmd !== 'npm') {f.phases.push(args[1]); throw primary;}
+      if (cmd !== 'npm' && args[1] === 'warm') {f.phases.push(args[1]); throw primary;}
       return f.command(cmd, args, options);
     }}), actual => actual === primary);
-  assert.deepEqual(f.phases, ['warm']);
+  assert.equal(f.phases.includes('cold'), false);
   const report = JSON.parse(await readFile(join(f.root, 'failed/summary.json')));
   assert.equal(report.complete, false);
+  assert.equal(report.phases.find(row => row.phase === 'warm').status, 'failed');
+  assert.equal(report.phases.find(row => row.phase === 'cold').status, 'unexecuted');
+  assert(report.phases.filter(row => row.phase.startsWith('usage-')).every(row => row.status === 'passed'));
+});
+
+test('optional usage completion refuses mismatched evidence and retained close or FD failures', async t => {
+  for (const change of [{usageCaptures: 0}, {calls: 0}, {usageMode: 'reported'}, {aliveScopedFD0: false}]) {
+    const f = await fixture(t);
+    const root = join(f.root, 'invalid');
+    await assert.rejects(runPackedProviderAI(root, {...f, command: async (cmd, args, options) => {
+      const result = await f.command(cmd, args, options);
+      return args[1] === 'usage-zero' ? {...result, stdout: JSON.stringify({...JSON.parse(result.stdout), ...change})} : result;
+    }}));
+    const report = JSON.parse(await readFile(join(root, 'summary.json')));
+    assert.equal(report.complete, false);
+    assert.equal(report.phases.find(row => row.phase === 'usage-zero').status, 'failed');
+    assert.equal(report.phases.find(row => row.phase === 'usage-absent').status, 'passed');
+  }
+});
+
+test('optional diagnostic selection retains nested inventories and bounded usage evidence without keys or state', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-provider-diagnostic-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const ci = parse(await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
+  const upload = ci.jobs['client-readme-packed'].steps.find(step => step.with?.path?.includes('/optional-provider/summary.json'));
+  const prefix = '${{ runner.temp }}/client-readme-packed/optional-provider/';
+  const patterns = upload.with.path.split('\n').filter(path => path.startsWith(prefix)).map(path => path.slice(prefix.length));
+  const expected = ['summary.json'];
+  const privateFiles = [];
+  for (const name of ['warm', 'usage-reported', 'usage-zero', 'usage-absent']) {
+    expected.push(`cases/${name}/packages/ordinary-operation-packages.json`,
+      `cases/${name}/packages/optional-provider-packages.json`, `raw/${name}/install-node.stdout`);
+    if (name !== 'warm') for (const file of ['usage-original.json', 'usage-receipt.json']) expected.push(`cases/${name}/consumer/${file}`);
+    for (const file of ['operator-private.fixture', 'api-key.fixture', 'provider.key', '.state/private.db'])
+      privateFiles.push(`cases/${name}/consumer/${file}`);
+  }
+  for (const path of [...expected, ...privateFiles]) {await mkdir(join(root, path, '..'), {recursive: true}); await writeFile(join(root, path), 'fixture');}
+  const selected = [];
+  for (const pattern of patterns) for await (const path of glob(pattern, {cwd: root})) selected.push(path);
+  assert.deepEqual(selected.sort(), expected.sort());
 });
 
 test('existing producer and README jobs retain required and optional original inputs', async () => {
