@@ -45,7 +45,12 @@ function fixture(t) {
       source: {path: sourcePath, sha256: sha(readFileSync(join(root, sourcePath)))},
       compilerSha256: 'c'.repeat(64), nodeSha256: sha(readFileSync(process.execPath)),
       ...(platform === 'darwin' ? {sdkSettingsSha256: 'd'.repeat(64)} : {}),
-      headers: [{path: 'node/node_api.h', bytes: 17, sha256: 'e'.repeat(64)}],
+      headers: [sourcePath, 'adapters/host-node/native/napi-filesystem-helpers.inc',
+        'adapters/connectors/local/site/root-filesystem-platform.inc',
+        'adapters/connectors/local/site/root-filesystem.inc', 'adapters/connectors/local/site/root-file-writer.inc']
+        .map(path => {const bytes = readFileSync(join(root, path)); return {path, bytes: bytes.length, sha256: sha(bytes)};})
+        .concat([{path: 'node/node_api.h', bytes: 17, sha256: 'e'.repeat(64)},
+          {path: 'node/empty-header.h', bytes: 0, sha256: sha(Buffer.alloc(0))}]),
       binary: {path: '_build/native/' + filename, bytes: bytes.length, sha256: sha(bytes)}};
     contents.set(`${platform}-${arch}`, {bytes, descriptor: wire(original), original, filename});
   }
@@ -138,6 +143,24 @@ test('duplicate targets and descriptor/binary disagreement never produce a combi
   const manifestPath = join(f.inputs, 'linux-x64/native-input.json'), manifest = JSON.parse(readFileSync(manifestPath));
   manifest.original.bytes = bytes.length; manifest.original.sha256 = sha(bytes);
   writeFileSync(manifestPath, wire(manifest)); f.choose();
+  assert.throws(f.assemble, /InvalidDirectoryNativeOriginal/);
+});
+
+test('compiler Source dependencies keep exact names and same-checkout bytes rather than an adapters wildcard', t => {
+  const f = fixture(t), descriptorPath = join(f.inputs, 'linux-x64/directory-original.json');
+  const original = JSON.parse(readFileSync(descriptorPath));
+  const source = original.headers.find(value => value.path === 'adapters/connectors/local/site/root-file-writer.inc');
+  assert(source);
+  const manifestPath = join(f.inputs, 'linux-x64/native-input.json');
+  const manifest = JSON.parse(readFileSync(manifestPath));
+  function update() {
+    const bytes = wire(original); writeFileSync(descriptorPath, bytes);
+    manifest.original.bytes = bytes.length; manifest.original.sha256 = sha(bytes);
+    writeFileSync(manifestPath, wire(manifest)); f.choose();
+  }
+  const hash = source.sha256; source.sha256 = 'a'.repeat(64); update();
+  assert.throws(f.assemble, /ChangedDirectoryNativeInput/);
+  source.sha256 = hash; source.path = 'adapters/host-node/native/unselected.inc'; update();
   assert.throws(f.assemble, /InvalidDirectoryNativeOriginal/);
 });
 

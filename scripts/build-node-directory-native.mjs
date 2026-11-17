@@ -81,7 +81,7 @@ function verifiedFile(root, fact) {
       (lstatSync(join(root, fact.path)).mode & 0o777) !== fact.mode) fail('ChangedDirectoryNativeInput');
   return bytes;
 }
-function validateOriginal(original, bytes, target) {
+function validateOriginal(original, bytes, target, root) {
   const path = nativeTargets.get(target), sourcePath = target === 'linux-x64' ? linuxSourcePath : darwinSourcePath;
   exactKeys(original, ['platform', 'arch', 'node', 'moduleAbi', 'napi', 'source', 'compilerSha256',
     'nodeSha256', ...(target === 'darwin-arm64' ? ['sdkSettingsSha256'] : []), 'headers', 'binary']);
@@ -94,12 +94,21 @@ function validateOriginal(original, bytes, target) {
       !Array.isArray(original.headers) || original.headers.length < 1 || original.headers.length > 4096) {
     fail('InvalidDirectoryNativeOriginal');
   }
+  // Compiler dependency output includes the selected C translation unit and
+  // these exact shared Source includes as well as toolchain headers. Keep
+  // their original paths and verify them against this same source checkout.
+  const sourceFiles = new Set([sourcePath, helperPath, platformPath, localFilesPath, localWriterPath]);
   const names = new Set();
   for (const fact of original.headers) {
     exactKeys(fact, ['path', 'bytes', 'sha256']);
-    if (!concrete(fact.path) || !/^(?:node|compiler|system|sdk)\//u.test(fact.path) || names.has(fact.path) ||
-        !Number.isSafeInteger(fact.bytes) || fact.bytes < 1 || !hashPattern.test(fact.sha256)) {
+    const source = sourceFiles.has(fact.path);
+    if (!concrete(fact.path) || !source && !/^(?:node|compiler|system|sdk)\//u.test(fact.path) || names.has(fact.path) ||
+        !Number.isSafeInteger(fact.bytes) || fact.bytes < 0 || !hashPattern.test(fact.sha256)) {
       fail('InvalidDirectoryNativeOriginal');
+    }
+    if (source) {
+      const bytes = inputFile(root, fact.path);
+      if (fact.bytes !== bytes.length || fact.sha256 !== sha(bytes)) fail('ChangedDirectoryNativeInput');
     }
     names.add(fact.path);
   }
@@ -128,7 +137,7 @@ export function exportNodeDirectoryNativeInput({root = repository,
       [path.split('/').at(-1), 'directory-original.json'].sort().join('\n')) fail('StaleDirectoryNativeOutput');
   const bytes = inputFile(destination, path), descriptor = inputFile(destination, directoryNativeDescriptor, 4 * 1024 * 1024);
   const original = JSON.parse(descriptor);
-  validateOriginal(original, bytes, target);
+  validateOriginal(original, bytes, target, root);
   if (original.source.sha256 !== sha(inputFile(root, original.source.path)) ||
       original.nodeSha256 !== sha(regular(process.execPath))) fail('ChangedDirectoryNativeInput');
   const engine = {node: process.versions.node, v8: process.versions.v8, openssl: process.versions.openssl,
@@ -177,7 +186,7 @@ export function assembleNodeDirectoryNative({root = repository,
     const descriptor = verifiedFile(selected, manifest.original), bytes = verifiedFile(selected, manifest.binary);
     if (!Buffer.from(descriptor.toString('utf8')).equals(descriptor)) fail('InvalidDirectoryNativeOriginal');
     const original = JSON.parse(descriptor), target = `${original.platform}-${original.arch}`;
-    validateOriginal(original, bytes, target); validateEngine(manifest.engine, original);
+    validateOriginal(original, bytes, target, root); validateEngine(manifest.engine, original);
     const path = nativeTargets.get(target);
     if (seen.has(target) || manifest.original.path !== 'directory-original.json' ||
         manifest.binary.path !== path?.split('/').at(-1) ||
