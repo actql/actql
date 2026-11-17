@@ -148,6 +148,13 @@ fn push_emission(
 }
 
 ///|
+/// Read only the existing canonical shape name. Bounds, enumeration values,
+/// field names, resource kinds and media types are not projected by this view.
+pub fn contract_type_name(value : Contract) -> String {
+  type_name(value.shape)
+}
+
+///|
 fn type_name(shape : Shape) -> String {
   match shape {
     Text(_) => "string"
