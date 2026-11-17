@@ -351,6 +351,57 @@ test('the prior Local descriptor stays historical without admitting it as curren
   }
 });
 
+test('current timestamp dependency review binds both literal imports and complete original child sources', () => {
+  const review = JSON.parse(readFileSync(new URL(
+    '../../docs/reviews/2026-11-18-session-timestamp-pattern-import-review.json', import.meta.url)));
+  const reviewed = gitTree(root, review.source), previous = gitTree(root, review.previousRevision);
+  execFileSync('git', ['merge-base', '--is-ancestor', review.source, 'HEAD'], {cwd: root});
+  const entry = currentPackageConfigurations[review.path];
+  assert.equal(entry.revision, review.source);
+  assert.equal(entry.digest, review.sha256);
+  const body = reviewed.read(review.path).toString(), prior = previous.read(review.path).toString();
+  assert.equal(hash(body), review.sha256);
+  assert.equal(hash(prior), review.previousSha256);
+  assert.equal(Buffer.byteLength(body), review.bytes);
+  assert.equal(Buffer.byteLength(prior), review.previousBytes);
+  assert.equal(reviewed.entries.get(review.path)?.mode, review.mode);
+  assert.equal(currentTree.read(review.path).toString(), body);
+  for (const path of [review.path, review.companion.path]) {
+    const after = reviewed.read(path).toString(), before = previous.read(path).toString();
+    assert.equal(after.split(review.addedImport).length, 2);
+    assert.equal(after.replace(review.addedImport, ''), before);
+    assert.deepEqual(packageImports(after).imports,
+      [...packageImports(before).imports, 'actql/actql/timestamp_pattern'].sort());
+  }
+  const lowering = reviewed.read(review.companion.path);
+  assert.equal(hash(lowering), review.companion.sha256);
+  assert.equal(lowering.length, review.companion.bytes);
+  assert.equal(packageImports(lowering.toString()).unknown, null);
+  assert.equal(currentPackageConfigurations[review.companion.path], undefined);
+  const selected = packageSourceInputs({tree: currentTree,
+    packages: ['src/execution_relation', 'src/lowering_relation'], target: 'js'});
+  assert.deepEqual(selected.unresolved, []);
+  const members = [...currentTree.entries.keys()].filter(path =>
+    path.startsWith('src/timestamp_pattern/') && !path.slice('src/timestamp_pattern/'.length).includes('/')).sort();
+  assert(members.includes('src/timestamp_pattern/moon.pkg'));
+  assert.deepEqual(selected.directories.find(value => value.path === 'src/timestamp_pattern/*')?.members, members);
+  for (const path of members) {
+    assert(selected.paths.includes(path), path);
+    assert.equal(currentTree.entries.get(path)?.mode, '100644');
+  }
+  assert.equal(hash(gitTree(root, review.historicalReviewRevision).read(review.path)), review.previousSha256);
+  assert.equal(currentPackageConfigurationReviewFor(request(review.path, review.previousSha256)), null);
+  for (const changed of [body.replace('@timestamp', '@unreviewed'),
+    body.replace('[ "not", "js" ]', '[ "native" ]'),
+    body + '\noptions(pre_build: "unreviewed-hook")\n']) {
+    assert.notEqual(changed, body);
+    assert.equal(currentPackageConfigurationReviewFor(request(review.path, hash(changed))), null);
+    const changedTree = {...currentTree, read: path => path === review.path ? Buffer.from(changed) : currentTree.read(path)};
+    assert(packageSourceInputs({tree: changedTree, packages: ['src/execution_relation'], target: 'js'})
+      .unresolved.includes('Unreviewed package configuration: ' + review.path));
+  }
+});
+
 test('current physical Resource review binds platform VM selectors and refuses stale or changed input', () => {
   const path = 'src/physical_resources/moon.pkg';
   const revision = 'bf198225499436c26be2f7d763582b0efaeeae2b';
