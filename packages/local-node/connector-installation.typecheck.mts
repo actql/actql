@@ -147,31 +147,31 @@ declare const standardHostOptions: Omit<InstalledRowEffectOptions<CreateRequest,
   'driver' | 'write'>;
 const standardCreate = createInstalledRowEffect({...standardHostOptions, write: standardWrite});
 declare const originalCreateDriver: RowEffectDriver<CreateRequest, unknown, 'create'>;
-// @ts-expect-error Standard CREATE: Exactly one implementation is selected.
+// @ts-expect-error Standard CREATE [mode-conflict]: Exactly one implementation is selected.
 const conflictingCreate = createInstalledRowEffect({...standardHostOptions, write: standardWrite, driver: originalCreateDriver});
-// @ts-expect-error Standard CREATE: An implementation cannot be absent.
+// @ts-expect-error Standard CREATE [mode-missing]: An implementation cannot be absent.
 const missingCreate = createInstalledRowEffect<CreateRequest>({...standardHostOptions});
 const asynchronousWrite: RowEffectCreateWrite<CreateRequest> = {...standardWrite,
-  // @ts-expect-error Standard CREATE: Request mapping is synchronous DATA work.
+  // @ts-expect-error Standard CREATE [async-request]: Request mapping is synchronous DATA work.
   request: async input => standardWrite.request(input),
 };
 const asynchronousClassifier: RowEffectCreateWrite<CreateRequest> = {...standardWrite,
-  // @ts-expect-error Standard CREATE: Classification is synchronous provider DATA.
+  // @ts-expect-error Standard CREATE [async-classification]: Classification is synchronous provider DATA.
   classify: async input => standardWrite.classify(input),
 };
-// @ts-expect-error Standard CREATE: The standard declaration does not implement DELETE.
+// @ts-expect-error Standard CREATE [unsupported-kind]: The standard declaration does not implement DELETE.
 const standardDelete = createInstalledRowEffect<CreateRequest, unknown, 'delete'>({...standardHostOptions, write: standardWrite});
 const invalidWriteMethod: RowEffectCreateWrite<CreateRequest> = {...standardWrite,
-  // @ts-expect-error Standard CREATE: A read verb cannot dispatch a CREATE.
+  // @ts-expect-error Standard CREATE [write-method]: A read verb cannot dispatch a CREATE.
   http: {...standardWrite.http, method: 'GET'},
 };
 const ignoredWriteQuery: RowEffectCreateWrite<CreateRequest> = {...standardWrite,
-  // @ts-expect-error Standard CREATE: Write query belongs to the mapped original request.
+  // @ts-expect-error Standard CREATE [request-query]: Write query belongs to the mapped original request.
   http: {...standardWrite.http, query: [['ignored', 'value']]},
 };
 const requestDataOnly: RowEffectCreateWrite<CreateRequest> = {...standardWrite,
   request(input) {
-    // @ts-expect-error Standard CREATE: Pure author mapping receives no authorization.
+    // @ts-expect-error Standard CREATE [no-authority]: Pure author mapping receives no authorization.
     input.authorization;
     return standardWrite.request(input);
   },

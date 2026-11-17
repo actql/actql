@@ -27,15 +27,24 @@ test('standard CREATE and existing driver consumers use the same public exclusiv
 });
 
 test('standard CREATE rejects conflicting/missing implementations and invalid pure callbacks', () => {
-  const expected = [];
+  const scenarios = new Set(['mode-conflict', 'mode-missing', 'async-request',
+    'async-classification', 'unsupported-kind', 'write-method', 'request-query', 'no-authority']);
+  const locations = new Map();
   const mutant = source.split('\n').map((line, index) => {
-    if (!line.includes('// @ts-expect-error Standard CREATE:')) return line;
-    expected.push(index + 1);
+    const marker = /@ts-expect-error Standard CREATE \[([a-z-]+)\]:/u.exec(line);
+    if (!marker) return line;
+    assert(scenarios.has(marker[1]), `Unreviewed rejection scenario: ${marker[1]}`);
+    assert(!locations.has(marker[1]), `Duplicate rejection scenario: ${marker[1]}`);
+    locations.set(marker[1], index + 1);
     return line.replace('@ts-expect-error', 'Independent expected diagnostic');
   }).join('\n');
-  assert.equal(expected.length, 8);
+  assert(locations.size > 0, 'No rejection scenarios discovered');
+  assert.deepEqual(new Set(locations.keys()), scenarios);
   const diagnostics = check(mutant);
-  assert.equal(diagnostics.length, expected.length, JSON.stringify(diagnostics));
+  assert.equal(diagnostics.length, locations.size, JSON.stringify(diagnostics));
   assert(diagnostics.every(row => row.file === sourcePath), JSON.stringify(diagnostics));
-  assert.deepEqual(diagnostics.map(row => row.line), expected);
+  for (const [scenario, line] of locations) {
+    assert.equal(diagnostics.filter(row => row.line === line).length, 1,
+      `Expected rejection of ${scenario}: ${JSON.stringify(diagnostics)}`);
+  }
 });
