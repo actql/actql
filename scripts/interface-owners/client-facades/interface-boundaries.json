@@ -4645,11 +4645,12 @@
     {
       "module": "packages/sdk/checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1548bde2896d3456323cda85d818df04358fed087cf5aa93624c188ac69cc935",
+      "sha256": "fab1899039c0bfa82cb229c19b208344064264ad6c1a5fb13f394f3073ddd0f8",
       "exports": [
         "bytesCid",
         "canonicalJson",
         "checkedSigner",
+        "checkpointAnswerMatches",
         "contentCid",
         "reviewBytesMatchCid",
         "signedAnswer",
@@ -4724,11 +4725,13 @@
           "async": false
         },
         {
-          "name": "constructSignedAnswer/constructSignedAnswer",
+          "name": "checkpointAnswerMatches",
           "parameters": [
-            "claim"
+            "answer",
+            "summary",
+            "decision"
           ],
-          "async": false
+          "async": true
         },
         {
           "name": "contentCid/contentCid",
@@ -4789,7 +4792,8 @@
         }
       ],
       "imports": [
-        "@actql/client-wire"
+        "./internal/checkpoint-answer-construction.generated.mjs",
+        "./internal/checkpoint-answer-contract.generated.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -4809,19 +4813,20 @@
             "canonicalJson/entries/entries",
             "canonicalJson/entries/entries#2",
             "checkedSigner",
-            "constructSignedAnswer/constructSignedAnswer",
             "contentCid/contentCid",
             "hex/hex/hex",
             "reviewBytesMatchCid",
             "signature",
             "signedAnswer",
             "signedAnswer/signedAnswer",
-            "signedAnswerFromAdmittedSummary"
+            "signedAnswerFromAdmittedSummary",
+            "checkpointAnswerMatches"
           ],
           "exports": [
             "bytesCid",
             "canonicalJson",
             "checkedSigner",
+            "checkpointAnswerMatches",
             "contentCid",
             "reviewBytesMatchCid",
             "signedAnswer",
@@ -4840,6 +4845,10 @@
               {
                 "path": "src/run_publication/effect_review_projection.mbt",
                 "anchor": "pub fn project_effect_review_projection("
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## SDK consumers"
               }
             ],
             "inputsOutputs": [
@@ -4854,6 +4863,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "const originalReview = (subjectCid, claims) =>"
+              },
+              {
+                "path": "packages/sdk/checkpoints.mjs",
+                "anchor": "answerCodec.prepareAnswerCandidate(summary, decision,"
               }
             ],
             "identity": [
@@ -4876,6 +4889,10 @@
               {
                 "path": "packages/sdk/checkpoints.mjs",
                 "anchor": "value.review_projection_cid !== artifactCid"
+              },
+              {
+                "path": "packages/sdk/checkpoints.mjs",
+                "anchor": "expected.resolutionWire === answer.resolutionWire"
               }
             ],
             "ownership": [
@@ -4970,6 +4987,10 @@
               {
                 "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
                 "anchor": "maxWireBytes: 256 * 1024"
+              },
+              {
+                "path": "packages/sdk/checkpoints.mjs",
+                "anchor": "const candidateLimits = Object.freeze({maxWireBytes: 16384,"
               }
             ],
             "extension": [
@@ -5006,6 +5027,10 @@
               {
                 "path": "packages/sdk/effect-review-checkpoints.test.mjs",
                 "anchor": "test('Effect semantic review verification rejects"
+              },
+              {
+                "path": "packages/sdk/checkpoint-candidate-boundary.test.mjs",
+                "anchor": "test('fabricated noncanonical original identities refuse before application signing'"
               }
             ]
           }
@@ -8214,8 +8239,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "const answerMatches = async (answer, summary, decision, signer) =>"
+                "path": "packages/sdk/checkpoints.mjs",
+                "anchor": "export async function checkpointAnswerMatches(answer, summary, decision)"
               },
               {
                 "path": "scripts/generate-client-host-wire.mjs",
@@ -8224,16 +8249,16 @@
             ],
             "identity": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "resolution.decision !== decision"
+                "path": "packages/sdk/checkpoints.mjs",
+                "anchor": "answerCodec.prepareAnswerCandidate(summary, decision,"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "resolution.run_definition_cid !== summary.subject.runDefinitionCid"
+                "path": "packages/sdk/checkpoints.mjs",
+                "anchor": "expected.resolutionWire === answer.resolutionWire"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "contentCid(without(resolution, 'resolution_cid'))"
+                "path": "packages/sdk/checkpoints.mjs",
+                "anchor": "answerCodec.finishAnswerCandidate(stage, resolution.proof.signature)"
               }
             ],
             "ownership": [
@@ -8253,7 +8278,7 @@
               },
               {
                 "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "selectedSigner === undefined && !await answerMatches(answer, summary, decision)"
+                "anchor": "selectedSigner === undefined && !await checkpointAnswerMatches(answer, summary, decision)"
               }
             ],
             "failure": [
@@ -8313,7 +8338,7 @@
     {
       "module": "packages/sdk/internal/checkpoint-operations.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7b7de0e2fe9580e423d98607374d4f8cd1eec1b4e1a4a5af9b6fc84e91644727",
+      "sha256": "210b82767b1ce7e6b8941709107f8df2fd47e2db4683628b16fd350c70306ff4",
       "exports": [
         "createCheckpointOperations"
       ],
@@ -8326,14 +8351,6 @@
             "responseValue",
             "answerOriginal",
             "isClosed"
-          ],
-          "async": false
-        },
-        {
-          "name": "createCheckpointOperations/answerMatches/answerMatches/answerMatches",
-          "parameters": [
-            "claim",
-            "index"
           ],
           "async": false
         },
@@ -8406,18 +8423,10 @@
             "options"
           ],
           "async": false
-        },
-        {
-          "name": "createCheckpointOperations/without/without/without",
-          "parameters": [
-            "key"
-          ],
-          "async": false
         }
       ],
       "imports": [
         "../checkpoints.mjs",
-        "./checkpoint-answer-contract.generated.mjs",
         "./data.mjs",
         "./errors.mjs",
         "./transport-response.mjs",
@@ -8461,6 +8470,10 @@
               {
                 "path": "packages/sdk/host-port.d.ts",
                 "anchor": "answerCheckpoint?(summary: CheckpointSummary"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "!await checkpointAnswerMatches(answer, summary, decision)"
               }
             ],
             "identity": [
@@ -8720,115 +8733,6 @@
               {
                 "path": "adapters/host-node/sdk-checkpoint-actions.integration.test.mjs",
                 "anchor": "test(`public ${decision}(id) binds the original Checkpoint"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "createCheckpointOperations/answerMatches/answerMatches/answerMatches",
-            "createCheckpointOperations/without/without/without"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/oss-host-authorization.md",
-                "anchor": "An original-answer callback remains responsible for key custody and current"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "const answerMatches = async (answer, summary, decision, signer) =>"
-              },
-              {
-                "path": "scripts/generate-client-host-wire.mjs",
-                "anchor": "const answerSchemas = {"
-              }
-            ],
-            "identity": [
-              {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "resolution.decision !== decision"
-              },
-              {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "resolution.run_definition_cid !== summary.subject.runDefinitionCid"
-              },
-              {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "contentCid(without(resolution, 'resolution_cid'))"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/oss-host-authorization.md",
-                "anchor": "Self-addressed identities are checked without changing the signed"
-              },
-              {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "new ClientError('InvalidCheckpointAnswer', {signed: Object.freeze([answer])})"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "current(signal);"
-              },
-              {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "selectedSigner === undefined && !await answerMatches(answer, summary, decision)"
-              }
-            ],
-            "failure": [
-              {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "throw new ClientError('InvalidCheckpointAnswer'"
-              },
-              {
-                "path": "docs/design/oss-host-authorization.md",
-                "anchor": "resolution; it neither signs again nor treats the bytes as a retry permission."
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "signal?.throwIfAborted();"
-              },
-              {
-                "path": "docs/design/oss-host-authorization.md",
-                "anchor": "and neither cancellation nor Promise completion proves physical key retirement."
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/oss-host-authorization.md",
-                "anchor": "exact response-loss items overlap within the original Client/Host inventory."
-              }
-            ],
-            "extension": [
-              {
-                "path": "scripts/generate-client-host-wire.mjs",
-                "anchor": "protocol.artifact_schemas.checkpoint_resolution"
-              },
-              {
-                "path": "docs/design/oss-host-authorization.md",
-                "anchor": "Wire bytes, canonical preimages, signed"
-              }
-            ],
-            "verification": [
-              {
-                "path": "packages/sdk/checkpoint-actions.test.mjs",
-                "anchor": "refuses an original-port answer for the opposite decision"
-              },
-              {
-                "path": "packages/sdk/checkpoint-actions.test.mjs",
-                "anchor": "valid signatures for another original Summary refuse"
-              },
-              {
-                "path": "scripts/generate-client-host-wire.test.mjs",
-                "anchor": "SDK answer grammar projects existing Resolution and Evidence"
               }
             ]
           }

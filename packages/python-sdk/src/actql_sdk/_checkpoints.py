@@ -6,8 +6,13 @@ import inspect
 import re
 from collections.abc import Callable
 from ._errors import ClientError
-from ._values import canonical_bytes, content_cid, decode_json, snapshot, thaw
-from ._wire import valid
+from ._values import bytes_cid, canonical_bytes, content_cid, decode_json
+from ._checkpoint_answer_codec import create_checkpoint_answer_codec, CheckpointCandidateError
+
+# Existing resolve-item wire ceiling; every value node consumes wire bytes.
+# Keep the SDK JSON depth ceiling and use no Local engine or process.
+_CANDIDATE_LIMITS = {'maxWireBytes': 16384, 'maxNodes': 16384, 'maxDepth': 64}
+_ANSWER_CODEC = create_checkpoint_answer_codec(canonical_bytes, bytes_cid)
 
 
 @dataclass(frozen=True)
@@ -31,6 +36,8 @@ async def _signature(signer, cid):
     if inspect.isawaitable(signed):
         signed = await signed
     if type(signed) is str:
+        if len(signed) != 88:
+            raise ClientError('InvalidCheckpointSignature')
         try:
             raw = base64.b64decode(signed, validate=True)
         except ValueError:
@@ -64,58 +71,30 @@ def review_bytes_match_cid(raw, cid):
         return False
 
 
+def _candidate_error(cause):
+    # Presentation only: profile, shape and claim admission stay generated.
+    code = ('UnsupportedCheckpointAnswer' if cause.code == 'UnsupportedProfile' else
+            'EffectApprovalAuthorityScopeRequired' if cause.field == 'authority_scope_cid' else
+            'InvalidCheckpointAnswer')
+    return ClientError(code, cause=cause)
+
+
 async def signed_answer(summary, decision, signer, decided_at):
-    summary = snapshot(thaw(summary))
     signer = capture_signer(signer)
     if decision not in ('approved', 'rejected'):
         raise ClientError('InvalidCheckpointDecision')
-    if not valid(summary, 'checkpoint_summary'):
-        raise ClientError('InvalidCheckpointAnswer')
-    subject, artifact = summary['subject'], summary['requiredArtifact']
-    preparation = summary['kind'] in ('run_scope', 'read_access') and subject['kind'] == 'prepare_attempt'
-    acquired_read = (summary['kind'] == 'read_access' and summary['phase'] == 'preflight'
-                     and subject['kind'] == 'run_unit' and artifact['type'] == 'read_scope')
-    effect = (summary['kind'] == 'effect_set' and summary['phase'] == 'commit'
-              and subject['kind'] == 'run_unit' and artifact['type'] == 'effect_set_preview')
-    model = (summary['kind'] == 'model_invocation' and summary['phase'] == 'preflight'
-             and subject['kind'] == 'run_unit' and artifact['type'] == 'model_invocation_scope'
-             and valid(summary.get('preparedInvocationCid'), {'type': 'string', 'pattern': '^sha256:[0-9a-f]{64}$'})
-             and summary['requirements'] == ['invocation_scope_approved'])
-    if not (preparation or acquired_read or effect or model) or not model and 'preparedInvocationCid' in summary:
-        raise ClientError('UnsupportedCheckpointAnswer')
-    evidence = None
-    if decision == 'approved':
-        if effect:
-            if not valid(signer.authority_scope_cid, {'type': 'string', 'pattern': '^sha256:[0-9a-f]{64}$'}):
-                raise ClientError('EffectApprovalAuthorityScopeRequired')
-            if ('effect_scope_approved' not in summary['requirements'] or
-                    any(claim not in ('effect_scope_approved', 'partial_application_accepted') for claim in summary['requirements'])):
-                raise ClientError('UnsupportedEffectApprovalClaims')
-            approval = {'version': 'actql-approval-attestation/0.1', 'effect_preview_cid': artifact['cid'],
-                'review_projection_cid': summary['reviewProjectionCid'], 'authority_scope_cid': signer.authority_scope_cid,
-                'claims': summary['requirements'], 'approver': signer.reviewer_id, 'approved_at': decided_at}
-        else:
-            approval = {'version': 'actql-run-scope-approval/0.1',
-                'prepared_invocation_cid': summary['preparedInvocationCid'] if model else artifact['cid'],
-                'review_projection_cid': summary['reviewProjectionCid'], 'claim': 'invocation_scope_approved',
-                'approver': signer.reviewer_id, 'approved_at': decided_at, 'expires_at': summary['expiresAt']}
-        approval['proof'] = {'scheme': 'ed25519-v1', 'key_id': signer.key_id, 'signature': await _signature(signer, content_cid(approval))}
-        approval['attestation_cid' if effect else 'run_scope_approval_cid'] = content_cid(approval)
-        evidence = {'version': 'actql-checkpoint-approval-evidence/0.1', 'kind': summary['kind'],
-                    'checkpoint_cid': summary['checkpointCid'], 'review_projection_cid': summary['reviewProjectionCid'],
-                    'compatibility_approval': approval}
-    body = {'version': 'actql-checkpoint-resolution/0.1',
-            'resolution_id': 'resolution-' + summary['checkpointId'] + '-' + decision,
-            'checkpoint_id': summary['checkpointId'], 'checkpoint_cid': summary['checkpointCid'],
-            'decision': decision, 'actor': signer.reviewer_id, 'decided_at': decided_at,
-            'required_artifact_cid': artifact['cid'], 'review_projection_cid': summary['reviewProjectionCid']}
-    if effect or acquired_read or model:
-        body.update(run_id=subject['runId'], run_definition_cid=subject['runDefinitionCid'])
-    else:
-        body['prepare_attempt_id'] = subject['prepareAttemptId']
-    if evidence is not None:
-        body['approval_evidence_cid'] = content_cid(evidence)
-    body['proof'] = {'scheme': 'ed25519-v1', 'key_id': signer.key_id, 'signature': await _signature(signer, content_cid(body))}
-    body['resolution_cid'] = content_cid(body)
-    return {'checkpointCid': summary['checkpointCid'], 'resolutionWire': canonical_bytes(body).decode('utf-8'),
-            'approvalEvidenceWire': '' if evidence is None else canonical_bytes(evidence).decode('utf-8')}
+    actor = {'keyId': signer.key_id, 'reviewerId': signer.reviewer_id}
+    if signer.authority_scope_cid is not None:
+        actor['authorityScopeCid'] = signer.authority_scope_cid
+    try:
+        # The generated codec owns a bounded Summary/actor snapshot before the
+        # first awaited application signature. No duplicate document policy.
+        prepared = _ANSWER_CODEC.prepare_answer_candidate(
+            summary, decision, actor, decided_at, _CANDIDATE_LIMITS)
+    except CheckpointCandidateError as cause:
+        raise _candidate_error(cause) from cause
+    preimage = _ANSWER_CODEC.answer_candidate_approval_preimage(prepared)
+    approval_signature = None if preimage is None else await _signature(signer, preimage)
+    resolution = _ANSWER_CODEC.prepare_answer_resolution(prepared, approval_signature)
+    proof = await _signature(signer, _ANSWER_CODEC.answer_resolution_preimage(resolution))
+    return _ANSWER_CODEC.finish_answer_candidate(resolution, proof)

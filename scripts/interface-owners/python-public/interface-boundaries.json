@@ -5010,27 +5010,27 @@
     {
       "exports": [
         "Callable",
+        "CheckpointCandidateError",
         "ClientError",
         "Signer",
         "base64",
+        "bytes_cid",
         "canonical_bytes",
         "capture_signer",
         "content_cid",
+        "create_checkpoint_answer_codec",
         "dataclass",
         "decode_json",
         "hashlib",
         "inspect",
         "re",
         "review_bytes_match_cid",
-        "signed_answer",
-        "snapshot",
-        "thaw",
-        "valid"
+        "signed_answer"
       ],
       "imports": [
+        "._checkpoint_answer_codec",
         "._errors",
         "._values",
-        "._wire",
         "base64",
         "collections.abc",
         "dataclasses",
@@ -5045,6 +5045,13 @@
           "async": false,
           "name": "Signer",
           "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_candidate_error",
+          "parameters": [
+            "cause"
+          ]
         },
         {
           "async": true,
@@ -5080,7 +5087,7 @@
           ]
         }
       ],
-      "sha256": "b639b81157450fa5f07ef099d2617b0c237aeb45aeba7348b11bd23050e67838",
+      "sha256": "4afdcdb8c8cc052ca5375898d867961da907ccc72b5c7ac57ad09f5f6d168492",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup. Effect review integrity uses exact DATA keys and root-self exclusion; Model and legacy byte domains remain distinct. Integrity does not issue signing, resolve, permission or cleanup authority.",
@@ -5089,6 +5096,7 @@
           "operations": [
             "<module>",
             "Signer",
+            "_candidate_error",
             "_signature",
             "capture_signer",
             "review_bytes_match_cid",
@@ -5096,22 +5104,22 @@
           ],
           "exports": [
             "Callable",
+            "CheckpointCandidateError",
             "ClientError",
             "Signer",
             "base64",
+            "bytes_cid",
             "canonical_bytes",
             "capture_signer",
             "content_cid",
+            "create_checkpoint_answer_codec",
             "dataclass",
             "decode_json",
             "hashlib",
             "inspect",
             "re",
             "review_bytes_match_cid",
-            "signed_answer",
-            "snapshot",
-            "thaw",
-            "valid"
+            "signed_answer"
           ],
           "attributes": {
             "responsibility": [
@@ -5122,12 +5130,20 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_checkpoints.py",
                 "anchor": "\"\"\"Existing Checkpoint artifact preimages, signed by an application callback.\"\"\""
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## SDK consumers"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "packages/python-sdk/src/actql_sdk/_checkpoints.py",
                 "anchor": "\"\"\"Existing Checkpoint artifact preimages, signed by an application callback.\"\"\""
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## SDK consumers"
               }
             ],
             "identity": [
@@ -5138,6 +5154,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_checkpoints.py",
                 "anchor": "\"\"\"Existing Checkpoint artifact preimages, signed by an application callback.\"\"\""
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## SDK consumers"
               }
             ],
             "ownership": [
@@ -5188,6 +5208,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_checkpoints.py",
                 "anchor": "\"\"\"Existing Checkpoint artifact preimages, signed by an application callback.\"\"\""
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## SDK consumers"
               }
             ],
             "extension": [
@@ -5204,6 +5228,10 @@
               {
                 "path": "packages/python-sdk/tests/test_boundaries.py",
                 "anchor": "AsyncBoundaryTests"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_checkpoint_candidate_boundary.py",
+                "anchor": "async def test_original_noncanonical_identities_refuse_before_signing"
               }
             ]
           }

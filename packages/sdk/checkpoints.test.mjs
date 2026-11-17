@@ -233,7 +233,8 @@ test('Effect answers bind the Run, full Preview and exact authority scope',
     await assert.rejects(signedAnswer({...effectSummary(),
       requirements: ['invocation_scope_approved']}, 'approved',
     {...signer, authorityScopeCid: cid('3')}, summary.createdAt),
-    {message: 'UnsupportedEffectApprovalClaims'});
+    cause => cause.message === 'InvalidCheckpointAnswer' &&
+      cause.cause?.code === 'InvalidRequirements');
     const rejected = await signedAnswer(effectSummary(), 'rejected', signer,
       summary.createdAt);
     assert.equal(rejected.approvalEvidenceWire, '');
@@ -309,6 +310,9 @@ test('listing and review are bounded and the review bytes are verified',
 
 test('answers are per item and a lost reply returns the exact signed items',
   async t => {
+    // The generated Common-owned constructor now checks the original window;
+    // keep this reply-loss fixture at its own original decision time.
+    t.mock.timers.enable({apis: ['Date'], now: Date.parse('2026-09-26T01:00:00.000Z')});
     const second = {...summary, checkpointId: 'prepare-b-preparation',
       checkpointCid: cid('f'), subject: {...summary.subject,
         prepareAttemptId: 'prepare-b', requestId: 'saved-b'}};
@@ -444,10 +448,16 @@ test('non-control IDs refuse before signing, credential use or resolution exchan
   assert.equal(signatures, 0);
 });
 
-test('signed non-control identifiers preserve spaces and ordinary Unicode bytes', async () => {
-  for (const checkpointId of [' ', ' id ', 'é', 'e\u0301', '\u2028', '\u2029', 'id\u2028', 'id\u2029', '\\n']) {
+test('signed non-control identifiers preserve canonical spaces and Unicode while refusing a different original', async () => {
+  for (const checkpointId of [' ', ' id ', 'é', '\u2028', '\u2029', 'id\u2028', 'id\u2029', '\\n']) {
     const answer = await signedAnswer({...summary, checkpointId}, 'rejected', signer,
       '2026-09-26T01:00:00.000Z');
     assert.equal(JSON.parse(answer.resolutionWire).checkpoint_id, checkpointId);
   }
+  let signatures = 0;
+  await assert.rejects(signedAnswer({...summary, checkpointId: 'e\u0301'},
+    'rejected', {...signer, sign() { signatures++; return new Uint8Array(64); }},
+    '2026-09-26T01:00:00.000Z'), cause => cause.message === 'InvalidCheckpointAnswer' &&
+      cause.cause?.code === 'InvalidField' && cause.cause?.field === 'checkpointId');
+  assert.equal(signatures, 0);
 });

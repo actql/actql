@@ -62,6 +62,34 @@ signature. They do not refresh authority or retry approval. Durable storage,
 exact saved-wire redelivery and Host verification keep their existing owners.
 A process-local stage is not recovery or commit proof.
 
+## SDK consumers
+
+The SDKs delegate candidate selection, claims, time windows and document fields
+to their generated codecs. The existing resolve-item ceiling bounds each
+construction frame to 16 KiB; its byte ceiling also bounds value-node count.
+The existing SDK JSON depth ceiling remains 64. These are local construction
+bounds, not permission or a Host resource allocation.
+
+The application signer and its original receiver are captured before the first
+await. Only the generated unsigned CID text is passed to that callback. The SDK
+attaches the actual returned signature to the same opaque stage. Cancellation,
+Client close and lost-reply handling retain their existing operation owners;
+saved signed wires are redelivered exactly without reconstructing or signing.
+
+An installed original-answer callback still owns its independent Checkpoint,
+key and current checks. The SDK compares its actual returned proof bytes by
+constructing the expected candidate from the same admitted Summary and the
+returned actor/time, then comparing complete bounded wires. It neither signs
+again nor treats a matching candidate as Host authorization.
+
+Fabricated noncanonical control identifiers that earlier SDK code accepted are
+now refused before signing, matching the existing Host identity domain. Legal
+display DATA keeps decomposed text, CRLF and empty strings. Invalid candidate
+shapes or claims use the SDK's named `InvalidCheckpointAnswer` with the generated
+issue retained as its cause; the SDK does not reread caller fields to classify
+that error. Fixed tests keep their own original decision clock rather than
+weakening the Common window.
+
 ## Generation and verification
 
 The existing Client–Host generator emits Common profile selection and the JS

@@ -65,7 +65,8 @@ test('SDK refuses missing original, unsupported phase, subject and claims before
     {...fixture.summary, requirements: ['invocation_scope_approved', 'effect_scope_approved']},
     {...fixture.summary, kind: 'cost_scope'},
   ]) await assert.rejects(signedAnswer(summary, 'approved', observer, fixture.decided_at),
-    {message: 'UnsupportedCheckpointAnswer'});
+    cause => cause.message === 'InvalidCheckpointAnswer' &&
+      cause.cause?.code === 'InvalidShape');
   assert.equal(calls, 0);
 });
 

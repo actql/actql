@@ -25,7 +25,19 @@ def independent_cid(value):
     return 'sha256:' + hashlib.sha256(raw).hexdigest()
 
 
+def original_checkpoint_clock(case):
+    # Candidate construction checks the same original window as the Host.
+    # Keep these fixed fixtures at their own decision time, not the wall clock.
+    selected = patch('actql_sdk._async.datetime')
+    clock = selected.start()
+    case.addCleanup(selected.stop)
+    clock.now.return_value = datetime(2026, 9, 26, 1, tzinfo=timezone.utc)
+
+
 class CheckpointTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        original_checkpoint_clock(self)
+
     async def test_resolution_owns_summary_signer_and_exact_independent_preimages(self):
         requests, preimages = [], []
         summary = deepcopy(SUMMARY)
@@ -137,8 +149,17 @@ class CheckpointTests(unittest.IsolatedAsyncioTestCase):
     async def test_signed_noncontrol_ids_preserve_exact_spaces_and_unicode(self):
         from actql_sdk._checkpoints import signed_answer
         signer = Signer('alice-key', 'alice', lambda raw: bytes(64))
-        for identifier in [' ', ' id ', 'é', 'e\u0301', '\u2028', '\u2029', 'id\u2028', 'id\u2029', '\\n']:
+        for identifier in [' ', ' id ', 'é', '\u2028', '\u2029', 'id\u2028', 'id\u2029', '\\n']:
             with self.subTest(identifier=repr(identifier)):
                 answer = await signed_answer(dict(SUMMARY, checkpointId=identifier), 'rejected', signer,
                                              '2026-09-26T01:00:00.000Z')
                 self.assertEqual(json.loads(answer['resolutionWire'])['checkpoint_id'], identifier)
+        signatures = []
+        with self.assertRaises(ClientError) as failure:
+            await signed_answer(dict(SUMMARY, checkpointId='e\u0301'), 'rejected',
+                Signer('alice-key', 'alice', lambda raw: signatures.append(raw) or bytes(64)),
+                '2026-09-26T01:00:00.000Z')
+        self.assertEqual(failure.exception.code, 'InvalidCheckpointAnswer')
+        self.assertEqual(failure.exception.cause.code, 'InvalidField')
+        self.assertEqual(failure.exception.cause.field, 'checkpointId')
+        self.assertEqual(signatures, [])
