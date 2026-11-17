@@ -13,10 +13,8 @@ import {fileURLToPath} from 'node:url';
 import {observeOwnScopedStateFds} from './conformance.mjs';
 
 const phase = process.argv[2];
-assert(['warm', 'cold', 'usage-reported', 'usage-zero', 'usage-absent'].includes(phase));
-const usageMode = phase.startsWith('usage-') ? phase.slice(6) : undefined;
+assert(['warm', 'cold', 'usage-reported', 'usage-zero', 'usage-absent', 'timeout-headers', 'timeout-body'].includes(phase));
 const fresh = phase !== 'cold';
-const expectedCalls = usageMode === undefined ? 2 : 1;
 const modules = resolve(realpathSync(process.cwd()), 'node_modules');
 assert.equal(realpathSync(modules), modules, 'The fresh node_modules must not redirect to another installation');
 const publicModules = new Map(['@actql/node', '@actql/provider-ai-sdk']
@@ -33,9 +31,27 @@ for (const [name, url] of publicModules) {
 const {connect} = await import(publicModules.get('@actql/node'));
 const {createOpenAIChatProvider} = await import(publicModules.get('@actql/provider-ai-sdk'));
 
+// Local authored fixture configuration only. A cold process must use the same
+// selected physical inputs; absence is not a reason to guess another profile.
+const selection = fresh ? {
+  usage: phase.startsWith('usage-') ? phase.slice(6) : null,
+  timeout: phase.startsWith('timeout-') ? phase.slice(8) : null,
+} : JSON.parse(await readFile('case-profile.fixture.json', 'utf8'));
+assert.deepEqual(Object.keys(selection).sort(), ['timeout', 'usage']);
+assert([null, 'reported', 'zero', 'absent'].includes(selection.usage));
+assert([null, 'headers', 'body'].includes(selection.timeout));
+assert(selection.usage === null || selection.timeout === null);
+const usageMode = selection.usage ?? undefined, timeoutMode = selection.timeout ?? undefined;
+const expectedCalls = usageMode === undefined && timeoutMode === undefined ? 2 : 1;
+const transportTimeouts = timeoutMode === undefined ? undefined : {
+  connectMs: 1000, headersMs: timeoutMode === 'headers' ? 30 : 1000,
+  bodyMs: timeoutMode === 'body' ? 30 : 1000,
+};
+
 if (fresh) {
   await assert.rejects(access('.state'), {code: 'ENOENT'});
   const put = (path, value, mode = 0o600) => writeFile(path, value, {flag: 'wx', mode});
+  await put('case-profile.fixture.json', JSON.stringify(selection));
   await put('actql.config.json', JSON.stringify({version: 'actql-config/0.1', model_tasks: './model-tasks.json'}));
   await put('model-tasks.json', JSON.stringify({version: 'actql-model-tasks/0.1',
     tasks: {'model-task:first': './first.json', 'model-task:second': './second.json'},
@@ -72,8 +88,11 @@ const server = createServer({cert: certificate, key: await readFile('provider.ke
   const input = JSON.parse(body.messages[1].content);
   assert.deepEqual(input, calls === 1 ? {text: 'first'} : {quantity: 7});
   const value = calls === 1 ? {answer: true} : {label: 'exact-label'};
+  if (timeoutMode === 'headers') return; // Actual request received; no response headers.
   response.setHeader('content-type', 'application/json');
   response.setHeader('x-request-id', 'installed-' + calls);
+  if (timeoutMode === 'body') {response.write('{'); return;} // Partial original, no EOF.
+
   response.end(JSON.stringify({id: 'installed-' + calls, object: 'chat.completion', created: 1,
     model: 'fixture-chat', choices: [{index: 0,
       message: {role: 'assistant', content: JSON.stringify(value)}, finish_reason: 'stop'}],
@@ -95,6 +114,7 @@ const authorization = {
 const registerModelProviders = createOpenAIChatProvider({providerId: 'models/http', modelId: 'fixture-chat',
   apiKeyFile: 'api-key.fixture', baseURL: 'https://127.0.0.1:' + server.address().port + '/v1',
   generation: {temperature: 0, topP: 1, maxOutputTokens: 100},
+  ...(transportTimeouts === undefined ? {} : {transportTimeouts}),
   budget: {maxCalls: 2n, maxRows: 2, maxTokens: 1000n, maxCostUnits: 100000n, maxDurationMs: 1000n},
   observeEgress: () => {
     egressChecks++;
@@ -169,21 +189,27 @@ try {
       [0, ['model-task:first', 'text', 'first', 'string'], {id: 'original-text', outcome: 'ok', value: {answer: true}}],
       [1, ['model-task:second', 'quantity', 7, 'number'], {id: 'original-quantity', outcome: 'ok', value: {label: 'exact-label'}}],
     ];
-    if (usageMode !== undefined) cases.length = 1;
+    if (usageMode !== undefined || timeoutMode !== undefined) cases.length = 1;
     for (const [index, args, expected] of cases) {
       const submissionRef = client.newSubmission({nonce: 'installed-' + index});
       await writeFile('submission-' + index + '.json', JSON.stringify(submissionRef), {flag: 'wx', mode: 0o600});
       const run = await client.start(program(...args), {submissionRef});
       await writeFile('run-' + index + '.json', JSON.stringify(run.ref), {flag: 'wx', mode: 0o600});
       originalRef = run.ref;
-      assert.equal((await run.wait()).status, 'succeeded');
-      assert.deepEqual(await run.result('answer').all(), [expected]);
+      const waited = await run.wait();
+      assert.equal(waited.status, timeoutMode === undefined ? 'succeeded' : 'needs_reconciliation');
+      if (timeoutMode === undefined) assert.deepEqual(await run.result('answer').all(), [expected]);
+      else {
+        const current = await run.status();
+        assert.equal(current.status, 'needs_reconciliation');
+        assert.equal(current.control.cancellation_requested, false, 'Physical timeout is not Run cancellation');
+      }
       const lookup = await client.lookupSubmission(submissionRef);
       assert.equal(lookup.kind, 'ready'); assert.deepEqual(lookup.admission.ref, run.ref);
     }
     assert.equal(calls, expectedCalls);
-    if (usageMode === undefined) assert.notDeepEqual(schemas[0], schemas[1]);
-    else {
+    if (usageMode === undefined && timeoutMode === undefined) assert.notDeepEqual(schemas[0], schemas[1]);
+    if (usageMode !== undefined) {
       // The optional copy must have actually completed, not merely a successful
       // Model Run or a provider spy reporting authored usage.
       assert.equal(usageCaptures, 1); assert.equal(usageAuthorizations, 1);
@@ -194,13 +220,22 @@ try {
   } else {
     const ref = JSON.parse(await readFile('run-0.json', 'utf8'));
     const run = await client.attach(ref);
-    // The original Saved Result precedes this process's first status read.
-    assert.deepEqual(await run.result('answer').all(), [{id: 'original-text', outcome: 'ok', value: {answer: true}}]);
-    assert.equal((await run.status()).status, 'succeeded');
+    if (timeoutMode === undefined) {
+      // The original Saved Result precedes this process's first status read.
+      assert.deepEqual(await run.result('answer').all(), [{id: 'original-text', outcome: 'ok', value: {answer: true}}]);
+      assert.equal((await run.status()).status, 'succeeded');
+    } else {
+      // This SAME entered original has no fabricated Saved success. Status and
+      // original lookup only; never start, reconcile, cancel or resend a Call.
+      const current = await run.status();
+      assert.equal(current.status, 'needs_reconciliation');
+      assert.equal(current.control.cancellation_requested, false);
+    }
     const submissionRef = JSON.parse(await readFile('submission-0.json', 'utf8'));
     const lookup = await client.lookupSubmission(submissionRef);
     assert.equal(lookup.kind, 'ready'); assert.deepEqual(lookup.admission.ref, ref);
     assert.equal(calls, 0); assert.equal(egressChecks, 0);
+    assert.equal(usageCaptures, 0); assert.equal(usageAuthorizations, 0);
   }
 } catch (cause) {primary = cause;}
 finally {
@@ -212,5 +247,8 @@ if (primary !== undefined) throw primary;
 assert.equal(close.aliveAfterClose, true); assert.equal(close.scopedStateFd0, true);
 await assert.rejects(access('.state/publication/owner/owner.json'), {code: 'ENOENT'});
 console.log(JSON.stringify({phase, calls, firstCloseReturned: true, aliveScopedFD0: true,
-  ...(phase === 'cold' ? {originalSavedFirst: true, egressChecks} : {tasks: expectedCalls, requests: expectedCalls, ...(usageMode === undefined ? {} : {usageMode, usageCaptures})}),
+  ...(phase === 'cold' ? {egressChecks,
+    ...(timeoutMode === undefined ? {originalSavedFirst: true} : {originalUnknown: true, zeroResend: true})}
+    : {tasks: expectedCalls, requests: expectedCalls, ...(usageMode === undefined ? {} : {usageMode, usageCaptures})}),
+  ...(timeoutMode === undefined ? {} : {timeoutMode, preserveOriginalState: true}),
   node: process.versions.node, platform: process.platform, arch: process.arch}));
