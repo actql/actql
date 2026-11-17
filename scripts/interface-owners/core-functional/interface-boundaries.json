@@ -98070,7 +98070,7 @@
     },
     {
       "module": "src/client_row_source_host/json_page_cursor.mbt",
-      "sha256": "252492734209cce9a43c39e5761926c103b9e8589ad2a539769d87fa9f6afa54",
+      "sha256": "3b9d0a0a4c266448baadd045a55b51f8bed5ad98066049728e76238f0a6dd7f8",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common row Source pagination DATA; managed RowRun retains I/O, current authority, response charges and physical cleanup",

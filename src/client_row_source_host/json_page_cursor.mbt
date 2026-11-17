@@ -46,7 +46,7 @@ pub fn prepare_row_source_cursor_progress(
     max_rows,
     max_page_rows,
     max_cursor_bytes,
-    seen: Map::new(),
+    seen: Default::default(),
     page_index: 0,
     row_count: 0,
     cursor: None,
@@ -63,7 +63,8 @@ pub fn row_source_cursor_remaining_rows(
   row_count : Int,
 ) -> Result[Int, RowSourceCursorIssue] {
   if !physical_equal(progress.origin, projected_json_page_origin) ||
-    page_index != progress.page_index || row_count != progress.row_count {
+    page_index != progress.page_index ||
+    row_count != progress.row_count {
     return Err(ProgressMismatch)
   }
   if progress.done {
