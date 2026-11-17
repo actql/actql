@@ -1,9 +1,75 @@
 ///|
+// These predicate leaves borrow checked scalar cells or immutable scalar
+// literals. Reject copied expression views before asking for their body.
+fn bounded_string_group_scalar_filter_leaf(
+  expression : @lower.Expression,
+) -> Bool {
+  match @lower.expression_contract(expression).shape {
+    @contract.Number | @contract.Boolean => ()
+    _ => return false
+  }
+  if @lower.expression_view_entries(expression) != 0 {
+    return false
+  }
+  match @lower.expression_body(expression) {
+    @lower.Field(_, @relation.InputField(_))
+    | @lower.Literal(_)
+    | @lower.TypedNull => true
+    _ => false
+  }
+}
+
+///|
+// Keep the complete existing Fragment context and its live-value/frame quote.
+// This only classifies a closed scalar predicate whose evaluation introduces
+// no Text/container payload or copied input forest. Unknown bodies fall back.
+fn bounded_string_group_scalar_filter(expression : @lower.Expression) -> Bool {
+  guard @lower.expression_contract(expression).shape is @contract.Boolean &&
+    @lower.expression_view_entries(expression) == 0 else {
+    return false
+  }
+  match @lower.expression_body(expression) {
+    @lower.Binary(operator, left, right) => {
+      match operator {
+        @lower.Equal
+        | @lower.NotEqual
+        | @lower.IsDistinctFrom
+        | @lower.Less
+        | @lower.LessEqual
+        | @lower.Greater
+        | @lower.GreaterEqual => ()
+        _ => return false
+      }
+      bounded_string_group_scalar_filter_leaf(left) &&
+      bounded_string_group_scalar_filter_leaf(right)
+    }
+    @lower.Unary(operator, child) => {
+      match operator {
+        @lower.Not
+        | @lower.IsNull
+        | @lower.NotNull
+        | @lower.IsTrue
+        | @lower.IsFalse
+        | @lower.IsUnknown => ()
+        _ => return false
+      }
+      bounded_string_group_scalar_filter_leaf(child)
+    }
+    @lower.Field(_, @relation.InputField(_))
+    | @lower.Literal(_)
+    | @lower.TypedNull => true
+    _ => false
+  }
+}
+
+///|
 // The direct ordered StringAgg constructor keeps contributor indices and
 // borrowed flat cells. Its sorter and exact UTF16 builder reserve the SAME
 // RowWorkspace before allocation, including the builder/to_string overlap.
 // Complete output Text DATA remains independently charged by the row limits.
-// Dynamic/recursive/distinct/mixed aggregate families keep the full recipe.
+// DISTINCT keeps its complete charged index/sorter. A closed scalar filter
+// keeps the same Fragment context, logical roots and work. Constructed Text,
+// recursive or mixed aggregate arguments retain the full generic recipe.
 pub fn bounded_string_group_borrows_input(
   kernel : @lower.PreparedKernel,
 ) -> Bool {
@@ -18,12 +84,14 @@ pub fn bounded_string_group_borrows_input(
     @schema.lookup(@lower.kernel_input_schema(kernel), field) is Some(contract) &&
     contract.shape is @contract.Text(_) &&
     @lower.group_aggregate_result(aggregate).shape is @contract.Text(_) &&
-    @lower.group_aggregate_filter(aggregate) is None &&
-    @lower.group_aggregate_distinct(aggregate) != Some(true) &&
     @lower.group_aggregate_delimiter(aggregate) is Some(_) &&
     @lower.group_aggregate_byte_limit(aggregate) is Some(maximum) &&
     maximum >= 0L &&
     @lower.group_aggregate_order_count(aggregate) > 0 else {
+    return false
+  }
+  if @lower.group_aggregate_filter(aggregate) is Some(filter) &&
+    !bounded_string_group_scalar_filter(filter) {
     return false
   }
   for index in 0..<@lower.group_aggregate_order_count(aggregate) {
@@ -55,6 +123,10 @@ pub fn bounded_literal_string_group_chain(sequence : GeneratedSequence) -> Bool 
     generated_sequence_step_at(sequence, 0) is Some(@lower.ValuesStep(_)) &&
     generated_sequence_step_at(sequence, 1) is Some(@lower.RowStep(group)) &&
     bounded_string_group_borrows_input(group) &&
+    @lower.kernel_group(group) is Some(direct) &&
+    @lower.group_aggregate_at(direct, 0) is Some(aggregate) &&
+    @lower.group_aggregate_filter(aggregate) is None &&
+    @lower.group_aggregate_distinct(aggregate) != Some(true) &&
     generated_sequence_step_at(sequence, 2) is Some(@lower.RowStep(projection)) &&
     @lower.kernel_is_projection(projection) &&
     @lower.node_at(prepared, 0) is Some(seed) &&

@@ -472,7 +472,7 @@ test "Source ordered StringAgg chain keeps full retention and funds bounded chil
 }
 
 ///|
-test "Source StringAgg startup retains distinct and injected constructor fallback" {
+test "Source StringAgg startup preserves full DISTINCT DATA and injected constructor fallback" {
   let (sequence, _, _) = source_string_group_chain_fixture(distinct=true)
   let registry = @connector.prepare_capability_registry(
     [{ name: "local", acquisition: false, fixed_compute: true, effect: false, }],
@@ -489,9 +489,15 @@ test "Source StringAgg startup retains distinct and injected constructor fallbac
     100000,
     1,
   ).unwrap()
-  assert_true(
-    local_module_metered_output_start_capacity(original, 0, sequence) is None,
-  )
+  // DISTINCT now uses its actual charged bounded sorter/index constructor,
+  // while the original standing output DATA remains completely prepaid.
+  assert_false(@execution.bounded_literal_string_group_chain(sequence))
+  let distinct = local_module_metered_output_start_capacity(
+    original, 0, sequence,
+  ).unwrap()
+  let distinct_full = local_module_capacity(original, 0).unwrap()
+  assert_eq(distinct.retained_bytes, distinct_full.retained_bytes)
+  assert_true(distinct.execution_bytes <= distinct_full.execution_bytes)
   let (sequence, _, _) = source_string_group_chain_fixture()
   let original = prepare_local_compute_module(
     registry,

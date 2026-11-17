@@ -106,7 +106,7 @@ test "ordered direct StringAgg removes only absent input and measurement constru
 }
 
 ///|
-test "StringAgg recursive distinct and dynamic families retain their full constructor" {
+test "StringAgg recursive and Text predicates retain their full constructor" {
   let values : ValueLimits = {
     max_nodes: 100,
     max_text_bytes: 5000,
@@ -135,10 +135,7 @@ test "StringAgg recursive distinct and dynamic families retain their full constr
     generated in [
       string_group_capacity_fixture(recursive=true),
       string_group_capacity_fixture(
-        aggregate="{\"fn\":\"string_agg\",\"field\":\"payload\",\"order_by\":[{\"id\":\"asc\"}],\"distinct\":true,\"delimiter\":\"|\",\"max_bytes\":4096}",
-      ),
-      string_group_capacity_fixture(
-        aggregate="{\"fn\":\"string_agg\",\"field\":\"payload\",\"filter\":\"id > 0\",\"order_by\":[{\"id\":\"asc\"}],\"delimiter\":\"|\",\"max_bytes\":4096}",
+        aggregate="{\"fn\":\"string_agg\",\"field\":\"payload\",\"filter\":\"payload = 'x'\",\"order_by\":[{\"id\":\"asc\"}],\"delimiter\":\"|\",\"max_bytes\":4096}",
         fragment=true,
       ),
     ] {
