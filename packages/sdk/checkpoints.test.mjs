@@ -71,6 +71,39 @@ test('Client canonical CIDs and signatures follow the pinned vectors',
       '{"a":[1,true,null],"b":"é"}');
   });
 
+test('Checkpoint signer output uses canonical Base64 of exactly 64 Ed25519 bytes',
+  async () => {
+    const invalid = [
+      '', 'AA==', 'A'.repeat(84), 'A'.repeat(86) + 'A=',
+      'A'.repeat(85) + 'B==', 'A'.repeat(86) + '= ',
+      'A'.repeat(86) + '===', 'A'.repeat(86) + '-=',
+      new Uint8Array(63), new Uint8Array(65),
+    ];
+    for (const decision of ['approved', 'rejected']) {
+      for (const value of invalid) {
+        let calls = 0;
+        await assert.rejects(signedAnswer(summary, decision, {
+          ...signer, sign() { calls++; return value; },
+        }, '2026-09-26T01:00:00.000Z'),
+        {message: 'InvalidCheckpointSignature'});
+        assert.equal(calls, 1, 'Invalid proof stops before any later signing');
+      }
+      const answer = await signedAnswer(summary, decision, {
+        ...signer, sign: bytes => signer.sign(bytes).toString('base64'),
+      }, '2026-09-26T01:00:00.000Z');
+      const resolution = JSON.parse(answer.resolutionWire);
+      const preimage = await contentCid(without(resolution, 'proof', 'resolution_cid'));
+      assert.equal(verify(null, Buffer.from(preimage, 'utf8'), keys.publicKey,
+        Buffer.from(resolution.proof.signature, 'base64')), true);
+      if (decision === 'approved') {
+        const approval = JSON.parse(answer.approvalEvidenceWire).compatibility_approval;
+        const unsigned = await contentCid(without(approval, 'proof', 'run_scope_approval_cid'));
+        assert.equal(verify(null, Buffer.from(unsigned, 'utf8'), keys.publicKey,
+          Buffer.from(approval.proof.signature, 'base64')), true);
+      }
+    }
+  });
+
 test('a signed answer binds this Checkpoint and verifies with the reviewer key',
   async () => {
     const approved = await signedAnswer(summary, 'approved', signer,
