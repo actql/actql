@@ -20,3 +20,35 @@ pub fn client_program_prepare_model_provider_originals(
     max_work,
   )
 }
+
+///|
+/// The SAME original admitted body's retained representation, priced through
+/// the existing checked Common fold. Traversal scratch and Host alias holders
+/// remain the caller's separately prefunded construction responsibilities.
+#export_name("clientProgramModelRawOriginalRetainedCapacity")
+pub fn client_program_model_raw_original_retained_capacity(
+  body : @publication.CapturedEffectDependencyBody,
+  max_nodes : Int,
+  max_depth : Int,
+  max_utf16_units : Int,
+) -> Result[@execution.ExecutionCapacity, @publication.PublicationContractIssue] {
+  let (tree, controls, text) = match
+    @publication.captured_effect_dependency_body_representation_extent(
+      body, max_nodes, max_depth, max_utf16_units,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard @execution.canonical_preparation_retained_bytes(
+      tree,
+      controls.record_headers,
+      controls.reference_slots,
+      controls.scalar_words,
+      text,
+    )
+    is Some(bytes) &&
+    @execution.execution_capacity(bytes, bytes) is Some(value) else {
+    return Err(@publication.Encoding)
+  }
+  Ok(value)
+}

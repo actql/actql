@@ -40366,7 +40366,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "2b857d577d9d082f7ff85c44748fe43a32c211040431a436159150153f51ea4b",
+      "sha256": "f8d60241d78e0b8a23e00f1216fb072937220c743ff03da23fef42a1d3cd126c",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -55672,7 +55672,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const configuredSourceFree = physical === undefined"
+                "anchor": "const configuredSourceFree = (physical === undefined"
               },
               {
                 "path": "docs/design/infer-physical-observation.md",
@@ -55710,7 +55710,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const configuredSourceFree = physical === undefined"
+                "anchor": "const configuredSourceFree = (physical === undefined"
               },
               {
                 "path": "docs/design/infer-physical-observation.md",
@@ -55748,7 +55748,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const configuredSourceFree = physical === undefined"
+                "anchor": "const configuredSourceFree = (physical === undefined"
               },
               {
                 "path": "docs/design/infer-physical-observation.md",
@@ -55786,7 +55786,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const configuredSourceFree = physical === undefined"
+                "anchor": "const configuredSourceFree = (physical === undefined"
               },
               {
                 "path": "docs/design/infer-physical-observation.md",
@@ -55824,7 +55824,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const configuredSourceFree = physical === undefined"
+                "anchor": "const configuredSourceFree = (physical === undefined"
               },
               {
                 "path": "docs/design/infer-physical-observation.md",
@@ -55862,7 +55862,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const configuredSourceFree = physical === undefined"
+                "anchor": "const configuredSourceFree = (physical === undefined"
               },
               {
                 "path": "docs/design/infer-physical-observation.md",
@@ -55900,7 +55900,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const configuredSourceFree = physical === undefined"
+                "anchor": "const configuredSourceFree = (physical === undefined"
               },
               {
                 "path": "docs/design/infer-physical-observation.md",
@@ -55938,7 +55938,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const configuredSourceFree = physical === undefined"
+                "anchor": "const configuredSourceFree = (physical === undefined"
               },
               {
                 "path": "docs/design/infer-physical-observation.md",
@@ -55976,7 +55976,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const configuredSourceFree = physical === undefined"
+                "anchor": "const configuredSourceFree = (physical === undefined"
               },
               {
                 "path": "docs/design/infer-physical-observation.md",
@@ -56030,7 +56030,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const configuredSourceFree = physical === undefined"
+                "anchor": "const configuredSourceFree = (physical === undefined"
               }
             ]
           }
@@ -60154,7 +60154,7 @@
                 "path": "docs/design/local-input-preparation.md"
               },
               {
-                "anchor": "const configuredSourceFree = physical === undefined",
+                "anchor": "const configuredSourceFree = (physical === undefined",
                 "path": "adapters/host-node/embedded-local.mjs"
               },
               {
@@ -60196,7 +60196,7 @@
                 "path": "docs/design/local-input-preparation.md"
               },
               {
-                "anchor": "const configuredSourceFree = physical === undefined",
+                "anchor": "const configuredSourceFree = (physical === undefined",
                 "path": "adapters/host-node/embedded-local.mjs"
               },
               {
@@ -60242,7 +60242,7 @@
                 "path": "docs/design/local-input-preparation.md"
               },
               {
-                "anchor": "const configuredSourceFree = physical === undefined",
+                "anchor": "const configuredSourceFree = (physical === undefined",
                 "path": "adapters/host-node/embedded-local.mjs"
               },
               {
@@ -60288,7 +60288,7 @@
                 "path": "docs/design/local-input-preparation.md"
               },
               {
-                "anchor": "const configuredSourceFree = physical === undefined",
+                "anchor": "const configuredSourceFree = (physical === undefined",
                 "path": "adapters/host-node/embedded-local.mjs"
               },
               {
@@ -60334,7 +60334,7 @@
                 "path": "docs/design/local-input-preparation.md"
               },
               {
-                "anchor": "const configuredSourceFree = physical === undefined",
+                "anchor": "const configuredSourceFree = (physical === undefined",
                 "path": "adapters/host-node/embedded-local.mjs"
               },
               {
@@ -60376,7 +60376,7 @@
                 "path": "docs/design/local-input-preparation.md"
               },
               {
-                "anchor": "const configuredSourceFree = physical === undefined",
+                "anchor": "const configuredSourceFree = (physical === undefined",
                 "path": "adapters/host-node/embedded-local.mjs"
               },
               {
@@ -60418,7 +60418,7 @@
                 "path": "docs/design/local-input-preparation.md"
               },
               {
-                "anchor": "const configuredSourceFree = physical === undefined",
+                "anchor": "const configuredSourceFree = (physical === undefined",
                 "path": "adapters/host-node/embedded-local.mjs"
               },
               {
@@ -60460,7 +60460,7 @@
                 "path": "docs/design/local-input-preparation.md"
               },
               {
-                "anchor": "const configuredSourceFree = physical === undefined",
+                "anchor": "const configuredSourceFree = (physical === undefined",
                 "path": "adapters/host-node/embedded-local.mjs"
               },
               {
@@ -60510,7 +60510,7 @@
                 "path": "docs/design/local-input-preparation.md"
               },
               {
-                "anchor": "const configuredSourceFree = physical === undefined",
+                "anchor": "const configuredSourceFree = (physical === undefined",
                 "path": "adapters/host-node/embedded-local.mjs"
               },
               {
@@ -60568,7 +60568,7 @@
                 "path": "adapters/host-node/request-model-plan.test.mjs"
               },
               {
-                "anchor": "const configuredSourceFree = physical === undefined",
+                "anchor": "const configuredSourceFree = (physical === undefined",
                 "path": "adapters/host-node/embedded-local.mjs"
               },
               {
@@ -63846,7 +63846,8 @@
             "prepared",
             "occurrence",
             "execution",
-            "serializationGraph"
+            "serializationGraph",
+            "admittedProvider"
           ],
           "async": false
         },
@@ -64933,7 +64934,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "1e53bf3543f6fa3b53673928a3d47548bb48fc2dc1c309e62a5a0f0f090767df"
+      "sha256": "e3e281008cd675a165c6f0133377a853e4ebf29b235aba6abed246f6fd21f5f7"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -66838,7 +66839,8 @@
           "operations": [
             "finishNodeInferOriginalReadScopes",
             "finishNodeInferOriginalReadScopes/current/current/current",
-            "retireNodeInferOriginalRead"
+            "retireNodeInferOriginalRead",
+            "openNodeComposedInferProvider/component/init:startSourceFreeSingleUnit/init:startSourceFreeSingleUnit"
           ],
           "exports": [
             "finishNodeInferOriginalReadScopes",
@@ -69800,6 +69802,13 @@
           "async": false
         },
         {
+          "name": "openNodeComposedInferProvider/component/init:startSourceFreeSingleUnit/init:startSourceFreeSingleUnit",
+          "parameters": [
+            "preparedProgram"
+          ],
+          "async": false
+        },
+        {
           "name": "openNodeComposedInferProvider/openOriginal/openOriginal",
           "parameters": [
             "inputs",
@@ -70891,7 +70900,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "f9ef0ea8817a7db3ea849d27c086f8eb122f05d992dd6c3a74fbba7971132a7c"
+      "sha256": "c1820633ec8e8ddf48a3658f87267c3db256b8c8302d48fc413ed5a91b2819e2"
     },
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",
@@ -73522,7 +73531,7 @@
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "48e9ef3d49416f7c09423d5cbb85ce2bd8f3ca228fa09661d76837aecf584836",
+      "sha256": "d96de15095e5c931a6d0930f6c44f7db342e5f21dde49e3872ef820d3cb4f562",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -73749,6 +73758,11 @@
           "async": false
         },
         {
+          "name": "installNodeInferRun/run/run/init:prepareRead/init:prepareRead",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installNodeInferRun/run/run/init:retainCopy/init:retainCopy",
           "parameters": [
             "copy"
@@ -73764,6 +73778,13 @@
         },
         {
           "name": "installNodeInferRun/run/run/init:retainOperation/init:retainOperation",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/run/run/init:retainOperation/init:retainOperation#2",
           "parameters": [
             "value"
           ],
@@ -74100,7 +74121,9 @@
             "installNodeInferRun/run/run/run#6",
             "installNodeInferRun/run/run/run#7",
             "installNodeInferRun/run/run/run#8",
-            "installNodeInferRun/run/run/run#9"
+            "installNodeInferRun/run/run/run#9",
+            "installNodeInferRun/run/run/init:prepareRead/init:prepareRead",
+            "installNodeInferRun/run/run/init:retainOperation/init:retainOperation#2"
           ],
           "exports": [
             "installNodeInferRun"
@@ -77064,7 +77087,7 @@
     {
       "module": "adapters/host-node/installed-model.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "262b843f3c0eaec2099d540fb610d6d675dc761d6c64011856bf482a3abb00b8",
+      "sha256": "2934d8a36d4ba76048a571b562247570fb08c38d6fd640f5f7abb298303a2dbe",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -77166,7 +77189,8 @@
             "register",
             "assertHostRuntime",
             "assertNewHostRuntime",
-            "bindSdkStaticOriginals"
+            "bindSdkStaticOriginals",
+            "taskOriginals"
           ],
           "async": false
         },
@@ -77177,6 +77201,42 @@
         },
         {
           "name": "installModelProviders/assertTrustedRuntime/assertTrustedRuntime",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installModelProviders/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installModelProviders/guarded/guarded/guarded",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "installModelProviders/init:assertNewTrustedRuntime/init:assertNewTrustedRuntime",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installModelProviders/init:physicalPreflight/init:physicalPreflight",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "installModelProviders/init:resolveTaskDefaults/init:resolveTaskDefaults",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "installModelProviders/init:taskOriginals/init:taskOriginals",
           "parameters": [],
           "async": false
         },
@@ -77221,6 +77281,13 @@
             "taskMaxOutputTokens",
             "limits",
             "construction"
+          ],
+          "async": false
+        },
+        {
+          "name": "installModelProviders/selectTaskOriginals/selectTaskOriginals",
+          "parameters": [
+            "taskCid"
           ],
           "async": false
         },
@@ -77460,6 +77527,53 @@
             "index"
           ],
           "async": false
+        },
+        {
+          "name": "snapshotTaskInstallations/init:observeEgress/init:observeEgress",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "snapshotTaskInstallations/owned/owned",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotTaskInstallations/snapshotTaskInstallations",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotTaskInstallations/snapshotTaskInstallations#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotTaskInstallations/snapshotTaskInstallations#3",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotTaskInstallations/snapshotTaskInstallations#4",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotTaskInstallations/value/value",
+          "parameters": [
+            "key"
+          ],
+          "async": false
         }
       ],
       "contracts": [
@@ -77469,7 +77583,21 @@
             "readInstalledModelDependenciesLegacy/bodies/bodies",
             "readInstalledModelDependenciesLegacy/readInstalledModelDependenciesLegacy",
             "readInstalledModelDependenciesLegacy/readInstalledModelDependenciesLegacy#2",
-            "readInstalledModelExecutionLegacy/entry/entry"
+            "readInstalledModelExecutionLegacy/entry/entry",
+            "installModelProviders/current/current",
+            "installModelProviders/guarded/guarded/guarded",
+            "installModelProviders/init:assertNewTrustedRuntime/init:assertNewTrustedRuntime",
+            "installModelProviders/init:physicalPreflight/init:physicalPreflight",
+            "installModelProviders/init:resolveTaskDefaults/init:resolveTaskDefaults",
+            "installModelProviders/init:taskOriginals/init:taskOriginals",
+            "installModelProviders/selectTaskOriginals/selectTaskOriginals",
+            "snapshotTaskInstallations/init:observeEgress/init:observeEgress",
+            "snapshotTaskInstallations/owned/owned",
+            "snapshotTaskInstallations/snapshotTaskInstallations",
+            "snapshotTaskInstallations/snapshotTaskInstallations#2",
+            "snapshotTaskInstallations/snapshotTaskInstallations#3",
+            "snapshotTaskInstallations/snapshotTaskInstallations#4",
+            "snapshotTaskInstallations/value/value"
           ],
           "exports": [
             "admitInstalledModelProvider"

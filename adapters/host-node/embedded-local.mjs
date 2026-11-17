@@ -895,7 +895,9 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
     // This configured source-free consumer opens the existing retained-output
     // Host. Quote that same choice before module/Model Scope construction,
     // rather than the installation's unrelated optional output hint.
-    const configuredSourceFree = physical === undefined && model.selection?.localMock !== true &&
+    const configuredSourceFree = (physical === undefined ||
+      typeof model.selection?.physicalOriginal?.selectTaskOriginals === 'function') &&
+      model.selection?.localMock !== true &&
       model.serializationGraph === undefined;
     const retainedModelOutput = configuredSourceFree ? true : retainedRelationOutput;
     if (configuredSourceFree) {
@@ -1469,6 +1471,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   let modelProviders;
   let projectTasks;
   let persistModelOriginals;
+  let configuredModelInstallation;
   let mockModels;
   let mockAccount;
   let standardAccountPreparation;
@@ -1553,6 +1556,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     // retire. It is not physical read/Provider/Store or numerical release ACK.
     projectTasks = undefined;
     persistModelOriginals = undefined;
+    configuredModelInstallation = undefined;
     projectProfile?.retire(projectRuntime);
     if (project !== undefined) retireInstalledProjectConfiguration(project, projectRuntime);
     projectProfile = undefined;
@@ -1693,7 +1697,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     contractTextBytes: 65536, maxWork: 2097152});
   if (!mockSourceInstallation) {
     const configured = await installConfiguredModelProviders({moon,
-      register: registerModelProviders, project, taskLimits: modelTaskLimits,
+      register: registerModelProviders, project, taskLimits: modelTaskLimits, runtimeUrl: runtimeUrl.href,
       installationServices, assertCurrent: assertProjectRuntime,
       assertHostRuntime: modelRuntimeView === undefined ? undefined : assertModelRuntime,
       assertNewHostRuntime: modelRuntimeView === undefined ? undefined : assertNewModelRuntime,
@@ -1701,6 +1705,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     modelProviders = configured.providers;
     projectTasks = configured.projectTasks;
     persistModelOriginals = configured.persistOriginals;
+    configuredModelInstallation = configured.modelInstallationForRuntime;
   } else modelProviders = new Map();
   const inferSelections = new WeakMap();
   const earlyMockInferPlans = new WeakMap();
@@ -2192,6 +2197,11 @@ async function openInstalledHost(originalInstallation, preparation) {
           environmentEvidenceCid, body);
         environmentWire = projection.environmentWire;
         environmentEvidenceCid = projection.evidenceCid;
+        if (configuredModelInstallation !== undefined) {
+          if (modelInstallation !== undefined) throw new TypeError('ConflictingInstalledModelConfiguration');
+          modelInstallation = configuredModelInstallation(moon, environmentWire);
+          configuredModelInstallation = undefined;
+        }
         // Host policy is unchanged by the original Task-only projection. Borrow
         // that already funded body for flag selection; the new final wire is
         // parsed/admitted only inside its same-owner constructor below.
@@ -2542,6 +2552,13 @@ async function openInstalledHost(originalInstallation, preparation) {
     store = preparation === undefined
       ? await openLocalPublicationStore(storeOptions, control, undefined, undefined, publicationOwnership)
       : await preparation.openResultPublicationStore(storeOptions, control);
+    if (modelRuntimeView !== undefined) {
+      // Bind the actual returned Store before configured policy persistence
+      // performs its original Provider/current checks. An unbound Store may
+      // not borrow the pre-Store runtime view, even during initialization.
+      bindInferTrustedStore(modelRuntimeView, runtimeOriginals(), store, publicationStoreModule);
+      assertModelRuntime();
+    }
     await persistModelOriginals?.(store);
     if (mockAccount !== undefined) await mockAccount.adoptStore(store);
     if (standardAccountPreparation !== undefined) {
@@ -2591,14 +2608,6 @@ async function openInstalledHost(originalInstallation, preparation) {
       // cleanup can drain Journal independently, without releasing the token.
       publicationOpeningFailure = {cause};
       throw cause;
-    }
-    if (modelRuntimeView !== undefined) {
-      // The real factory's result, not a lookup/configuration reconstruction.
-      // Keep the static module and this Store through failed/pending cleanup.
-      // Managed Host controls and original Run Promise/Buffer duties still need
-      // their own coverage; this is not a normal numeric profile or byte grant.
-      bindInferTrustedStore(modelRuntimeView, runtimeOriginals(), store, publicationStoreModule);
-      assertModelRuntime();
     }
     effectEvidenceKey?.key.fill(0);
   const lookupRequest = installNodeClientRequestLookup({journal,
@@ -3287,7 +3296,12 @@ async function openInstalledHost(originalInstallation, preparation) {
         if (retain) inferSelections.set(preparedProgram, selection);
         return selection;
       }
-      const physical = modelProviders.get(moon.clientProgramInferProviderId(execution));
+      const physicalBase = modelProviders.get(moon.clientProgramInferProviderId(execution));
+      const physicalTaskCid = occurrence === undefined
+        ? moon.clientProgramInferModelTaskCid(preparedProgram, selectedStep)
+        : moon.clientProgramInferOccurrenceModelTaskCid(occurrence);
+      const physical = physicalBase?.selectTaskOriginals === undefined ? physicalBase
+        : physicalBase.selectTaskOriginals(physicalTaskCid);
       // Legacy registrations only validate payloads. They cannot implicitly
       // opt into physical preparation or invent an egress observation.
       if (typeof physical?.physicalPreflight !== 'function' ||
@@ -3400,7 +3414,8 @@ async function openInstalledHost(originalInstallation, preparation) {
         const graph = restoredInfer !== undefined ? restoredInfer.graph
           : originalInfer !== undefined ? runtimeField(originalInfer, 0)
           : effectGraph !== undefined ? effectGraph : preparation !== undefined && occurrence !== undefined
-          ? preparation.prepareManagedModelGraph(moon, preparedProgram, occurrence, execution, serializationGraph)
+          ? preparation.prepareManagedModelGraph(moon, preparedProgram, occurrence, execution, serializationGraph,
+            admittedProvider)
           : serializationGraph !== undefined
           ? control.prepareCheckedClientSerializedInferGraph(occurrence, serializationGraph, execution)
           : checked(occurrence === undefined
@@ -3429,12 +3444,15 @@ async function openInstalledHost(originalInstallation, preparation) {
               ? (id, installation, contract, configuration) => preparation.prepareManagedModelBinding(
                 moon, preparedProgram, id, installation, contract, configuration) : undefined) : undefined;
         const selection = Object.freeze({step, graph, computeSuffix, serializationGraph, selectedBounds, sourceCoordinates,
+          physicalOriginal: physical,
           deferredRestoredSegments,
           ...(restoredRun === undefined ? {} : {restoredRun}),
           occurrence, computePrefix: runtimeOptionalField(segments, 0),
           provider: moon.clientProgramAdmittedModelProvider(admittedProvider, execution),
           egressAdmission, egressFailure, account, observeAccount, providerBinding,
-          currentProvider: () => modelProviders.get(providerId) === physical,
+          currentProvider: () => modelProviders.get(providerId) === physicalBase &&
+            (physicalBase.selectTaskOriginals === undefined ? physicalBase === physical
+              : physicalBase.selectTaskOriginals(physicalTaskCid) === physical),
           assertTrustedRuntime: physical.assertTrustedRuntime,
           assertNewTrustedRuntime() {
             physical.assertNewTrustedRuntime?.();
@@ -8218,7 +8236,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
       return manager.prepareModelBinding(prepared,
         originalSourceManagedHostRequest(originals, prepared), providerId, installation, contract, configuration);
     },
-    prepareManagedModelGraph(runtime, prepared, occurrence, execution, serializationGraph) {
+    prepareManagedModelGraph(runtime, prepared, occurrence, execution, serializationGraph, admittedProvider) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.prepareModelGraph !== 'function') {
         throw clientOperationError('NodeManagedRunCompilationUnavailable');
@@ -8232,7 +8250,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
           (parent, input, originalOccurrence, selected, originalExecution, contracts) =>
             control.prepareClientRequestSerializedInferGraph(parent, input, originalOccurrence,
               selected, originalExecution, contracts),
-        record.managedSourceProfile?.fileReadDeclarations);
+        record.managedSourceProfile?.fileReadDeclarations, admittedProvider);
     },
     prepareManagedModelCompilation(runtime, prepared, graph) {
       const manager = sourceManaged ?? computeManaged;

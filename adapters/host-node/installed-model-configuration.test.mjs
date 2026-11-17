@@ -67,6 +67,14 @@ test('configuration refuses a read without the original managed construction own
   assert.deepEqual(f.counts(), {installs: 0, sends: 0});
 });
 
+test('configuration requires the original constructor before canonical binding preparation', async () => {
+  const f = fixture();
+  await assert.rejects(installConfiguredModelProviders({...f.options, async register(_, context) {
+    await context.prepareBindingOriginals('{}', '{}', '{}'); return [f.entry];
+  }}), {code: 'InstalledModelTaskConstructionUnavailable'});
+  assert.deepEqual(f.counts(), {installs: 0, sends: 0});
+});
+
 test('configuration refuses missing construction before inspecting bindings or admitting a Task', async () => {
   for (const accessor of [false, true]) {
     const f = fixture(); let gets = 0;

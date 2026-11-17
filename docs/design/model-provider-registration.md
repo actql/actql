@@ -1184,3 +1184,32 @@ layout reader, claim, current fences and cleanup remain mandatory. Adapter
 holding/workspace contributions and complete prepared-row overlap are separate
 physical declarations, never inferred from spare parent capacity or a smaller
 observed row count.
+
+The Node source-free single-Unit caller selects its fixed asynchronous control
+inventory from the actual admitted Provider matched to the same execution.
+The existing synchronous OriginalMock and legacy callers keep their original
+Graph demand; no request-authored mode selects this inventory. The Node bridge
+supplies the selected DATA through the existing `caller_material` input to
+Model Graph construction. Common prices its record headers, reference slots and scalar
+words and grows the same Request reservation before Graph, prefix, module or
+Host-shell construction. The inventory covers the retained component and
+operation closures, nominal notification and claimed endpoint, one live
+waiter/ticket, bounded overlapping Promise carriers, original handoff records,
+and each admitted preflight setter plus callback-array spare backing. The item
+bound is the same checked occurrence ceiling clipped by the existing native
+Model item limit. Completion of Graph construction clears quote DATA only; it
+does not release that shell reservation. Original failed-construction custody
+and the same Request's eventual retirement remain authoritative. Borrowed
+prefixes, suffixes, strings and opaque owners are references here; their backing
+stays charged at its original owner. SDK buffers, per-row representations,
+physical I/O and opaque engine/GC allocation remain separate responsibilities.
+This logical inventory is neither an engine-memory measurement nor a new
+Ledger allowance or send authorization.
+
+The fixed operation envelope includes the async driver's result carrier.
+Seven additional carriers cover its chained flight and detached rejection
+observer, the current waiter promise, the close and stop results, stop's
+rejection-observing await, and close's rejection observer. All eight can remain
+referenced when close overlaps AwaitIo; resolving the waiter does not release
+it before the driver's `finally`. This map does not add another debit or
+claim an engine allocation layout.

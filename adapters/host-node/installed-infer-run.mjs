@@ -12,7 +12,8 @@ import {runInstalledComposedInfers} from './installed-composed-infer-run.mjs';
 import {createInferIoNotification} from './infer-io-notification.mjs';
 import {acquiredEffectContinuation} from './acquired-effect-continuation.mjs';
 import {selectedInferOriginalCurrentStateCodec,
-  selectedInferOriginalPublicationCapacity} from './infer-original-installation.mjs';
+  selectedInferOriginalPublicationCapacity,
+  inferOriginalReadStartupCapacity} from './infer-original-installation.mjs';
 
 // Borrow the existing Request's Model Plan and Scope. This is the
 // same installed Run; configured providers keep their current/claim/stop owner.
@@ -276,6 +277,9 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       }
     }
     const originalInstallation = restoredRequestModel === undefined ? selected.originalReadInstallation : undefined;
+    const requestSourceFree = originalInstallation !== undefined && acquiredInfer === undefined &&
+      moon.clientProgramAcquisitionCount(preparedProgram) === 0 &&
+      typeof selected.physicalOriginal?.selectTaskOriginals === 'function';
     const requestComposed = originalInstallation !== undefined && acquiredInfer !== undefined &&
       selected.occurrence !== undefined && selected.serializationGraph === undefined &&
       selected.components === undefined && !replay && typeof prepareOriginalModelRun === 'function';
@@ -336,9 +340,15 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           requestModel.graph !== selected.graph || requestModel.originalReadInstallation !== originalInstallation ||
           requestModel.scope === undefined || requestModel.scopeFinished || requestModel.closed ||
           requestModel.taken || requestModel.readAttempted || requestModel.read !== undefined ||
+          requestSourceFree && (requestModel.managed?.closed || requestModel.managed.runtime !== moon ||
+            requestModel.managed.prepared !== preparedProgram || requestModel.managed.model !== requestModel ||
+            moon.clientProgramTaskCount(preparedProgram) !== 1 ||
+            typeof requestModel.component?.startSourceFreeSingleUnit !== 'function') ||
           requestComposed && (preparationHolder === undefined || requestModel.component === undefined ||
             typeof requestModel.component.bindOriginal !== 'function' ||
             requestModel.managed?.closed || requestModel.managed?.value === undefined ||
+            requestModel.managed.runtime !== moon || requestModel.managed.prepared !== preparedProgram ||
+            requestModel.managed.model !== requestModel ||
             requestModel.managed.value !== acquiredInfer.managedRun ||
             requestModel.sourceLedger !== acquiredInfer.ledger)) {
         throw new TypeError('InvalidInstalledRequestModelPreparation');
@@ -726,14 +736,18 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           throw error;
         }
       }
+      // The bound Plan retains native+Node component limits. Startup consumes
+      // only this SAME recipe's original adapter holding/workspace, leaving
+      // the native allowance for its separately admitted attempts and output.
+      const startup = inferOriginalReadStartupCapacity(originalInstallation);
       originalPreparation = {compiled: plan.compiled, runDefinition: plan.runDefinition,
         control, scope, read: undefined,
         nodeInstallation: originalInstallation.nodeInstallation,
         metadataInstallation: originalInstallation,
         readRetainedBytes: originalInstallation.nodeInstallation.layout.retained_bytes,
         readExecutionBytes: originalInstallation.nodeInstallation.layout.execution_bytes,
-        modelRetainedBytes: originalInstallation.modelRetainedBytes,
-        modelExecutionBytes: originalInstallation.modelExecutionBytes,
+        modelRetainedBytes: startup.modelRetainedBytes,
+        modelExecutionBytes: startup.modelExecutionBytes,
         // A projection of this SAME existing Execution, not another physical
         // cleanup owner or a stop Boolean. Constructor refusal creates no child.
         physicalCustody: Object.freeze({
@@ -785,7 +799,8 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       const liveModel = () => {
         assertOriginalRuntime();
         if (requestModel !== model || model.closed || model.scopeFinished ||
-            model.managed !== managed || managed.closed || managed.value !== acquiredInfer.managedRun ||
+            model.managed !== managed || managed.closed ||
+            managed.value !== acquiredInfer.managedRun ||
             model.graph !== selected.graph || model.scope !== originalPreparation?.scope) {
           throw new TypeError('InvalidInstalledRequestModelPreparation');
         }
@@ -894,7 +909,15 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       prepareDeferredOriginalRead = undefined;
       prepareRead();
     }
-    operation = openNodeInferOperation({moon, preparedProgram,
+    if (requestSourceFree) {
+      const original = originalPreparation;
+      requestModel.component.bindOriginal({selected, control, plan, principalId, now, signal,
+        durableCalls: true, sources: undefined,
+        assertRuntimeCurrent: assertOriginalRuntime,
+        originalPreparation: {prepareRead() {assertOriginalRuntime(); return original;}},
+        retainOperation(value) {operation = value;}});
+      operation = requestModel.component.startSourceFreeSingleUnit(preparedProgram);
+    } else operation = openNodeInferOperation({moon, preparedProgram,
       step: selected.step, graph: selected.graph, registry, values, fragment, ordered, signal,
       acquiredInput: restoredInput === undefined && directRequestModel === undefined ? acquiredInfer?.input : undefined,
       composedInput,
@@ -918,7 +941,9 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         modelEvidence, namespaceId, sourceEvidence: sources,
         authorityScopeCid, storeAuthorityCid, now})});
     beginPhysicalWork();
-    operation.bindRun(control, plan);
+    // The deferred original component binds this SAME Run during its one-shot
+    // open. Ordinary operations still bind here before their first advance.
+    if (!requestSourceFree) operation.bindRun(control, plan);
     const declaredResults = Array.from({length: moon.clientProgramResultCount(preparedProgram)},
       (_, index) => moon.clientProgramResultName(preparedProgram, index));
     async function settle(settlement) {

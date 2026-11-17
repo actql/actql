@@ -863,3 +863,94 @@ test('legacy or changed-count129 cannot allocate a lazy boolean map from method 
     await failure.cleanupOwner.close();assert.equal(originalReadCleaned(f.originalPreparation.read),true);
   }
 });
+
+// Explicit ports exercise the actual one-shot adapter and async driver. The
+// normal HTTP case separately qualifies real Common, Resource, SDK and Store.
+test('source-free single Unit uses its retained prefix and same async wake before stop cleanup', async () => {
+  const f = fixture(), preparedCallSet = {}, waiting = {}, ioPoll = {};
+  const control = f.originalPreparation.control;
+  const events = [];
+  let endpoint, advance = 0, retained;
+  f.moon.clientProgramTaskCount = () => 1;
+  f.moon.clientProgramAcquisitionCount = () => 0;
+  f.moon.clientProgramCompiledRunMatches = (compiled, prepared) =>
+    compiled === f.rawCompiled && prepared === f.prepared;
+  f.moon.clientProgramComposedInferLocalProvider = (_owner, _open, _issue, _retain, _cleanup, prefix) => {
+    assert.strictEqual(prefix, f.prefix); return {};
+  };
+  f.moon.clientProgramBindInferQuantityCapacity = () => ({$tag: 1, _0: undefined});
+  f.moon.clientProgramRequireInferCallEntry = () => ({$tag: 1, _0: undefined});
+  f.moon.clientProgramBindInferPhysicalPreflightCurrent = (_active, callback) => {
+    assert.equal(callback({}), 'same-cursor'); return {$tag: 1, _0: undefined};
+  };
+  f.moon.clientProgramBindInferRun = (active, compiled, definition) => {
+    assert.strictEqual(active, f.active); assert.ok(retained);
+    assert.strictEqual(compiled, f.rawCompiled); assert.strictEqual(definition, f.rawDefinition);
+    events.push('bind'); return {$tag: 1, _0: undefined};
+  };
+  f.moon.clientProgramAdvanceInferExecution = () => {
+    if (advance++ === 0) {endpoint.notify(); return {$tag: 1, _0: ioPoll};}
+    return {$tag: 1, _0: waiting};
+  };
+  f.moon.clientProgramInferExecutionPollKind = poll => poll === ioPoll ? 'await_io' : 'waiting';
+  f.moon.clientProgramInferPreparedCallSet = () => preparedCallSet;
+  f.moon.clientProgramBindInferModelObservation = () => true;
+  const selected = {occurrence: f.occurrence, graph: f.graph, provider: f.provider,
+    entryPersistence: 'async', quantityCapacity: {
+      limits: {tokens: 10n, costUnits: 10n, durationMs: 10n},
+      perAttempt: {tokens: 10n, costUnits: 10n, durationMs: 10n}},
+    physicalPreflight(_request, actualEndpoint, binder) {
+      endpoint = actualEndpoint; assert.equal(typeof binder, 'function');
+      return 'same-cursor';
+    }};
+  const component = openNodeComposedInferProvider({moon: f.moon, selected, inputPrefix: f.prefix,
+    deferred: true, bindComputeSuffix(active) {
+      assert.strictEqual(active, f.active); events.push('suffix'); return {$tag: 1, _0: undefined};
+    }});
+  component.bindOriginal({selected, control,
+    plan: {compiled: f.originalPreparation.compiled, runDefinition: f.originalPreparation.runDefinition},
+    durableCalls: true, assertRuntimeCurrent() {events.push('current');},
+    originalPreparation: {prepareRead: () => f.originalPreparation},
+    retainOperation(value) {retained = value;}});
+  const operation = component.startSourceFreeSingleUnit(f.prepared);
+  assert.strictEqual(operation, retained);
+  assert.strictEqual(f.calls[1][3], f.prefix);
+  assert.deepEqual(f.calls[1][4], []);
+  assert.equal(f.calls[1][13], undefined, 'Source0 does not fabricate sources');
+  assert.equal(events.filter(value => value === 'suffix').length, 1);
+  assert.equal(events.filter(value => value === 'bind').length, 1);
+  assert.deepEqual(await operation.run(), {status: 'waiting', preparedCallSet});
+  assert.equal(advance, 2);
+  assert.throws(() => component.startSourceFreeSingleUnit(f.prepared),
+    /ComposedInferOriginalSingleUnitUnavailable/);
+  await operation.close();
+  assert.equal(endpoint.notify(), false);
+  assert.equal(originalReadCleaned(f.originalPreparation.read), true);
+});
+
+test('source-free single Unit refuses a foreign Program and actual Source before claim or IO', () => {
+  for (const mode of ['foreign', 'source']) {
+    const f = fixture();
+    f.moon.clientProgramTaskCount = () => 1;
+    f.moon.clientProgramAcquisitionCount = () => mode === 'source' ? 1 : 0;
+    f.moon.clientProgramCompiledRunMatches = (compiled, prepared) =>
+      compiled === f.rawCompiled && prepared === f.prepared;
+    f.moon.clientProgramComposedInferLocalProvider = () => ({});
+    const selected = {occurrence: f.occurrence, graph: f.graph, provider: f.provider};
+    const component = openNodeComposedInferProvider({moon: f.moon, selected, deferred: true,
+      inputPrefix: f.prefix, bindComputeSuffix() {assert.fail('No foreign suffix bind');}});
+    component.bindOriginal({selected, control: f.originalPreparation.control,
+      plan: {compiled: f.originalPreparation.compiled, runDefinition: f.originalPreparation.runDefinition},
+      originalPreparation: {prepareRead: () => f.originalPreparation},
+      retainOperation() {assert.fail('No foreign operation');}});
+    let primary;
+    assert.throws(() => component.startSourceFreeSingleUnit(mode === 'foreign' ? {} : f.prepared),
+      error => {primary = error; return mode === 'foreign'
+        ? /Foreign Client compiled Run/.test(error.message)
+        : error.message === 'ComposedInferOriginalSingleUnitUnavailable';});
+    if (mode === 'foreign') assert.throws(() => component.startSourceFreeSingleUnit(f.prepared),
+      error => error === primary);
+    assert.equal(f.calls.length, 0);
+    assert.equal(originalReadCleaned(f.originalPreparation.read), false);
+  }
+});

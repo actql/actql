@@ -17794,7 +17794,8 @@
             "withNodeInferResult/cancel/cancel",
             "withNodeInferResult/retained/init:retry/init:retry",
             "withNodeInferResult/retained/retained",
-            "withNodeInferResult/withNodeInferResult"
+            "withNodeInferResult/withNodeInferResult",
+            "openNodeComposedInferProvider/component/init:startSourceFreeSingleUnit/init:startSourceFreeSingleUnit"
           ],
           "exports": [
             "finishNodeInferOriginalReadScopes",
@@ -19159,6 +19160,13 @@
           "async": false
         },
         {
+          "name": "openNodeComposedInferProvider/component/init:startSourceFreeSingleUnit/init:startSourceFreeSingleUnit",
+          "parameters": [
+            "preparedProgram"
+          ],
+          "async": false
+        },
+        {
           "name": "openNodeComposedInferProvider/openOriginal/openOriginal",
           "parameters": [
             "inputs",
@@ -20250,7 +20258,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "f9ef0ea8817a7db3ea849d27c086f8eb122f05d992dd6c3a74fbba7971132a7c"
+      "sha256": "c1820633ec8e8ddf48a3658f87267c3db256b8c8302d48fc413ed5a91b2819e2"
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
@@ -21685,7 +21693,7 @@
     },
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
-      "sha256": "48e9ef3d49416f7c09423d5cbb85ce2bd8f3ca228fa09661d76837aecf584836",
+      "sha256": "d96de15095e5c931a6d0930f6c44f7db342e5f21dde49e3872ef820d3cb4f562",
       "role": "physical-io",
       "exports": [
         "installNodeInferRun"
@@ -21911,6 +21919,11 @@
           "async": false
         },
         {
+          "name": "installNodeInferRun/run/run/init:prepareRead/init:prepareRead",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installNodeInferRun/run/run/init:retainCopy/init:retainCopy",
           "parameters": [
             "copy"
@@ -21926,6 +21939,13 @@
         },
         {
           "name": "installNodeInferRun/run/run/init:retainOperation/init:retainOperation",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/run/run/init:retainOperation/init:retainOperation#2",
           "parameters": [
             "value"
           ],
@@ -22264,7 +22284,9 @@
             "installNodeInferRun/run/run/run#6",
             "installNodeInferRun/run/run/run#7",
             "installNodeInferRun/run/run/run#8",
-            "installNodeInferRun/run/run/run#9"
+            "installNodeInferRun/run/run/run#9",
+            "installNodeInferRun/run/run/init:prepareRead/init:prepareRead",
+            "installNodeInferRun/run/run/init:retainOperation/init:retainOperation#2"
           ],
           "exports": [
             "installNodeInferRun"
@@ -22443,7 +22465,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/installed-infer-run.mjs",
-                "anchor": "selectedInferOriginalPublicationCapacity} from './infer-original-installation.mjs';"
+                "anchor": "inferOriginalReadStartupCapacity} from './infer-original-installation.mjs';"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -22615,7 +22637,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/installed-infer-run.mjs",
-                "anchor": "selectedInferOriginalPublicationCapacity} from './infer-original-installation.mjs';"
+                "anchor": "inferOriginalReadStartupCapacity} from './infer-original-installation.mjs';"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -23801,7 +23823,7 @@
     },
     {
       "module": "adapters/host-node/installed-model.mjs",
-      "sha256": "262b843f3c0eaec2099d540fb610d6d675dc761d6c64011856bf482a3abb00b8",
+      "sha256": "2934d8a36d4ba76048a571b562247570fb08c38d6fd640f5f7abb298303a2dbe",
       "role": "physical-io",
       "exports": [
         "admitInstalledModelProvider",
@@ -23902,7 +23924,8 @@
             "register",
             "assertHostRuntime",
             "assertNewHostRuntime",
-            "bindSdkStaticOriginals"
+            "bindSdkStaticOriginals",
+            "taskOriginals"
           ],
           "async": false
         },
@@ -23913,6 +23936,42 @@
         },
         {
           "name": "installModelProviders/assertTrustedRuntime/assertTrustedRuntime",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installModelProviders/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installModelProviders/guarded/guarded/guarded",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "installModelProviders/init:assertNewTrustedRuntime/init:assertNewTrustedRuntime",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installModelProviders/init:physicalPreflight/init:physicalPreflight",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "installModelProviders/init:resolveTaskDefaults/init:resolveTaskDefaults",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "installModelProviders/init:taskOriginals/init:taskOriginals",
           "parameters": [],
           "async": false
         },
@@ -23957,6 +24016,13 @@
             "taskMaxOutputTokens",
             "limits",
             "construction"
+          ],
+          "async": false
+        },
+        {
+          "name": "installModelProviders/selectTaskOriginals/selectTaskOriginals",
+          "parameters": [
+            "taskCid"
           ],
           "async": false
         },
@@ -24196,6 +24262,53 @@
             "index"
           ],
           "async": false
+        },
+        {
+          "name": "snapshotTaskInstallations/init:observeEgress/init:observeEgress",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "snapshotTaskInstallations/owned/owned",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotTaskInstallations/snapshotTaskInstallations",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotTaskInstallations/snapshotTaskInstallations#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotTaskInstallations/snapshotTaskInstallations#3",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotTaskInstallations/snapshotTaskInstallations#4",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotTaskInstallations/value/value",
+          "parameters": [
+            "key"
+          ],
+          "async": false
         }
       ],
       "owner": "Existing ModelTask/check-environment registration and original provider/dependency binding; shared Account observation remains with the existing Local account/authorization Owner",
@@ -24235,7 +24348,21 @@
             "consumeInstalledModelPreparationRefusal",
             "readInstalledModelDependencies/funded/funded",
             "readInstalledModelDependencies/funded/funded/funded",
-            "readInstalledModelExecution/funded/funded"
+            "readInstalledModelExecution/funded/funded",
+            "installModelProviders/current/current",
+            "installModelProviders/guarded/guarded/guarded",
+            "installModelProviders/init:assertNewTrustedRuntime/init:assertNewTrustedRuntime",
+            "installModelProviders/init:physicalPreflight/init:physicalPreflight",
+            "installModelProviders/init:resolveTaskDefaults/init:resolveTaskDefaults",
+            "installModelProviders/init:taskOriginals/init:taskOriginals",
+            "installModelProviders/selectTaskOriginals/selectTaskOriginals",
+            "snapshotTaskInstallations/init:observeEgress/init:observeEgress",
+            "snapshotTaskInstallations/owned/owned",
+            "snapshotTaskInstallations/snapshotTaskInstallations",
+            "snapshotTaskInstallations/snapshotTaskInstallations#2",
+            "snapshotTaskInstallations/snapshotTaskInstallations#3",
+            "snapshotTaskInstallations/snapshotTaskInstallations#4",
+            "snapshotTaskInstallations/value/value"
           ],
           "exports": [
             "admitInstalledModelProvider",

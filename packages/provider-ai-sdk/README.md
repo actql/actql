@@ -1,7 +1,72 @@
 # Optional AI SDK Host installer (development)
 
-This unfinished development package exports the existing Host registration
-assemblers `createInstalledOpenAIChatRegistration` and the explicit selected
+This private development package provides `createOpenAIChatProvider` for the
+configured Node Host and the lower-level original-registration assemblers below.
+Registry publication and live OpenAI acceptance remain separate work.
+
+## Configure a Host from project Tasks
+
+`createOpenAIChatProvider` returns one asynchronous `registerModelProviders`
+callback for one Host. The Host loads the project's actual model Tasks and
+provider defaults through Common, reads the key file through its existing
+bounded configuration reader, and constructs each Task's profile and execution
+originals under the original initial Resource. Applications supply no runtime,
+Task CID, Program CID, physical fetch, response-profile JSON or Resource token.
+
+```js
+import {connect} from '@actql/node';
+import {createOpenAIChatProvider} from '@actql/provider-ai-sdk';
+
+const registerModelProviders = createOpenAIChatProvider({
+  providerId: 'models/openai', // Matches the project's model_tasks provider.
+  modelId: configuredModelId,
+  apiKeyFile: './secrets/openai-api-key',
+  generation: {temperature: 0, topP: 1, maxOutputTokens: 100},
+  budget: {
+    maxCalls: 2n, maxRows: 2, maxTokens: 1000n,
+    maxCostUnits: 100000n, maxDurationMs: 1000n,
+  },
+  observeEgress: () => currentInstalledEgressFacts(),
+});
+const client = await connect({mode: 'local', installation: {
+  directory: './.actql', registerModelProviders,
+  authorization: configuredAuthorization,
+}});
+try {
+  // Submit the original Program through the ordinary Client API.
+} finally {
+  await client.close();
+}
+```
+
+The account, signer and current egress facts come from trusted Host
+configuration. The callback does not authorize its own calls. Egress facts have
+`classification`, `region`, `providerRetention` and `trainingUse` fields; Common
+checks the actual input policy against them at the original boundary. This
+finite text profile accepts public input and forbids training. It selects the
+existing serial, non-streaming SDK/Undici transport with no implicit retry,
+redirect, tools, media or workflow restoration. Unknown usage remains Unknown.
+Explicit positive cost/duration ceilings do not establish observed usage or
+invent a provider price.
+
+Different Tasks on the same Provider retain their own exact prompt, output
+schema, response profile and read recipe. Selection uses the actual Core
+execution Task and checks the same installed base and view after callbacks.
+Missing or foreign Task views refuse. Logical occurrences remain independently
+charged; metadata sharing does not transfer authority or capacity. Each Run
+still requires the original Request/Plan/Scope admission. A missing or too-small
+Resource refuses rather than increasing the top-level budget.
+
+Create a fresh callback for a new Host, including a later process reading the
+same Saved Result. The existing Saved reader consumes its original persisted
+result before any new execution; restoring configuration must not resend a
+provider request. Keep the same configured endpoint, model, Task files and
+software originals. Credential bytes are never Program input and must not be
+printed in logs or committed.
+
+## Original-registration integration
+
+The lower-level Host registration assemblers are `createInstalledOpenAIChatRegistration` and the explicit selected
 `createInstalledUndiciOpenAIChatRegistration`. Its internal send, receipt, raw-response and native Decision
 preparation functions are not package exports. The package remains private;
 the entry is not a published provider, installed profile, capacity or permission
@@ -115,7 +180,8 @@ actual checked Graph before the original Plan/Scope constructor. Supplying
 prebound identities in recipe DATA refuses. Applications must not manufacture
 those identities or reuse a previous Program's bound installation. This
 connection supplies neither a normal physical profile nor secret resolution;
-normal configuration, complete funding and live acceptance remain unfinished.
+this low-level overload does not perform the configured Host setup above.
+Complete physical funding and live acceptance remain separate obligations.
 
 This entry selects the fixed private Undici transport after the same existing
 Host snapshots/profile/original-selection checks. It reuses the existing

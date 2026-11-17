@@ -222,13 +222,15 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     if (typeof control?.checkClientCompiledRunOwner !== 'function' ||
         serializedInput !== undefined ||
         !restoringOriginal && (!Array.isArray(composedInput.inputs) ||
-          composedInput.inputs.length !== 0 || composedInput.sources === undefined)) {
+          composedInput.inputs.length !== 0)) {
       throw new TypeError('InvalidInferOriginalComposedRun');
     }
     control.checkClientCompiledRunOwner(originalPreparation.compiled, preparedProgram);
     const sourceCount = moon.clientProgramAcquisitionCount(preparedProgram);
     if (moon.clientProgramTaskCount(preparedProgram) !== 1 ||
-        (restoringOriginal ? sourceCount !== 0 && sourceCount !== 1 : sourceCount !== 1)) {
+        (sourceCount !== 0 && sourceCount !== 1) ||
+        !restoringOriginal && (sourceCount === 1 ? composedInput.sources === undefined
+          : composedInput.sources !== undefined)) {
       throw new TypeError('InvalidInferOriginalComposedRun');
     }
   }
@@ -1425,7 +1427,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
   let deferredRead = prepareRead !== undefined;
   let readAttempted = false;
   let operation;
-  let prepareOriginalResults, prepareSourceContext;
+  let prepareOriginalResults, prepareSourceContext, singleUnitPrepared;
   let failure;
   let failureRecorded = false;
   const recordFailure = cause => {
@@ -1485,6 +1487,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
         }
         const resultArtifacts = restoredInput === undefined ? prepareOriginalResults?.(inputs) : undefined;
         operation = openNodeInferOperation({moon, graph: selected.graph,
+          preparedProgram: singleUnitPrepared,
           composedInput: generated ? undefined : {occurrence: selected.occurrence,
             prefix: computePrefix, inputs, sources,
             capturedRecovery: capturedInput?.recovery, capturedBinding: capturedInput?.binding},
@@ -1562,7 +1565,24 @@ export function openNodeComposedInferProvider({moon, selected, sources,
       if (operation === undefined) throw new Error('RestoredComposedInferOriginalUnavailable');
       return operation;
     },
-    ...(deferred ? {bindOriginal(context) {
+    ...(deferred ? {startSourceFreeSingleUnit(preparedProgram) {
+      if (failureRecorded) throw failure;
+      if (!bound || attempted || generated || restoredInput !== undefined ||
+          !deferredRead || sources !== undefined || inputPrefix === undefined ||
+          typeof bindComputeSuffix !== 'function' || originalPreparation === undefined ||
+          moon.clientProgramTaskCount(preparedProgram) !== 1 ||
+          moon.clientProgramAcquisitionCount(preparedProgram) !== 0) {
+        throw new TypeError('ComposedInferOriginalSingleUnitUnavailable');
+      }
+      // The original operation verifies the SAME compiled Program and full
+      // prefix/Scope tuple before it claims, binds or starts physical work.
+      singleUnitPrepared = preparedProgram;
+      openOriginal([], selected.entryPersistence === 'async' ? createInferIoNotification() : undefined);
+      singleUnitPrepared = undefined;
+      if (failureRecorded) throw failure;
+      if (operation === undefined) throw new TypeError('ComposedInferOriginalSingleUnitUnavailable');
+      return operation;
+    }, bindOriginal(context) {
       if (bound || attempted) throw new Error('ComposedInferAlreadyBound');
       const read = name => Object.getOwnPropertyDescriptor(context ?? {}, name)?.value;
       if (read('selected') !== selected || typeof read('retainOperation') !== 'function') {

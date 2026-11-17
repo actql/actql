@@ -344,10 +344,75 @@ export function assertInstalledModelDefaultsAdoption(provider, view, moon, provi
   provider.assertNewTrustedRuntime();
 }
 
+// Closed physical metadata views of the SAME installed Provider. This is not
+// another Provider registry or a Task/authority issuer. Actual Request binding
+// still checks each selected profile, recipe, prompt and schema in Common.
+function snapshotTaskInstallations(source, providerId, bindings, sdkOriginals, taskOriginals) {
+  if (source === undefined) return undefined;
+  const owned = taskOriginals?.filter(value => value.providerId === providerId);
+  if (!Array.isArray(source) || nodeTypes.isProxy(source) || source.length === 0 ||
+      !Array.isArray(owned) || source.length !== owned.length || !Object.isFrozen(source) ||
+      Reflect.ownKeys(source).length !== source.length + 1) {
+    throw new TypeError('InvalidInstalledModelTaskInstallations');
+  }
+  const result = new Map();
+  for (let index = 0; index < source.length; index++) {
+    const slot = Object.getOwnPropertyDescriptor(source, String(index));
+    const row = slot?.value;
+    if (slot === undefined || !Object.hasOwn(slot, 'value') || row === null ||
+        typeof row !== 'object' || nodeTypes.isProxy(row)) {
+      throw new TypeError('InvalidInstalledModelTaskInstallations');
+    }
+    const fields = Object.getOwnPropertyDescriptors(row);
+    if (Reflect.ownKeys(fields).length !== 2 || ['taskCid', 'entry'].some(key =>
+      !fields[key]?.enumerable || !Object.hasOwn(fields[key], 'value'))) {
+      throw new TypeError('InvalidInstalledModelTaskInstallations');
+    }
+    const taskCid = fields.taskCid.value, entry = fields.entry.value;
+    if (typeof taskCid !== 'string' || taskCid.length !== 71 || result.has(taskCid) ||
+        !owned.some(value => value.taskCid === taskCid) ||
+        entry === null || typeof entry !== 'object' || Array.isArray(entry) || nodeTypes.isProxy(entry)) {
+      throw new TypeError('InvalidInstalledModelTaskInstallations');
+    }
+    const selected = Object.getOwnPropertyDescriptors(entry);
+    const allowed = ['providerId', 'entryPersistence', 'sdkStaticOriginals', 'bindingOriginals',
+      'originalReadInstallation', 'originalReadRecipe', 'rawCaptureSelection', 'quantityCapacity',
+      'observeEgress', 'validatePrompt', 'physicalPreflight', 'reconcileResponse'];
+    if (Reflect.ownKeys(selected).some(key => !allowed.includes(key) ||
+        !selected[key].enumerable || !Object.hasOwn(selected[key], 'value'))) {
+      throw new TypeError('InvalidInstalledModelTaskInstallations');
+    }
+    const value = key => selected[key]?.value;
+    const originalReadSource = value('originalReadInstallation'), recipeSource = value('originalReadRecipe');
+    const physicalPreflight = value('physicalPreflight'), validatePrompt = value('validatePrompt');
+    const observeEgress = value('observeEgress'), reconcileResponse = value('reconcileResponse');
+    if (value('providerId') !== providerId || value('entryPersistence') !== 'async' ||
+        value('bindingOriginals') !== bindings || value('sdkStaticOriginals') !== sdkOriginals ||
+        (originalReadSource === undefined) === (recipeSource === undefined) ||
+        typeof physicalPreflight !== 'function' || typeof validatePrompt !== 'function' ||
+        typeof observeEgress !== 'function' ||
+        reconcileResponse !== undefined && typeof reconcileResponse !== 'function') {
+      throw new TypeError('InvalidInstalledModelTaskInstallations');
+    }
+    const originalReadInstallation = retainInferOriginalReadInstallation(originalReadSource);
+    const originalReadRecipe = retainInferOriginalReadRecipe(recipeSource);
+    const rawCaptureSelection = snapshotModelRawCaptureSelection(value('rawCaptureSelection'));
+    const quantityCapacity = retainModelQuantityCapacity(value('quantityCapacity'));
+    if (rawCaptureSelection === undefined || quantityCapacity === undefined) {
+      throw new TypeError('InvalidInstalledModelTaskInstallations');
+    }
+    result.set(taskCid, Object.freeze({originalReadInstallation, originalReadRecipe,
+      rawCaptureSelection, quantityCapacity, physicalPreflight, reconcileResponse,
+      observeEgress() {try {return Reflect.apply(observeEgress, entry, []);} catch {return undefined;}},
+      validatePrompt: (...args) => validatePrompt(...args) === true}));
+  }
+  return result;
+}
+
 // Registration remains physical Host capability. The common admission owner
 // subsequently binds the selected callback to its exact Task and prompt.
 export function installModelProviders(moon, register, assertHostRuntime,
-  assertNewHostRuntime = assertHostRuntime, bindSdkStaticOriginals) {
+  assertNewHostRuntime = assertHostRuntime, bindSdkStaticOriginals, taskOriginals) {
   if (register === undefined) return new Map();
   if (typeof register !== 'function') {
     throw new TypeError('InvalidInstalledModelProviderRegistration');
@@ -372,7 +437,8 @@ export function installModelProviders(moon, register, assertHostRuntime,
         Object.keys(entry).some(key => !['invoke', 'providerId', 'validatePrompt',
           'physicalPreflight', 'quantityCapacity', 'observeEgress',
           'bindingOriginals', 'reconcileResponse', 'entryPersistence',
-          'originalReadInstallation', 'originalReadRecipe', 'rawCaptureSelection', 'sdkStaticOriginals'].includes(key))) {
+          'originalReadInstallation', 'originalReadRecipe', 'rawCaptureSelection', 'sdkStaticOriginals',
+          'taskInstallations'].includes(key))) {
       throw new TypeError('InvalidInstalledModelProviderRegistration');
     }
     // Static registration values are read once before retention/Core calls.
@@ -390,6 +456,11 @@ export function installModelProviders(moon, register, assertHostRuntime,
       rawSource = entry.rawCaptureSelection;
     const bindingSource = entry.bindingOriginals, quantitySource = entry.quantityCapacity;
     const sdkStaticOriginals = entry.sdkStaticOriginals;
+    const taskSources = entry.taskInstallations;
+    if (taskSources !== undefined && entryPersistence !== 'async') {
+      throw new TypeError('InvalidInstalledModelTaskInstallations');
+    }
+    const tasks = snapshotTaskInstallations(taskSources, providerId, bindingSource, sdkStaticOriginals, taskOriginals);
     const defaultsCallbacks = modelDefaultsCallbacks(moon);
     let requireOriginalEagerStartup;
     // The Host supplies this private same-installation/current connection,
@@ -491,6 +562,15 @@ export function installModelProviders(moon, register, assertHostRuntime,
         }
         return preparedDefaults.resolveTaskDefaults(selectedModel, taskMaxOutputTokens, limits, construction);
       };
+    const taskViews = tasks === undefined ? undefined : new Map();
+    let taskInventory;
+    const selectTaskOriginals = tasks === undefined ? undefined : taskCid => {
+      assertTrustedRuntime?.();
+      const view = taskViews.get(taskCid);
+      if (view === undefined) throw Object.assign(new Error('InstalledModelTaskProfileUnavailable'),
+        {code: 'InstalledModelTaskProfileUnavailable'});
+      return view;
+    };
     retained = Object.freeze({provider, originalReadInstallation, originalReadRecipe, rawCaptureSelection,
       assertTrustedRuntime, assertNewTrustedRuntime, requireEagerSdkStartup,
       bindingOriginals,
@@ -499,6 +579,8 @@ export function installModelProviders(moon, register, assertHostRuntime,
       reconcileResponse,
       quantityCapacity,
       resolveTaskDefaults,
+      ...(tasks === undefined ? {} : {selectTaskOriginals,
+        taskOriginals() {assertTrustedRuntime?.(); return taskInventory;}}),
       observeEgress: typeof observeEgress !== 'function' ? undefined : () => {
         try { return Reflect.apply(observeEgress, entry, []); }
         catch { return undefined; }
@@ -506,6 +588,36 @@ export function installModelProviders(moon, register, assertHostRuntime,
       validatePrompt: (...args) => validatePrompt(...args) === true});
     result.set(providerId, retained);
     if (preparedDefaults !== undefined) installedDefaults.set(retained, preparedDefaults);
+    if (tasks !== undefined) {
+      for (const [taskCid, data] of tasks) {
+        let view;
+        const current = () => {
+          assertTrustedRuntime?.();
+          if (result.get(providerId) !== retained || taskViews.get(taskCid) !== view) {
+            throw Object.assign(new Error('InferTrustedRuntimeOriginalChanged'),
+              {code: 'InferTrustedRuntimeOriginalChanged'});
+          }
+        };
+        const guarded = callback => (...args) => {
+          current();
+          const value = callback(...args);
+          current();
+          return value;
+        };
+        view = Object.freeze({...retained, ...data,
+          assertTrustedRuntime: current,
+          assertNewTrustedRuntime() {assertNewTrustedRuntime?.(); current();},
+          validatePrompt: guarded(data.validatePrompt),
+          observeEgress: guarded(data.observeEgress),
+          // Common registers the acquired cursor before its existing current
+          // guard can refuse advance. Do not lose cleanup by throwing after
+          // this factory has already returned an owned physical cursor.
+          physicalPreflight(...args) {current(); return data.physicalPreflight(...args);},
+          resolveTaskDefaults(...args) {current(); return retained.resolveTaskDefaults(...args);}});
+        taskViews.set(taskCid, view);
+      }
+      taskInventory = Object.freeze([...taskViews.values()]);
+    }
   }
   return result;
 }

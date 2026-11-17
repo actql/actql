@@ -968,3 +968,23 @@ test('dispatch final usage observes the same ledger only after original preparat
     assert.doesNotThrow(() => observeRetirement(selected));
   }
 });
+
+
+test('dispatch leaf issue observes only bounded enum DATA and preserves original cleanup', async () => {
+  for (const leaf of [0, 5, 6, 65535, {$tag: 6}]) {
+    const failure = fieldlessFailure({$tag: 2, _0: {$tag: 11, _0: leaf}});
+    const detail = await observeActualDispatchFailure(failure, {observerThrows: true});
+    assert.equal(detail.issueTag, 2);
+    assert.equal(detail.nestedIssueTag, 11);
+    assert.equal(detail.leafIssueTag, typeof leaf === 'number' ? leaf : 6);
+    assert.equal(Object.hasOwn(detail, 'cause'), false);
+  }
+  for (const leaf of [-1, 65536, 1.5, '6', null, undefined, {}, {$tag: '6'}]) {
+    const detail = await observeActualStartDispatchFailure(
+      fieldlessFailure({$tag: 2, _0: {$tag: 11, _0: leaf}}));
+    assert.equal(detail.leafIssueTag, undefined);
+  }
+  const detail = await observeActualStartDispatchFailure(
+    fieldlessFailure({$tag: 2, _0: {$tag: 11, _0: 5}}));
+  assert.equal(detail.leafIssueTag, 5);
+});

@@ -297,6 +297,39 @@ pub fn client_program_prepare_request_declared_file_model_graph(
 }
 
 ///|
+/// Actual admitted Provider role selects only construction DATA. This does
+/// not supply dispatch permission or replace any original Graph/current fence.
+#export_name("clientProgramPrepareRequestProviderModelGraph")
+pub fn client_program_prepare_request_provider_model_graph(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  occurrence : @publication_host.ClientInferOccurrence,
+  execution : @check_environment.ModelExecutionContract,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  admitted : @model.AdmittedModelProvider,
+  declarations : Array[@client_row_source_host.RowDeclaration]?,
+) -> Result[
+  @publication_host.ClientInferPlanGraph,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  guard @model.admitted_model_provider_for(admitted, execution)
+    is Some(provider) else {
+    return Err(Provider(ForeignProvider))
+  }
+  prepare_request_model_graph_with_file_declarations(
+    parent,
+    input,
+    occurrence,
+    execution,
+    contracts,
+    declarations,
+    provider=Some(provider),
+  )
+}
+
+///|
 fn prepare_request_model_graph_with_file_declarations(
   parent : @client_local_host.ClientRequestPreparation[
     ClientLocalPreparationInputOriginal,
@@ -306,6 +339,7 @@ fn prepare_request_model_graph_with_file_declarations(
   execution : @check_environment.ModelExecutionContract,
   contracts : @client_local_host.ClientInstalledSequenceContracts,
   keyed_file_declarations : Array[@client_row_source_host.RowDeclaration]?,
+  provider? : @model.ModelProvider? = None,
 ) -> Result[
   @publication_host.ClientInferPlanGraph,
   ClientRequestProgramModuleBridgeIssue,
@@ -323,6 +357,23 @@ fn prepare_request_model_graph_with_file_declarations(
     manifests~,
     compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
     keyed_file_declarations~,
+    caller_material=match provider {
+      Some(selected) if client_program_task_count(occurrence.owner) == 1 &&
+        client_program_acquisition_count(occurrence.owner) == 0 =>
+        match
+          @publication_host.client_infer_occurrence_host_ceilings(occurrence) {
+          Ok((items, _)) if items >= 0L =>
+            @client_local_host.installed_node_model_caller_control_inventory(
+              selected,
+              Int64::min(
+                items,
+                @infer_host.standard_limits().model.max_items.to_int64(),
+              ).to_int(),
+            )
+          _ => None
+        }
+      _ => None
+    },
   ).map_err(issue => Preparation(issue))
 }
 
@@ -1203,6 +1254,7 @@ pub fn client_program_finish_request_computation(
 pub suberror ClientRequestProgramModuleBridgeIssue {
   Manifests(@publication_host.ClientCompilationManifestIssue)
   Preparation(@client_local_host.ClientRequestProgramPlanIssue)
+  Provider(@model.ModelProviderAdmissionIssue)
 }
 
 ///|

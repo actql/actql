@@ -110410,7 +110410,8 @@
             "execution",
             "serializationGraph",
             "constructSerialized",
-            "fileReadDeclarations"
+            "fileReadDeclarations",
+            "admittedProvider"
           ],
           "async": false
         },
@@ -110963,7 +110964,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "6799199301b13e4e2f71845aef781cfe8eaf221b5a384e573c24de0fa3489f94"
+      "sha256": "db1cfb332b2cd5ae37143211c4cf28d489f7531a55a11c15196c25585b67d814"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

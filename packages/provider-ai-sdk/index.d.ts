@@ -30,6 +30,33 @@ export type QuantityCapacity = Readonly<{
 /** The installed Host supplies its actual consuming runtime, not the user. */
 export type ModelProviderRegistration =
   (runtime: unknown) => readonly Readonly<Record<string, unknown>>[];
+/** One fresh callback per installed Host. The Host supplies both arguments;
+ * applications never construct the runtime, configuration context or Resource. */
+export type ConfiguredModelProviderRegistration =
+  (runtime: unknown, context: unknown) => Promise<readonly Readonly<Record<string, unknown>>[]>;
+/** Explicit trusted Host selection. Positive finite amounts are checked by
+ * Common and the original Resource; these declarations do not grant capacity. */
+export type OpenAIChatProviderOptions = Readonly<{
+  providerId: string;
+  modelId: string;
+  modelSelector?: string;
+  /** Project-relative or absolute file, read through the original bounded
+   * configuration reader. Credentials are not Program or Task input. */
+  apiKeyFile: string;
+  maxSecretBytes?: number;
+  baseURL?: string;
+  generation: Readonly<{temperature: number; topP: number; maxOutputTokens: number; seed?: number}>;
+  budget: Readonly<{maxCalls: bigint; maxRows: number; maxTokens: bigint;
+    maxCostUnits: bigint; maxDurationMs: bigint}>;
+  /** Reobserved by the existing current egress admission; not an Allow cache. */
+  observeEgress: () => Readonly<{classification: string; region: string;
+    providerRetention: boolean; trainingUse: boolean}>;
+}>;
+/** Builds configured Task-specific originals with the consuming Host's Common
+ * constructors and existing initial Resource. Missing backing refuses. */
+export declare function createOpenAIChatProvider(
+  options: OpenAIChatProviderOptions,
+): ConfiguredModelProviderRegistration;
 /** Original canonical bytes and claimed identity, admitted by Common only. */
 export type OriginalBody = Readonly<{wire: string; cid: Sha256Cid}>;
 /** Closed generation installation DATA. It is not a physical support grant. */
