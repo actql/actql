@@ -357,6 +357,8 @@ test('Local frame refusal keeps its original error while releasing the reader',
   });
 
 
+// Recovery exercises a valid answer; expiry refusal belongs to the candidate tests.
+const checkpointCreatedAt = Date.now();
 const checkpoint = {
   checkpointId: 'prepare-a-preparation', checkpointCid: cid('c'),
   kind: 'run_scope', phase: 'preflight',
@@ -364,8 +366,9 @@ const checkpoint = {
     requestId: 'saved-a'},
   requiredArtifact: {type: 'prepared_invocation', cid: cid('d')},
   reviewProjectionCid: cid('e'), requirements: ['invocation_scope_approved'],
-  createdAt: '2026-09-26T00:00:00.000Z',
-  expiresAt: '2026-09-27T00:00:00.000Z', humanSummary: 'Run on site-a',
+  createdAt: new Date(checkpointCreatedAt).toISOString(),
+  expiresAt: new Date(checkpointCreatedAt + 24 * 60 * 60 * 1000).toISOString(),
+  humanSummary: 'Run on site-a',
 };
 
 async function checkpointClient(t, transport, handlers) {
