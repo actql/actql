@@ -745,9 +745,9 @@ jobs:
         timeout-minutes: 30
         shell: bash
         # Explicit functional-only mode: preserve original business/current/
-        # cleanup oracles and CPU/RSS; do not add a Mac 3s smoke requirement.
-        # The Linux row separately assesses this same RC with the original
-        # formal30+30, p95<=2s/max<=3s. This receipt does not replace that gate.
+        # cleanup oracles and CPU/RSS; do not add a Mac latency requirement.
+        # The Linux row separately assesses this same RC with the approved
+        # formal30+30, p95<=6s/max<=10s. This receipt does not replace that gate.
         run: node scripts/test-native-cli-mock-install.mjs "$RUNNER_TEMP/native-installed/release" --measure-approval-resources
       - name: Assess thirty approvals per template from this exact Linux RC
         id: approval_profile

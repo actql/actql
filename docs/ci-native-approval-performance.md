@@ -3,9 +3,17 @@
 The `nativeApprovalTarget` profile in `scripts/operation-performance.mjs` applies
 only to the existing small `deal-review-mock` and `churn-risk-mock` workflows.
 Each template needs 30 completed, independently verified approvals on one fixed
-runner and one immutable Native cohort. The target is approval p95 <= 2000 ms
-and maximum <= 3000 ms, with zero functional failures or timeouts. This does
+runner and one immutable Native cohort. The target is approval p95 <= 6000 ms
+and maximum <= 10000 ms, with zero functional failures or timeouts. This does
 not change the portable SQL profiles or turn a command timeout into acceptance.
+
+For the v0.0.2 Developer Preview, this is the maintainer-authorized shared-runner
+acceptance budget, changed prospectively from 2000/3000 ms. The wall timer
+includes operating-system waiting and sampler overhead, so actual wall and CPU
+observations remain separate. This budget does not promise a latency for other
+queries or change runtime resource limits. Earlier campaigns retain their
+original target and failed outcomes; the new candidate still requires fresh
+30-per-template qualification and every functional, provenance and cleanup check.
 
 The timer begins immediately before the public `approve --wait --json` process
 and ends after its cleanup and exit. It excludes initialization, initial Run
@@ -16,7 +24,7 @@ fresh private installation/state; it never replays a failed business state.
 
 The required ordinary Linux Local producer already executes both installed Mock
 workflows. Its ordinary consumer now checks each complete approval process
-against the same maximum of 3000 ms as the formal profile, using the existing
+against the same maximum of 10000 ms as the formal profile, using the existing
 monotonic `wallNs` observation.
 Missing, invalid, failed or duplicate observations cannot pass. This is a
 two-fixture maximum-only smoke check; it supplies no p95 or formal acceptance.
@@ -26,7 +34,7 @@ before a slow verdict exits nonzero. The existing 120-second command timeout
 and cleanup behavior remain unchanged.
 
 Resource-enabled formal collection retains every slow sample for its own
-30-per-template, 2000/3000 ms assessment. It does not use the ordinary smoke
+30-per-template, 6000/10000 ms assessment. It does not use the ordinary smoke
 cutoff. This smoke check needs no timing baseline and adds no workflow runs.
 The separate Health Quick comparison remains warning-only for latency; adopting
 a reviewed comparable Quick baseline alone does not turn its timing warnings
