@@ -13,6 +13,7 @@ import {CLIENT_PACKAGES, packedClientPackage} from './packed-client-packages.mjs
 import {verifyNodeBenchmarkPackages, nodeWarmSmallQueryFixtures, nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 import {twoModelDealReviewFiles, twoModelWholeDealReviewFiles, twoModelJoinedWholeDealReviewFiles, twoModelJoinedInputsDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
+import {multipleTargetMockProjectFiles} from '../adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs';
 import {digest, jsonDigest, nodeColdStateKinds, nodeColdPublicPhases} from './health-monitor-report.mjs';
 
 const self = fileURLToPath(import.meta.url);
@@ -362,14 +363,19 @@ export async function quickNodeMetrics({prepared, root, repository, command, cou
 
 export async function mockWorkflowMetrics({prepared, root, repository, command, counts, onMetric,
   template = 'churn-risk-mock', variant = 'readme'}) {
-  assert.ok(variant === 'readme' || ['two-models', 'two-models-whole', 'two-models-joined-inputs', 'two-models-joined-whole'].includes(variant) && template === 'deal-review-mock');
+  const multipleTargets = variant === 'multiple-targets';
+  assert.ok(variant === 'readme' || multipleTargets && template === 'churn-risk-mock' ||
+    ['two-models', 'two-models-whole', 'two-models-joined-inputs', 'two-models-joined-whole'].includes(variant) && template === 'deal-review-mock');
   const fixture = await readFile(join(repository, healthFixtures.workflow));
   const workFixture = await readFile(join(repository, healthFixtures.workObservation));
-  const files = variant === 'two-models-joined-inputs' ? twoModelJoinedInputsDealReviewFiles()
+  const multipleTargetFixture = multipleTargets ? await readFile(join(repository,
+    'adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs')) : undefined;
+  const files = multipleTargets ? multipleTargetMockProjectFiles()
+    : variant === 'two-models-joined-inputs' ? twoModelJoinedInputsDealReviewFiles()
     : variant === 'two-models-joined-whole' ? twoModelJoinedWholeDealReviewFiles()
     : variant === 'two-models-whole' ? twoModelWholeDealReviewFiles()
     : variant === 'two-models' ? twoModelDealReviewFiles() : projectTemplateFiles(template);
-  const program = variant !== 'readme' ? 'deal-review.program.json'
+  const program = multipleTargets ? 'multiple-targets.program.json' : variant !== 'readme' ? 'deal-review.program.json'
     : template === 'deal-review-mock' ? 'deal-review.aql' : 'churn-risk.aql';
   const answers = Object.values(JSON.parse(files['actql.config.json']).mock.answers)
     .map(path => path.replace(/^\.\//u, ''));
@@ -378,7 +384,8 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
   assert(recoveryInputs.every(path => Object.hasOwn(files, path)));
   assert.ok(['churn-risk-mock', 'deal-review-mock'].includes(template));
   const metric = {id: 'mock-workflow', kind: 'latency', target: 'node-local', temperature: 'cold', required: true,
-    unit: 'ms', requiredSamples: counts.coldSamples, fixtureSha256: jsonDigest({fixture: digest(fixture), workObservation: digest(workFixture), files}),
+    unit: 'ms', requiredSamples: counts.coldSamples, fixtureSha256: jsonDigest({fixture: digest(fixture), workObservation: digest(workFixture),
+      ...(multipleTargetFixture === undefined ? {} : {multipleTargetFixture: digest(multipleTargetFixture)}), files}),
     template, variant, samples: [], evidence: root};
   for (let iteration = 0; iteration < counts.coldSamples; iteration++) {
     const project = join(root, `mock-project-${template}-${variant}-${iteration}`); await mkdir(project);
@@ -392,12 +399,15 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
     })));
     await writeFile(join(project, 'workflow.mjs'), fixture, {flag: 'wx'});
     await writeFile(join(project, 'work-observation.fixture.mjs'), workFixture, {flag: 'wx'});
+    if (multipleTargetFixture !== undefined) {
+      await writeFile(join(project, 'mock-multiple-targets.fixture.mjs'), multipleTargetFixture, {flag: 'wx'});
+    }
     await symlink(join(prepared.consumer, 'node_modules'), join(project, 'node_modules'), 'dir');
     const started = process.hrtime.bigint(), cpu = process.cpuUsage(), phases = [];
     try {
       for (const [phase, expected] of [['capture', 10], ['approve', 11], ['recover', 7]]) {
         const args = [join(project, 'workflow.mjs'), phase, join(project, 'handoff.json'),
-          ...(template === 'churn-risk-mock' ? [] : [template]),
+          ...(template === 'churn-risk-mock' && variant === 'readme' ? [] : [template]),
           ...(variant === 'readme' ? [] : [variant])];
         const record = {phase, command: process.execPath, args, cwd: project,
           expectedAssertions: expected, completed: false, startedAt: new Date().toISOString()};
@@ -434,7 +444,7 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
           assert.equal(work?.complete, true, 'Require actual lossless Source/Model/write observation');
           if (phase === 'capture') {
             assert.equal(work.sourceAcquisitionStarts, 2);
-            assert.equal(work.modelCallStarts, variant === 'readme' ? 2 : 4);
+            assert.equal(work.modelCallStarts, multipleTargets ? 0 : variant === 'readme' ? 2 : 4);
             assert.equal(work.effectReplacementReturns, 0);
             if (['two-models-joined-inputs', 'two-models-joined-whole'].includes(variant)) {
               assert.deepEqual(record.summary.modelInputObservation,
