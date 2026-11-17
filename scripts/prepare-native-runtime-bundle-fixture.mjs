@@ -11,6 +11,7 @@ import {originalDescriptor} from './native-preparation-originals.mjs';
 import {prepareNativeResidentPortableRuntime} from './native-resident-portable-preparation.mjs';
 import {prepareNativeParallel} from './native-preparation-lanes.mjs';
 import {prepareNativeQuerySoftware} from './native-query-preparation.mjs';
+import {withNativePreparationResources} from './native-preparation-resources.mjs';
 
 const args=process.argv.slice(2),options={};
 for(let i=0;i<args.length;i+=2) {
@@ -90,6 +91,13 @@ if (portableReceipt !== undefined) timedPreparation('portable_runtime', () =>
   prepareNativeResidentPortableRuntime(repository, portableReceipt));
   return {entries,components,httpReceipt,portableReceipt};
 }
+// Observation is separate timing DATA, outside every command/component/Query
+// input inventory and the unchanged Ready index. The existing JSON upload also
+// retains these diagnostic siblings; no software artifact schema is extended.
+const observation=process.env.ACTQL_NATIVE_PREPARATION_RESOURCE_OBSERVER==='1'
+  ?{rootPid:process.pid,source,target,deadline:Number(process.env.ACTQL_NATIVE_CI_DEADLINE),
+    output:join(destination,'preparation-resources.observation.json')}:undefined;
+await withNativePreparationResources(observation,async()=>{
 const {entries,components,httpReceipt,portableReceipt}=lanes===2
   ?await prepareNativeParallel({repository,destination,source,target,selection,seconds,residentSeconds,httpJobs,moonHome,clang,sdk})
   :serialPreparation();
@@ -102,6 +110,8 @@ if(target==='darwin-arm64'&&selection==='all')timedPreparation('query_software',
 });
 assert.equal(run('git',['rev-parse','HEAD']).trim(),source);
 assert.equal(run('git',['status','--porcelain']),'');
+return {entries,components,httpReceipt,portableReceipt,queryReceipt};
+},({entries,components,httpReceipt,portableReceipt,queryReceipt})=>{
 writeFileSync(join(destination,'preparation.json'),JSON.stringify({source,target,moon_home:moonHome,
   clang,sdk,entries,components:originalDescriptor(join(components,'bundle-components.json')),
   http:httpReceipt===undefined?null:originalDescriptor(join(destination,'http/preparation.json'))},null,2)+'\n',
@@ -112,3 +122,4 @@ if(process.env.GITHUB_ENV!==undefined)appendFileSync(process.env.GITHUB_ENV,
   (portableReceipt===undefined?'':'ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION='+portableReceipt+'\n')+
   (httpReceipt===undefined?'':'ACTQL_TEST_NATIVE_HTTP_COMPONENT_RECEIPT='+httpReceipt+'\n'));
 console.log(JSON.stringify({source,target,preparation:destination,entries:Object.keys(entries)}));
+});
