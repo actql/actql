@@ -20,6 +20,17 @@ MODES = ('bounded-search', 'split-merge-membership', 'partial', 'callback-curren
          'callback-invalid-interior', 'callback-invalid-protected')
 
 
+def observed_case_passed(mode: str, returncode: int, rows: list[dict]) -> bool:
+    selected = [row for row in rows if row.get('case') == mode]
+    if mode not in MODES or returncode != 0 or len(selected) != 1 or selected[0].get('passed') is not True:
+        return False
+    if mode.startswith('callback-invalid-'):
+        return (selected[0].get('original_cleanup') is False
+                and selected[0].get('failure_custody') is True
+                and selected[0].get('physical_stop') == 'process-exit-required')
+    return selected[0].get('original_cleanup') is True
+
+
 def check(args: argparse.Namespace) -> int:
     args.output.mkdir(parents=True, exist_ok=False)
     report = {'scope': 'actual private C allocator; not ordinary or elapsed performance acceptance',
@@ -141,14 +152,7 @@ def check(args: argparse.Namespace) -> int:
         for mode in MODES:
             result = run([str(binary), mode], mode)
             rows = [json.loads(line) for line in result.stdout.splitlines() if line.startswith('{')]
-            selected = [row for row in rows if row.get('case') == mode]
-            passed = result.returncode == 0 and len(selected) == 1 and selected[0].get('passed') is True
-            if mode.startswith('callback-invalid-'):
-                passed = passed and selected[0].get('original_cleanup') is False
-                passed = passed and selected[0].get('failure_custody') is True
-                passed = passed and selected[0].get('physical_stop') == 'process-exit-required'
-            else:
-                passed = passed and selected[0].get('original_cleanup') is True
+            passed = observed_case_passed(mode, result.returncode, rows)
             report['cases'].append({'case': mode, 'passed': passed, 'observations': rows})
             save()
         P.verify_original_inputs(inputs)

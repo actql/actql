@@ -197,10 +197,34 @@ test('required Native producer also executes all real allocator cases with origi
   assert(retained.with.path.includes('/crypto-allocator/summary.json'));
   assert(!retained.with.path.includes('/crypto-allocator/**'), 'Retain safe numeric reports, not whole test backing');
   const runner = readFileSync(new URL('./test-native-crypto-allocator.py', import.meta.url), 'utf8');
-  assert(runner.includes("MODES = ('bounded-search', 'split-merge-membership', 'partial')"));
+  const cases = spawnSync('python3', ['-c', `
+import importlib.util, json, sys
+spec = importlib.util.spec_from_file_location('allocator_cases', sys.argv[1])
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+assert module.MODES and len(set(module.MODES)) == len(module.MODES)
+for mode in module.MODES:
+    row = {'case': mode, 'passed': True, 'original_cleanup': True}
+    if mode.startswith('callback-invalid-'):
+        row.update(original_cleanup=False, failure_custody=True, physical_stop='process-exit-required')
+    assert module.observed_case_passed(mode, 0, [row])
+    assert not module.observed_case_passed(mode, 1, [row])
+    assert not module.observed_case_passed(mode, 0, [])
+    assert not module.observed_case_passed(mode, 0, [row, row])
+    assert not module.observed_case_passed(mode, 0, [{**row, 'passed': False}])
+    assert not module.observed_case_passed(mode, 0, [{**row, 'original_cleanup': not row['original_cleanup']}])
+    if mode.startswith('callback-invalid-'):
+        assert not module.observed_case_passed(mode, 0, [{**row, 'failure_custody': False}])
+assert not module.observed_case_passed('unknown', 0, [{'case': 'unknown', 'passed': True, 'original_cleanup': True}])
+print(json.dumps(list(module.MODES)))
+`, fileURLToPath(new URL('./test-native-crypto-allocator.py', import.meta.url))],
+  {encoding: 'utf8', timeout: 5000, env: {...process.env, PYTHONDONTWRITEBYTECODE: '1'}});
+  assert.equal(cases.error, undefined); assert.equal(cases.status, 0, cases.stderr);
+  for (const mode of ['bounded-search', 'split-merge-membership', 'partial', 'callback-current'])
+    assert(JSON.parse(cases.stdout).includes(mode), mode);
   for (const text of ['P.linux_member_inputs(prefix, selected)', "producer['source'] != source",
     "producer['inputs'].get(name) != expected", 'P.verify_original_inputs(inputs)',
-    "selected[0].get('original_cleanup') is True", "len(report['cases']) == 3"])
+    "len(report['cases']) == len(MODES)"])
     assert(runner.includes(text), text);
 });
 
