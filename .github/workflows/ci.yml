@@ -2571,12 +2571,15 @@ jobs:
             ${{ runner.temp }}/native-cli-linux-local/release/source-free-observed-*.json
           if-no-files-found: warn
           retention-days: 14
-  # The unchanged Mock workflows and strict smoke run on their own fresh runner.
+  # The original Mock workflows supply the required fixed-artifact 30+30 profile.
   native-cli-linux-local-mock:
     needs: [select-targets, native-cli-linux-local]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.native-cli-linux-local.result == 'success' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -2610,18 +2613,37 @@ jobs:
           artifact-ids: ${{ needs.native-cli-linux-local.outputs.artifact-id }}
           path: ${{ runner.temp }}/native-cli-linux-local
           merge-multiple: true
-      - name: Require actual fresh installed README and Quickstart Mock workflows
+      - name: Authenticate the original Native approval artifact and source
         env:
-          TMPDIR: ${{ runner.temp }}/native-cli-linux-local/mock-consumers
-        run: node scripts/test-native-cli-mock-install.mjs "$RUNNER_TEMP/native-cli-linux-local/release"
-      - name: Retain independent installed Mock receipts
+          GITHUB_TOKEN: ${{ github.token }}
+          PACKAGE_ADAPTER: native
+          PACKAGE_RUN_ID: ${{ github.run_id }}
+          PACKAGE_ARTIFACT_ID: ${{ needs.native-cli-linux-local.outputs.artifact-id }}
+          PACKAGE_PRODUCER_JOB: native-cli-linux-local
+          PACKAGE_EVENT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          mkdir "$RUNNER_TEMP/native-cli-linux-local/approval"
+          node scripts/ordinary-operation-packages.mjs inspect-native-approval-producer \
+            > "$RUNNER_TEMP/native-cli-linux-local/approval/producer.json"
+          node scripts/ordinary-operation-packages.mjs inspect-native-approval-source \
+            "$RUNNER_TEMP/native-cli-linux-local/release" \
+            > "$RUNNER_TEMP/native-cli-linux-local/approval/source.json"
+      - name: Require thirty complete approvals for each original Mock workflow
+        run: |
+          node scripts/test-native-approval-performance.mjs \
+            --normal "$RUNNER_TEMP/native-cli-linux-local/release" \
+            --binding "$RUNNER_TEMP/native-cli-linux-local/approval/source.json" \
+            --output "$RUNNER_TEMP/native-cli-linux-local/approval/assessment.json" \
+            --runner ubuntu-24.04
+      - name: Retain complete Native approval samples and original Mock receipts
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: native-cli-linux-local-mock-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
+            ${{ runner.temp }}/native-cli-linux-local/approval/*.json
             ${{ runner.temp }}/native-cli-linux-local/release/mock-install-*.json
-            ${{ runner.temp }}/native-cli-linux-local/mock-consumers/actql-native-mock-install-*/commands.json
+            /tmp/actql-native-mock-install-*/commands.json
           if-no-files-found: warn
           retention-days: 14
   # Native storage, publication and control, and the Native retained path.

@@ -107,12 +107,25 @@ test('Mock workflows require a fresh runner and the successful exact producer co
     'artifact-run-attempt': '${{ github.run_attempt }}',
     'artifact-source-sha': '${{ github.sha }}',
   });
-  const mock = mockJob.steps.find(step => step.run?.includes('node scripts/test-native-cli-mock-install.mjs'));
-  assert.equal(mock.run, 'node scripts/test-native-cli-mock-install.mjs "$RUNNER_TEMP/native-cli-linux-local/release"');
-  assert.equal(mock.env.TMPDIR, '${{ runner.temp }}/native-cli-linux-local/mock-consumers');
+  const authentication = mockJob.steps.find(step => step.run?.includes('inspect-native-approval-source'));
+  assert.equal(mockJob.permissions.actions, 'read');
+  assert.equal(authentication.env.PACKAGE_RUN_ID, '${{ github.run_id }}');
+  assert.equal(authentication.env.PACKAGE_ARTIFACT_ID, '${{ needs.native-cli-linux-local.outputs.artifact-id }}');
+  assert.equal(authentication.env.PACKAGE_PRODUCER_JOB, 'native-cli-linux-local');
+  assert.equal(authentication.env.PACKAGE_EVENT_HEAD_SHA, '${{ github.event.pull_request.head.sha || github.sha }}');
+  assert(authentication.run.includes('inspect-native-approval-producer'));
+  const mock = mockJob.steps.find(step => step.run?.includes('node scripts/test-native-approval-performance.mjs'));
+  for (const argument of ['--normal "$RUNNER_TEMP/native-cli-linux-local/release"',
+    '--binding "$RUNNER_TEMP/native-cli-linux-local/approval/source.json"',
+    '--output "$RUNNER_TEMP/native-cli-linux-local/approval/assessment.json"', '--runner ubuntu-24.04'])
+    assert(mock.run.includes(argument), argument);
+  assert.equal(mock.env?.TMPDIR, undefined, 'Use the existing formal collector filesystem context');
+  assert(!mock.run.includes('--diagnostic'), 'The required profile must enforce all thirty samples');
   assert.equal(mock.if, undefined);
   assert.equal(mock['continue-on-error'], undefined);
   assert(mockJob.steps.indexOf(download) < mockJob.steps.indexOf(mock));
+  assert(mockJob.steps.indexOf(download) < mockJob.steps.indexOf(authentication));
+  assert(mockJob.steps.indexOf(authentication) < mockJob.steps.indexOf(mock));
   assert(!mockJob.steps.some(step => /produce-native|native-cli-release|--measure|performance-diagnostic/u.test(step.run ?? '')));
 });
 
@@ -195,8 +208,9 @@ test('CI downloads original hash-bounded archives and retains exact production a
   assert.equal(mockRetain.if, 'always()');
   assert.equal(mockRetain.with.name, 'native-cli-linux-local-mock-${{ github.run_id }}-${{ github.run_attempt }}');
   assert.deepEqual(mockRetain.with.path.trim().split('\n'), [
+    '${{ runner.temp }}/native-cli-linux-local/approval/*.json',
     '${{ runner.temp }}/native-cli-linux-local/release/mock-install-*.json',
-    '${{ runner.temp }}/native-cli-linux-local/mock-consumers/actql-native-mock-install-*/commands.json',
+    '/tmp/actql-native-mock-install-*/commands.json',
   ]);
   assert(!mockRetain.with.path.includes('mock-consumers/**'), 'Do not upload private project state or keys');
 });

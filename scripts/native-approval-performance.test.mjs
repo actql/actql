@@ -4,6 +4,7 @@ import {readFileSync, mkdtempSync, writeFileSync, existsSync, rmSync} from 'node
 import {spawnSync} from 'node:child_process';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
+import {parse} from 'yaml';
 import * as performance from './native-approval-performance.mjs';
 import {nativeApprovalTarget} from './operation-performance.mjs';
 import {approvalCallCounts, assertApprovalCallCounts, assessNativeApproval, approvalResources, approvalPhases} from './native-approval-performance.mjs';
@@ -116,13 +117,17 @@ test('ordinary Native smoke leaves formal slow samples and earlier receipt error
   assert.deepEqual(failed.events, []);
 });
 
-test('ordinary Native smoke stays on required original CI consumers with separate stop and formal bounds', () => {
+test('required Native CI selects the full original formal campaign and keeps stop bounds separate', () => {
   const consumer = readFileSync(new URL('./test-native-cli-mock-install.mjs', import.meta.url), 'utf8');
   const ci = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
   const collector = readFileSync(new URL('./test-native-approval-performance.mjs', import.meta.url), 'utf8');
   assert.match(consumer, /async function run\(command, args, cwd = root, timeoutMs = 120_000\)/u);
   assert(consumer.indexOf('await registry.close()') < consumer.indexOf('const receiptFile = join(directory,'));
-  assert.match(ci, /run: node scripts\/test-native-cli-mock-install\.mjs "\$RUNNER_TEMP\/native-cli-linux-local\/release"\n/u);
+  const job = parse(ci).jobs['native-cli-linux-local-mock'];
+  const formal = job.steps.find(step => step.run?.includes('node scripts/test-native-approval-performance.mjs'));
+  assert(formal && formal['continue-on-error'] === undefined);
+  assert(formal.run.includes('--binding') && !formal.run.includes('--diagnostic'));
+  assert.equal(formal.env?.TMPDIR, undefined);
   assert.match(collector, /count = values\.diagnostic \? 3 : 30/u);
   assert.match(collector, /'--measure-approval-resources'/u);
 });
