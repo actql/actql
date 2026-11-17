@@ -1163,3 +1163,24 @@ readers retain their complete checks and configuration-identifier rules. Secret
 acquisition remains separate, and these materials attest neither implementation
 truth nor current authority. The initial Host constructor must fund all source,
 canonical tree, writer and output overlap before invoking this DATA constructor.
+
+### Original physical Model limits in Request Plans
+
+The existing Node Plan entrance checks the native Model floors and receives the
+installed physical retained/execution contribution before folding Compute,
+bootstrap and read demand on the same Request. Its Model-only Plan retains the
+exact supplied `LedgerLimits` separately from that combined demand. The
+constructor funds the additional borrowed reference before retaining the Plan;
+the ordinary Request root and its existing absent-Model field do not change.
+The existing Scope construction inventory already funds its optional selected
+Model ceiling and Some carrier. Binding the same component limit into that
+field is not a new reservation, resource grant or reconstructed total.
+
+The consuming Model startup preserves the exact Task, Provider, row, Scope,
+Request and physical capacity predicates. A composed consumer retains the
+existing provider purpose and exact component ceiling on the shared Request;
+Resource still enforces the whole Request's aggregate expenditure. The Node
+layout reader, claim, current fences and cleanup remain mandatory. Adapter
+holding/workspace contributions and complete prepared-row overlap are separate
+physical declarations, never inferred from spare parent capacity or a smaller
+observed row count.

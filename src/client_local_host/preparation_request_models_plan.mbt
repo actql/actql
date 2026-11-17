@@ -371,6 +371,7 @@ fn[I] prepare_request_models_plan_owned(
     source_free,
     captured,
     content_prefix: None,
+    model_limits: models,
     limits,
     max_reservations,
     max_holdings,
