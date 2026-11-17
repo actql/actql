@@ -8,6 +8,8 @@ import {createInstalledCredentialSourceReader} from './installed-credential-sour
 // with explicit Site/Account/charge ports; no case issues a normal public Run.
 function fixture(transform, options = {}) {
   const calls = [], first = Object.freeze({}), changed = Object.freeze({}), legacy = Object.freeze({});
+  const cursorCalls = [], progress = Object.freeze({}), cycle = Object.freeze({});
+  let advanced = 0;
   const bytes = Buffer.from('original response DATA'), wire = '[{"id":"9007199254740993"}]';
   const projected = (method, value) => function(...args) {
     assert.equal(this, moon);calls.push([method, ...args]);
@@ -16,6 +18,31 @@ function fixture(transform, options = {}) {
     return {$tag: 1, _0: value};
   };
   const moon = {
+    clientProgramRowSourcePrepareCursorProgress(...limits) {
+      assert.equal(this,moon);assert.deepEqual(limits,[3,4,2,32]);
+      cursorCalls.push(['prepare']);return {$tag:1,_0:progress};
+    },
+    clientProgramRowSourceCursorRemainingRows(value,index,count) {
+      assert.equal(this,moon);assert.equal(value,progress);
+      cursorCalls.push(['remaining',index,count]);return {$tag:1,_0:2};
+    },
+    clientProgramRowSourceAdvanceCursorProgress(value,index,count,envelope,rows) {
+      assert.equal(this,moon);assert.equal(value,progress);assert.equal(envelope,first);
+      assert([first,changed].includes(rows));cursorCalls.push(['advance',index,count,envelope,rows]);
+      // Canned typed port outcomes, not another pagination implementation.
+      // Actual bounds/cycle/EOF semantics are executed by the Core cases.
+      advanced++;
+      return advanced===1 ? {$tag:1,_0:options.hasNext===false} : {$tag:0,_0:cycle};
+    },
+    clientProgramRowSourceCursorHasNext(value) {
+      assert.equal(this,moon);assert.equal(value,progress);return advanced!==0;
+    },
+    clientProgramRowSourceCursorNext(value) {
+      assert.equal(this,moon);assert.equal(value,progress);return {$tag:1,_0:''};
+    },
+    clientProgramRowSourceCursorIssueCode(value) {
+      assert.equal(this,moon);assert.equal(value,cycle);return 'RestSourceCursorCycle';
+    },
     clientProgramRowSourceProjectJsonPage: projected('wire', legacy),
     clientProgramRowSourceProjectTypedJsonPage: projected('typed', first),
     clientProgramRowSourceJsonPageRowsWire(value) {
@@ -41,7 +68,7 @@ function fixture(transform, options = {}) {
       maxRows: 4, maxPages: 3, maxCursorBytes: 32}};
   const prepare = restSourcePageReader({moon, source, decodePage: transform});
   const invoke = (fn, receiver, args) => Reflect.apply(fn, receiver, args);
-  return {calls, moon, first, changed, bytes, wire, legacy, source, prepare,
+  return {calls, cursorCalls, cycle, moon, first, changed, bytes, wire, legacy, source, prepare,
     reader: prepare(undefined, invoke), response: {accepted: true, statusCode: 200, body: bytes},
     progress: {pageIndex: 0, rowCount: 0}};
 }
@@ -51,10 +78,12 @@ test('REST typed page forwards the same opaque original without rows wire encodi
   assert.equal(result.projectedPage, f.first);assert.equal(result.rowCount, 1);assert.equal(result.done, false);
   assert.deepEqual(Object.keys(result).sort(), ['done', 'projectedPage', 'rowCount']);
   assert.equal(f.calls.length, 1);assert.equal(f.calls[0][0], 'typed');assert.equal(f.calls[0][1], f.bytes);
+  assert.deepEqual(f.cursorCalls.at(-1),['advance',0,0,f.first,f.first]);
   assert.deepEqual(f.reader.fetchPage({pageIndex: 1, rowCount: 1}).query, [['cursor', '']]);
   // Captured methods/receiver remain the same after the author installation changes.
   f.moon.clientProgramRowSourceProjectTypedJsonPage = () => assert.fail('No replacement method');
-  assert.throws(() => f.reader.decodePage(f.response, {pageIndex: 1, rowCount: 1}), {code: 'RestSourceCursorCycle'});
+  assert.throws(() => f.reader.decodePage(f.response, {pageIndex: 1, rowCount: 1}),
+    error => error.code==='RestSourceCursorCycle' && error.cause===f.cycle);
 });
 
 test('REST unchanged author transform preserves its old DTO and reuses the parsed original', () => {
@@ -89,6 +118,7 @@ test('REST changed author wire is a new bounded Core parse while original cursor
   assert.equal(result.projectedPage, f.changed);assert.equal(result.rowCount, 2);assert.equal(result.done, false);
   assert.deepEqual(reader.fetchPage({pageIndex: 1, rowCount: 2}).query, [['cursor', '']]);
   assert.deepEqual(f.calls.map(call => call[0]), ['wire', 'original', 'rows-wire', 'changed-typed']);
+  assert.deepEqual(f.cursorCalls.at(-2),['advance',0,0,f.first,f.changed]);
 });
 
 test('REST typed page never substitutes EOF for malformed cursor projection or parser refusal', () => {

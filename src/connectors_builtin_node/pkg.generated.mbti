@@ -4090,6 +4090,8 @@ pub fn client_program_row_source_acquisition_contracts_construction_capacity(Int
 
 pub fn client_program_row_source_admit_acquisition_contracts(String, String) -> Result[@query_planning.QueryEvidenceContracts, @client_row_source_host.RowHostIssue]
 
+pub fn client_program_row_source_advance_cursor_progress(@client_row_source_host.RowSourceCursorProgress, Int, Int, @client_row_source_host.RowSourceProjectedJsonPage, @client_row_source_host.RowSourceProjectedJsonPage) -> Result[Bool, @client_row_source_host.RowSourceCursorIssue]
+
 pub fn client_program_row_source_advance_listing_page(@client_row_source_host.RowRun, Int, Int64) -> Result[String, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_attempt(@client_row_source_host.RowRun) -> @client_row_source_host.RowAttempt
@@ -4138,6 +4140,14 @@ pub fn client_program_row_source_complete_response_construction_capacity(@client
 
 pub fn client_program_row_source_consume_observation_charge(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge) -> Result[Unit, @client_row_source_host.RowHostIssue]
 
+pub fn client_program_row_source_cursor_has_next(@client_row_source_host.RowSourceCursorProgress) -> Bool
+
+pub fn client_program_row_source_cursor_issue_code(@client_row_source_host.RowSourceCursorIssue) -> String
+
+pub fn client_program_row_source_cursor_next(@client_row_source_host.RowSourceCursorProgress) -> Result[String, @client_row_source_host.RowSourceCursorIssue]
+
+pub fn client_program_row_source_cursor_remaining_rows(@client_row_source_host.RowSourceCursorProgress, Int, Int) -> Result[Int, @client_row_source_host.RowSourceCursorIssue]
+
 pub fn client_program_row_source_declaration_json(@client_row_source_host.RowDeclaration) -> String
 
 pub fn client_program_row_source_ensure_response_transfer_capacity(@client_row_source_host.RowRunResponseBorrow, Int64) -> Result[Unit, @client_row_source_host.RowHostIssue]
@@ -4179,6 +4189,8 @@ pub fn client_program_row_source_original_read(@client_row_source_host.RowSource
 pub fn client_program_row_source_prepare_acquisition(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String, @capacity_policy.Policy?) -> Result[@client_row_source_host.RowAcquisition, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_prepare_acquisition_with_contracts(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, @query_planning.QueryEvidenceContracts, @capacity_policy.Policy?) -> Result[@client_row_source_host.RowAcquisition, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_prepare_cursor_progress(Int, Int, Int, Int) -> Result[@client_row_source_host.RowSourceCursorProgress, @client_row_source_host.RowSourceCursorIssue]
 
 pub fn client_program_row_source_prepare_mapping(@client_row_source_host.RowDeclaration, String, String, String) -> String
 

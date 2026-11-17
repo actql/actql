@@ -2,6 +2,86 @@
 
 ///|
 /// Pure original response-envelope DATA; no Source or physical receipt issue.
+// Pagination state below is the same provider-neutral Core DATA on every
+// target. The managed reader remains the only I/O and cleanup owner.
+#export_name("clientProgramRowSourcePrepareCursorProgress")
+pub fn client_program_row_source_prepare_cursor_progress(
+  max_pages : Int,
+  max_rows : Int,
+  max_page_rows : Int,
+  max_cursor_bytes : Int,
+) -> Result[
+  @client_row_source_host.RowSourceCursorProgress,
+  @client_row_source_host.RowSourceCursorIssue,
+] {
+  @client_row_source_host.prepare_row_source_cursor_progress(
+    max_pages, max_rows, max_page_rows, max_cursor_bytes,
+  )
+}
+
+///|
+#export_name("clientProgramRowSourceCursorRemainingRows")
+pub fn client_program_row_source_cursor_remaining_rows(
+  progress : @client_row_source_host.RowSourceCursorProgress,
+  page_index : Int,
+  row_count : Int,
+) -> Result[Int, @client_row_source_host.RowSourceCursorIssue] {
+  @client_row_source_host.row_source_cursor_remaining_rows(
+    progress, page_index, row_count,
+  )
+}
+
+///|
+#export_name("clientProgramRowSourceAdvanceCursorProgress")
+pub fn client_program_row_source_advance_cursor_progress(
+  progress : @client_row_source_host.RowSourceCursorProgress,
+  page_index : Int,
+  row_count : Int,
+  envelope : @client_row_source_host.RowSourceProjectedJsonPage,
+  rows : @client_row_source_host.RowSourceProjectedJsonPage,
+) -> Result[Bool, @client_row_source_host.RowSourceCursorIssue] {
+  @client_row_source_host.advance_row_source_cursor_progress(
+    progress, page_index, row_count, envelope, rows,
+  )
+}
+
+///|
+#export_name("clientProgramRowSourceCursorHasNext")
+pub fn client_program_row_source_cursor_has_next(
+  progress : @client_row_source_host.RowSourceCursorProgress,
+) -> Bool {
+  @client_row_source_host.row_source_cursor_has_next(progress)
+}
+
+///|
+#export_name("clientProgramRowSourceCursorNext")
+pub fn client_program_row_source_cursor_next(
+  progress : @client_row_source_host.RowSourceCursorProgress,
+) -> Result[String, @client_row_source_host.RowSourceCursorIssue] {
+  @client_row_source_host.row_source_cursor_next(progress)
+}
+
+///|
+/// Preserve the adapter's existing refusal vocabulary without decoding enum
+/// layout in JS or treating another Host error as a cursor outcome.
+#export_name("clientProgramRowSourceCursorIssueCode")
+pub fn client_program_row_source_cursor_issue_code(
+  issue : @client_row_source_host.RowSourceCursorIssue,
+) -> String {
+  match issue {
+    InvalidLimits => "InvalidRestSourceCursorLimits"
+    ProgressMismatch => "RestSourceCursorProgressMismatch"
+    Completed => "RestSourceCursorCompleted"
+    PageLimit => "RestSourcePageLimit"
+    RowLimit => "RestSourceRowLimit"
+    CursorLimit => "InvalidRestSourceCursor"
+    CursorCycle => "RestSourceCursorCycle"
+    ForeignPage => "RestSourceCursorRuntimeBindingMismatch"
+    NoNextCursor => "RestSourceCursorUnavailable"
+  }
+}
+
+///|
 #export_name("clientProgramRowSourceProjectJsonPage")
 pub fn client_program_row_source_project_json_page(
   bytes : Bytes,

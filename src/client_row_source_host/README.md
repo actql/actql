@@ -194,6 +194,23 @@ not EOF, and has its actual UTF-8 extent checked. The Common bridge exposes a
 real Bool for presence and a Result[String] getter; callers do not inspect an
 Option layout. A disabled cursor accepts only an empty cursor path.
 
+The same portable package owns cursor progression, cycle detection and EOF in
+`RowSourceCursorProgress`. The reader joins its actual page index and consumed
+row count before request/parse and again at advancement. The original typed
+envelope supplies the cursor; a separately parsed pure row transform supplies
+only its actual row count. A transform cannot substitute continuation or erase
+an empty cursor. Page, row and UTF-8 cursor bounds are checked before advancing;
+failed checks consume no progress. EOF may exactly fill the final page/row
+ceiling, but a further cursor cannot request work beyond either ceiling.
+
+This is bounded semantic DATA, not another reader or Resource owner. It retains
+at most `max_pages - 1` cursor strings, each under `max_cursor_bytes`, and no
+parsed page, response buffer, Account, authorization or resource handle. The
+same managed reader must back those retained strings and map entries under its
+existing Request/Plan; numeric limits are not funding. Node only forwards the
+same opaque progress and page objects and maps the typed refusal vocabulary.
+Portable Core execution is separate from ordinary installed Host acceptance.
+
 Projection is synchronous and has no callbacks, I/O, authority, Ledger, grant,
 retry or retirement operation. The shared Reader retains and charges the actual
 response before decoding. The parser's original construction inventory and the

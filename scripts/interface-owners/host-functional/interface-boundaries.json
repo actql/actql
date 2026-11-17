@@ -125313,9 +125313,9 @@
     {
       "module": "adapters/host-node/rest-source-page.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "135e51fbf146f3903d3ae9be6764a818d05d70026427bb0284321211668cc4eb",
+      "sha256": "74ff01026a0cbddccc251a9494188bc8cbaa30cb690e140c4b97ebc49db12865",
       "role": "connector-semantics",
-      "owner": "Existing Common JSON/row projection and Host ManagedReader Owners; REST adapter supplies authored request, cursor and pure row-wire transformation semantics only.",
+      "owner": "Existing Common JSON/row projection and pagination DATA with Host ManagedReader owners; REST adapter forwards original pages/progress and authored request/pure transform without an independent cursor engine",
       "exports": [
         "restSourcePageReader"
       ],
@@ -125384,6 +125384,7 @@
         }
       ],
       "imports": [
+        "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
         "node:util"
       ],
@@ -125501,8 +125502,8 @@
                 "anchor": "if (!response.accepted || response.statusCode !== 200) fail('RestSourceProviderRejected');"
               },
               {
-                "path": "adapters/host-node/rest-source-page.mjs",
-                "anchor": "if (cursors.has(page.nextCursor)) fail('RestSourceCursorCycle');"
+                "path": "src/client_row_source_host/json_page_cursor.mbt",
+                "anchor": "return Err(CursorCycle)"
               },
               {
                 "path": "docs/contributing/connector-authoring.md",
@@ -125538,7 +125539,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/rest-source-page.mjs",
-                "anchor": "const remaining = Math.min(bound.maxPageRows, bound.maxRows - rowCount);"
+                "anchor": "const remaining = cursorResult(original.clientProgramRowSourceCursorRemainingRows("
               },
               {
                 "path": "docs/contributing/connector-authoring.md",
@@ -125693,8 +125694,8 @@
                 "anchor": "if (!response.accepted || response.statusCode !== 200) fail('RestSourceProviderRejected');"
               },
               {
-                "path": "adapters/host-node/rest-source-page.mjs",
-                "anchor": "if (cursors.has(page.nextCursor)) fail('RestSourceCursorCycle');"
+                "path": "src/client_row_source_host/json_page_cursor.mbt",
+                "anchor": "return Err(CursorCycle)"
               },
               {
                 "path": "docs/contributing/connector-authoring.md",
@@ -125718,7 +125719,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/rest-source-page.mjs",
-                "anchor": "const remaining = Math.min(bound.maxPageRows, bound.maxRows - rowCount);"
+                "anchor": "const remaining = cursorResult(original.clientProgramRowSourceCursorRemainingRows("
               },
               {
                 "path": "docs/contributing/connector-authoring.md",

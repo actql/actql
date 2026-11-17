@@ -215,7 +215,9 @@ async function observeDemand(f,{refusal,beforeConfiguration}={}) {
   };
   const moon = Object.fromEntries(['ProjectJsonPage', 'JsonPageRowsWire', 'JsonPageRowCount',
     'JsonPageHasNextCursor', 'JsonPageNextCursor', 'ProjectTypedJsonPage', 'JsonPageOriginal',
-    'TypedJsonPageRowCount', 'TypedJsonPageHasNextCursor', 'TypedJsonPageNextCursor'].map(name => ['clientProgramRowSource'+name,
+    'TypedJsonPageRowCount', 'TypedJsonPageHasNextCursor', 'TypedJsonPageNextCursor',
+    'PrepareCursorProgress', 'CursorRemainingRows', 'AdvanceCursorProgress',
+    'CursorHasNext', 'CursorNext', 'CursorIssueCode'].map(name => ['clientProgramRowSource'+name,
     () => assert.fail('No page/decoder call in a selection-only component')]));
   moon.clientProgramInstalledSourceConstructionCapacity=function(...args) {
     assert.equal(this,moon);quantityArgs=args;construction.push('quote');return {$tag:1,_0:quantity};
