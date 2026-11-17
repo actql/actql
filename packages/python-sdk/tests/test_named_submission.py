@@ -260,6 +260,57 @@ class AsyncNamedTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual([op for op, _ in peer.requests], ['connect', 'submit-named-intent'])
 
 
+    async def test_compatible_problem_code_cold_lookup_never_resubmits(self):
+        for phase, expected in [('not_accepted', 'SubmissionNotAccepted'),
+                                ('preparation_failed', 'SubmissionPreparationFailed')]:
+            with self.subTest(phase=phase):
+                # Actual public SDK entry and decoder through explicit peers;
+                # durable Journal ownership is exercised separately in Node.
+                peer = Peer(); client = await self.client(peer)
+                retained = None
+                def refused(body):
+                    nonlocal retained
+                    value = observed(body, reference('saved-original'))
+                    value['outcome'].pop('admission')
+                    value['outcome'] |= {'kind': phase, 'problem': {
+                        'code': 'ClientProgramRuntimeFragmentWorkLimit',
+                        'classification': 'operation_failed'}}
+                    retained = deepcopy(value['outcome'])
+                    return value
+                peer.response = refused
+                with self.assertRaises(ClientError) as failure:
+                    await client.start_source('SELECT 1', format='sql', request_id='original-policy')
+                error = failure.exception
+                self.assertEqual(error.code, expected)
+                self.assertIn(f'phase={phase}; problem=ClientProgramRuntimeFragmentWorkLimit', str(error))
+                original = error.submission_ref
+                await client.aclose()
+
+                class LookupPeer(Peer):
+                    async def handle(self, request):
+                        operation = request.url.path.rsplit('/', 1)[-1]
+                        if operation == 'connect':
+                            return await super().handle(request)
+                        body = json.loads(request.content)
+                        self.requests.append((operation, body))
+                        self.assertion(operation, body)
+                        return httpx.Response(200, json=deepcopy(retained))
+                lookup_peer = LookupPeer()
+                def assert_lookup(operation, body):
+                    self.assertEqual(operation, 'lookup-submission')
+                    self.assertEqual(body['submissionRef'], original)
+                lookup_peer.assertion = assert_lookup
+                fresh = await self.client(lookup_peer)
+                saved = await fresh.lookup_submission(original)
+                self.assertEqual(saved['kind'], phase)
+                self.assertEqual(dict(saved['problem']), {
+                    'code': 'ClientProgramRuntimeFragmentWorkLimit',
+                    'classification': 'operation_failed'})
+                self.assertEqual(dict(saved['submissionRef']), dict(error.outcome['submissionRef']))
+                self.assertEqual([op for op, _ in peer.requests], ['connect', 'submit-named-intent'])
+                self.assertEqual([op for op, _ in lookup_peer.requests], ['connect', 'lookup-submission'])
+
+
 class SyncNamedTests(unittest.TestCase):
     def test_same_public_sync_caller_and_captured_program(self):
         peer = Peer()
