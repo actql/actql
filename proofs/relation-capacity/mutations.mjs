@@ -11,14 +11,15 @@ const home = process.env.MOON_HOME ?? join(root, '.toolchains', `moonbit-${pin.v
 const env = { ...process.env, MOON_HOME: home, PATH: `${home}/bin:${process.env.PATH}` };
 const path = 'src/connectors/local/selected_relation_provider.mbt';
 const cases = [
-  // Keep the original max(child retained + execution) fault after capacity
-  // split retained outputs from either overlapping or reclaimable scratch.
+  // Replace the final child allowance with max(child retained + execution).
+  // This fault applies at the capacity boundary regardless of how the valid
+  // constructor accounts for overlapping and reclaimable scratch internally.
   ['max-child-instead-of-overlap', path, [
     ['let mut scratch = 0L', 'let mut scratch = 0L\n  let mut maximum_child = 0L'],
     ['retained_children += child.retained_bytes',
       'retained_children += child.retained_bytes\n' +
       '    maximum_child = Int64::max(maximum_child, child.retained_bytes + child.execution_bytes)'],
-    ['let live_children = retained_children + scratch', 'let live_children = maximum_child'],
+    ['live_children + handles + preparation,', 'maximum_child + handles + preparation,'],
   ], fixture, 1],
   ['omit-child-retained', path, [
     ['retained_children += child.retained_bytes', 'retained_children += 0L'],
@@ -37,16 +38,21 @@ const cases = [
   ['copy-occurrence-arrays-as-aliases', 'src/execution_relation/managed_independent_output.mbt',
     [['rows: rows.rows.map(row => row.copy()),', 'rows: rows.rows,']], identityFixture, 2],
 ];
-const before = snapshot(root), directory = join(root, '.artifacts/relation-capacity');
-mkdirSync(directory, { recursive: true });
-const results = [];
-for (const [id, path, replacements, suite, sites] of cases) {
+// Check every injection point before starting any compiler. A missing recipe
+// is a preparation failure, never evidence that a regression was detected.
+const recipes = cases.map(([id, path, replacements, suite, sites]) => {
   const file = join(root, path), text = readFileSync(file, 'utf8');
   let mutated = text;
   for (const [original, changed] of replacements) {
     if (mutated.split(original).length !== sites + 1) throw new Error(`Review mutation sites: ${id}`);
     mutated = mutated.replaceAll(original, changed);
   }
+  return {id, path, suite, file, text, mutated};
+});
+const before = snapshot(root), directory = join(root, '.artifacts/relation-capacity');
+mkdirSync(directory, { recursive: true });
+const results = [];
+for (const {id, path, suite, file, text, mutated} of recipes) {
   const result = await runRestoredMutation(file, text, mutated, join(home, 'bin/moon'),
     ['test', suite, '--target', 'js', '--deny-warn'], {
       cwd: root, env, maxBuffer: 8 * 1024 * 1024,
