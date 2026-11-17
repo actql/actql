@@ -37713,13 +37713,6 @@
           "async": true
         },
         {
-          "name": "dispatchFailureSnapshot/dispatchFailureSnapshot",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
           "name": "installNodeClientDispatchOwner",
           "parameters": [
             "moon",
@@ -40283,7 +40276,6 @@
         },
         {
           "operations": [
-            "dispatchFailureSnapshot/dispatchFailureSnapshot",
             "installNodeClientDispatchOwner/failureMessage/failureMessage"
           ],
           "exports": [],
@@ -40296,49 +40288,49 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-diagnostic.mjs",
                 "anchor": "function publicBudgetFailureMessage"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-diagnostic.mjs",
                 "anchor": "function publicBudgetFailureMessage"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-diagnostic.mjs",
                 "anchor": "function publicBudgetFailureMessage"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-diagnostic.mjs",
                 "anchor": "function publicBudgetFailureMessage"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-diagnostic.mjs",
                 "anchor": "function publicBudgetFailureMessage"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-diagnostic.mjs",
                 "anchor": "function publicBudgetFailureMessage"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-diagnostic.mjs",
                 "anchor": "function publicBudgetFailureMessage"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "path": "adapters/host-node/client-dispatch-diagnostic.mjs",
                 "anchor": "function publicBudgetFailureMessage"
               }
             ],
@@ -40363,6 +40355,7 @@
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
         "../host-common/task-observation.mjs",
+        "./client-dispatch-diagnostic.mjs",
         "./client-source-operation.mjs",
         "./entry.mjs",
         "./installed-source.mjs",
@@ -40373,7 +40366,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "32ae359dd1b1619fd24890c792283c870864766ba744a61487876090f6d36ca5",
+      "sha256": "2b857d577d9d082f7ff85c44748fe43a32c211040431a436159150153f51ea4b",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {

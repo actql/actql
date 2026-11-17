@@ -12,6 +12,9 @@ UTF-8 charge when its strictly smaller bound was the original work allowance.
 The same failed advance can separately identify the original physical
 retained-byte or execution-byte quota constructor. Generic capacity failures
 are not evidence of either dimension.
+The original row failure can also expose a bounded semantic category and its
+actual sequence step. The Core `RowIssue`/`EvalIssueKind` remains the sole cause
+selector; no adapter reinterprets operation names, exception text or Source.
 
 ## Inputs and outputs
 
@@ -32,6 +35,10 @@ The resource getter accepts only `Execution(Physical(RetentionLimit))` or
 `Execution(Physical(ExecutionLimit))`. Its closed diagnostic has phase
 `local_managed_advance`, kind `resource`, the original Task ordinal, and
 dimension `retained_bytes` or `execution_bytes`. It supplies no new allowance.
+The row-cause getters inspect the SAME failed Result and return a constant
+category String and original nonnegative step, or no cause / step `-1`.
+`row_failure` carries only Task, step and that category. It never exposes an
+expression, field name, row index/value, Program text or provider response.
 
 ## Identity
 
@@ -56,6 +63,10 @@ It is attached to the original error without replacing its cleanup carrier.
 The existing failure wrappers preserve this own diagnostic DATA slot. A pending
 cleanup may separately expose its fixed owner category, phase and continuation
 state; those observations do not acknowledge stop or resource release.
+The passive helpers in `client-dispatch-diagnostic.mjs` preserve only inert
+DATA. The original failed Run observation can retain its bounded cause message
+only under the existing same-Run/control frame and confirmed-stop gates; cold
+reads preserve that exact message without replaying the task or its failure.
 
 ## Synchronization
 
@@ -72,7 +83,7 @@ occurs.
 
 ## Failure
 
-Only failed cumulative control charges in Cross Join select the new reason.
+Only failed cumulative control charges in Cross Join select the work reason.
 Physical `ExecutionLimit` is memory, and `RowLimit`, workspace, input, stop and
 unclassified causes stay distinct. The adapter neither guesses from numeric
 compiler tags nor classifies a generic unpublished Result. An optional getter,
@@ -82,6 +93,12 @@ Capture work is selected only from that original scalar `LimitExceeded` when
 `work_remaining < text_remaining`. Ties, text limits, malformed Unicode and
 invalid limits stay generic. Node, depth, row and workspace failures are not
 reclassified. All existing Capture constructors retain their original tags.
+Known row/evaluation categories remain separate from quotas. In particular,
+`rows.row_limit` does not distinguish control from workspace and supplies no
+memory dimension, requested amount or installation setting. A cause message
+states that resource quantities were not retained. Unclassified failures still
+use the original generic observation; no Unknown or cancellation becomes a
+failed execution merely because diagnostic DATA exists.
 
 ## Cancellation
 
@@ -97,15 +114,31 @@ creates no Ledger or reservation and does not widen a quota. The configured
 source-free work selection also bounds runtime Fragment Root/Demand
 preparation; Program parsing/checking retain separate compiler limits. Each
 execution counter is cumulative across polls, not total Host or Run lifetime.
+The row diagnostic uses six fields on the same optional primary slot. This is
+within the existing resource diagnostic's six fields plus four budget fields,
+without a second retained error or nested budget record. Core returns shared
+constant category Strings rather than constructing a message from an input.
+The cause/step getters use no additional retained holder or tuple. This bound
+does not price arbitrary exception chains, provider text or allocator backing.
 
 ## Extension
 
 Another operator can expose a reason only at its own exact original exhaustion
 point. Broad capacity, row or execution errors must not become work evidence.
-The typed Node/RelA getter is private implementation material; the public wire
-and terminal error semantics stay unchanged.
+The typed Node/RelA getter is implementation material; Core's passive typed
+projection is DATA, not an SDK execution capability. The public wire/status
+and terminal error code stay unchanged; only a proven original message is
+added to an already failed observation.
 
 ## Verification
+
+The row-cause cases import the actual passive helpers. The existing fragment
+executor supplies a real arithmetic failure; typed driver and compiled bridge
+cases preserve its category/ordinal and keep success/current/foreign/resource
+cases distinct. The same-frame cold-message cases cover refusal on changed
+Run/control/status, malformed DATA, getters and private text. These are
+component checks; ordinary installed accepted-Run and separate-process Saved
+acceptance remain distinct.
 
 The existing bounded Cross Join test covers exact 52 and one-short 51 work at
 quantum one, independently of exact/short workspace and product row bounds.

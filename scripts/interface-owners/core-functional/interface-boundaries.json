@@ -91878,7 +91878,7 @@
     },
     {
       "module": "adapters/local-node/managed-advance-diagnostic.mjs",
-      "sha256": "a366253e499419627beb53f94e195202522d4d86c20982e60e218c4714ba4b7b",
+      "sha256": "99294867696772295548d2bf173ce6fa78f33173f001205f264c7a86c714a9fd",
       "exports": [
         "checkedLocalManagedAdvance"
       ],
@@ -92091,7 +92091,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_advance_diagnostic.mbt",
-      "sha256": "d13e26edc34681d148e4ea8b0f202705db70743596b65f24ea32e432a651b7f9",
+      "sha256": "d0d52578d108c2d8fe041fba3c8a24b53d53077290c09f53249f034ed1eafa26",
       "exports": [],
       "operations": [
         {
@@ -92107,8 +92107,16 @@
           "declaration": "local_managed_failure_budget ( issue : LocalDispatchIssue , ) - > ( String , Bool , Int64 , Int64 , Int64 ) ?"
         },
         {
+          "name": "local_managed_failure_cause",
+          "declaration": "local_managed_failure_cause ( issue : LocalDispatchIssue ) - > String ?"
+        },
+        {
           "name": "local_managed_failure_resource_dimension",
           "declaration": "local_managed_failure_resource_dimension ( issue : LocalDispatchIssue , ) - > String ?"
+        },
+        {
+          "name": "local_managed_failure_row_step",
+          "declaration": "local_managed_failure_row_step ( issue : LocalDispatchIssue ) - > Int"
         },
         {
           "name": "local_managed_provider_failure",
@@ -92283,12 +92291,85 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "local_managed_failure_cause",
+            "local_managed_failure_row_step"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/local-node/managed-row-cause-diagnostic.test.mjs",
+                "anchor": "test('original typed row cause reaches"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "src/connectors_builtin_node/local_managed_failure_bridge.mbt",
-      "sha256": "cc845e9fa74a8ccb283f03f4da8b849f8f287b2edb5d02ea54fc02baa0dc40fd",
+      "sha256": "bfdd8c479b967c9e6c11aa6de490fc9f88f0d52897614b28bfe821bce88414f4",
       "exports": [],
       "operations": [
         {
@@ -92300,12 +92381,20 @@
           "declaration": "local_managed_advance_capture_work ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > Array [ Int ] ?"
         },
         {
+          "name": "local_managed_advance_cause",
+          "declaration": "local_managed_advance_cause ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > String ?"
+        },
+        {
           "name": "local_managed_advance_control_work_limit",
           "declaration": "local_managed_advance_control_work_limit ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > Int ?"
         },
         {
           "name": "local_managed_advance_resource_dimension",
           "declaration": "local_managed_advance_resource_dimension ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > String ?"
+        },
+        {
+          "name": "local_managed_advance_row_step",
+          "declaration": "local_managed_advance_row_step ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > Int"
         }
       ],
       "role": "common-semantics",
@@ -92475,12 +92564,85 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "local_managed_advance_cause",
+            "local_managed_advance_row_step"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/local-node/managed-row-cause-diagnostic.test.mjs",
+                "anchor": "test('original typed row cause reaches"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "src/connectors_builtin_node_rela/local_managed_failure_bridge.mbt",
-      "sha256": "4f60e5c10bf346dd9fa8165fd24fe57400ccef4f3ab5f7f9611ec13d57389791",
+      "sha256": "04248702a98e5fd4171de609e2b68402cf65e95255e738aab996a35fdc4147b3",
       "exports": [],
       "operations": [
         {
@@ -92492,8 +92654,20 @@
           "declaration": "local_managed_advance_capture_work ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > Array [ Int ] ?"
         },
         {
+          "name": "local_managed_advance_cause",
+          "declaration": "local_managed_advance_cause ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > String ?"
+        },
+        {
           "name": "local_managed_advance_control_work_limit",
           "declaration": "local_managed_advance_control_work_limit ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > Int ?"
+        },
+        {
+          "name": "local_managed_advance_resource_dimension",
+          "declaration": "local_managed_advance_resource_dimension ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > String ?"
+        },
+        {
+          "name": "local_managed_advance_row_step",
+          "declaration": "local_managed_advance_row_step ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > Int"
         }
       ],
       "role": "common-semantics",
@@ -92659,6 +92833,80 @@
               {
                 "path": "src/connectors_builtin_node/local_managed_failure_bridge_wbtest.mbt",
                 "anchor": "original budget bridge"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "local_managed_advance_cause",
+            "local_managed_advance_resource_dimension",
+            "local_managed_advance_row_step"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/local-node/managed-row-cause-diagnostic.test.mjs",
+                "anchor": "test('original typed row cause reaches"
               }
             ]
           }
@@ -97810,6 +98058,325 @@
               {
                 "path": "src/client_row_source_host/json_page_cursor_wbtest.mbt",
                 "anchor": "portable cursor progress preserves empty and Unicode cursors until exact EOF"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/client-dispatch-diagnostic.mjs",
+      "sha256": "6a5378016107730e9f0fb959907de0ae8683c1d3d273a73da4562b9055924eb8",
+      "exports": [
+        "dispatchFailureSnapshot",
+        "publicBudgetFailureMessage",
+        "retainedBudgetFailureMessage"
+      ],
+      "operations": [
+        {
+          "name": "dispatchFailureSnapshot",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "dispatchFailureSnapshot/dispatchFailureSnapshot",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicBudgetFailureMessage",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainedBudgetFailureMessage",
+          "parameters": [
+            "key",
+            "state",
+            "runId",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainedBudgetFailureMessage/retainedBudgetFailureMessage",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "observation-presentation",
+      "responsibilityFacet": "primary",
+      "owner": "Existing Local execution, original typed cause and SAME dispatch/Journal observation Owners",
+      "referenceQualification": "Original source/component contract; no normal artifact, authority or physical cleanup admission",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "dispatchFailureSnapshot",
+            "dispatchFailureSnapshot/dispatchFailureSnapshot",
+            "publicBudgetFailureMessage",
+            "retainedBudgetFailureMessage",
+            "retainedBudgetFailureMessage/retainedBudgetFailureMessage"
+          ],
+          "exports": [
+            "dispatchFailureSnapshot",
+            "publicBudgetFailureMessage",
+            "retainedBudgetFailureMessage"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/local-node/managed-row-cause-diagnostic.test.mjs",
+                "anchor": "test('original typed row cause reaches"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/execution_relation/row_failure_diagnostic.mbt",
+      "sha256": "d64debbc95663f04a527a08359c14539b956f7d805ec8f42a5080f1da5d70cdd",
+      "exports": [],
+      "operations": [
+        {
+          "name": "row_failure_diagnostic_cause",
+          "declaration": "row_failure_diagnostic_cause ( issue : RowIssue ) - > String ?"
+        }
+      ],
+      "role": "observation-presentation",
+      "responsibilityFacet": "primary",
+      "owner": "Existing Local execution, original typed cause and SAME dispatch/Journal observation Owners",
+      "referenceQualification": "Original source/component contract; no normal artifact, authority or physical cleanup admission",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "row_failure_diagnostic_cause"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/local-node/managed-row-cause-diagnostic.test.mjs",
+                "anchor": "test('original typed row cause reaches"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/execution_relation/preparation_canonical_retained.mbt",
+      "sha256": "be9f6d1a822158862001f9d9c4a16b6e931d69af3421fe49e1bb278b2386d028",
+      "exports": [],
+      "operations": [
+        {
+          "name": "canonical_preparation_retained_bytes",
+          "declaration": "canonical_preparation_retained_bytes ( tree : @ identity . CanonicalRepresentationExtent , headers : Int64 , references : Int64 , words : Int64 , text : Int64 , ) - > Int64 ?"
+        }
+      ],
+      "role": "common-semantics",
+      "responsibilityFacet": "primary",
+      "owner": "Existing canonical preparation representation and original domain capacity Owner",
+      "referenceQualification": "Original source/component contract; no normal artifact, authority or physical cleanup admission",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "canonical_preparation_retained_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/execution_relation/preparation_canonical_retained.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/execution_relation/preparation_canonical_retained.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/execution_relation/preparation_canonical_retained.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/execution_relation/preparation_canonical_retained.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/execution_relation/preparation_canonical_retained.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/execution_relation/preparation_canonical_retained.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/execution_relation/preparation_canonical_retained.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/execution_relation/preparation_canonical_retained.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/execution_relation/preparation_canonical_retained.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/execution_relation/preparation_canonical_retained.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "src/execution_relation/preparation_canonical_retained_wbtest.mbt",
+                "anchor": "test \"canonical retained fold preserves"
               }
             ]
           }

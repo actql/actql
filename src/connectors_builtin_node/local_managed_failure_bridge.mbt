@@ -1,4 +1,32 @@
 ///|
+#export_name("strategyModule_local_ManagedAdvanceCause")
+pub fn local_managed_advance_cause(
+  result : Result[
+    @local_driver.LocalManagedAdvance,
+    @local_driver.LocalDispatchIssue,
+  ],
+) -> String? {
+  match result {
+    Err(issue) => @local_driver.local_managed_failure_cause(issue)
+    _ => None
+  }
+}
+
+///|
+#export_name("strategyModule_local_ManagedAdvanceRowStep")
+pub fn local_managed_advance_row_step(
+  result : Result[
+    @local_driver.LocalManagedAdvance,
+    @local_driver.LocalDispatchIssue,
+  ],
+) -> Int {
+  match result {
+    Err(issue) => @local_driver.local_managed_failure_row_step(issue)
+    _ => -1
+  }
+}
+
+///|
 /// Diagnostic DATA from the original managed advance result only. Physical
 /// memory, row/byte/workspace bounds and unclassified failures remain distinct.
 #export_name("strategyModule_local_ManagedAdvanceControlWorkLimit")

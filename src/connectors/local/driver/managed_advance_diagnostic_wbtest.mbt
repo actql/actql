@@ -1,4 +1,62 @@
 ///|
+test "managed row cause preserves the original typed branch and step without a quota inference" {
+  for
+    original in [
+      Configuration(
+        @connector.Execution(
+          @execution.Rows(
+            41,
+            @execution.Comparison(@execution.ArithmeticFailure),
+          ),
+        ),
+      ),
+      Execution(
+        @strategy.Compute(
+          @connector.Execution(
+            @execution.Rows(
+              41,
+              @execution.Comparison(@execution.ArithmeticFailure),
+            ),
+          ),
+        ),
+      ),
+    ] {
+    assert_eq(
+      local_managed_failure_cause(original),
+      Some("comparison.arithmetic_failure"),
+    )
+    assert_eq(local_managed_failure_row_step(original), 41)
+    assert_eq(local_managed_failure_resource_dimension(original), None)
+    assert_eq(local_managed_failure_budget(original), None)
+  }
+  let row_limit = Configuration(
+    @connector.Execution(@execution.Rows(42, @execution.RowLimit)),
+  )
+  assert_eq(local_managed_failure_cause(row_limit), Some("rows.row_limit"))
+  assert_eq(local_managed_failure_row_step(row_limit), 42)
+  assert_eq(local_managed_failure_resource_dimension(row_limit), None)
+  assert_eq(local_managed_failure_budget(row_limit), None)
+}
+
+///|
+test "managed row cause does not classify success current foreign cleanup or generic input refusal" {
+  for
+    issue in [
+      Execution(@strategy.Stopped),
+      Execution(@strategy.Physical(@resources.ForeignOwner)),
+      Configuration(@connector.InputUnavailable),
+      Configuration(@connector.Execution(@execution.InputLimit)),
+      Configuration(
+        @connector.Execution(@execution.Rows(-1, @execution.RowLimit)),
+      ),
+      ControlWorkLimit(100),
+    ] {
+    assert_eq(local_managed_failure_cause(issue), None)
+    assert_eq(local_managed_failure_row_step(issue), -1)
+  }
+}
+
+///|
 test "managed advance diagnoses only the original control-work constructor" {
   assert_eq(
     local_managed_advance_control_work_limit(

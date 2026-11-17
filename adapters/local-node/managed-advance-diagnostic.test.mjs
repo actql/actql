@@ -1,3 +1,4 @@
+import {dispatchFailureSnapshot as snapshot, publicBudgetFailureMessage as publicBudgetMessage, retainedBudgetFailureMessage as retainedBudgetMessage} from '../host-node/client-dispatch-diagnostic.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
@@ -6,8 +7,7 @@ import {checkedLocalManagedAdvance} from './managed-advance-diagnostic.mjs';
 
 const source = readFileSync(new URL('../host-node/client-dispatch-owner.mjs', import.meta.url), 'utf8');
 const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
-const node = tree.body.find(value => value.type === 'FunctionDeclaration' && value.id.name === 'dispatchFailureSnapshot');
-const snapshot = Function(`return (${source.slice(node.start, node.end)});`)();
+
 
 test('managed advance resource diagnosis comes only from the original typed projector', () => {
   for (const dimension of ['retained_bytes', 'execution_bytes', undefined, 'memory', 5]) {
@@ -195,12 +195,6 @@ test('managed failure diagnostic wrapper lookup never traverses getters cause ch
   assert.equal(snapshot({primaryFailure:undefined}).primaryDiagnostic,undefined);
 });
 
-const publicBudgetNode = tree.body.find(value => value.type === 'FunctionDeclaration' && value.id.name === 'publicBudgetFailureMessage');
-const publicBudgetMessage = Function('dispatchFailureSnapshot', `return (${source.slice(publicBudgetNode.start, publicBudgetNode.end)});`)(snapshot);
-const journalSource = readFileSync(new URL('../host-node/client-request-journal.mjs', import.meta.url), 'utf8');
-const journalTree = parse(journalSource, {ecmaVersion: 'latest', sourceType: 'module'});
-const retainedBudgetNode = journalTree.body.find(value => value.type === 'FunctionDeclaration' && value.id.name === 'retainedBudgetFailureMessage');
-const retainedBudgetMessage = Function(`return (${journalSource.slice(retainedBudgetNode.start, retainedBudgetNode.end)});`)();
 const some = value => Object.assign(Object.create({$tag: 1}), {_0: value});
 // Explicit test-port DATA; the separate compiled Core test qualifies the ABI.
 const budgetTuple = fields => Object.fromEntries(fields.map((value, index) => [`_${index}`, value]));

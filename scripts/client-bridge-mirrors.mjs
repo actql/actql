@@ -31,6 +31,7 @@ export function checkRelaClientBridges(root, write = false) {
     throw new Error(`RelA Node bridge is stale: ${outputPath}`);
   }
   for (const file of ['client_preparation_root_bridge.mbt',
+    'local_managed_failure_bridge.mbt',
     'client_result_read_workspace_bridge.mbt',
     'client_native_snapshot_reader.mbt',
     'client_hubspot_effect_construction_bridge.mbt',

@@ -1,4 +1,40 @@
 ///|
+#cfg(target="js")
+extern "js" fn original_row_failure_option_abi(
+  value : String?,
+  step : Int,
+) -> Bool =
+  #|(value, step) => value === 'rows.row_limit' && step === 42
+
+///|
+#cfg(target="js")
+test "original row failure bridge returns the actual compiler closed cause and step unchanged" {
+  let original = Err(
+    @local_driver.Configuration(
+      @connector.Execution(@execution.Rows(42, @execution.RowLimit)),
+    ),
+  )
+  assert_true(
+    original_row_failure_option_abi(
+      local_managed_advance_cause(original),
+      local_managed_advance_row_step(original),
+    ),
+  )
+  let yielded : Result[
+    @local_driver.LocalManagedAdvance,
+    @local_driver.LocalDispatchIssue,
+  ] = Ok({
+    complete: false,
+    waiting: false,
+    settlement: None,
+    progress: 1L,
+    work: 1L,
+  })
+  assert_eq(local_managed_advance_cause(yielded), None)
+  assert_eq(local_managed_advance_row_step(yielded), -1)
+}
+
+///|
 test "managed advance bridge retains only the typed failed-result work cause" {
   assert_eq(
     local_managed_advance_control_work_limit(

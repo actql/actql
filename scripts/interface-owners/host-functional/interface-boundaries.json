@@ -26947,7 +26947,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "285082669ea8e3a0e84d1ee1cbd64030e51374708284d39c0fb9e8db3224ef36",
+      "sha256": "bdcccdee69ded025bb83c0493f88c9deb4f753d63da41b9b655393b416b21a2d",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -28343,13 +28343,6 @@
             "epoch",
             "fields",
             "control"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainedBudgetFailureMessage/retainedBudgetFailureMessage",
-          "parameters": [
-            "name"
           ],
           "async": false
         },
@@ -31277,9 +31270,7 @@
           }
         },
         {
-          "operations": [
-            "retainedBudgetFailureMessage/retainedBudgetFailureMessage"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -31290,49 +31281,49 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-dispatch-diagnostic.mjs",
                 "anchor": "function retainedBudgetFailureMessage"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-dispatch-diagnostic.mjs",
                 "anchor": "function retainedBudgetFailureMessage"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-dispatch-diagnostic.mjs",
                 "anchor": "function retainedBudgetFailureMessage"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-dispatch-diagnostic.mjs",
                 "anchor": "function retainedBudgetFailureMessage"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-dispatch-diagnostic.mjs",
                 "anchor": "function retainedBudgetFailureMessage"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-dispatch-diagnostic.mjs",
                 "anchor": "function retainedBudgetFailureMessage"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-dispatch-diagnostic.mjs",
                 "anchor": "function retainedBudgetFailureMessage"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-dispatch-diagnostic.mjs",
                 "anchor": "function retainedBudgetFailureMessage"
               }
             ],
@@ -31360,6 +31351,7 @@
         "../host-common/sqlite-schema-resource-bounds.mjs",
         "../host-common/sqlite-transaction.mjs",
         "../store-local/publication-store.mjs",
+        "./client-dispatch-diagnostic.mjs",
         "./client-observation-journal.mjs",
         "./client-source-operation.mjs",
         "./host-journal-directory.mjs",
