@@ -704,17 +704,22 @@ static bool managed_process_observations(void) {
     process_calls=0; observe_process_calls=true;
     for(size_t i=0;i<32;i++) actql_native_moon_scoped_free(values[i]);
     observe_process_calls=false; size_t free_calls=process_calls;
-    /* Measured prior costs were six queries per allocation and four per free.
-     * Bound redundant work without freezing a private helper count or layout. */
-    assert(allocation_calls>0 && allocation_calls<6*32);
-    assert(free_calls>0 && free_calls<4*32);
+    /* Every public entry still observes the actual process. A callback-free
+     * locked path must not multiply that observation by its private helpers. */
+    assert(allocation_calls>=32 && allocation_calls<2*32);
+    assert(free_calls>=32 && free_calls<2*32);
     context_leave(lease,context);
     assert(actql_read_context_release_after_owner_ack(context)==0);
     assert(actql_read_context_try_close(&context)==ACTQL_OWNED_BUSY);
+    process_calls=0; observe_process_calls=true;
     actql_native_moon_scoped_free(sentinel); /* Original provenance after leave. */
+    observe_process_calls=false; size_t after_leave_calls=process_calls;
+    assert(after_leave_calls>0);
     finish(&lease,&context);
     printf("{\"allocationCalls\":32,\"allocationProcessQueries\":%zu,"
-           "\"freeCalls\":32,\"freeProcessQueries\":%zu}\n",allocation_calls,free_calls);
+           "\"freeCalls\":32,\"freeProcessQueries\":%zu,"
+           "\"afterLeaveFreeProcessQueries\":%zu}\n",
+           allocation_calls,free_calls,after_leave_calls);
     return true;
 }
 #endif
@@ -1584,6 +1589,15 @@ int main(int argc,char **argv) {
     struct rlimit core={0,0}; assert(setrlimit(RLIMIT_CORE,&core)==0);
     setbuf(stdout,NULL);
 #ifdef ACTQL_READ_PROCESS_OBSERVATION
+    if(argc==2 && strcmp(argv[1],"--managed-process-fences-only")==0) {
+        assert(fork_arena());
+        assert(foreign_pid());
+        assert(nested_foreign_closing());
+        assert(exhausted_no_fallback());
+        assert(retire_retry());
+        puts("{\"case\":\"fresh-process-original-fences\",\"passed\":5,\"failed\":0}");
+        return 0;
+    }
     if(argc==2 && strcmp(argv[1],"--managed-process-observations-only")==0) {
         assert(managed_process_observations());
         puts("{\"case\":\"same-original-process-observations\",\"passed\":1,\"failed\":0}");
