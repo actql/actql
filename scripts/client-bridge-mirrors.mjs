@@ -53,6 +53,7 @@ export function checkRelaClientBridges(root, write = false) {
     'client_infer_run_materials_bridge.mbt',
     'client_public_model_task_bridge.mbt',
     'client_normal_model_execution_bridge.mbt',
+    'client_model_configuration_bridge.mbt',
     'client_row_listing_capacity.mbt',
     'client_request_value_policy.mbt',
     'client_prepared_public_environment.mbt',

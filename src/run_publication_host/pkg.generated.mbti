@@ -2323,6 +2323,8 @@ pub fn prepare_client_keyed_serialization_inputs(PreparedClientProgram, ClientKe
 
 pub fn prepare_client_local_checkpoint_proof(String, String) -> Result[ClientLocalCheckpointProof, ClientLocalCheckpointProofIssue]
 
+pub fn prepare_client_model_provider_originals(String, String, String, Int, Int, Int, Int) -> Result[(String, String, String, String, String, String), @check_environment.ModelTaskIssue]
+
 pub fn prepare_client_model_read(ClientModelReadScope, Int64, Int64) -> Result[ClientModelReadPreparation, ClientModelReadPreparationIssue]
 
 pub fn prepare_client_model_read_state(ClientModelReadScope, @encode_core.Writer, Int64, Int64, binding_work? : Int) -> Result[ClientModelReadPreparation, @physical_resources.OriginalStateWriteIssue]

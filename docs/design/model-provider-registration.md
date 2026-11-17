@@ -1153,3 +1153,13 @@ Mock profile or its fixed limits. The ordinary execution and dependency readers
 still check the Task reference and original prompt/retry/backoff before any Run
 can use that DATA. A cost ceiling is not a pricing observation: an OpenAI recipe
 must preserve unknown-cost accounting and cannot choose zero to make a request fit.
+
+The normal binding-material constructor accepts bounded nonsecret JSON text for
+the installation revision, configuration contract and configuration. Existing
+Common source/canonical owners preserve data text and keys and emit each canonical
+wire/CID pair. Host JSON text is a transport representation, not a second canonical
+or identity implementation. The later original Provider binding and defaults
+readers retain their complete checks and configuration-identifier rules. Secret
+acquisition remains separate, and these materials attest neither implementation
+truth nor current authority. The initial Host constructor must fund all source,
+canonical tree, writer and output overlap before invoking this DATA constructor.
