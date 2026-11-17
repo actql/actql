@@ -1523,7 +1523,9 @@ fn advance_expression_frame_impl(
               }
               continue
             }
-            if op == @lower.Utf8Truncate ||
+            if op == @lower.ParseTimestamp ||
+              op == @lower.FormatTimestamp ||
+              op == @lower.Utf8Truncate ||
               op == @lower.Contains ||
               op == @lower.Strpos ||
               op == @lower.TrimSet ||
@@ -1541,7 +1543,11 @@ fn advance_expression_frame_impl(
                   expr,
                   [left, value],
                   [left_root, frame.current_root],
-                  if op == @lower.Utf8Truncate {
+                  if op == @lower.ParseTimestamp {
+                    TextParseTimestamp
+                  } else if op == @lower.FormatTimestamp {
+                    TextFormatTimestamp
+                  } else if op == @lower.Utf8Truncate {
                     TextUtf8Truncate
                   } else if op == @lower.TrimSet {
                     TextTrim

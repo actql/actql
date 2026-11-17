@@ -1,6 +1,7 @@
 ///|
 fn string_try_number_test_environment(
   max_input_bytes? : Int = 256,
+  max_pattern_bytes? : Int = 1,
 ) -> @checked.CheckEnvironment {
   // An explicit admitted test profile, not operational Host/Account capacity.
   let default_policy =
@@ -8,6 +9,10 @@ fn string_try_number_test_environment(
   let policy = default_policy.replace(
     old="\"max_input_utf8_bytes\":256",
     new="\"max_input_utf8_bytes\":" + max_input_bytes.to_string(),
+  )
+  let policy = policy.replace(
+    old="\"max_pattern_bytes\":1",
+    new="\"max_pattern_bytes\":" + max_pattern_bytes.to_string(),
   )
   let unsigned = run_materials_environment_wire
     .replace(

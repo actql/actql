@@ -93,8 +93,10 @@ pub fn from_contract(
   policy : @policy.Policy,
 ) -> Result[Input, Issue] {
   match contract.shape {
+    // Canonical UTC accepts 3 through 9 fractional digits. This is the maximum
+    // representation demand, not permission to exceed the selected policy.
     @contract.Timestamp =>
-      admitted(contract, None, policy, ValueContract, 24L, 24L)
+      admitted(contract, None, policy, ValueContract, 30L, 30L)
     @contract.Text(bounds) => {
       let (points, bytes) = match
         (bounds.max_codepoints, bounds.max_utf8_bytes) {

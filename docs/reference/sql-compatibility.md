@@ -107,6 +107,7 @@ propagation is not supported.
 | Comparison and logic | `=`, `<>`, `!=`, `<`, `<=`, `>`, `>=`, `AND`, `OR`, `NOT`, `IS [NOT] NULL`, `IN (…)`, `IN UNNEST(array)`, `BETWEEN` |
 | Conditionals | `CASE WHEN … THEN … ELSE … END`, `IF`, `IFNULL`, `COALESCE`, `NULLIF` |
 | Casts | `CAST(x AS STRING \| NUMBER \| FLOAT64 \| DOUBLE \| BOOLEAN \| TIMESTAMP \| DECIMAL(P,S))`; same-type casts are identity |
+| Timestamp patterns | `PARSE_TIMESTAMP(format, string)`, `FORMAT_TIMESTAMP(format, timestamp)` with the pinned text-time grammar below |
 | Strings | `CONCAT`, `\|\|`, `LENGTH`, `LOWER`, `UPPER`, `TRIM`, `LTRIM`, `RTRIM`, `LEFT`, `RIGHT`, `LPAD`, `RPAD`, `SUBSTRING`, `REPLACE`, `SPLIT`, `STARTS_WITH`, `ENDS_WITH`, `INSTR`, `STRPOS`, `BYTE_LENGTH`, `UNICODE`, `TRANSLATE`, `CONTAINS` |
 | Numbers | `+ - * /`, `ABS`, `SIGN`, `ROUND`, `TRUNC`, `FLOOR`, `SQRT`, `CBRT`, `POW`, `EXP`, `LN`, `LOG`, `LOG10`, trigonometric functions, `GREATEST`, `LEAST`, `SAFE_DIVIDE` and the other `SAFE_*` forms |
 | Aggregates | `COUNT(*)`, `COUNT(x)`, `COUNTIF`, `SUM`, `AVG`, `MIN`, `MAX`, `ARRAY_AGG(x ORDER BY …)`, `STRING_AGG(x, 'sep')`, filtered aggregates (`… WHERE …` inside the call) |
@@ -115,6 +116,26 @@ propagation is not supported.
 
 The full function list, with types and NULL rules, is in
 [Types and functions](types-and-functions.md).
+
+Timestamp casts require a valid canonical UTC value with `T`, a trailing `Z`
+and 3–9 fractional digits. For example, `2026-01-02T03:04:05.123Z` and
+`2026-01-02T03:04:05.123456789Z` are valid. Zero fractional digits, spaces,
+offset suffixes and surrounding whitespace are refused rather than normalized.
+
+Timestamp pattern functions require the text-time profile. Their existing
+grammar uses `yyyy`, `MM`, `dd`, `HH`, `mm`, `ss` and `SSS`, each at most once;
+the literal separators are `-`, `/`, `:`, space, `.`, and `T`. Percent directives
+such as `%Y` are not part of this grammar. Parsing requires a complete date,
+consumes the whole input and validates the calendar. Missing time components
+default to zero; the result has millisecond precision. Formatting `SSS` selects
+the millisecond digits of an admitted timestamp without rounding. Input,
+pattern, output and execution limits still apply.
+
+```sql
+SELECT PARSE_TIMESTAMP('yyyy-MM-dd', '2026-01-02') AS parsed;
+SELECT FORMAT_TIMESTAMP('yyyy',
+  CAST('2026-01-02T03:04:05.123456789Z' AS TIMESTAMP)) AS year;
+```
 
 For literal CLI `sql` and `aql` queries, the optional
 `--parameter-declarations-file` supplies those declarations as named value

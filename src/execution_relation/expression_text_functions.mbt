@@ -37,6 +37,8 @@ priv enum TextFunctionKind {
   TextRTrim
   TextContains
   TextUtf8Truncate
+  TextParseTimestamp
+  TextFormatTimestamp
 } derive(Eq)
 
 ///|
@@ -112,6 +114,7 @@ priv struct TextFunctionState {
   normalization : @canonical.NormalizationCursor?
   mut normalization_phase : Int
   mut normalization_input_bytes : Int64
+  timestamp : TimestampFunctionState?
 }
 
 ///|
@@ -127,7 +130,10 @@ fn start_text_function(
   for i, value in values {
     match value {
       Null => null_result = true
+      Captured(@admitted.Timestamp(_)) if kind == TextFormatTimestamp && i == 0 =>
+        ()
       Text(_) if kind != TextChr &&
+        (kind != TextFormatTimestamp || i != 0) &&
         (
           (
             !is_slice_text_function(kind) &&
@@ -149,9 +155,34 @@ fn start_text_function(
   }
   fn text(value : Value) -> String {
     match value {
-      Text(text) => text
+      Text(text) | Captured(@admitted.Timestamp(text)) => text
       _ => ""
     }
+  }
+  let timestamp_pattern = if kind == TextParseTimestamp ||
+    kind == TextFormatTimestamp {
+    guard values.length() == 2 &&
+      values[1] is Text(_) &&
+      @lower.expression_text_bound(expression) is Some(original) &&
+      @lower.text_bound_timestamp_pattern(original) is Some(pattern) else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    let operation = @text_bounds.output_operation(
+      @lower.text_bound_output(original),
+    )
+    if !(if kind == TextParseTimestamp {
+        operation is @text_bounds.ParseTimestamp &&
+        @timestamp.mode(pattern) == @timestamp.Parse
+      } else {
+        operation is @text_bounds.FormatTimestamp(bound) &&
+        physical_equal(bound, pattern) &&
+        @timestamp.mode(pattern) == @timestamp.Format
+      }) {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    Some(pattern)
+  } else {
+    None
   }
   let input = text(values[0])
   let repeat_count = if kind == TextRepeat && !null_result {
@@ -245,7 +276,11 @@ fn start_text_function(
     0
   }
   let reserved = (if kind == TextUtf8Truncate { 6 } else { 2 }) +
-    normalization_slots
+    normalization_slots +
+    (if timestamp_pattern is Some(_) { 16 } else { 0 })
+  // Timestamp continuation: one original pattern handle, seven component
+  // words and their container, plus fixed progress controls. Admit before the
+  // private state and component array are constructed under this workspace.
   if is_normalization {
     guard @lower.expression_text_bound(expression) is Some(original) else {
       return Err({ kind: Scalar(InvalidOperand), expression, })
@@ -382,7 +417,7 @@ fn start_text_function(
       ""
     },
     output_root,
-    reserved: if is_normalization {
+    reserved: if is_normalization || timestamp_pattern is Some(_) {
       reserved
     } else if truncate is Some(_) {
       6
@@ -447,6 +482,15 @@ fn start_text_function(
     },
     normalization_phase: 0,
     normalization_input_bytes: 0L,
+    timestamp: timestamp_pattern.map(pattern => {
+      pattern,
+      parts: FixedArray::make(7, 0),
+      phase: 0,
+      component: 0,
+      digit: 0,
+      offset: 0,
+      input_bytes: 0L,
+    }),
     trim_end: if kind == TextRTrim || kind == TextUtf8Truncate {
       0
     } else {
@@ -593,6 +637,9 @@ fn advance_text_function(
   let expression = state.expression
   if state.null_result {
     return Ok(Some(Null))
+  }
+  if state.timestamp is Some(timestamp) {
+    return advance_timestamp_function(state, timestamp, workspace)
   }
   if state.normalization is Some(cursor) {
     return advance_normalization_function(state, cursor, workspace)

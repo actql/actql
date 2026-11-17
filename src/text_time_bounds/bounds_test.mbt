@@ -142,12 +142,40 @@ test "checked values supply exact multibyte and known-null input extent" {
   assert_eq(input_extent(input), (0L, 0L))
   assert_eq(output_bytes(derive_output(input, Nfkc).unwrap()), 0L)
   let t = @contract.primitive(@contract.TimestampType, nullable=false)
-  assert_eq(input_extent(from_contract(t, p).unwrap()), (24L, 24L))
+  assert_eq(input_extent(from_contract(t, p).unwrap()), (30L, 30L))
   assert_eq(
     input_extent(
       from_value(value(t, "\"2024-01-01T00:00:00.000Z\""), p, max_text_bytes=24).unwrap(),
     ),
     (24L, 24L),
+  )
+}
+
+///|
+test "canonical nanosecond Timestamp demand preserves exact and short input policy refusal" {
+  let t = @contract.primitive(@contract.TimestampType, nullable=false)
+  let original = value(t, "\"2026-01-02T03:04:05.123456789Z\"")
+  let exact = policy(points=30L, bytes=30L)
+  assert_eq(input_extent(from_contract(t, exact).unwrap()), (30L, 30L))
+  assert_eq(
+    input_extent(from_value(original, exact, max_text_bytes=30).unwrap()),
+    (30L, 30L),
+  )
+  assert_true(
+    from_contract(t, policy(points=29L, bytes=30L)) is Err(InputCeiling),
+  )
+  assert_true(
+    from_contract(t, policy(points=30L, bytes=29L)) is Err(InputCeiling),
+  )
+  assert_true(
+    from_contract(t, policy(points=24L, bytes=24L)) is Err(InputCeiling),
+  )
+  assert_true(
+    from_value(original, exact, max_text_bytes=29) is Err(BudgetExceeded),
+  )
+  assert_true(
+    from_value(original, policy(points=30L, bytes=29L), max_text_bytes=30)
+    is Err(InputCeiling),
   )
 }
 

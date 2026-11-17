@@ -286,6 +286,8 @@ fn scalar_call(
     "TO_NUMBER" => ("TO_NUMBER", "to_number", 1, 1)
     "TRY_NUMBER" => ("TRY_NUMBER", "try_number", 1, 1)
     "TRY_TIMESTAMP" => ("TRY_TIMESTAMP", "try_timestamp", 1, 2)
+    "PARSE_TIMESTAMP" => ("PARSE_TIMESTAMP", "parse_timestamp", 2, 2)
+    "FORMAT_TIMESTAMP" => ("FORMAT_TIMESTAMP", "format_timestamp", 2, 2)
     "UTF8_TRUNCATE" => ("UTF8_TRUNCATE", "utf8_truncate", 2, 2)
     "TO_STRING" => ("TO_STRING", "to_string", 1, 1)
     "TO_BOOLEAN" => ("TO_BOOLEAN", "to_boolean", 1, 1)
@@ -813,6 +815,17 @@ fn append_resolved(
                   lowering.object([
                     ("value", nodes[args[0]]),
                     ("max_bytes", nodes[args[1]]),
+                  ]),
+                )
+              } else if name == "parse_timestamp" || name == "format_timestamp" {
+                // SQL supplies the pattern first. The existing Common body
+                // remains value-first, including its checked pattern role,
+                // selected text-time profile and construction obligations.
+                lowering.form(
+                  name,
+                  lowering.object([
+                    ("value", nodes[args[1]]),
+                    ("pattern", nodes[args[0]]),
                   ]),
                 )
               } else if name == "try_timestamp" {

@@ -170,7 +170,9 @@ fn check_backend_capabilities(
             | Contains
             | DateTruncate
             | DecimalDivide(_)
-            | Utf8Truncate => ()
+            | Utf8Truncate
+            | ParseTimestamp
+            | FormatTimestamp => ()
           }
           pending.push(right)
           pending.push(left)

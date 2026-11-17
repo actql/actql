@@ -127,6 +127,8 @@ pub(all) enum BinaryOperator {
   DateTruncate
   DecimalDivide(String)
   Utf8Truncate
+  ParseTimestamp
+  FormatTimestamp
 } derive(Eq, Debug)
 
 ///|
@@ -428,6 +430,8 @@ fn expression_tag(
     | "try_decimal"
     | "try_number"
     | "try_timestamp"
+    | "parse_timestamp"
+    | "format_timestamp"
     | "nfkc"
     | "case_fold"
     | "utf8_truncate"
@@ -508,6 +512,15 @@ fn expression_children(
         @decode.lookup(obj, "left").unwrap(),
         @decode.lookup(obj, "right").unwrap(),
       ]
+    }
+    "parse_timestamp" | "format_timestamp" => {
+      let obj = @decode.open_object(body).unwrap()
+      let value = @decode.lookup(obj, "value").unwrap()
+      if @decode.lookup(obj, "pattern") is Some(pattern) {
+        [value, pattern]
+      } else {
+        [value]
+      }
     }
     "try_timestamp" => {
       let obj = @decode.open_object(body).unwrap()
@@ -972,7 +985,16 @@ fn lower_typed_expression_measured(
     for obligation in @typing.pending_validations(typed) {
       let admitted = match obligation.kind {
         @typing.ProfileAdmission(profile) => profile_admitted(profile)
-        @typing.PatternValidation(_) => false
+        @typing.PatternValidation(operation) =>
+          ["parse_timestamp", "format_timestamp"].contains(operation) &&
+          original_expression_discharge(
+            typed,
+            obligation.node_index,
+            obligation.kind,
+            budget,
+            bound=original_context,
+          )
+          is Some(@context.Pattern(@context.Timestamp(_)))
         @typing.HostEnvelope => {
           let node = @typing.node_at(typed, obligation.node_index).unwrap()
           let (operation, _) = @decode.field_at(node.source, 0).unwrap()
@@ -983,9 +1005,10 @@ fn lower_typed_expression_measured(
               )
             None => None
           }
-          if ["try_number", "utf8_truncate", "nfkc", "case_fold"].contains(
-              operation,
-            ) &&
+          if [
+              "try_number", "utf8_truncate", "nfkc", "case_fold", "parse_timestamp",
+              "format_timestamp",
+            ].contains(operation) &&
             original is Some(original) {
             let index = @decode.tree_index(root, node.source).unwrap()
             text_bounds[index] = original
@@ -1211,6 +1234,8 @@ fn lower_typed_expression_measured(
         "nfkc" => Unary(Nfkc, args[0])
         "case_fold" => Unary(CaseFold, args[0])
         "try_timestamp" => Unary(TryTimestamp, args[0])
+        "parse_timestamp" => Binary(ParseTimestamp, args[0], args[1])
+        "format_timestamp" => Binary(FormatTimestamp, args[0], args[1])
         "utf8_truncate" => Binary(Utf8Truncate, args[0], args[1])
         "decimal_divide" => {
           let obj = @decode.open_object(body).unwrap()
@@ -1464,14 +1489,17 @@ pub fn expression_text_bound(value : Expression) -> ExpressionTextBound? {
 }
 
 ///|
-fn original_expression_text_bound(
-  bound : BoundPrepared,
-  step : Int,
+fn original_expression_discharge(
   typed : @typing.TypedExpression,
-  obligation : @typing.Obligation,
+  node_index : Int,
+  kind : @typing.ObligationKind,
   budget : ExpressionBudget,
-) -> ExpressionTextBound? raise ExpressionStop {
-  guard bound.expression_context is Some((closure, stage)) else { return None }
+  bound~ : (BoundPrepared, Int)?,
+) -> @context.ExpressionDischarge? raise ExpressionStop {
+  guard bound is Some((bound, step)) &&
+    bound.expression_context is Some((closure, stage)) else {
+    return None
+  }
   let identity = @context.expression_closure_identity(closure)
   for i in 0..<@context.expression_closure_count(closure) {
     expression_spend(budget, @syntax.tree(@typing.expression(typed)))
@@ -1482,8 +1510,8 @@ fn original_expression_text_bound(
     let requirement = @context.validation_site_requirement(entry.site)
     if requirement.step != step ||
       !physical_equal(requirement.expression, typed) ||
-      requirement.obligation.node_index != obligation.node_index ||
-      requirement.obligation.kind != obligation.kind {
+      requirement.obligation.node_index != node_index ||
+      requirement.obligation.kind != kind {
       continue
     }
     if @context.program_identity_producer_is_local(
@@ -1494,12 +1522,49 @@ fn original_expression_text_bound(
       is Some(true) &&
       @context.program_identity_producer_at(identity, stage, requirement.visit)
       is Some(pipeline) &&
-      physical_equal(bound.prepared.owner, pipeline) &&
-      entry.resolution is @context.Envelope(original) {
-      return Some(ExpressionTextBound(original))
+      physical_equal(bound.prepared.owner, pipeline) {
+      return Some(entry.resolution)
     }
   }
   None
+}
+
+///|
+fn original_expression_text_bound(
+  bound : BoundPrepared,
+  step : Int,
+  typed : @typing.TypedExpression,
+  obligation : @typing.Obligation,
+  budget : ExpressionBudget,
+) -> ExpressionTextBound? raise ExpressionStop {
+  guard original_expression_discharge(
+      typed,
+      obligation.node_index,
+      obligation.kind,
+      budget,
+      bound=Some((bound, step)),
+    )
+    is Some(@context.Envelope(original)) else {
+    return None
+  }
+  let timestamp = match @typing.node_form(typed, obligation.node_index) {
+    Some(@typing.Expression(operation, _)) if [
+        "parse_timestamp", "format_timestamp",
+      ].contains(operation) =>
+      match
+        original_expression_discharge(
+          typed,
+          obligation.node_index,
+          @typing.PatternValidation(operation),
+          budget,
+          bound=Some((bound, step)),
+        ) {
+        Some(@context.Pattern(@context.Timestamp(pattern))) => Some(pattern)
+        _ => return None
+      }
+    _ => None
+  }
+  Some({ original, timestamp, })
 }
 
 ///|

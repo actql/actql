@@ -1,9 +1,14 @@
 ///|
 fn original_string_fragment_request(
   expression? : String = "try_number(text)",
+  max_pattern_bytes? : Int = 1,
 ) -> @lower.FragmentRequest {
   let unsigned =
     #|{"command_contracts":[],"connector_capabilities":[],"connector_catalogs":[],"contract_registry":[],"host_policy_profile":{"capacity":{"max_aggregate_array_items":1000,"max_artifact_bytes":1000,"max_artifact_rows":1000,"max_effect_items":1000,"max_graph_input_edges":1000,"max_graph_input_nodes":1000,"max_graph_output_rows":1000,"max_graph_paths":1000,"max_infer_items":1000,"max_model_input_tokens_per_item":1000,"max_model_request_bytes_per_item":1000,"max_model_total_duration_ms":1000,"max_nested_value_bytes":1000,"max_nested_value_depth":1000,"max_relation_output_rows":1000,"max_temporal_matches_per_key":1000,"max_temporal_output_rows":1000,"version":"actql-capacity-host-policy/0.1"},"text_time_evaluation":{"max_input_codepoints":64,"max_input_utf8_bytes":256,"max_output_bytes":64,"max_pattern_bytes":1,"max_replacements":1,"version":"actql-text-time-host-policy/0.1"}},"mapping_contracts":[],"model_task_contracts":[],"schema_snapshots":[],"source_views":[],"version":"actql-check-environment/0.1"}
+  let unsigned = unsigned.replace(
+    old="\"max_pattern_bytes\":1",
+    new="\"max_pattern_bytes\":" + max_pattern_bytes.to_string(),
+  )
   let cid = "sha256:" + @sha.hex(@utf8.encode(unsigned))
   let wire = unsigned.replace(
     old="\"host_policy_profile\":",

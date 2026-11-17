@@ -6,6 +6,7 @@ import {
   "actql/actql/expression_typing" @typing,
   "actql/actql/text_time_policy" @text_policy,
   "actql/actql/text_time_bounds" @text_bounds,
+  "actql/actql/timestamp_pattern" @timestamp,
   "actql/actql/run_publication" @publication,
   "actql/actql/bounded_execution" @bounded,
   "actql/actql/relation_join_shape" @join,
