@@ -1134,3 +1134,13 @@ current checks bracket every await; failure stops activation. Later raw capture
 still confirms the same originals and requires its original selected policy,
 current authority and checked Run. Legacy registrations keep their explicit
 policy persistence contract. No raw response or secret is policy metadata.
+
+An admitted response-profile template can be re-emitted for the same normalized
+non-Mock structured Task by Common. Only the Task, input-schema and output-schema
+identities change. The admitted installation, SDK identity, endpoint, completion
+rules, ordered observations and numerical bounds remain exact; Decision templates
+are refused by this constructor. The existing canonical writer/hash computes the
+new wire and self CID with two bounded traversals. This DATA must still enter the
+existing complete profile reader and Task/installation binding check. The Host
+funds simultaneous template, encoder and output retention before construction;
+neither the template nor its re-emission supplies physical adequacy or permission.

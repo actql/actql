@@ -614,6 +614,8 @@ pub fn normalized_public_model_task_original_for(NormalizedPublicModelTask, Publ
 
 pub fn normalized_public_model_task_provider_data(NormalizedPublicModelTask, Int, Int, Int, Int) -> Result[(String, String, String), ModelTaskIssue]
 
+pub fn normalized_public_model_task_response_profile(NormalizedPublicModelTask, ModelResponseProfile, Int, Int, Int, Int) -> Result[(String, String), ModelTaskIssue]
+
 pub fn normalized_public_model_task_retained_extent(NormalizedPublicModelTask) -> RegistryConstructionExtent
 
 pub fn normalized_public_model_task_schema_cids(NormalizedPublicModelTask) -> (String, String)

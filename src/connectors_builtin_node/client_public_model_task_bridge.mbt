@@ -130,6 +130,22 @@ pub fn client_program_normalized_public_model_task_provider_data(
 }
 
 ///|
+/// Physical profile DATA for the original Task; not an installation or grant.
+#export_name("clientProgramNormalizedPublicModelTaskResponseProfile")
+pub fn client_program_normalized_public_model_task_response_profile(
+  value : @check_environment.NormalizedPublicModelTask,
+  template : @check_environment.ModelResponseProfile,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_work : Int,
+) -> Result[(String, String), @check_environment.ModelTaskIssue] {
+  @check_environment.normalized_public_model_task_response_profile(
+    value, template, max_bytes, max_nodes, max_depth, max_work,
+  )
+}
+
+///|
 /// Canonical outer-Environment DATA only. The installed Host retains every
 /// normalized Task original and uses its ordinary full checker afterward.
 #export_name("clientProgramProjectPublicModelTaskEnvironment")
