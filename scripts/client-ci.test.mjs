@@ -20,6 +20,7 @@ import './hubspot-oauth-operator.test.mjs';
 import {parse} from 'yaml';
 import {parse as parseJavaScript} from 'acorn';
 import {runRestActualCommon} from './ci-rest-actual-common.mjs';
+import {CLIENT_PACKAGES} from './packed-client-packages.mjs';
 import {optionalEffectCases} from './fixtures/two-source-optional-effect.mjs';
 import {compositionProgram, compositionTemplate, compositionExpectations, compositionText, compositionTextTemplate,
   publicFixtureEnvironment} from
@@ -970,16 +971,20 @@ test('ordinary Local assets reuse tarballs while cold and external builds stay s
 });
 
 test('one producer uploads only manifest and tarballs; consumers select its immutable artifact ID', () => {
-  assert.deepEqual(runs('client-packages'), ['node scripts/packed-client-packages.mjs "$RUNNER_TEMP/actql-client-packages"']);
   const producer = jobs['client-packages'];
+  const required = producer.steps.filter(step => step.run?.startsWith('node scripts/packed-client-packages.mjs '));
+  assert.equal(required.length, 1, 'The required cohort has one original producer entrance');
   const upload = producer.steps.find(step => step.id === 'packages');
+  assert(producer.steps.indexOf(required[0]) < producer.steps.indexOf(upload));
   assert.equal(upload.uses, 'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02');
   assert.equal(upload.with.name, 'actql-client-packages-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}');
   assert.equal(upload.with['if-no-files-found'], 'error');
   assert.equal(upload.with['retention-days'], 7);
   assert.deepEqual(upload.with.path.trim().split('\n'), [
-    'packed-client-packages.json', ...['client-wire', 'sdk', 'run-host-core', 'local-node', 'node']
+    'packed-client-packages.json', ...CLIENT_PACKAGES
       .map(name => `actql-${name}-0.0.0-development.tgz`),
+    'optional-provider/packed-client-packages.json',
+    'optional-provider/actql-provider-ai-sdk-0.0.0-development.tgz',
   ].map(name => '${{ runner.temp }}/actql-client-packages/' + name));
   assert.deepEqual(producer.outputs, {'artifact-id': '${{ steps.packages.outputs.artifact-id }}'});
   for (const name of consumers) {

@@ -276,7 +276,7 @@ jobs:
         run: python3 -I -B scripts/benchmark-ordinary-processes.test.py
       - name: Test ordinary artifact reuse and controlled performance gate
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
-        run: node --test scripts/ordinary-operation-packages.test.mjs
+        run: node --test scripts/ordinary-operation-packages.test.mjs scripts/packed-provider-ai-sdk.test.mjs
       - name: Test Client CI partition and aggregate requirements
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/client-ci.test.mjs scripts/native-cli-project-init.test.mjs scripts/native-cli-project-scaffold.test.mjs scripts/native-cli-linux-local-ci.test.mjs scripts/produce-native-cli-linux-local.test.mjs scripts/native-cli-source-free-install.test.mjs scripts/release-test-registry.test.mjs scripts/native-cli-linux-local-recipe.test.mjs scripts/ci-native-cli-installed.test.mjs scripts/native-cli-mock-scenario.test.mjs
@@ -1546,6 +1546,15 @@ jobs:
           python: 'true'
       - name: Pack the Client packages once for these jobs
         run: node scripts/packed-client-packages.mjs "$RUNNER_TEMP/actql-client-packages"
+      - name: Pack the optional provider from the same original source
+        run: |
+          node --input-type=module <<'JS'
+          import {join} from 'node:path';
+          import {packClientPackages} from './scripts/packed-client-packages.mjs';
+          await packClientPackages({repository: process.cwd(),
+            destination: join(process.env.RUNNER_TEMP, 'actql-client-packages/optional-provider'),
+            names: ['provider-ai-sdk']});
+          JS
       - name: Retain immutable Client package inputs
         id: packages
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -1558,6 +1567,8 @@ jobs:
             ${{ runner.temp }}/actql-client-packages/actql-run-host-core-0.0.0-development.tgz
             ${{ runner.temp }}/actql-client-packages/actql-local-node-0.0.0-development.tgz
             ${{ runner.temp }}/actql-client-packages/actql-node-0.0.0-development.tgz
+            ${{ runner.temp }}/actql-client-packages/optional-provider/packed-client-packages.json
+            ${{ runner.temp }}/actql-client-packages/optional-provider/actql-provider-ai-sdk-0.0.0-development.tgz
           if-no-files-found: error
           retention-days: 7
   # Ready PRs must exercise the README consumers on the same ordinary tars.
@@ -1599,6 +1610,11 @@ jobs:
           ACTQL_TABLE_PYTHON: ${{ runner.temp }}/readme-table-python/bin/python
           PYTHONDONTWRITEBYTECODE: '1'
         run: node scripts/test-packed-readme-workflows.mjs "$RUNNER_TEMP/client-readme-packed"
+      - name: Test the optional provider through installed public entrances
+        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        run: |
+          command -v lsof
+          node scripts/test-packed-provider-ai-sdk.mjs "$RUNNER_TEMP/client-readme-packed/optional-provider"
       - name: Test direct and CTE UNION budgets through original Results and cold Saved
         id: packed-union-budget
         if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
@@ -1616,6 +1632,9 @@ jobs:
           name: client-readme-packed-${{ matrix.node }}-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
           path: |
             ${{ runner.temp }}/client-readme-packed/summary.json
+            ${{ runner.temp }}/client-readme-packed/optional-provider/summary.json
+            ${{ runner.temp }}/client-readme-packed/optional-provider/packages/*packages.json
+            ${{ runner.temp }}/client-readme-packed/optional-provider/raw/*
             ${{ runner.temp }}/client-readme-packed/packages/*packages.json
             ${{ runner.temp }}/client-readme-packed/*-mock-*.json
             ${{ runner.temp }}/client-readme-packed/raw/*
