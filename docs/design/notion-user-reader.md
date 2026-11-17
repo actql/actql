@@ -144,6 +144,33 @@ request parameters and capabilities follow the existing list-users reference.
 
 ## Installed user Source preparation
 
+The private finite-page Host assembly reuses the original Site call record and
+the one selected `createSourceReader` implementation. It publishes only through
+the trusted installed Host continuation, passing the same Site, authorization
+and returned reader. Provider page ports receive resource/column DATA and the
+existing synchronous projector, never these physical originals. The Notion
+plugin retains `GET /v1/users`, `notion:users:list`, the `2026-03-11` header,
+and the complete checked Catalog envelope before rows or progress are exposed.
+The generic row-only REST family remains a separate interpretation.
+
+This assembly constructs no capacity, metadata collection or second snapshot of
+the credential/profile DATA. Its positional arguments borrow the same originals;
+the Site and reader call records keep their existing fields. Fixed Host call
+frames and the publication continuation use the existing trusted Host control
+baseline; the declaration, legacy JSON page/id/cursor inventories, raw response
+holdings and projection workspace still use their original Source recipe and
+reservation. No cursor mode, larger ceiling or caller-selected allowance is
+introduced. This correspondence is a logical Host recipe claim, not an RSS or
+physical-retirement measurement.
+
+The returned reader is retained before observing its capacity or publishing a
+Source. A capacity getter or publication failure therefore keeps that original
+reader and Site in existing initialization cleanup. Reader retirement must
+complete before closing the dependent Site; an unresolved Site-construction
+child remains the same pending child. Cleanup retry cannot reconstruct or
+republish the Source. Direct-import assembly and constructor-refusal tests check
+this ordering without issuing a Common parent or claiming normal HTTP capture.
+
 The connector-owned Host manifest selects the user Source factory through the
 existing installation table. Its closed initial-0.1 private profile fixes the
 connector identity, Site-profile path, original Account configuration and

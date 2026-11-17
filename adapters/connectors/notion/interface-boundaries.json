@@ -1418,7 +1418,7 @@
     },
     {
       "module": "adapters/connectors/notion/host/installed-notion-source.mjs",
-      "sha256": "b768c54288a949f9f372cbc978a7e81c3703ef8ce19257299270e65b7fdb6c60",
+      "sha256": "b78a492ac84483b4951fc287b535f4db8ff6b62f15074395757733600278eb69",
       "exports": [
         "INSTALLED_NOTION_SITE_VERSION",
         "INSTALLED_NOTION_SOURCE_VERSION",
@@ -1511,11 +1511,20 @@
           "async": false
         },
         {
-          "name": "loadInstalledNotionSource/init:preparePageReader/init:preparePageReader",
+          "name": "loadInstalledNotionSource/preparePageReader",
           "parameters": [
             "selected",
             "columns",
             "applySynchronousProjection"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledNotionSource/publish",
+          "parameters": [
+            "authorization",
+            "site",
+            "providerReader"
           ],
           "async": false
         },
@@ -1548,7 +1557,7 @@
       "imports": [
         "../../../../packages/sdk/host-port.mjs",
         "../../../host-common/runtime-result.mjs",
-        "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-finite-page-source.mjs",
         "../../../host-node/installed-host-services.mjs",
         "../../../host-node/installed-row-source.mjs",
         "../../../host-node/source-profile-json.mjs",
@@ -1576,7 +1585,8 @@
             "loadInstalledNotionSource/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledNotionSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledNotionSource/implementation/implementation",
-            "loadInstalledNotionSource/init:preparePageReader/init:preparePageReader",
+            "loadInstalledNotionSource/preparePageReader",
+            "loadInstalledNotionSource/publish",
             "loadInstalledNotionSource/services/services",
             "loadInstalledNotionSource/target/target",
             "readInputs/binding/binding",
@@ -1651,11 +1661,11 @@
             "verification": [
               {
                 "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs",
-                "anchor": "Notion users constructs through the same current Host Source services without external reader capacity"
+                "anchor": "Notion constructor captures original services and provider before configuration await"
               },
               {
                 "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs",
-                "anchor": "Notion standard loader retains original implementation refusal and failed Source children"
+                "anchor": "finite provider-page publication refusal keeps its original cause and never republishes"
               },
               {
                 "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
@@ -2383,6 +2393,109 @@
               {
                 "path": "adapters/connectors/notion/test/database-metadata-targets.test.mjs",
                 "anchor": "test('actual Host metadata discovery selects the same target only after the original database response'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/installed-finite-page-source.mjs",
+      "sha256": "116fe1d549c679a722b889b1a1c91eb795fcd3ceab9e3c4dad5cca09d9e74560",
+      "exports": [
+        "installFinitePageSource"
+      ],
+      "operations": [
+        {
+          "name": "installFinitePageSource",
+          "parameters": [
+            "services",
+            "siteInput",
+            "implementation",
+            "operation",
+            "preparePageReader",
+            "implementationMismatch",
+            "publish"
+          ],
+          "async": true
+        }
+      ],
+      "imports": [
+        "./installed-host-cleanup.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "responsibilityFacet": "primary",
+      "owner": "Existing installed Host Site/Source initialization assembly; no new resource or authorization Owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installFinitePageSource"
+          ],
+          "exports": [
+            "installFinitePageSource"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "The private finite-page Host assembly reuses the original Site call record and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "the trusted installed Host continuation, passing the same Site, authorization"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "This assembly constructs no capacity, metadata collection or second snapshot of"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "The returned reader is retained before observing its capacity or publishing a"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "Reader retirement must"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "child remains the same pending child. Cleanup retry cannot reconstruct or"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "complete before closing the dependent Site; an unresolved Site-construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "the declaration, legacy JSON page/id/cursor inventories, raw response"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "The generic row-only REST family remains a separate interpretation."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs",
+                "anchor": "finite provider-page capacity getter failure retains reader before Site cleanup"
               }
             ]
           }
