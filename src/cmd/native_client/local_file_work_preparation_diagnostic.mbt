@@ -26,8 +26,36 @@ fn local_file_work_preparation_message(
       "LocalSourceWorkEntryUnavailable:prepared-retention"
     FileWorkPreparedCapacity(Resource(ExecutionLimit)) =>
       "LocalSourceWorkEntryUnavailable:prepared-execution"
-    FileWorkPreparedCapacity(Resource(_)) =>
-      "LocalSourceWorkEntryUnavailable:prepared-resource"
+    FileWorkPreparedCapacity(Resource(InvalidLimits)) =>
+      "LocalSourceWorkEntryUnavailable:prepared-resource-invalid-limits"
+    FileWorkPreparedCapacity(Resource(PlanningLimit)) =>
+      "LocalSourceWorkEntryUnavailable:prepared-resource-planning-limit"
+    FileWorkPreparedCapacity(Resource(AttemptLimit)) =>
+      "LocalSourceWorkEntryUnavailable:prepared-resource-attempt-limit"
+    FileWorkPreparedCapacity(Resource(HoldingLimit)) =>
+      "LocalSourceWorkEntryUnavailable:prepared-resource-holding-limit"
+    FileWorkPreparedCapacity(Resource(TransferLimit)) =>
+      "LocalSourceWorkEntryUnavailable:prepared-resource-transfer-limit"
+    FileWorkPreparedCapacity(Resource(ForeignOwner)) =>
+      "LocalSourceWorkEntryUnavailable:prepared-resource-foreign-owner"
+    FileWorkPreparedCapacity(Resource(ClosedReservation)) =>
+      "LocalSourceWorkEntryUnavailable:prepared-resource-closed-reservation"
+    FileWorkPreparedCapacity(Resource(ClosedHolding)) =>
+      "LocalSourceWorkEntryUnavailable:prepared-resource-closed-holding"
+    FileWorkPreparedCapacity(Resource(InvalidCharge)) =>
+      "LocalSourceWorkEntryUnavailable:prepared-resource-invalid-charge"
+    FileWorkPreparedCapacity(Resource(IdentityOverflow)) =>
+      "LocalSourceWorkEntryUnavailable:prepared-resource-identity-overflow"
+    FileWorkPreparedCapacity(Resource(TokenLimit)) =>
+      "LocalSourceWorkEntryUnavailable:prepared-resource-token-limit"
+    FileWorkPreparedCapacity(Resource(CostLimit)) =>
+      "LocalSourceWorkEntryUnavailable:prepared-resource-cost-limit"
+    FileWorkPreparedCapacity(Resource(DurationLimit)) =>
+      "LocalSourceWorkEntryUnavailable:prepared-resource-duration-limit"
+    FileWorkPreparedCapacity(Resource(ResourceParked)) =>
+      "LocalSourceWorkEntryUnavailable:prepared-resource-parked"
+    FileWorkPreparedCapacity(Resource(ChildFundingUnavailable)) =>
+      "LocalSourceWorkEntryUnavailable:prepared-resource-child-funding-unavailable"
     _ => "LocalSourceWorkEntryUnavailable"
   }
 }

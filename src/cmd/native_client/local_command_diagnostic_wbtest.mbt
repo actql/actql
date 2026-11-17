@@ -383,3 +383,85 @@ test "File Work primary keeps the actual closed reserve cause across cleanup" {
     "LocalSourceWorkEntryUnavailable",
   )
 }
+
+///|
+test "File Work prepared Resource diagnostics retain distinct original ledger refusals" {
+  let cases : Array[(@initial_resources.LedgerIssue, String)] = [
+    (
+      @initial_resources.InvalidLimits,
+      "LocalSourceWorkEntryUnavailable:prepared-resource-invalid-limits",
+    ),
+    (
+      @initial_resources.PlanningLimit,
+      "LocalSourceWorkEntryUnavailable:prepared-resource-planning-limit",
+    ),
+    (
+      @initial_resources.AttemptLimit,
+      "LocalSourceWorkEntryUnavailable:prepared-resource-attempt-limit",
+    ),
+    (
+      @initial_resources.HoldingLimit,
+      "LocalSourceWorkEntryUnavailable:prepared-resource-holding-limit",
+    ),
+    (
+      @initial_resources.TransferLimit,
+      "LocalSourceWorkEntryUnavailable:prepared-resource-transfer-limit",
+    ),
+    (
+      @initial_resources.RetentionLimit,
+      "LocalSourceWorkEntryUnavailable:prepared-retention",
+    ),
+    (
+      @initial_resources.ExecutionLimit,
+      "LocalSourceWorkEntryUnavailable:prepared-execution",
+    ),
+    (
+      @initial_resources.ForeignOwner,
+      "LocalSourceWorkEntryUnavailable:prepared-resource-foreign-owner",
+    ),
+    (
+      @initial_resources.ClosedReservation,
+      "LocalSourceWorkEntryUnavailable:prepared-resource-closed-reservation",
+    ),
+    (
+      @initial_resources.ClosedHolding,
+      "LocalSourceWorkEntryUnavailable:prepared-resource-closed-holding",
+    ),
+    (
+      @initial_resources.InvalidCharge,
+      "LocalSourceWorkEntryUnavailable:prepared-resource-invalid-charge",
+    ),
+    (
+      @initial_resources.IdentityOverflow,
+      "LocalSourceWorkEntryUnavailable:prepared-resource-identity-overflow",
+    ),
+    (
+      @initial_resources.TokenLimit,
+      "LocalSourceWorkEntryUnavailable:prepared-resource-token-limit",
+    ),
+    (
+      @initial_resources.CostLimit,
+      "LocalSourceWorkEntryUnavailable:prepared-resource-cost-limit",
+    ),
+    (
+      @initial_resources.DurationLimit,
+      "LocalSourceWorkEntryUnavailable:prepared-resource-duration-limit",
+    ),
+    (
+      @initial_resources.ResourceParked,
+      "LocalSourceWorkEntryUnavailable:prepared-resource-parked",
+    ),
+    (
+      @initial_resources.ChildFundingUnavailable,
+      "LocalSourceWorkEntryUnavailable:prepared-resource-child-funding-unavailable",
+    ),
+  ]
+  for (original, expected) in cases {
+    assert_eq(
+      local_file_work_preparation_message(
+        FileWorkPreparedCapacity(@initial_resources.Resource(original)),
+      ),
+      expected,
+    )
+  }
+}
