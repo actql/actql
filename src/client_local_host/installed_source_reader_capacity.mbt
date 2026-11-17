@@ -107,12 +107,59 @@ pub fn installed_json_source_reader_capacity(
 }
 
 ///|
+/// The same JSON reader with portable Core cursor progress. This replaces its
+/// old cursor Set entries, not the identity Set, physical reader or parent.
+pub fn installed_json_cursor_source_reader_capacity(
+  limits : Array[Int],
+  columns : Int,
+  secret_bytes : Int,
+) -> @execution.ExecutionCapacity? {
+  installed_json_source_reader_capacity_with_decoder(
+    limits, columns, secret_bytes, installed_source_response_workspace,
+    cursor_progress=true,
+  )
+}
+
+///|
+fn installed_source_cursor_progress_inventory(
+  pages : Int64,
+) -> @execution.PreparationRepresentationUnits? {
+  if pages < 1L {
+    return None
+  }
+  // The pinned Map constructor Owner includes buckets, spare capacity,
+  // entries, tagged links and old/new backing during growth. Keep this whole
+  // bounded construction allowance held until the SAME reader retires; it is
+  // not an observed no-growth footprint or permission to refund a prior peak.
+  guard @shape.map_construction_extent(1L, pages - 1L) is Some(map) else {
+    return None
+  }
+  @execution.compose_preparation_representation([{
+    record_headers: map.record_headers,
+    reference_slots: map.reference_slots,
+    scalar_words: map.scalar_words,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }, {
+    // The fixed reader's former cursor-Set header is now the progress record.
+    // Its ten fields add3R/7W; its present cursor adds Some1H/1R/1W. The
+    // original cursor String is shared with the Map, counted separately once.
+    record_headers: 1L,
+    reference_slots: 4L,
+    scalar_words: 8L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }])
+}
+
+///|
 fn installed_source_reader_retained_inventory(
   limits : Array[Int],
   columns : Int,
   secret_bytes : Int,
   track_row_identity? : Bool = true,
   received? : (Int64, Int)? = None,
+  cursor_progress? : Bool = false,
 ) -> @execution.PreparationRepresentationUnits? {
   // Same field order as the installed JSON reader's immutable limits view.
   // response/total/nodes/depth/rows/totalRows/pages/pageSize/cursor/identity/
@@ -132,7 +179,12 @@ fn installed_source_reader_retained_inventory(
   // the original protocol's actual identity/locator material instead.
   let ids = if track_row_identity { limits[5].to_int64() } else { 0L }
   let pages = limits[6].to_int64()
-  let cursors = if track_row_identity { pages } else { 0L }
+  let cursors = if track_row_identity {
+    if cursor_progress { pages - 1L } else { pages }
+  } else {
+    0L
+  }
+  let cursor_set_entries = if cursor_progress { 0L } else { cursors }
   let (total, originals) = match received {
     None => (total, pages + 1L)
     Some((bytes, count)) => {
@@ -186,17 +238,25 @@ fn installed_source_reader_retained_inventory(
     return None
   }
   let fixed = installed_source_reader_fixed_retention_inventory()
-  Some({
+  let retained : @execution.PreparationRepresentationUnits = {
     record_headers: fixed.record_headers + 3L * originals,
     reference_slots: fixed.reference_slots +
     2L * fields +
     9L * originals +
     2L * ids +
-    2L * cursors,
-    scalar_words: fixed.scalar_words + 3L * originals + ids + cursors,
+    2L * cursor_set_entries,
+    scalar_words: fixed.scalar_words + 3L * originals + ids + cursor_set_entries,
     owned_utf16_units: text,
     owned_wire_bytes: raw,
-  })
+  }
+  if cursor_progress {
+    guard installed_source_cursor_progress_inventory(pages) is Some(progress) else {
+      return None
+    }
+    @execution.compose_preparation_representation([retained, progress])
+  } else {
+    Some(retained)
+  }
 }
 
 ///|
@@ -204,7 +264,10 @@ fn installed_source_reader_retained_inventory(
 fn installed_source_reader_fixed_retention_inventory() -> @execution.PreparationRepresentationUnits {
   // Source-owned reader frame, handle/custody/binding envelopes, captured
   // methods and callback environments, provider invocation context/limits,
-  // prepared reader/state, two projected-name vectors and two live Sets.
+  // prepared reader/state, two projected-name vectors and two protocol-state
+  // headers. Legacy JSON uses identity/cursor Sets. Portable cursor mode
+  // reuses the cursor-Set header for its one progress record; its fields,
+  // cursor Some and complete Map growth backing are added separately.
   // Original installation/schema/Account/Journal backing remains borrowed.
   // The same reader retains one optional direct sequence reference in its
   // existing frame until original read/binding retirement; no child Owner.
@@ -284,9 +347,10 @@ fn installed_json_source_reader_capacity_with_decoder(
   secret_bytes : Int,
   response_workspace : (Int, Int, Int) -> @execution.PreparationRepresentationUnits?,
   sequential_preserving? : Bool = false,
+  cursor_progress? : Bool = false,
 ) -> @execution.ExecutionCapacity? {
   guard installed_source_reader_retained_inventory(
-      limits, columns, secret_bytes,
+      limits, columns, secret_bytes, cursor_progress~,
     )
     is Some(retained) else {
     return None
@@ -340,6 +404,24 @@ fn installed_json_source_reader_capacity_with_decoder(
   // record and one first-invocation reference in the existing read arguments.
   // These are borrowed originals, never copied acquisition or grant payloads.
   let controls = installed_source_reader_control_inventory()
+  let controls = if cursor_progress {
+    // One synchronous Core Result may overlap the retained progress and page
+    // workspace. Pointer/count/Bool results use at most1H/1R/2W. This is not
+    // another physical response or an admission/cleanup acknowledgement.
+    @execution.compose_preparation_representation([
+      controls,
+      {
+        record_headers: 1L,
+        reference_slots: 1L,
+        scalar_words: 2L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      },
+    ])
+  } else {
+    Some(controls)
+  }
+  guard controls is Some(controls) else { return None }
   let workspace : @execution.PreparationRepresentationUnits = {
     ..controls,
     owned_utf16_units: response +

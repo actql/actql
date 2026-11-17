@@ -19,6 +19,18 @@ pub fn client_program_installed_json_source_reader_capacity(
 }
 
 ///|
+#export_name("clientProgramInstalledJsonCursorSourceReaderCapacity")
+pub fn client_program_installed_json_cursor_source_reader_capacity(
+  limits : Array[Int],
+  columns : Int,
+  secret_bytes : Int,
+) -> @execution.ExecutionCapacity? {
+  @client_local_host.installed_json_cursor_source_reader_capacity(
+    limits, columns, secret_bytes,
+  )
+}
+
+///|
 /// Project the existing common native-reader composition. The supplied domain
 /// quote is the original provider constructor, not a numeric allowance or a
 /// permission. Its caller keeps that same quote on the bound Source Reader.

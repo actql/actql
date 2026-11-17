@@ -211,6 +211,29 @@ existing Request/Plan; numeric limits are not funding. Node only forwards the
 same opaque progress and page objects and maps the typed refusal vocabulary.
 Portable Core execution is separate from ordinary installed Host acceptance.
 
+The installed REST factory selects the generic `cursorProgress` construction
+mode on its same Source service. The service cache binds that mode along with
+the original Source/installation, limits and column count; an old JSON quote
+cannot be reused for Core progress. Missing Core capacity refuses before page-reader
+or cursor-progress construction. Program DATA cannot select this installation mode.
+The thin bridge selects `installed_json_cursor_source_reader_capacity` in the
+existing `client_local_host/installed_source_reader_capacity.mbt` domain recipe.
+That recipe uses the shared Map construction extent, including bucket growth
+overlap, and holds its conservative complete peak until this reader retires.
+The original cursor String backing is counted once for at most `max_pages - 1`
+strings. Old cursor-Set entries are replaced; identity tracking, response/use
+history, credential and physical frames are preserved. The fixed former
+cursor-Set header becomes the progress record, whose fields and cursor Option
+are declared separately. Synchronous Core results have their own workspace.
+
+The same opaque provider capacity flows through `providerCaptureCapacity` and
+the original RowRun reservation before `reader.prepare` can construct progress.
+Its response, callback and failed-child duties continue through capture and
+the original reader's cleanup. No earlier settling or new reservation follows
+from EOF or a current check. The unchanged legacy JSON mode retains its old
+recipe. These logical representation tariffs are not backend heap/RSS bounds;
+the matching ordinary installed route remains a separate qualification.
+
 Projection is synchronous and has no callbacks, I/O, authority, Ledger, grant,
 retry or retirement operation. The shared Reader retains and charges the actual
 response before decoding. The parser's original construction inventory and the

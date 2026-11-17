@@ -32,6 +32,7 @@ export function checkRelaClientBridges(root, write = false) {
   }
   for (const file of ['client_preparation_root_bridge.mbt',
     'local_managed_failure_bridge.mbt',
+    'client_installed_source_reader_bridge.mbt',
     'client_result_read_workspace_bridge.mbt',
     'client_native_snapshot_reader.mbt',
     'client_hubspot_effect_construction_bridge.mbt',

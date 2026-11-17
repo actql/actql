@@ -46,7 +46,7 @@ pub fn prepare_row_source_cursor_progress(
     max_rows,
     max_page_rows,
     max_cursor_bytes,
-    seen: Map([]),
+    seen: Map::new(),
     page_index: 0,
     row_count: 0,
     cursor: None,

@@ -1,4 +1,61 @@
 ///|
+test "portable cursor reader replaces only cursor storage and retains shared growth backing" {
+  let limits = [4, 6, 3, 4, 2, 3, 2, 2, 5, 7, 8, 2, 9, 10, 11, 4]
+  let legacy = installed_json_source_reader_capacity(limits, 2, 3).unwrap()
+  let cursor = installed_json_cursor_source_reader_capacity(limits, 2, 3).unwrap()
+  // Two pages need at most one retained cursor. Its shared Map growth Owner
+  // declares11H/29R/34W; progress fields/cursor Some add1H/4R/8W, reusing
+  // the fixed protocol-state header. The old cursor Set's4R/2W and one of
+  // its two5-unit Strings disappear. Identity Set and physical frames stay.
+  // Independent delta:12H+29R+40W-5UTF16 =734 logical bytes. One synchronous
+  // Result adds1H/1R/2W=40 execution bytes, not another retained page.
+  assert_eq(@execution.execution_capacity_retained_bytes(legacy), 3632L)
+  assert_eq(@execution.execution_capacity_retained_bytes(cursor), 4366L)
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(cursor) -
+    @execution.execution_capacity_execution_bytes(legacy),
+    774L,
+  )
+  assert_true(installed_json_cursor_source_reader_capacity([], 2, 3) is None)
+  assert_true(installed_source_cursor_progress_inventory(0L) is None)
+  assert_true(
+    installed_source_cursor_progress_inventory(9223372036854775807L) is None,
+  )
+}
+
+///|
+test "portable cursor reader same recipe admits exact backing and refuses either one-short dimension" {
+  let limits = [4, 6, 3, 4, 2, 3, 2, 2, 5, 7, 8, 2, 9, 10, 11, 4]
+  let quote = installed_json_cursor_source_reader_capacity(limits, 2, 3).unwrap()
+  let retention = @execution.execution_capacity_retained_bytes(quote)
+  let execution = @execution.execution_capacity_execution_bytes(quote)
+  for (r_short, e_short) in [(0L, 0L), (1L, 0L), (0L, 1L)] {
+    let ledger = @resources.create_ledger({
+      planning_work: 0,
+      attempts: 1,
+      holdings: 0,
+      transfer_bytes: 0L,
+      retained_bytes: retention - r_short,
+      execution_bytes: execution - e_short,
+    }).unwrap()
+    let result = @resources.reserve_attempt(ledger, 0L, retention, execution)
+    if r_short == 0L && e_short == 0L {
+      let original = result.unwrap()
+      assert_eq(@resources.ledger_usage(ledger).live_reservations, 1)
+      assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, retention)
+      @resources.settle_reservation(ledger, original).unwrap()
+    } else if r_short == 1L {
+      assert_true(result is Err(@resources.RetentionLimit))
+    } else {
+      assert_true(result is Err(@resources.ExecutionLimit))
+    }
+    assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+    assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+    assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+  }
+}
+
+///|
 test "JSON Source reader inventory uses shared tariff and separate retained workspace" {
   // Independent authored inventory vector; no returned quote supplies any
   // expected amount, Ledger limit, admission or physical cleanup receipt.

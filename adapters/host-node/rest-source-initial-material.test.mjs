@@ -261,6 +261,7 @@ test('REST factory selects the same validated authored demand for implementation
     const f = demandFixture(selected), probe = await observeDemand(f);
     assert.equal(await probe.run(), 'selected-source-port');
     const {implementation, rowSource, prepared} = probe.observations();
+    assert.equal(implementation.cursorProgress, true);
     const expected = multiple ? {maxPages: 4, maxPageBytes: 512, maxPageRows: 3, maxCaptureRows: 7}
       : {maxPages: 3, maxPageBytes: 256, maxPageRows: 2, maxCaptureRows: 4};
     assert.deepEqual(rowSource.limits, expected);
