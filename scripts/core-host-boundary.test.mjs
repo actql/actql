@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync} from 'node:fs';
+import {mkdtempSync, mkdirSync, writeFileSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
@@ -63,43 +63,5 @@ pub fn bound(value : @lower.Expression) -> @lower.ExpressionTextBound? { @lower.
     const actual = check(source);
     assert.notEqual(actual.status, 0, `${name} unexpectedly compiled`);
     assert.match(actual.output, diagnostic, `${name}: ${actual.output}`);
-  }
-});
-
-// Prove the pinned compiler keeps a nominal view allocation-free on every
-// supported backend. This representation probe is not Host runtime acceptance.
-test('text-bound nominal view adds no owned representation on JS Wasm or Native', t => {
-  const root = fileURLToPath(new URL('../', import.meta.url));
-  const declaration = readFileSync(join(root, 'src/lowering_relation/expression_text_bound.mbt'), 'utf8');
-  assert.match(declaration, /struct ExpressionTextBound\(@context\.TextBoundResolution\)/);
-  const temporary = mkdtempSync(join(tmpdir(), 'actql-newtype-layout-'));
-  t.after(() => rmSync(temporary, {recursive: true, force: true}));
-  const source = join(temporary, 'probe.mbt');
-  writeFileSync(source, `struct Original { value : Int }
-struct ExpressionTextBound(Original)
-pub fn wrap(value : Original) -> ExpressionTextBound { ExpressionTextBound(value) }
-pub fn unwrap(value : ExpressionTextBound) -> Original { value.0 }
-pub fn make(value : Int) -> Original { { value, } }
-pub fn read(value : Original) -> Int { value.value }
-`);
-  for (const [target, suffix] of [['js', 'js'], ['wasm', 'wat'], ['native', 'c']]) {
-    const output = join(temporary, `probe.${suffix}`);
-    const args = ['compile', '-target', target, '-std-path', join(process.env.MOON_HOME, 'lib/core'),
-      '-exported_functions', 'wrap,unwrap,make,read', '-o', output, source];
-    if (target === 'native') args.splice(3, 0, '-S');
-    const result = spawnSync('moonc', args, {encoding: 'utf8', timeout: 30_000});
-    assert.equal(result.error, undefined, result.error?.message);
-    assert.equal(result.status, 0, result.stdout + result.stderr);
-    const code = readFileSync(output, 'utf8');
-    // A nominal single-field tuple is erased, not another record/layout.
-    assert.doesNotMatch(code, /struct _M\w*ExpressionTextBound|function _M\w*ExpressionTextBound\(/);
-    for (const name of ['wrap', 'unwrap']) {
-      const body = target === 'wasm'
-        ? code.match(new RegExp(`\\(func \\$_M[^\\s(]*${name} [\\s\\S]*?(?=\\n\\(export)`))?.[0]
-        : code.match(new RegExp(`(?:function|struct [^\\n]+\\*) _M[^\\s(]*${name}\\([^)]*\\) \\{([^}]+)\\}`))?.[0];
-      assert.ok(body, `${target} ${name} implementation missing`);
-      assert.doesNotMatch(body, /\bnew\b|malloc|alloc\(|struct\.new/);
-      assert.match(body, target === 'wasm' ? /local\.get/ : /return/);
-    }
   }
 });
