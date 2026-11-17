@@ -41,7 +41,8 @@ const unknownEvidence: NonNullable<HostInstallation['inferEvidence']> = {...usag
 void unknownEvidence;
 
 createOpenAIChatProvider({...options, transportTimeouts: {connectMs: 100, headersMs: 200, bodyMs: 300}});
-// @ts-expect-error Physical phase settings do not invent a whole-call timeout field.
+createOpenAIChatProvider({...options, transportTimeouts: {connectMs: 100, headersMs: 200, bodyMs: 300, callMs: 400}});
+// @ts-expect-error Only the explicit callMs field selects the total request/read clock.
 createOpenAIChatProvider({...options, transportTimeouts: {connectMs: 100, headersMs: 200, overallMs: 300}});
 // @ts-expect-error Timeout quantities are explicit finite milliseconds, not strings.
 createOpenAIChatProvider({...options, transportTimeouts: {connectMs: '100', headersMs: 200, bodyMs: 300}});

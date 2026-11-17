@@ -53,11 +53,11 @@ const controls = Object.freeze({model_requests: 1, retry: false, fallback: false
   sdk_telemetry: false, redirect: false});
 const bodyLimits = Object.freeze({maxBytes: 65536, maxNodes: 4096, maxDepth: 32,
   maxFrames: 4096, maxWork: 2097152});
-const readEnvelopeBytes = rows => BigInt(rows) * (16384n +
+const readEnvelopeBytes = (rows, physical = limits) => BigInt(rows) * (16384n +
   8n * BigInt(limits.request_bytes + limits.response_bytes + limits.chunk_bytes +
     limits.header_bytes + limits.metadata_bytes) +
   256n * BigInt(limits.parse_nodes + limits.metadata_nodes)) +
-  BigInt(limits.adapter_holding_bytes + limits.adapter_workspace_bytes);
+  BigInt(physical.adapter_holding_bytes + physical.adapter_workspace_bytes);
 
 function configuration(options) {
   const value = data(options, ['providerId', 'modelId', 'apiKeyFile', 'generation', 'budget', 'observeEgress'],
@@ -114,7 +114,28 @@ export function createOpenAIChatProvider(options) {
       'prepareBindingOriginals', 'prepareTasks', 'prepareRawPolicies'].every(key => typeof context?.[key] === 'function')) {
       refuse('OpenAIProviderConfigurationContextUnavailable');
     }
-    const config = await context.prepareConfiguration(() => configuration(options));
+    const config = await context.prepareConfiguration(() => {
+      const selected = configuration(options);
+      if (selected.transportTimeouts?.callMs === undefined) return selected;
+      if (typeof moon.clientProgramInstalledNodeModelDeadlineCapacity !== 'function') {
+        refuse('OpenAIProviderDeadlineCapacityUnavailable');
+      }
+      const quote = moon.clientProgramInstalledNodeModelDeadlineCapacity();
+      if (!Array.isArray(quote) || quote.length !== 2 || quote.some(value =>
+        typeof value !== 'bigint' || value < 0n || value > BigInt(maxInt)) || quote[1] < quote[0]) {
+        refuse('OpenAIProviderDeadlineCapacityUnavailable');
+      }
+      const holding = BigInt(limits.adapter_holding_bytes) + quote[0];
+      const execution = BigInt(limits.adapter_workspace_bytes) + quote[1];
+      if (holding > BigInt(maxInt) || execution > BigInt(maxInt)) {
+        refuse('OpenAIProviderDeadlineCapacityUnavailable');
+      }
+      // Same initial constructor owns quote/profile DATA. These are additional
+      // DEMANDS, not an uplift of budget/ledger limits or spare-field borrowing.
+      return Object.freeze({...selected, physicalLimits: Object.freeze({...limits,
+        adapter_holding_bytes: Number(holding), adapter_workspace_bytes: Number(execution)})});
+    });
+    const physicalLimits = config.physicalLimits ?? limits;
     const runtimeCid = await context.runtimeIdentity();
     const builderCid = await context.artifactIdentity(builderArtifactUrl);
     const layoutCid = await context.artifactIdentity(layoutArtifactUrl);
@@ -125,13 +146,13 @@ export function createOpenAIChatProvider(options) {
       JSON.stringify({provider_id: config.providerId, implementation: '@actql/provider-ai-sdk',
         runtime_artifact_cid: runtimeCid, builder_artifact_cid: builderCid, lock_artifact_cid: lockCid}),
       JSON.stringify({provider_id: config.providerId, required: ['endpoint', 'selector', 'model_defaults'],
-        physical_profile: limits, prepared_rows: config.budget.maxRows, transport: 'undici-serial-chat',
+        physical_profile: physicalLimits, prepared_rows: config.budget.maxRows, transport: 'undici-serial-chat',
         ...(config.transportTimeouts === undefined ? {} : {transport_timeouts: config.transportTimeouts}),
         runtime_artifact_cid: runtimeCid, layout_artifact_cid: layoutCid,
-        read_retained_bytes: String(readEnvelopeBytes(config.budget.maxRows)),
-        read_execution_bytes: String(readEnvelopeBytes(config.budget.maxRows)),
-        model_retained_bytes: String(limits.adapter_holding_bytes),
-        model_execution_bytes: String(limits.adapter_workspace_bytes)}),
+        read_retained_bytes: String(readEnvelopeBytes(config.budget.maxRows, physicalLimits)),
+        read_execution_bytes: String(readEnvelopeBytes(config.budget.maxRows, physicalLimits)),
+        model_retained_bytes: String(physicalLimits.adapter_holding_bytes),
+        model_execution_bytes: String(physicalLimits.adapter_workspace_bytes)}),
       JSON.stringify({provider_id: config.providerId, endpoint: config.baseURL + '/chat/completions',
         selector: config.modelSelector,
         ...(config.transportTimeouts === undefined ? {} : {transport_timeouts: config.transportTimeouts}), model_defaults: {default_model: config.modelSelector,
@@ -159,7 +180,7 @@ export function createOpenAIChatProvider(options) {
           validator_artifact_cid: runtimeCid, basis: 'generation_finish', transport_eof: true,
           endpoint_envelope: true, output_contract: true}, probability: null,
         observations: ['provider_request_id', 'provider_reported_model_id', 'finish_reason',
-          'input_tokens', 'output_tokens', 'provider_metadata'], limits, controls,
+          'input_tokens', 'output_tokens', 'provider_metadata'], limits: physicalLimits, controls,
       }));
       profiles.set(task.taskCid, profile);
       await selected.executionOriginalsFor(task.name, {maxAttempts: config.budget.maxCalls,
@@ -185,14 +206,14 @@ export function createOpenAIChatProvider(options) {
       // actual native all-row/Model bounds are added, never replaced by it.
       // Keep the adapter's complete declared live holding/workspace in
       // addition to every prepared row; neither minimum can replace the other.
-      const readBytes = readEnvelopeBytes(config.budget.maxRows);
+      const readBytes = readEnvelopeBytes(config.budget.maxRows, physicalLimits);
       const entries = owned.map(task => {
         const profile = profiles.get(task.taskCid).profile;
         const originalReadRecipe = Object.freeze({
           bootstrap: Object.freeze({bootstrapRetainedBytes: 1048576n, bootstrapExecutionBytes: 1048576n,
             maxReservations: 256, maxHoldings: 256, maxDelegations: 256}),
-          modelRetainedBytes: BigInt(limits.adapter_holding_bytes),
-          modelExecutionBytes: BigInt(limits.adapter_workspace_bytes),
+          modelRetainedBytes: BigInt(physicalLimits.adapter_holding_bytes),
+          modelExecutionBytes: BigInt(physicalLimits.adapter_workspace_bytes),
           nodeInstallation: Object.freeze({runtimeArtifactCid: runtimeCid,
             layoutArtifactCid: layoutCid, installation, probability: undefined,
             layout: Object.freeze({runtime_artifact_cid: runtimeCid, layout_artifact_cid: layoutCid,

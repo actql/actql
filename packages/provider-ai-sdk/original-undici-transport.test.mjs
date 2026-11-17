@@ -31,6 +31,7 @@ async function until(read, accepted) {
 }
 async function fixture(t, respond, {transportTimeouts, stalledTls = false} = {}) {
   const calls = [];
+  const signals = [];
   const sockets = new Set();
   let connections = 0;
   const server = stalledTls ? net.createServer(socket => socket.resume()) : createServer(async (request, response) => {
@@ -67,6 +68,7 @@ async function fixture(t, respond, {transportTimeouts, stalledTls = false} = {})
     const handle = interceptSdkRequest({endpoint, maxRequestBytes: requestLimits.maxBytes,
       maxHeaderBytes: requestLimits.maxHeaderBytes, maxHeaders: requestLimits.maxHeaders,
       notify, async runSdk(intercepted, signal) {
+        signals.push(signal);
         // Deliberately no SDK decode. This finite fixture exercises the actual
         // SDK-owner interceptor/reader/Undici transport; builder is a double.
         await intercepted(endpoint, {method: 'POST', body: originalBody,
@@ -78,7 +80,7 @@ async function fixture(t, respond, {transportTimeouts, stalledTls = false} = {})
     preparations.push(handle);
     return handle;
   }
-  return {endpoint, fetch, prepare, calls, sockets, connections: () => connections};
+  return {endpoint, fetch, prepare, calls, signals, sockets, connections: () => connections};
 }
 
 test('original IO retirement keeps raw backing and SDK holding until independent cleanup', {timeout: 5000}, async t => {
@@ -648,4 +650,69 @@ test('explicit physical connect timeout settles the same stalled TLS connector w
   await until(() => cleanupSdkPreparation(handle), value => value === true);
   assert.equal(f.connections(), 1);
   await until(() => f.sockets.size, count => count === 0);
+});
+
+for (const flowing of [false, true]) {
+  test(`whole physical call clock stops ${flowing ? 'continuous body data' : 'missing headers'} on the same SDK controller`, {timeout: 5000}, async t => {
+    let pulse;
+    t.after(() => clearInterval(pulse));
+    const f = await fixture(t, (request, response) => {
+      if (flowing) {
+        response.setHeader('content-type', 'application/json');
+        response.write('{');
+        // At 10ms the unchanged eight-chunk reader cap wins before the
+        // 100ms total clock. Keep that cap intact and deliver continuous
+        // data at 25ms so this case observes the actual deadline instead.
+        pulse = setInterval(() => response.write(' '), 25);
+        response.once('close', () => clearInterval(pulse));
+      }
+    }, {transportTimeouts: {connectMs: 1000, headersMs: 1000, bodyMs: 1000, callMs: 100}});
+    let handle, observed;
+    const terminal = new Promise(resolve => {observed = resolve;});
+    handle = f.prepare({notify() {
+      if (handle === undefined) return;
+      const state = pollSdkTransport(handle);
+      if (state.kind === 'unknown' || state.kind === 'response') observed(state);
+    }});
+    assert.equal(f.signals[0].aborted, false);
+    startSdkTransport(handle);
+    const outcome = await terminal;
+    assert.equal(f.calls.length, 1);
+    assert.equal(f.signals[0].aborted, true, JSON.stringify({kind: outcome.kind,
+      rawIssue: sdkTransportRawObservation(handle)?.issue,
+      observedBytes: sdkTransportRawObservation(handle)?.observedBytes}));
+    assert.equal(f.signals[0].reason.code, 'UndiciOriginalCallTimeout');
+    assert.throws(() => startSdkTransport(handle), {code: 'SdkTransportStartRefused'});
+    if (flowing) {
+      assert.equal(outcome.kind, 'response');
+      const raw = sdkTransportRawObservation(handle);
+      assert.equal(raw.status, 200); assert.equal(raw.transportComplete, false);
+      assert.equal(raw.issue, 'InferResponseReadCancelled');
+      assert(Buffer.from(raw.body).toString().startsWith('{ '), 'Continuous original data precedes total expiry');
+    } else {
+      assert.equal(outcome.kind, 'unknown');
+      assert.equal(sdkTransportRawObservation(handle), undefined);
+    }
+    await until(() => progressSdkOriginalIoCleanup(handle), value => value === true);
+    await until(() => cleanupSdkPreparation(handle), value => value === true);
+    assert.equal(f.calls.length, 1);
+  });
+}
+
+test('whole physical call clock retires at original response settlement without late cancellation', {timeout: 5000}, async t => {
+  const f = await fixture(t, (request, response) => {
+    response.setHeader('content-type', 'application/json'); response.end('{}');
+  }, {transportTimeouts: {connectMs: 1000, headersMs: 1000, bodyMs: 1000, callMs: 100}});
+  let handle, observed;
+  const terminal = new Promise(resolve => {observed = resolve;});
+  handle = f.prepare({notify() {
+    if (handle !== undefined && pollSdkTransport(handle).kind === 'response') observed();
+  }});
+  startSdkTransport(handle); await terminal;
+  assert.equal(sdkTransportRawObservation(handle).transportComplete, true);
+  await new Promise(resolve => setTimeout(resolve, 150));
+  assert.equal(f.signals[0].aborted, false, 'Settled physical read must not become a later Run cancel');
+  assert.equal(f.calls.length, 1);
+  await until(() => progressSdkOriginalIoCleanup(handle), value => value === true);
+  await until(() => cleanupSdkPreparation(handle), value => value === true);
 });

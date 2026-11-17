@@ -1382,7 +1382,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "873d79cff9604ff1b6d31aceba0072cdbc4c756f155cdeec0c560818b7d114a1",
+      "sha256": "5108a3bb51f2289506d06f6d4dc4850581ade2ac1fa26cb6259f05051c39cb22",
       "exports": [
         "cancelSdkPreparation",
         "cleanupSdkPreparation",
@@ -1996,7 +1996,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7f3c075257e4386db30bebea34b2d10d6b98f3fbac1dcf7ce6d87c2f79eff648",
+      "sha256": "51756bb63b30f1801bbf0f8c5a2fa807b4d8c42c485e934189d2f75fa8f504fb",
       "exports": [
         "createOriginalUndiciFetch",
         "fixedOriginalAcquisitionLimits",
@@ -2085,8 +2085,7 @@
         {
           "name": "fixedOriginalTransportTimeouts/fixedOriginalTransportTimeouts#2",
           "parameters": [
-            "key",
-            "index"
+            "name"
           ],
           "async": false
         },
@@ -2135,7 +2134,8 @@
             "fetch",
             "input",
             "init",
-            "responseLimits"
+            "responseLimits",
+            "controller"
           ],
           "async": false
         },
@@ -2242,6 +2242,26 @@
             "value"
           ],
           "async": false
+        },
+        {
+          "name": "withOriginalCallDeadline/expire/expire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "withOriginalCallDeadline/finishResponse/finishResponse",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "withOriginalCallDeadline/init:cleanup/init:cleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "withOriginalCallDeadline/init:invoke/init:invoke",
+          "parameters": [],
+          "async": false
         }
       ],
       "role": "physical-io",
@@ -2258,6 +2278,10 @@
             "fixedOriginalAcquisitionLimits/entries/entries",
             "fixedOriginalAcquisitionLimits/fixedOriginalAcquisitionLimits",
             "fixedOriginalAcquisitionLimits/fixedOriginalAcquisitionLimits#2",
+            "fixedOriginalTransportTimeouts",
+            "fixedOriginalTransportTimeouts/fields/fields",
+            "fixedOriginalTransportTimeouts/fixedOriginalTransportTimeouts",
+            "fixedOriginalTransportTimeouts/fixedOriginalTransportTimeouts#2",
             "originalHeadersView/init:get/init:get",
             "originalResponseView/cancel/cancel",
             "originalResponseView/stream/init:getReader/init:getReader",
@@ -2283,16 +2307,16 @@
             "prepareOriginalUndiciFetch/invoke/invoke/settled/settled",
             "prepareOriginalUndiciFetch/onread/init:callback/init:callback",
             "prepareOriginalUndiciFetch/prepareOriginalUndiciFetch",
-            "fixedOriginalTransportTimeouts",
-            "fixedOriginalTransportTimeouts/fields/fields",
-            "fixedOriginalTransportTimeouts/fixedOriginalTransportTimeouts",
-            "fixedOriginalTransportTimeouts/fixedOriginalTransportTimeouts#2"
+            "withOriginalCallDeadline/expire/expire",
+            "withOriginalCallDeadline/finishResponse/finishResponse",
+            "withOriginalCallDeadline/init:cleanup/init:cleanup",
+            "withOriginalCallDeadline/init:invoke/init:invoke"
           ],
           "exports": [
             "createOriginalUndiciFetch",
             "fixedOriginalAcquisitionLimits",
-            "prepareOriginalUndiciFetch",
-            "fixedOriginalTransportTimeouts"
+            "fixedOriginalTransportTimeouts",
+            "prepareOriginalUndiciFetch"
           ],
           "attributes": {
             "responsibility": [
@@ -2351,6 +2375,10 @@
               {
                 "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
                 "anchor": "Promise settles"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "anchor": "controller.abort(reason)"
               }
             ],
             "resources": [
@@ -2361,6 +2389,10 @@
               {
                 "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
                 "anchor": "does not bound native emission"
+              },
+              {
+                "path": "src/client_local_host/model_async_host_control_inventory.mbt",
+                "anchor": "pub fn installed_node_model_deadline_capacity()"
               }
             ],
             "extension": [
@@ -2381,6 +2413,10 @@
               {
                 "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
                 "anchor": "actual pinned OpenAI SDK"
+              },
+              {
+                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
+                "anchor": "Continuous original data precedes total expiry"
               }
             ]
           }
@@ -3315,7 +3351,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f9cbbc4fda78ed392d9348d785e4175d79730c34f2c06b4fbe103d73e377f931",
+      "sha256": "02670d27b54443a72a2012d21f17b0cf991c87709b178a43798dc5b4d7f96804",
       "exports": [
         "createOpenAIChatProvider"
       ],
@@ -3357,6 +3393,13 @@
         {
           "name": "createOpenAIChatProvider/createOpenAIChatProvider/config/config",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createOpenAIChatProvider/createOpenAIChatProvider/config/config/config",
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
@@ -3480,10 +3523,12 @@
           "operations": [
             "<module>",
             "amount/amount",
+            "configuration/configuration",
             "createOpenAIChatProvider",
             "createOpenAIChatProvider/createOpenAIChatProvider",
             "createOpenAIChatProvider/createOpenAIChatProvider/bindings/bindings",
             "createOpenAIChatProvider/createOpenAIChatProvider/config/config",
+            "createOpenAIChatProvider/createOpenAIChatProvider/config/config/config",
             "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider",
             "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider",
             "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider",
@@ -3500,8 +3545,7 @@
             "observation/observation",
             "observation/observation/fields/fields",
             "observation/observation/observation",
-            "observation/observation/observation#2",
-            "configuration/configuration"
+            "observation/observation/observation#2"
           ],
           "exports": [
             "createOpenAIChatProvider"
@@ -3553,6 +3597,10 @@
               {
                 "path": "adapters/host-node/installed-model-configuration.mjs",
                 "anchor": "const nodes = 128n + 2048n"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
+                "anchor": "clientProgramInstalledNodeModelDeadlineCapacity"
               }
             ],
             "extension": [
@@ -3565,6 +3613,10 @@
               {
                 "path": "adapters/host-node/normal-openai-http.actual.test.mjs",
                 "anchor": "normal OpenAI factory executes two unequal Tasks through actual Host and HTTP"
+              },
+              {
+                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mjs",
+                "anchor": "normal deadline missing invalid overflow or over-budget quote refuses before IO"
               }
             ]
           }

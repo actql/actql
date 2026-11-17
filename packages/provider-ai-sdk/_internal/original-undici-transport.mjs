@@ -34,8 +34,8 @@ export function fixedOriginalAcquisitionLimits(value) {
   return snapshot;
 }
 
-// Optional explicit physical phase/idle settings. These are immutable Host
-// DATA, not a whole-call timer, quantity observation or a dispatch grant.
+// Optional explicit physical phase/idle settings and total request/read clock.
+// Immutable Host DATA, never quantity observation or a dispatch grant.
 export function fixedOriginalTransportTimeouts(value) {
   if (value === undefined) return undefined;
   if (value === null || typeof value !== 'object' || Array.isArray(value) || types.isProxy(value)) {
@@ -43,9 +43,9 @@ export function fixedOriginalTransportTimeouts(value) {
   }
   const names = ['bodyMs', 'connectMs', 'headersMs'];
   const keys = Reflect.ownKeys(value);
-  if (keys.length !== names.length || keys.some(key => typeof key !== 'string') ||
-      keys.sort().some((key, index) => key !== names[index])) throw issue('UndiciOriginalTimeoutsUnavailable');
-  const fields = names.map(name => {
+  if (keys.some(key => typeof key !== 'string' || ![...names, 'callMs'].includes(key)) ||
+      names.some(name => !keys.includes(name))) throw issue('UndiciOriginalTimeoutsUnavailable');
+  const fields = keys.map(name => {
     const field = Object.getOwnPropertyDescriptor(value, name);
     if (!field?.enumerable || !Object.hasOwn(field, 'value') || !positive(field.value)) {
       throw issue('UndiciOriginalTimeoutsUnavailable');
@@ -177,9 +177,13 @@ export function createOriginalUndiciFetch({endpoint, requestLimits, responseLimi
 // Undefined means the existing generic/native fetch path, not a fallback for
 // malformed selected Undici configuration. No caller-controlled hooks run at
 // transport start. This thin adapter reuses the original SDK/Model lifetime.
-export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
+export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits, controller) {
   const original = installations.get(fetch);
   if (original === undefined) return undefined;
+  if (original.timeouts?.callMs !== undefined &&
+      (!(controller instanceof AbortController) || controller.signal !== init?.signal)) {
+    throw issue('UndiciOriginalDeadlineControllerUnavailable');
+  }
   const limits = fixedInferResponseLimits(responseLimits);
   if (input !== original.endpoint || init?.method !== 'POST' ||
       typeof init.body !== 'string' || Buffer.byteLength(init.body) > original.maxBytes ||
@@ -384,7 +388,45 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
     }, () => false).finally(() => { destroying = undefined; });
     return destroying;
   };
-  return Object.freeze({invoke, cleanup});
+  const physical = Object.freeze({invoke, cleanup});
+  return original.timeouts?.callMs === undefined ? physical
+    : withOriginalCallDeadline(physical, controller, original.timeouts.callMs);
+}
+
+// Only the explicitly configured physical Call allocates these controls. The
+// normal factory adds their Common quote to its original per-Task Model demand
+// before Plan/Scope admission. This wraps the SAME transport and controller;
+// it is not another lifetime owner, RunCancel, retry or physical cleanup ACK.
+function withOriginalCallDeadline(physical, controller, ms) {
+  const reason = Object.freeze({code: 'UndiciOriginalCallTimeout'});
+  let timer;
+  let finished = false;
+  const finishResponse = () => {
+    finished = true;
+    if (timer !== undefined) clearTimeout(timer);
+    timer = undefined;
+  };
+  const expire = () => {
+    timer = undefined;
+    if (!finished) {
+      finished = true;
+      // Abort the original physical request/read only. The SDK's Run-cancel
+      // function also sets stopped; using it here would falsify cancellation.
+      controller.abort(reason);
+    }
+  };
+  return Object.freeze({
+    invoke() {
+      // Preserve the first physical primitive after the original Entry gate.
+      // No timer, observer, await or different request precedes this invoke.
+      const response = physical.invoke();
+      try { timer = setTimeout(expire, ms); }
+      catch (error) {expire(); throw error;}
+      return response;
+    },
+    cleanup() {finishResponse(); return physical.cleanup();},
+    finishResponse,
+  });
 }
 
 function originalHeadersView(originalHeaders) {

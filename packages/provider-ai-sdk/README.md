@@ -81,10 +81,10 @@ provider request. Keep the same configured endpoint, model, Task files and
 software originals. Credential bytes are never Program input and must not be
 printed in logs or committed.
 
-## Explicit physical phase timeouts (development)
+## Explicit physical timeouts (development)
 
 The normal factory accepts optional `transportTimeouts` with positive finite
-`connectMs`, `headersMs`, and `bodyMs` in milliseconds (integers up to
+`connectMs`, `headersMs`, and `bodyMs`, plus optional `callMs`, in milliseconds (integers up to
 2,147,483,647). It freezes the values
 under the initial construction Resource, includes them in the same original
 configuration/contract bodies through Common's canonical constructor, and
@@ -94,9 +94,17 @@ reservation into an observed duration or a timer.
 
 The existing Undici connector applies `connectMs` through TCP/TLS setup;
 `headersMs` waits for complete HTTP headers and `bodyMs` bounds the idle time
-between body data. Omission preserves the existing Undici selection. These are
-**not** an absolute whole-Call or total-body deadline. Timer granularity and
-event-loop scheduling can delay their observation. The original public
+between body data. These three phase settings alone are **not** an absolute
+whole-Call or total-body deadline. Optional `callMs` starts immediately after
+the actual original physical request begins and stops the same SDK controller
+if bounded response reading has not settled, including continuous body data.
+It does not time Core decoding, Store publication, Result, or Saved restoration.
+Omission preserves the existing transport selection and adds no deadline wrapper
+or Model demand. Selecting `callMs` adds Common's logical control quote to the
+same per-Task physical profile/Read/Model demand before the original Plan/Scope
+admission, without increasing the top-level budget. This is not a full engine,
+shared timer-heap, async-hooks or native allocation adequacy certificate.
+Timer granularity and event-loop scheduling can delay observation. The original public
 low-level registration contract does not accept an unbound timeout override;
 the new normal configuration continuation carries the same admitted inputs.
 

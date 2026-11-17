@@ -196,8 +196,9 @@ export function prepareSdkTransport(handle, {fetch, responseLimits, observeAt,
     headers: original.headers, redirect: 'error', signal: state.controller.signal});
   // Selected per-call Client/options are fixed in preparation before Entry.
   // Generic/native transports retain their original fetch behavior.
-  const physical = prepareOriginalUndiciFetch(fetch, original.url, init, limits);
+  const physical = prepareOriginalUndiciFetch(fetch, original.url, init, limits, state.controller);
   state.transport = {invoke: physical?.invoke ?? (() => fetch(original.url, init)),
+    ...(physical?.finishResponse === undefined ? {} : {finishResponse: physical.finishResponse}),
     physicalCleanup: physical?.cleanup, physicalRetired: physical === undefined,
     physicalRetiring: false, limits, observeAt,
     observedAt: undefined, rawObservation: undefined, responseMode,
@@ -265,6 +266,8 @@ export function startSdkTransport(handle) {
     transport.failure ??= 'SdkTransportUnknown';
     state.responseReject?.(issue('SdkTransportUnknown'));
   }).finally(() => {
+    transport.finishResponse?.();
+    if (Object.hasOwn(transport, 'finishResponse')) delete transport.finishResponse;
     transport.settled = true;
     wake();
   });

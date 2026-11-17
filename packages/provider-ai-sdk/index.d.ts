@@ -22,10 +22,13 @@ export type ResponseLimits = Readonly<{
 export type PhysicalAcquisitionLimits = Readonly<{
   maxPlaintextBytes: number; maxBorrowedBackingBytes: number; maxReads: number;
 }>;
-/** Explicit positive finite milliseconds. Header completion/body idle and
- * connect timeouts are distinct from a whole-call timer or observed duration. */
+/** Explicit positive finite milliseconds. Phase/idle clocks and the optional
+ * complete request/read clock are not observed duration or remote-stop ACK. */
 export type PhysicalTransportTimeouts = Readonly<{
   connectMs: number; headersMs: number; bodyMs: number;
+  /** Same original physical request through bounded body-read settlement.
+   * Includes continuous/trickling bodies; excludes Core/Store/Saved work. */
+  callMs?: number;
 }>;
 /** Borrowed existing Host selections. These DATA types issue no grants. */
 export type QuantityCapacity = Readonly<{

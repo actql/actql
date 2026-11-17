@@ -1,4 +1,33 @@
 ///|
+test "explicit Node deadline quote uses the original tariff and exact Resource without a new allowance" {
+  let quote = installed_node_model_deadline_capacity().unwrap()
+  // Independent representation arithmetic, not a value copied from output.
+  let retained = 9L * 16L + 25L * 8L + 14L * 8L
+  assert_eq(@execution.execution_capacity_retained_bytes(quote), retained)
+  assert_eq(@execution.execution_capacity_execution_bytes(quote), retained)
+  for shortage in [-1, 0, 1] {
+    let retained_limit = retained - (if shortage == 0 { 1L } else { 0L })
+    let execution_limit = retained - (if shortage == 1 { 1L } else { 0L })
+    let ledger = @resources.create_ledger({
+      planning_work: 1,
+      attempts: 1,
+      holdings: 1,
+      transfer_bytes: 0L,
+      retained_bytes: retained_limit,
+      execution_bytes: execution_limit,
+    }).unwrap()
+    let result = @resources.reserve_capacity(ledger, retained, retained)
+    if shortage < 0 {
+      @resources.settle_capacity(ledger, result.unwrap()).unwrap()
+    } else {
+      assert_true(result is Err(_))
+    }
+    assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+    assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+  }
+}
+
+///|
 // The actual existing caller_material owner admits the new fixed-shell DATA,
 // not a reserve-always-succeeds port. No SDK/HTTP/GC adequacy is proved here.
 test "Node async shell remains on the same original Request through Graph completion" {
