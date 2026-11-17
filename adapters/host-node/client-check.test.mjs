@@ -5593,14 +5593,22 @@ for (const entrance of ['local', 'http']) {
     for (const wire of [absentEnvironment, withPolicy(absentEnvironment,
       {...absentEnvironment.host_policy_profile, text_time_evaluation: policy})]) {
       const client = await contextClient(t, entrance, wire, {profiles});
-      for (const text of ["SELECT REGEX_MATCH(NULL, 'a') AS n", 'SELECT NFKC(NULL) AS n',
-        "SELECT PARSE_TIMESTAMP(NULL, 'yyyy') AS n"]) {
+      for (const text of ["SELECT REGEX_MATCH(NULL, 'a') AS n", 'SELECT NFKC(NULL) AS n']) {
         const outcome = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
         assert.equal(outcome.report.verdict, 'undetermined');
         assert.deepEqual(outcome.report.reasons, []);
         assert.deepEqual(outcome.report.requirements, []);
         assert.deepEqual(outcome.report.coverage.limits.map(reason => reason.code), ['implementation_limit']);
       }
+      // SQL is format-first: this is a NULL pattern, not a nullable value.
+      // Existing Common syntax requires a String literal or Parameter pattern;
+      // that invalid input stays distinct from unsupported function lowering.
+      const invalid = await client.check("SELECT PARSE_TIMESTAMP(NULL, 'yyyy') AS n",
+        {kind: 'text', scope: 'bound_input', format: 'sql'});
+      assert.equal(invalid.report.verdict, 'invalid');
+      assert.deepEqual(invalid.report.reasons, [{code: 'program_invalid'}]);
+      assert.deepEqual(invalid.report.requirements, []);
+      assert.deepEqual(invalid.report.coverage, {limits: [], unresolved: []});
     }
   });
 }
