@@ -246,6 +246,13 @@ jobs:
           node-version: '22.22.0'
           cache: npm
       - run: npm ci
+      - name: Install the pinned formatter for original source verification
+        shell: bash
+        run: |
+          node scripts/setup-moonbit.mjs
+          formatter_toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
+          echo "MOON_HOME=$formatter_toolchain" >> "$GITHUB_ENV"
+          echo "$formatter_toolchain/bin" >> "$GITHUB_PATH"
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           artifact-ids: ${{ needs.candidate.outputs.native-artifact-id }}

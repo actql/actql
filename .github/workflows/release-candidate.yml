@@ -661,8 +661,11 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: native-public-0.0.2-${{ needs.source.outputs.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/native-joint/release/
-          include-hidden-files: true
+          path: |
+            ${{ runner.temp }}/native-joint/release/release.json
+            ${{ runner.temp }}/native-joint/release/actql-cli-linux-x64-gnu-0.0.2.tgz
+            ${{ runner.temp }}/native-joint/release/actql-cli-darwin-arm64-0.0.2.tgz
+            ${{ runner.temp }}/native-joint/release/actql-0.0.2.tgz
           if-no-files-found: error
           retention-days: 14
 
@@ -735,6 +738,8 @@ jobs:
       - name: Original fresh installed source-free Local corpus (20 cases)
         timeout-minutes: 22
         shell: bash
+        env:
+          ACTQL_TEST_PRESERVE_SCRATCH: '0'
         run: node scripts/test-native-cli-source-free-install.mjs "$RUNNER_TEMP/native-installed/release"
       - name: Functional README approval and recovery with OS resource observations
         timeout-minutes: 30
