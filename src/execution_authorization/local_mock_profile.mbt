@@ -89,6 +89,7 @@ pub(all) struct LocalMockAccountSubjects {
 ///|
 pub(all) enum LocalMockProfileIssue {
   InvalidSubjects
+  DuplicateUpdateTarget
   Configuration(ConfigurationIssue)
 } derive(Eq, Debug)
 
@@ -123,26 +124,135 @@ fn local_mock_entry(
 pub fn local_mock_account_configuration(
   subjects : LocalMockAccountSubjects,
 ) -> Result[String, LocalMockProfileIssue] {
+  let targets = match subjects.update_target {
+    Some(target) => [target]
+    None => []
+  }
+  local_mock_account_configuration_original(subjects, targets)
+}
+
+///|
+/// Build the complete selected target policy once. The original installing
+/// Host must fund this constructor before it allocates entries or serializes
+/// the Account. This is configuration DATA, not adoption or an Effect permit.
+pub fn local_mock_account_configuration_prepared(
+  subjects : LocalMockAccountSubjects,
+  update_targets : Array[(String, String)],
+  prepare : (AccountConfigurationConstruction) -> Bool,
+) -> Result[String, LocalMockProfileIssue]? {
+  guard local_mock_account_construction(subjects, update_targets)
+    is Some(request) &&
+    prepare(request) else {
+    return None
+  }
+  Some(local_mock_account_configuration_original(subjects, update_targets))
+}
+
+///|
+/// Validate the complete selected inventory before the installing Host creates
+/// keys or a configuration identity. The SAME Account Read funds all duplicate
+/// indexes and normalization; this result is DATA, never an Allow or adoption.
+pub fn validate_local_mock_inventory_prepared(
+  control_connection : String,
+  sources : Array[(String, String)],
+  model_tasks : Array[String],
+  request_target : (String, String)?,
+  update_targets : Array[(String, String)],
+  prepare : (AccountConfigurationConstruction) -> Bool,
+) -> Result[Unit, LocalMockProfileIssue]? {
+  guard local_mock_inventory_construction(
+      control_connection, sources, model_tasks, request_target, update_targets,
+    )
+    is Some(request) &&
+    prepare(request) else {
+    return None
+  }
+  if !valid_name(control_connection) || !normalized_text(control_connection) {
+    return Some(Err(InvalidSubjects))
+  }
+  let seen_sources : Map[(String, String), Bool] = Default::default()
+  for source in sources {
+    if !valid_name(source.0) ||
+      !valid_name(source.1) ||
+      !normalized_text(source.0) ||
+      !normalized_text(source.1) ||
+      seen_sources.contains(source) {
+      return Some(Err(InvalidSubjects))
+    }
+    seen_sources[source] = true
+  }
+  let seen_tasks : Map[String, Bool] = Default::default()
+  for task in model_tasks {
+    if !valid_cid(task) || seen_tasks.contains(task) {
+      return Some(Err(InvalidSubjects))
+    }
+    seen_tasks[task] = true
+  }
+  let seen_targets : Map[(String, String), Bool] = Default::default()
+  for target in update_targets {
+    if !seen_sources.contains(target) {
+      return Some(Err(InvalidSubjects))
+    }
+    if seen_targets.contains(target) {
+      return Some(Err(DuplicateUpdateTarget))
+    }
+    seen_targets[target] = true
+  }
+  if request_target is Some(target) {
+    if !valid_name(target.0) ||
+      !valid_name(target.1) ||
+      !normalized_text(target.0) ||
+      !normalized_text(target.1) ||
+      seen_sources.contains(target) ||
+      (target.0 == "mock" && seen_tasks.contains(target.1)) {
+      return Some(Err(InvalidSubjects))
+    }
+  }
+  Some(Ok(()))
+}
+
+///|
+fn local_mock_account_configuration_original(
+  subjects : LocalMockAccountSubjects,
+  update_targets : Array[(String, String)],
+) -> Result[String, LocalMockProfileIssue] {
   if !valid_name(subjects.account_id) ||
     !valid_name(subjects.principal) ||
     !valid_name(subjects.control_connection) {
     return Err(InvalidSubjects)
   }
-  // run and the two ordinary Results; UPDATE adds both its delegate and
-  // updates Result. Request/sign entries remain independently selected.
-  let fixed = 3 +
-    (if subjects.update_target is Some(_) { 2 } else { 0 }) +
-    (if subjects.request_target is Some(_) { 1 } else { 0 }) +
-    (if subjects.signing_key_resource is Some(_) { 1 } else { 0 })
+  // Each target has its own exact delegate. The shared updates Result read
+  // entry occurs once, independently of the number of logical targets.
+  let fixed = 3L +
+    update_targets.length().to_int64() +
+    (if update_targets.is_empty() { 0L } else { 1L }) +
+    (if subjects.request_target is Some(_) { 1L } else { 0L }) +
+    (if subjects.signing_key_resource is Some(_) { 1L } else { 0L })
+  if fixed > 2147483647L {
+    return Err(Configuration(CanonicalDocumentTooLarge))
+  }
   match
     local_profile_entry_inventory(
       subjects.sources.length(),
       subjects.model_tasks.length(),
-      fixed,
+      fixed.to_int(),
     ) {
     Err(issue) => return Err(Configuration(issue))
     Ok(_) => ()
   }
+  if subjects.update_target is Some(legacy) &&
+    (update_targets.length() != 1 || update_targets[0] != legacy) {
+    return Err(InvalidSubjects)
+  }
+  let targets = update_targets.copy()
+  targets.sort_by((left, right) => {
+    let connection = code_unit_compare(left.0, right.0)
+    if connection == 0 {
+      code_unit_compare(left.1, right.1)
+    } else {
+      connection
+    }
+  })
   let entries = [
     local_mock_entry(
       "local-run",
@@ -208,16 +318,22 @@ pub fn local_mock_account_configuration(
       ),
     )
   }
-  if subjects.update_target is Some(target) {
-    // UPDATE can only name a selected readable Mock subject. Delegate is
-    // unresolved until the existing exact Preview/Checkpoint decision; this
-    // profile never supplies a permit, signature or physical write grant.
+  for index, target in targets {
+    // Disjoint logical targets may share one physical JSON document. This
+    // policy binds connection/resource, never pathname or file-owner count.
     if !seen_sources.contains(target) {
       return Err(InvalidSubjects)
     }
+    if index > 0 && targets[index - 1] == target {
+      return Err(DuplicateUpdateTarget)
+    }
     entries.push(
       local_mock_entry(
-        "mock-update",
+        if targets.length() == 1 {
+          "mock-update"
+        } else {
+          "mock-update-" + index.to_string()
+        },
         subjects,
         target.0,
         target.1,
@@ -225,6 +341,8 @@ pub fn local_mock_account_configuration(
         Delegate,
       ),
     )
+  }
+  if !targets.is_empty() {
     // Only the selected UPDATE recipe's exact Named Result. This does not
     // approve the Effect, issue a Result or replace its same-Run/current gate.
     entries.push(

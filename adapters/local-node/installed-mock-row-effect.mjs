@@ -8,8 +8,9 @@ import {authorizationDispatchFacts, assertAuthorizationAccountCurrent}
   from '../host-common/authorization-gate.mjs';
 import {retainInstalledRowEffectAdapter, installedRowEffectConstructionLimits} from '../host-node/installed-row-effect.mjs';
 import {prepareInstalledPhysicalWritePlanRecipe} from '../host-node/installed-effect-plan.mjs';
-import {installedUpdateTargets} from '../host-node/installed-effect-inventory.mjs';
+import {installedUpdateTargets, composeInstalledEffects} from '../host-node/installed-effect-inventory.mjs';
 import {createMockFileTarget} from '../host-node/mock-file-target.mjs';
+import {retainInstalledHostInitializationFailure} from '../host-node/installed-host-cleanup.mjs';
 
 const fail = (code, cause) => {throw Object.assign(new Error(code, {cause}), {code});};
 const wire = value => canonicalJson(value, {dataKeys: true});
@@ -45,16 +46,17 @@ const ports = Object.freeze({
   before: 'clientProgramRelationTargetBefore',
   version: 'clientProgramRelationTargetVersion',
   update: 'clientProgramRelationPrepareTargetUpdate',
+  construction: 'clientProgramInstalledSourceConstructionCapacity',
 });
 
 export async function installPreparedProjectMockEffects({moon, mockPreparation,
-  baseEnvironmentWire, authorizationFor, principalId, runtimeBundleCid, bindingCid,
-  ledgerRoot, assertCurrent, effectResources, io, observeWrite}) {
+  baseEnvironmentWire, authorizationFor, principalId, runtimeBundleCid, bindingCid, bindingFor,
+  ledgerRoot, assertCurrent, effectResources, installationServices, io, observeWrite}) {
   if (typeof mockPreparation?.originalsForRuntime !== 'function' ||
+      typeof mockPreparation.constructWritableRuntime !== 'function' ||
       typeof authorizationFor !== 'function' || typeof assertCurrent !== 'function' ||
-      typeof principalId !== 'string' || !cid(runtimeBundleCid) || !cid(bindingCid)) {
-    fail('InvalidInstalledMockEffect');
-  }
+      typeof principalId !== 'string' || !cid(runtimeBundleCid) ||
+      (typeof bindingFor !== 'function' && !cid(bindingCid))) fail('InvalidInstalledMockEffect');
   const resourceMethods = Object.fromEntries(['bindRunOriginal', 'assertCurrent', 'limits'].map(name => {
     const field = effectResources === null || typeof effectResources !== 'object'
       ? undefined : Object.getOwnPropertyDescriptor(effectResources, name);
@@ -65,58 +67,95 @@ export async function installPreparedProjectMockEffects({moon, mockPreparation,
   const resources = Object.freeze(Object.fromEntries(Object.entries(resourceMethods)
     .map(([name, method]) => [name, (...args) => Reflect.apply(method, effectResources, args)])));
   const bundle = mockPreparation.originalsForRuntime(moon);
-  if (bundle.writable === undefined) fail('InstalledMockWritableTargetUnavailable');
-  const {source: original, write: spec} = bundle.writable, catalogue = original.catalogue;
-  const prepared = original.effectPrepared;
-  if (typeof original.effectMember?.load !== 'function' ||
-      prepared?.declaration !== original.declaration || prepared.environment === undefined) {
-    fail('InstalledSourceInitializationUnavailable');
-  }
-  const mapping = prepared.mappings.find(value => value.resource === spec.resource);
-  if (mapping === undefined || mapping.body !== spec.mappingWire) fail('InvalidInstalledMockEffect');
-  const physical = original.physical.find(value => value.resource === spec.resource);
-  if (physical === undefined || physical.declaration !== original.declaration) fail('InvalidInstalledMockEffect');
+  if (!Array.isArray(bundle.writables) || bundle.writables.length === 0) fail('InstalledMockWritableTargetUnavailable');
   function current() {
-    const observed = assertCurrent();
-    if (observed !== undefined) {
-      if (observed instanceof Promise) void observed.catch(() => {});
-      fail('InvalidMockFileCurrentFence');
-    }
+    synchronous(assertCurrent());
     if (mockPreparation.originalsForRuntime(moon) !== bundle) fail('ForeignInstalledMockPreparation');
   }
   current();
   const methods = Object.fromEntries(Object.entries(ports).map(([name, port]) => [name, moon?.[port]]));
-  if (!Object.values(methods).every(value => typeof value === 'function')) {
-    fail('InstalledMockTargetRuntimeUnavailable');
-  }
+  if (!Object.values(methods).every(value => typeof value === 'function')) fail('InstalledMockTargetRuntimeUnavailable');
   const call = (name, ...args) => Reflect.apply(methods[name], moon, args);
-  const authorization = await authorizationFor(catalogue.connection);
-  current();
-  const {driver, site, resourceObservation} = mockRowEffectDriver({bundle, original, spec, physical, mapping, bindingCid,
-    principalId, authorization, current, call, resources, io, observeWrite});
+  // The complete metadata implementation is held before the first file owner,
+  // source-driver registry or source/alias vector is constructed.
+  const implementation = await mockPreparation.constructWritableRuntime(moon, 'root', undefined, () => {
+    const file = createMockFileTarget({dataPath: bundle.dataPath, maxBytes: targetLimits.maxFileBytes,
+      assertCurrent: current, observeWrite, ...(io === undefined ? {} : {io})});
+    return {file, sources: bundle.sources.filter(source => source.writes.length !== 0), retainedRuns: new WeakSet()};
+  });
+  const {file, sources, retainedRuns} = implementation;
+  const retainRun = (original, requireCurrent = false) => {
+    if (requireCurrent || !retainedRuns.has(original)) {
+      current();
+      if (original === null || typeof original !== 'object') fail('ForeignMockEffectRun');
+      synchronous(resources.assertCurrent(original));
+      retainedRuns.add(original);
+    }
+    return original;
+  };
+  const resourceObservation = Object.freeze({
+    limits(original) {retainRun(original, true); return targetLimits;},
+    statusFor(original) {return file.statusFor(retainRun(original));},
+    closeFor(original) {return file.closeFor(retainRun(original));},
+  });
   try {
-    const managedPlanRecipe = mockFileEffectPlanRecipe(moon, bundle, spec.permission, spec.observe_permission);
-    const effect = await original.effectMember.load({moon,
-      mappings: prepared.mappings,
-      environmentWire: prepared.environment.wire, connectorId: catalogue.connectorId,
-      connectorRegistration: catalogue.registration, connectorRevision: catalogue.revision,
-      connection: catalogue.connection, site, authorization, runtimeBundleCid,
-      bindingCid, ledgerRoot, driver, managedPlanRecipe, effectResources: resources,
-      limits: {maxRows: targetLimits.maxRows}});
-    current();
-    const aliases = spec.aliases.map(name => Object.freeze({name,
-      targetRef: mapping.target}));
-    const installed = retainInstalledRowEffectAdapter(effect, Object.freeze({...effect,
-      queryUpdateTargets: installedUpdateTargets(effect, aliases)}));
+    const installed = await composeInstalledEffects(sources,
+      {moon, baseEnvironmentWire, installationServices}, async (original, _options, retain) => {
+        const prepared = original.effectPrepared, catalogue = original.catalogue;
+        if (typeof original.effectMember?.load !== 'function' || prepared?.declaration !== original.declaration ||
+            prepared.environment === undefined) fail('InstalledSourceInitializationUnavailable');
+        const selectedBinding = bindingFor === undefined ? sources.length === 1 ? bindingCid : undefined
+          : bindingFor(original);
+        if (!cid(selectedBinding)) fail('ForeignInstalledMockSourceBinding');
+        const authorization = await authorizationFor(catalogue.connection);
+        current();
+        const constructed = await mockPreparation.constructWritableRuntime(moon, 'source', original, () => {
+          const targets = bundle.writables.filter(target => target.source === original);
+          if (targets.some(target => target.mapping === undefined || target.mapping.body !== target.write.mappingWire ||
+              target.physical.declaration !== original.declaration)) fail('InvalidInstalledMockEffect');
+          const spec = targets[0].write;
+          if (targets.some(target => target.write.permission !== spec.permission ||
+              target.write.observe_permission !== spec.observe_permission)) fail('InstalledMockOperationProfileMismatch');
+          const constructed = mockRowEffectDriver({bundle, original, targets,
+            bindingCid: selectedBinding, principalId, authorization, current, call, resources, file});
+          return {...constructed, targets,
+            managedPlanRecipe: mockFileEffectPlanRecipe(moon, bundle, spec.permission, spec.observe_permission)};
+        });
+        const {driver, site, targets, managedPlanRecipe} = constructed;
+        try {
+          // A member is consumed ONCE with ALL of its original prepared
+          // mappings. Logical routing happens inside this same installed driver.
+          const effect = await original.effectMember.load({moon, mappings: prepared.mappings,
+            environmentWire: prepared.environment.wire, connectorId: catalogue.connectorId,
+            connectorRegistration: catalogue.registration, connectorRevision: catalogue.revision,
+            connection: catalogue.connection, site, authorization, runtimeBundleCid,
+            bindingCid: selectedBinding, ledgerRoot, driver, managedPlanRecipe, effectResources: resources,
+            limits: {maxRows: targetLimits.maxRows}});
+          retain(effect);
+          current();
+          const projection = await mockPreparation.constructWritableRuntime(moon, 'aliases', original, () => {
+            const aliases = targets.flatMap(target => target.write.aliases.map(name =>
+              Object.freeze({name, targetRef: target.mapping.target})));
+            return retainInstalledRowEffectAdapter(effect, Object.freeze({...effect,
+              queryUpdateTargets: installedUpdateTargets(effect, aliases)}));
+          });
+          installations.set(projection, resourceObservation);
+          return projection;
+        } catch (cause) {
+          try {await site.close();} catch (cleanup) {
+            throw Object.assign(new Error('InstalledMockEffectCleanupPending', {cause}),
+              {code: 'InstalledMockEffectCleanupPending', cleanupPending: true,
+                cleanupHandle: Object.freeze({status: site.status, retry: site.close}), cleanup});
+          }
+          throw cause;
+        }
+      });
     installations.set(installed, resourceObservation);
     return installed;
   } catch (cause) {
-    try {await site.close();} catch (cleanup) {
-      throw Object.assign(new Error('InstalledMockEffectCleanupPending', {cause}),
-        {code: 'InstalledMockEffectCleanupPending', cleanupPending: true,
-          cleanupHandle: Object.freeze({status: site.status, retry: site.close}), cleanup});
-    }
-    throw cause;
+    // Existing aggregate custody drains the original failure and this shared
+    // physical owner independently. Unknown/missing ACKs stay pending.
+    throw await retainInstalledHostInitializationFailure(cause, {sourceProfile: {close: file.close}});
   }
 }
 
@@ -160,17 +199,29 @@ export function observeInstalledMockEffectResources(effect) {
 // records the original current Account/Checkpoint decision; it grants nothing.
 // The generic Row Effect still admits the same Preview and durable row claim
 // before calling send, and persists the observed bytes before settlement.
-function mockRowEffectDriver({bundle, original, spec, physical, mapping, bindingCid, principalId,
-  authorization, current, call, resources, io, observeWrite}) {
+function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId,
+  authorization, current, call, resources, file}) {
   const maximum = targetLimits.maxFileBytes, work = targetLimits.maxWork;
-  const catalogue = original.catalogue;
-  const beforeFields = Object.keys(physical.schema);
-  const changes = value => value !== null && typeof value === 'object' && !Array.isArray(value) &&
-    Object.keys(value).length > 0 && Object.keys(value).every(name => spec.writable_fields.includes(name));
+  const catalogue = original.catalogue, profile = targets[0].write;
+  const changes = (value, target) => value !== null && typeof value === 'object' && !Array.isArray(value) &&
+    Object.keys(value).length > 0 && Object.keys(value).every(name => target.write.writable_fields.includes(name));
   const requests = new WeakMap(), descriptions = new WeakMap(), grants = new WeakMap();
   const retainedRuns = new WeakSet();
-  const file = createMockFileTarget({dataPath: bundle.dataPath,
-    maxBytes: maximum, assertCurrent: current, observeWrite, ...(io === undefined ? {} : {io})});
+  // A plural member description adds ONE borrowed target link. The existing
+  // same-Run control constructor admits its explicit logical allowance before
+  // that field exists. This is not global inventory funding or authority.
+  const targetDescriptionCapacity = targets.length === 1 ? undefined
+    : checked(call('construction', 1n, 0n, 0n, 1n, 0n, 0n));
+  function targetForResource(resource) {
+    const target = targets.find(value => value.write.resource === resource);
+    if (target === undefined) fail('ForeignMockEffectMember');
+    return target;
+  }
+  function targetForRecord(record) {
+    const target = targets.find(value => value.mapping.mappingCid === record?.mapping);
+    if (target === undefined) fail('InvalidMockEffectRequest');
+    return target;
+  }
   function runCurrent(runOriginal) {
     current();
     if (runOriginal === null || typeof runOriginal !== 'object') fail('ForeignMockEffectRun');
@@ -191,20 +242,23 @@ function mockRowEffectDriver({bundle, original, spec, physical, mapping, binding
   });
   function memberCurrent(member) {
     current();
-    if (member.kind !== 'update' || member.resource !== spec.resource ||
-        member.mapping.mappingCid !== mapping.mappingCid ||
-        member.mapping.mappingRef !== mapping.mappingRef) fail('ForeignMockEffectMember');
+    if (member === null || typeof member !== 'object') fail('ForeignMockEffectMember');
+    const target = targetForResource(member.resource);
+    if (member.kind !== 'update' || member.mapping?.mappingCid !== target.mapping.mappingCid ||
+        member.mapping?.mappingRef !== target.mapping.mappingRef) fail('ForeignMockEffectMember');
+    return target;
   }
-  function description(value, runOriginal) {
+  function description(value, runOriginal, target) {
     current();
     const original = descriptions.get(value);
     if (original === undefined || runOriginal !== undefined &&
         original.runOriginal !== runOriginal) fail('ForeignMockTargetDescription');
+    if (target !== undefined && (original.target ?? targets[0]) !== target) fail('ForeignMockTargetDescription');
     runCurrent(original.runOriginal);
     return original;
   }
-  function describe({member, runInvocationCid, dispatchRequestCid, runOriginal}) {
-    memberCurrent(member);
+  function describe({member, runInvocationCid, dispatchRequestCid, runOriginal, controlConstruction}) {
+    const target = memberCurrent(member);
     runCurrent(runOriginal);
     const limits = resources.limits(runOriginal);
     if (!closed(limits, Object.keys(targetLimits)) || Object.entries(targetLimits)
@@ -212,16 +266,22 @@ function mockRowEffectDriver({bundle, original, spec, physical, mapping, binding
       fail('InstalledMockEffectLimitsUnavailable');
     }
     if (!cid(runInvocationCid) || !cid(dispatchRequestCid)) fail('ForeignMockTargetDescription');
-    const value = Object.freeze({});
-    descriptions.set(value, Object.freeze({runInvocationCid, dispatchRequestCid, runOriginal}));
-    return value;
+    const construct = () => {
+      const value = Object.freeze({});
+      descriptions.set(value, Object.freeze({runInvocationCid, dispatchRequestCid, runOriginal,
+        ...(targets.length === 1 ? {} : {target})}));
+      return value;
+    };
+    if (targetDescriptionCapacity === undefined) return construct();
+    if (typeof controlConstruction !== 'function') fail('InstalledMockTargetConstructionUnavailable');
+    return controlConstruction(undefined, construct, [], targetDescriptionCapacity);
   }
-  function decisionCurrent(decision, kind) {
+  function decisionCurrent(decision, kind, target) {
     current();
     const facts = authorizationDispatchFacts(decision);
     if (facts?.principal !== principalId || facts.configurationCid !== authorization.configurationCid ||
         decision.action !== 'dispatch' || decision.tuple?.connection !== catalogue.connection ||
-        decision.tuple?.resource !== spec.resource ||
+        decision.tuple?.resource !== target.write.resource ||
         decision.tuple?.operation !== (kind === 'read' ? 'read' : 'effect') ||
         decision.boundary !== (kind === 'read' ? 'acquisition' : 'effect_commit') ||
         (kind === 'write' && (decision.basis !== 'resumed' ||
@@ -233,26 +293,28 @@ function mockRowEffectDriver({bundle, original, spec, physical, mapping, binding
   }
   function issue(kind, {operation, decision, resource, runInvocationCid,
     dispatchRequestCid, subjectCid, maxUses}) {
-    const expected = kind === 'read' ? spec.observe_permission : spec.permission;
-    if (operation !== expected || resource !== spec.resource || !cid(runInvocationCid) ||
+    const target = targetForResource(resource);
+    const expected = kind === 'read' ? target.write.observe_permission : target.write.permission;
+    if (operation !== expected || !cid(runInvocationCid) ||
         !cid(dispatchRequestCid) || (kind === 'read' && maxUses !== 1) ||
         (kind === 'write' && (!cid(subjectCid) || decision?.subjectCid !== subjectCid))) {
       fail('MockTargetNotAuthorized');
     }
-    decisionCurrent(decision, kind);
+    decisionCurrent(decision, kind, target);
     const proof = Object.freeze({});
     grants.set(proof, {kind, decision, runInvocationCid, dispatchRequestCid, subjectCid, used: false});
     return Object.freeze({proof});
   }
-  function consume(kind, supplied, selected) {
-    const grant = grants.get(supplied?.proof), original = description(selected);
+  function consume(kind, supplied, selected, target) {
+    const grant = grants.get(supplied?.proof), original = description(selected, undefined, target);
     if (grant === undefined || grant.kind !== kind || grant.used ||
         grant.runInvocationCid !== original.runInvocationCid ||
         grant.dispatchRequestCid !== original.dispatchRequestCid ||
+        grant.decision.tuple.resource !== target.write.resource ||
         typeof supplied.useId !== 'string' || Buffer.byteLength(supplied.useId) > 4096) {
       fail('ForeignMockTargetUse');
     }
-    decisionCurrent(grant.decision, kind);
+    decisionCurrent(grant.decision, kind, target);
     grant.used = true;
     return Object.freeze({grant,
       useCid: hash({kind: 'mock-file-' + kind, binding_cid: bindingCid,
@@ -262,17 +324,18 @@ function mockRowEffectDriver({bundle, original, spec, physical, mapping, binding
         checkpoint_cid: grant.decision.checkpointCid ?? null,
         resolution_cid: grant.decision.resolutionCid ?? null})});
   }
-  const useCurrent = use => {if (use !== undefined) decisionCurrent(use.grant.decision, use.grant.kind);};
-  function admit(bytes) {
+  const useCurrent = use => {if (use !== undefined) decisionCurrent(use.grant.decision,
+    use.grant.kind, targetForResource(use.grant.decision.tuple.resource));};
+  function admit(bytes, target) {
     const originalDocument = checked(call('admit', bytes, maximum,
       targetLimits.maxNodes, targetLimits.maxDepth, targetLimits.maxRows, work));
     const projections = new Map();
     for (const source of bundle.sources) for (const model of source.physical) {
-      const writable = source === original && model === physical ? spec.writable_fields : model.writableFields;
+      const writable = source === original && model === target.physical ? target.write.writable_fields : model.writableFields;
       projections.set(model, checked(call('project', originalDocument, model.declaration,
         model.resource, model.itemsPath, model.keyPath, model.primaryIdentity, writable)));
     }
-    const selected = projections.get(physical);
+    const selected = projections.get(target.physical);
     if (selected === undefined) fail('InvalidInstalledMockEffect');
     return {originalDocument, projections, selected};
   }
@@ -292,10 +355,11 @@ function mockRowEffectDriver({bundle, original, spec, physical, mapping, binding
   }
   function requestFrom(record, runOriginal) {
     runCurrent(runOriginal);
+    const target = targetForRecord(record), {write: spec, mapping, beforeFields} = target;
     if (!closed(record, ['binding', 'mapping', 'target', 'value', 'version', 'before']) ||
         record.binding !== bindingCid || record.mapping !== mapping.mappingCid ||
         typeof record.target !== 'string' || !record.target.isWellFormed() ||
-        !changes(record.value) || !cid(record.version) || !closed(record.before, beforeFields) ||
+        !changes(record.value, target) || !cid(record.version) || !closed(record.before, beforeFields) ||
         record.before[spec.primary_identity] !== record.target || Buffer.byteLength(wire(record)) > maximum) {
       fail('InvalidMockEffectRequest');
     }
@@ -312,15 +376,15 @@ function mockRowEffectDriver({bundle, original, spec, physical, mapping, binding
   }
   function readChild({member, selector, value, current: selected, authorizationForRow, signal,
     runOriginal}) {
-    memberCurrent(member);
-    description(selected, runOriginal);
+    const target = memberCurrent(member), mapping = target.mapping;
+    description(selected, runOriginal, target);
     runCurrent(runOriginal);
     let use, output;
     const child = file.readChild({signal, runOriginal,
       assertCurrent: () => {runCurrent(runOriginal); useCurrent(use);},
-      async authorize() {use = consume('read', await authorizationForRow(), selected);},
+      async authorize() {use = consume('read', await authorizationForRow(), selected, target);},
       consume(bytes) {
-        const document = admit(bytes), observed = observe(document, selector);
+        const document = admit(bytes, target), observed = observe(document, selector);
         // Validate the Mapping body with Common before sealing the request.
         checked(call('update', document.selected, observed.row, observed.versionCid, wire(value), work));
         const request = requestFrom({binding: bindingCid, mapping: mapping.mappingCid,
@@ -387,21 +451,24 @@ function mockRowEffectDriver({bundle, original, spec, physical, mapping, binding
     return {requests: restored, currents};
   };
   const driver = Object.freeze({
-    kinds: Object.freeze(['update']), targetRead: Object.freeze({operation: spec.observe_permission}),
-    writeOperation: () => spec.permission, describe,
+    kinds: Object.freeze(['update']), targetRead: Object.freeze({operation: profile.observe_permission}),
+    writeOperation: member => memberCurrent(member).write.permission, describe,
     prepareRequest() {fail('MockOriginalTargetObservationRequired');},
     prepareRequestChild: readChild,
     requestFacts(request) {const {record} = own(request); return {value: record.value, target: record.target};},
     requestCid: request => own(request).cid,
     recheckRequests({member, entries, current: selected, runOriginal}) {
-      memberCurrent(member); description(selected, runOriginal); runCurrent(runOriginal);
-      for (const entry of entries) own(entry.request, runOriginal);
+      const target = memberCurrent(member);description(selected, runOriginal, target);runCurrent(runOriginal);
+      for (const entry of entries) {
+        if (targetForRecord(own(entry.request, runOriginal).record) !== target) fail('ForeignMockEffectRequest');
+      }
     },
     async observeTargets({member, entries, current: selected, authorizationForRow, signal, runOriginal, ownedReadChild}) {
-      memberCurrent(member); description(selected, runOriginal); runCurrent(runOriginal);
+      const target = memberCurrent(member);description(selected, runOriginal, target);runCurrent(runOriginal);
       const result = [];
       for (const [index, entry] of entries.entries()) {
         const original = own(entry.request, runOriginal), {record} = original;
+        if (targetForRecord(record) !== target) fail('ForeignMockEffectRequest');
         if (original.observedAt === selected) {
           result.push({identity: record.target, versionCid: record.version, before: record.before});
           continue;
@@ -410,8 +477,8 @@ function mockRowEffectDriver({bundle, original, spec, physical, mapping, binding
         const constructChild = () => {
           const child = file.readChild({signal, runOriginal,
           assertCurrent: () => {runCurrent(runOriginal); useCurrent(use);},
-          async authorize() {use = consume('read', await authorizationForRow(index), selected);},
-          consume(bytes) {const value = observe(admit(bytes), record.target);
+          async authorize() {use = consume('read', await authorizationForRow(index), selected, target);},
+          consume(bytes) {const value = observe(admit(bytes, target), record.target);
             // Reuse the already emitted native before wire. Only the two
             // original scalar fields need their ordinary JSON string quoting.
             retainedWire = '{"before":' + value.beforeWire + ',"identity":' + wire(record.target) +
@@ -438,7 +505,8 @@ function mockRowEffectDriver({bundle, original, spec, physical, mapping, binding
       }
       return result;
     },
-    footprint: () => ({providerNamespace: 'local-mock-file', resourceKind: spec.resource, boundaryCid: bindingCid}),
+    footprint: ({member}) => ({providerNamespace: 'local-mock-file',
+      resourceKind: memberCurrent(member).write.resource, boundaryCid: bindingCid}),
     recoveryEntry({entries}) {
       const data = {binding: bindingCid, requests: entries.map(entry => own(entry.request).record)};
       const body = wire(data);
@@ -447,15 +515,16 @@ function mockRowEffectDriver({bundle, original, spec, physical, mapping, binding
     },
     recoverRequests: recover, recoverMemberRequests: recover,
     async send({member, request, current: selected, authorization: supplied, signal, runOriginal, physicalOperation}) {
-      memberCurrent(member); description(selected, runOriginal); runCurrent(runOriginal);
+      const target = memberCurrent(member);description(selected, runOriginal, target);runCurrent(runOriginal);
       const {record, cid: requestCid} = own(request, runOriginal);
+      if (targetForRecord(record) !== target) fail('ForeignMockEffectRequest');
       let use, primary, failed = false;
       const child = file.updateChild({signal, runOriginal,
         assertCurrent: () => {runCurrent(runOriginal); useCurrent(use);},
-        authorize() {use = consume('write', supplied, selected);},
+        authorize() {use = consume('write', supplied, selected, target);},
         replace(bytes) {
           physicalOperation?.chargeBytes(BigInt(bytes.length));
-          const document = admit(bytes), observed = observe(document, record.target);
+          const document = admit(bytes, target), observed = observe(document, record.target);
           if (observed.versionCid !== record.version || wire(observed.before) !== wire(record.before)) {
             fail('MockTargetVersionConflict');
           }

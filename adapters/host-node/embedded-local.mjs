@@ -2096,8 +2096,8 @@ async function openInstalledHost(originalInstallation, preparation) {
       };
       installedEffect = await preparation.installMockEffects(moon, baseEnvironmentWire,
         () => createLocalAuthorizationGate({...authorization, principal: principalId, accountConstruction}),
-        principalId, mockEffectResources, sourceProfile.mockWritableSource?.connectorBindings[0],
-        observeMockEffectWrite);
+        principalId, mockEffectResources, sourceProfile,
+        observeMockEffectWrite, installationServices);
       // Retain the actual factory result before a fallible observation/current
       // read, so the existing initialization carrier still owns its file child.
       mockEffectObservation = observeInstalledMockEffectResources(installedEffect);
@@ -8415,25 +8415,37 @@ async function openPreparedInstalledHost(options, initialEntry) {
       return profile;
     },
     async installMockEffects(runtime, baseEnvironmentWire, authorizationFor, principalId, effectResources,
-      sourceBinding, observeWrite) {
+      sourceProfile, observeWrite, installationServices) {
       if (runtime !== moon || mockPreparation === undefined) {
         throw clientOperationError('ForeignInstalledMockPreparation');
       }
       assertSourceManagedInstallationCurrent(sourceManaged, originals);
       const bundle = mockPreparation.originalsForRuntime(moon);
-      if (bundle.writable === undefined ||
-          sourceBinding?.connectorId !== bundle.writable.source.catalogue.connectorId ||
-          typeof sourceBinding.bindingCid !== 'string' ||
-          !/^sha256:[0-9a-f]{64}$/u.test(sourceBinding.bindingCid)) {
+      if (sourceProfile !== record.mockSourceProfile || !Array.isArray(sourceProfile?.sources) ||
+          sourceProfile.sources.length !== bundle.sources.length || bundle.writables.length === 0) {
         throw clientOperationError('ForeignInstalledMockSourceBinding');
       }
       return installPreparedProjectMockEffects({moon, mockPreparation, baseEnvironmentWire,
-        authorizationFor, principalId, effectResources, observeWrite,
+        authorizationFor, principalId, effectResources, observeWrite, installationServices,
         runtimeBundleCid: await installedRuntimeBundleCid(runtimeUrl),
-        // Correspondence DATA from the actual same Host's Source factory.
-        // The Mapping cannot redefine that physical installation identity;
-        // this CID grants no Run, resource original or target authority.
-        bindingCid: sourceBinding.bindingCid,
+        bindingFor(source) {
+          const index = bundle.sources.indexOf(source);
+          if (index < 0 || sourceProfile !== record.mockSourceProfile) {
+            throw clientOperationError('ForeignInstalledMockSourceBinding');
+          }
+          const bindings = sourceProfile.sources[index].connectorBindings;
+          let binding;
+          for (const candidate of bindings) {
+            if (candidate.connectorId !== source.catalogue.connectorId) continue;
+            if (binding !== undefined) throw clientOperationError('ForeignInstalledMockSourceBinding');
+            binding = candidate;
+          }
+          if (binding === undefined ||
+              typeof binding.bindingCid !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(binding.bindingCid)) {
+            throw clientOperationError('ForeignInstalledMockSourceBinding');
+          }
+          return binding.bindingCid;
+        },
         ledgerRoot: join(originalInstallation.root, 'state', 'effects', 'ledger'),
         assertCurrent: () => assertSourceManagedInstallationCurrent(sourceManaged, originals)});
     },
@@ -8455,21 +8467,58 @@ async function openPreparedInstalledHost(options, initialEntry) {
       assertInitialControlHostPreparation(originals);
       const journal = ordinaryHostJournalInstallation(originals);
       const bundle = mockPreparation.originalsForRuntime(moon);
-      const tasks = models.originalsForRuntime(moon).map(entry => entry.taskCid);
-      const sources = bundle.sources.flatMap(entry => entry.catalogue.views.map(view =>
-        [entry.catalogue.connection, view.resource]));
-      const requestRealization = installedMockRequestRealization(mockPreparation, moon);
-      const updates = bundle.writable === undefined ? [] :
-        [[bundle.writable.source.catalogue.connection, bundle.writable.write.resource]];
-      if (updates.length > 1) throw clientOperationError('InstalledMockCatalogueUnavailable');
+      const accountConstruction = installedAccountConstruction(
+        preparation.sourceInitializationServices(moon, originalInstallation.root, principal));
       const binding = await initializeOrdinaryMockAccount({moon, root: originalInstallation.root, principal,
-        subject: {projectDirectory: project.directory,
-          configurationCid: bytesCid(Buffer.from(installedProjectOriginalsForRuntime(project, moon).configurationWire)),
-          sources: bundle.sources.map(entry => ({connection: entry.catalogue.connection,
-            registration: entry.catalogue.registration, declarationCid: bytesCid(Buffer.from(entry.wire))})),
-          modelTasks: tasks, requestRealization},
-        sources, modelTasks: tasks, requestTarget: ['local-mock', requestRealization],
-        updateTarget: updates[0], explicitSelection: record.explicitMockSelection,
+        accountConstruction,
+        prepareSubjects(frame) {
+          if (mockPreparation.originalsForRuntime(moon) !== bundle) {
+            throw clientOperationError('ForeignInstalledMockPreparation');
+          }
+          const originalTasks = models.originalsForRuntime(moon);
+          const configurationWire = installedProjectOriginalsForRuntime(project, moon).configurationWire;
+          const requestRealization = installedMockRequestRealization(mockPreparation, moon);
+          let units = BigInt(project.directory.length + configurationWire.length + requestRealization.length + 256);
+          let nodes = 64n + 2n * BigInt(originalTasks.length);
+          for (const entry of bundle.sources) {
+            units += BigInt(entry.wire.length + entry.catalogue.connection.length + entry.catalogue.registration.length);
+            nodes += 8n;
+            for (const view of entry.catalogue.views) {units += BigInt(view.resource.length);nodes += 4n;}
+          }
+          for (const entry of originalTasks) units += BigInt(entry.taskCid.length);
+          for (const target of bundle.writables) {
+            units += BigInt(target.write.mappingWire.length + target.source.catalogue.connection.length +
+              target.write.resource.length + target.physical.primaryIdentity.length);
+            nodes += 24n + 2n * BigInt(target.physical.itemsPath.length + target.physical.keyPath.length);
+            for (const part of target.physical.itemsPath) units += BigInt(part.length);
+            for (const part of target.physical.keyPath) units += BigInt(part.length);
+          }
+          // Admission precedes every new vector/tuple, subject hash Buffer and
+          // complete target record. No Program or maxMembers selects funding.
+          frame.record(units, nodes, 8n);
+          const tasks = originalTasks.map(entry => entry.taskCid);
+          const sources = bundle.sources.flatMap(entry => entry.catalogue.views.map(view =>
+            [entry.catalogue.connection, view.resource]));
+          const updates = bundle.writables.map(target =>
+            [target.source.catalogue.connection, target.write.resource]);
+          const subject = {projectDirectory: project.directory,
+            configurationCid: bytesCid(Buffer.from(configurationWire)),
+            sources: bundle.sources.map(entry => ({connection: entry.catalogue.connection,
+              registration: entry.catalogue.registration, declarationCid: bytesCid(Buffer.from(entry.wire))})),
+            modelTasks: tasks, requestRealization};
+          if (updates.length > 1) subject.targets = bundle.writables.map(target => {
+            const mapping = target.source.effectPrepared.mappings.find(value => value.resource === target.write.resource);
+            if (typeof mapping?.mappingCid !== 'string') throw clientOperationError('InstalledMockMappingUnavailable');
+            return {connection: target.source.catalogue.connection, resource: target.write.resource,
+              mappingCid: mapping.mappingCid, itemsPath: target.physical.itemsPath,
+              keyPath: target.physical.keyPath, primaryIdentity: target.physical.primaryIdentity};
+          });
+          // One-target subjects and preimages remain byte-exact; a saved
+          // installation is never upgraded or merged with newly found targets.
+          return {subject, sources, modelTasks: tasks,
+            requestTarget: ['local-mock', requestRealization], updateTargets: updates};
+        },
+        explicitSelection: record.explicitMockSelection,
         assertExclusiveCurrent: () => {assertInitialControlHostPreparation(originals); journal.assertInitializationCurrent();},
         operatorAuthorization});
       // Retain the actual initialized keys/configuration before the following

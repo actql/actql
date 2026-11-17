@@ -315,6 +315,71 @@ export function declaredProjectCatalogFinalDescriptorsConstructionGeometry(
     text: 0n, wire: 0n}, {sourceCount: sources, mappingCount});
 }
 
+/** One whole-project writable inventory. Logical targets borrow their exact
+ * source/write/physical descriptors; no fixture bytes or names are copied.
+ * Keep array growth and both sort workspaces before the first target record.
+ * This is the existing Source-initialization allowance, not maxMembers or a
+ * new installed-target quota. */
+export function declaredProjectWritableInventoryConstructionGeometry(sources) {
+  if (!Array.isArray(sources) || nodeTypes.isProxy(sources)) invalidGeometry();
+  let targets = 0n;
+  let fields = 0n;
+  for (const source of sources) {
+    const writes = immutableList(ownData(source, 'writes'));
+    targets += BigInt(writes.length);
+    for (const write of writes) {
+      const physical = ownData(source, 'physical').find(value => value.resource === ownData(write, 'resource'));
+      if (physical === undefined) invalidGeometry();
+      for (const key in physical.schema) if (Object.hasOwn(physical.schema, key)) fields++;
+    }
+  }
+  if (targets > 2147483647n) invalidGeometry();
+  // Five borrowed target fields, their original schema-name vector and the
+  // retained outer vector. No Mapping/declaration/physical owner is copied.
+  // The peak also covers growth old/new backing and stable-sort slots.
+  return stage({nodes: 16n + 8n * targets + fields, text: 0n, wire: 0n},
+    {nodes: 32n + 4n * targets + fields, text: 0n, wire: 0n}, {targets});
+}
+
+/** Closed Mock implementation metadata, charged to the existing whole-project
+ * initialization Read. Fixed controls bound file/run registries and captured
+ * function environments; each Source is loaded once, never once per target.
+ * Mapping/name/row DATA and per-Run children have their separate original
+ * constructor/physical recipes. These are logical Host allowances, not RSS. */
+export function declaredProjectWritableRuntimeConstructionGeometry(sources, writables, phase, selected) {
+  if (phase === 'root') {
+    let connections = 0n;
+    for (const source of sources) if (source.writes.length !== 0) connections++;
+    return stage({nodes: 192n + connections, text: 0n, wire: 0n},
+      {nodes: 128n + 2n * connections, text: 0n, wire: 0n}, {connections});
+  }
+  if (!sources.includes(selected) || selected.writes.length === 0) invalidGeometry();
+  let targets = 0n, aliases = 0n;
+  for (const target of writables) if (target.source === selected) {
+    targets++;aliases += BigInt(target.write.aliases.length);
+  }
+  if (phase === 'source') {
+    const operation = stringUnits(ownData(selected.writes[0], 'permission'));
+    const read = stringUnits(ownData(selected.writes[0], 'observe_permission'));
+    // The physical recipe owns capture/request names and its three target
+    // read phase names. Their input names are borrowed; concatenated results
+    // and the builder's preceding prefix coexist separately.
+    const operationUnits = 2n * operation + 3n * read + 80n;
+    return stage({nodes: 768n + 2n * targets, text: 2n * operationUnits, wire: 0n},
+      {nodes: 128n + 2n * targets, text: 4n * operationUnits, wire: 0n}, {targets});
+  }
+  if (phase !== 'aliases') invalidGeometry();
+  const parsed = sourceJsonWireGeometry(selected.effectPrepared.environment.wire);
+  const canonical = canonicalConstruction(parsed);
+  // installedUpdateTargets validates the real full Environment, its owned
+  // contracts and manifest hashes. Keep both parse forests, their String
+  // backing and canonical/hash overlap, not just the final alias vector.
+  return stage({nodes: 16n + 8n * aliases, text: 142n * aliases, wire: 0n},
+    {nodes: 32n + 8n * aliases + 3n * parsed.nodes + 2n * canonical.nodes,
+      text: 4n * parsed.units + 2n * canonical.text,
+      wire: 3n * canonical.outputUnits + 128n * parsed.nodes}, {targets, aliases});
+}
+
 const mappingWriteTemplate = '{"resource":"","primary_identity":"","update":{"fields":[],"permission":"","approval":""}}';
 const mappingEnvelope = '{"writes":[]}';
 

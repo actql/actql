@@ -3000,7 +3000,13 @@ pub fn client_program_local_effect_table_storage_mapping(@run_publication_host.C
 
 pub fn client_program_local_file_timestamp(Int64, Int) -> String?
 
+pub fn client_program_local_mock_account_before_signing_prepared(String, String, String, Array[(String, String)], Array[String], (String, String)?, Array[(String, String)], Int, (Int64, Int64) -> Bool) -> Bool
+
 pub fn client_program_local_mock_account_configuration(String, String, String, Array[(String, String)], Array[String], (String, String)?, (String, String)?, String?) -> Result[String, @execution_authorization.LocalMockProfileIssue]
+
+pub fn client_program_local_mock_account_configuration_prepared(String, String, String, Array[(String, String)], Array[String], (String, String)?, Array[(String, String)], String?, (Int64, Int64) -> Bool) -> Result[String, @execution_authorization.LocalMockProfileIssue]?
+
+pub fn client_program_local_mock_account_inventory_prepared(String, Array[(String, String)], Array[String], (String, String)?, Array[(String, String)], (Int64, Int64) -> Bool) -> Result[Unit, @execution_authorization.LocalMockProfileIssue]?
 
 pub fn client_program_local_mock_account_profile() -> (String, String, String, String)
 

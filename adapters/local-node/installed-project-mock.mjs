@@ -13,6 +13,8 @@ import {composeInstalledSourceEnvironment} from '../host-node/installed-funded-e
 import {contentCid} from '../host-node/local-account-config.mjs';
 import {retainInstalledHostInitializationFailure} from '../host-node/installed-host-cleanup.mjs';
 import {retireNodeInferOriginalRead} from '../host-node/infer-operation.mjs';
+import {declaredProjectWritableRuntimeConstructionGeometry}
+  from '../host-node/declared-project-catalog-construction.mjs';
 
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const mockRealization = 'installed-multi-acquired';
@@ -111,16 +113,15 @@ async function prepareProjectMockDeclarations(moon, project, profile,
     connections: connectionOriginal.connections,
     assertCurrent: current, openFile, installationInventory});
   let sources = catalog.sources;
-  const targets = sources.flatMap(source => source.writes.map(write => ({source, write})));
-  if (targets.length > 1) fail('InstalledMockCatalogueUnavailable');
-  let writable = targets[0];
+  let writables = catalog.writables;
+  let writable = writables.length === 1 ? writables[0] : undefined;
   let mappingWire = writable?.write.mappingWire;
   current();
   let originals = Object.freeze({physicalKind: 'declared-json-document',
     project: projectOriginal, selection: selection.selection,
     configuration: selection.configuration, connections: connectionOriginal,
     dataFile: locators.dataFile, dataPath: resolve(project.directory, locators.dataFile),
-    sources, mappingWire, writable, catalog});
+    sources, mappingWire, writable, writables, catalog});
   let retired = false, view;
   function same(runtime, receiver) {
     if (runtime !== moon || receiver !== view) fail('ForeignInstalledMockPreparation');
@@ -135,15 +136,45 @@ async function prepareProjectMockDeclarations(moon, project, profile,
       }
       return originals;
     },
+    async constructWritableRuntime(runtime, phase, source, projectImplementation) {
+      same(runtime, this);
+      if (retired || typeof projectImplementation !== 'function' || installationInventory === undefined) {
+        fail('InstalledMockImplementationConstructionUnavailable');
+      }
+      current();
+      let value;
+      try {
+      const result = installationInventory.prepareMetadataInput(Object.freeze({
+        capacity() {
+          const {retained, workspace} = declaredProjectWritableRuntimeConstructionGeometry(sources, writables, phase, source);
+          return checked(moon.clientProgramInstalledSourceConstructionCapacity(
+            retained.nodes, retained.text, retained.wire, workspace.nodes, workspace.text, workspace.wire));
+        }, project() {
+          // Retain the actual physical owner BEFORE the reader's completion or
+          // following current fence can fail. Never recreate it for cleanup.
+          value = projectImplementation();
+          return value;
+        },
+      }));
+      current();
+      return result;
+      } catch (cause) {
+        if (value?.file !== undefined) {
+          throw await retainInstalledHostInitializationFailure(cause, {sourceProfile: {close: value.file.close}});
+        }
+        throw cause;
+      }
+    },
     retire(runtime) {
       same(runtime, this);
       if (retired) return;
       // Managed references only, after the actual Source parent's close. This
       // cannot settle its FD, backing bytes, RowRuns or external cleanup ACKs.
       retired = true;
-      originals = sources = mappingWire = writable = catalog = connections = connectionOriginal = undefined;
+      originals = sources = mappingWire = writable = writables = catalog = connections = connectionOriginal = undefined;
       projectOriginal = selection = project = profile = profilePorts = ports = undefined;
       assertCurrent = openFile = undefined;
+      installationInventory = undefined;
     },
   });
   return view;

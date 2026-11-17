@@ -1306,12 +1306,13 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
 
 // Each physical occurrence retains its own admitted installation. Shared Run,
 // Preview, claims and publication remain the existing stage's responsibility.
-// This profile admits source-free create members. A retained-request driver
+// This profile admits one existing CREATE or UPDATE family at a time. A retained-request driver
 // must explicitly support recovery of its original members in the whole Set.
 export function composeInstalledRowEffectOwners(effects, descriptors, environmentWire) {
   if (!Array.isArray(effects) || !Array.isArray(descriptors) ||
       effects.length !== descriptors.length || effects.length < 2 ||
-      descriptors.some(value => value.kind !== 'create') ||
+      !['create', 'update'].includes(descriptors[0]?.kind) ||
+      descriptors.some(value => value.kind !== descriptors[0].kind) ||
       new Set(descriptors.map(value => value.effectId)).size !== descriptors.length) {
     fail('InstalledEffectSetOwnerMismatch');
   }
@@ -1414,12 +1415,14 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const program = JSON.parse(moon.clientProgramEffectCompilationPlanWire(compilation))
       .execution_material?.program;
     const stage = program?.stages?.[0];
-    // An explicit implementation profile, not a language restriction. Imported
-    // sources, Model calls and guarded/command operations keep their refusal.
+    // Routed UPDATE uses the existing checked Source/Model capture and the
+    // member-scoped original-request recovery below. CREATE retains its
+    // existing source-free profile; neither path admits multiple stages here.
+    const update = routes.every(route => route.descriptor.kind === 'update');
     if (program?.stages?.length !== 1 || stage === undefined ||
-        Object.keys(stage.inputs ?? {}).length !== 0 ||
         !Array.isArray(stage.steps) || stage.steps.length === 0 ||
-        stage.steps.some(step => !Object.hasOwn(step, 'values'))) {
+        (!update && (Object.keys(stage.inputs ?? {}).length !== 0 ||
+          stage.steps.some(step => !Object.hasOwn(step, 'values'))))) {
       fail('InstalledEffectSetOwnerMismatch');
     }
   };

@@ -25992,7 +25992,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -26155,7 +26155,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -26787,7 +26787,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -68046,7 +68046,7 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock.mjs",
-      "sha256": "2b47abe682fc43a5e45088ce1f69a5e08849529d356de59866d4fd77d2ee3d6d",
+      "sha256": "e86ea76369c7a889e596a3f55122f3c0b92d06a4e35a732133abd64095a4f216",
       "exports": [
         "inspectProjectMockDeclarations",
         "installPreparedProjectMockSources",
@@ -68526,6 +68526,26 @@
           "async": false
         },
         {
+          "name": "prepareProjectMockDeclarations/init:constructWritableRuntime/init:constructWritableRuntime",
+          "parameters": [
+            "runtime",
+            "phase",
+            "source",
+            "projectImplementation"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareProjectMockDeclarations/init:constructWritableRuntime/init:constructWritableRuntime/result/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareProjectMockDeclarations/init:constructWritableRuntime/init:constructWritableRuntime/result/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareProjectMockDeclarations/init:originalsForRuntime/init:originalsForRuntime",
           "parameters": [
             "runtime"
@@ -68545,26 +68565,13 @@
             "port"
           ],
           "async": false
-        },
-        {
-          "name": "prepareProjectMockDeclarations/targets/targets",
-          "parameters": [
-            "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareProjectMockDeclarations/targets/targets/targets",
-          "parameters": [
-            "write"
-          ],
-          "async": false
         }
       ],
       "imports": [
         "../../packages/sdk/host-port.mjs",
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
+        "../host-node/declared-project-catalog-construction.mjs",
         "../host-node/infer-operation.mjs",
         "../host-node/installed-funded-environment.mjs",
         "../host-node/installed-host-cleanup.mjs",
@@ -68633,7 +68640,7 @@
             "ownership": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "originals = sources = mappingWire = writable = catalog = connections = connectionOriginal = undefined;"
+                "anchor": "originals = sources = mappingWire = writable = writables = catalog = connections = connectionOriginal = undefined;"
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
@@ -69743,7 +69750,7 @@
             "ownership": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "originals = sources = mappingWire = writable = catalog = connections = connectionOriginal = undefined;"
+                "anchor": "originals = sources = mappingWire = writable = writables = catalog = connections = connectionOriginal = undefined;"
               }
             ],
             "synchronization": [
@@ -69805,8 +69812,6 @@
             "installPreparedProjectMockSources/readOriginal",
             "installPreparedProjectMockSources/referenceIssuer/referenceIssuer",
             "installPreparedProjectMockSources/referenceIssuer/referenceIssuer#2",
-            "prepareProjectMockDeclarations/targets/targets",
-            "prepareProjectMockDeclarations/targets/targets/targets",
             "installPreparedProjectMockSources/fileSuppliers/fileSuppliers/contentView/contentView"
           ],
           "exports": [],
@@ -69869,6 +69874,80 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Verification"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareProjectMockDeclarations/init:constructWritableRuntime/init:constructWritableRuntime",
+            "prepareProjectMockDeclarations/init:constructWritableRuntime/init:constructWritableRuntime/result/init:capacity/init:capacity",
+            "prepareProjectMockDeclarations/init:constructWritableRuntime/init:constructWritableRuntime/result/init:project/init:project"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "# One Mock installation with several writable targets"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "The initializer borrows every selected Source, its prepared Mapping and physical"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "is the exact pair of logical connection and resource."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "The installation retains one physical file owner for that document."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/mock-file-target.mjs",
+                "anchor": "constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "anchor": "frame.failure(cause); frame.finish(false); throw cause;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/account-construction.mjs",
+                "anchor": "if (state.active || state.cleaning || state.unknownClose) return false;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "The initializer prices complete inventory vectors, duplicate maps, normalization,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "Per-operation physical plans retain their actual operation names and original"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/ordinary-mock-account-profile-history.test.mjs",
+                "anchor": "plural Mock pre-signing refusal retains the original Read before keys or Account creation"
+              },
+              {
+                "path": "adapters/host-node/mock-file-target.test.mjs",
+                "anchor": "one Mock physical owner preserves both disjoint collections across original sibling writes"
               }
             ]
           }
@@ -111669,11 +111748,39 @@
     },
     {
       "module": "adapters/host-node/ordinary-mock-account.mjs",
-      "sha256": "f88147fe657e85944d532a5483ccd31ea1c4a131c5c73d12946b35ff1d315bfc",
+      "sha256": "19306a53818e892ffcd8023aebfb1439a3bfd08bb6151a95571194df97d56017",
       "exports": [
         "initializeOrdinaryMockAccount"
       ],
       "operations": [
+        {
+          "name": "initialize/binding/init:adoptStore/init:adoptStore",
+          "parameters": [
+            "store"
+          ],
+          "async": false
+        },
+        {
+          "name": "initialize/binding/init:adoptStore/init:adoptStore/init:adoptStore",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "initialize/binding/init:assertSigningCurrent/init:assertSigningCurrent",
+          "parameters": [
+            "store"
+          ],
+          "async": true
+        },
+        {
+          "name": "initialize/binding/init:signingOriginal/init:signingOriginal",
+          "parameters": [
+            "store",
+            "sampledAt",
+            "validUntil"
+          ],
+          "async": false
+        },
         {
           "name": "initialize/closeOriginal/cleanupHandle/init:retry/init:retry",
           "parameters": [],
@@ -111697,34 +111804,6 @@
         {
           "name": "initialize/closeOriginal/status/status",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "initialize/init:adoptStore/init:adoptStore",
-          "parameters": [
-            "store"
-          ],
-          "async": false
-        },
-        {
-          "name": "initialize/init:adoptStore/init:adoptStore/init:adoptStore",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "initialize/init:assertSigningCurrent/init:assertSigningCurrent",
-          "parameters": [
-            "store"
-          ],
-          "async": true
-        },
-        {
-          "name": "initialize/init:signingOriginal/init:signingOriginal",
-          "parameters": [
-            "store",
-            "sampledAt",
-            "validUntil"
-          ],
           "async": false
         },
         {
@@ -111769,6 +111848,7 @@
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
+        "./account-construction.mjs",
         "./local-account-config.mjs",
         "./source-profile-json.mjs",
         "node:crypto",
@@ -111788,8 +111868,6 @@
             "initialize/closeOriginal/cleanupHandle/init:retry/init:retry/init:retry#2",
             "initialize/closeOriginal/cleanupHandle/init:retry/init:retry/work/work",
             "initialize/closeOriginal/status/status",
-            "initialize/init:adoptStore/init:adoptStore",
-            "initialize/init:adoptStore/init:adoptStore/init:adoptStore",
             "initialize/initialize",
             "initialize/initialize#2",
             "initialize/parse",
@@ -111884,10 +111962,7 @@
           }
         },
         {
-          "operations": [
-            "initialize/init:assertSigningCurrent/init:assertSigningCurrent",
-            "initialize/init:signingOriginal/init:signingOriginal"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -112036,6 +112111,81 @@
               {
                 "path": "adapters/host-node/ordinary-mock-account-profile-history.test.mjs",
                 "anchor": "test('missing saved public verification is not invented to replace an absent Reviewer'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "initialize/binding/init:adoptStore/init:adoptStore",
+            "initialize/binding/init:adoptStore/init:adoptStore/init:adoptStore",
+            "initialize/binding/init:assertSigningCurrent/init:assertSigningCurrent",
+            "initialize/binding/init:signingOriginal/init:signingOriginal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "# One Mock installation with several writable targets"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "The initializer borrows every selected Source, its prepared Mapping and physical"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "is the exact pair of logical connection and resource."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "The installation retains one physical file owner for that document."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/mock-file-target.mjs",
+                "anchor": "constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "anchor": "frame.failure(cause); frame.finish(false); throw cause;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/account-construction.mjs",
+                "anchor": "if (state.active || state.cleaning || state.unknownClose) return false;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "The initializer prices complete inventory vectors, duplicate maps, normalization,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "Per-operation physical plans retain their actual operation names and original"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/ordinary-mock-account-profile-history.test.mjs",
+                "anchor": "plural Mock pre-signing refusal retains the original Read before keys or Account creation"
+              },
+              {
+                "path": "adapters/host-node/mock-file-target.test.mjs",
+                "anchor": "one Mock physical owner preserves both disjoint collections across original sibling writes"
               }
             ]
           }
@@ -112721,7 +112871,7 @@
     {
       "module": "adapters/local-node/installed-mock-row-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "55b06c58a6d265316348d8896624dac952518dda767036a077d4b422d21afad8",
+      "sha256": "1be3a2cf9b61197bf8c5c51dd6fe0fa11023bb2e2385cb9e9dacd802729cb912",
       "exports": [
         "installPreparedProjectMockEffects",
         "observeInstalledMockEffectResources"
@@ -112744,20 +112894,15 @@
             "principalId",
             "runtimeBundleCid",
             "bindingCid",
+            "bindingFor",
             "ledgerRoot",
             "assertCurrent",
             "effectResources",
+            "installationServices",
             "io",
             "observeWrite"
           ],
           "async": true
-        },
-        {
-          "name": "installPreparedProjectMockEffects/aliases/aliases",
-          "parameters": [
-            "name"
-          ],
-          "async": false
         },
         {
           "name": "installPreparedProjectMockEffects/call/call",
@@ -112773,19 +112918,73 @@
           "async": false
         },
         {
-          "name": "installPreparedProjectMockEffects/current/current",
+          "name": "installPreparedProjectMockEffects/implementation/implementation",
           "parameters": [],
           "async": false
         },
         {
-          "name": "installPreparedProjectMockEffects/installPreparedProjectMockEffects",
+          "name": "installPreparedProjectMockEffects/implementation/implementation/implementation",
           "parameters": [
-            "value"
+            "source"
           ],
           "async": false
         },
         {
-          "name": "installPreparedProjectMockEffects/mapping/mapping",
+          "name": "installPreparedProjectMockEffects/installed/installed",
+          "parameters": [
+            "original",
+            "_options",
+            "retain"
+          ],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectMockEffects/installed/installed/constructed/constructed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockEffects/installed/installed/constructed/constructed/constructed",
+          "parameters": [
+            "target"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockEffects/installed/installed/constructed/constructed/constructed#2",
+          "parameters": [
+            "target"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockEffects/installed/installed/constructed/constructed/targets/targets",
+          "parameters": [
+            "target"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockEffects/installed/installed/projection/projection",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockEffects/installed/installed/projection/projection/aliases/aliases",
+          "parameters": [
+            "target"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockEffects/installed/installed/projection/projection/aliases/aliases/aliases",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockEffects/installPreparedProjectMockEffects",
           "parameters": [
             "value"
           ],
@@ -112800,16 +112999,30 @@
           "async": false
         },
         {
-          "name": "installPreparedProjectMockEffects/physical/physical",
+          "name": "installPreparedProjectMockEffects/resourceMethods/resourceMethods",
           "parameters": [
-            "value"
+            "name"
           ],
           "async": false
         },
         {
-          "name": "installPreparedProjectMockEffects/resourceMethods/resourceMethods",
+          "name": "installPreparedProjectMockEffects/resourceObservation/init:closeFor/init:closeFor",
           "parameters": [
-            "name"
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockEffects/resourceObservation/init:limits/init:limits",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockEffects/resourceObservation/init:statusFor/init:statusFor",
+          "parameters": [
+            "original"
           ],
           "async": false
         },
@@ -112839,7 +113052,8 @@
         {
           "name": "mockRowEffectDriver/changes/changes",
           "parameters": [
-            "value"
+            "value",
+            "target"
           ],
           "async": false
         },
@@ -112855,7 +113069,8 @@
           "parameters": [
             "kind",
             "supplied",
-            "selected"
+            "selected",
+            "target"
           ],
           "async": false
         },
@@ -112865,8 +113080,14 @@
             "member",
             "runInvocationCid",
             "dispatchRequestCid",
-            "runOriginal"
+            "runOriginal",
+            "controlConstruction"
           ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/describe/construct/construct",
+          "parameters": [],
           "async": false
         },
         {
@@ -112879,7 +113100,9 @@
         },
         {
           "name": "mockRowEffectDriver/driver/driver",
-          "parameters": [],
+          "parameters": [
+            "member"
+          ],
           "async": false
         },
         {
@@ -112891,7 +113114,9 @@
         },
         {
           "name": "mockRowEffectDriver/driver/driver#3",
-          "parameters": [],
+          "parameters": [
+            "member"
+          ],
           "async": false
         },
         {
@@ -113121,6 +113346,20 @@
           "async": false
         },
         {
+          "name": "mockRowEffectDriver/targetForRecord/target/target",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/targetForResource/target/target",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "observeInstalledMockEffectResources",
           "parameters": [
             "effect"
@@ -113153,6 +113392,7 @@
         "../host-common/runtime-result.mjs",
         "../host-node/installed-effect-inventory.mjs",
         "../host-node/installed-effect-plan.mjs",
+        "../host-node/installed-host-cleanup.mjs",
         "../host-node/installed-row-effect.mjs",
         "../host-node/mock-file-target.mjs",
         "node:crypto"
@@ -113167,10 +113407,8 @@
           "operations": [
             "cid/cid",
             "installPreparedProjectMockEffects",
-            "installPreparedProjectMockEffects/aliases/aliases",
             "installPreparedProjectMockEffects/call/call",
             "installPreparedProjectMockEffects/current",
-            "installPreparedProjectMockEffects/current/current",
             "installPreparedProjectMockEffects/installPreparedProjectMockEffects",
             "installPreparedProjectMockEffects/methods/methods",
             "installPreparedProjectMockEffects/resourceMethods/resourceMethods",
@@ -113254,7 +113492,7 @@
               },
               {
                 "path": "adapters/local-node/installed-mock-row-effect.mjs",
-                "anchor": "descriptions.set(value, Object.freeze({runInvocationCid, dispatchRequestCid, runOriginal}));"
+                "anchor": "descriptions.set(value, Object.freeze({runInvocationCid, dispatchRequestCid, runOriginal,"
               },
               {
                 "path": "src/client_row_source_host/mock_churn_risk_target.mbt",
@@ -113430,7 +113668,7 @@
               },
               {
                 "path": "adapters/local-node/installed-mock-row-effect.mjs",
-                "anchor": "descriptions.set(value, Object.freeze({runInvocationCid, dispatchRequestCid, runOriginal}));"
+                "anchor": "descriptions.set(value, Object.freeze({runInvocationCid, dispatchRequestCid, runOriginal,"
               },
               {
                 "path": "src/client_row_source_host/mock_churn_risk_target.mbt",
@@ -113563,8 +113801,6 @@
         },
         {
           "operations": [
-            "installPreparedProjectMockEffects/mapping/mapping",
-            "installPreparedProjectMockEffects/physical/physical",
             "mockRowEffectDriver/changes/changes",
             "mockRowEffectDriver/changes/changes/changes",
             "snapshot/snapshot/freeze/freeze"
@@ -113629,6 +113865,93 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Verification"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installPreparedProjectMockEffects/implementation/implementation",
+            "installPreparedProjectMockEffects/implementation/implementation/implementation",
+            "installPreparedProjectMockEffects/installed/installed",
+            "installPreparedProjectMockEffects/installed/installed/constructed/constructed",
+            "installPreparedProjectMockEffects/installed/installed/constructed/constructed/constructed",
+            "installPreparedProjectMockEffects/installed/installed/constructed/constructed/constructed#2",
+            "installPreparedProjectMockEffects/installed/installed/constructed/constructed/targets/targets",
+            "installPreparedProjectMockEffects/installed/installed/projection/projection",
+            "installPreparedProjectMockEffects/installed/installed/projection/projection/aliases/aliases",
+            "installPreparedProjectMockEffects/installed/installed/projection/projection/aliases/aliases/aliases",
+            "installPreparedProjectMockEffects/resourceObservation/init:closeFor/init:closeFor",
+            "installPreparedProjectMockEffects/resourceObservation/init:limits/init:limits",
+            "installPreparedProjectMockEffects/resourceObservation/init:statusFor/init:statusFor",
+            "mockRowEffectDriver/describe/construct/construct",
+            "mockRowEffectDriver/targetForRecord/target/target",
+            "mockRowEffectDriver/targetForResource/target/target"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "# One Mock installation with several writable targets"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "The initializer borrows every selected Source, its prepared Mapping and physical"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "is the exact pair of logical connection and resource."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "The installation retains one physical file owner for that document."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/mock-file-target.mjs",
+                "anchor": "constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "anchor": "frame.failure(cause); frame.finish(false); throw cause;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/account-construction.mjs",
+                "anchor": "if (state.active || state.cleaning || state.unknownClose) return false;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "The initializer prices complete inventory vectors, duplicate maps, normalization,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "Per-operation physical plans retain their actual operation names and original"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/ordinary-mock-account-profile-history.test.mjs",
+                "anchor": "plural Mock pre-signing refusal retains the original Read before keys or Account creation"
+              },
+              {
+                "path": "adapters/host-node/mock-file-target.test.mjs",
+                "anchor": "one Mock physical owner preserves both disjoint collections across original sibling writes"
               }
             ]
           }
@@ -118855,7 +119178,7 @@
       "sha256": "0f21a15f4e54ee8d1535938be8ea3e9518bfe52745f976d2aa29cc6d366bcf8c",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -119982,7 +120305,7 @@
       "sha256": "ecaf8e3fb2a64f2b0cdafefb84d2c9d897b2531757cb475ebc5a31f0ce75189a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "fundedEffectModelGroupCount",
@@ -121191,7 +121514,7 @@
       "sha256": "feca7b8fe2263f81638f458b192ecadb0f260e801d98d0614810845cd9eb7de7",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledPublishedSourceInitialization",
@@ -128057,7 +128380,7 @@
       "unresolvedSyntax": [],
       "role": "common-semantics",
       "responsibilityFacet": "primary",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -128360,7 +128683,7 @@
       "unresolvedSyntax": [],
       "role": "common-semantics",
       "responsibilityFacet": "primary",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -128995,7 +129318,7 @@
       "unresolvedSyntax": [],
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [

@@ -17,7 +17,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "87cbd9b525a129242b6f68902d7e088f589fda8a6b7ce94d0aaa387d459be807",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "consumeRetainedComputeInput",
         "encodeManagedColumnFrame",
@@ -4697,7 +4697,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d4de151b675628ba9e21c7d5dec7c9104db72b233ad725fdac1c386a2472dd3c",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "finishManagedOutputReceipt"
       ],
@@ -4951,7 +4951,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "243d6e24785503fd307a79711aec9075101956681bff6e9fdc7fa30022449af0",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "checked"
       ],
@@ -5204,7 +5204,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "6f8598cc533afa1629a5d3faa40bb0c3c28ea47e25f6afb52ff670988935ce0e",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "duckdbStrategyContribution"
       ],
@@ -6076,7 +6076,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "dfaa700be221ae7119a849d2d3abb8be671dee2fe89759299ea7e6c7a7a5c47a",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "INSTALLED_SALESFORCE_EFFECT_VERSION",
         "SALESFORCE_EFFECT_PUBLICATION_VERSION",
@@ -8676,7 +8676,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "da3d62be59a2d7aabd9ff68d15a68a128de4b769e7293de49cab23c3736b7299",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "INSTALLED_SALESFORCE_SOURCE_VERSION",
         "checkInstalledSalesforceSourceProfile",
@@ -10622,7 +10622,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "c3cc6d7d8139b3a0caa5acb9a1a0a48ac96e3be59fc66e5b3ce0850ded3368c4",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "salesforceRowEffectSite",
         "salesforceTargetReadOperation",
@@ -11631,7 +11631,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "2e3ca5fabc271f7717afd5067d29c77b66d1b59fe5c21476a710fb44f4387875",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "checkedSalesforceCatalogPreparation"
       ],
@@ -11895,7 +11895,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "33b1a587771b64b209bc4bdd70503b69644056eeef1c1ec253b211fb37aaab37",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "prepareSalesforceSourceReadSequence",
         "readSalesforceManagedQuery",
@@ -13450,7 +13450,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -15297,7 +15297,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "0313a8872505ef8bf159d088d548873ba3a72783d37d88f47a5e538f653f41c5",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "checkedEffectPreparation",
         "isEffectPreparationRefusal",
@@ -15794,7 +15794,7 @@
       "responsibilityFacet": "primary",
       "sha256": "eae054ee2738e711f8eea070921f784c3c87c3da438df7009556c3419a25f685",
       "role": "generated-binding",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "publicationAction"
       ],
@@ -16044,7 +16044,7 @@
       "module": "adapters/host-common/runtime-core.mjs",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "contracts": [
         {
           "operations": [
@@ -16305,7 +16305,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -19215,7 +19215,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -22602,7 +22602,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -32932,7 +32932,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d17780e2ca901ff56cc87c907dc588eae3b829913d7c06916c14a4659f7aa1ab",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "checked"
       ],
@@ -33184,7 +33184,7 @@
       "responsibilityFacet": "primary",
       "sha256": "2a624b18cfc0db8bd92f030934252579add7011e584021ffcb78328a0f5f9094",
       "role": "generated-binding",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "strategyAction"
       ],
@@ -33553,7 +33553,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "4f5e79c6fd61a8b3e1b264c7127c267b2a9329d359126a248599064a53fbdbc1",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -35222,7 +35222,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d7d3d14486d478986dd2fc31822e7e17a34665677b37fb234ceb678afff9730c",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "acquiredEffectContinuation"
       ],
@@ -36203,7 +36203,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "283a33719e43444b6374bfd89b2787c64d217e113d14f4204c67b6ba06d155f9",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "capturedDuckDBConfiguration",
         "capturedDuckDBNativeConfiguration",
@@ -37686,7 +37686,7 @@
       "module": "adapters/host-node/client-dispatch-owner.mjs",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "cancelNodeRunContinuation",
         "confirmNodeRunCancellation",
@@ -40518,7 +40518,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "responsibilityFacet": "supplemental",
       "contracts": [
         {
@@ -40736,7 +40736,7 @@
       "unresolvedSyntax": [],
       "role": "physical-io",
       "responsibilityFacet": "supplemental",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "contracts": [
         {
           "operations": [
@@ -40967,7 +40967,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "c6a681a0f7fe2acc1b5919f45d9c082d5939d746eed252ac5c3fb42e4309ebfe",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "commitPinnedEffectSourceHolding",
         "exportPinnedEffectInput",
@@ -43920,7 +43920,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "7af76add4483436d900afe0e152f802ea4a8ce71496473adbf3517292117340a",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "verifyPinnedEffectPlan"
       ],
@@ -44342,7 +44342,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "4c5a10c5e8357bb4991c655ac0666b1e0483568ef499490da97603d4e32c82ca",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "applyCapturedEffectSet",
         "applyRecoveredEffectSet",
@@ -46539,7 +46539,7 @@
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "contracts": [
         {
           "operations": [
@@ -46772,7 +46772,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
@@ -52726,7 +52726,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -57268,7 +57268,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
@@ -57297,10 +57297,6 @@
             "openPreparedInstalledHost/preparation/init:bindSourceRequest/init:bindSourceRequest",
             "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount",
             "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/binding",
-            "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/binding#2",
-            "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/sources/sources",
-            "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/sources/sources/sources",
-            "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/tasks/tasks",
             "openPreparedInstalledHost/preparation/init:installMockModels/init:installMockModels",
             "openPreparedInstalledHost/preparation/init:installMockModels/init:installMockModels/init:installMockModels",
             "openPreparedInstalledHost/preparation/init:installMockModels/init:installMockModels/init:installMockModels/assertCurrent/assertCurrent",
@@ -60919,6 +60915,86 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects",
+            "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects/init:prepareSubjects",
+            "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects/init:prepareSubjects/mapping/mapping",
+            "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects/sources/sources",
+            "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects/sources/sources/sources",
+            "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects/subject/subject",
+            "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects/tasks/tasks",
+            "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects/updates/updates",
+            "openPreparedInstalledHost/preparation/init:installMockEffects/init:installMockEffects/init:bindingFor/init:bindingFor"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "# One Mock installation with several writable targets"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "The initializer borrows every selected Source, its prepared Mapping and physical"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "is the exact pair of logical connection and resource."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "The installation retains one physical file owner for that document."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/mock-file-target.mjs",
+                "anchor": "constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "anchor": "frame.failure(cause); frame.finish(false); throw cause;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/account-construction.mjs",
+                "anchor": "if (state.active || state.cleaning || state.unknownClose) return false;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "The initializer prices complete inventory vectors, duplicate maps, normalization,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "Per-operation physical plans retain their actual operation names and original"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/ordinary-mock-account-profile-history.test.mjs",
+                "anchor": "plural Mock pre-signing refusal retains the original Read before keys or Account creation"
+              },
+              {
+                "path": "adapters/host-node/mock-file-target.test.mjs",
+                "anchor": "one Mock physical owner preserves both disjoint collections across original sibling writes"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -63332,34 +63408,62 @@
         },
         {
           "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/binding",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/binding#2",
           "parameters": [],
           "async": false
         },
         {
-          "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/sources/sources",
+          "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects",
+          "parameters": [
+            "frame"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects/init:prepareSubjects",
+          "parameters": [
+            "target"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects/init:prepareSubjects/mapping/mapping",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects/sources/sources",
           "parameters": [
             "entry"
           ],
           "async": false
         },
         {
-          "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/sources/sources/sources",
+          "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects/sources/sources/sources",
           "parameters": [
             "view"
           ],
           "async": false
         },
         {
-          "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/tasks/tasks",
+          "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects/subject/subject",
           "parameters": [
             "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects/tasks/tasks",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects/updates/updates",
+          "parameters": [
+            "target"
           ],
           "async": false
         },
@@ -63371,10 +63475,18 @@
             "authorizationFor",
             "principalId",
             "effectResources",
-            "sourceBinding",
-            "observeWrite"
+            "sourceProfile",
+            "observeWrite",
+            "installationServices"
           ],
           "async": true
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:installMockEffects/init:installMockEffects/init:bindingFor/init:bindingFor",
+          "parameters": [
+            "source"
+          ],
+          "async": false
         },
         {
           "name": "openPreparedInstalledHost/preparation/init:installMockEffects/init:installMockEffects/init:installMockEffects",
@@ -64934,14 +65046,14 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "e3e281008cd675a165c6f0133377a853e4ebf29b235aba6abed246f6fd21f5f7"
+      "sha256": "b5da24848caf60dfa0fa52b5a5b9d08d62df892fc2479f1a7dc8aa888544840d"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
       "responsibilityFacet": "supplemental",
       "sha256": "46edea0203446b104cdc706dc6e75fba3ee6bcaa7a23b7532b002d47892ba555",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "openNodeInferCaptureCustody"
       ],
@@ -65603,7 +65715,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "01806815c5b54aacacfe43f1ec37240a33813ce20cc4b6dff5e10403562c290e",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "configureInferEvidence",
         "projectInferEvidence",
@@ -66884,7 +66996,7 @@
       "module": "adapters/host-node/infer-operation.mjs",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "contracts": [
         {
           "operations": [
@@ -70980,7 +71092,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d6a1c11c9683de2a3953ff0ba4cb22c1973f78c96af8b7162516eaa0ebbfcf5a",
       "role": "physical-io",
-      "owner": "A — existing Model raw custody projection",
+      "owner": "A \u2014 existing Model raw custody projection",
       "exports": [
         "bindOriginalModelRawTransportPersistence",
         "createModelRawCaptureStorePort",
@@ -72012,7 +72124,7 @@
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
       "role": "physical-io",
-      "owner": "A — existing Host preparation input boundary",
+      "owner": "A \u2014 existing Host preparation input boundary",
       "responsibilityFacet": "supplemental",
       "contracts": [
         {
@@ -72203,7 +72315,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "4ba3d644206ddf5337fe1029b9b2376c89360ab3b0c338c4ec9f06135207dd2b",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "runInstalledComposedInfers"
       ],
@@ -73606,7 +73718,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "7ea91a69c321aa7a14620d8e28deaf183d566a158238d9465a0cf982561ad6a8",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "installNodeInferRun"
       ],
@@ -74714,7 +74826,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "b913c09775d86a4fcd10ad55b7c64206003bd09bcee4671c243d59113c8539c3",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "installRunKeyedContentCapture"
       ],
@@ -75380,7 +75492,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "9644a7634a723a7b48a058e7e168e50f460e0b80de9d03e55a52846a91382429",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "installNodeModelContinuation"
       ],
@@ -77162,7 +77274,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "2934d8a36d4ba76048a571b562247570fb08c38d6fd640f5f7abb298303a2dbe",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "admitInstalledModelProvider",
         "admitInstalledModelProviderBinding",
@@ -79281,9 +79393,9 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "15d45364d392170850f568c24cc7214c8506f563ecf56d350a774f9477ef4c6c",
+      "sha256": "39ac34f3e10a01350d4d7e1db74b16ecfda837a565aa45d7f97fb9e9fcca86fd",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "collectInstalledRowEffectUpdateObservations",
         "composeInstalledRowEffectOwners",
@@ -79731,6 +79843,13 @@
           "name": "createRowEffectStage/assertPrepared/assertPrepared/assertPrepared",
           "parameters": [
             "step"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/assertPrepared/assertPrepared/update/update",
+          "parameters": [
+            "route"
           ],
           "async": false
         },
@@ -88193,6 +88312,74 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "createRowEffectStage/assertPrepared/assertPrepared/update/update"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const update = routes.every(route => route.descriptor.kind === 'update');"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "The initializer borrows every selected Source, its prepared Mapping and physical"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "is the exact pair of logical connection and resource."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "The installation retains one physical file owner for that document."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/mock-file-target.mjs",
+                "anchor": "constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "anchor": "frame.failure(cause); frame.finish(false); throw cause;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/account-construction.mjs",
+                "anchor": "if (state.active || state.cleaning || state.unknownClose) return false;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "The initializer prices complete inventory vectors, duplicate maps, normalization,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "Per-operation physical plans retain their actual operation names and original"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-routing.test.mjs",
+                "anchor": "composed UPDATE"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -88209,11 +88396,12 @@
         "./effect-command-key.mjs",
         "./effect-input-export.mjs",
         "./effect-ledger-implementation-bounds.mjs",
-        "./effect-ledger.mjs",
         "./effect-physical-dispatch.mjs",
         "./effect-plan-verify.mjs",
         "./effect-response-recovery.mjs",
+        "./effect-result-work.mjs",
         "./installed-connectors.mjs",
+        "./installed-effect-ledger-open.mjs",
         "./installed-effect-owned-operation.mjs",
         "./installed-effect-plan.mjs",
         "./installed-host-services.mjs",
@@ -88235,7 +88423,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "5f61b3e40445748976fbb347bdd6ba5187f0ca9be3d20584e1901d355dc276cb",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "startInstalledRowRun"
       ],
@@ -90052,7 +90240,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "ace3b7593f5c0882a735005fdcaa3ad35e098d3b99ab57e502ca44dad383a62f",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "createInstalledRowSource",
         "encodeTypedResponseJson",
@@ -95310,7 +95498,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "96ead5312b6a2c9b9ae912f068435ad959ecb99a6b297c92ea5897d891302f9f",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "checkInstalledTableEffectLimits",
         "createInstalledTableEffect"
@@ -97017,7 +97205,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "0ca0ab8e0365fae74702ca3d315b030867aa17daf18765969a451d3c31361d09",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -97902,7 +98090,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
@@ -100483,7 +100671,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -102473,7 +102661,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
@@ -102926,7 +103114,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "024e1ae2bb1d1a8fbcb1f282ac11b6b71eaab1dcc3e620ab239b139433e69b40",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "authorTableOperationPreview"
       ],
@@ -103675,7 +103863,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "cdc086218b28f7170fbe70e9145c79b4e7ab470d0b64097493974a04c0b7731b",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "checkedTableWriteBinding",
         "verifyTableWriteBinding"
@@ -104055,7 +104243,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "2696846f037c18d380967acbabd4ca6dd2de29ae0761bbb5587fe2bcef2835ec",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "prepareLocalRetainedOutput"
       ],
@@ -104467,7 +104655,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "da08eb1a3f44df24927c55d1a822e7a8472264ec8acf0b6a52f9fbcdefa987ce",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "localStrategyContribution"
       ],
@@ -105851,7 +106039,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "752288be142a2ea76466f032875af7b85019d9675dd0a135af109db0fec35f9c",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "numericStrategyContribution"
       ],
@@ -106387,7 +106575,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "dce72ee5465ad9556e2f2b84758eb0008e491acc0d60f24610f2befe91a52e1a",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "bindWorkersFiniteHost"
       ],
@@ -107564,7 +107752,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -109411,7 +109599,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "a3a49743e4f3b4e61c6310b2dfe685ee35431c2064d8853776859858cceb9b51",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "acceptedSiteOutput",
         "acceptedSourceObservation",
@@ -120008,7 +120196,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -121855,7 +122043,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -123702,7 +123890,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -125549,7 +125737,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "e6872570d64052f999d5ad0ce0dac2916a137104386852b5fc73d5d907478aa4",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "admitCapturedResultSnapshot",
         "admitCompletedSourceObservation",
@@ -151186,7 +151374,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "47c5920dcd16b65be41156686e7970adfd6b998d719c4e62420b0bef5f93887c",
       "role": "observation-presentation",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "admitObservationScope",
         "chargeObservation",
@@ -152421,7 +152609,7 @@
       "responsibilityFacet": "primary",
       "sha256": "eae054ee2738e711f8eea070921f784c3c87c3da438df7009556c3419a25f685",
       "role": "generated-binding",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "publicationAction"
       ],
@@ -152672,7 +152860,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -154519,7 +154707,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "ba3ac39d933226c2230e0abc1d5d12c09dde8d3097c6d18629defae3e8ee70a6",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "activeAt",
         "admitDurableJson",
@@ -157126,7 +157314,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "9f3fc78c48515de73ed14360dafff6318a4bac68191eb53e68fe728dab40ab0c",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "prepareAcquiredEffectKeyedCapture",
         "prepareAcquiredEffectKeyedPrefix"

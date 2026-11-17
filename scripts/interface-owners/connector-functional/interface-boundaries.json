@@ -4288,7 +4288,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "15d45364d392170850f568c24cc7214c8506f563ecf56d350a774f9477ef4c6c",
+      "sha256": "39ac34f3e10a01350d4d7e1db74b16ecfda837a565aa45d7f97fb9e9fcca86fd",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -4739,6 +4739,13 @@
           "name": "createRowEffectStage/assertPrepared/assertPrepared/assertPrepared",
           "parameters": [
             "step"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/assertPrepared/assertPrepared/update/update",
+          "parameters": [
+            "route"
           ],
           "async": false
         },
@@ -11345,6 +11352,74 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "createRowEffectStage/assertPrepared/assertPrepared/update/update"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const update = routes.every(route => route.descriptor.kind === 'update');"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "The initializer borrows every selected Source, its prepared Mapping and physical"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "is the exact pair of logical connection and resource."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "The installation retains one physical file owner for that document."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/mock-file-target.mjs",
+                "anchor": "constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "anchor": "frame.failure(cause); frame.finish(false); throw cause;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/account-construction.mjs",
+                "anchor": "if (state.active || state.cleaning || state.unknownClose) return false;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "The initializer prices complete inventory vectors, duplicate maps, normalization,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-mock-multiple-targets.md",
+                "anchor": "Per-operation physical plans retain their actual operation names and original"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-routing.test.mjs",
+                "anchor": "composed UPDATE"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -11361,11 +11436,12 @@
         "./effect-command-key.mjs",
         "./effect-input-export.mjs",
         "./effect-ledger-implementation-bounds.mjs",
-        "./effect-ledger.mjs",
         "./effect-physical-dispatch.mjs",
         "./effect-plan-verify.mjs",
         "./effect-response-recovery.mjs",
+        "./effect-result-work.mjs",
         "./installed-connectors.mjs",
+        "./installed-effect-ledger-open.mjs",
         "./installed-effect-owned-operation.mjs",
         "./installed-effect-plan.mjs",
         "./installed-host-services.mjs",
@@ -19538,7 +19614,7 @@
       "module": "adapters/host-node/installed-effect-plan.mjs",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D — existing installed Effect constructor, physical operation and provider protocol DATA",
+      "owner": "D \u2014 existing installed Effect constructor, physical operation and provider protocol DATA",
       "exports": [
         "captureInstalledEffectPlanRecipe",
         "captureInstalledStandardCreateLimits",
@@ -21376,7 +21452,7 @@
       "module": "adapters/connectors/kintone/site/kintone-create-execution.mjs",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — existing installed Effect constructor, physical operation and provider protocol DATA",
+      "owner": "D \u2014 existing installed Effect constructor, physical operation and provider protocol DATA",
       "exports": [
         "createMappedKintoneCreateWrite",
         "prepareMappedKintoneCreate",
