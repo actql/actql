@@ -687,6 +687,39 @@ static bool allocation_domain_failure_observation(void) {
 #ifdef ACTQL_READ_PROCESS_OBSERVATION
 /* Observe real process queries in the existing provider, not a cached PID or
  * substitute allocator. Keep a live sentinel while measuring each free. */
+/* This is the actual Read observation reached by ordinary SQLite/Crypto,
+ * independently of whether Moon values use the stock or scoped allocator. */
+static bool current_process_observations(void) {
+    actql_owned_capacity *lease=lease_new();
+    actql_read_context *context=context_new(lease);
+    assert(actql_read_context_retain(context)==0);
+    assert(actql_read_context_current()==NULL);
+    context_enter(lease,context);
+    process_calls=0; observe_process_calls=true;
+    for(size_t i=0;i<32;i++) assert(actql_read_context_current()==context);
+    observe_process_calls=false; size_t current_calls=process_calls;
+    assert(current_calls>=32 && current_calls<2*32);
+    /* A caller can leave/change its scope between observations. No earlier
+     * successful observation can authorize the next public C entry. */
+    context_leave(lease,context);
+    assert(actql_read_context_current()==NULL);
+    context_enter(lease,context);
+    assert(actql_read_context_current()==context);
+    pid_t child=fork(); assert(child>=0);
+    if(child==0) _exit(actql_read_context_current()==NULL ? 0 : 1);
+    assert(child_status(child,0));
+    actql_read_context *same=context;
+    assert(actql_read_context_try_close(&same)==ACTQL_OWNED_BUSY && same==context);
+    assert(actql_read_context_current()==context);
+    context_leave(lease,context);
+    assert(actql_read_context_current()==NULL);
+    assert(actql_read_context_release_after_owner_ack(context)==0);
+    finish(&lease,&context);
+    assert(actql_read_context_current()==NULL);
+    printf("{\"currentCalls\":32,\"currentProcessQueries\":%zu}\n",current_calls);
+    return true;
+}
+
 static bool managed_process_observations(void) {
     actql_owned_capacity *lease=lease_new();
     actql_read_context *context=context_new(lease);
@@ -1589,6 +1622,11 @@ int main(int argc,char **argv) {
     struct rlimit core={0,0}; assert(setrlimit(RLIMIT_CORE,&core)==0);
     setbuf(stdout,NULL);
 #ifdef ACTQL_READ_PROCESS_OBSERVATION
+    if(argc==2 && strcmp(argv[1],"--current-process-observations-only")==0) {
+        assert(current_process_observations());
+        puts("{\"case\":\"fresh-current-process-observations\",\"passed\":1,\"failed\":0}");
+        return 0;
+    }
     if(argc==2 && strcmp(argv[1],"--managed-process-fences-only")==0) {
         assert(fork_arena());
         assert(foreign_pid());

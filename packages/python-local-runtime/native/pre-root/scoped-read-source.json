@@ -10,8 +10,8 @@
   ],
   "patch": {
     "path": "scoped-read-review.patch",
-    "bytes": 66803,
-    "sha256": "acca9f62fd0ba12ad4cd53dce207a3690b24620b6b89bf42d676f8e36281d45e"
+    "bytes": 66865,
+    "sha256": "a4e7d8f44d61a9db799ceba33953cab0fd236a7d3569edcf3dc9714a9be23417"
   },
   "inputs": [
     {
@@ -265,8 +265,8 @@
       "sha256": "a1a80056815dc7c1e5ee476be46ffa3f0b6e036caae8dbc651341c10fc8291f2"
     },
     "scoped_read.inc": {
-      "bytes": 54249,
-      "sha256": "cc6516a3654c5a5fca5742723265eef4f46b5f5d69960c1c625a546e4bf67135"
+      "bytes": 54310,
+      "sha256": "ae8421da265f17b8e8303f0e0d2537243987cb840a309aca5398de63a89ba177"
     },
     "sync_io.c": {
       "bytes": 6246,

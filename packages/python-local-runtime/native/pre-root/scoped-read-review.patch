@@ -234,7 +234,7 @@
 +#endif
 --- /dev/null
 +++ b/scoped_read.inc
-@@ -0,0 +1,1094 @@
+@@ -0,0 +1,1095 @@
 +/* Derived selected-runtime read allocator, included once by the ORIGINAL
 + * owned_capacity.c. Selection still requires its source-bound recipe and
 + * original physical supplier. This is physical provenance
@@ -1210,9 +1210,10 @@
 +}
 +
 +actql_read_context *actql_read_context_current(void) {
-+    if (!lock_read_contexts()) return NULL;
++    pid_t process;
++    if (!lock_read_contexts_observe_process(&process)) return NULL;
 +    actql_read_context *context = read_current;
-+    bool current = known_read_context(context) && context->active != 0 &&
++    bool current = known_read_context_observed(context, process) && context->active != 0 &&
 +        read_depth != 0 && actql_native_owned_current() == context->lease;
 +    unlock_read_contexts();
 +    return current ? context : NULL;
