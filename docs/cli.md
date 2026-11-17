@@ -13,6 +13,18 @@ npm install -g actql
 actql version
 ```
 
+The packaged CLI supports macOS arm64 and Linux x64 with **glibc 2.38+**.
+Debian 13 meets this Linux minimum; Debian 12 (glibc 2.36) does not. The bundled
+Local runtime requires it even for `actql --version`. See the
+[platform matrix](reference/status.md#native-cli-platforms) for qualification limits.
+
+Installation deliberately remains free of platform-check lifecycle scripts.
+`npm install` may succeed on an unsupported glibc; the launcher checks the
+installed artifact and runtime requirements before execution and exits 64 on
+an unsupported platform. This preserves the no-download, no-compiler install
+path and works when lifecycle scripts are disabled; successful installation is
+not a compatibility check.
+
 ## The golden path
 
 ```sh
@@ -45,6 +57,20 @@ for argument descriptions. On `check`, `explain`, and `run`, `--format` selects
 Program syntax rather than Result row encoding.
 
 ## Starting a project
+
+Embedded Local state has one active Host owner. Independent CLI processes must
+not open the same project's state concurrently. An ownership refusal is not a
+reason to delete the lock, retry adoption or create a replacement Run. Let the
+current owner finish and close before another Embedded Local command uses that
+state. If a submission response was uncertain, retain its original reference
+for lookup instead of submitting it again.
+
+Remote connection options address an explicitly running authenticated Host;
+they do not start a daemon or make Embedded Local multi-process. The selected
+[single-Host design](design/shared-cli-host.md) keeps exclusive storage ownership
+while allowing clients to share Runs and Saved results. Its complete installed
+parallel CLI, client/owner exit and recovery acceptance is tracked in
+[#3611](https://github.com/actql/actql/issues/3611).
 
 ```text
 actql init [--template churn-risk-mock] [<directory>]

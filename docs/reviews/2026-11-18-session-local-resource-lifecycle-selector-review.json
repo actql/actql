@@ -1,0 +1,21 @@
+{
+  "source": "8385cf48bbffd611f7fa62e872a21c764aa7787f",
+  "qualification": "Finite current JS package-configuration review only. One literal JS whitebox selector is added to the actual included source. Imports, aliases, supported targets, preceding selectors, linker options, build hooks and external resolvers remain byte-exact. Every immediate source byte/mode/membership and transitive literal import remains an input. This review does not execute the fixture or authorize reuse.",
+  "path": "src/client_local_host/moon.pkg",
+  "mode": "100644",
+  "sha256": "497f93c3defd265ba83791d7a8c3290302f368406e1d348f04a5d5f1c472fefd",
+  "bytes": 12192,
+  "previousRevision": "bc3a7c1797727c1da985962f747a382be961b1ac",
+  "previousSha256": "b0d5e68d9e82221e6ae49e364de6175ca92377e8227443eafa84149e5ee25b23",
+  "previousBytes": 12133,
+  "previousReview": "docs/reviews/2026-11-17-session-local-text-publication-selector-review.json",
+  "rule": "literal-target-selectors-with-bound-source-membership",
+  "addedSelectors": [
+    {
+      "file": "resource_lifecycle_regressions_wbtest.mbt",
+      "targets": ["js"]
+    }
+  ],
+  "meaning": "The existing original Request orchestration fixture calls JS-selected preparation helpers. Selecting that fixture on JS prevents Native or Wasm from adopting unbound JS fixture symbols; ordinary product sources and all previous backend choices remain unchanged.",
+  "refusalPolicy": "Only this exact descriptor, JS target and reviewed toolchain qualify. Earlier descriptors and reviews remain historical, not current evidence. Changed selectors, imports, options, paths, targets or toolchain remain refused with full-source fallback and unresolved reuse. Configuration identity alone is not an executed test or reuse permission."
+}

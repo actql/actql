@@ -155,6 +155,7 @@
         "http-client"
       ],
       "tests": [
+        "default Local offer funds the actual materializer before starting without a transfer policy",
         "standard Host commits an authenticated external policy before dispatch",
         "native standard Host consults mTLS policy and retains a failed choice",
         "observed completion revises only the unstarted suffix without resetting resources",

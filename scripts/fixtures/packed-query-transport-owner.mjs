@@ -300,12 +300,58 @@ export function createPackedHostFailureDiagnostics(report = value => {
   });
 }
 
+// Pure diagnostic DATA only. Never format a reflection failure or read an
+// accessor, message, stack, unrelated field or arbitrary enumerable inventory.
+export function collectPackedFailureData(error) {
+  try {
+    const out = [], queue = [['original', error, 0]], seen = new Set();
+    while (queue.length && out.length < 32) {
+      const [edge, value, depth, accessor] = queue.shift();
+      if (accessor) {out.push({edge, type: 'Accessor'}); continue;}
+      if (value === null) {out.push({edge, type: 'Null'}); continue;}
+      const primitiveTypes = {undefined: 'Undefined', string: 'String', number: 'Number',
+        boolean: 'Boolean', bigint: 'BigInt', symbol: 'Symbol', function: 'Function'};
+      if (typeof value !== 'object') {out.push({edge, type: primitiveTypes[typeof value]}); continue;}
+      if (seen.has(value)) continue;
+      seen.add(value);
+      const proto = Object.getPrototypeOf(value);
+      const ctor = proto && Object.getOwnPropertyDescriptor(proto, 'constructor')?.value;
+      const name = typeof ctor === 'function' ? Object.getOwnPropertyDescriptor(ctor, 'name')?.value : '';
+      const type = ['Object', 'Array', 'Error', 'TypeError', 'RangeError', 'SyntaxError', 'ClientError', 'DOMException'].includes(name)
+        ? name : typeof name === 'string' && /^_M[A-Za-z0-9_]{1,157}$/u.test(name) ? 'MoonBit' : 'Other';
+      const row = {edge, type}, code = Object.getOwnPropertyDescriptor(value, 'code');
+      if (code) {
+        if (Object.hasOwn(code, 'value') && originalFailureCodes.includes(code.value)) row.code = code.value;
+        else {
+          row.codeOmitted = true;
+          row.codeType = !Object.hasOwn(code, 'value') ? 'Accessor' : code.value === undefined ? 'Undefined'
+            : typeof code.value === 'string' ? 'String' : typeof code.value === 'number' ? 'Number' : 'Other';
+        }
+      }
+      out.push(row);
+      if (depth < 16) for (const key of ['cause', 'primaryFailure', '_0', '_1', '_2']) {
+        const field = Object.getOwnPropertyDescriptor(value, key);
+        if (field) queue.push([key, Object.hasOwn(field, 'value') ? field.value : undefined,
+          depth + 1, !Object.hasOwn(field, 'value')]);
+      }
+    }
+    return {available: true, originalCauseTypes: [out]};
+  } catch {
+    // Discard partial observations; the thrown object itself stays private.
+    return {available: false, originalCauseTypes: []};
+  }
+}
+
 // This is a test-only observer of the already installed original ingress. It
 // captures only its selected original boundary; no runtime bytes are changed.
 // Missing diagnostic evidence never replaces the original acceptance result.
-export async function observePackedSubmissionCause({sourceURL, boundary = 'original-catch', report = value => {
+export async function observePackedSubmissionCause({sourceURL, enabled = false, boundary = 'original-catch', report = value => {
   process.stderr.write(`Packed submission original cause: ${JSON.stringify(value)}\n`);
 }}) {
+  assert.equal(typeof enabled, 'boolean');
+  // Inspector is an explicit diagnostic capability, never an ordinary product
+  // acceptance prerequisite. Do not even read the target when unselected.
+  if (!enabled) return Object.freeze({close: async () => {}});
   const observations = [];
   let worker, exited, closing, stopping, ready, unavailableReason, loaded = false, observationFailed = false;
   const emit = value => {try {report(value);} catch { /* Preserve the original test outcome. */ }};
@@ -408,20 +454,9 @@ export async function runSubmissionCauseObserver({session, parentPort, workerDat
   // private code prefix or forged compiled constructor name is not evidence.
   // Keep reflection failures inside this expression. Sending their Error to
   // Inspector's exception formatter can execute private message/stack getters.
-  const expression = `(()=>{try{const out=[],queue=[['original',error,0]],seen=new Set();
-while(queue.length&&out.length<32){const [edge,value,depth,accessor]=queue.shift();
-if(accessor){out.push({edge,type:'Accessor'});continue;}
-if(value===null){out.push({edge,type:'Null'});continue;}
-const primitiveTypes={undefined:'Undefined',string:'String',number:'Number',boolean:'Boolean',bigint:'BigInt',symbol:'Symbol',function:'Function'};
-if(typeof value!=='object'){out.push({edge,type:primitiveTypes[typeof value]});continue;}
-if(seen.has(value))continue;seen.add(value);
-const proto=Object.getPrototypeOf(value);
-const ctor=proto&&Object.getOwnPropertyDescriptor(proto,'constructor')?.value;
-const name=typeof ctor==='function'?Object.getOwnPropertyDescriptor(ctor,'name')?.value:'';
-const type=['Object','Array','Error','TypeError','RangeError','SyntaxError','ClientError','DOMException'].includes(name)?name:typeof name==='string'&&/^_M[A-Za-z0-9_]{1,157}$/.test(name)?'MoonBit':'Other';
-const safeCodes=${JSON.stringify(originalFailureCodes)};
-const row={edge,type},code=Object.getOwnPropertyDescriptor(value,'code');if(code){if('value'in code&&safeCodes.includes(code.value))row.code=code.value;else{row.codeOmitted=true;row.codeType=!('value'in code)?'Accessor':code.value===undefined?'Undefined':typeof code.value==='string'?'String':typeof code.value==='number'?'Number':'Other';}}
-out.push(row);if(depth<16)for(const key of ['cause','primaryFailure','_0','_1','_2']){const d=Object.getOwnPropertyDescriptor(value,key);if(d)queue.push([key,'value'in d?d.value:undefined,depth+1,!('value'in d)]);}}return out;}catch{return null;}})()`;
+  const expression = `(()=>{const originalFailureCodes=${JSON.stringify(originalFailureCodes)};
+const value=(${Function.prototype.toString.call(collectPackedFailureData)})(error);
+return value.available?value.originalCauseTypes[0]:null;})()`;
   session.on('Debugger.scriptParsed', ({params}) => {
     if (retiring || params.url !== workerData.url) return;
     const validating = flight(async () => {

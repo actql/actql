@@ -476,8 +476,68 @@ export interface InstalledRowEffect extends InstallationCloseOwner {
   readonly mappings: readonly Readonly<{
     resource: string; target: string; mappingRef: string; mappingCid: string}>[];
 }
-export declare function createInstalledRowEffect<Request extends object,
-  Current = unknown, Kind extends RowEffectKind = RowEffectValueKind>(options: Readonly<{
+/** Fixed transport DATA, not a Credential, permission or capacity grant. */
+export interface RowEffectWriteHttp<Method extends string = 'POST' | 'PUT' | 'PATCH'> {
+  readonly origin: string;
+  readonly method: Method;
+  readonly path: string;
+  readonly headers?: HttpPairs;
+  readonly responseHeaders?: readonly string[];
+  readonly maxRequestBytes: number;
+  readonly maxResponseBytes: number;
+}
+export type RowEffectWriteInput = Readonly<{
+  resource: string; value: ConnectorJsonObject; proposalWire?: string;
+}>;
+export type RowEffectWriteObservation<Request extends object> = Readonly<{
+  resource: string; value: ConnectorJsonObject; request: Request;
+  observation: CredentialObservation; headers?: HttpPairs;
+}>;
+/** Standard CREATE delegates claims, receipts, recovery and cleanup to the
+ * existing Host. Request/classification callbacks receive immutable DATA only.
+ * Runtime admission additionally checks plain request DATA and exact HTTP bytes. */
+export interface RowEffectCreateWrite<Request extends object> {
+  readonly kind: 'create';
+  readonly operation: string;
+  readonly resourceKind: string;
+  readonly boundaryCid: string;
+  readonly http: RowEffectWriteHttp;
+  request(input: RowEffectWriteInput): Request & Readonly<{then?: never}>;
+  classify(input: RowEffectWriteObservation<Request>): RowEffectProjection;
+  readonly finalization?: Readonly<{
+    recipe: ConnectorJsonObject;
+    finalize(input: Readonly<RowEffectWriteInput & {
+      request: Request; requestTag: string;
+    }>): Request & Readonly<{then?: never}>;
+    /** Return the SAME admitted saved request; this does not dispatch it. */
+    restore(input: Readonly<RowEffectWriteInput & {
+      request: Request; logical: Request; requestTag: string;
+    }>): Request & Readonly<{then?: never}>;
+  }>;
+  readonly check?: Readonly<{
+    resource: string; operation: string; beforeSend?: boolean;
+  }> & (Readonly<{
+    http: RowEffectWriteHttp<'GET' | 'POST' | 'HEAD'> & Readonly<{query?: HttpPairs}>;
+    request?: never;
+    body(input: Readonly<RowEffectWriteInput & {request: Request}>): string | undefined;
+    project(input: RowEffectWriteObservation<Request> & Readonly<{accepted: boolean}>): undefined;
+  }> | Readonly<{
+    http?: never; body?: never; project?: never;
+    request(input: RowEffectInvocation<Request, unknown, 'create'>): Awaitable<unknown>;
+  }>);
+  readonly confirmation?: Readonly<{
+    resource: string; operation: string;
+    http: RowEffectWriteHttp<'GET' | 'POST' | 'HEAD'> & Readonly<{query?: HttpPairs}>;
+    body(input: Readonly<RowEffectWriteInput & {
+      request: Request; providerEvidence: unknown;
+    }>): string | undefined;
+    project(input: RowEffectWriteObservation<Request> & Readonly<{
+      accepted: boolean; providerEvidence: unknown;
+    }>): RowEffectProjection | undefined;
+  }>;
+}
+export type InstalledRowEffectOptions<Request extends object,
+  Current = unknown, Kind extends RowEffectKind = RowEffectValueKind> = Readonly<{
     moon: ConnectorRuntimeOwner;
     mappings: readonly RowEffectMapping[];
     commands?: readonly RowEffectCommand[];
@@ -490,14 +550,20 @@ export declare function createInstalledRowEffect<Request extends object,
     authorization: InstallationAuthorization;
     runtimeBundleCid: string;
     bindingCid: string;
-    driver: RowEffectDriver<Request, Current, Kind>;
     ledgerRoot: string;
     /** The exact generated installation-table entry, never a reconstructed copy. */
     installation?: object;
     continuationBinding?: string;
     /** Nested limit objects replace their defaults as complete objects. */
     limits?: Partial<RowEffectLimits>;
-  }>): Promise<InstalledRowEffect>;
+  }> & (Readonly<{
+    driver: RowEffectDriver<Request, Current, Kind>; write?: never;
+  }> | (Kind extends 'create' ? Readonly<{
+    driver?: never; write: RowEffectCreateWrite<Request>;
+  }> : never));
+export declare function createInstalledRowEffect<Request extends object,
+  Current = unknown, Kind extends RowEffectKind = RowEffectValueKind>(
+  options: InstalledRowEffectOptions<Request, Current, Kind>): Promise<InstalledRowEffect>;
 
 export interface InstallationCleanupStatus {
   readonly pending: boolean;

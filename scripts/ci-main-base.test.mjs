@@ -44,7 +44,7 @@ test('full checkpoint binds tested SHA, ancestry, policy and exact successful at
 // Independent full-workflow inventory: focused-tests runs only in its own
 // narrow profile and is skipped alongside the successful full families.
 const fullWorkflowJobs = ['check', 'select-targets', 'preflight', 'lint',
-  'core (js)', 'core (wasm)', 'core (native 1/2)', 'core (native 2/2)', 'core (native source)', 'core (native scoped-runtime)', 'core (native scoped-review)', 'host', 'client', 'native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-mock', 'native',
+  'core (js)', 'core (wasm)', 'core (native 1/2)', 'core (native 2/2)', 'core (native source)', 'core (native scoped-runtime)', 'core (native scoped-review)', 'host', 'client', 'native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-mock', 'native-cli-linux-local-installed', 'native',
   'spec', 'session-evidence', 'session-controls', 'pipeline-evidence', 'pipeline-validation', 'native-macos', 'python-wheels',
   'native-separated-network (direct)', 'native-separated-network (store)', 'workers', 'connector-addition', 'duckdb-node',
   'client-readme-packed (22.22.0)', 'client-readme-packed (24)'];
@@ -61,7 +61,7 @@ function fullWorkflowFixture() {
 test('real gate inventory accepts complete full main with skipped focused-only job', async () => {
   const {options} = fullWorkflowFixture();
   assert.equal((await resolveMainBaseline(options)).baseSha, base);
-  assert.deepEqual(options.requiredJobs, fullWorkflowJobs);
+  assert.deepEqual([...options.requiredJobs].sort(), [...fullWorkflowJobs].sort());
 });
 test('full checkpoint README identities match both exact supported Node workflow matrix jobs', () => {
   const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
@@ -118,7 +118,7 @@ test('full checkpoint requires both separated profiles and rejects the old singl
   }
 });
 test('full checkpoint requires both Local producer and independent Mock consumer evidence', async () => {
-  for (const name of ['native-cli-linux-local', 'native-cli-linux-local-mock']) {
+  for (const name of ['native-cli-linux-local', 'native-cli-linux-local-mock', 'native-cli-linux-local-installed']) {
     for (const outcome of ['missing', 'skipped', 'failure', 'cancelled']) {
       const f = fullWorkflowFixture();
       if (outcome === 'missing') f.state.jobs.jobs = f.state.jobs.jobs.filter(job => job.name !== name);

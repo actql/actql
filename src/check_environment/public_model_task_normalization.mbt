@@ -59,6 +59,19 @@ fn emit_public_task_checked_contract(
 }
 
 ///|
+fn emit_public_task_prompt_payload(
+  value : PublicModelTaskDeclaration,
+  writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  @encode.key(writer, "format")
+  @encode.string_value(writer, "actql.openai_chat_prompt/0.1")
+  @encode.key(writer, "instructions")
+  @encode.string_value(writer, value.instructions)
+  @encode.end_object(writer)
+}
+
+///|
 fn emit_public_task_prompt(
   value : PublicModelTaskDeclaration,
   self_cid : String?,
@@ -66,12 +79,7 @@ fn emit_public_task_prompt(
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(writer)
   @encode.key(writer, "payload")
-  @encode.begin_object(writer)
-  @encode.key(writer, "format")
-  @encode.string_value(writer, "actql.openai_chat_prompt/0.1")
-  @encode.key(writer, "instructions")
-  @encode.string_value(writer, value.instructions)
-  @encode.end_object(writer)
+  emit_public_task_prompt_payload(value, writer)
   if self_cid is Some(cid) {
     @encode.key(writer, "self_cid")
     @encode.string_value(writer, cid)

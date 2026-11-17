@@ -3,6 +3,7 @@
 // This changes fixture Environment DATA, not the existing Resource authority.
 fn collection_capacity_selected_environment(
   rows : Int,
+  numeric_profile_cid? : String? = None,
 ) -> @checked.CheckEnvironment raise {
   let assets = @publication_host.client_local_product_assets()
   let parsed = @json.parse(assets.environment)
@@ -32,6 +33,7 @@ fn collection_capacity_selected_environment(
     cid,
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    numeric_profile_cid~,
   ).unwrap()
 }
 

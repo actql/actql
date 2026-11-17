@@ -1126,7 +1126,7 @@ test('aggregate workflow expressions run on mixed failures and skip only wholly 
 test('every heavy primitive is selected as one complete job and lint/spec always retain their tests', () => {
   const heavy = ['core', 'host', 'client-packages', 'client-readme-packed', 'client-supported-versions', 'client-distribution', 'client-distribution-callers',
     'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-composition', 'client-salesforce',
-    'native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-mock', 'native', 'session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels',
+    'native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-installed', 'native-cli-linux-local-mock', 'native', 'session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels',
     'native-separated-network', 'workers', 'connector-addition', 'duckdb-node'];
   for (const name of heavy) {
     assert(jobs[name].needs.includes('select-targets'));
@@ -1150,14 +1150,14 @@ test('every heavy primitive is selected as one complete job and lint/spec always
 });
 
 test('full integration cannot skip, omit or fail any actual CLI acceptance job', () => {
-  for (const [name, script] of [['native-cli-linux-local', 'test-native-cli-source-free-install.mjs'],
+  for (const [name, script] of [['native-cli-linux-local-installed', 'test-native-cli-source-free-install.mjs'],
     ['native-cli-linux-local-mock', 'test-native-approval-performance.mjs']]) {
     assert(jobs[name].steps.some(step =>
       step.run?.includes(`node scripts/${script}`) && step['continue-on-error'] === undefined),
     `The required Local job must execute ${script}`);
   }
   const selection = selectTargets(['README.md'], {event: 'workflow_dispatch', mainIntegration: true, nativeMacos: false});
-  for (const name of ['native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-mock']) {
+  for (const name of ['native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-installed', 'native-cli-linux-local-mock']) {
     for (const result of ['missing', 'failure', 'cancelled', 'skipped']) {
       const needs = results(selection);
       if (result === 'missing') delete needs[name];
@@ -1400,7 +1400,7 @@ test('PR lifecycle uses current event Draft state; ready and later heads retain 
 test('Unrelated Draft cannot start product, packed, proof or backend jobs; final gate still runs', () => {
   const heavy = ['core', 'host', 'client-packages', 'client-readme-packed', 'client-supported-versions', 'client-distribution', 'client-distribution-callers',
     'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-composition', 'client-salesforce',
-    'native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-mock', 'native', 'session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity',
+    'native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-installed', 'native-cli-linux-local-mock', 'native', 'session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity',
     'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels', 'native-separated-network',
     'workers', 'connector-addition', 'duckdb-node'];
   for (const profile of ['draft', 'draft-focused']) {
@@ -1509,8 +1509,24 @@ test('automatic main integration remains full without cumulative evidence', () =
 
 test('distribution isolates pinned provider tests with their required GC recipe', () => {
   const scripts = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).scripts;
-  const provider = 'node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- --expose-gc packages/provider-ai-sdk/*.test.mjs';
-  assert.equal(scripts['check:provider-ai-sdk'], provider);
+  // client-ci executes this same recipe to check type-gate ordering and refusal.
+  const providerTests = scripts['check:provider-ai-sdk'].split(' && ')
+    .map(command => command.trim().split(/\s+/u))
+    .filter(args => args[1] === 'scripts/local-checks.mjs');
+  assert.equal(providerTests.length, 1);
+  const [provider] = providerTests;
+  assert.deepEqual(provider.slice(0, 4), ['node', 'scripts/local-checks.mjs', 'test', 'node']);
+  const separator = provider.indexOf('--');
+  assert(separator > 3);
+  for (const option of ['--timeout-seconds', '--kill-grace-seconds']) {
+    const index = provider.indexOf(option);
+    assert(index > 3 && index + 1 < separator, option);
+    const seconds = Number(provider[index + 1]);
+    assert(Number.isSafeInteger(seconds) && seconds > 0, option);
+  }
+  for (const required of ['--expose-gc', 'packages/provider-ai-sdk/*.test.mjs']) {
+    assert.equal(provider.slice(separator + 1).filter(value => value === required).length, 1, required);
+  }
   assert(!scripts['check:distribution-client'].includes('npm run check:provider-ai-sdk'));
   assert.equal(scripts['postcheck:distribution-client'], 'npm run check:provider-ai-sdk && npm run check:otel-node');
   assert(!scripts['check:distribution-client'].includes('packages/provider-ai-sdk/*.test.mjs'));

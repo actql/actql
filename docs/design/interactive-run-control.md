@@ -219,6 +219,23 @@ by these contract definitions.
 
 ## Static compiler projection
 
+The shared static Story renderer consumes that same SDK-admitted Plan view.
+It preserves original logical occurrence keys and each input/output port;
+presentation items issue neither a second graph identity nor execution order.
+An input-only occurrence remains input/output, and an unresolved Stage locator
+does not establish a Source, Result publication or physical acquisition.
+Effect declarations remain outside the computation dependency graph. English
+and Japanese text is deterministic presentation of these same facts, without
+another SQL parser, LLM call or inference of business meaning from an alias.
+Exact/bound/estimate/unknown quantities and unsupported runtime capabilities
+remain distinct. Missing typed expression, Task or source-origin facts require
+an original-Owner projection, not reconstruction in a renderer.
+
+Saved Story reads use the existing original Run Plan read and its current
+authorization. Compiling edited authoring text cannot replace that original.
+Locale and presentation labels do not alter Program, executable Plan, Preview
+or permission identities. This presentation model is not a new wire contract.
+
 The Node read service prepares through the installed ordinary checker, then
 uses the existing Values or task compilation issuer. The shared MoonBit
 projection requires that compilation's exact original prepared owner and reads

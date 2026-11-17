@@ -56,6 +56,52 @@ cancellation and unexpected skip. The existing global `check` still requires
 conditional behavior, as does
 the optional macOS gate.
 
+## Native scheduling and package consumers
+
+The Darwin Core matrix uses at most four of the five available macOS runners,
+leaving capacity for the independent physical-workload and Python wheel jobs.
+All five Darwin partitions remain required; the longest recently observed
+partitions are listed first. Linux jobs retain their separate runner pool.
+Scheduling order is a hint, not a reservation or a claim of an isolated runner.
+
+`native-cli-linux-local` produces and uploads one exact-source Native package
+cohort and retains the Crypto allocator check. Source-free installed acceptance
+and the complete Mock approval campaign consume that same artifact independently;
+neither rebuilds it or waits for the other's tests. Their shared handoff checks
+the exact artifact ID, run, attempt and source before download. Both consumers
+require the successful producer, including allocator conformance. A failed
+producer cannot qualify an installed consumer. The Native aggregate and final
+`check` require both consumers and the producer. Missing, failed, cancelled or
+unexpectedly skipped work cannot become acceptance.
+
+Compare completed hosted runs using the existing `ci-evidence` / `ci-timing`
+reporter. Report aggregate-check completion, distinct runner consumption and
+individual job/step intervals separately; a shorter dependency path alone is
+not a measured speedup. The thirty approvals for each original Mock workflow,
+all source-free cases and their original limits remain unchanged.
+
+## Private cause diagnostics
+
+Ordinary packed acceptance does not attach an Inspector or depend on private
+source-line breakpoints. It retains the real Host failure observer and all
+publication, Run, Result, Saved and refusal assertions. The same bounded DATA
+collector has direct privacy, accessor, omission, cycle, depth and reentry tests;
+mocked Session controls retain first-observation, resume and cleanup checks.
+
+Private source-line instrumentation requires the explicit
+`ACTQL_TEST_PACKED_QUERY_INSPECTOR=1` diagnostic selection. Its finite plain-Error
+capability check is separate:
+
+```sh
+node --test scripts/packed-query-inspector.actual.mjs
+```
+
+Unavailable instrumentation, an abort or a failed diagnostic remains a failed
+capability observation; it is not skipped, retried into success or used to
+change the original product result. A successful diagnostic does not qualify
+the normal package, prove another platform's Inspector behavior or identify a
+historical product failure's cause.
+
 ## Change-scoped PR verification
 
 Main integration retains all runtime families. Ready PRs may use the existing

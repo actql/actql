@@ -5,7 +5,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/installed-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bb36bd5f6ca4a29c855809a835d91e0f3f122d45401aa85d8198383d4432fa8d",
+      "sha256": "4630f17e8b54041a294f3fe5dd39b9abdfda04c3cbfee907c678ad131a9a4af3",
       "exports": [
         "createInstalledOpenAIChatRegistration",
         "createInstalledUndiciOpenAIChatRegistration"
@@ -271,6 +271,10 @@
               {
                 "path": "scripts/model-original-materials.test.mjs",
                 "anchor": "one closed DATA source"
+              },
+              {
+                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
+                "anchor": "recipe binds each original checked Graph through the existing Host owner"
               }
             ]
           }
@@ -1007,7 +1011,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/original-materials.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d41122a739f8915dc575d06e408f4f09f8bd0a02975f816e22ecd6e3f94af902",
+      "sha256": "c822caf10bb73654c2a59609f2fa5664748bc04cbe2aafaa69ad66381e82d8ee",
       "exports": [
         "admitOpenAIOriginalMaterials",
         "snapshotOpenAIOriginalMaterials"
@@ -1343,6 +1347,10 @@
               {
                 "path": "scripts/model-original-materials.test.mjs",
                 "anchor": "one closed DATA source"
+              },
+              {
+                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
+                "anchor": "recipe binds each original checked Graph through the existing Host owner"
               }
             ]
           }

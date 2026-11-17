@@ -5,6 +5,7 @@ import {fileURLToPath} from 'node:url';
 import {createInstalledOpenAIChatRegistration,createInstalledUndiciOpenAIChatRegistration} from './index.mjs';
 import {originalMaterialsConfiguration as configuration,
   installFixtureModelProviders as installModelProviders} from './original-materials.fixture.mjs';
+import {bindInferOriginalReadRecipe} from '../../adapters/host-node/infer-original-installation.mjs';
 
 const cid = c => `sha256:${c.repeat(64)}`;
 const names=['clientProgramStartOpenAIChatProjection','clientProgramAdvanceOpenAIChatProjection',
@@ -29,6 +30,115 @@ function runtime(config) {
     return {$tag:1,_0:Object.freeze({kind:args[0],wire:args[2]})};};
   return {moon,calls,profile};
 }
+
+function recipeConfiguration() {
+  const config = configuration();
+  const materials = config.originalMaterials;
+  materials.originalReadRecipe = materials.originalReadInstallation;
+  delete materials.originalReadInstallation;
+  const layout = materials.originalReadRecipe.nodeInstallation.layout;
+  delete layout.program_definition_cid;
+  delete layout.parameter_values_cid;
+  delete layout.barrier_cid;
+  return config;
+}
+
+test('recipe materials reach the existing Host without caller-created Program identities', () => {
+  const config = recipeConfiguration(), f = runtime(config);
+  const register = createInstalledOpenAIChatRegistration(config);
+  assert.equal(f.calls.length, 0, 'construction admits no profile or sends a request');
+  config.originalMaterials.originalReadRecipe.modelRetainedBytes = 999n;
+  const installed = installModelProviders(f.moon, register).get(config.providerId);
+  assert.equal(installed.originalReadInstallation, undefined);
+  assert.equal(installed.originalReadRecipe.modelRetainedBytes, 100n);
+  assert.strictEqual(installed.originalReadRecipe.nodeInstallation.layout.response_profile, f.profile);
+  assert.strictEqual(installed.rawCaptureSelection.profile, f.profile);
+  assert.equal(f.calls.length, 5, 'same profile and four complete policy readers');
+  for (const key of ['program_definition_cid', 'parameter_values_cid', 'barrier_cid']) {
+    assert.equal(Object.hasOwn(installed.originalReadRecipe.nodeInstallation.layout, key), false);
+  }
+  assert.throws(() => register(f.moon), {code: 'OpenAIOriginalInstallationReused'});
+});
+
+test('recipe binds each original checked Graph through the existing Host owner', () => {
+  const config = recipeConfiguration(), f = runtime(config);
+  const recipe = installModelProviders(f.moon,
+    createInstalledOpenAIChatRegistration(config)).get(config.providerId).originalReadRecipe;
+  const first = {}, second = {};
+  // Graph accessors are explicit Core doubles; the actual Host binding and
+  // its nominal recipe membership, arithmetic and refusal path are exercised.
+  const identities = new Map([[first, ['1', '2', '3']], [second, ['4', '5', '6']]]);
+  const moon = {
+    clientProgramInferPlanProgramCid: graph => cid(identities.get(graph)[0]),
+    clientProgramInferPlanParametersCid: graph => cid(identities.get(graph)[1]),
+    clientProgramInferPlanBoundary: graph => ({_3: cid(identities.get(graph)[2])}),
+  };
+  for (const graph of [first, second]) {
+    const bound = bindInferOriginalReadRecipe(moon, recipe, graph,
+      [10n, 20n, 30n, 40n, 0n, 0n, 8n, 8n, 8n], [50n, 60n]);
+    assert.deepEqual([
+      bound.nodeInstallation.layout.program_definition_cid,
+      bound.nodeInstallation.layout.parameter_values_cid,
+      bound.nodeInstallation.layout.barrier_cid,
+    ], identities.get(graph).map(cid));
+    assert.strictEqual(bound.nodeInstallation.layout.response_profile, f.profile);
+    assert.equal(bound.modelRetainedBytes, 150n);
+    assert.equal(bound.modelExecutionBytes, 70n);
+    assert.equal(bound.nodeInstallation.layout.retained_bytes, 7030n);
+    assert.equal(bound.nodeInstallation.layout.execution_bytes, 3040n);
+  }
+  assert.throws(() => bindInferOriginalReadRecipe(moon, {...recipe}, first,
+    [10n, 20n, 30n, 40n, 0n, 0n, 8n, 8n, 8n], [50n, 60n]),
+  {code: 'InferOriginalReadRecipeUnavailable'});
+});
+
+test('recipe materials refuse mixed or prebound declarations before Common readers', () => {
+  for (const change of [
+    config => {config.originalMaterials.originalReadInstallation = {};},
+    ...['program_definition_cid', 'parameter_values_cid', 'barrier_cid'].map(key =>
+      config => {config.originalMaterials.originalReadRecipe.nodeInstallation.layout[key] = cid('a');}),
+    config => {config.originalReadRecipe = {};},
+  ]) {
+    const config = recipeConfiguration(), f = runtime(config);
+    change(config);
+    assert.throws(() => createInstalledOpenAIChatRegistration(config), TypeError);
+    assert.equal(f.calls.length, 0);
+  }
+});
+
+test('recipe materials preserve Host refusal of unfunded finite envelopes', () => {
+  for (const change of [
+    read => {read.nodeInstallation.layout.retained_bytes = 0n;},
+    read => {read.nodeInstallation.layout.execution_bytes = 0n;},
+    read => {read.modelRetainedBytes = 0n;},
+  ]) {
+    const config = recipeConfiguration(), f = runtime(config);
+    change(config.originalMaterials.originalReadRecipe);
+    assert.throws(() => installModelProviders(f.moon,
+      createInstalledOpenAIChatRegistration(config)), TypeError);
+  }
+});
+
+test('opaque recipe and selected Undici recipe reuse the same original profile', () => {
+  for (const undici of [false, true]) {
+    const config = recipeConfiguration(), f = runtime(config);
+    const admitted = createInstalledOpenAIChatRegistration(config)(f.moon)[0];
+    const {originalMaterials: unused, ...selected} = config; void unused;
+    const options = {...selected, originalReadRecipe: admitted.originalReadRecipe,
+      rawCaptureSelection: admitted.rawCaptureSelection};
+    let register;
+    if (undici) {
+      delete options.fetch;
+      register = createInstalledUndiciOpenAIChatRegistration({...options,
+        physicalAcquisitionLimits: {maxPlaintextBytes: 65536, maxBorrowedBackingBytes: 131072, maxReads: 64}});
+    } else register = createInstalledOpenAIChatRegistration(options);
+    const installed = installModelProviders(f.moon, register).get(config.providerId);
+    assert.equal(installed.originalReadInstallation, undefined);
+    assert.strictEqual(installed.originalReadRecipe.nodeInstallation.layout.response_profile, f.profile);
+    assert.throws(() => createInstalledOpenAIChatRegistration({...options,
+      originalReadInstallation: admitted.originalReadRecipe}), TypeError);
+  }
+});
 
 test('material descriptors snapshot once before the actual Host callback and retain same-runtime opaque originals',()=>{
   const config=configuration(),f=runtime(config);let gets=0;

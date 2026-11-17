@@ -110,8 +110,16 @@ export function checkedSigner(signer) {
 
 async function signature(signer, text) {
   const signed = await signer.sign(encoder.encode(text));
-  if (typeof signed === 'string' &&
-      /^[A-Za-z0-9+/]+={0,2}$/u.test(signed)) return signed;
+  // Match the existing Common proof codec: canonical Base64 of 64 Ed25519
+  // bytes. Bound decoding before inspecting the external signer's output.
+  // This checks representation only; the Host still verifies the signature.
+  if (typeof signed === 'string' && signed.length === 88 &&
+      /^[A-Za-z0-9+/]+={0,2}$/u.test(signed)) {
+    try {
+      const binary = atob(signed);
+      if (binary.length === 64 && btoa(binary) === signed) return signed;
+    } catch { /* A malformed proof is rejected below, never normalized. */ }
+  }
   if (signed instanceof Uint8Array && signed.byteLength === 64) {
     return base64(signed);
   }

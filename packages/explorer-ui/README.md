@@ -1,5 +1,33 @@
 # Shared read-only Explorer UI
 
+## Compiler-bound static Story
+
+`planStoryModel(view, {locale: 'en' | 'ja'})` in the existing `read-model`
+export deterministically presents an SDK-admitted static Plan projection. Its
+occurrences retain the original Plan, logical-map, Step and port identities.
+Stage inputs remain unresolved locators, and an input-only occurrence remains
+input/output rather than becoming a Source or a fabricated computation. Repeated
+JOIN inputs remain separate dependencies. Logical dependencies are not an
+execution order, a physical boundary or a progress observation.
+
+Locale changes presentation text only. Authored names remain exact text, with
+the original Step identifier used when no name exists. Consumers must render
+these strings as text, never HTML. Quantities retain their original exact,
+bound, estimate or unknown variants and decimal strings without summation.
+Effect declarations stay separate from the computation dependency graph;
+current permission and sealed Preview remain their original observations.
+
+`readExistingRunStory(client, ref, {locale}, ticket)` attaches the complete
+original reference and uses that Run's public `plan()` read with current
+authorization, original-reference verification and presentation-scope fencing.
+Locale is captured before the first await. Do not compile today's Program to replace
+missing original evidence. The Story has no new CID, authority, scheduler or
+runtime capability. Typed expression/Task details and authoring meta not present
+in the original projection are not reconstructed here. This presentation unit
+does not install Samples, pause/step/breakpoints or shared-process Host support.
+
+## Read-only presentation
+
 This package contains the finite read model, public SDK read adapter and shared
 React Plan viewer described below. The separate optional `@actql/explorer`
 package supplies the built SPA, Hono Gateway and Local launcher; embedding the

@@ -108,6 +108,21 @@ pub fn client_program_normalized_public_model_task_materials(
 }
 
 ///|
+/// Candidate DATA only, read from the same normalized Task original.
+#export_name("clientProgramNormalizedPublicModelTaskProviderData")
+pub fn client_program_normalized_public_model_task_provider_data(
+  value : @check_environment.NormalizedPublicModelTask,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_work : Int,
+) -> Result[(String, String, String), @check_environment.ModelTaskIssue] {
+  @check_environment.normalized_public_model_task_provider_data(
+    value, max_bytes, max_nodes, max_depth, max_work,
+  )
+}
+
+///|
 /// Canonical outer-Environment DATA only. The installed Host retains every
 /// normalized Task original and uses its ordinary full checker afterward.
 #export_name("clientProgramProjectPublicModelTaskEnvironment")

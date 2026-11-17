@@ -2400,18 +2400,22 @@
     {
       "module": "packages/explorer-ui/read-model.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "b37a73fa5c405e0855551fc0943a1ef83dbea07b104136b9ef61997abcd9e60b",
+      "sha256": "b685a43c8925ccc6473059c0ef79b59307b0aff592264d88d433d412dd9ab0a9",
       "exports": [
         "ExplorerReadError",
         "OriginalRunPlanReadModel",
+        "OriginalRunStoryReadModel",
         "PlanReadModel",
+        "PlanStoryModel",
         "ReadTicket",
         "createReadEpoch",
         "describeExistingResult",
         "graphViewLimits",
         "planReadModel",
+        "planStoryModel",
         "readExistingRun",
         "readExistingRunPlan",
+        "readExistingRunStory",
         "readStaticPlan"
       ],
       "operations": [
@@ -2453,6 +2457,14 @@
           "result": "PlanReadModel"
         },
         {
+          "name": "planStoryModel",
+          "parameters": [
+            "view: WirePlanView | WireEffectfulStaticPlanView",
+            "options?: {locale?: 'en' | 'ja'}"
+          ],
+          "result": "PlanStoryModel"
+        },
+        {
           "name": "readExistingRun",
           "parameters": [
             "client: Pick<Client, 'attach'>",
@@ -2469,6 +2481,16 @@
             "ticket: ReadTicket"
           ],
           "result": "Promise<OriginalRunPlanReadModel>"
+        },
+        {
+          "name": "readExistingRunStory",
+          "parameters": [
+            "client: Pick<Client, 'attach'>",
+            "ref: RunReference",
+            "options: {locale?: 'en' | 'ja'} | undefined",
+            "ticket: ReadTicket"
+          ],
+          "result": "Promise<OriginalRunStoryReadModel>"
         },
         {
           "name": "readStaticPlan",
@@ -2499,21 +2521,27 @@
             "createReadEpoch/invalidate",
             "describeExistingResult",
             "planReadModel",
+            "planStoryModel",
             "readExistingRun",
             "readExistingRunPlan",
+            "readExistingRunStory",
             "readStaticPlan"
           ],
           "exports": [
             "ExplorerReadError",
             "OriginalRunPlanReadModel",
+            "OriginalRunStoryReadModel",
             "PlanReadModel",
+            "PlanStoryModel",
             "ReadTicket",
             "createReadEpoch",
             "describeExistingResult",
             "graphViewLimits",
             "planReadModel",
+            "planStoryModel",
             "readExistingRun",
             "readExistingRunPlan",
+            "readExistingRunStory",
             "readStaticPlan"
           ],
           "attributes": {
@@ -2607,6 +2635,14 @@
               {
                 "path": "packages/explorer-ui/read-model.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "packages/explorer-ui/read-model.test.mjs",
+                "anchor": "static Story renders EN/JA from the same original Plan and logical ports"
+              },
+              {
+                "path": "packages/explorer-ui/read-model.test.mjs",
+                "anchor": "saved Story uses the same original Run without recompilation and captures locale once"
               }
             ]
           }
@@ -2616,15 +2652,17 @@
     {
       "module": "packages/explorer-ui/read-model.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1c2479ef3e422afd4c990472095840ed4846608b90a340c9cbfa93bf9a573289",
+      "sha256": "4c3c36fafc9a23be490ad9ae3c1bee8ba3f14d150f1df57f10742e6bc5d96805",
       "exports": [
         "ExplorerReadError",
         "createReadEpoch",
         "describeExistingResult",
         "graphViewLimits",
         "planReadModel",
+        "planStoryModel",
         "readExistingRun",
         "readExistingRunPlan",
+        "readExistingRunStory",
         "readStaticPlan"
       ],
       "operations": [
@@ -2676,6 +2714,16 @@
           "async": false
         },
         {
+          "name": "originalRunPlan/run/run",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "originalRunPlan/view/view",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "planReadModel",
           "parameters": [
             "view"
@@ -2693,6 +2741,28 @@
           "name": "planReadModel/planReadModel/planReadModel",
           "parameters": [
             "port"
+          ],
+          "async": false
+        },
+        {
+          "name": "planStoryModel",
+          "parameters": [
+            "view",
+            "locale"
+          ],
+          "async": false
+        },
+        {
+          "name": "planStoryModel/planStoryModel",
+          "parameters": [
+            "node"
+          ],
+          "async": false
+        },
+        {
+          "name": "planStoryModel/planStoryModel#2",
+          "parameters": [
+            "input"
           ],
           "async": false
         },
@@ -2725,14 +2795,14 @@
           "async": true
         },
         {
-          "name": "readExistingRunPlan/run/run",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "readExistingRunPlan/view/view",
-          "parameters": [],
-          "async": false
+          "name": "readExistingRunStory",
+          "parameters": [
+            "client",
+            "ref",
+            "options",
+            "ticket"
+          ],
+          "async": true
         },
         {
           "name": "readStaticPlan",
@@ -2771,15 +2841,19 @@
             "describeExistingResult/describeExistingResult",
             "describeExistingResult/run/run",
             "freeze/freeze",
+            "originalRunPlan/run/run",
+            "originalRunPlan/view/view",
             "planReadModel",
             "planReadModel/planReadModel",
             "planReadModel/planReadModel/planReadModel",
+            "planStoryModel",
+            "planStoryModel/planStoryModel",
+            "planStoryModel/planStoryModel#2",
             "readExistingRun",
             "readExistingRun/readExistingRun",
             "readExistingRun/run/run",
             "readExistingRunPlan",
-            "readExistingRunPlan/run/run",
-            "readExistingRunPlan/view/view",
+            "readExistingRunStory",
             "readStaticPlan",
             "readStaticPlan/readStaticPlan"
           ],
@@ -2789,8 +2863,10 @@
             "describeExistingResult",
             "graphViewLimits",
             "planReadModel",
+            "planStoryModel",
             "readExistingRun",
             "readExistingRunPlan",
+            "readExistingRunStory",
             "readStaticPlan"
           ],
           "attributes": {
@@ -2884,6 +2960,14 @@
               {
                 "path": "packages/explorer-ui/read-model.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "packages/explorer-ui/read-model.test.mjs",
+                "anchor": "static Story renders EN/JA from the same original Plan and logical ports"
+              },
+              {
+                "path": "packages/explorer-ui/read-model.test.mjs",
+                "anchor": "saved Story uses the same original Run without recompilation and captures locale once"
               }
             ]
           }
