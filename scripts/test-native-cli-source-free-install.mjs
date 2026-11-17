@@ -1219,6 +1219,10 @@ export async function acceptInstalledSourceFree(input) {
   const receiptPath = join(directory, `source-free-install-${stamp}.json`);
   await runCleanupConditionedConsumer({command: process.execPath,
     args: [fileURLToPath(import.meta.url), '--consumer', directory, observationPath],
+    // This encloses the expanded serial functional suite, including its
+    // installation and ingress controls. Individual commands retain 180s.
+    // It does not change the separate Native approval performance criteria.
+    timeout: 1_200_000,
     observationPath, receiptPath, failurePath: join(directory, `source-free-install-failed-${stamp}.json`),
     expected: {version: 'actql-native-cli-install-acceptance/0.1', scope: 'source-free-local',
       cliSourceSha: manifest.sourceSha, platform, artifact,
