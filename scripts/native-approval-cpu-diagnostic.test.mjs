@@ -6,7 +6,7 @@ import {join} from 'node:path';
 import test from 'node:test';
 import {parse} from 'yaml';
 import {inventory} from './verification-actions.mjs';
-import {approvalPerfDsoMembers, approvalPerfSamples, decodeApprovalPerf,
+import {approvalPerfDsoMembers, approvalPerfSamples, approvalPerfCallChains, decodeApprovalPerf,
   saveApprovalPerfReport} from './test-native-approval-cpu-diagnostic.mjs';
 
 const selected = [{template: 'deal-review-mock', pid: 101}, {template: 'churn-risk-mock', pid: 202}];
@@ -97,6 +97,75 @@ test('verified release member names separate equal symbols into only safe DSO ro
   assert.throws(() => approvalPerfDsoMembers(missing), /member missing/u);
 });
 
+test('call chains retain only sampled symbols and roles for the actual approval processes', () => {
+  const counts = {}, result = approvalPerfCallChains([
+    '# perf header',
+    '101',
+    '  7f001234abcd __getpid+0x7 (/private/lib/libc.so.6)',
+    '  7f001234abce current+0x12 (/private/lib/libactql_crypto_component.so)',
+    '  7f001234abcf owner_boundary (/private/bin/actql-native-client)',
+    '',
+    '101',
+    '  7f001234abcd __getpid+0x80 (/different/libc.so.6)',
+    '  7f001234abce current+0x20 (/different/libactql_crypto_component.so)',
+    '  7f001234abcf owner_boundary (/different/actql-native-client)',
+    '',
+    '303',
+    '  invalid foreign private payload',
+    '',
+    '202',
+    '  7f001234abcd getpid (libc.so.6)',
+    '  7f001234abce sqlite_current (libactql_sqlite_component.so)',
+    '',
+  ].join('\n'), selected, counts, approvalPerfDsoMembers(manifest));
+  assert.deepEqual(result.map(value => [value.samples, value.getpidSamples, value.unresolvedFrames]),
+    [[2, 2, 0], [1, 1, 0]]);
+  assert.deepEqual(result[0].getpidCallerChains, [{samples: 2, frames: [
+    {symbol: '__getpid', dsoRole: 'other'},
+    {symbol: 'current', dsoRole: 'crypto-component'},
+    {symbol: 'owner_boundary', dsoRole: 'native-client'},
+  ]}]);
+  assert.deepEqual(counts, {selectedSamples: 3, foreignSamples: 1,
+    nonSampleLines: 1, malformedSelectedLines: 0});
+  assert.doesNotMatch(JSON.stringify(result), /private|different|0x|7f001234|\.so|payload/u);
+});
+
+test('missing or unresolved caller observations remain explicit without guessing a parent', () => {
+  const result = approvalPerfCallChains([
+    '101 7f001234abcd __getpid (libc.so.6)',
+    '202',
+    '  7f001234abcd getpid (libc.so.6)',
+    '  7f001234abce 0xabcdef (/private/unknown)',
+  ].join('\n'), selected);
+  assert.equal(result[0].samples, 1); assert.equal(result[0].incompleteChains, 1);
+  assert.equal(result[0].getpidMissingCallers, 1);
+  assert.equal(result[1].unresolvedFrames, 1); assert.equal(result[1].getpidMissingCallers, 1);
+  assert.deepEqual(result[1].topChains[0].frames[1], {symbol: '[unresolved]', dsoRole: 'unknown'});
+  assert.doesNotMatch(JSON.stringify(result), /abcdef|private|0x|7f001234/u);
+  assert(approvalPerfCallChains('303\n ffff foreign (/unselected)\n', selected)
+    .every(value => value.samples === 0));
+});
+
+test('malformed selected chains and finite depth/volume bounds cannot publish raw input', () => {
+  const counts = {};
+  assert.throws(() => approvalPerfCallChains('101\n secret/private/data\n', selected, counts), error => {
+    assert.equal(error.code, 'NativeApprovalPerfCallChainInvalid');
+    assert.deepEqual(error.lineShape, {characters: 20, whitespaceFields: 1});
+    assert.doesNotMatch(JSON.stringify(error), /secret|private|data/u);
+    return true;
+  });
+  assert.equal(counts.malformedSelectedLines, 1);
+  assert.throws(() => approvalPerfCallChains('101\n' + ' ff function (original)\n'.repeat(129), selected),
+    {code: 'NativeApprovalPerfCallChainInvalid'});
+  assert.throws(() => approvalPerfCallChains('x'.repeat(8 * 1024 ** 2 + 1), selected));
+  const bounded = approvalPerfCallChains(Array.from({length: 60}, (_, index) =>
+    `101\n ff getpid (libc)\n fe caller_${index} (original)\n\n`).join(''), selected);
+  assert.equal(bounded[0].samples, 60); assert.equal(bounded[0].topChains.length, 40);
+  assert.equal(bounded[0].getpidCallerChains.length, 40);
+  const depth = approvalPerfCallChains('101\n' + ' ff function (original)\n'.repeat(128), selected);
+  assert.equal(depth[0].depthLimitChains, 1);
+});
+
 test('same-job fallback finishes on the same raw data after a primary parser failure without a consumer replay', t => {
   const directory = mkdtempSync(join(tmpdir(), 'actql-perf-decode-test-'));
   t.after(() => rmSync(directory, {recursive: true}));
@@ -104,12 +173,17 @@ test('same-job fallback finishes on the same raw data after a primary parser fai
   const calls = [], report = {conditions: [], approvals: []};
   const run = args => {
     calls.push(args); assert(existsSync(data)); assert.equal(args[0], 'script'); assert.equal(args[2], data);
-    return {status: 0, error: undefined, stderr: '', stdout: args[4] === 'pid,ip,sym,dso'
-      ? '101 malformed-primary\n' : '101 7f001234abcd\n202 7f001234abce\n'};
+    return {status: 0, error: undefined, stderr: '', stdout: !args.includes('-G')
+      ? '101\n ff getpid (libc)\n fe caller (original)\n\n202\n ff getpid (libc)\n fe caller (original)\n'
+      : args[4] === 'pid,ip,sym,dso' ? '101 malformed-primary\n' : '101 7f001234abcd\n202 7f001234abce\n'};
   };
   assert.throws(() => decodeApprovalPerf(run, data, selected, approvalPerfDsoMembers(manifest), report),
     {code: 'NativeApprovalPerfSelectedLineInvalid'});
-  assert.equal(calls.length, 2); assert.equal(report.fallback.complete, true);
+  assert.equal(calls.length, 3); assert.equal(report.fallback.complete, true);
+  assert.equal(report.callGraph.complete, false);
+  assert(calls.slice(0, 2).every(args => args.includes('-G')));
+  assert(!calls[2].includes('-G'));
+  assert.equal(calls[2][calls[2].indexOf('--pid') + 1], '101,202');
   assert.deepEqual(report.fallback.approvals.map(value => value.samples), [1, 1]);
   assert.equal(report.sampleParsing.malformedSelectedLines, 1);
   assert(existsSync(data), 'The caller retains data through both decodes');
@@ -121,16 +195,47 @@ test('same-data fallback agrees with primary counts and retains its own failure 
     const report = {conditions: [], approvals: []}, calls = [];
     const run = args => {
       calls.push(args); assert.equal(args[0], 'script');
+      if (!args.includes('-G')) return {status: 0, stderr: '', stdout:
+        '101\n ff getpid (libc)\n fe caller (original)\n\n202\n ff getpid (libc)\n fe caller (original)\n'};
       if (args[4] === 'pid,ip,sym,dso') return {status: 0, stderr: '', stdout:
-        '101 7f001234abcd allocate_locked (actql-native-client)\n202 7f001234abce allocate_locked (libactql_crypto_component.so)\n'};
+        '101 7f001234abcd getpid (libc)\n202 7f001234abce getpid (libc)\n'};
       return {status: mode === 'failed' ? 1 : 0, stderr: '', stdout:
         '101 7f001234abcd\n202 7f001234abce\n' + (mode === 'different' ? '101 7f001234abcf\n' : '')};
     };
     decodeApprovalPerf(run, 'same-data', selected, approvalPerfDsoMembers(manifest), report);
-    assert.equal(calls.length, 2); assert.equal(report.approvals.length, 2);
+    assert.equal(calls.length, 3); assert.equal(report.approvals.length, 2);
     if (mode === 'same') assert.deepEqual(report.conditions, []);
-    else assert.equal(report.conditions.length, 1, 'Fallback problems remain incomplete, not zero work');
+    else assert(report.conditions.length > 0, 'Fallback problems remain incomplete, not zero work');
     assert.equal(report.fallback.complete, mode !== 'failed');
+    assert.equal(report.callGraph.complete, mode === 'same');
+  }
+});
+
+test('caller decoding binds all samples while unresolved attribution stays a separate explicit limit', () => {
+  for (const mode of ['failed', 'malformed', 'missing', 'different', 'unresolved', 'no-target', 'wrong-leaf', 'loss', 'partial-other']) {
+    const report = {conditions: [], approvals: []}, calls = [];
+    const run = args => {
+      calls.push(args);
+      if (args.includes('-G')) return {status: 0, stderr: '', stdout: args[4] === 'pid,ip'
+        ? '101 ff\n202 fe\n' : `101 ff ${mode === 'no-target' ? 'other' : 'getpid'} (libc)\n202 fe getpid (libc)\n`};
+      return {status: mode === 'failed' ? 1 : 0, stderr: mode === 'loss' ? 'lost samples' : '',
+        stdout: mode === 'malformed' ? '101\n invalid caller\n' :
+          mode === 'missing' ? '101 ff getpid (libc)\n202 fe getpid (libc)\n' :
+            (mode === 'different' ? '101\n ff getpid (libc)\n fe caller (original)\n\n' : '') +
+            `101\n ff ${mode === 'no-target' || mode === 'wrong-leaf' ? 'other' : 'getpid'} (libc)\n fe ${mode === 'wrong-leaf' ? 'getpid' : 'caller'} (original)\n\n` +
+            `202\n ff getpid (libc)\n fe ${mode === 'unresolved' ? '[unknown]' : 'caller'} (original)\n` +
+            (mode === 'partial-other' ? ' fd [unknown] ([unknown])\n' : '')};
+    };
+    decodeApprovalPerf(run, 'private-profiler-input/perf.data', selected, approvalPerfDsoMembers(manifest), report);
+    assert.equal(calls.length, 3); assert.equal(report.fallback.complete, true);
+    const complete = ['missing', 'unresolved', 'no-target', 'partial-other'].includes(mode);
+    assert.equal(report.callGraph.complete, complete, mode);
+    assert.equal(report.callGraph.getpidCallerAttributionComplete, mode === 'partial-other', mode);
+    if (complete) assert.deepEqual(report.conditions, [], mode);
+    else assert(report.conditions.length > 0, mode);
+    if (mode === 'partial-other') assert.equal(report.callGraph.allFramesResolved, false);
+    if (mode === 'missing') assert.equal(report.callGraph.unwindComplete, false);
+    assert.doesNotMatch(JSON.stringify(report), /invalid caller|private-profiler-input|0x/u);
   }
 });
 
@@ -199,7 +304,8 @@ test('diagnostic uploads only sanitized attribution and original artifact metada
   assert(driver.includes("['stat', '-e', 'cpu-clock:u', '--', '/usr/bin/true']"));
   assert(driver.includes("'-F', '49'"));
   assert(driver.includes("'-F', 'pid,ip,sym,dso'"));
-  assert.doesNotMatch(driver, /--call-graph|--user-regs|--user-stack|sysctl|setcap|sudo/u);
+  assert(driver.includes("'--call-graph', 'dwarf,8192'"));
+  assert.doesNotMatch(driver, /--user-regs|--user-stack|sysctl|setcap|sudo/u);
   assert.equal([...driver.matchAll(/join\(root, 'scripts\/test-native-cli-mock-install\.mjs'\)/gu)].length, 1);
   assert(driver.includes('approvalCallCounts(approval).pid'));
   assert(driver.includes("'--measure-approval-resources'"));

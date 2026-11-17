@@ -1,4 +1,4 @@
-// One existing installed workflow under an unprivileged, flat CPU sampler.
+// One existing installed workflow under an unprivileged CPU sampler.
 // Raw perf data and original receipt bodies never enter the upload report.
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
@@ -80,13 +80,99 @@ export function approvalPerfSamples(text, selected, observation = {}, dsoMembers
     resolvedDsoSymbolGroups: symbols.size}));
 }
 
-// Both projections consume the SAME recorded data before its outer owner
+// perf script prints a PID-only header followed by indented leaf-to-root
+// frames when it resolves a call chain. An inline leaf is an explicit missing
+// unwind, not proof of its caller. Addresses and original paths are discarded.
+export function approvalPerfCallChains(text, selected, observation = {}, dsoMembers = new Map()) {
+  assert(typeof text === 'string' && Buffer.byteLength(text) <= 8 * 1024 ** 2);
+  approvalPerfSamples('', selected); // The same closed PID/template validation.
+  Object.assign(observation, {selectedSamples: 0, foreignSamples: 0,
+    nonSampleLines: 0, malformedSelectedLines: 0});
+  const reports = new Map(selected.map(({template, pid}) => [pid,
+    {template, pid, samples: 0, unresolvedFrames: 0, incompleteChains: 0,
+      depthLimitChains: 0, getpidSamples: 0, getpidMissingCallers: 0,
+      chains: new Map(), leafSymbols: new Map()}]));
+  const frame = /^\s*[0-9a-f]{1,16}\s+(.+?)\s+\(([^\r\n]*)\)\s*$/iu;
+  const inline = /^\s*(\d+)\s+[0-9a-f]{1,16}\s+(.+?)\s+\(([^\r\n]*)\)\s*$/iu;
+  const clean = (symbol, dso) => {
+    symbol = symbol.replace(/\+0x[0-9a-f]+$/iu, '');
+    if (symbol.length > 2048 || !/^[A-Za-z_.$][A-Za-z0-9_.$@:-]*$/u.test(symbol))
+      return {dsoRole: 'unknown', symbol: '[unresolved]'};
+    dso = dso.trim();
+    return {dsoRole: !dso || dso === '[unknown]' ? 'unknown'
+      : dsoMembers.get(basename(dso))?.role ?? 'other', symbol};
+  };
+  const isGetpid = value => ['getpid', '__getpid', '__GI_getpid', '__GI___getpid']
+    .includes(value.symbol.split('@')[0]);
+  let current;
+  const invalid = line => {
+    observation.malformedSelectedLines++;
+    throw Object.assign(new Error('Invalid selected perf call chain'), {
+      code: 'NativeApprovalPerfCallChainInvalid', lineShape: {
+        characters: line.length, whitespaceFields: Math.min(32, line.trim().split(/\s+/u).length),
+      },
+    });
+  };
+  const finish = () => {
+    if (!current?.report) {current = undefined; return;}
+    const {report, frames} = current;
+    report.samples++; observation.selectedSamples++;
+    report.unresolvedFrames += frames.filter(value => value.symbol === '[unresolved]').length;
+    if (frames[0] && frames[0].symbol !== '[unresolved]') {
+      const leaf = frames[0], key = JSON.stringify(leaf), previous = report.leafSymbols.get(key);
+      report.leafSymbols.set(key, {...leaf, samples: (previous?.samples ?? 0) + 1});
+    }
+    if (frames.length < 2) report.incompleteChains++;
+    if (frames.length === 128) report.depthLimitChains++;
+    const target = frames.findIndex(isGetpid);
+    if (target !== -1) {
+      report.getpidSamples++;
+      if (!frames[target + 1] || frames[target + 1].symbol === '[unresolved]')
+        report.getpidMissingCallers++;
+    }
+    const key = JSON.stringify(frames), previous = report.chains.get(key);
+    report.chains.set(key, {frames, samples: (previous?.samples ?? 0) + 1});
+    assert(report.chains.size <= 16384, 'Unexpected diagnostic call-chain volume');
+    current = undefined;
+  };
+  for (const line of text.split('\n')) {
+    if (!line.trim()) {finish(); continue;}
+    if (line.startsWith('#')) continue;
+    const header = /^\s*(\d+)\s*$/u.exec(line), leaf = inline.exec(line);
+    if (header || leaf) {
+      finish();
+      const report = reports.get(Number((header ?? leaf)[1]));
+      if (!report) observation.foreignSamples++;
+      current = {report, inline: Boolean(leaf), frames: leaf && report ? [clean(leaf[2], leaf[3])] : []};
+      continue;
+    }
+    if (current?.report) {
+      const value = frame.exec(line);
+      if (!value || current.inline || current.frames.length === 128) invalid(line);
+      current.frames.push(clean(value[1], value[2]));
+    } else if (/^\s*(\d+)\s+/u.test(line) && reports.has(Number(/^\s*(\d+)\s+/u.exec(line)[1]))) {
+      invalid(line);
+    } else observation.nonSampleLines++;
+  }
+  finish();
+  const ranked = values => values.sort((a, b) => b.samples - a.samples ||
+    JSON.stringify(a.frames).localeCompare(JSON.stringify(b.frames))).slice(0, 40);
+  return [...reports.values()].map(({chains, leafSymbols, ...report}) => ({...report,
+    distinctChains: chains.size,
+    topLeafSymbols: [...leafSymbols.values()].sort((a, b) => b.samples - a.samples ||
+      a.dsoRole.localeCompare(b.dsoRole) || a.symbol.localeCompare(b.symbol)).slice(0, 40),
+    topChains: ranked([...chains.values()]),
+    getpidCallerChains: ranked([...chains.values()].filter(value => value.frames.some(isGetpid))),
+  }));
+}
+
+// All three projections consume the SAME recorded data before its outer owner
 // removes it. The fallback retains only PID/IP shape counts, never addresses,
 // and cannot turn a primary attribution failure into a successful diagnostic.
 export function decodeApprovalPerf(run, data, selected, dsoMembers, report) {
   let primaryFailure;
   try {
-    const samples = run(['script', '-i', data, '-F', 'pid,ip,sym,dso']);
+    const samples = run(['script', '-i', data, '-F', 'pid,ip,sym,dso', '-G']);
     report.decodeExitCode = samples.status; report.decodeErrorCode = samples.error?.code ?? null;
     assert(!samples.error && samples.status === 0, 'Flat sample decoding unavailable');
     if (/lost|throttl/iu.test(samples.stderr)) report.conditions.push('sample decoding reported loss or throttling');
@@ -96,7 +182,7 @@ export function decodeApprovalPerf(run, data, selected, dsoMembers, report) {
   const fallback = report.fallback = {fields: ['pid', 'ip'], complete: false,
     approvals: selected.map(({template, pid}) => ({template, pid, samples: 0, malformed: 0}))};
   try {
-    const samples = run(['script', '-i', data, '-F', 'pid,ip']);
+    const samples = run(['script', '-i', data, '-F', 'pid,ip', '-G']);
     fallback.exitCode = samples.status; fallback.errorCode = samples.error?.code ?? null;
     assert(!samples.error && samples.status === 0, 'Fallback sample decoding unavailable');
     assert(Buffer.byteLength(samples.stdout) <= 8 * 1024 ** 2);
@@ -120,6 +206,33 @@ export function decodeApprovalPerf(run, data, selected, dsoMembers, report) {
   } catch (error) {
     fallback.failure = {name: error.name, code: error.code ?? null};
     report.conditions.push('same-data fallback decoding unavailable');
+  }
+  const callGraph = report.callGraph = {method: 'dwarf', stackBytes: 8192,
+    maxFrames: 128, orientation: 'sampled-leaf-to-root', complete: false,
+    allFramesResolved: false, unwindComplete: false, getpidCallerAttributionComplete: false, approvals: []};
+  try {
+    const samples = run(['script', '-i', data, '-F', 'pid,ip,sym,dso',
+      '--pid', selected.map(value => value.pid).join(','), '--max-stack', '128']);
+    callGraph.exitCode = samples.status; callGraph.errorCode = samples.error?.code ?? null;
+    assert(!samples.error && samples.status === 0, 'Call-chain decoding unavailable');
+    assert(!/lost|throttl|(?:unwind|callchain).*(?:fail|error|truncat)/iu.test(samples.stderr),
+      'Call-chain decoding reported incomplete observations');
+    callGraph.parsing = {};
+    callGraph.approvals = approvalPerfCallChains(samples.stdout, selected, callGraph.parsing, dsoMembers);
+    callGraph.complete = !primaryFailure && fallback.complete && callGraph.approvals.every(value =>
+      value.samples > 0 && value.samples === report.approvals.find(other => other.pid === value.pid).samples &&
+      value.samples === fallback.approvals.find(other => other.pid === value.pid).samples &&
+      JSON.stringify(value.topLeafSymbols) === JSON.stringify(report.approvals.find(other => other.pid === value.pid).topSymbols));
+    callGraph.allFramesResolved = callGraph.complete && callGraph.approvals.every(value => value.unresolvedFrames === 0);
+    callGraph.unwindComplete = callGraph.complete && callGraph.approvals.every(value =>
+      value.incompleteChains === 0 && value.depthLimitChains === 0);
+    callGraph.getpidCallerAttributionComplete = callGraph.complete && callGraph.approvals.every(value =>
+      value.getpidSamples > 0 && value.getpidMissingCallers === 0);
+    if (!callGraph.complete) report.conditions.push('same-data caller attribution incomplete');
+  } catch (error) {
+    callGraph.failure = {name: error.name, code: error.code ?? null};
+    if (error.code === 'NativeApprovalPerfCallChainInvalid') callGraph.failure.lineShape = error.lineShape;
+    report.conditions.push('same-data call-chain decoding unavailable');
   }
   if (primaryFailure) throw primaryFailure;
   return report.approvals;
@@ -158,7 +271,8 @@ export async function nativeApprovalCpuDiagnostic({root, normal, binding, perf, 
     sourceSha: source.revision, diagnosticSha256: hash(readFileSync(fileURLToPath(import.meta.url))),
     perfSha256: hash(readFileSync(perf)),
     manifestSha256: original.manifestSha256, uid: process.getuid(), event: 'cpu-clock:u', frequency: 49,
-    callGraph: false, sampleFields: ['pid', 'sym', 'dsoRole'],
+    callGraph: {method: 'dwarf', stackBytes: 8192, complete: false}, sampleFields: ['pid', 'sym', 'dsoRole'],
+    callGraphQualification: 'Complete means collection and flat projections agree, not that every frame or getpid caller resolved. Separate caller, symbol and unwind flags describe those limits. Counts are sampled chains, not syscalls or formal latency. Raw stacks, addresses and paths are never uploaded.',
     dsoRoleMembers: [...dsoMembers.values()], complete: false,
     consumerInvocations: 0, scratchPreservedForSymbols: true, approvals: [], conditions: []};
   const run = (args, options = {}) => spawnSync(perf, args, {cwd: root, encoding: 'utf8',
@@ -180,7 +294,8 @@ export async function nativeApprovalCpuDiagnostic({root, normal, binding, perf, 
     stage = 'unchanged installed consumer';
     const data = join(scratch, 'perf.data'); report.consumerInvocations++;
     const collected = run(['record', '-e', 'cpu-clock:u', '-F', '49', '--no-buildid', '--no-buildid-cache',
-      '-o', data, '--', process.execPath, join(root, 'scripts/test-native-cli-mock-install.mjs'), normal, '--measure-approval-resources'],
+      '--call-graph', 'dwarf,8192', '-o', data, '--', process.execPath,
+      join(root, 'scripts/test-native-cli-mock-install.mjs'), normal, '--measure-approval-resources'],
     // The original harness alone keeps the installed ELF for symbolization.
     // Its existing closed product environment does not forward this flag.
     {env: {...process.env, ACTQL_TEST_PRESERVE_SCRATCH: '1'}});
@@ -204,7 +319,7 @@ export async function nativeApprovalCpuDiagnostic({root, normal, binding, perf, 
         wallNs: approval.wallNs, resourceObservationIssue: approval.resourceObservationIssue ?? null,
         ...approval.resources};
     });
-    stage = 'flat sample attribution';
+    stage = 'same-data sample and caller attribution';
     report.selectedApprovals = selected;
     decodeApprovalPerf(run, data, selected, dsoMembers, report);
     assert(report.approvals.every(value => value.samples > 0), 'Actual approval CPU samples missing');
