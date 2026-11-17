@@ -58,6 +58,20 @@ Program syntax rather than Result row encoding.
 
 ## Starting a project
 
+Embedded Local state has one active Host owner. Independent CLI processes must
+not open the same project's state concurrently. An ownership refusal is not a
+reason to delete the lock, retry adoption or create a replacement Run. Let the
+current owner finish and close before another Embedded Local command uses that
+state. If a submission response was uncertain, retain its original reference
+for lookup instead of submitting it again.
+
+Remote connection options address an explicitly running authenticated Host;
+they do not start a daemon or make Embedded Local multi-process. The selected
+[single-Host design](design/shared-cli-host.md) keeps exclusive storage ownership
+while allowing clients to share Runs and Saved results. Its complete installed
+parallel CLI, client/owner exit and recovery acceptance is tracked in
+[#3611](https://github.com/actql/actql/issues/3611).
+
 ```text
 actql init [--template churn-risk-mock] [<directory>]
 ```
