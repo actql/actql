@@ -11,6 +11,11 @@ import {prepareInstalledProjectModelTasks} from './installed-project-model-tasks
 import {installModelProviders, prepareInstalledModelProviderDefaults,
   assertInstalledModelDefaultsPreparation} from './installed-model.mjs';
 import {providerBindingOriginals} from '../../scripts/fixtures/model-provider-binding-fixture.mjs';
+import {installConfiguredModelProviders} from './installed-model-configuration.mjs';
+import {boundConstructionActualFixture} from './fixtures/bound-construction-actual.fixture.mjs';
+import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
+import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 
 assert.ok(process.env.ACTQL_TEST_PUBLIC_MODEL_TASK_RUNTIME,
   'A matching actual Common runtime is required; do not skip');
@@ -71,6 +76,183 @@ async function fixture(t) {
   return {directory, project, bindings, defaults, candidates, prepare, register, check,
     loseCurrent: () => { current = false; }, counts: () => ({registrations, invokes})};
 }
+
+test('normal configuration adopts actual Common Task DATA without caller-created identities', async t => {
+  const resource = await boundConstructionActualFixture(t);
+  const f = await fixture(t); let data, context, callbacks = 0, invokes = 0;
+  const configured = await installConfiguredModelProviders({moon, project: f.project,
+    installationServices: resource.services,
+    taskLimits: limits, assertCurrent: f.check, assertHostRuntime: f.check, assertNewHostRuntime: f.check,
+    async register(runtime, actual) {
+      assert.strictEqual(runtime, moon); context = actual; callbacks++;
+      const selected = await actual.prepareTasks([{providerId, bindingOriginals: f.bindings}]);
+      assert.equal(selected.tasks.length, 1); data = selected.tasks[0];
+      assert.equal(data.outputSchemaCid, original({additional_properties: false,
+        fields: {answer: {nullable: false, type: 'boolean'}}, nullable: false, type: 'object'}).cid);
+      assert.equal(data.modelSelector, 'selected');
+      assert.equal(data.promptPayloadWire,
+        canonical({format: 'actql.openai_chat_prompt/0.1', instructions: 'Exact é\r\n'}));
+      assert.equal(data.normalized, undefined, 'the plugin needs DATA, not an opaque Task handle');
+      return [{providerId, bindingOriginals: selected.bindingOriginalsFor(providerId),
+        validatePrompt: () => true, invoke() {invokes++; assert.fail('No model invocation');}}];
+    }});
+  const task = configured.projectTasks.originalsForRuntime(moon)[0];
+  const provider = configured.providers.get(providerId);
+  assert.equal(task.taskCid, data.taskCid);
+  assert.equal(task.promptCid, data.promptCid);
+  assert.strictEqual(task.provider, provider);
+  assert.strictEqual(provider.resolveTaskDefaults(undefined, undefined, readerLimits).value, task.defaults.value);
+  assert.equal(callbacks, 1); assert.equal(invokes, 0);
+  assert.throws(() => context.prepareTasks([]), {code: 'InstalledModelConfigurationClosed'});
+});
+
+test('normal configuration cannot install after losing currentness across actual Task reads', async t => {
+  const resource = await boundConstructionActualFixture(t);
+  const f = await fixture(t); let callbacks = 0, context;
+  await assert.rejects(installConfiguredModelProviders({moon, project: f.project,
+    installationServices: resource.services,
+    taskLimits: limits, assertCurrent: f.check, assertHostRuntime: f.check, assertNewHostRuntime: f.check,
+    async register(_, actual) {
+      callbacks++; context = actual;
+      const selected = await actual.prepareTasks([{providerId, bindingOriginals: f.bindings}]);
+      const bindingOriginals = selected.bindingOriginalsFor(providerId);
+      f.loseCurrent();
+      return [{providerId, bindingOriginals, validatePrompt: () => true,
+        invoke() {assert.fail('No model invocation');}}];
+    }}), {code: 'OriginalLost'});
+  assert.equal(callbacks, 1);
+  assert.throws(() => context.prepareTasks([]), {code: 'OriginalLost'});
+});
+
+test('normal configuration funded preparation rejects duplicate and accessor bindings before Task reads', async t => {
+  for (const accessor of [false, true]) {
+    const resource = await boundConstructionActualFixture(t), f = await fixture(t);
+    let gets = 0;
+    const binding = {providerId, bindingOriginals: f.bindings};
+    const second = accessor ? Object.defineProperty({}, 'providerId', {
+      enumerable: true, get() {gets++; return providerId;},
+    }) : {...binding};
+    // Invalid Task bytes cannot mask the earlier original descriptor refusal.
+    await writeFile(join(f.directory, 'task.json'), 'not JSON');
+    await assert.rejects(installConfiguredModelProviders({moon, project: f.project,
+      installationServices: resource.services, taskLimits: limits,
+      assertCurrent: f.check, assertHostRuntime: f.check, assertNewHostRuntime: f.check,
+      async register(_, context) {
+        await context.prepareTasks([binding, second]);
+        assert.fail('No Provider registration after invalid binding');
+      }}), {code: 'InvalidInstalledModelTaskPreparation'});
+    assert.equal(gets, 0);
+  }
+});
+
+test('normal configuration uses the real initial Resource for secret text and Task material', async t => {
+  const resource = await boundConstructionActualFixture(t), f = await fixture(t);
+  assert.strictEqual(resource.moon, moon, 'use the same actual Resource/runtime module');
+  const originalLimits = moon.clientLocalPreparationResourceLimits(moon.clientLocalResourcePolicyOriginal());
+  assert.equal(originalLimits[4], 536870912n);
+  const secretPath = join(resource.root, 'model-secret.txt');
+  const secret = 'synthetic-provider-secret';
+  await writeFile(secretPath, secret, {mode: 0o600});
+  let callbacks = 0;
+  const configured = await installConfiguredModelProviders({moon, project: f.project,
+    installationServices: resource.services, taskLimits: limits,
+    assertCurrent: f.check, assertHostRuntime: f.check, assertNewHostRuntime: f.check,
+    async register(_, context) {
+      callbacks++;
+      assert.equal(await context.readText(secretPath, {maxBytes: 128}), secret);
+      const selected = await context.prepareTasks([{providerId, bindingOriginals: f.bindings}]);
+      assert.equal(selected.tasks[0].modelSelector, 'selected');
+      assert.equal(JSON.stringify(selected.tasks).includes(secret), false);
+      return [{providerId, bindingOriginals: selected.bindingOriginalsFor(providerId),
+        validatePrompt: () => true, invoke() {assert.fail('No Model invocation');}}];
+    }});
+  assert.equal(configured.projectTasks.originalsForRuntime(moon).length, 1);
+  assert.equal(callbacks, 1);
+  await resource.close();
+  assert.equal(resource.pending(), false);
+  assert.equal(resource.retire(), true);
+});
+
+test('normal configuration real parent refuses excessive read funding without fallback', async t => {
+  const resource = await boundConstructionActualFixture(t);
+  assert.strictEqual(resource.moon, moon);
+  const secretPath = join(resource.root, 'refused-model-secret.txt');
+  await writeFile(secretPath, 'synthetic', {mode: 0o600});
+  let primary, callbacks = 0;
+  await assert.rejects(installConfiguredModelProviders({moon,
+    installationServices: resource.services, assertCurrent() {}, async register(_, context) {
+      callbacks++;
+      try {await context.readText(secretPath, {maxBytes: 536870912});}
+      catch (cause) {primary = cause;}
+      return [];
+    }}), cause => cause === primary && cause.code === 'MoonBitHostFailure' && cause.cause !== undefined);
+  assert.equal(callbacks, 1);
+  await resource.close();
+  assert.equal(resource.pending(), false);
+  assert.equal(resource.retire(), true);
+});
+
+async function rawConfigurationFixture(t) {
+  let store;
+  // Close the actual Store before its owning scratch root/Resource fixture.
+  t.after(async () => {if (store !== undefined) assert.equal(await store.close(), true);});
+  const resource = await boundConstructionActualFixture(t), f = await fixture(t);
+  const control = runtimeCore(moon).publicationControl;
+  const originals = ['retention_contract', 'metadata_retention_policy', 'clock_contract', 'data_policy']
+    .map(kind => ({kind, ...original(kind === 'data_policy'
+      ? {version: 'actql-effective-data-policy/0.1', classification: 'unknown',
+        source_data_policy_cids: [], source_response_policy_cids: [], unknown_provenance: true}
+      : {version: 'actql-installed-local-policy/0.1',
+        name: `configuration-${kind}-Exact é\r\n`})}));
+  const [retention, metadata, clock, data] = originals.map(value => checked(
+    moon.clientProgramAdmitEffectDependencyBody(value.kind, value.cid, value.wire, 10000, 1000, 32)));
+  const selection = {retention, metadata, clock, data, profile: undefined,
+    installation: {}, probability: undefined, selectedAt: '2026-11-18T00:00:00.000Z',
+    availableUntil: '2026-11-19T00:00:00.000Z', deleteBy: '2026-11-20T00:00:00.000Z',
+    extensionCeilingAt: '2026-11-20T00:00:00.000Z', metadataDeleteBy: '2026-11-21T00:00:00.000Z',
+    selectionAvailable: () => true};
+  const configured = await installConfiguredModelProviders({moon, project: f.project,
+    installationServices: resource.services, taskLimits: limits,
+    assertCurrent: f.check, assertHostRuntime: f.check, assertNewHostRuntime: f.check,
+    async register(_, context) {
+      const selected = await context.prepareTasks([{providerId, bindingOriginals: f.bindings}]);
+      // Only the admitted policy bodies are exercised here. No response
+      // profile, raw grant or send capability is claimed by this fixture.
+      return [{providerId, entryPersistence: 'async', rawCaptureSelection: selection,
+        bindingOriginals: selected.bindingOriginalsFor(providerId), validatePrompt: () => true,
+        quantityCapacity: {limits: {tokens: 128n, costUnits: 0n, durationMs: 1000n},
+          perAttempt: {tokens: 128n, costUnits: 0n, durationMs: 1000n}},
+        physicalPreflight() {assert.fail('No Model invocation');}}];
+    }});
+  const authority = original({purpose: 'configuration-policy-store'}).cid;
+  store = await openLocalPublicationStore({directory: join(resource.root, 'model-store'),
+    storeAuthorityCid: authority, capacityBytes: 1048576, maxObjectBytes: 16384,
+    maxObjects: 64, maxContractNodes: 4096, maxContractDepth: 64,
+    privateEvidenceKey: Buffer.alloc(32, 7)}, control);
+  return {...f, configured, resource, originals, store, authority};
+}
+
+test('normal configuration persists exact Common policy originals through the real Store', async t => {
+  const f = await rawConfigurationFixture(t);
+  await assert.rejects(f.store.confirmModelRawCaptureOriginals(f.originals, f.authority));
+  await f.configured.persistOriginals(f.store);
+  assert.equal(await f.store.confirmModelRawCaptureOriginals(f.originals, f.authority), true);
+  const wrong = f.originals.map((value, index) => index === 0
+    ? {...value, wire: value.wire.replace('é', 'é')} : value);
+  await assert.rejects(f.store.confirmModelRawCaptureOriginals(wrong, f.authority),
+    {code: 'PublicationModelRawOriginalMismatch'});
+});
+
+test('normal configuration stops policy persistence on actual current loss after a Store await', async t => {
+  const f = await rawConfigurationFixture(t); let writes = 0;
+  await assert.rejects(f.configured.persistOriginals({async putSemantic(wire, cid) {
+    writes++;
+    await f.store.putSemantic(wire, cid);
+    f.loseCurrent();
+  }}), {code: 'OriginalLost'});
+  assert.equal(writes, 1, 'no later policy body is written after current loss');
+  await assert.rejects(f.store.confirmModelRawCaptureOriginals(f.originals, f.authority));
+});
 
 test('actual Common Task candidates precede registration and retain the same defaults after adoption', async t => {
   const f = await fixture(t), view = await f.prepare();

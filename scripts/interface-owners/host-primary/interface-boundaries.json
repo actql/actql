@@ -23075,6 +23075,7 @@
         "./installed-host-services.mjs",
         "./installed-infer-run.mjs",
         "./installed-managed-source.mjs",
+        "./installed-model-configuration.mjs",
         "./installed-model-continuation.mjs",
         "./installed-model-originals.mjs",
         "./installed-model.mjs",
@@ -23119,7 +23120,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "f049cc66d25a7efb69fa515605d78287d42d6eae20a15b331cd9dc0ce0e55415"
+      "sha256": "1e53bf3543f6fa3b53673928a3d47548bb48fc2dc1c309e62a5a0f0f090767df"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
@@ -27534,6 +27535,277 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/installed-model-configuration.mjs",
+      "sha256": "7debe78ae43beb5bb23cc1cb7fc6507a04581e33d2a7b63f4c14218d9c020b7c",
+      "exports": [
+        "installConfiguredModelProviders"
+      ],
+      "operations": [
+        {
+          "name": "installConfiguredModelProviders",
+          "parameters": [
+            "moon",
+            "register",
+            "project",
+            "taskLimits",
+            "installationServices",
+            "assertCurrent",
+            "assertHostRuntime",
+            "assertNewHostRuntime",
+            "bindSdkStaticOriginals"
+          ],
+          "async": true
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks",
+          "parameters": [
+            "bindings"
+          ],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/capacity/capacity",
+          "parameters": [
+            "nodes",
+            "text",
+            "wire",
+            "workspaceNodes",
+            "workspaceText",
+            "workspaceWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/construct/construct/construct",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/construct/construct/construct#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:bindingOriginalsFor/init:bindingOriginalsFor",
+          "parameters": [
+            "providerId"
+          ],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:prepareTasks",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:prepareTasks#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/material/material",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/material/material#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/projectData/projectData",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/tasks/tasks",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:readText/init:readText",
+          "parameters": [
+            "path",
+            "maxBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:readText/init:readText/init:readText",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "installConfiguredModelProviders/originals/originals",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/originals/originals#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/originals/originals#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/persistOriginals/persistOriginals",
+          "parameters": [
+            "store"
+          ],
+          "async": true
+        },
+        {
+          "name": "installConfiguredModelProviders/providers/providers",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/track/track/track",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/track/track/track#2",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-core.mjs",
+        "../host-common/runtime-result.mjs",
+        "./installed-host-services.mjs",
+        "./installed-model.mjs",
+        "./installed-project-model-tasks.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "owner": "Existing installed Host, Common Task/defaults, initialization Resource and publication Store owners",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installConfiguredModelProviders",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/capacity/capacity",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/construct/construct/construct",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/construct/construct/construct#2",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:bindingOriginalsFor/init:bindingOriginalsFor",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:prepareTasks",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:prepareTasks#2",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/material/material",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/material/material#2",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/projectData/projectData",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/tasks/tasks",
+            "installConfiguredModelProviders/context/init:readText/init:readText",
+            "installConfiguredModelProviders/context/init:readText/init:readText/init:readText",
+            "installConfiguredModelProviders/originals/originals",
+            "installConfiguredModelProviders/originals/originals#2",
+            "installConfiguredModelProviders/originals/originals#3",
+            "installConfiguredModelProviders/persistOriginals/persistOriginals",
+            "installConfiguredModelProviders/providers/providers",
+            "installConfiguredModelProviders/track/track/track",
+            "installConfiguredModelProviders/track/track/track#2"
+          ],
+          "exports": [
+            "installConfiguredModelProviders"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Initial configured Provider assembly"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Initial configured Provider assembly"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Initial configured Provider assembly"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Initial configured Provider assembly"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Initial configured Provider assembly"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Initial configured Provider assembly"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Initial configured Provider assembly"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Initial configured Provider assembly"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Initial configured Provider assembly"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-model-configuration.test.mjs",
+                "anchor": "test('configuration cannot swallow an invalid bounded secret read and install a fallback'"
+              },
+              {
+                "path": "adapters/host-node/model-task-candidate-binding.actual.test.mjs",
+                "anchor": "test('normal configuration persists exact Common policy originals through the real Store'"
+              },
+              {
+                "path": "adapters/host-node/model-task-candidate-binding.actual.test.mjs",
+                "anchor": "test('normal configuration real parent refuses excessive read funding without fallback'"
+              },
+              {
+                "path": "adapters/host-node/installed-model-configuration.test.mjs",
+                "anchor": "test('configuration seals the context before consuming a retained provider entry getter'"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Source responsibility and focused component coverage; normal package, public Run and live OpenAI acceptance remain separate"
     }
   ],
   "counts": {

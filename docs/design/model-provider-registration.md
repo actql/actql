@@ -1109,3 +1109,28 @@ thrown undefined, and returns only the group's original exports, scans and
 pins. Resource release and physical cleanup acknowledgements stay with their
 existing owners; closed metadata controls do not imply a physical stop or refund
 consumed Model work.
+
+### Initial configured Provider assembly
+
+The installed Host invokes one trusted `registerModelProviders` callback. Its
+optional initialization context reads bounded secret text through the existing
+configuration reader and prepares project Tasks against the same retained
+Provider defaults before physical registration. Common emits Task, prompt and
+schema identities and canonical prompt payload DATA; the plugin does not parse
+Task wire or reconstruct opaque declarations. The context closes when that
+single callback settles, and a failed or unfinished read cannot install a
+fallback Provider. A caller may keep the existing synchronous registration path.
+
+The same initial Resource reserves construction peaks before file decoding and
+Task projection. Successful construction retains the emitted material and drops
+its workspace through the existing managed constructor. This does not reserve a
+Model Call, authorize egress, grant raw custody or replace Account/approval.
+
+For this prepared configuration path, the Host retains the four Common-admitted
+raw-policy originals before initialization closes and persists their exact
+wire/CID through the normal publication Store on its first activation. The
+Store owns write funding, integrity, durability and pending cleanup. Original
+current checks bracket every await; failure stops activation. Later raw capture
+still confirms the same originals and requires its original selected policy,
+current authority and checked Run. Legacy registrations keep their explicit
+policy persistence contract. No raw response or secret is policy metadata.

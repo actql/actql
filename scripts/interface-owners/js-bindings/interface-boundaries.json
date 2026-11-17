@@ -64895,6 +64895,7 @@
         "./installed-host-services.mjs",
         "./installed-infer-run.mjs",
         "./installed-managed-source.mjs",
+        "./installed-model-configuration.mjs",
         "./installed-model-continuation.mjs",
         "./installed-model-originals.mjs",
         "./installed-model.mjs",
@@ -64939,7 +64940,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "f049cc66d25a7efb69fa515605d78287d42d6eae20a15b331cd9dc0ce0e55415"
+      "sha256": "1e53bf3543f6fa3b53673928a3d47548bb48fc2dc1c309e62a5a0f0f090767df"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
