@@ -7,9 +7,11 @@ import {join, resolve} from 'node:path';
 import {project, structuralValidatorSource, typeOf} from
   './generate-client-publication-wire.mjs';
 
-import {nativeClientWire, responseRules, jsResponseRules,
+import {nativeClientWire, formatMoonBit, responseRules, jsResponseRules,
   requestResponseRules, jsRequestResponseRules} from './generate-native-client-wire.mjs';
 import {checkReportRules, jsCheckReportRules} from './client-check-report-rules.mjs';
+import {checkpointAnswerContract, commonCheckpointProfileSource} from './checkpoint-answer-wire.mjs';
+import {checkpointAnswerJavaScriptSource} from './checkpoint-answer-wire-js.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const source = 'spec/contracts/actql-client-host.json';
@@ -142,8 +144,10 @@ export function buildClientHostWire(registry, protocol) {
     value !== null && typeof value === 'object' ?
       value.type === 'null' && Object.keys(value).length === 1 ? {const: null} :
         Object.fromEntries(Object.entries(value).map(([key, child]) => [key, nullLiterals(child)])) : value;
-  schemas.run_plan_view = project(nullLiterals(resolveControlSchema(
-    interactive.schemas.run_plan_view, interactive)));
+  for (const name of ['run_plan_view', 'run_explanation_view']) {
+    schemas[name] = project(nullLiterals(resolveControlSchema(
+      interactive.schemas[name], interactive)));
+  }
   const module = `// Generated from the registered Client–Host machine contract.\n` +
     `// Run: node scripts/generate-client-host-wire.mjs --write\n` +
     `const schemas = ${JSON.stringify(schemas, null, 2)};\n` +
@@ -211,7 +215,10 @@ export function buildClientHostWire(registry, protocol) {
     '// Run: node scripts/generate-client-host-wire.mjs --write\n\n' +
     '///|\nfn generated_run_wait_stable(status : String) -> Bool {\n  ' +
     wait.stableStatuses.map(status => `status == ${JSON.stringify(status)}`).join(' ||\n  ') + '\n}\n';
-  return {runWait, checkpointAnswers, module: module + jsResponseRules(rules) +
+  const answerConstruction = checkpointAnswerContract(registry, protocol);
+  return {runWait, checkpointAnswers,
+    checkpointConstruction: checkpointAnswerJavaScriptSource(answerConstruction),
+    checkpointProfile: commonCheckpointProfileSource(answerConstruction), module: module + jsResponseRules(rules) +
     jsRequestResponseRules(schemas, requestRules) + jsCheckReportRules(reportRules), types, native, nativeTests, nativeCheckOutcome};
 }
 
@@ -226,6 +233,8 @@ async function main() {
     ['packages/client-wire/client-host.generated.js', outputs.module],
     ['packages/client-wire/client-host.generated.d.ts', outputs.types],
     ['packages/sdk/internal/checkpoint-answer-contract.generated.mjs', outputs.checkpointAnswers],
+    ['packages/sdk/internal/checkpoint-answer-construction.generated.mjs', outputs.checkpointConstruction],
+    ['src/checkpoint_document/profile.mbt', formatMoonBit(outputs.checkpointProfile)],
     ['src/cmd/native_client/wire.generated.mbt', outputs.native],
     ['src/cmd/native_client/wire_owner_observations.generated_wbtest.mbt', outputs.nativeTests],
     ['src/run_publication/run_wait.generated.mbt', outputs.runWait],

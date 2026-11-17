@@ -184,7 +184,7 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
     'cancellation_ref','cancellation','cancellation_lookup','operation_attempt_ref','cancellation_attempt']) emit(schemas[name], `wire_${name}_shape`);
   emit({$ref: 'check_outcome'}, 'wire_check_outcome_shape');
   const observationStart = functions.length;
-  for (const name of ['owner_ref', 'owner_cursor', 'owner_observations', 'run_plan_view']) {
+  for (const name of ['owner_ref', 'owner_cursor', 'owner_observations', 'run_plan_view', 'run_explanation_view']) {
     emit(schemas[name], `wire_${name}_shape`);
   }
   const observationFunctions = functions.slice(observationStart);
@@ -234,33 +234,35 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
     .map(([, source]) => source));
   const header = '// Generated from spec/contracts/actql-client-host.json.\n// Run: node scripts/generate-client-host-wire.mjs --write\n\n';
   const source = header + finiteWireNumberSource('native') + functions.filter(source => !testOnly.has(source)).join('\n') + '\n' + report;
-  // Use the repository's pinned formatter, also required by the CI formatting gate.
-  const formatter = process.env.MOON_HOME ? join(process.env.MOON_HOME, 'bin', 'moonfmt') : 'moonfmt';
-  const format = input => {
-    // The generated body exceeds ordinary pipe capacity. Supply a finite file
-    // as stdin so synchronous formatting needs no concurrent input-pipe writer.
-    // Keep the same formatter mode, output checks and execution deadline.
-    // Installed consumers may configure their temp root before creating their
-    // owned scratch. Freshness checks run first and use that same root.
-    const parent = tmpdir();
-    mkdirSync(parent, {recursive: true});
-    const directory = mkdtempSync(join(parent, 'actql-native-wire-'));
-    let fd;
-    try {
-      const path = join(directory, 'stdin.mbt');
-      writeFileSync(path, input, {encoding: 'utf8', mode: 0o600, flag: 'wx'});
-      fd = openSync(path, 'r');
-      return execFileSync(formatter, ['-'], {
-        stdio: [fd, 'pipe', 'pipe'], encoding: 'utf8', timeout: 10000,
-      });
-    } finally {
-      try { if (fd !== undefined) closeSync(fd); }
-      finally { rmSync(directory, {recursive: true, force: true}); }
-    }
-  };
   if (checkOutcomePredicates.size !== 1) throw Error('AmbiguousNativeCheckOutcomePredicate');
-  return {nativeCheckOutcome: [...checkOutcomePredicates][0], native: format(source), nativeTests: format(header + observationFunctions
+  return {nativeCheckOutcome: [...checkOutcomePredicates][0], native: formatMoonBit(source), nativeTests: formatMoonBit(header + observationFunctions
     .filter(source => testOnly.has(source)).join('\n') + '\n')};
+}
+
+// All generated MoonBit wire/profile outputs share the existing bounded,
+// regular-file formatter invocation and its original cleanup path.
+export function formatMoonBit(input) {
+  const formatter = process.env.MOON_HOME ? join(process.env.MOON_HOME, 'bin', 'moonfmt') : 'moonfmt';
+  // The generated body exceeds ordinary pipe capacity. Supply a finite file
+  // as stdin so synchronous formatting needs no concurrent input-pipe writer.
+  // Keep the same formatter mode, output checks and execution deadline.
+  // Installed consumers may configure their temp root before creating their
+  // owned scratch. Freshness checks run first and use that same root.
+  const parent = tmpdir();
+  mkdirSync(parent, {recursive: true});
+  const directory = mkdtempSync(join(parent, 'actql-native-wire-'));
+  let fd;
+  try {
+    const path = join(directory, 'stdin.mbt');
+    writeFileSync(path, input, {encoding: 'utf8', mode: 0o600, flag: 'wx'});
+    fd = openSync(path, 'r');
+    return execFileSync(formatter, ['-'], {
+      stdio: [fd, 'pipe', 'pipe'], encoding: 'utf8', timeout: 10000,
+    });
+  } finally {
+    try { if (fd !== undefined) closeSync(fd); }
+    finally { rmSync(directory, {recursive: true, force: true}); }
+  }
 }
 
 export function responseRules(registry) {

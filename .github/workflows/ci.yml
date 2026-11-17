@@ -293,6 +293,9 @@ jobs:
         run: |
           python3 -m pip install --disable-pip-version-check -e ./packages/python-sdk
           python3 -B packages/python-sdk/tests/run.py --pattern test_release_packaging_target.py
+      - name: Test lightweight cross-language Checkpoint candidates
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        run: node scripts/local-checks.mjs test node -- scripts/checkpoint-answer-construction.test.mjs
       - name: Check the Python source-caller CI selection
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node scripts/local-checks.mjs test node -- scripts/python-client-ci.test.mjs

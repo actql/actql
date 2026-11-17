@@ -20699,6 +20699,824 @@ const schemas = {
         }
       }
     }
+  },
+  "run_explanation_view": {
+    "type": "object",
+    "required": [
+      "version",
+      "run_ref",
+      "explanation"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "version": {
+        "const": "actql-run-explanation-view/0.1"
+      },
+      "run_ref": {
+        "type": "object",
+        "required": [
+          "namespaceId",
+          "authorityScopeCid",
+          "runDefinitionCid"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "namespaceId": {
+            "type": "string",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "authorityScopeCid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "runDefinitionCid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        }
+      },
+      "explanation": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "state",
+              "facts"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "state": {
+                "const": "projected"
+              },
+              "facts": {
+                "type": "object",
+                "required": [
+                  "version",
+                  "disclosure",
+                  "program_definition_cid",
+                  "parameter_values_cid",
+                  "compiled_plan_cid",
+                  "logical_map_cid",
+                  "steps",
+                  "self_cid"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "version": {
+                    "const": "actql-explanation-facts/0.1"
+                  },
+                  "disclosure": {
+                    "const": "structural"
+                  },
+                  "program_definition_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "parameter_values_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "compiled_plan_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "logical_map_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "steps": {
+                    "type": "array",
+                    "minItems": 0,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "step_id",
+                        "key",
+                        "operator",
+                        "input_ports",
+                        "output_ports",
+                        "meaning"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "step_id": {
+                          "type": "string",
+                          "pattern": "^sha256:[0-9a-f]{64}$"
+                        },
+                        "key": {
+                          "type": "object",
+                          "required": [
+                            "version",
+                            "compiled_plan_cid",
+                            "stage_ordinal",
+                            "occurrence",
+                            "self_cid"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "version": {
+                              "const": "actql-logical-step-key/0.1"
+                            },
+                            "compiled_plan_cid": {
+                              "type": "string",
+                              "pattern": "^sha256:[0-9a-f]{64}$"
+                            },
+                            "stage_ordinal": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 2147483647
+                            },
+                            "occurrence": {
+                              "oneOf": [
+                                {
+                                  "type": "object",
+                                  "required": [
+                                    "kind",
+                                    "operation_ordinal"
+                                  ],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "kind": {
+                                      "const": "operation"
+                                    },
+                                    "operation_ordinal": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 2147483647
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "object",
+                                  "required": [
+                                    "kind",
+                                    "input_port_ordinal"
+                                  ],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "kind": {
+                                      "const": "input_output"
+                                    },
+                                    "input_port_ordinal": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 2147483647
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "self_cid": {
+                              "type": "string",
+                              "pattern": "^sha256:[0-9a-f]{64}$"
+                            }
+                          }
+                        },
+                        "operator": {
+                          "oneOf": [
+                            {
+                              "const": null
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "analytic",
+                                "append",
+                                "apply_graph_delta",
+                                "asof_join",
+                                "assert_rows",
+                                "calendar_bucket",
+                                "calendar_series",
+                                "components",
+                                "cross_join",
+                                "dedupe_events",
+                                "dedupe_rows",
+                                "degree",
+                                "derive",
+                                "distinct",
+                                "drop",
+                                "edge_rows",
+                                "events",
+                                "except",
+                                "filter",
+                                "graft_graph",
+                                "graph",
+                                "graph_bounds",
+                                "graph_diff",
+                                "graphs_equal",
+                                "group",
+                                "infer",
+                                "intersect",
+                                "interval_join",
+                                "join",
+                                "json_pick",
+                                "lag",
+                                "match_edges",
+                                "match_nodes",
+                                "mean_graphs",
+                                "merge_rankings",
+                                "nearest",
+                                "nest",
+                                "node_rows",
+                                "normalize_graph",
+                                "normalize_vectors",
+                                "pivot",
+                                "pool_vectors",
+                                "reach",
+                                "rename",
+                                "row_window",
+                                "score_vectors",
+                                "select",
+                                "sequence",
+                                "session",
+                                "shortest_path",
+                                "sort",
+                                "subgraph",
+                                "subtract_graphs",
+                                "take",
+                                "text_rank",
+                                "time_series",
+                                "to_events",
+                                "to_vectors",
+                                "top_k",
+                                "top_k_by",
+                                "traverse",
+                                "union_graphs",
+                                "unnest",
+                                "unpivot",
+                                "values",
+                                "vectors",
+                                "watermark_events",
+                                "watermark_rows",
+                                "window_events",
+                                "window_group"
+                              ]
+                            }
+                          ]
+                        },
+                        "input_ports": {
+                          "type": "array",
+                          "minItems": 0,
+                          "items": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          }
+                        },
+                        "output_ports": {
+                          "type": "array",
+                          "minItems": 0,
+                          "items": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          }
+                        },
+                        "meaning": {
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "required": [
+                                "kind"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "kind": {
+                                  "const": "input_output"
+                                }
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "required": [
+                                "kind",
+                                "schema"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "kind": {
+                                  "const": "values"
+                                },
+                                "schema": {
+                                  "type": "object",
+                                  "required": [
+                                    "fields"
+                                  ],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "fields": {
+                                      "type": "array",
+                                      "minItems": 0,
+                                      "items": {
+                                        "type": "object",
+                                        "required": [
+                                          "name",
+                                          "presence",
+                                          "type"
+                                        ],
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "name": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "presence": {
+                                            "type": "string",
+                                            "enum": [
+                                              "required",
+                                              "conditional"
+                                            ]
+                                          },
+                                          "type": {
+                                            "type": "object",
+                                            "required": [
+                                              "projection",
+                                              "kind",
+                                              "nullable"
+                                            ],
+                                            "additionalProperties": false,
+                                            "properties": {
+                                              "projection": {
+                                                "const": "shape_and_nullability"
+                                              },
+                                              "kind": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "string",
+                                                  "number",
+                                                  "boolean",
+                                                  "timestamp",
+                                                  "date",
+                                                  "json",
+                                                  "decimal",
+                                                  "array",
+                                                  "object",
+                                                  "vector",
+                                                  "resource_ref",
+                                                  "content_ref",
+                                                  "int64"
+                                                ]
+                                              },
+                                              "nullable": {
+                                                "type": "boolean"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "required": [
+                                "kind",
+                                "predicate"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "kind": {
+                                  "const": "filter"
+                                },
+                                "predicate": {
+                                  "oneOf": [
+                                    {
+                                      "type": "object",
+                                      "required": [
+                                        "state",
+                                        "root",
+                                        "nodes"
+                                      ],
+                                      "additionalProperties": false,
+                                      "properties": {
+                                        "state": {
+                                          "const": "projected"
+                                        },
+                                        "root": {
+                                          "const": 0
+                                        },
+                                        "nodes": {
+                                          "type": "array",
+                                          "minItems": 1,
+                                          "items": {
+                                            "oneOf": [
+                                              {
+                                                "type": "object",
+                                                "required": [
+                                                  "form",
+                                                  "type"
+                                                ],
+                                                "additionalProperties": false,
+                                                "properties": {
+                                                  "form": {
+                                                    "const": "literal_redacted"
+                                                  },
+                                                  "type": {
+                                                    "type": "object",
+                                                    "required": [
+                                                      "projection",
+                                                      "kind",
+                                                      "nullable"
+                                                    ],
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                      "projection": {
+                                                        "const": "shape_and_nullability"
+                                                      },
+                                                      "kind": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                          "string",
+                                                          "number",
+                                                          "boolean",
+                                                          "timestamp",
+                                                          "date",
+                                                          "json",
+                                                          "decimal",
+                                                          "array",
+                                                          "object",
+                                                          "vector",
+                                                          "resource_ref",
+                                                          "content_ref",
+                                                          "int64"
+                                                        ]
+                                                      },
+                                                      "nullable": {
+                                                        "type": "boolean"
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              },
+                                              {
+                                                "type": "object",
+                                                "required": [
+                                                  "form",
+                                                  "scope",
+                                                  "name",
+                                                  "type"
+                                                ],
+                                                "additionalProperties": false,
+                                                "properties": {
+                                                  "form": {
+                                                    "const": "field"
+                                                  },
+                                                  "scope": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "fields",
+                                                      "left",
+                                                      "right"
+                                                    ]
+                                                  },
+                                                  "name": {
+                                                    "type": "string",
+                                                    "minLength": 1
+                                                  },
+                                                  "type": {
+                                                    "type": "object",
+                                                    "required": [
+                                                      "projection",
+                                                      "kind",
+                                                      "nullable"
+                                                    ],
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                      "projection": {
+                                                        "const": "shape_and_nullability"
+                                                      },
+                                                      "kind": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                          "string",
+                                                          "number",
+                                                          "boolean",
+                                                          "timestamp",
+                                                          "date",
+                                                          "json",
+                                                          "decimal",
+                                                          "array",
+                                                          "object",
+                                                          "vector",
+                                                          "resource_ref",
+                                                          "content_ref",
+                                                          "int64"
+                                                        ]
+                                                      },
+                                                      "nullable": {
+                                                        "type": "boolean"
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              },
+                                              {
+                                                "type": "object",
+                                                "required": [
+                                                  "form",
+                                                  "name",
+                                                  "type"
+                                                ],
+                                                "additionalProperties": false,
+                                                "properties": {
+                                                  "form": {
+                                                    "const": "parameter"
+                                                  },
+                                                  "name": {
+                                                    "type": "string",
+                                                    "minLength": 1
+                                                  },
+                                                  "type": {
+                                                    "type": "object",
+                                                    "required": [
+                                                      "projection",
+                                                      "kind",
+                                                      "nullable"
+                                                    ],
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                      "projection": {
+                                                        "const": "shape_and_nullability"
+                                                      },
+                                                      "kind": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                          "string",
+                                                          "number",
+                                                          "boolean",
+                                                          "timestamp",
+                                                          "date",
+                                                          "json",
+                                                          "decimal",
+                                                          "array",
+                                                          "object",
+                                                          "vector",
+                                                          "resource_ref",
+                                                          "content_ref",
+                                                          "int64"
+                                                        ]
+                                                      },
+                                                      "nullable": {
+                                                        "type": "boolean"
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              },
+                                              {
+                                                "type": "object",
+                                                "required": [
+                                                  "form",
+                                                  "operator",
+                                                  "children",
+                                                  "type"
+                                                ],
+                                                "additionalProperties": false,
+                                                "properties": {
+                                                  "form": {
+                                                    "const": "operation"
+                                                  },
+                                                  "operator": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "and",
+                                                      "or",
+                                                      "not",
+                                                      "eq",
+                                                      "neq",
+                                                      "lt",
+                                                      "lte",
+                                                      "gt",
+                                                      "gte",
+                                                      "is_null",
+                                                      "not_null",
+                                                      "is_distinct_from"
+                                                    ]
+                                                  },
+                                                  "children": {
+                                                    "type": "array",
+                                                    "minItems": 0,
+                                                    "items": {
+                                                      "type": "integer",
+                                                      "minimum": 0,
+                                                      "maximum": 2147483647
+                                                    }
+                                                  },
+                                                  "type": {
+                                                    "type": "object",
+                                                    "required": [
+                                                      "projection",
+                                                      "kind",
+                                                      "nullable"
+                                                    ],
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                      "projection": {
+                                                        "const": "shape_and_nullability"
+                                                      },
+                                                      "kind": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                          "string",
+                                                          "number",
+                                                          "boolean",
+                                                          "timestamp",
+                                                          "date",
+                                                          "json",
+                                                          "decimal",
+                                                          "array",
+                                                          "object",
+                                                          "vector",
+                                                          "resource_ref",
+                                                          "content_ref",
+                                                          "int64"
+                                                        ]
+                                                      },
+                                                      "nullable": {
+                                                        "type": "boolean"
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "type": "object",
+                                      "required": [
+                                        "state",
+                                        "reason"
+                                      ],
+                                      "additionalProperties": false,
+                                      "properties": {
+                                        "state": {
+                                          "const": "not_projected"
+                                        },
+                                        "reason": {
+                                          "const": "expression_form_not_projected"
+                                        }
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "required": [
+                                "kind",
+                                "operation",
+                                "fields"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "kind": {
+                                  "const": "projection"
+                                },
+                                "operation": {
+                                  "type": "string",
+                                  "enum": [
+                                    "select",
+                                    "rename",
+                                    "drop"
+                                  ]
+                                },
+                                "fields": {
+                                  "type": "array",
+                                  "minItems": 0,
+                                  "items": {
+                                    "type": "object",
+                                    "required": [
+                                      "input",
+                                      "output"
+                                    ],
+                                    "additionalProperties": false,
+                                    "properties": {
+                                      "input": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      },
+                                      "output": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "required": [
+                                "kind",
+                                "join_kind",
+                                "null_key",
+                                "keys"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "kind": {
+                                  "const": "join"
+                                },
+                                "join_kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "inner",
+                                    "left",
+                                    "right",
+                                    "full",
+                                    "semi",
+                                    "anti"
+                                  ]
+                                },
+                                "null_key": {
+                                  "type": "string",
+                                  "enum": [
+                                    "no_match",
+                                    "fail"
+                                  ]
+                                },
+                                "keys": {
+                                  "type": "array",
+                                  "minItems": 0,
+                                  "items": {
+                                    "type": "object",
+                                    "required": [
+                                      "left",
+                                      "right"
+                                    ],
+                                    "additionalProperties": false,
+                                    "properties": {
+                                      "left": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      },
+                                      "right": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "required": [
+                                "kind",
+                                "reason"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "kind": {
+                                  "const": "not_projected"
+                                },
+                                "reason": {
+                                  "const": "operation_facts_not_projected"
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "self_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "state",
+              "reason"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "state": {
+                "const": "not_projected"
+              },
+              "reason": {
+                "type": "string",
+                "enum": [
+                  "not_retained",
+                  "profile_not_supported"
+                ]
+              }
+            }
+          }
+        ]
+      }
+    }
   }
 };
 const operationKeys = {
@@ -20872,6 +21690,13 @@ const operationKeys = {
     "maxWireBytes"
   ],
   "run-plan": [
+    "connection",
+    "ref",
+    "maxWireBytes",
+    "maxNodes",
+    "maxDepth"
+  ],
+  "run-explanation": [
     "connection",
     "ref",
     "maxWireBytes",

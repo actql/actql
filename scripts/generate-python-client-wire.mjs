@@ -7,6 +7,8 @@ import {pythonStructuralValidatorSource, pythonResponseValidatorSource} from './
 import {responseRules, requestResponseRules} from './generate-native-client-wire.mjs';
 import {checkReportRules} from './client-check-report-rules.mjs';
 import {projectClientHostOptionalFields} from './generate-client-host-wire.mjs';
+import {checkpointAnswerContract} from './checkpoint-answer-wire.mjs';
+import {checkpointAnswerPythonSource} from './checkpoint-answer-wire-python.mjs';
 import {clientSourceFormats, checkpointLimits, resultDescriptionLimits} from '../packages/client-wire/index.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -84,11 +86,14 @@ async function main() {
   const args = process.argv.slice(2);
   if (args.length !== 1 || !['--write', '--check'].includes(args[0])) throw Error('Usage: generate-python-client-wire.mjs --write|--check');
   const read = async path => JSON.parse(await readFile(join(root, path), 'utf8'));
-  const contract = pythonClientContract(await read('spec/contracts/actql-client-host.json'),
-    await read('spec/contracts/actql-protocol-schemas.json'), await read('spec/contracts/actql-run-publication.json'),
+  const registry = await read('spec/contracts/actql-client-host.json');
+  const protocol = await read('spec/contracts/actql-protocol-schemas.json');
+  const contract = pythonClientContract(registry,
+    protocol, await read('spec/contracts/actql-run-publication.json'),
     await read('spec/contracts/actql-check-reason-catalog.json'));
   const outputs = {'_contract.json': JSON.stringify(contract, null, 2) + '\n', '_types.py': pythonTypes(contract.schemas),
-    '_wire_codec.py': pythonStructuralValidatorSource() + pythonResponseValidatorSource(contract.check_report_rules)};
+    '_wire_codec.py': pythonStructuralValidatorSource() + pythonResponseValidatorSource(contract.check_report_rules),
+    '_checkpoint_answer_codec.py': checkpointAnswerPythonSource(checkpointAnswerContract(registry, protocol))};
   for (const [file, content] of Object.entries(outputs)) {
     const path = join(root, 'packages/python-sdk/src/actql_sdk', file);
     if (args[0] === '--write') await writeFile(path, content);

@@ -202,6 +202,13 @@
       "maxWireBytes",
       "maxNodes",
       "maxDepth"
+    ],
+    "run-explanation": [
+      "connection",
+      "ref",
+      "maxWireBytes",
+      "maxNodes",
+      "maxDepth"
     ]
   },
   "schemas": {
@@ -8634,5 +8641,274 @@
       ],
       "matchRequest": "requestId"
     }
+  },
+  "checkpoint_answer_construction": {
+    "summary_schema": "#/schemas/checkpoint_summary",
+    "checkpoint_profile_source": {
+      "contract": "actql-protocol-schemas.json",
+      "schema": "artifact_schemas.execution_checkpoint.oneOf"
+    },
+    "profiles": [
+      {
+        "name": "preparation_run",
+        "kind": "run_scope",
+        "subject": "prepare_attempt",
+        "approval": "invocation",
+        "preparedInvocationCid": "summary.requiredArtifact.cid",
+        "resolutionSubject": "prepare"
+      },
+      {
+        "name": "preparation_read",
+        "kind": "read_access",
+        "subject": "prepare_attempt",
+        "approval": "invocation",
+        "preparedInvocationCid": "summary.requiredArtifact.cid",
+        "resolutionSubject": "prepare"
+      },
+      {
+        "name": "acquired_read",
+        "kind": "read_access",
+        "subject": "run_unit",
+        "approval": "invocation",
+        "preparedInvocationCid": "summary.requiredArtifact.cid",
+        "resolutionSubject": "run"
+      },
+      {
+        "name": "model",
+        "kind": "model_invocation",
+        "subject": "run_unit",
+        "approval": "invocation",
+        "preparedInvocationCid": "summary.preparedInvocationCid",
+        "resolutionSubject": "run"
+      },
+      {
+        "name": "effect",
+        "kind": "effect_set",
+        "subject": "run_unit",
+        "approval": "effect",
+        "preparedInvocationCid": null,
+        "resolutionSubject": "run"
+      }
+    ],
+    "decisions": [
+      "approved",
+      "rejected"
+    ],
+    "documents": {
+      "invocation": {
+        "version": {
+          "constant": "actql-run-scope-approval/0.1"
+        },
+        "prepared_invocation_cid": {
+          "source": "selectedProfile.preparedInvocationCid"
+        },
+        "review_projection_cid": {
+          "source": "summary.reviewProjectionCid"
+        },
+        "claim": {
+          "constant": "invocation_scope_approved"
+        },
+        "approver": {
+          "source": "actor.reviewerId"
+        },
+        "approved_at": {
+          "source": "decidedAt"
+        },
+        "expires_at": {
+          "source": "summary.expiresAt"
+        }
+      },
+      "effect": {
+        "version": {
+          "constant": "actql-approval-attestation/0.1"
+        },
+        "effect_preview_cid": {
+          "source": "summary.requiredArtifact.cid"
+        },
+        "review_projection_cid": {
+          "source": "summary.reviewProjectionCid"
+        },
+        "authority_scope_cid": {
+          "source": "actor.authorityScopeCid",
+          "requiredOn": "approved effect"
+        },
+        "claims": {
+          "source": "summary.requirements",
+          "copy": "exact ordered original list"
+        },
+        "approver": {
+          "source": "actor.reviewerId"
+        },
+        "approved_at": {
+          "source": "decidedAt"
+        }
+      },
+      "evidence": {
+        "version": {
+          "constant": "actql-checkpoint-approval-evidence/0.1"
+        },
+        "kind": {
+          "source": "summary.kind"
+        },
+        "checkpoint_cid": {
+          "source": "summary.checkpointCid"
+        },
+        "review_projection_cid": {
+          "source": "summary.reviewProjectionCid"
+        },
+        "compatibility_approval": {
+          "source": "signedApprovalWithSelfCid"
+        }
+      },
+      "resolution": {
+        "version": {
+          "constant": "actql-checkpoint-resolution/0.1"
+        },
+        "resolution_id": {
+          "concatenate": [
+            "resolution-",
+            "summary.checkpointId",
+            "-",
+            "decision"
+          ]
+        },
+        "checkpoint_id": {
+          "source": "summary.checkpointId"
+        },
+        "checkpoint_cid": {
+          "source": "summary.checkpointCid"
+        },
+        "decision": {
+          "source": "decision"
+        },
+        "actor": {
+          "source": "actor.reviewerId"
+        },
+        "decided_at": {
+          "source": "decidedAt"
+        },
+        "required_artifact_cid": {
+          "source": "summary.requiredArtifact.cid"
+        },
+        "review_projection_cid": {
+          "source": "summary.reviewProjectionCid"
+        },
+        "approval_evidence_cid": {
+          "source": "evidenceCid",
+          "omitOn": "rejected"
+        }
+      }
+    },
+    "resolution_subject_fields": {
+      "prepare": {
+        "prepare_attempt_id": {
+          "source": "summary.subject.prepareAttemptId"
+        }
+      },
+      "run": {
+        "run_id": {
+          "source": "summary.subject.runId"
+        },
+        "run_definition_cid": {
+          "source": "summary.subject.runDefinitionCid"
+        }
+      }
+    },
+    "identities": {
+      "invocation": {
+        "selfField": "run_scope_approval_cid",
+        "signaturePreimageExcluded": [
+          "proof",
+          "run_scope_approval_cid"
+        ]
+      },
+      "effect": {
+        "selfField": "attestation_cid",
+        "signaturePreimageExcluded": [
+          "proof",
+          "attestation_cid"
+        ]
+      },
+      "resolution": {
+        "selfField": "resolution_cid",
+        "signaturePreimageExcluded": [
+          "proof",
+          "resolution_cid"
+        ]
+      },
+      "evidence": {
+        "selfField": null,
+        "hash": "complete canonical body"
+      },
+      "algorithm": "sha256 of canonical UTF8; lowercase sha256:hex; no new prefix/domain",
+      "signing": "UTF8 bytes of unsigned CID TEXT, not raw JSON; attaching proof then compute self CID excluding only root selfField"
+    },
+    "proof": {
+      "scheme": "ed25519-v1",
+      "key_id": "captured actor.keyId",
+      "signature": "actual external callback output; canonical Base64 exact64bytes/88characters; reject nonzero padbits"
+    },
+    "decisions_and_omissions": {
+      "approved": {
+        "approval_signature": "required",
+        "evidence": "required",
+        "evidence_cid": "required"
+      },
+      "rejected": {
+        "approval_signature": "absent",
+        "evidence": "absent",
+        "evidence_cid": "absent"
+      },
+      "model_prepared_invocation_cid": "required_valid_cid",
+      "non_model_prepared_invocation_cid": "absent_even_if_null",
+      "optional_absence": "omit_not_null"
+    },
+    "canonical": {
+      "owner": "Common canonical_json/canonical_value",
+      "key_domain": "identifier_NFC_LF",
+      "identity_text_paths": [
+        ["checkpointId"],
+        ["subject", "prepareAttemptId"],
+        ["subject", "requestId"],
+        ["subject", "runId"]
+      ],
+      "data_strings": "preserve",
+      "unknown_fields": "reject",
+      "hash": "sha256",
+      "cid_text": "lowercase_sha256_colon_hex",
+      "signing_preimage": "UTF8_of_unsigned_CID_text"
+    },
+    "time": {
+      "owner": "Common checkpoint_document.valid_timestamp",
+      "domain": "checkpoint_window_canonical_UTC_millis",
+      "width": 24,
+      "created_before_expires": true,
+      "decision_lower": "createdAt_inclusive",
+      "decision_upper": "expiresAt_exclusive"
+    },
+    "signer": {
+      "token_characters": "ASCII_A_Z_a_z_0_9_dot_underscore_colon_hyphen",
+      "token_min_length": 1,
+      "token_max_length": 128,
+      "sign_callback": "external_capture_before_await",
+      "authority_scope_cid_required": "approved_effect_only"
+    },
+    "limits": {
+      "max_wire_bytes": {
+        "minimum": 1
+      },
+      "max_nodes": {
+        "minimum": 2
+      },
+      "max_depth": {
+        "minimum": 2
+      }
+    },
+    "output": {
+      "checkpointCid": "summary.checkpointCid",
+      "resolutionWire": "complete canonical signed Resolution",
+      "approvalEvidenceWire": "complete canonical Evidence, or empty string rejected"
+    },
+    "authority": "candidate_DATA_only_Host_independent_verification_unchanged"
   }
 }

@@ -15234,6 +15234,326 @@
           }
         }
       ]
+    },
+    {
+      "module": "packages/sdk/internal/checkpoint-answer-construction.generated.mjs",
+      "sha256": "5af0d6376c84b5ef8ed05bb054497a9a5c8adeef0d95d0475f0c96dc4429ac0f",
+      "exports": [
+        "createCheckpointAnswerCodec"
+      ],
+      "operations": [
+        {
+          "name": "capture/add/add",
+          "parameters": [
+            "count"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointAnswerCodec",
+          "parameters": [
+            "primitives"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointAnswerCodec/answerCandidateApprovalPreimage",
+          "parameters": [
+            "stage"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointAnswerCodec/answerResolutionPreimage",
+          "parameters": [
+            "stage"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointAnswerCodec/finishAnswerCandidate",
+          "parameters": [
+            "stage",
+            "resolutionSignature"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointAnswerCodec/prepareAnswerCandidate",
+          "parameters": [
+            "summary",
+            "decision",
+            "actor",
+            "decidedAt",
+            "selectedLimits"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointAnswerCodec/prepareAnswerCandidate/prepareAnswerCandidate",
+          "parameters": [
+            "items"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointAnswerCodec/prepareAnswerCandidate/prepareAnswerCandidate/prepareAnswerCandidate",
+          "parameters": [
+            "item",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointAnswerCodec/prepareAnswerCandidate/profile/profile",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointAnswerCodec/prepareAnswerResolution",
+          "parameters": [
+            "stage",
+            "approvalSignature"
+          ],
+          "async": true
+        },
+        {
+          "name": "document/document",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "document/document/document",
+          "parameters": [
+            "part"
+          ],
+          "async": false
+        },
+        {
+          "name": "document/document#2",
+          "parameters": [
+            "key",
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameConstant/sameConstant",
+          "parameters": [
+            "item",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameConstant/sameConstant#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "shape/shape",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "shape/shape#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "signature",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "source",
+          "parameters": [
+            "context",
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#2",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#3",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#4",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#5",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#6",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#7",
+          "parameters": [
+            "key",
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#8",
+          "parameters": [
+            "key",
+            "field"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "public-wire-codec",
+      "owner": "existing Common checkpoint document / Client-Host wire generation / lightweight SDK value owner",
+      "rationale": "Generated bounded candidate DATA and original wire projection; no signing authority, Local engine, Host permission or second Checkpoint state machine.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "capture/add/add",
+            "createCheckpointAnswerCodec",
+            "createCheckpointAnswerCodec/answerCandidateApprovalPreimage",
+            "createCheckpointAnswerCodec/answerResolutionPreimage",
+            "createCheckpointAnswerCodec/finishAnswerCandidate",
+            "createCheckpointAnswerCodec/prepareAnswerCandidate",
+            "createCheckpointAnswerCodec/prepareAnswerCandidate/prepareAnswerCandidate",
+            "createCheckpointAnswerCodec/prepareAnswerCandidate/prepareAnswerCandidate/prepareAnswerCandidate",
+            "createCheckpointAnswerCodec/prepareAnswerCandidate/profile/profile",
+            "createCheckpointAnswerCodec/prepareAnswerResolution",
+            "document/document",
+            "document/document/document",
+            "document/document#2",
+            "sameConstant/sameConstant",
+            "sameConstant/sameConstant#2",
+            "shape/shape",
+            "shape/shape#2",
+            "signature",
+            "source",
+            "valid/valid",
+            "valid/valid#2",
+            "valid/valid#3",
+            "valid/valid#4",
+            "valid/valid#5",
+            "valid/valid#6",
+            "valid/valid#7",
+            "valid/valid#8"
+          ],
+          "exports": [
+            "createCheckpointAnswerCodec"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Shared document authority"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Canonical frames and signatures"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Generation and verification"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/checkpoint-answer-construction.test.mjs",
+                "anchor": "test('candidate captures data, key and primitive receivers before first asynchronous digest'"
+              },
+              {
+                "path": "src/checkpoint_document/answer_vectors_test.mbt",
+                "anchor": "test "
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
