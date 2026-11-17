@@ -531,6 +531,7 @@ fn local_module_default_output_start_capacity(
       Some(@lower.RowStep(kernel)) => {
         if (
             !selected_binding_rows_supported(kernel) &&
+            !@execution.bounded_number_group_borrows_input(kernel) &&
             !@execution.bounded_string_group_borrows_input(kernel) &&
             !(@execution.bounded_analytic_borrows_input(kernel) &&
             @execution.bounded_analytic_staged_text_capacity(
