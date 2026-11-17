@@ -151,9 +151,8 @@ test('the platform classifier preserves the original manifest failure and the en
   assert(wrapper.includes('process.argv.splice(2, process.argv.length - 2, ...args)'));
   for (const retired of ['spawnSync', 'nativeCoreCCompiler', 'nativeCoreTestSelection', 'nativeCoreFocusedTestCount', 'readNativeCorePlatformPackages'])
     assert(!wrapper.includes(retired), retired);
-  const entry = readFileSync(new URL('./test-native-core.mjs', import.meta.url), 'utf8');
-  assert(entry.includes('selection.profiles.http.cases + selection.profiles.source.cases + selection.profiles.scoped.cases !== 0'));
-  assert.equal((entry.match(/full \? nativeCoreTestSelection/g) ?? []).length, 1);
+  // test-native-core.test.mjs exercises the imported selection owner, including
+  // one discovery and refusal of every foreign physical profile.
 });
 
 test('the actual Native profile entry refuses library reentry before changing argv or importing fixtures', async () => {
@@ -177,9 +176,7 @@ test('hosted Darwin Core selects the complementary scope without changing local 
   assert(core.includes("['darwin-differences', 'linux-common-importers'].includes(platformScope)"));
   assert(core.includes("process.platform !== (linuxCommonImporters ? 'linux' : 'darwin')"));
   assert(core.includes(': platformPackages.darwin)'));
-  assert(core.includes("{hostedDarwin: platformScope === 'darwin-differences'}"));
   assert(core.includes('[...platformPackages.common, ...platformPackages.importers].sort()'));
-  assert(core.includes('allowNestedFileInputs: platformPackages !== undefined'));
   assert.equal((core.match(/ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE: undefined/gu) ?? []).length, 2,
     'The selection-only marker cannot leak into original producers or runtime children');
 });

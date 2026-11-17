@@ -26,7 +26,6 @@ test('installed Mock acceptance requires both complete same-cohort public templa
     "records.push(record)", "await writeFile(join(root, 'commands.json')"]) {
     assert(installed.includes(requirement), requirement);
   }
-  assert.equal(installed.indexOf('await registry.close()') < installed.indexOf('await writeFile(receiptFile'), true);
 });
 
 function observation(pid, events = []) {

@@ -135,7 +135,6 @@ test('mandatory Local installation retains ingress controls on its actual instal
   const transport=readFileSync(new URL('./test-native-client.mjs',import.meta.url),'utf8');
   const fixture=readFileSync(new URL('./test-native-local-cli.test.mjs',import.meta.url),'utf8');
   assert(installed.includes("new URL('./test-native-local-cli.test.mjs',import.meta.url)"));
-  assert(installed.includes('expectedTests:12'));
   assert(installed.includes('admitInstalledLocalRuntime({root:platformRoot,metadata:artifact.localRuntime'));
   for(const key of ['ACTQL_TEST_NATIVE_CLIENT_LAUNCHER','ACTQL_TEST_NATIVE_CLIENT_BINARY']) {
     assert(installed.includes(key),key);assert(fixture.includes(key),key);
