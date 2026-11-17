@@ -285,17 +285,22 @@ test('current configuration entries bind exact authored Git inputs and literal d
   }
 });
 
-test('current Local JS review admits only the four fixture selectors and keeps every source bound', () => {
+test('current Local JS review admits only the lifecycle fixture selector and keeps every source bound', () => {
   const review = JSON.parse(readFileSync(new URL(
-    '../../docs/reviews/2026-11-17-session-local-text-publication-selector-review.json', import.meta.url)));
+    '../../docs/reviews/2026-11-18-session-local-resource-lifecycle-selector-review.json', import.meta.url)));
   const path = review.path;
   const entry = currentPackageConfigurations[path];
-  const body = gitTree(root, review.source).read(path).toString();
+  const reviewedTree = gitTree(root, review.source);
+  const body = reviewedTree.read(path).toString();
   const previous = gitTree(root, review.previousRevision).read(path).toString();
   assert.equal(entry.revision, review.source);
   assert.equal(entry.digest, review.sha256);
   assert.equal(hash(body), review.sha256);
   assert.equal(hash(previous), review.previousSha256);
+  assert.equal(Buffer.byteLength(body), review.bytes);
+  assert.equal(Buffer.byteLength(previous), review.previousBytes);
+  assert.equal(reviewedTree.entries.get(path)?.mode, review.mode);
+  assert.equal(currentTree.entries.get(path)?.mode, review.mode);
   let reconstructed = body;
   for (const selector of review.addedSelectors) {
     assert.deepEqual(selector.targets, ['js']);
@@ -315,8 +320,8 @@ test('current Local JS review admits only the four fixture selectors and keeps e
     assert.equal(currentTree.entries.get(source)?.mode, '100644');
   }
   for (const changed of [
-    body.replace('"closed_values_copy_text_js_wbtest.mbt": [ "js" ]',
-      '"closed_values_copy_text_js_wbtest.mbt": [ "native" ]'),
+    body.replace('"resource_lifecycle_regressions_wbtest.mbt": [ "js" ]',
+      '"resource_lifecycle_regressions_wbtest.mbt": [ "native" ]'),
     body + '\noptions(pre_build: "unreviewed-hook")\n',
     body.replace('"actql/actql/decode_shape" @shape', '"actql/actql/decode_shape" @permission'),
   ]) {
@@ -337,6 +342,7 @@ test('current Local JS review admits only the four fixture selectors and keeps e
 test('the prior Local descriptor stays historical without admitting it as current', () => {
   const path = 'src/client_local_host/moon.pkg';
   for (const [revision, digest] of [
+    ['942da5f7cff320f37489be12498fee6f742c40c3', 'b0d5e68d9e82221e6ae49e364de6175ca92377e8227443eafa84149e5ee25b23'],
     ['776746d359ec107cf3172d90016d07e009384fc9', '8c60608fabbcc3310000730ac92fb17768d5b87796e189a192dd1bee513f3ce8'],
     ['4d25879b4f9443cfc73758b948fc472401a5a96e', '4411b9a5d341bf6d5ab235cb1c1a4f99ac12de9387b08f582bbe9e41c610f359'],
   ]) {
