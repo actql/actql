@@ -221,11 +221,16 @@ test "Whole prepared refusal diagnostic stays in the SAME Read constructor quote
   let (selection, _) = relation_work_capacity_inputs()
   let original = native_relation_file_entry_read_control_capacity(selection).unwrap()
   let diagnostic = native_relation_file_entry_read_control_capacity(
-    selection, prepared_diagnostic=true,
+    selection,
+    prepared_diagnostic=true,
   ).unwrap()
   // Three simultaneously live H1/R1/S1 envelopes at existing H16/R8/S8.
-  assert_eq(@execution.execution_capacity_retained_bytes(diagnostic),
-    @execution.execution_capacity_retained_bytes(original) + 96L)
-  assert_eq(@execution.execution_capacity_execution_bytes(diagnostic),
-    @execution.execution_capacity_execution_bytes(original) + 96L)
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(diagnostic),
+    @execution.execution_capacity_retained_bytes(original) + 96L,
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(diagnostic),
+    @execution.execution_capacity_execution_bytes(original) + 96L,
+  )
 }

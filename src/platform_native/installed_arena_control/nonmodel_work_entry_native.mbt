@@ -619,8 +619,10 @@ pub fn InstalledArenaNonModelWorkEntry::matches_business_scope(
     (
       cleanup &&
       self.finished &&
-      (self.control is RetiredPreparedNonModelWorkCapacity ||
-      self.control is FailedPreparedNonModelWorkCapacity(_))
+      (
+        self.control is RetiredPreparedNonModelWorkCapacity ||
+        self.control is FailedPreparedNonModelWorkCapacity(_)
+      )
     ) ||
     self.capacity_original_matches()
   )

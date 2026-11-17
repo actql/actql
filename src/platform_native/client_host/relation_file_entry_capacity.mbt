@@ -157,8 +157,10 @@ pub fn native_relation_whole_file_entry_read_capacity(
     )
     is Some(whole) &&
     native_relation_file_entry_read_control_capacity(
-      selection, prepared_diagnostic=true,
-    ) is Some(entry) &&
+      selection,
+      prepared_diagnostic=true,
+    )
+    is Some(entry) &&
     @execution.checked_preparation_add_product(
       @execution.execution_capacity_retained_bytes(entry),
       @execution.execution_capacity_retained_bytes(whole),

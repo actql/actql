@@ -810,7 +810,10 @@ fn nonmodel_prepared_original_work(
   if refuse {
     let primary = entry.prepared_capacity_failure().unwrap()
     assert_true(primary is @resources.Resource(@resources.RetentionLimit))
-    assert_true(entry.control is FailedPreparedNonModelWorkCapacity(original) && original == primary)
+    assert_true(
+      entry.control is FailedPreparedNonModelWorkCapacity(original) &&
+      original == primary,
+    )
     assert_true(copy.prepared_capacity_failure() is None)
     assert_true(entry.finished && !entry.claimed && !entry.settled)
     let failed = @resources.ledger_usage(ledger)

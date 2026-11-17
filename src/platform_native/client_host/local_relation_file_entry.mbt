@@ -288,7 +288,8 @@ pub fn NativeLocalHostConnection::prepare_original_whole_relation_file_work_entr
       @execution.execution_capacity_execution_bytes(capacity),
     ) {
     None => return None
-    Some(Err(original)) => return Some(Err(relation_file_work_failure(FileWorkEntry(original))))
+    Some(Err(original)) =>
+      return Some(Err(relation_file_work_failure(FileWorkEntry(original))))
     Some(Ok(value)) => value
   }
   let arena = match acquired_entry {
