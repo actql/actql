@@ -144,7 +144,10 @@ try {
   await writeFile(join(approval, 'reviewer.key'), pem(reviewer.privateKey), {mode: 0o600});
   await writeFile(join(approval, 'authorization.json'), JSON.stringify({
     accountConfiguration: canonicalText({version: 'actql-execution-account-config/0.1',
-      account_id: 'packed-embedded-account', entries: [{entry_id: 'run-acceptance', exclusions: [],
+      account_id: 'packed-embedded-account', entries: [{entry_id: 'read-original', exclusions: [],
+        connection: {any_of: ['actql-remote-host']}, operation: {any_of: ['read']},
+        outcome: 'allow', principal: {any_of: [userInfo().username]}, resource: {any_of: ['run']}},
+      {entry_id: 'run-acceptance', exclusions: [],
         connection: {any_of: ['actql-remote-host']}, operation: {any_of: ['write']},
         outcome: 'delegate', principal: {all: true}, resource: {any_of: ['source-free-values']}}]}),
     reviewers: [{keyId: 'reviewer-key', reviewerId: 'reviewer', principalId: userInfo().username,
