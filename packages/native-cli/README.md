@@ -1,4 +1,6 @@
-# ActQL CLI v0.0.2 — Initial Developer Preview
+# Native CLI
+
+ActQL CLI v0.0.2 — Initial Developer Preview
 
 ```sh
 npm install -g actql
