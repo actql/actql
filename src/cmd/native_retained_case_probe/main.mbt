@@ -900,6 +900,7 @@ fn emit_owner_observation(
   let start = @bench.monotonic_clock_start()
   let resident = @host.native_standard_strategy_run_resident_observation(run)
   let usage = @resources.ledger_usage(ledger)
+  let limits = @resources.ledger_limits(ledger)
   println(
     "owner-observation:{\"boundary\":\"" +
     boundary +
@@ -913,6 +914,8 @@ fn emit_owner_observation(
     usage.holdings.to_string() +
     ",\"heldBytes\":" +
     usage.held_bytes.to_string() +
+    ",\"retentionLimitBytes\":" +
+    limits.retained_bytes.to_string() +
     ",\"reservedExecutionBytes\":" +
     usage.reserved_execution_bytes.to_string() +
     ",\"reservedRetentionBytes\":" +

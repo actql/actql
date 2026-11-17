@@ -7,6 +7,7 @@ import {retainedCase, workloads} from './fixtures.mjs';
 import {nativeCostObservation} from './native-cost-observation.mjs';
 import {admitNativeOwnerObservations} from './native-owner-observations.mjs';
 import {nativeResidentEstimateArguments} from './native-resident-estimates.mjs';
+import {managedCaseLedgerLimits} from './managed-configuration.mjs';
 
 const digest = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 const method = 'three predeclared alternating Native training rounds; median matched task/release cost rounded up to milliseconds';
@@ -48,7 +49,8 @@ function checkedObservation(observation, fixture) {
   const choices = correspondence?.observations?.choices;
   assert(Array.isArray(choices), 'MissingNativeResidentCalibrationChoices');
   const owner = admitNativeOwnerObservations(correspondence.observations,
-    observation.taskHoldings, choices.map(choice => choice.name), observation.result.usage);
+    observation.taskHoldings, choices.map(choice => choice.name), observation.result.usage,
+    managedCaseLedgerLimits(fixture).retained_bytes);
   assert.deepEqual(correspondence, owner, 'NativeResidentOwnerProjectionMismatch');
   const cost = nativeCostObservation(observation);
   return {cost, choices};

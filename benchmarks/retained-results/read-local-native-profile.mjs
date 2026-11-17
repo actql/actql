@@ -9,6 +9,7 @@ import {retainedCase, workloads} from './fixtures.mjs';
 import {profileDigest, nativeProfileSchedule, nativeOperationalSchedule, nativeEmpiricalSchedule, validateLocalObservation,
   aggregateLocalProfiles, describeObservationOverhead} from './local-performance-profile.mjs';
 import {captureLimitBytes} from './local-profile-capture.mjs';
+import {managedCaseLedgerLimits} from './managed-configuration.mjs';
 
 async function boundedRead(path, maximum) {
   const file = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
@@ -51,7 +52,8 @@ export async function readLocalNativeProfile(directory, {now = Date.now(), maxAg
       const terminal=JSON.parse(stdout.toString('utf8').trim().split('\n').at(-1));
       assert.equal(terminal.rows_cid,fixture.identity().rowsCid);assert.deepEqual(terminal.usage,item.mapping.finalUsage);
       const owner=admitNativeOwnerObservations(nativeOwnerObservations(stdout.toString('utf8')),
-        item.mapping.holdings,item.mapping.choices.map(choice=>choice.name),terminal.usage);
+        item.mapping.holdings,item.mapping.choices.map(choice=>choice.name),terminal.usage,
+        managedCaseLedgerLimits(fixture).retained_bytes);
       assert.deepEqual(owner.observations.choices,item.mapping.choices);assert.deepEqual(owner.attempts,item.mapping.attempts);
       assert.deepEqual(owner.observations.candidates,item.mapping.candidateProjections);
     }
@@ -94,7 +96,8 @@ export async function readLocalNativeProfile(directory, {now = Date.now(), maxAg
         assert.equal(terminal.rows_cid, fixture.identity().rowsCid);
         assert.deepEqual(terminal.usage, item.mapping.finalUsage);
         const owner = admitNativeOwnerObservations(nativeOwnerObservations(stdout),
-          item.mapping.holdings, item.mapping.choices.map(choice => choice.name), terminal.usage);
+          item.mapping.holdings, item.mapping.choices.map(choice => choice.name), terminal.usage,
+          managedCaseLedgerLimits(fixture).retained_bytes);
         assert.deepEqual(owner.attempts, item.mapping.attempts);
         assert.deepEqual(owner.observations.candidates, metadata.candidates);
         assert.deepEqual(owner.observations.choices, metadata.choices);

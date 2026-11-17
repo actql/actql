@@ -76,8 +76,33 @@ export function nativeOwnerObservations(stdout) {
 }
 
 export function admitNativeOwnerObservations(observations, taskHoldings, selected,
-  finalUsage) {
+  finalUsage, retainedLimitBytes) {
   const {owners, candidates, choices, phases, observerMicroseconds} = observations;
+  // Current materializing constructors fund actual growth on the same Task.
+  // The selected offer remains its startup admission, not its final holding.
+  // Bind this observation to the invoking case's original Run policy; an
+  // observed, self-selected larger limit cannot stand in for that policy.
+  const hasRunLimit = owners.some(owner => Object.hasOwn(owner, 'retentionLimitBytes'));
+  let runLimit;
+  if (hasRunLimit) {
+    assert((typeof retainedLimitBytes === 'bigint' && retainedLimitBytes >= 0n) ||
+      (Number.isSafeInteger(retainedLimitBytes) && retainedLimitBytes >= 0),
+    'MissingNativeRunRetentionLimit');
+    runLimit = BigInt(retainedLimitBytes);
+    for (const owner of owners) {
+      safe(owner.retentionLimitBytes, 'retentionLimitBytes');
+      assert.equal(BigInt(owner.retentionLimitBytes), runLimit,
+        'NativeRunRetentionLimitMismatch');
+      assert(BigInt(owner.heldBytes) + BigInt(owner.reservedRetentionBytes) <= runLimit,
+        'NativeOwnerExceedsRunRetentionLimit');
+    }
+    safe(finalUsage.peak_retention_bytes, 'peak_retention_bytes');
+    assert(BigInt(finalUsage.peak_retention_bytes) <= runLimit,
+      'NativePeakExceedsRunRetentionLimit');
+    for (const owner of owners) assert(BigInt(owner.heldBytes) +
+      BigInt(owner.reservedRetentionBytes) <= BigInt(finalUsage.peak_retention_bytes),
+    'NativeOwnerExceedsRecordedRetentionPeak');
+  }
   const ids = taskHoldings.map(holding => holding.task);
   for (const key of ['plannerObserverTime', 'plannerObserverWork']) {
     assert.deepEqual(observations[key]?.map(item => item.task), ids,
@@ -155,8 +180,17 @@ export function admitNativeOwnerObservations(observations, taskHoldings, selecte
         typeof selection.policy.explanation === 'string', 'NativePolicyExplanationMissing');
       assert.deepEqual(selection.policy, choice.policy, 'NativePolicyExplanationMismatch');
     }
-    assert(BigInt(retainedChargeBytes) <= BigInt(offer[5]),
-      'NativeHoldingExceedsSelectedBound');
+    if (hasRunLimit) {
+      const startup = BigInt(offer[5]);
+      assert(startup >= 0n && BigInt(before.heldBytes) +
+        BigInt(before.reservedRetentionBytes) + startup <= runLimit,
+      'NativeStartupExceedsAvailableRetention');
+    } else {
+      // Legacy observations have no independent Run ceiling. Keep their
+      // stricter static-offer check rather than infer funding from usage.
+      assert(BigInt(retainedChargeBytes) <= BigInt(offer[5]),
+        'NativeHoldingExceedsSelectedBound');
+    }
     assert.equal(offer[9] !== null, choice.resident,
       'NativeChoiceResidentMismatch');
     if (choice.resident) {

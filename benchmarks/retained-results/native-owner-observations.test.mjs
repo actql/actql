@@ -83,3 +83,56 @@ test('external policy explanation must agree with the actually selected history'
   e.observations.explanations[0].body.selection.policy.revision = 'other';
   assert.throws(() => admit(e), /NativePolicyExplanationMismatch/);
 });
+
+function fundedGrowthEvidence() {
+  const e = evidence();
+  // The same Run initially admits a 64-byte offer, then retains 80 bytes
+  // after its constructor grows. This is diagnostic DATA, not a grow proof.
+  for (const owner of e.observations.owners) {
+    owner.retentionLimitBytes = 128;
+    if (owner.heldBytes !== 0) owner.heldBytes = 80;
+  }
+  e.final.peak_retention_bytes = 80;
+  return e;
+}
+const admitGrowth = (e, limit = 128n) => admitNativeOwnerObservations(
+  e.observations, e.holdings, e.selected, e.final, limit);
+
+test('same Run growth is checked against original policy and observed peak, independently of startup', () => {
+  const result = admitGrowth(fundedGrowthEvidence());
+  assert.equal(result.attempts[0].retainedChargeBytes, 80);
+  assert.equal(result.attempts[0].selectedRetentionBoundBytes, '64');
+});
+
+test('same Run growth refuses a missing original policy', () => {
+  const e = fundedGrowthEvidence();
+  assert.throws(() => admitNativeOwnerObservations(e.observations, e.holdings,
+    e.selected, e.final), /MissingNativeRunRetentionLimit/);
+});
+
+for (const [name, mutate, issue, limit = 128n] of [
+  ['foreign original policy', () => {}, /NativeRunRetentionLimitMismatch/, 256n],
+  ['consistent foreign observed policy', e => {
+    for (const owner of e.observations.owners) owner.retentionLimitBytes = 256;
+  }, /NativeRunRetentionLimitMismatch/],
+  ['changed observed policy', e => { e.observations.owners[1].retentionLimitBytes = 256; }, /NativeRunRetentionLimitMismatch/],
+  ['partial observed policy', e => { delete e.observations.owners[0].retentionLimitBytes; }, /InvalidNativeOwnerQuantity:retentionLimitBytes/],
+  ['malformed observed policy', e => { e.observations.owners[0].retentionLimitBytes = 128.5; }, /InvalidNativeOwnerQuantity:retentionLimitBytes/],
+  ['overbudget holding', e => { e.observations.owners[1].heldBytes = 129; }, /NativeOwnerExceedsRunRetentionLimit/],
+  ['overbudget coheld reservation', e => { e.observations.owners[1].reservedRetentionBytes = 49; }, /NativeOwnerExceedsRunRetentionLimit/],
+  ['overbudget peak', e => { e.final.peak_retention_bytes = 129; }, /NativePeakExceedsRunRetentionLimit/],
+  ['underreported peak', e => { e.final.peak_retention_bytes = 79; }, /NativeOwnerExceedsRecordedRetentionPeak/],
+  ['missing peak', e => { delete e.final.peak_retention_bytes; }, /InvalidNativeOwnerQuantity:peak_retention_bytes/],
+  ['unavailable startup', e => { e.observations.candidates[0].body[5][0][5][1][5] = '129'; }, /NativeStartupExceedsAvailableRetention/],
+  ['startup beside a coheld reservation', e => { e.observations.owners[0].reservedRetentionBytes = 65; }, /NativeStartupExceedsAvailableRetention/],
+]) test(`same Run growth refuses ${name}`, () => {
+  const e = fundedGrowthEvidence(); mutate(e);
+  assert.throws(() => admitNativeOwnerObservations(e.observations, e.holdings,
+    e.selected, e.final, limit), issue);
+});
+
+test('removing all limit observations cannot waive the strict legacy offer bound', () => {
+  const e = fundedGrowthEvidence();
+  for (const owner of e.observations.owners) delete owner.retentionLimitBytes;
+  assert.throws(() => admitGrowth(e), /NativeHoldingExceedsSelectedBound/);
+});
