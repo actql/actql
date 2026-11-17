@@ -83,6 +83,7 @@ concurrency:
 # Public repository validation uses only read permissions. Private/unknown
 # visibility stays outside this workflow; no activation variable is required.
 jobs:
+  # Admit inexpensive Source invariants before publishing the fan-out plan.
   select-targets:
     permissions:
       contents: read
@@ -105,6 +106,12 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 22.22.0
+          cache: npm
+      - name: Check owned contract versions
+        run: npm run check:contract-versions
+      - run: npm ci
+      - name: Type-check public SDK and Client wire declarations
+        run: npm run check:client-types
       - name: Identify a regular Moon-only change before preparing graph tooling
         id: moon-candidate
         run: node scripts/ci-targets.mjs moon-graph-candidate
@@ -176,8 +183,6 @@ jobs:
       - run: npm ci
       - name: Test pipeline artifact and aggregate contracts
         run: node --test proofs/relation-pipeline/ci-artifacts.test.mjs
-      - name: Check owned contract versions
-        run: npm run check:contract-versions
       - name: Check specification metadata without updating it
         run: npm run check:metadata
       - name: Install pinned MoonBit
@@ -223,8 +228,6 @@ jobs:
       - name: Test source-only INFER evaluation contracts
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- examples/infer-evaluation/evaluate.test.mjs examples/infer-evaluation/compare-source-instructions.test.mjs
-      - name: Type-check public SDK and Client wire declarations
-        run: npm run check:client-types
       - name: Test original Source current control ownership
         run: node --test scripts/source-read-current-control.test.mjs
       - name: Test read-only worktree inventory fixtures
@@ -1690,8 +1693,8 @@ jobs:
           retention-days: 7
   # Require the existing push-only monitor result; its timing warnings remain nonblocking.
   health-quick:
-    needs: [client-packages]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    needs: [select-targets, client-packages]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && needs.select-targets.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/main' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     uses: ./.github/workflows/health-monitor.yml
     permissions:
       contents: read

@@ -1,5 +1,15 @@
 # Client CI groups
 
+The existing `select-targets` job runs the owned-contract-version and strict
+public SDK/Client declaration checks before publishing its fan-out plan. Each
+recipe runs once, rather than repeating in preflight or lint. This also requires
+the root locked npm installation and TypeScript for Moon-only changes; it adds
+preparation cost to that path. Compiler graph discovery and event/profile
+selection remain unchanged. An admission failure leaves the final check failed,
+even when downstream workloads cannot start. The main-only health workflow also
+requires successful admission so a skipped producer cannot trigger fresh
+packaging; producer failures after valid admission still reach its monitor.
+
 The Host job retains `check:local-node-source-assets`: source input/type checks,
 clean prepack from an empty producer, and external connector compositions. These
 construct different inputs and do not consume the normal shared tarballs. The

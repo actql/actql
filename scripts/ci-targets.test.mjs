@@ -84,6 +84,61 @@ test('preflight checks Native counter assignments before the build toolchain', (
   assert.ok(!jobs.native.needs.includes('preflight'));
 });
 
+test('early Source admission runs original recipes once and refuses plan publication on failure', t => {
+  const steps = jobs['select-targets'].steps, select = steps.find(step => step.id === 'select');
+  const recipes = ['check:contract-versions', 'check:client-types'];
+  for (const recipe of recipes) {
+    const selected = Object.entries(jobs).flatMap(([job, value]) => (value.steps ?? [])
+      .filter(step => step.run?.trim().split(/\s+/u).join(' ') === `npm run ${recipe}`)
+      .map(step => ({job, step})));
+    assert.equal(selected.length, 1, `${recipe}: missing or duplicated original recipe`);
+    assert.equal(selected[0].job, 'select-targets');
+    assert.equal(selected[0].step.if, undefined);
+    assert.notEqual(selected[0].step['continue-on-error'], true);
+    assert(steps.indexOf(selected[0].step) < steps.indexOf(select));
+  }
+  const graph = steps.find(step => step.id === 'moon-candidate');
+  assert(steps.indexOf(graph) < steps.indexOf(select));
+  const prefix = steps.slice(0, steps.indexOf(select) + 1).filter(step => step.run && !step.if);
+  const directory = mkdtempSync(join(tmpdir(), 'actql-source-admission-')), bin = join(directory, 'bin');
+  t.after(() => rmSync(directory, {recursive: true, force: true}));mkdirSync(bin);
+  // Execute the actual YAML command prefix with closed recording command ports.
+  // No npm installation, type sweep, compiler or target-selection scan runs.
+  const record = `#!${process.execPath}\nconst fs = require('node:fs');
+    const command = require('node:path').basename(process.argv[1]), args = process.argv.slice(2);
+    fs.appendFileSync(process.env.CALLS, JSON.stringify({command,args})+'\\n');
+    if(command==='npm') {
+      const recipe=args[0]==='run'?args[1]:args[0];
+      if(recipe===process.env.FAIL_RECIPE)process.exit(71);
+    } else if(!args.includes('moon-graph-candidate')) {
+      fs.appendFileSync(process.env.GITHUB_OUTPUT,'plan=recording-port\\n');
+    }\n`;
+  for (const command of ['npm', 'node']) writeFileSync(join(bin, command), record, {mode: 0o755});
+  for (const failure of [...recipes, 'ci', '']) {
+    const calls = join(directory, `calls-${failure || 'success'}`), output = join(directory, `output-${failure || 'success'}`);
+    writeFileSync(output, '');
+    const child = spawnSync('/bin/bash', ['-eo', 'pipefail', '-c', prefix.map(step => step.run).join('\n')], {
+      cwd: directory, encoding: 'utf8', timeout: 5000,
+      env: {...process.env, PATH: bin + ':/usr/bin:/bin', CALLS: calls, FAIL_RECIPE: failure, GITHUB_OUTPUT: output},
+    });
+    assert.equal(child.error, undefined);assert.equal(child.signal, null);
+    assert.equal(child.status, failure ? 71 : 0, child.stderr);
+    const observed = readFileSync(calls, 'utf8').trim().split('\n').map(line => JSON.parse(line));
+    const npmCalls = observed.filter(row => row.command === 'npm');
+    for (const recipe of recipes) assert.equal(npmCalls.filter(row => row.args[1] === recipe).length,
+      recipe === recipes[1] && [recipes[0], 'ci'].includes(failure) ? 0 : 1);
+    assert.equal(npmCalls.filter(row => row.args[0] === 'ci').length, failure === recipes[0] ? 0 : 1);
+    assert.equal(readFileSync(output, 'utf8').includes('plan='), failure === '');
+    // A refused Source cannot start even the optional Moon discovery entrance.
+    assert.equal(observed.some(row => row.command === 'node'), failure === '');
+  }
+  const {scripts} = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  const types = scripts['check:client-types'].split(/\s+/u);
+  for (const required of ['--strict', '--noEmit', 'packages/sdk/index.d.ts', 'packages/client-wire/index.d.ts'])
+    assert(types.includes(required), required);
+  assert(!types.includes('--skipLibCheck'));
+});
+
 test('Linux Native profile compilers retain their commands and existing stack prerequisite', t => {
   const root = mkdtempSync(join(tmpdir(), 'actql-native-profile-stack-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));
@@ -1274,9 +1329,9 @@ test('actual final gate command fails closed for missing or corrupted plans', t 
   writeFileSync(eventPath, JSON.stringify({action: 'synchronize', pull_request: {draft: false}}));
   const selection = maintenanceSelection(['docs/development.md']);
   const script = jobs.check.steps.find(step => step.run).run;
-  const run = value => spawnSync('bash', ['-eo', 'pipefail', '-c', script
+  const run = (value, needs = results(selection)) => spawnSync('bash', ['-eo', 'pipefail', '-c', script
     .replaceAll('${{ needs.select-targets.outputs.plan }}', value)
-    .replaceAll('${{ toJSON(needs) }}', JSON.stringify(results(selection)))], {cwd: new URL('../', import.meta.url),
+    .replaceAll('${{ toJSON(needs) }}', JSON.stringify(needs))], {cwd: new URL('../', import.meta.url),
     encoding: 'utf8', env: {...process.env, CI_PLAN: '', RESULTS: '',
       CI_PLAN_PATH: join(dir, 'plan.json'), RESULTS_PATH: join(dir, 'results.json'),
       GITHUB_SHA: head, GITHUB_EVENT_NAME: 'pull_request', GITHUB_EVENT_PATH: eventPath, GITHUB_STEP_SUMMARY: ''}});
@@ -1291,6 +1346,14 @@ test('actual final gate command fails closed for missing or corrupted plans', t 
   assert.equal(run(JSON.stringify(plan(selection))).status, 0);
   for (const value of ['', 'undefined', '{}', JSON.stringify({...plan(selection), sourceRevision: 'a'.repeat(40)})]) {
     assert.notEqual(run(value).status, 0);
+  }
+  for (const result of ['failure', 'cancelled', 'skipped', undefined]) {
+    const needs = Object.fromEntries(gateJobs.map(name => [name, {result: name === 'select-targets' ? result : 'skipped'}]));
+    assert.equal(scheduled('check', needs), true, 'Failed selection must not skip the required final gate');
+    assert.notEqual(run('', needs).status, 0, 'No selection output is not a valid unselected profile');
+    const withPlan = run(JSON.stringify(plan(selection)), needs);
+    assert.notEqual(withPlan.status, 0);
+    assert.match(withPlan.stderr, /select-targets: expected success/u);
   }
 });
 
@@ -2000,8 +2063,12 @@ test('existing push-only health result is required by the same aggregate that sc
   assert(jobs.check.needs.includes('health-quick'));
   assert(gateJobs.includes('health-quick'));
   assert.equal(jobs['health-quick'].uses, './.github/workflows/health-monitor.yml');
-  const runs = (event, ref = 'refs/heads/main', inputs = {}) => runInNewContext(
-    jobs['health-quick'].if.slice(3, -3), {inputs, always: () => true, toJSON: JSON.stringify,
+  assert(jobs['health-quick'].needs.includes('select-targets'));
+  assert(jobs['health-quick'].needs.includes('client-packages'));
+  const runs = (event, ref = 'refs/heads/main', inputs = {}, outcomes = {admission: 'success', producer: 'success'}) => runInNewContext(
+    jobs['health-quick'].if.slice(3, -3).replace(/needs\.([a-z][a-z0-9-]*)/gu, (_, name) => `needs[${JSON.stringify(name)}]`),
+    {inputs, always: () => true, toJSON: JSON.stringify,
+      needs: {'select-targets': {result: outcomes.admission}, 'client-packages': {result: outcomes.producer}},
       github: {event_name: event, ref, event: {repository: {visibility: 'public', private: false}}}});
   for (const event of ['push', 'pull_request', 'schedule', 'workflow_dispatch']) {
     const selection = selectTargets(['README.md'], {event});
@@ -2018,6 +2085,13 @@ test('existing push-only health result is required by the same aggregate that sc
   assert.equal(runs('push', 'refs/heads/feature'), false);
   for (const mode of ['performance_matrix', 'packed_query_evidence_probe'])
     assert.equal(runs('push', 'refs/heads/main', {[mode]: true}), false);
+  for (const producer of ['success', 'failure', 'cancelled', 'skipped', undefined]) {
+    assert.equal(runs('push', 'refs/heads/main', {}, {admission: 'success', producer}), true,
+      'Valid admission must preserve the real producer outcome in the monitor');
+    for (const admission of ['failure', 'cancelled', 'skipped', undefined])
+      assert.equal(runs('push', 'refs/heads/main', {}, {admission, producer}), false,
+        'Failed admission cannot reach the fresh-package monitor fallback');
+  }
 });
 
 test('push applicability reads only exact authenticated endpoints and keeps deleted/renamed paths', () => {

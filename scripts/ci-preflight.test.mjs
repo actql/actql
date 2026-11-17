@@ -104,15 +104,18 @@ test('pinned actionlint checks every workflow before expensive fan-out', () => {
 });
 
 
-test('moved validators execute exactly once before fan-out; complete local spec command is preserved', () => {
-  const preflight = commands('preflight');
-  for (const command of ['npm run check:contract-versions', 'moon fmt --check',
-    'node scripts/check-moonbit-api.mjs', 'npm run check:metadata']) {
-    assert.equal(preflight.filter(value => value === command).length, 1, command);
-    assert(![...commands('lint'), ...commands('spec')].includes(command), command);
+test('mandatory validators execute once and the complete local spec command is preserved', () => {
+  for (const [owner, command] of [['select-targets', 'npm run check:contract-versions'],
+    ...['moon fmt --check', 'node scripts/check-moonbit-api.mjs', 'npm run check:metadata']
+      .map(command => ['preflight', command])]) {
+    const selected = Object.entries(jobs).filter(([, job]) => job.steps)
+      .flatMap(([name]) => commands(name).filter(value => value === command).map(() => name));
+    assert.deepEqual(selected, [owner], command);
   }
   const {scripts} = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
-  assert.equal(scripts['check:spec'], 'npm run check:interfaces && npm run check:contract-versions && npm run check:spec-after-preflight');
+  const local = scripts['check:spec'].split('&&').map(command => command.trim());
+  for (const recipe of ['check:interfaces', 'check:contract-versions', 'check:spec-after-preflight'])
+    assert.equal(local.filter(command => command === `npm run ${recipe}`).length, 1, recipe);
   assert(!scripts['check:spec-after-preflight'].includes('check:contract-versions'));
   assert(commands('spec').includes('npm run check:spec-after-preflight'));
 });
