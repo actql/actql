@@ -1,5 +1,5 @@
 import type {Client, RunReference} from '@actql/sdk';
-import {createReadEpoch, describeExistingResult, planStoryModel, readExistingRun, readExistingRunPlan, readExistingRunStory, readStaticPlan} from './read-model.js';
+import {createReadEpoch, describeExistingResult, explanationStoryModel, planStoryModel, readExistingRun, readExistingRunPlan, readExistingRunStory, readStaticPlan} from './read-model.js';
 import type {WirePlanView, WireExplanationFacts, WireRunExplanationView} from '@actql/client-wire';
 declare const structuralFacts: WireExplanationFacts;
 declare const savedExplanation: WireRunExplanationView;
@@ -21,6 +21,12 @@ const lengthLeak: RedactedLiteral['type'] = {...redacted.type, max_utf8_bytes: 7
 const repaired: WireRunExplanationView['explanation'] = {state: 'not_projected', reason: 'not_retained', facts: structuralFacts};
 void structuralOnly; void literalLeak; void lengthLeak; void repaired;
 declare const originalView: WirePlanView;
+const explained = explanationStoryModel(originalView, structuralFacts, {locale: 'ja'});
+const originalFactsCid: string = explained.factsCid;
+const originalMeaning: WireExplanationFacts['steps'][number]['meaning'] = explained.occurrences[0].explanation.meaning;
+// @ts-expect-error Structural explanation text is not an execution/control fact.
+const executionConfirmed: true = explained.occurrences[0].explanation.executed;
+void originalFactsCid; void originalMeaning; void executionConfirmed;
 const story = planStoryModel(originalView, {locale: 'ja'});
 const logicalOrder: 'logical_dependencies' = story.ordering.kind;
 const storyStatic: 'static' = story.observation;

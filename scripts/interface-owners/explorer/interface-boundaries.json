@@ -2400,8 +2400,9 @@
     {
       "module": "packages/explorer-ui/read-model.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "b685a43c8925ccc6473059c0ef79b59307b0aff592264d88d433d412dd9ab0a9",
+      "sha256": "73f448f6b32736f2e1cfed5a353bb1a1b0867920262b2d5a8db211ff1f2abd5b",
       "exports": [
+        "ExplanationStoryModel",
         "ExplorerReadError",
         "OriginalRunPlanReadModel",
         "OriginalRunStoryReadModel",
@@ -2410,6 +2411,7 @@
         "ReadTicket",
         "createReadEpoch",
         "describeExistingResult",
+        "explanationStoryModel",
         "graphViewLimits",
         "planReadModel",
         "planStoryModel",
@@ -2448,6 +2450,15 @@
             "ticket: ReadTicket"
           ],
           "result": "Promise<ResultDescription>"
+        },
+        {
+          "name": "explanationStoryModel",
+          "parameters": [
+            "view: WirePlanView | WireEffectfulStaticPlanView",
+            "facts: WireExplanationFacts",
+            "options?: {locale?: 'en' | 'ja'}"
+          ],
+          "result": "ExplanationStoryModel"
         },
         {
           "name": "planReadModel",
@@ -2520,6 +2531,7 @@
             "createReadEpoch/capture",
             "createReadEpoch/invalidate",
             "describeExistingResult",
+            "explanationStoryModel",
             "planReadModel",
             "planStoryModel",
             "readExistingRun",
@@ -2528,6 +2540,7 @@
             "readStaticPlan"
           ],
           "exports": [
+            "ExplanationStoryModel",
             "ExplorerReadError",
             "OriginalRunPlanReadModel",
             "OriginalRunStoryReadModel",
@@ -2536,6 +2549,7 @@
             "ReadTicket",
             "createReadEpoch",
             "describeExistingResult",
+            "explanationStoryModel",
             "graphViewLimits",
             "planReadModel",
             "planStoryModel",
@@ -2643,6 +2657,10 @@
               {
                 "path": "packages/explorer-ui/read-model.test.mjs",
                 "anchor": "saved Story uses the same original Run without recompilation and captures locale once"
+              },
+              {
+                "path": "packages/explorer-ui/read-model.test.mjs",
+                "anchor": "structural Story explains original fields and JOIN keys in EN/JA without observations"
               }
             ]
           }
@@ -2652,11 +2670,12 @@
     {
       "module": "packages/explorer-ui/read-model.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4c3c36fafc9a23be490ad9ae3c1bee8ba3f14d150f1df57f10742e6bc5d96805",
+      "sha256": "8be46ab2a23e83db35ca39b69b543d6ca7cc2f8bf09d8c1d21f8b1d040013a0e",
       "exports": [
         "ExplorerReadError",
         "createReadEpoch",
         "describeExistingResult",
+        "explanationStoryModel",
         "graphViewLimits",
         "planReadModel",
         "planStoryModel",
@@ -2704,6 +2723,23 @@
         {
           "name": "describeExistingResult/run/run",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "explanationStoryModel",
+          "parameters": [
+            "view",
+            "facts",
+            "locale"
+          ],
+          "async": false
+        },
+        {
+          "name": "explanationStoryModel/explanationStoryModel",
+          "parameters": [
+            "occurrence",
+            "index"
+          ],
           "async": false
         },
         {
@@ -2767,6 +2803,13 @@
           "async": false
         },
         {
+          "name": "predicateStory/predicateStory",
+          "parameters": [
+            "state"
+          ],
+          "async": false
+        },
+        {
           "name": "readExistingRun",
           "parameters": [
             "client",
@@ -2818,6 +2861,45 @@
           "name": "readStaticPlan/readStaticPlan",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "sameIds/sameIds/original/original",
+          "parameters": [
+            "port"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameIds/sameIds/sameIds",
+          "parameters": [
+            "id",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "storyConstructionBudget/init:text/init:text",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "storyConstructionBudget/init:text/init:text/init:append/init:append",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "storyConstructionBudget/init:text/init:text/init:finish/init:finish",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "storyConstructionBudget/init:text/init:text/init:quote/init:quote",
+          "parameters": [
+            "value"
+          ],
+          "async": false
         }
       ],
       "imports": [
@@ -2840,6 +2922,8 @@
             "describeExistingResult",
             "describeExistingResult/describeExistingResult",
             "describeExistingResult/run/run",
+            "explanationStoryModel",
+            "explanationStoryModel/explanationStoryModel",
             "freeze/freeze",
             "originalRunPlan/run/run",
             "originalRunPlan/view/view",
@@ -2849,18 +2933,26 @@
             "planStoryModel",
             "planStoryModel/planStoryModel",
             "planStoryModel/planStoryModel#2",
+            "predicateStory/predicateStory",
             "readExistingRun",
             "readExistingRun/readExistingRun",
             "readExistingRun/run/run",
             "readExistingRunPlan",
             "readExistingRunStory",
             "readStaticPlan",
-            "readStaticPlan/readStaticPlan"
+            "readStaticPlan/readStaticPlan",
+            "sameIds/sameIds/original/original",
+            "sameIds/sameIds/sameIds",
+            "storyConstructionBudget/init:text/init:text",
+            "storyConstructionBudget/init:text/init:text/init:append/init:append",
+            "storyConstructionBudget/init:text/init:text/init:finish/init:finish",
+            "storyConstructionBudget/init:text/init:text/init:quote/init:quote"
           ],
           "exports": [
             "ExplorerReadError",
             "createReadEpoch",
             "describeExistingResult",
+            "explanationStoryModel",
             "graphViewLimits",
             "planReadModel",
             "planStoryModel",
@@ -2873,7 +2965,7 @@
             "responsibility": [
               {
                 "path": "packages/explorer-ui/read-model.mjs",
-                "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape} from '@actql/client-wire';"
+                "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               },
               {
                 "path": "packages/explorer/README.md",
@@ -2883,7 +2975,7 @@
             "inputsOutputs": [
               {
                 "path": "packages/explorer-ui/read-model.mjs",
-                "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape} from '@actql/client-wire';"
+                "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
             "identity": [
@@ -2893,7 +2985,7 @@
               },
               {
                 "path": "packages/explorer-ui/read-model.mjs",
-                "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape} from '@actql/client-wire';"
+                "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
             "ownership": [
@@ -2903,7 +2995,7 @@
               },
               {
                 "path": "packages/explorer-ui/read-model.mjs",
-                "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape} from '@actql/client-wire';"
+                "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
             "synchronization": [
@@ -2913,7 +3005,7 @@
               },
               {
                 "path": "packages/explorer-ui/read-model.mjs",
-                "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape} from '@actql/client-wire';"
+                "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
             "failure": [
@@ -2923,7 +3015,7 @@
               },
               {
                 "path": "packages/explorer-ui/read-model.mjs",
-                "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape} from '@actql/client-wire';"
+                "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
             "cancellation": [
@@ -2933,7 +3025,7 @@
               },
               {
                 "path": "packages/explorer-ui/read-model.mjs",
-                "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape} from '@actql/client-wire';"
+                "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
             "resources": [
@@ -2943,7 +3035,7 @@
               },
               {
                 "path": "packages/explorer-ui/read-model.mjs",
-                "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape} from '@actql/client-wire';"
+                "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
             "extension": [
@@ -2953,7 +3045,7 @@
               },
               {
                 "path": "packages/explorer-ui/read-model.mjs",
-                "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape} from '@actql/client-wire';"
+                "anchor": "import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';"
               }
             ],
             "verification": [
@@ -2968,6 +3060,22 @@
               {
                 "path": "packages/explorer-ui/read-model.test.mjs",
                 "anchor": "saved Story uses the same original Run without recompilation and captures locale once"
+              },
+              {
+                "path": "packages/explorer-ui/read-model.test.mjs",
+                "anchor": "structural Story explains original fields and JOIN keys in EN/JA without observations"
+              },
+              {
+                "path": "packages/explorer-ui/read-model.test.mjs",
+                "anchor": "structural construction admits long field and parameter text before quote or output allocation"
+              },
+              {
+                "path": "packages/explorer-ui/read-model.test.mjs",
+                "anchor": "structural construction admits shared-child copies before a large joined predicate exists"
+              },
+              {
+                "path": "packages/explorer-ui/read-model.test.mjs",
+                "anchor": "structural construction admits escaped expansion before the native quote call"
               }
             ]
           }

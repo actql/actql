@@ -1,5 +1,5 @@
 import type {Client, RunReference, ResultDescription} from '@actql/sdk';
-import type {WireEffectfulStaticPlanView, WirePlanView, WireRunView} from '@actql/client-wire';
+import type {WireEffectfulStaticPlanView, WirePlanView, WireRunView, WireExplanationFacts} from '@actql/client-wire';
 
 export class ExplorerReadError extends Error { readonly code: string }
 export const graphViewLimits: Readonly<{steps: 256; ports: 1024}>;
@@ -37,6 +37,15 @@ export type PlanStoryModel = Readonly<{
 }>;
 export function planStoryModel(view: WirePlanView | WireEffectfulStaticPlanView,
   options?: {locale?: 'en' | 'ja'}): PlanStoryModel;
+export type ExplanationStoryModel = Omit<PlanStoryModel, 'occurrences'> & Readonly<{
+  factsCid: string; parameterValuesCid: string;
+  occurrences: readonly (PlanStoryModel['occurrences'][number] & Readonly<{
+    explanation: Readonly<{state: 'projected' | 'not_projected'; text: string;
+      meaning: WireExplanationFacts['steps'][number]['meaning']}>;
+  }>)[];
+}>;
+export function explanationStoryModel(view: WirePlanView | WireEffectfulStaticPlanView,
+  facts: WireExplanationFacts, options?: {locale?: 'en' | 'ja'}): ExplanationStoryModel;
 export type ReadTicket = Readonly<{assertCurrent(): void}>;
 export function createReadEpoch(): Readonly<{invalidate(): void; capture(): ReadTicket}>;
 export function readStaticPlan(client: Pick<Client, 'plan'>,

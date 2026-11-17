@@ -1,4 +1,4 @@
-import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape} from '@actql/client-wire';
+import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';
 
 import {ExplorerReadError, graphViewLimits} from './presentation-limits.mjs';
 export {ExplorerReadError, graphViewLimits} from './presentation-limits.mjs';
@@ -125,6 +125,204 @@ export function planStoryModel(view, {locale = 'en'} = {}) {
     sourceOrigins: model.sourceOrigins,
     ...(model.effectful ? {declaredEffects: model.effectful} : {}),
   });
+}
+
+// These finite presentation bounds do not change the Core expression language.
+const explanationLimits = Object.freeze({nodes: 1024, depth: 64, characters: 65536});
+const explanationText = Object.freeze({
+  en: Object.freeze({values: 'Declared input fields', input: 'Original input/output binding',
+    filter: 'Keep rows where', select: 'Select output fields', rename: 'Rename output fields',
+    drop: 'Output fields after dropping', join: 'join on', nullKey: 'Null keys',
+    no_match: 'do not match', fail: 'fail', redacted: 'redacted',
+    unprojected: 'Meaning not projected', predicate: 'Predicate form not projected',
+    conditional: 'conditional',
+    operators: Object.freeze({and: 'AND', or: 'OR', not: 'NOT', eq: '=', neq: '≠',
+      lt: '<', lte: '≤', gt: '>', gte: '≥', is_null: 'IS NULL', not_null: 'IS NOT NULL',
+      is_distinct_from: 'IS DISTINCT FROM'})}),
+  ja: Object.freeze({values: '宣言された入力フィールド', input: '元の入力と出力の対応',
+    filter: 'この条件を満たす行を残す', select: '出力するフィールド', rename: '出力フィールド名の変更',
+    drop: '削除後の出力フィールド', join: '結合のキー', nullKey: 'NULLキー',
+    no_match: '一致させない', fail: '失敗', redacted: '非開示',
+    unprojected: '意味の説明は未提供', predicate: 'この述語形式の説明は未提供',
+    conditional: '条件付き',
+    operators: Object.freeze({and: 'かつ', or: 'または', not: '否定', eq: '=', neq: '≠',
+      lt: '<', lte: '≤', gt: '>', gte: '≥', is_null: 'NULLである', not_null: 'NULLではない',
+      is_distinct_from: 'NULLを区別して異なる'})}),
+});
+// Debit before quoting or copying a child into a parent. The final join only
+// combines already-admitted pieces; it cannot first create an oversized text.
+function storyConstructionBudget() {
+  let remaining = explanationLimits.characters;
+  const reserve = size => {
+    if (!Number.isSafeInteger(size) || size < 0 || size > remaining) refuse('ExplorerExplanationLimit');
+    remaining -= size;
+  };
+  function quoteSize(value) {
+    let size = 2;
+    if (value.length > remaining - size) refuse('ExplorerExplanationLimit');
+    for (let index = 0; index < value.length; index++) {
+      const code = value.charCodeAt(index);
+      if (code === 34 || code === 92 || code === 8 || code === 9 ||
+          code === 10 || code === 12 || code === 13) size += 2;
+      else if (code < 32) size += 6;
+      else if (code >= 0xd800 && code <= 0xdbff) {
+        const next = value.charCodeAt(index + 1);
+        if (next >= 0xdc00 && next <= 0xdfff) {size += 2; index++;}
+        else size += 6;
+      } else size += code >= 0xdc00 && code <= 0xdfff ? 6 : 1;
+      if (size > remaining) refuse('ExplorerExplanationLimit');
+    }
+    return size;
+  }
+  return {text() {
+    const parts = [];
+    return {
+      append(value) {reserve(value.length); parts.push(value);},
+      quote(value) {reserve(quoteSize(value)); parts.push(JSON.stringify(value));},
+      finish() {return parts.join('');},
+    };
+  }};
+}
+function appendType(output, type) {
+  output.append(type.kind);
+  if (type.nullable) output.append('?');
+}
+function predicateStory(predicate, text, budget) {
+  if (predicate.state === 'not_projected') return text.predicate;
+  const nodes = predicate.nodes;
+  const states = new Uint8Array(nodes.length), rendered = new Array(nodes.length);
+  function render(index, depth) {
+    if (!Number.isSafeInteger(index) || index < 0 || index >= nodes.length ||
+        states[index] === 1) refuse('ExplorerInvalidExplanation');
+    if (depth > explanationLimits.depth) refuse('ExplorerExplanationLimit');
+    if (states[index] === 2) return rendered[index];
+    states[index] = 1;
+    const node = nodes[index], output = budget.text();
+    if (node.form === 'literal_redacted') {
+      output.append('['); output.append(text.redacted); output.append(' ');
+      appendType(output, node.type); output.append(']');
+    } else if (node.form === 'field') {
+      output.append(node.scope); output.append('.'); output.quote(node.name); output.append(':');
+      appendType(output, node.type);
+    } else if (node.form === 'parameter') {
+      output.append('$'); output.append(node.name); output.append(':'); appendType(output, node.type);
+    } else {
+      const children = node.children, operator = text.operators[node.operator];
+      if (['not', 'is_null', 'not_null'].includes(node.operator)) {
+        if (children.length !== 1) refuse('ExplorerInvalidExplanation');
+        if (node.operator === 'not') {output.append(operator); output.append(' ');}
+        output.append('('); output.append(render(children[0], depth + 1)); output.append(')');
+        if (node.operator !== 'not') {output.append(' '); output.append(operator);}
+      } else if (node.operator === 'and' || node.operator === 'or') {
+        if (children.length < 2) refuse('ExplorerInvalidExplanation');
+        for (let i = 0; i < children.length; i++) {
+          if (i > 0) {output.append(' '); output.append(operator); output.append(' ');}
+          output.append('('); output.append(render(children[i], depth + 1)); output.append(')');
+        }
+      } else {
+        if (children.length !== 2) refuse('ExplorerInvalidExplanation');
+        output.append('('); output.append(render(children[0], depth + 1)); output.append(' ');
+        output.append(operator); output.append(' '); output.append(render(children[1], depth + 1)); output.append(')');
+      }
+    }
+    rendered[index] = output.finish();
+    states[index] = 2;
+    return rendered[index];
+  }
+  const result = render(predicate.root, 0);
+  // The supplied projection cannot hide an unrelated node outside its root.
+  if (states.some(state => state !== 2)) refuse('ExplorerInvalidExplanation');
+  return result;
+}
+function meaningStory(meaning, text, budget) {
+  const output = budget.text();
+  switch (meaning.kind) {
+    case 'input_output': output.append(text.input); break;
+    case 'values':
+      output.append(text.values); output.append(': ');
+      for (let i = 0; i < meaning.schema.fields.length; i++) {
+        const field = meaning.schema.fields[i];
+        if (i > 0) output.append(', ');
+        output.quote(field.name); output.append(':'); appendType(output, field.type);
+        if (field.presence === 'conditional') {
+          output.append(' ('); output.append(text.conditional); output.append(')');
+        }
+      }
+      break;
+    case 'filter':
+      output.append(text.filter); output.append(': ');
+      output.append(predicateStory(meaning.predicate, text, budget)); break;
+    case 'projection':
+      output.append(text[meaning.operation]); output.append(': ');
+      for (let i = 0; i < meaning.fields.length; i++) {
+        if (i > 0) output.append(', ');
+        output.quote(meaning.fields[i].output); output.append(' ← '); output.quote(meaning.fields[i].input);
+      }
+      break;
+    case 'join':
+      output.append(meaning.join_kind); output.append(' '); output.append(text.join); output.append(': ');
+      for (let i = 0; i < meaning.keys.length; i++) {
+        if (i > 0) output.append(', ');
+        output.append('left.'); output.quote(meaning.keys[i].left);
+        output.append(' = right.'); output.quote(meaning.keys[i].right);
+      }
+      output.append('; '); output.append(text.nullKey); output.append(': '); output.append(text[meaning.null_key]);
+      break;
+    case 'not_projected': output.append(text.unprojected); break;
+    default: refuse('ExplorerInvalidExplanation');
+  }
+  return output.finish();
+}
+const sameKey = (a, b) => a.self_cid === b.self_cid &&
+  a.compiled_plan_cid === b.compiled_plan_cid && a.stage_ordinal === b.stage_ordinal &&
+  a.occurrence.kind === b.occurrence.kind &&
+  (a.occurrence.kind === 'operation'
+    ? a.occurrence.operation_ordinal === b.occurrence.operation_ordinal
+    : a.occurrence.input_port_ordinal === b.occurrence.input_port_ordinal);
+const sameIds = (ids, ports, role) => {
+  const original = ports.filter(port => port.role === role);
+  return ids.length === original.length && ids.every((id, index) => id === original[index].port_id);
+};
+
+// Consume SDK-admitted facts and original Plan DATA only. Shape/CID equality
+// here protects presentation correspondence; it cannot replace Host current
+// read/egress admission or establish compiler provenance by itself.
+export function explanationStoryModel(view, facts, {locale = 'en'} = {}) {
+  const story = planStoryModel(view, {locale});
+  if (!Array.isArray(facts?.steps) || facts.steps.length > graphViewLimits.steps) refuse('ExplorerExplanationLimit');
+  let nodes = 0, edges = 0, fields = 0;
+  for (const step of facts.steps) {
+    const meaning = step?.meaning;
+    if (meaning?.kind === 'filter' && meaning.predicate?.state === 'projected') {
+      if (!Array.isArray(meaning.predicate.nodes) ||
+          (nodes += meaning.predicate.nodes.length) > explanationLimits.nodes) refuse('ExplorerExplanationLimit');
+      for (const node of meaning.predicate.nodes) {
+        if (node?.form === 'operation' && (!Array.isArray(node.children) ||
+            (edges += node.children.length) > explanationLimits.nodes)) refuse('ExplorerExplanationLimit');
+      }
+    }
+    const collection = meaning?.schema?.fields ?? meaning?.fields ?? meaning?.keys ?? [];
+    if (!Array.isArray(collection) || (fields += collection.length) > graphViewLimits.ports) refuse('ExplorerExplanationLimit');
+  }
+  if (!validWireExplanationFactsShape(facts) ||
+      facts.compiled_plan_cid !== story.compiledPlanCid ||
+      facts.program_definition_cid !== story.programDefinitionCid ||
+      facts.logical_map_cid !== story.logicalMapCid ||
+      facts.steps.length !== story.occurrences.length ||
+      (story.declaredEffects !== undefined && facts.parameter_values_cid !== story.declaredEffects.parameterValuesCid)) {
+    refuse('ExplorerInvalidExplanation');
+  }
+  const text = explanationText[locale], budget = storyConstructionBudget();
+  return freeze({...story, factsCid: facts.self_cid, parameterValuesCid: facts.parameter_values_cid,
+    occurrences: story.occurrences.map((occurrence, index) => {
+      const fact = facts.steps[index];
+      if (fact.step_id !== occurrence.stepId || fact.operator !== occurrence.operator ||
+          !sameKey(fact.key, occurrence.key) || !sameIds(fact.input_ports, occurrence.ports, 'input') ||
+          !sameIds(fact.output_ports, occurrence.ports, 'output')) refuse('ExplorerInvalidExplanation');
+      const rendered = meaningStory(fact.meaning, text, budget);
+      return {...occurrence, explanation: {state: fact.meaning.kind === 'not_projected' ? 'not_projected' : 'projected',
+        meaning: structuredClone(fact.meaning), text: rendered}};
+    })});
 }
 
 // A UI epoch only discards stale presentation. It is not a Host permission,

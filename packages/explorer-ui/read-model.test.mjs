@@ -5,7 +5,7 @@ import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {connectInProcess} from '../sdk/host-port.mjs';
 import {startExplorerGateway} from '../explorer/gateway.mjs';
 import {createExplorerBrowserSource} from '../explorer/browser-source.mjs';
-import {createReadEpoch, describeExistingResult, planReadModel, planStoryModel,
+import {createReadEpoch, describeExistingResult, explanationStoryModel, planReadModel, planStoryModel,
   readExistingRun, readExistingRunPlan, readExistingRunStory, readStaticPlan} from './read-model.mjs';
 
 // Independent semantic fixture, not compiler output or public acceptance.
@@ -493,4 +493,175 @@ test('Effectful static declarations retain unknowns without adding computation e
   const foreign = structuredClone(effectfulStaticPlan);
   foreign.program_definition_cid = 'sha256:' + 'f'.repeat(64);
   assert.throws(() => planReadModel(foreign), {code: 'ExplorerInvalidPlan'});
+});
+
+// Independently authored semantic projection DATA, not a compiler/Host grant.
+const explanationType = kind => ({projection: 'shape_and_nullability', kind, nullable: false});
+const explanationValues = {kind: 'values', schema: {fields: [
+  {name: 'id', presence: 'required', type: explanationType('number')},
+  {name: 'label', presence: 'conditional', type: explanationType('string')},
+]}};
+const explanationJoin = {kind: 'join', join_kind: 'inner', null_key: 'no_match', keys: [{left: 'id', right: 'id'}]};
+function explanationFixture(view, meaning = explanationJoin) {
+  return sealed({version: 'actql-explanation-facts/0.1', disclosure: 'structural',
+    program_definition_cid: view.logical_map.program_definition_cid,
+    parameter_values_cid: cid('9'), compiled_plan_cid: view.compiled_plan_cid,
+    logical_map_cid: view.logical_map.self_cid,
+    steps: view.logical_map.steps.map((step, index) => ({step_id: step.step_id,
+      key: structuredClone(step.key), operator: step.operator,
+      input_ports: step.ports.filter(port => port.role === 'input').map(port => port.port_id),
+      output_ports: step.ports.filter(port => port.role === 'output').map(port => port.port_id),
+      meaning: structuredClone(index === 0 ? explanationValues : meaning)}))});
+}
+function explanationUnary(operator) {
+  const view = fixture(), {self_cid, ...map} = view.logical_map;
+  map.steps[1].operator = operator;
+  map.steps[1].ports.splice(1, 1);
+  view.logical_map = sealed(map);
+  return view;
+}
+const explanationPredicate = tail => ({kind: 'filter', predicate: {state: 'projected', root: 0, nodes: [
+  {form: 'operation', operator: 'gt', children: [1, 2], type: explanationType('boolean')},
+  {form: 'field', scope: 'fields', name: 'id', type: explanationType('number')},
+  tail,
+]}});
+
+test('structural Story explains original fields and JOIN keys in EN/JA without observations', () => {
+  const view = fixture(), facts = explanationFixture(view), before = structuredClone(facts);
+  const en = explanationStoryModel(view, facts), ja = explanationStoryModel(view, facts, {locale: 'ja'});
+  assert.equal(en.occurrences[0].explanation.text,
+    'Declared input fields: "id":number, "label":string (conditional)');
+  assert.equal(en.occurrences[1].explanation.text,
+    'inner join on: left."id" = right."id"; Null keys: do not match');
+  assert.equal(ja.occurrences[1].explanation.text,
+    'inner 結合のキー: left."id" = right."id"; NULLキー: 一致させない');
+  assert.equal(en.factsCid, facts.self_cid); assert.equal(en.parameterValuesCid, cid('9'));
+  assert.deepEqual(en.occurrences.map(step => step.stepId), view.logical_map.steps.map(step => step.step_id));
+  assert.deepEqual(en.dependencies, planReadModel(view).edges);
+  assert.deepEqual(en.occurrences[1].explanation.meaning, explanationJoin);
+  assert.equal(Object.isFrozen(en.occurrences[1].explanation.meaning.keys), true);
+  assert.deepEqual(facts, before); assert.deepEqual(en.capabilities.sample_capture, []);
+  assert.equal(Object.hasOwn(en.occurrences[1].explanation, 'executed'), false);
+});
+
+test('structural Story renders original typed parameter and redacted literal without reconstructing values', () => {
+  const view = explanationUnary('filter');
+  const parameter = explanationPredicate({form: 'parameter', name: 'threshold', type: explanationType('number')});
+  assert.equal(explanationStoryModel(view, explanationFixture(view, parameter)).occurrences[1].explanation.text,
+    'Keep rows where: (fields."id":number > $threshold:number)');
+  const literal = explanationPredicate({form: 'literal_redacted', type: explanationType('number')});
+  assert.equal(explanationStoryModel(view, explanationFixture(view, literal)).occurrences[1].explanation.text,
+    'Keep rows where: (fields."id":number > [redacted number])');
+  assert.equal(explanationStoryModel(view, explanationFixture(view, literal), {locale: 'ja'}).occurrences[1].explanation.text,
+    'この条件を満たす行を残す: (fields."id":number > [非開示 number])');
+});
+
+test('structural Story keeps ordered projection semantics and explicit unprojected meaning', () => {
+  for (const [operation, prefix] of [['select', 'Select output fields'], ['rename', 'Rename output fields'], ['drop', 'Output fields after dropping']]) {
+    const view = explanationUnary(operation), meaning = {kind: 'projection', operation,
+      fields: [{input: 'é', output: 'renamed'}, {input: 'id', output: 'id'}]};
+    assert.equal(explanationStoryModel(view, explanationFixture(view, meaning)).occurrences[1].explanation.text,
+      `${prefix}: "renamed" ← "é", "id" ← "id"`);
+  }
+  const view = fixture(), missing = explanationFixture(view, {kind: 'not_projected', reason: 'operation_facts_not_projected'});
+  const explanation = explanationStoryModel(view, missing).occurrences[1].explanation;
+  assert.equal(explanation.state, 'not_projected'); assert.equal(explanation.text, 'Meaning not projected');
+  const filter = explanationUnary('filter');
+  const predicateMissing = explanationFixture(filter, {kind: 'filter', predicate: {state: 'not_projected', reason: 'expression_form_not_projected'}});
+  assert.equal(explanationStoryModel(filter, predicateMissing).occurrences[1].explanation.text,
+    'Keep rows where: Predicate form not projected');
+});
+
+test('structural Story refuses foreign bindings keys port occurrences and raw disclosure fields', () => {
+  const view = fixture(), original = explanationFixture(view);
+  for (const mutate of [
+    f => {f.compiled_plan_cid = cid('0');}, f => {f.program_definition_cid = cid('0');},
+    f => {f.logical_map_cid = cid('0');}, f => {f.steps.reverse();},
+    f => {f.steps[1].key.stage_ordinal++;}, f => {f.steps[1].input_ports.reverse();},
+    f => {f.steps[0].meaning.schema.fields[0].type.max_utf8_bytes = 7;},
+    f => {f.steps[0].meaning.rows = [{id: 'private'}];},
+  ]) {
+    const changed = structuredClone(original); mutate(changed);
+    assert.throws(() => explanationStoryModel(view, changed), {code: 'ExplorerInvalidExplanation'});
+  }
+  const filtered = explanationUnary('filter'), literal = explanationFixture(filtered,
+    explanationPredicate({form: 'literal_redacted', type: explanationType('number')}));
+  literal.steps[1].meaning.predicate.nodes[2].value = 'PRIVATE';
+  assert.throws(() => explanationStoryModel(filtered, literal), {code: 'ExplorerInvalidExplanation'});
+});
+
+test('structural Story refuses malformed local references and finite predicate presentation overflow', () => {
+  const view = explanationUnary('filter');
+  const original = explanationFixture(view, explanationPredicate({form: 'literal_redacted', type: explanationType('number')}));
+  for (const mutate of [
+    nodes => {nodes[0].children[0] = 0;}, nodes => {nodes[0].children[0] = 9;},
+    nodes => {nodes.push({form: 'literal_redacted', type: explanationType('number')});},
+  ]) {
+    const changed = structuredClone(original); mutate(changed.steps[1].meaning.predicate.nodes);
+    assert.throws(() => explanationStoryModel(view, changed), {code: 'ExplorerInvalidExplanation'});
+  }
+  const expanded = structuredClone(original);
+  expanded.steps[1].meaning.predicate.nodes[0].children = new Array(1025).fill(1);
+  assert.throws(() => explanationStoryModel(view, expanded), {code: 'ExplorerExplanationLimit'});
+  const deep = structuredClone(original);
+  deep.steps[1].meaning.predicate.nodes = Array.from({length: 66}, (_, index) =>
+    ({form: 'operation', operator: 'not', children: [index + 1], type: explanationType('boolean')}));
+  deep.steps[1].meaning.predicate.nodes.push({form: 'literal_redacted', type: explanationType('boolean')});
+  assert.throws(() => explanationStoryModel(view, deep), {code: 'ExplorerExplanationLimit'});
+});
+
+test('structural construction admits long field and parameter text before quote or output allocation', () => {
+  const view = fixture(), facts = explanationFixture(view), name = 'x'.repeat(70_000);
+  facts.steps[0].meaning.schema.fields[0].name = name;
+  const stringify = JSON.stringify; let oversizedQuoteCalls = 0;
+  try {
+    JSON.stringify = function(value, ...options) {
+      if (value === name) {oversizedQuoteCalls++; throw new Error('Quote called before admission');}
+      return Reflect.apply(stringify, this, [value, ...options]);
+    };
+    assert.throws(() => explanationStoryModel(view, facts), {code: 'ExplorerExplanationLimit'});
+    assert.equal(oversizedQuoteCalls, 0);
+  } finally {JSON.stringify = stringify;}
+  const filtered = explanationUnary('filter');
+  const parameter = explanationFixture(filtered,
+    explanationPredicate({form: 'parameter', name, type: explanationType('number')}));
+  assert.throws(() => explanationStoryModel(filtered, parameter), {code: 'ExplorerExplanationLimit'});
+});
+
+test('structural construction admits shared-child copies before a large joined predicate exists', () => {
+  const view = explanationUnary('filter');
+  const meaning = {kind: 'filter', predicate: {state: 'projected', root: 0, nodes: [
+    {form: 'operation', operator: 'and', children: new Array(80).fill(1), type: explanationType('boolean')},
+    {form: 'field', scope: 'fields', name: 'f'.repeat(5000), type: explanationType('number')},
+  ]}};
+  const facts = explanationFixture(view, meaning);
+  const join = Array.prototype.join; let oversizedJoins = 0;
+  try {
+    Array.prototype.join = function(separator = ',') {
+      if (this.every(value => typeof value === 'string')) {
+        const length = this.reduce((sum, value) => sum + value.length, 0) +
+          Math.max(0, this.length - 1) * separator.length;
+        if (length > 65_536) {oversizedJoins++; throw new Error('Join called before admission');}
+      }
+      return Reflect.apply(join, this, [separator]);
+    };
+    assert.throws(() => explanationStoryModel(view, facts), {code: 'ExplorerExplanationLimit'});
+    assert.equal(oversizedJoins, 0);
+  } finally {Array.prototype.join = join;}
+});
+
+test('structural construction admits escaped expansion before the native quote call', () => {
+  const view = fixture(), facts = explanationFixture(view), name = '\u0001'.repeat(12_000);
+  // Each code unit needs six escaped characters, before the two quote marks.
+  assert(6 * name.length + 2 > 65_536);
+  facts.steps[1].meaning.keys[0].left = name;
+  const stringify = JSON.stringify; let escapedQuoteCalls = 0;
+  try {
+    JSON.stringify = function(value, ...options) {
+      if (value === name) {escapedQuoteCalls++; throw new Error('Escaping called before admission');}
+      return Reflect.apply(stringify, this, [value, ...options]);
+    };
+    assert.throws(() => explanationStoryModel(view, facts), {code: 'ExplorerExplanationLimit'});
+    assert.equal(escapedQuoteCalls, 0);
+  } finally {JSON.stringify = stringify;}
 });
