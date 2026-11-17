@@ -28,9 +28,6 @@ const caseTargetExclusions = input => Object.entries(input)
   .filter(([path]) => path.startsWith(query) || path.startsWith('src/native_values_integration/'))
   .reduce((sum, [, source]) => sum + [...source.matchAll(
     /^#cfg\(\s*target\s*=\s*"(?:js|wasm|wasm-gc)"\s*\)\s*\r?\ntest "/gmu)].length, 0);
-const currentNativeCases = () => declaredQueryCases(repositorySources) -
-  declaredQueryCases(Object.fromEntries(jsOnlyNames.map(name =>
-    [query + name, repositorySources[query + name]]))) - caseTargetExclusions(repositorySources);
 const summary = count => ({status: 0, signal: null,
   stdout: `Total tests: ${count}, passed: ${count}, failed: 0.\n`, stderr: ''});
 
@@ -80,17 +77,20 @@ test('all current required cases exist, and core remains unfiltered', () => {
   assert.doesNotMatch(core, /native-query-coverage/u);
 });
 
-test('the current repository retains every required Native query case, including safe full fallback', () => {
+test('the current repository selects exactly the owned Native query cases without falling back', () => {
   for (const owner of ['http-client', 'remote-runtime']) {
     const selection = select(owner, repositorySources);
-    assert(['subset', 'full-fallback'].includes(selection.mode));
-    for (const [path, entry] of Object.entries(nativeQueryCoverage.files)) {
-      if (entry.owners.includes(owner)) assert(selection.paths.some(selected =>
-        selected === path || path.startsWith(selected + '/')), path);
-    }
-    assert(selection.expected >= ownedQueryCases(owner));
-    assert.equal(selection.expected, selection.mode === 'subset'
-      ? ownedQueryCases(owner) : currentNativeCases());
+    assert.equal(selection.mode, 'subset', selection.reasons.join('\n'));
+    const owned = Object.entries(nativeQueryCoverage.files)
+      .filter(([, entry]) => entry.owners.includes(owner));
+    assert.deepEqual(selection.paths, owned.map(([path]) => path));
+    const currentCases = owned.flatMap(([path, entry]) => {
+      const actual = [...repositorySources[path].matchAll(/^test "([^"]+)"/gmu)]
+        .map(match => match[1]);
+      assert.deepEqual(actual.toSorted(), entry.tests.toSorted(), path);
+      return actual.map(name => ({path, name}));
+    });
+    assert.equal(selection.expected, currentCases.length);
     assertNativeQueryExecution(selection, summary(selection.expected));
     assert.throws(() => assertNativeQueryExecution(selection, summary(selection.expected - 1)),
       /coverage mismatch/u);
