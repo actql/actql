@@ -1110,6 +1110,7 @@ Run/cancellation/authority/holding and Ledger fences remain separate.
 
 ### Structural Explanation Facts
 
+<!-- requirement-block: explanation-facts-original-binding explanation-facts-original-step-ports explanation-facts-no-replacement-identities -->
 `actql-explanation-facts/0.1` is a separate closed, structural-only projection.
 It MUST bind the original checked Program Definition, effective Parameters,
 Compiled Plan and immutable logical map. Each occurrence MUST retain its
@@ -1120,6 +1121,7 @@ order. Its self-CID hashes the complete canonical body excluding only its own
 self-CID nor structural admission establishes compiler provenance or permission.
 The unchanged closed PlanView and RunDefinition are not extended by this family.
 
+<!-- requirement-block: explanation-facts-structural-disclosure explanation-facts-no-literal-disclosure explanation-facts-no-cardinality-disclosure explanation-facts-shape-nullability-types -->
 The first profile MUST disclose only original operator, schema field structure,
 ordered projection, JOIN kind/key structure, checked predicate structure and
 parameter reference/type facts. Literal values, per-literal value CIDs, lengths,
@@ -1129,6 +1131,7 @@ projection is explicitly shape/nullability only: inferred Text bounds and
 enumerations can reveal literal content or length and MUST NOT be serialized
 as safe type metadata. This is not a complete ValueContract projection.
 
+<!-- requirement-block: explanation-facts-compiler-expression-binding explanation-facts-unprojected-forms explanation-facts-no-fabricated-facts -->
 Expression references are local checked-node coordinates, not another parser
 or identity domain. The original typed compiler Owner MUST verify their shape,
 child relationships, types and occurrence binding before issuance. Unprojected
@@ -1136,12 +1139,14 @@ checked forms MUST remain explicitly unprojected, not be rejected as language
 errors or reconstructed in a UI. They MUST NOT become fabricated empty facts,
 executed-row counts, physical observations or runtime capabilities.
 
+<!-- requirement-block: explanation-facts-current-read-egress explanation-facts-bounded-read-construction -->
 Current Plan/Run read and egress admission MUST precede acquisition and be
 rechecked before disclosure. The same bounded read construction MUST cover the
 original borrowed compiler material, emitted structural facts and overlapping
 retention. Parameter identity binding is not permission to disclose parameter
 values. Sample access and control grants remain separate.
 
+<!-- requirement-block: explanation-facts-original-run-reference explanation-facts-saved-originals explanation-facts-missing-not-projected explanation-facts-no-historical-reconstruction -->
 `actql-run-explanation-view/0.1` MUST bind the complete original Run reference.
 A Saved read MUST consume retained original facts. An old or Normal Run without
 them MUST return explicit `not_projected`; it MUST NOT compile current text,
