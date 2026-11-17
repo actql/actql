@@ -106,6 +106,15 @@ pub fn client_program_normalized_public_model_task_materials(
 }
 
 ///|
+/// Original checked input/output schema identities, without another admission.
+#export_name("clientProgramNormalizedPublicModelTaskSchemaCids")
+pub fn client_program_normalized_public_model_task_schema_cids(
+  value : @check_environment.NormalizedPublicModelTask,
+) -> (String, String) {
+  @check_environment.normalized_public_model_task_schema_cids(value)
+}
+
+///|
 /// Candidate DATA only, read from the same normalized Task original.
 #export_name("clientProgramNormalizedPublicModelTaskProviderData")
 pub fn client_program_normalized_public_model_task_provider_data(
