@@ -13,9 +13,13 @@ assert.ok(['capture', 'approve', 'recover'].includes(phase));
 assert.equal(typeof handoffPath, 'string');
 assert.ok(['churn-risk-mock', 'deal-review-mock'].includes(template));
 const dealReview = template === 'deal-review-mock';
-assert.ok(variant === 'readme' || ['two-models', 'two-models-whole', 'two-models-joined-whole', 'two-models-joined-inputs'].includes(variant) && dealReview);
+const multipleTargets = variant === 'multiple-targets';
+const {checkMultipleTargetMockRows, checkMultipleTargetMockReview,
+  multipleTargetMockExpectedBytes, multipleTargetMockWriteCount} = multipleTargets
+  ? await import('./mock-multiple-targets.fixture.mjs') : {};
+assert.ok(variant === 'readme' || multipleTargets && !dealReview || ['two-models', 'two-models-whole', 'two-models-joined-whole', 'two-models-joined-inputs'].includes(variant) && dealReview);
 assert.ok(workPurpose === 'workflow' || workPurpose === 'original-run-control' && phase === 'capture');
-const twoModels = variant !== 'readme', joinedWholeProducer = variant === 'two-models-joined-whole' || variant === 'two-models-joined-inputs';
+const twoModels = variant !== 'readme' && !multipleTargets, joinedWholeProducer = variant === 'two-models-joined-whole' || variant === 'two-models-joined-inputs';
 const wholeProducer = variant === 'two-models-whole' || joinedWholeProducer;
 const C = /^sha256:[0-9a-f]{64}$/u;
 const expected = Object.freeze(dealReview ? {
@@ -288,6 +292,7 @@ const save = (path, value) => writeFile(path, JSON.stringify(value) + '\n',
   {encoding: 'utf8', mode: 0o600, flag: 'wx'});
 
 function checkRows(rows) {
+  if (multipleTargets) return checkMultipleTargetMockRows(rows);
   assert.equal(rows.length, 2);
   assert.deepEqual(rows.map(row => row.id).sort(), Object.keys(expected).sort());
   for (const row of rows) {
@@ -327,6 +332,7 @@ function checkReview(review, summary, ref) {
   assert.equal(review.sensitivity, 'restricted');
   assert.equal(review.retention_class, 'approval-evidence');
   assert.equal(review.encryption_required, true);
+  if (multipleTargets) return checkMultipleTargetMockReview(review);
   assert.deepEqual(review.displayed_scope.effects.map(({kind, target, count}) =>
     ({kind, target, count})), [{kind: 'update', target: dealReview
       ? 'connector://salesforce/Opportunity' : 'connector://salesforce/Account', count: 2}]);
@@ -360,6 +366,7 @@ function checkReview(review, summary, ref) {
   }
 }
 function expectedBytes(before) {
+  if (multipleTargets) return multipleTargetMockExpectedBytes(before);
   if (dealReview) {
     // Select each edit in the original authored bytes. Acme's new stage is
     // Globex's old stage; a sequential search in changed bytes would edit it twice.
@@ -395,9 +402,9 @@ try {
   if (phase === 'capture') {
     const before = await step('read authored target before submission', targetState);
     const source = await step('read original README program', () =>
-      readFile(twoModels ? 'deal-review.program.json' : dealReview ? 'deal-review.aql' : 'churn-risk.aql', 'utf8'));
+      readFile(variant === 'multiple-targets' ? 'multiple-targets.program.json' : twoModels ? 'deal-review.program.json' : dealReview ? 'deal-review.aql' : 'churn-risk.aql', 'utf8'));
     const execution = await step('README startSource', () =>
-      client.startSource(source, {format: twoModels ? 'json' : 'aql', stopBefore: 'commit'}));
+      client.startSource(source, {format: twoModels || variant === 'multiple-targets' ? 'json' : 'aql', stopBefore: 'commit'}));
     // This accepted reference must survive a failed wait/review/first close.
     // The complete Checkpoint/review handoff below remains a separate file.
     await step('retain original accepted reference before wait', () =>
@@ -427,7 +434,7 @@ try {
       {ref: execution.ref, runId: state.run_id,
       checkpointId: state.checkpoint.id, summary,
       reviewBase64: Buffer.from(review.bytes).toString('base64'), before,
-      expectedBytes: expectedBytes(before.bytes), ...(dealReview ? {template} : {}), ...(twoModels ? {variant} : {})}));
+      expectedBytes: expectedBytes(before.bytes), ...(dealReview ? {template} : {}), ...(twoModels || variant === 'multiple-targets' ? {variant} : {})}));
   } else {
     const captured = await step('read original public recovery reference', async () => {
       const captured = JSON.parse(await readFile(handoffPath, 'utf8'));
@@ -486,7 +493,7 @@ try {
       await step('retain approved recovery reference', () => save(handoffPath + '.approved.json',
         {ref: execution.ref, runId: terminal.run_id, rows, after,
           ...(wholeProducer ? {allResults} : {}),
-          ...(dealReview ? {template} : {}), ...(twoModels ? {variant} : {})}));
+          ...(dealReview ? {template} : {}), ...(twoModels || variant === 'multiple-targets' ? {variant} : {})}));
     } else {
       const approved = await step('read approved public recovery reference', async () => {
         const approved = JSON.parse(await readFile(handoffPath + '.approved.json', 'utf8'));
@@ -549,7 +556,8 @@ pending.cleanupCode = closeFailure?.code;
 pending.workObservation = workObservation.snapshot();
 let workFailure, modelInputObservation;
 if (!failed && closeReturned) try {
-  checkWorkflowWork(pending.workObservation, phase, Object.keys(expected).length, twoModels ? 2 : 1);
+  checkWorkflowWork(pending.workObservation, phase, multipleTargets ? multipleTargetMockWriteCount : Object.keys(expected).length,
+    multipleTargets ? 0 : twoModels ? 2 : 1);
   if (modelInputs !== undefined) {
     const original = JSON.parse(await readFile(handoffPath + '.started', 'utf8'));
     modelInputObservation = modelInputs.verify(original.ref);

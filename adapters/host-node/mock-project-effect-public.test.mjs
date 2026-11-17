@@ -7,6 +7,62 @@ import {DatabaseSync} from 'node:sqlite';
 import {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
 import {openClientObservationStorage} from './client-observation-journal.mjs';
 import {workflowWorkObservation, workflowObservationComplete} from './fixtures/work-observation.fixture.mjs';
+import {multipleTargetMockProjectFiles, checkMultipleTargetMockRows, checkMultipleTargetMockReview,
+  multipleTargetMockExpectedBytes, multipleTargetMockWriteCount} from './fixtures/mock-multiple-targets.fixture.mjs';
+
+test('plural Mock fixture authors one document and two exact same-Run UPDATE members without a Model',()=>{
+  const files=multipleTargetMockProjectFiles(),config=JSON.parse(files['actql.config.json']);
+  assert.equal(config.mock.data,'./mock/data.json');
+  assert.deepEqual(JSON.parse(files['model-tasks.json']).tasks,{});
+  const source=JSON.parse(files['mock/catalog.json']).connections.salesforce;
+  assert.deepEqual(source.data.map(value=>value.items_path),[
+    ['salesforce','Account','rows'],['salesforce','Contact','rows']]);
+  assert.deepEqual(source.writes.map(value=>value.resource),['Account','Contact']);
+  const program=JSON.parse(files['multiple-targets.program.json']);
+  assert.equal(program.stages.length,1);const stage=program.stages[0];
+  assert.deepEqual(stage.inputs,{accounts:{connector:'salesforce',resource:'Account'},
+    contacts:{connector:'salesforce',resource:'Contact'}});
+  assert.deepEqual(stage.effects,{
+    account:{update:{target:'connector://salesforce/Account',mapping:'mapping:salesforce/Account/update-cd4d1d065cc201b7.v1',
+      from:{result:'rows'},id:'account_id',set:{value:{field:'account_next'}}}},
+    contact:{update:{target:'connector://salesforce/Contact',mapping:'mapping:salesforce/Contact/update-bfab525c7c063542.v1',
+      from:{result:'rows'},id:'contact_id',set:{value:{field:'contact_next'}}}},
+  });
+  assert.equal(multipleTargetMockWriteCount,2);
+});
+
+test('plural Mock fixture byte oracle preserves both control rows and rejects a changed starting document',()=>{
+  const before=multipleTargetMockProjectFiles()['mock/data.json'];
+  const expected=multipleTargetMockExpectedBytes(before),parsed=JSON.parse(expected);
+  assert.deepEqual(parsed.salesforce.Account.rows,[{id:'a1',group:'selected',value:'A-new'},
+    {id:'a-control',group:'account-control',value:'keep-account'}]);
+  assert.deepEqual(parsed.salesforce.Contact.rows,[{id:'c1',group:'selected',value:'C-new'},
+    {id:'c-control',group:'contact-control',value:'keep-contact'}]);
+  assert.deepEqual(parsed.control,{unchanged:'keep-physical-document'});
+  assert.equal(expected.replace('A-new','A-old').replace('C-new','C-old'),before);
+  assert.throws(()=>multipleTargetMockExpectedBytes(before.replace('keep-contact','foreign-change')));
+});
+
+test('plural Mock fixture oracles require both exact logical targets rather than one successful member',()=>{
+  // Public projection DATA only: these oracles issue no actual Review, Run,
+  // checkpoint, authorization, claim, version or physical cleanup receipt.
+  const rows=[{account_id:'a1',contact_id:'c1',account_before:'A-old',contact_before:'C-old',
+    account_next:'A-new',contact_next:'C-new'}];
+  checkMultipleTargetMockRows(rows);assert.throws(()=>checkMultipleTargetMockRows([]));
+  const review={displayed_scope:{effects:[
+    {kind:'update',target:'connector://salesforce/Contact',count:1},
+    {kind:'update',target:'connector://salesforce/Account',count:1}]},displayed_rows:[
+    ['a1','A-old','A-new'],['c1','C-old','C-new']].map(([id,prior,next])=>({target_row_identity:id,
+      row_preview_cid:'sha256:'+'a'.repeat(64),preview_strength:'full_diff',
+      target_guard:{state:'version',version_cid:'sha256:'+'b'.repeat(64)},
+      before:{state:'present',value:{group:'selected',id,value:prior}},
+      intended_changes:{state:'present',value:{value:next}},after:{state:'present',value:{value:next}}}))};
+  checkMultipleTargetMockReview(review);
+  const missing=structuredClone(review);missing.displayed_scope.effects.pop();
+  assert.throws(()=>checkMultipleTargetMockReview(missing));
+  const foreign=structuredClone(review);foreign.displayed_rows[1].before.value.id='a1';
+  assert.throws(()=>checkMultipleTargetMockReview(foreign));
+});
 
 // Execute the fixture's actual capture branch with explicit SDK/filesystem
 // ports. This is no installed SDK, Model, business Run or close acceptance.
