@@ -1126,14 +1126,14 @@ test('aggregate workflow expressions run on mixed failures and skip only wholly 
 test('every heavy primitive is selected as one complete job and lint/spec always retain their tests', () => {
   const heavy = ['core', 'host', 'client-packages', 'client-readme-packed', 'client-supported-versions', 'client-distribution', 'client-distribution-callers',
     'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-composition', 'client-salesforce',
-    'native-cli-installed', 'native-cli-linux-local', 'native', 'session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels',
+    'native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-mock', 'native', 'session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels',
     'native-separated-network', 'workers', 'connector-addition', 'duckdb-node'];
   for (const name of heavy) {
     assert(jobs[name].needs.includes('select-targets'));
     assert.equal(scheduled(name, {'select-targets': {outputs: {profile: 'maintenance', targets: '["js"]', macos: 'false'}},
       lint: {result: 'success'}, 'core-js': {result: 'skipped'}}), false);
     assert.equal(scheduled(name, {'select-targets': {outputs: {profile: 'full', targets: '["js","wasm","native"]', python_wheels: 'true', deep_proofs: 'true', macos: 'true'}},
-      lint: {result: 'success'}, 'core-js': {result: 'success'}}), true);
+      lint: {result: 'success'}, 'core-js': {result: 'success'}, 'native-cli-linux-local': {result: 'success'}}), true);
     assert.equal(scheduled(name, {'select-targets': {outputs: {profile: '', targets: '[]', macos: 'true'}},
       lint: {result: 'success'}, 'core-js': {result: 'skipped'}}), false);
   }
@@ -1149,14 +1149,15 @@ test('every heavy primitive is selected as one complete job and lint/spec always
   assert(jobs.spec.steps.some(step => step.run?.includes('npm run check:spec')));
 });
 
-test('full integration cannot skip, omit or fail either actual CLI acceptance job', () => {
-  for (const script of ['test-native-cli-source-free-install.mjs', 'test-native-cli-mock-install.mjs']) {
-    assert(jobs['native-cli-linux-local'].steps.some(step =>
+test('full integration cannot skip, omit or fail any actual CLI acceptance job', () => {
+  for (const [name, script] of [['native-cli-linux-local', 'test-native-cli-source-free-install.mjs'],
+    ['native-cli-linux-local-mock', 'test-native-cli-mock-install.mjs']]) {
+    assert(jobs[name].steps.some(step =>
       step.run?.includes(`node scripts/${script}`) && step['continue-on-error'] === undefined),
     `The required Local job must execute ${script}`);
   }
   const selection = selectTargets(['README.md'], {event: 'workflow_dispatch', mainIntegration: true, nativeMacos: false});
-  for (const name of ['native-cli-installed', 'native-cli-linux-local']) {
+  for (const name of ['native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-mock']) {
     for (const result of ['missing', 'failure', 'cancelled', 'skipped']) {
       const needs = results(selection);
       if (result === 'missing') delete needs[name];
@@ -1399,7 +1400,7 @@ test('PR lifecycle uses current event Draft state; ready and later heads retain 
 test('Unrelated Draft cannot start product, packed, proof or backend jobs; final gate still runs', () => {
   const heavy = ['core', 'host', 'client-packages', 'client-readme-packed', 'client-supported-versions', 'client-distribution', 'client-distribution-callers',
     'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-composition', 'client-salesforce',
-    'native-cli-installed', 'native-cli-linux-local', 'native', 'session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity',
+    'native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-mock', 'native', 'session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity',
     'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels', 'native-separated-network',
     'workers', 'connector-addition', 'duckdb-node'];
   for (const profile of ['draft', 'draft-focused']) {

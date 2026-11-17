@@ -44,7 +44,7 @@ test('full checkpoint binds tested SHA, ancestry, policy and exact successful at
 // Independent full-workflow inventory: focused-tests runs only in its own
 // narrow profile and is skipped alongside the successful full families.
 const fullWorkflowJobs = ['check', 'select-targets', 'preflight', 'lint',
-  'core (js)', 'core (wasm)', 'core (native 1/2)', 'core (native 2/2)', 'core (native source)', 'core (native scoped-runtime)', 'core (native scoped-review)', 'host', 'client', 'native-cli-installed', 'native-cli-linux-local', 'native',
+  'core (js)', 'core (wasm)', 'core (native 1/2)', 'core (native 2/2)', 'core (native source)', 'core (native scoped-runtime)', 'core (native scoped-review)', 'host', 'client', 'native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-mock', 'native',
   'spec', 'session-evidence', 'session-controls', 'pipeline-evidence', 'pipeline-validation', 'native-macos', 'python-wheels',
   'native-separated-network (direct)', 'native-separated-network (store)', 'workers', 'connector-addition', 'duckdb-node',
   'client-readme-packed (22.22.0)', 'client-readme-packed (24)'];
@@ -117,13 +117,15 @@ test('full checkpoint requires both separated profiles and rejects the old singl
     }
   }
 });
-test('missing, skipped or failed Linux Local acceptance cannot supply a full checkpoint', async () => {
-  for (const outcome of ['missing', 'skipped', 'failure']) {
-    const f = fullWorkflowFixture();
-    if (outcome === 'missing') f.state.jobs.jobs = f.state.jobs.jobs.filter(job => job.name !== 'native-cli-linux-local');
-    else f.state.jobs.jobs.find(job => job.name === 'native-cli-linux-local').conclusion = outcome;
-    f.state.jobs.total_count = f.state.jobs.jobs.length;
-    assert.equal((await resolveMainBaseline(f.options)).baseSha, null, outcome);
+test('full checkpoint requires both Local producer and independent Mock consumer evidence', async () => {
+  for (const name of ['native-cli-linux-local', 'native-cli-linux-local-mock']) {
+    for (const outcome of ['missing', 'skipped', 'failure', 'cancelled']) {
+      const f = fullWorkflowFixture();
+      if (outcome === 'missing') f.state.jobs.jobs = f.state.jobs.jobs.filter(job => job.name !== name);
+      else f.state.jobs.jobs.find(job => job.name === name).conclusion = outcome;
+      f.state.jobs.total_count = f.state.jobs.jobs.length;
+      assert.equal((await resolveMainBaseline(f.options)).baseSha, null, `${name}: ${outcome}`);
+    }
   }
 });
 for (const conclusion of ['missing', 'skipped', 'failure']) {
