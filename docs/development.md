@@ -1407,6 +1407,16 @@ executables must remain byte-exact after execution. This is same-job software
 reuse, not a transported runtime or a test result. Absent preparation keeps the
 original local path; a present but mismatched preparation refuses without rebuild.
 
+That preparation retains separate timing observations for original input
+admission, tool copying, the unchanged build-only command, input correspondence
+and output retention. Each observation also has a bounded JSON diagnostic in
+the existing preparation artifact selection, including failed phases before a
+Ready receipt exists. A diagnostic write failure cannot replace the original
+result or compiler error and never overwrites an earlier diagnostic. These
+durations do not execute cases, relax reuse checks or establish an acceleration;
+receipt serialization and the enclosing producer's other work remain outside
+these subphases.
+
 The preparation helper reuses the verified OpenSSL source archive from the
 compatible Darwin Crypto producer for HTTP TLS acquisition. TLS rechecks the
 original digest and builds its own patched source/libraries; Homebrew and Linux

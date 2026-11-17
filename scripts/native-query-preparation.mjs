@@ -90,13 +90,37 @@ function selection(repository,env) {
         join(openssl,'lib/libssl.dylib'),join(openssl,'lib/libcrypto.dylib')])])].sort()};
 }
 
-export function prepareNativeQuerySoftware(repository,destination,{env=process.env,execute=execFileSync}={}) {
+export function prepareNativeQuerySoftware(repository,destination,{env=process.env,moonHome=env.MOON_HOME,execute=execFileSync}={}) {
+  env={...env,MOON_HOME:moonHome};
   repository=realpathSync(repository);destination=realpathSync(destination);
-  const selected=selection(repository,env),inputs=describe(selected.paths);
-  const directory=join(destination,'query-software'),home=join(directory,'tool'),target=join(directory,'target');
-  mkdirSync(directory,{mode:0o700});mkdirSync(target,{mode:0o700});
-  const copy=copyNativePreparationTools(env.MOON_HOME,home,JSON.stringify({
-    pin:JSON.parse(readFileSync(join(repository,'toolchain.json'))),platform:process.platform+'-'+process.arch}));
+  const timings=[];let source=null;
+  function observe(phase,operation) {
+    const started=performance.now(),startedEpochMs=Date.now();let succeeded=false;
+    try {const value=operation();succeeded=true;return value;}
+    finally {
+      const row={scope:'native-query-preparation',source,target:process.platform+'-'+process.arch,
+        phase,startedEpochMs,endedEpochMs:Date.now(),
+        milliseconds:Math.round(performance.now()-started),succeeded};
+      timings.push(row);
+      // Diagnostics cannot replace the original result/error or overwrite an
+      // earlier preparation's evidence. Failed construction never publishes Ready.
+      try {writeFileSync(join(destination,`phase-query-${timings.length}.timing.json`),
+        JSON.stringify(row)+'\n',{flag:'wx',mode:0o600});}
+      catch {try {console.error('Native Query preparation timing diagnostic unavailable');} catch {/* Observer only. */}}
+    }
+  }
+  const {selected,inputs}=observe('input-admission',()=>{
+    const selected=selection(repository,env);
+    source=selected.identity.source;
+    return {selected,inputs:describe(selected.paths)};
+  });
+  const {home,target,copy}=observe('tool-copy',()=>{
+    const directory=join(destination,'query-software'),home=join(directory,'tool'),target=join(directory,'target');
+    mkdirSync(directory,{mode:0o700});mkdirSync(target,{mode:0o700});
+    const copy=copyNativePreparationTools(env.MOON_HOME,home,JSON.stringify({
+      pin:JSON.parse(readFileSync(join(repository,'toolchain.json'))),platform:process.platform+'-'+process.arch}));
+    return {home,target,copy};
+  });
   const environment={...env,MOON_HOME:home,PATH:join(home,'bin')+delimiter+(env.PATH??'')};
   // Runtime prerequisites are deliberately absent here. This command only
   // constructs the complete two-package driver; it cannot execute any case.
@@ -104,18 +128,24 @@ export function prepareNativeQuerySoftware(repository,destination,{env=process.e
   const remaining=env.ACTQL_NATIVE_CI_DEADLINE===undefined?3600000:
     Math.min(3600000,Number(env.ACTQL_NATIVE_CI_DEADLINE)-Date.now());
   assert(Number.isSafeInteger(remaining)&&remaining>0,'Original Native job budget exhausted');
-  execute(join(home,'bin/moon'),args,{cwd:repository,env:environment,stdio:'inherit',timeout:remaining});
-  assert.deepEqual(selection(repository,env),selected,'Query build inputs changed during preparation');
-  verify(selected.paths,inputs);
-  const outputs=softwareFiles(target);assert(outputs.some(path=>path.endsWith('.whitebox_test.exe')),
-    'Query preparation must contain a real test executable');
-  // Original source/tool copies and immutable generated code are retained at
-  // their actual paths, never transported with a runtime fixture or Store.
-  const toolPaths=copy.files.flatMap(item=>[item.from,item.to]).sort();
+  observe('build-only',()=>execute(join(home,'bin/moon'),args,
+    {cwd:repository,env:environment,stdio:'inherit',timeout:remaining}));
+  observe('input-correspondence',()=>{
+    assert.deepEqual(selection(repository,env),selected,'Query build inputs changed during preparation');
+    verify(selected.paths,inputs);
+  });
+  const body=observe('output-retention',()=>{
+    const outputs=softwareFiles(target);assert(outputs.some(path=>path.endsWith('.whitebox_test.exe')),
+      'Query preparation must contain a real test executable');
+    // Original source/tool copies and immutable generated code are retained at
+    // their actual paths, never transported with a runtime fixture or Store.
+    const toolPaths=copy.files.flatMap(item=>[item.from,item.to]).sort();
+    return {identity:selected.identity,inputs,home,target,
+      tools:describe(toolPaths),core:describe(softwareFiles(join(home,'lib/core/_build'))),
+      outputs:describe(outputs)};
+  });
   const receipt=join(destination,'query-software.json');
-  writeFileSync(receipt,JSON.stringify({identity:selected.identity,inputs,home,target,
-    tools:describe(toolPaths),core:describe(softwareFiles(join(home,'lib/core/_build'))),
-    outputs:describe(outputs)})+'\n',{flag:'wx',mode:0o600});
+  writeFileSync(receipt,JSON.stringify({...body,timings})+'\n',{flag:'wx',mode:0o600});
   return receipt;
 }
 
