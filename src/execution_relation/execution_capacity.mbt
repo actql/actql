@@ -691,12 +691,24 @@ pub fn generated_bounded_sequence_capacity(
       capacity_uses_fragment_step(generated, @lower.kernel_step(context.kernel))
     }) {
     if primitive_values && @schema.field_count(schema) > 0 {
+      // The SAME cached required primitive literals use no stepped value
+      // traversal. BeginRow holds two slots and BuildCell at most F checked
+      // references. During CommitRow only a long field name adds one scalar
+      // measurement frame: F+3 <= 2F+2 for F>=1. The configured semantic cap
+      // still governs every reserve; unused capacity is not constructor DATA.
+      // Parameters/optional presence retain the full original workspace quote.
+      let workspace = if borrowed_values &&
+        literal_nodes >= 0L &&
+        literal_text >= 0L {
+        Int64::min(
+          limits.rows.operation_entries.to_int64(),
+          2L * @schema.field_count(schema).to_int64() + 2L,
+        )
+      } else {
+        limits.rows.operation_entries.to_int64()
+      }
       guard execution_capacity_inventory_bytes([
-          {
-            unit: CursorRootSlots,
-            count: limits.rows.operation_entries.to_int64(),
-            copies: 1,
-          },
+          { unit: CursorRootSlots, count: workspace, copies: 1, },
           { unit: CursorRootSlots, count: roots, copies: 1, },
           {
             unit: CursorRootSlots,

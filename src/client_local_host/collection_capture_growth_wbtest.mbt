@@ -33,15 +33,6 @@ fn collection_capture_execution_case(
     provider_factory=_ => [],
   ).unwrap()
   let plan = original.capacity_plan
-  println(
-    "collection-original-demand " +
-    @debug.to_string(
-      (
-        plan.scalar_demand.map(value => value.name_bytes),
-        plan.execution.rows.output_values.max_text_bytes,
-      ),
-    ),
-  )
   assert_true(client_local_text_free_scalar_sequences(original.sequences))
   // The five original ten-row dimensions produce 100000 candidate rows.
   // Their FILTER retains an input-root entry for each row before evaluation;
@@ -129,16 +120,33 @@ fn collection_capture_execution_case(
     @builtin.configured_host_driver(setup),
   )
   let blocker : Ref[@resources.CapacityReservation?] = Ref(None)
-  let current = if refuse {
+  let current = if refuse || retention_refuse {
     fn() {
-      if blocker.val is None &&
-        @strategy.next_captured_task(captured) == Some(43) {
-        let usage = @resources.ledger_usage(ledger)
+      let usage = @resources.ledger_usage(ledger)
+      let selected = if retention_refuse {
+        // The original attempt has started and paid its startup envelope.
+        // Occupy only the remaining SAME Ledger retention before its first
+        // imported row asks for actual DATA growth, preserving the policy.
+        usage.attempts == 44
+      } else {
+        @strategy.next_captured_task(captured) == Some(43)
+      }
+      if blocker.val is None && selected {
         blocker.val = Some(
           @resources.reserve_capacity(
             ledger,
-            0L,
-            limits.execution_bytes - usage.reserved_execution_bytes,
+            if retention_refuse {
+              limits.retained_bytes -
+              usage.held_bytes -
+              usage.reserved_retention_bytes
+            } else {
+              0L
+            },
+            if retention_refuse {
+              0L
+            } else {
+              limits.execution_bytes - usage.reserved_execution_bytes
+            },
           ).unwrap(),
         )
       }
@@ -171,8 +179,9 @@ fn collection_capture_execution_case(
     return
   }
   if retention_refuse {
+    assert_true(blocker.val is Some(_))
     guard result is Err(failure) else {
-      fail("512 MiB partial input unexpectedly completed")
+      fail("occupied original retention allowance completed")
     }
     let primary = local_values_execution_failure_issue(failure)
     guard primary
@@ -183,6 +192,7 @@ fn collection_capture_execution_case(
     assert_true(needed > available)
     assert_true(available >= 0L && available <= policy)
     assert_eq(policy, 536870912L)
+    @resources.settle_capacity(ledger, blocker.val.unwrap()).unwrap()
     for _ in 0..<10000 {
       if retry_local_values_execution_failure_cleanup(failure) {
         break
@@ -268,7 +278,7 @@ test "ordinary collection 9999 cannot borrow occupied execution allowance" {
 }
 
 ///|
-test "ordinary collection retains exact 512 MiB quota refusal and drains partial input cleanup" {
+test "ordinary collection cannot borrow occupied 512 MiB retention and drains partial input cleanup" {
   collection_capture_execution_case(
     false,
     memory=536870912L,

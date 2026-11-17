@@ -317,6 +317,62 @@ test "one original primitive Values constructor keeps logical budgets without ph
   let one = generated_bounded_sequence_capacity(selected, limits, measure).unwrap()
   assert_eq(whole.retained_bytes, one.retained_bytes)
   assert_eq(whole.execution_bytes, one.execution_bytes)
+  let unused_workspace = generated_bounded_sequence_capacity(
+    generated,
+    { ..limits, rows: { ..limits.rows, operation_entries: 100000, }, },
+    measure,
+  ).unwrap()
+  assert_eq(unused_workspace.retained_bytes, whole.retained_bytes)
+  assert_eq(unused_workspace.execution_bytes, whole.execution_bytes)
+  // The runtime still receives the original configured cap. A larger unused
+  // allowance grants no extra constructor backing, while a smaller actual
+  // row limit continues to refuse before the first cell is constructed.
+  assert_true(
+    start_bounded_values(
+      @bounded.control(),
+      generated,
+      2,
+      values,
+      values,
+      10000,
+      16,
+      3,
+      100,
+    )
+    is Err(InputLimit),
+  )
+  for entries in [6, 100000] {
+    let active = start_bounded_values(
+      @bounded.control(),
+      generated,
+      2,
+      values,
+      values,
+      10000,
+      16,
+      entries,
+      100,
+    ).unwrap()
+    let mut finished = false
+    for _ in 0..<10000 {
+      match advance_bounded_values(active, 1).unwrap() {
+        BoundedValuesContinue(_) => ()
+        BoundedValuesComplete(output, ..) => {
+          assert_eq(completed_row_count(output), 2)
+          assert_true(completed_cell(output, 0, 0) is Some(Boolean(true)))
+          assert_true(completed_cell(output, 0, 1) is Some(Number(1.0)))
+          assert_true(completed_cell(output, 1, 0) is Some(Boolean(false)))
+          assert_true(completed_cell(output, 1, 1) is Some(Null))
+          finished = true
+          break
+        }
+        _ => fail("primitive Values changed with unused workspace policy")
+      }
+    }
+    assert_true(finished)
+    assert_true(cleanup_bounded_values(active).unwrap())
+    assert_false(bounded_values_cleanup_pending(active))
+  }
   let unused_measurement = {
     ..measure,
     max_nodes: 1000000,
