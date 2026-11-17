@@ -582,39 +582,13 @@ fn grow_keyed_lookup_protocol_metadata(
 fn keyed_lookup_protocol_extent_cost(
   extent : @publication.PublicationRepresentationExtent,
 ) -> Int64? {
-  keyed_lookup_canonical_extent_cost(
+  @execution.canonical_preparation_retained_bytes(
     extent.canonical,
     3L * extent.contract_records + extent.contract_strings,
     7L * extent.contract_records,
     5L * extent.contract_records,
     extent.contract_text_utf16_units,
   )
-}
-
-///|
-fn keyed_lookup_canonical_extent_cost(
-  tree : @canonical.CanonicalRepresentationExtent,
-  headers : Int64,
-  references : Int64,
-  words : Int64,
-  text : Int64,
-) -> Int64? {
-  let containers = tree.arrays + tree.objects
-  @execution.preparation_representation_cost({
-    record_headers: headers +
-    tree.nodes +
-    tree.strings +
-    3L * containers +
-    tree.object_backing_slots,
-    reference_slots: references +
-    tree.nodes +
-    2L * containers +
-    tree.array_backing_slots +
-    3L * tree.object_backing_slots,
-    scalar_words: words + 2L * tree.nodes + 2L * containers,
-    owned_utf16_units: text + tree.text_utf16_units,
-    owned_wire_bytes: 0L,
-  })
 }
 
 ///|
@@ -745,7 +719,7 @@ fn finish_keyed_lookup_protocol_metadata(
         Ok(value) => value
         Err(issue) => return Err(Identity(@publication.Contract(issue)))
       }
-      guard keyed_lookup_canonical_extent_cost(
+      guard @execution.canonical_preparation_retained_bytes(
           tree,
           controls.record_headers,
           controls.reference_slots,
