@@ -9,6 +9,33 @@ import {verifyNodeBenchmarkPackages, nodeBenchmarkFailure} from './benchmark-nod
 import {releaseConsumerDestination} from './release-public-install.mjs';
 import {runLocalCheck} from './local-checks-guard.mjs';
 
+// Assertions over the original child report only; this issues no Run authority
+// or substitute provider result. The caller still owns actual process/state
+// selection, same-source software verification and independent installations.
+export function checkPackedProviderObservation({caseId, phase, pid, originalPid, observation: value}) {
+  assert.equal(value.phase, phase);
+  assert(Number.isSafeInteger(pid) && pid > 0);
+  assert.equal(value.firstCloseReturned, true); assert.equal(value.aliveScopedFD0, true);
+  if (phase === 'warm') {
+    assert.equal(value.tasks, 2); assert.equal(value.requests, 2); assert.equal(value.calls, 2);
+  } else if (phase === 'cold') {
+    assert.notEqual(pid, originalPid, 'Cold observation requires a distinct original process');
+    assert.equal(value.calls, 0); assert.equal(value.egressChecks, 0);
+    if (caseId.startsWith('timeout-')) {
+      assert.equal(value.timeoutMode, caseId.slice('timeout-'.length));
+      assert.equal(value.preserveOriginalState, true);
+      assert.equal(value.originalUnknown, true); assert.equal(value.zeroResend, true);
+    } else assert.equal(value.originalSavedFirst, true);
+  } else if (phase.startsWith('timeout-')) {
+    assert.equal(value.timeoutMode, phase.slice('timeout-'.length));
+    assert.equal(value.preserveOriginalState, true);
+    for (const field of ['tasks', 'requests', 'calls']) assert.equal(value[field], 1);
+  } else {
+    assert.equal(value.usageMode, phase.slice('usage-'.length));
+    for (const field of ['tasks', 'requests', 'calls', 'usageCaptures']) assert.equal(value[field], 1);
+  }
+}
+
 export async function runPackedProviderAI(root, {repository = fileURLToPath(new URL('../', import.meta.url)),
   retained = process.env.ACTQL_PACKED_CLIENT_PACKAGES, command = execute} = {}) {
   assert(isAbsolute(root) && typeof retained === 'string' && isAbsolute(retained),
@@ -23,10 +50,13 @@ export async function runPackedProviderAI(root, {repository = fileURLToPath(new 
   await mkdir(root);
   const raw = join(root, 'raw'), casesRoot = join(root, 'cases');
   await mkdir(raw); await mkdir(casesRoot);
-  const selections = [['warm', 'cold'], ['usage-reported'], ['usage-zero'], ['usage-absent']];
+  // Each timeout cold read observes its own entered original, never a Saved
+  // success or a replacement request. Its state and profile stay in that case.
+  const selections = [['warm', 'cold'], ['usage-reported'], ['usage-zero'], ['usage-absent'],
+    ['timeout-headers', 'cold'], ['timeout-body', 'cold']];
   const report = {source: source.revision, preparations: [],
-    phases: selections.flat().map(phase => ({phase, status: 'unexecuted',
-      reason: phase === 'cold' ? 'Requires the same successful warm original and first close' : 'Requires a fresh verified installation'})),
+    phases: selections.flatMap(phases => phases.map(phase => ({case: phases[0], phase, status: 'unexecuted',
+      reason: phase === 'cold' ? 'Requires the same original case and its confirmed first close' : 'Requires a fresh verified installation'}))),
     complete: false};
   const preparedCases = [], failures = [], cleanup = [];
   const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('ACTQL_')));
@@ -46,28 +76,17 @@ export async function runPackedProviderAI(root, {repository = fileURLToPath(new 
         join(prepared.consumer, 'fixture.mjs'));
       await copyFile(join(repository, 'scripts/fixtures/external-rest/conformance.mjs'),
         join(prepared.consumer, 'conformance.mjs'));
-      let warmPid;
+      let originalPid;
       for (const phase of phases) {
-        const record = report.phases.find(value => value.phase === phase);
+        const record = report.phases.find(value => value.case === id && value.phase === phase);
         record.status = 'running'; delete record.reason;
         try {
           const actual = await run(process.execPath, ['fixture.mjs', phase],
             {cwd: prepared.consumer, env, name: phase, timeout: 120_000});
           const value = JSON.parse(actual.stdout.trim());
           Object.assign(record, {pid: actual.pid, actual: value, consumer: prepared.consumer});
-          assert.equal(value.phase, phase);
-          assert(Number.isSafeInteger(actual.pid) && actual.pid > 0);
-          assert.equal(value.firstCloseReturned, true); assert.equal(value.aliveScopedFD0, true);
-          if (phase === 'warm') {
-            assert.equal(value.tasks, 2); assert.equal(value.requests, 2); assert.equal(value.calls, 2);
-            warmPid = actual.pid;
-          } else if (phase === 'cold') {
-            assert.notEqual(actual.pid, warmPid, 'Cold Saved requires a distinct original process');
-            assert.equal(value.originalSavedFirst, true); assert.equal(value.calls, 0); assert.equal(value.egressChecks, 0);
-          } else {
-            assert.equal(value.usageMode, phase.slice('usage-'.length));
-            for (const field of ['tasks', 'requests', 'calls', 'usageCaptures']) assert.equal(value[field], 1);
-          }
+          checkPackedProviderObservation({caseId: id, phase, pid: actual.pid, originalPid, observation: value});
+          if (phase !== 'cold') originalPid = actual.pid;
           record.status = 'passed';
         } catch (failure) {
           record.status = 'failed'; record.failure = nodeBenchmarkFailure(failure); throw failure;
@@ -96,7 +115,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   assert.equal(process.argv.length, 3, 'usage: test-packed-provider-ai-sdk.mjs ABSOLUTE_FRESH_OUTPUT');
   process.exitCode = await runLocalCheck({root: fileURLToPath(new URL('../', import.meta.url)),
     heavy: false, timeoutSeconds: 300, graceSeconds: 5,
-    steps: [{name: 'Original normal provider and isolated usage consumers', command: process.execPath,
+    steps: [{name: 'Original normal provider, usage and timeout consumers', command: process.execPath,
       args: ['--input-type=module', '-e',
         "import {runPackedProviderAI} from './scripts/test-packed-provider-ai-sdk.mjs'; await runPackedProviderAI(process.argv[1]);",
         process.argv[2]]}]});

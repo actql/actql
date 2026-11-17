@@ -3,11 +3,11 @@ import test from 'node:test';
 import {access, lstat, mkdtemp, mkdir, writeFile, readFile, copyFile, cp, rm, glob} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {basename, dirname, join} from 'node:path';
 import {parse} from 'yaml';
 import {CLIENT_PACKAGES, packClientPackages} from './packed-client-packages.mjs';
 import {prepareHealthPackages} from './health-monitor-adapters.mjs';
-import {runPackedProviderAI} from './test-packed-provider-ai-sdk.mjs';
+import {runPackedProviderAI, checkPackedProviderObservation} from './test-packed-provider-ai-sdk.mjs';
 
 async function withFixtureGitHubSource(source, action) {
   const original = process.env.GITHUB_SHA;
@@ -64,18 +64,28 @@ async function fixture(t) {
       }
       return {stdout: '', pid: 70000};
     }
-    const phase = args[1]; phases.push(phase);
+    const phase = args[1], caseId = basename(dirname(options.cwd)); phases.push(phase);
     const modules = await lstat(join(options.cwd, 'node_modules'));
     assert(modules.isDirectory() && !modules.isSymbolicLink());
-    if (phase === 'cold') await access(join(options.cwd, '.state'));
-    else {await assert.rejects(access(join(options.cwd, '.state')), {code: 'ENOENT'}); await mkdir(join(options.cwd, '.state'));}
+    const profilePath = join(options.cwd, 'case-profile.fixture.json');
+    let profile;
+    if (phase === 'cold') {
+      await access(join(options.cwd, '.state'));
+      profile = JSON.parse(await readFile(profilePath, 'utf8'));
+    } else {
+      await assert.rejects(access(join(options.cwd, '.state')), {code: 'ENOENT'}); await mkdir(join(options.cwd, '.state'));
+      profile = {usage: phase.startsWith('usage-') ? phase.slice(6) : null,
+        timeout: phase.startsWith('timeout-') ? phase.slice(8) : null};
+      await writeFile(profilePath, JSON.stringify(profile), {flag: 'wx'});
+    }
     const pid = 70001 + phaseCalls.length;
-    phaseCalls.push({phase, cwd: options.cwd, raw: options.raw, modulesInode: modules.ino, pid});
+    phaseCalls.push({case: caseId, phase, profile, cwd: options.cwd, raw: options.raw, modulesInode: modules.ino, pid});
     return {pid, stdout: JSON.stringify({phase,
       firstCloseReturned: true, aliveScopedFD0: true, calls: phase === 'cold' ? 0 : phase === 'warm' ? 2 : 1,
       ...(phase === 'warm' ? {tasks: 2, requests: 2} : phase === 'cold'
-        ? {originalSavedFirst: true, egressChecks: 0}
-        : {tasks: 1, requests: 1, usageMode: phase.slice(6), usageCaptures: 1})})};
+        ? {egressChecks: 0, ...(profile.timeout === null ? {originalSavedFirst: true} : {originalUnknown: true, zeroResend: true})}
+        : {tasks: 1, requests: 1, ...(profile.usage === null ? {} : {usageMode: profile.usage, usageCaptures: 1})}),
+      ...(profile.timeout === null ? {} : {timeoutMode: profile.timeout, preserveOriginalState: true})})};
   };
   return {root, repository, retained, optional, source, command, phases, installs, preparations, phaseCalls};
 }
@@ -99,22 +109,123 @@ test('optional usage consumers retain separate fresh installations and warm shar
     () => runPackedProviderAI(join(f.root, 'consumer-case'), f));
   assert.equal(process.env.GITHUB_SHA, original);
   assert.equal(result.complete, true); assert(result.phases.every(row => row.status === 'passed'));
-  const [warm, cold, ...usage] = f.phaseCalls;
+  const [warm, cold] = f.phaseCalls.filter(row => row.case === 'warm');
+  const usage = f.phaseCalls.filter(row => row.phase.startsWith('usage-'));
   assert.equal(warm.cwd, cold.cwd); assert.notEqual(warm.pid, cold.pid);
   assert.equal(warm.modulesInode, cold.modulesInode);
   for (const value of usage) {
     assert.notEqual(value.cwd, warm.cwd); assert.notEqual(value.modulesInode, warm.modulesInode);
-    const mode = value.phase.slice(6), actual = result.phases.find(row => row.phase === value.phase).actual;
+    const mode = value.phase.slice(6), actual = result.phases.find(row => row.case === value.case && row.phase === value.phase).actual;
     assert.equal(actual.usageMode, mode); assert.equal(actual.usageCaptures, 1);
   }
   assert.equal(new Set(usage.map(row => row.cwd)).size, 3);
   assert.equal(new Set(usage.map(row => row.modulesInode)).size, 3);
-  assert.equal(new Set(f.preparations.map(row => row.raw)).size, 4);
+  assert.equal(new Set(f.preparations.map(row => row.raw)).size, f.preparations.length);
   for (const args of f.installs) {
     assert(args.includes('--ignore-scripts=false')); assert(!args.includes('--offline'));
     assert.equal(args.filter(x => x.endsWith('.tgz')).length, CLIENT_PACKAGES.length + 1);
   }
   assert.equal(result.preparations.length, f.preparations.length);
+});
+
+test('optional timeout originals retain independent installations and same-profile cold Unknown without resend', async t => {
+  const f = await fixture(t), result = await withFixtureGitHubSource(f.source.sha,
+    () => runPackedProviderAI(join(f.root, 'timeouts'), f));
+  const required = [['warm', ['warm', 'cold']], ['usage-reported', ['usage-reported']],
+    ['usage-zero', ['usage-zero']], ['usage-absent', ['usage-absent']],
+    ['timeout-headers', ['timeout-headers', 'cold']], ['timeout-body', ['timeout-body', 'cold']]];
+  assert.deepEqual(result.phases.map(row => `${row.case}/${row.phase}`).sort(),
+    required.flatMap(([id, phases]) => phases.map(phase => `${id}/${phase}`)).sort());
+  assert.equal(result.complete, true);assert(result.phases.every(row => row.status === 'passed'));
+  assert.deepEqual(result.preparations.map(row => row.case).sort(), required.map(([id]) => id).sort());
+  assert.equal(new Set(f.preparations.map(row => row.cwd)).size, required.length);
+  assert.equal(new Set(f.preparations.map(row => row.raw)).size, required.length);
+  const modules = new Set();
+  for (const prepared of result.preparations) {
+    assert.equal(prepared.manifest.sourceSha, f.source.sha);
+    assert.deepEqual(prepared.manifest.packages.map(row => row.name).sort(),
+      [...CLIENT_PACKAGES, 'provider-ai-sdk'].map(name => '@actql/' + name).sort());
+    for (const pkg of prepared.manifest.packages) {
+      assert.match(pkg.sha256, /^[a-f0-9]{64}$/u);assert.match(pkg.integrity, /^sha512-/u);
+    }
+    modules.add((await lstat(join(prepared.consumer, 'node_modules'))).ino);
+  }
+  assert.equal(modules.size, required.length);
+  for (const mode of ['headers', 'body']) {
+    const id = 'timeout-' + mode, calls = f.phaseCalls.filter(row => row.case === id);
+    assert.deepEqual(calls.map(row => row.phase), [id, 'cold']);
+    assert.equal(calls[0].cwd, calls[1].cwd);assert.equal(calls[0].raw, calls[1].raw);
+    assert.equal(calls[0].modulesInode, calls[1].modulesInode);assert.notEqual(calls[0].pid, calls[1].pid);
+    assert.deepEqual(calls[0].profile, {usage: null, timeout: mode});assert.deepEqual(calls[1].profile, calls[0].profile);
+    const cold = result.phases.find(row => row.case === id && row.phase === 'cold');
+    assert.equal(cold.actual.timeoutMode, mode);assert.equal(cold.actual.preserveOriginalState, true);
+    assert.equal(cold.actual.originalUnknown, true);assert.equal(cold.actual.zeroResend, true);
+    assert.equal(cold.actual.calls, 0);assert.equal(cold.actual.egressChecks, 0);
+    assert.equal(cold.actual.originalSavedFirst, undefined);
+  }
+});
+
+test('optional timeout cold completion refuses mismatched Unknown, resend, profile, process and close evidence', async t => {
+  const originalPid = 70001, pid = 70002;
+  const observation = mode => ({phase: 'cold', calls: 0, egressChecks: 0, firstCloseReturned: true,
+    aliveScopedFD0: true, timeoutMode: mode, preserveOriginalState: true, originalUnknown: true, zeroResend: true});
+  for (const mode of ['headers', 'body'])
+    checkPackedProviderObservation({caseId: 'timeout-' + mode, phase: 'cold', pid, originalPid, observation: observation(mode)});
+  // Reuse the actual imported DATA guard for independent invalid fields rather
+  // than repacking/reinstalling every unchanged case for each assertion.
+  for (const [mode, change, samePid] of [
+    ['headers', {originalUnknown: false}], ['body', {zeroResend: false}],
+    ['headers', {calls: 1}], ['body', {egressChecks: 1}], ['headers', {timeoutMode: 'body'}],
+    ['body', {preserveOriginalState: false}], ['headers', {firstCloseReturned: false}],
+    ['body', {aliveScopedFD0: false}], ['headers', {}, true],
+  ]) {
+    assert.throws(() => checkPackedProviderObservation({caseId: 'timeout-' + mode, phase: 'cold',
+      pid: samePid ? originalPid : pid, originalPid, observation: {...observation(mode), ...change}}));
+  }
+  const f = await fixture(t), root = join(f.root, 'invalid'), id = 'timeout-body';
+  await assert.rejects(withFixtureGitHubSource(f.source.sha, () => runPackedProviderAI(root, {...f, command: async (cmd, args, options) => {
+    const result = await f.command(cmd, args, options);
+    return args[1] === 'cold' && basename(dirname(options.cwd)) === id
+      ? {...result, stdout: JSON.stringify({...JSON.parse(result.stdout), zeroResend: false})} : result;
+  }})));
+  const report = JSON.parse(await readFile(join(root, 'summary.json')));
+  assert.equal(report.complete, false);
+  assert.equal(report.phases.find(row => row.case === id && row.phase === 'cold').status, 'failed');
+  assert(report.phases.filter(row => row.case !== id).every(row => row.status === 'passed'));
+});
+
+test('failed timeout original retains primary and cannot start a replacement cold case', async t => {
+  const f = await fixture(t), root = join(f.root, 'failed'), primary = new Error('OriginalTimeoutFixtureFailed');
+  await assert.rejects(withFixtureGitHubSource(f.source.sha, () => runPackedProviderAI(root, {...f, command: async (cmd, args, options) => {
+    if (cmd !== 'npm' && args[1] === 'timeout-headers') throw primary;
+    return f.command(cmd, args, options);
+  }})), actual => actual === primary);
+  const report = JSON.parse(await readFile(join(root, 'summary.json')));
+  assert.equal(report.complete, false);
+  assert.equal(report.phases.find(row => row.case === 'timeout-headers' && row.phase === 'timeout-headers').status, 'failed');
+  assert.equal(report.phases.find(row => row.case === 'timeout-headers' && row.phase === 'cold').status, 'unexecuted');
+  assert(!f.phaseCalls.some(row => row.case === 'timeout-headers' && row.phase === 'cold'));
+  assert(report.phases.filter(row => row.case !== 'timeout-headers').every(row => row.status === 'passed'));
+});
+
+test('optional timeout completion rechecks every independent installed package inventory', async t => {
+  const f = await fixture(t), root = join(f.root, 'changed');
+  await assert.rejects(withFixtureGitHubSource(f.source.sha, () => runPackedProviderAI(root, {...f, command: async (cmd, args, options) => {
+    const result = await f.command(cmd, args, options);
+    if (args[1] === 'cold' && basename(dirname(options.cwd)) === 'timeout-body') {
+      const packages = [...CLIENT_PACKAGES, 'provider-ai-sdk'];
+      const changed = new Set();
+      for (const [index, prepared] of f.preparations.entries()) {
+        const name = packages[index % packages.length];changed.add(name);
+        await writeFile(join(prepared.cwd, 'node_modules/@actql', name, 'index.mjs'), 'changed original package\n');
+      }
+      assert.deepEqual([...changed].sort(), packages.sort(), 'Exercise every original package type across the independent installations');
+    }
+    return result;
+  }})), /OptionalProviderSoftwareChanged/u);
+  const report = JSON.parse(await readFile(join(root, 'summary.json')));
+  assert.equal(report.complete, false);assert(report.phases.every(row => row.status === 'passed'));
+  assert.equal(report.cleanup.length, f.preparations.length);
 });
 
 test('required-five consumers remain offline and never discover optional siblings', async t => {
@@ -159,11 +270,11 @@ test('warm failure preserves primary and cannot start a cold replacement port', 
       return f.command(cmd, args, options);
     }})), actual => actual === primary);
   assert.equal(process.env.GITHUB_SHA, original);
-  assert.equal(f.phases.includes('cold'), false);
+  assert(!f.phaseCalls.some(row => row.case === 'warm' && row.phase === 'cold'));
   const report = JSON.parse(await readFile(join(f.root, 'failed/summary.json')));
   assert.equal(report.complete, false);
-  assert.equal(report.phases.find(row => row.phase === 'warm').status, 'failed');
-  assert.equal(report.phases.find(row => row.phase === 'cold').status, 'unexecuted');
+  assert.equal(report.phases.find(row => row.case === 'warm' && row.phase === 'warm').status, 'failed');
+  assert.equal(report.phases.find(row => row.case === 'warm' && row.phase === 'cold').status, 'unexecuted');
   assert(report.phases.filter(row => row.phase.startsWith('usage-')).every(row => row.status === 'passed'));
 });
 
@@ -177,8 +288,8 @@ test('optional usage completion refuses mismatched evidence and retained close o
     }})));
     const report = JSON.parse(await readFile(join(root, 'summary.json')));
     assert.equal(report.complete, false);
-    assert.equal(report.phases.find(row => row.phase === 'usage-zero').status, 'failed');
-    assert.equal(report.phases.find(row => row.phase === 'usage-absent').status, 'passed');
+    assert.equal(report.phases.find(row => row.case === 'usage-zero' && row.phase === 'usage-zero').status, 'failed');
+    assert.equal(report.phases.find(row => row.case === 'usage-absent' && row.phase === 'usage-absent').status, 'passed');
   }
 });
 
@@ -191,10 +302,10 @@ test('optional diagnostic selection retains nested inventories and bounded usage
   const patterns = upload.with.path.split('\n').filter(path => path.startsWith(prefix)).map(path => path.slice(prefix.length));
   const expected = ['summary.json'];
   const privateFiles = [];
-  for (const name of ['warm', 'usage-reported', 'usage-zero', 'usage-absent']) {
+  for (const name of ['warm', 'usage-reported', 'usage-zero', 'usage-absent', 'timeout-headers', 'timeout-body']) {
     expected.push(`cases/${name}/packages/ordinary-operation-packages.json`,
       `cases/${name}/packages/optional-provider-packages.json`, `raw/${name}/install-node.stdout`);
-    if (name !== 'warm') for (const file of ['usage-original.json', 'usage-receipt.json']) expected.push(`cases/${name}/consumer/${file}`);
+    if (name.startsWith('usage-')) for (const file of ['usage-original.json', 'usage-receipt.json']) expected.push(`cases/${name}/consumer/${file}`);
     for (const file of ['operator-private.fixture', 'api-key.fixture', 'provider.key', '.state/private.db'])
       privateFiles.push(`cases/${name}/consumer/${file}`);
   }
