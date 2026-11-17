@@ -93,7 +93,7 @@ Private source-line instrumentation requires the explicit
 capability check is separate:
 
 ```sh
-node scripts/local-checks.mjs test node --timeout-seconds 30 -- scripts/packed-query-inspector.actual.test.mjs
+node --test scripts/packed-query-inspector.actual.mjs
 ```
 
 Unavailable instrumentation, an abort or a failed diagnostic remains a failed
