@@ -92,6 +92,10 @@ fn client_local_filter_expression_slots(
 // output/checked/capture references. The predicate contributes its SAME typed
 // node/view inventory above. Eight fixed entries cover predicate handles(2),
 // logical-row writer(2), scalar-measure cursors(2), and root/row carriers(2).
+// One checked primitive-literal Array binding additionally coholds its K
+// exported child references, 2K builder/root entries, and sixteen expression,
+// row/measurement controls. Its allocation-free getter reads the SAME checked
+// expression; no child view is copied while selecting this quantity.
 // This is not a bound on StringAgg builders, sort arrays or other constructors:
 // their complete existing workspace/Fragment/DATA quotes use the SAME selected
 // shared Plan limit. No byte/work amount is reinterpreted as an entry count.
@@ -109,9 +113,6 @@ fn client_local_request_operation_entries(
     for index in 0..<@execution.generated_sequence_step_count(sequence) {
       guard @execution.generated_sequence_step_at(sequence, index)
         is Some(@lower.RowStep(kernel)) &&
-        @lower.kernel_is_filter(kernel) &&
-        @lower.kernel_view_entries(kernel) == 0 &&
-        @lower.kernel_body(kernel) is @lower.Filter(predicate) &&
         physical_equal(
           @lower.kernel_owner(kernel),
           @execution.generated_sequence_owner(sequence),
@@ -122,30 +123,73 @@ fn client_local_request_operation_entries(
       let output = @lower.kernel_output_schema(kernel)
       let mut primitive = @schema.all_fields_required(input) &&
         @schema.all_fields_required(output)
-      for port in 0..<2 {
-        let schema = if port == 0 { input } else { output }
-        for column in 0..<@schema.field_count(schema) {
-          match @schema.field_at(schema, column).unwrap().contract.shape {
-            @contract.Number | @contract.Boolean => ()
-            _ => primitive = false
-          }
+      for column in 0..<@schema.field_count(input) {
+        match @schema.field_at(input, column).unwrap().contract.shape {
+          @contract.Number | @contract.Boolean => ()
+          _ => primitive = false
         }
       }
       if !primitive {
         continue
       }
-      let predicate = client_local_filter_expression_slots(predicate, frames)
+      let extra = if @lower.kernel_is_filter(kernel) {
+        guard @lower.kernel_view_entries(kernel) == 0 &&
+          @lower.kernel_body(kernel) is @lower.Filter(predicate) else {
+          continue
+        }
+        for column in 0..<@schema.field_count(output) {
+          match @schema.field_at(output, column).unwrap().contract.shape {
+            @contract.Number | @contract.Boolean => ()
+            _ => primitive = false
+          }
+        }
+        let predicate = client_local_filter_expression_slots(predicate, frames)
+        if !primitive || predicate < 0 || predicate > 2147483639 {
+          continue
+        }
+        predicate + 8
+      } else {
+        guard @lower.kernel_bindings(kernel) is Some(bindings) &&
+          @lower.bindings_count(bindings) == 1 &&
+          @lower.binding_at(bindings, 0) is Some((name, expression)) &&
+          @lower.expression_primitive_array_length(expression) is Some(items) &&
+          items <= 715827877 else {
+          continue
+        }
+        let mut array = false
+        for column in 0..<@schema.field_count(output) {
+          let field = @schema.field_at(output, column).unwrap()
+          if @schema.field_reference_name(field) == name {
+            array = match field.contract.shape {
+              @contract.Array(item, max_items=Some(bound)) =>
+                bound == items.to_int64() &&
+                (
+                  item.shape is @contract.Number ||
+                  item.shape is @contract.Boolean
+                )
+              _ => false
+            }
+          } else {
+            match field.contract.shape {
+              @contract.Number | @contract.Boolean => ()
+              _ => primitive = false
+            }
+          }
+        }
+        if !array || !primitive {
+          continue
+        }
+        3 * items + 16
+      }
       let i = @schema.field_count(input)
       let o = @schema.field_count(output)
       // Every product/sum is checked before it can affect an admitted cap.
-      if predicate < 0 ||
-        rows > 2147483639 ||
-        i > (2147483639 - rows) / 3 ||
-        o > (2147483639 - rows - 3 * i) / 4 ||
-        predicate > 2147483639 - rows - 3 * i - 4 * o {
+      if rows > 2147483647 - extra ||
+        i > (2147483647 - extra - rows) / 3 ||
+        o > (2147483647 - extra - rows - 3 * i) / 4 {
         continue
       }
-      selected = Int::max(selected, rows + 3 * i + 4 * o + predicate + 8)
+      selected = Int::max(selected, rows + 3 * i + 4 * o + extra)
     }
   }
   selected

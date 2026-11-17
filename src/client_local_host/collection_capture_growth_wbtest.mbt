@@ -437,3 +437,124 @@ test "ordinary FILTER entry demand uses checked scalar structures and finite ove
     10000,
   )
 }
+
+///|
+test "ordinary literal Array entry demand funds the original constructor and preserves explicit caps" {
+  let sql = "SELECT [" + Array::make(4000, "0").join(",") + "] AS cells"
+  let prepared = collection_capacity_selected_prepared(sql, 100000)
+  let assets = @publication_host.client_local_product_assets()
+  let contracts = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  // Constructor/Plan correspondence only. Use the ordinary Request's stored
+  // compiler codec and authored 30M work selection, rather than the legacy
+  // unowned helper's smaller metadata codec. Run admission remains separate.
+  let sequences = prepare_client_local_sequences_owned(
+    Pure(prepared),
+    contracts,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+    source_free_max_work=Some(30000000),
+    compilation_limits=Some(
+      @publication_host.client_standard_pure_compilation_limits(),
+    ),
+  ).unwrap()
+  let plan = client_local_capacity_plan(
+    sequences,
+    100000,
+    scalar_values=true,
+    graph=Some(@publication_host.prepared_client_graph(prepared)),
+    source_free_max_work=Some(30000000),
+  )
+  assert_true(plan.execution.rows.operation_entries >= 12016)
+  assert_true(
+    client_local_capacity_plan_matches(plan, sequences, plan.admitted_rows),
+  )
+  assert_false(
+    client_local_capacity_plan_matches(
+      {
+        ..plan,
+        execution: {
+          ..plan.execution,
+          rows: { ..plan.execution.rows, operation_entries: 10000, },
+        },
+      },
+      sequences,
+      plan.admitted_rows,
+    ),
+  )
+  let mut found = false
+  for sequence in sequences {
+    for index in 0..<@execution.generated_sequence_step_count(sequence) {
+      guard @execution.generated_sequence_step_at(sequence, index)
+        is Some(@lower.RowStep(kernel)) &&
+        @lower.kernel_bindings(kernel) is Some(bindings) &&
+        @lower.bindings_count(bindings) == 1 &&
+        @lower.binding_at(bindings, 0) is Some((_, expression)) &&
+        @lower.expression_primitive_array_length(expression) == Some(4000) else {
+        continue
+      }
+      found = true
+      let i = @schema.field_count(@lower.kernel_input_schema(kernel))
+      let o = @schema.field_count(@lower.kernel_output_schema(kernel))
+      assert_eq(
+        client_local_request_operation_entries([sequence], 1, 10000, 100),
+        1 + 3 * i + 4 * o + 12016,
+      )
+      assert_eq(
+        client_local_request_operation_entries(
+          [sequence],
+          2147483647,
+          10000,
+          100,
+        ),
+        10000,
+      )
+      for entries in [8, plan.execution.rows.operation_entries] {
+        let active = @execution.start_expression_execution(
+          expression,
+          Map([]),
+          [],
+          1000000,
+          100,
+          entries,
+        ).unwrap()
+        let mut finished = false
+        for _ in 0..<1000000 {
+          match @execution.advance_expression_execution(active) {
+            Ok(@execution.ExpressionContinue) => ()
+            Ok(
+              @execution.ExpressionComplete(
+                @execution.Captured(@admitted.Array(items))
+              )
+            ) => {
+              assert_true(entries > 10000)
+              assert_eq(@admitted.element_count(items), 4000)
+              for item in 0..<4000 {
+                assert_true(
+                  @admitted.element_at(items, item)
+                  is Some(@admitted.Number(0.0)),
+                )
+              }
+              finished = true
+              break
+            }
+            Err(issue) if entries == 8 => {
+              assert_true(issue.kind is @execution.WorkspaceLimit)
+              finished = true
+              break
+            }
+            _ => fail("original literal Array constructor changed")
+          }
+        }
+        assert_true(finished)
+        assert_true(@execution.cancel_expression_execution(active))
+      }
+    }
+  }
+  assert_true(found)
+}

@@ -227,6 +227,25 @@ pub fn expression_view_entries(value : Expression) -> Int {
 }
 
 ///|
+/// Constructor DATA from the original checked Array, without exporting its
+/// child view. Nonliteral, recursive and Text items keep the general recipe.
+pub fn expression_primitive_array_length(value : Expression) -> Int? {
+  guard value.body is Array(children) else { return None }
+  for child in children {
+    match child.body {
+      TypedNull => ()
+      Literal(value) =>
+        match value.value {
+          @value.Null | @value.Number(_) | @value.Boolean(_) => ()
+          _ => return None
+        }
+      _ => return None
+    }
+  }
+  Some(children.length())
+}
+
+///|
 pub fn expression_contract(value : Expression) -> @contract.Contract {
   value.contract
 }
