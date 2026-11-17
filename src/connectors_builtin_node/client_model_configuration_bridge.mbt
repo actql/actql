@@ -1,0 +1,20 @@
+///|
+/// Bounded canonical DATA for the existing Provider binding/defaults owners.
+#export_name("clientProgramPrepareModelProviderOriginals")
+pub fn client_program_prepare_model_provider_originals(
+  installation_wire : String,
+  contract_wire : String,
+  configuration_wire : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_work : Int,
+) -> Result[
+  (String, String, String, String, String, String),
+  @check_environment.ModelTaskIssue,
+] {
+  @publication_host.prepare_client_model_provider_originals(
+    installation_wire, contract_wire, configuration_wire, max_bytes, max_nodes, max_depth,
+    max_work,
+  )
+}

@@ -1907,7 +1907,7 @@ fn QueryParser::aggregate(
   } else {
     None
   }
-  if function_name == "ARRAY_AGG" {
+  if function_name == "ARRAY_AGG" && self.has("IGNORE") {
     self.keyword("IGNORE")
     self.keyword("NULLS")
   }
@@ -1927,6 +1927,12 @@ fn QueryParser::aggregate(
       .unwrap_or(false) {
       []
     } else {
+      if !self.has("ORDER") {
+        raise QueryAbort(
+          function_name + " requires aggregate ORDER BY",
+          token.start,
+        )
+      }
       self.keyword("ORDER")
       self.keyword("BY")
       self.order()

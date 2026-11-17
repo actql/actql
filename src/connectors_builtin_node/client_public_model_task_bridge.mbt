@@ -106,6 +106,15 @@ pub fn client_program_normalized_public_model_task_materials(
 }
 
 ///|
+/// Original checked input/output schema identities, without another admission.
+#export_name("clientProgramNormalizedPublicModelTaskSchemaCids")
+pub fn client_program_normalized_public_model_task_schema_cids(
+  value : @check_environment.NormalizedPublicModelTask,
+) -> (String, String) {
+  @check_environment.normalized_public_model_task_schema_cids(value)
+}
+
+///|
 /// Candidate DATA only, read from the same normalized Task original.
 #export_name("clientProgramNormalizedPublicModelTaskProviderData")
 pub fn client_program_normalized_public_model_task_provider_data(
@@ -117,6 +126,22 @@ pub fn client_program_normalized_public_model_task_provider_data(
 ) -> Result[(String, String, String), @check_environment.ModelTaskIssue] {
   @check_environment.normalized_public_model_task_provider_data(
     value, max_bytes, max_nodes, max_depth, max_work,
+  )
+}
+
+///|
+/// Physical profile DATA for the original Task; not an installation or grant.
+#export_name("clientProgramNormalizedPublicModelTaskResponseProfile")
+pub fn client_program_normalized_public_model_task_response_profile(
+  value : @check_environment.NormalizedPublicModelTask,
+  template : @check_environment.ModelResponseProfile,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_work : Int,
+) -> Result[(String, String), @check_environment.ModelTaskIssue] {
+  @check_environment.normalized_public_model_task_response_profile(
+    value, template, max_bytes, max_nodes, max_depth, max_work,
   )
 }
 

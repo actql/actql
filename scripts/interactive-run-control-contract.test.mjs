@@ -8,10 +8,56 @@ import * as wire from '../packages/client-wire/interactive-control.generated.js'
 import {validRunStateShape} from '../packages/client-wire/client-host.generated.js';
 import {identityVectors, shapeVectors, negativeVectors, legacyState, profile,
   command, cid, bindingVectors, running} from './fixtures/interactive-run-control-vectors.mjs';
+import {explanationBody, explanationCid, explanationFacts, explanationLeakageVectors,
+  runExplanation, unprojectedRunExplanation} from './fixtures/explanation-facts-vectors.mjs';
 
 const schemaName = name => 'validWire' + name.split('_')
   .map(part => part[0].toUpperCase() + part.slice(1)).join('') + 'Shape';
 const hash = body => `sha256:${createHash('sha256').update(canonicalText(body)).digest('hex')}`;
+
+test('ExplanationFacts uses the existing complete-body identity domain and independent preimage', () => {
+  verifyIdentity(explanationBody, explanationCid);
+  assert.equal(wire.validWireExplanationFactsShape(explanationFacts), true);
+  assert.deepEqual(buildControlRegistry().identity_domains.explanation_facts, {
+    version: 'actql-explanation-facts/0.1', identity_field: 'self_cid',
+    preimage: 'complete_body_except_self_cid', algorithm: 'sha256',
+  });
+  for (const field of ['compiled_plan_cid', 'logical_map_cid', 'program_definition_cid', 'parameter_values_cid']) {
+    assert.notEqual(hash({...explanationBody, [field]: cid('9')}), explanationCid, field);
+  }
+  // A valid shape/self-CID is still not an original compiler or an access grant.
+  assert.equal(wire.validWireExplanationFactsShape({...explanationFacts, self_cid: cid('9')}), true);
+  assert.throws(() => verifyIdentity(explanationBody, cid('9')));
+});
+
+test('ExplanationFacts structural profile rejects literal metadata and permission fabrication', () => {
+  for (const {field, value} of explanationLeakageVectors) {
+    assert.equal(wire.validWireExplanationFactsShape(value), false, field);
+  }
+  const original = explanationFacts.steps[0].meaning.predicate.nodes[2];
+  assert.deepEqual(original, {form: 'literal_redacted',
+    type: {projection: 'shape_and_nullability', kind: 'number', nullable: false}});
+});
+
+test('ExplanationFacts preserves parameter names/types without bound values or length evidence', () => {
+  const value = structuredClone(explanationFacts);
+  value.steps[0].meaning.predicate.nodes[2] = {form: 'parameter', name: 'threshold',
+    type: {projection: 'shape_and_nullability', kind: 'number', nullable: false}};
+  assert.equal(wire.validWireExplanationFactsShape(value), true);
+  value.steps[0].meaning.predicate.nodes[2].bound_value = 42;
+  assert.equal(wire.validWireExplanationFactsShape(value), false);
+});
+
+test('ExplanationFacts missing retained original is explicit and cannot carry repaired facts', () => {
+  assert.equal(wire.validWireRunExplanationViewShape(runExplanation), true);
+  assert.equal(wire.validWireRunExplanationViewShape(unprojectedRunExplanation), true);
+  for (const additional of [{facts: explanationFacts}, {compiled: true}, {rows: []}]) {
+    assert.equal(wire.validWireRunExplanationViewShape({...unprojectedRunExplanation,
+      explanation: {...unprojectedRunExplanation.explanation, ...additional}}), false);
+  }
+  assert.equal(wire.validWireRunExplanationViewShape({...unprojectedRunExplanation,
+    explanation: {state: 'not_projected', reason: 'success'}}), false);
+});
 
 test('interactive registry is generated, pinned, closed and grants no runtime support', () => {
   const registry = JSON.parse(readFileSync(controlRegistryPath, 'utf8'));

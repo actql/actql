@@ -1939,8 +1939,8 @@ test "ordered collection aggregates retain literal and order contracts" {
   }
   for
     text in [
-      "SELECT ARRAY_AGG(id ORDER BY id) AS ids FROM orders", "SELECT ARRAY_AGG(id IGNORE NULLS) AS ids FROM orders",
-      "SELECT STRING_AGG(status, id ORDER BY id) AS statuses FROM orders", "SELECT STRING_AGG(status, '|') AS statuses FROM orders",
+      "SELECT ARRAY_AGG(id IGNORE NULLS) AS ids FROM orders", "SELECT STRING_AGG(status, id ORDER BY id) AS statuses FROM orders",
+      "SELECT STRING_AGG(status, '|') AS statuses FROM orders",
     ] {
     assert_true(@query.parse_query(text, syntax_limits()) is Err(_), msg=text)
   }

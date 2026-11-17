@@ -104,17 +104,59 @@ propagation is not supported.
 | --- | --- |
 | Literals | strings (single, double, triple-quoted, raw `r'…'`, adjacent chunks concatenate), integers (decimal, hex), finite doubles, `TRUE`/`FALSE`, `NULL`, arrays `[…]`, `ARRAY[…]` and `ARRAY<T>[]` (the empty array needs its element type) |
 | Parameters | `@name`, declared by the Program; never interpolated |
-| Comparison and logic | `=`, `<>`, `!=`, `<`, `<=`, `>`, `>=`, `AND`, `OR`, `NOT`, `IS [NOT] NULL`, `IN (…)`, `IN UNNEST(array)`, `BETWEEN` |
+| Comparison and logic | `=`, `<>`, `!=`, `<`, `<=`, `>`, `>=`, `AND`, `OR`, `NOT`, `IS [NOT] NULL`, `IN (…)`, `IN UNNEST(array)`, `BETWEEN`, `LIKE`, `NOT LIKE` |
 | Conditionals | `CASE WHEN … THEN … ELSE … END`, `IF`, `IFNULL`, `COALESCE`, `NULLIF` |
 | Casts | `CAST(x AS STRING \| NUMBER \| FLOAT64 \| DOUBLE \| BOOLEAN \| TIMESTAMP \| DECIMAL(P,S))`; same-type casts are identity |
+| Timestamp patterns | `PARSE_TIMESTAMP(format, string)`, `FORMAT_TIMESTAMP(format, timestamp)` with the pinned text-time grammar below |
 | Strings | `CONCAT`, `\|\|`, `LENGTH`, `LOWER`, `UPPER`, `TRIM`, `LTRIM`, `RTRIM`, `LEFT`, `RIGHT`, `LPAD`, `RPAD`, `SUBSTRING`, `REPLACE`, `SPLIT`, `STARTS_WITH`, `ENDS_WITH`, `INSTR`, `STRPOS`, `BYTE_LENGTH`, `UNICODE`, `TRANSLATE`, `CONTAINS` |
 | Numbers | `+ - * /`, `ABS`, `SIGN`, `ROUND`, `TRUNC`, `FLOOR`, `SQRT`, `CBRT`, `POW`, `EXP`, `LN`, `LOG`, `LOG10`, trigonometric functions, `GREATEST`, `LEAST`, `SAFE_DIVIDE` and the other `SAFE_*` forms |
-| Aggregates | `COUNT(*)`, `COUNT(x)`, `COUNTIF`, `SUM`, `AVG`, `MIN`, `MAX`, `ARRAY_AGG(x ORDER BY …)`, `STRING_AGG(x, 'sep')`, filtered aggregates (`… WHERE …` inside the call) |
+| Aggregates | `COUNT(*)`, `COUNT(x)`, `COUNTIF`, `SUM`, `AVG`, `MIN`, `MAX`, `ARRAY_AGG(x ORDER BY …)`, `STRING_AGG(x, 'sep' ORDER BY …)`, filtered aggregates (`… WHERE …` inside the call) |
 | Window functions | `OVER (PARTITION BY … ORDER BY … [ROWS …])` with the supported analytic functions, `QUALIFY`, named `WINDOW` specifications |
 | Vectors | `VECTOR_COSINE_SIMILARITY`, `VECTOR_INNER_PRODUCT`, `VECTOR_L2_DISTANCE`, `VECTOR_CONCAT` |
 
 The full function list, with types and NULL rules, is in
 [Types and functions](types-and-functions.md).
+
+`LIKE` uses the existing case-sensitive Common pattern rules: `%` matches
+zero or more Unicode scalars, `_` matches one scalar, and backslash escapes
+the next scalar. Neither operand is normalized. The pattern must be a checked
+string literal or original bound string Parameter; a computed pattern and a
+trailing escape are refused. A NULL input yields NULL after the original
+pattern checks. `NOT LIKE` negates that Boolean using ordinary NULL propagation.
+There is no implicit regex engine, `ESCAPE` clause or host-language matcher.
+Comparison and backtracking remain subject to the original execution work and
+cancellation limits.
+
+Timestamp casts require a valid canonical UTC value with `T`, a trailing `Z`
+and 3–9 fractional digits. For example, `2026-01-02T03:04:05.123Z` and
+`2026-01-02T03:04:05.123456789Z` are valid. Zero fractional digits, spaces,
+offset suffixes and surrounding whitespace are refused rather than normalized.
+
+Timestamp pattern functions require the text-time profile. Their existing
+grammar uses `yyyy`, `MM`, `dd`, `HH`, `mm`, `ss` and `SSS`, each at most once;
+the literal separators are `-`, `/`, `:`, space, `.`, and `T`. Percent directives
+such as `%Y` are not part of this grammar. Parsing requires a complete date,
+consumes the whole input and validates the calendar. Missing time components
+default to zero; the result has millisecond precision. Formatting `SSS` selects
+the millisecond digits of an admitted timestamp without rounding. Input,
+pattern, output and execution limits still apply.
+
+```sql
+SELECT PARSE_TIMESTAMP('yyyy-MM-dd', '2026-01-02') AS parsed;
+SELECT FORMAT_TIMESTAMP('yyyy',
+  CAST('2026-01-02T03:04:05.123456789Z' AS TIMESTAMP)) AS year;
+```
+
+Ordinary collection aggregates require their own `ORDER BY`; an enclosing
+query's order is not a substitute. `STRING_AGG(s, ',' ORDER BY n)` is the
+supported spelling. `ARRAY_AGG` uses ActQL's existing NULL exclusion with or
+without the optional `IGNORE NULLS` spelling. Its input must also retain a
+candidate-key witness. A literal `UNION ALL` input is not implicitly assigned
+a key from the observed values or row positions. Use a declared input key or
+an explicit `ASSERT UNIQUE BY` before aggregation; that assertion is checked,
+not inferred. Without the witness, an ordered call is refused with
+`UnresolvedOrder`; omitting the order is a syntax refusal naming
+`ARRAY_AGG requires aggregate ORDER BY`. See [environment qualification](status.md#sql-collection-profile).
 
 For literal CLI `sql` and `aql` queries, the optional
 `--parameter-declarations-file` supplies those declarations as named value
@@ -152,6 +194,16 @@ the selected GoogleSQL profile, or deliberately absent from ActQL.
 | Chains of `FULL JOIN`, `FULL`/`LEFT` `BY NAME` set operations | Not supported. |
 | Multiple aggregates, non-string axes or computed buckets in `PIVOT` | Only the single-aggregate, string-axis form. |
 | Unknown function names or operations | Never resolved by fuzzy matching or synonyms. |
+| `TIMESTAMP '…'` and `DATE '…'` typed literals | Not selected literal spellings. Timestamp conversion uses the canonical `CAST` grammar above; this does not add a Date cast. |
+| Scalar subqueries, `IN (SELECT …)` and `EXISTS` | Only the documented relational subquery positions are selected; no implicit scalar or correlated evaluation. |
+| Simple `CASE value WHEN …`; unaliased computed SELECT items | Use searched `CASE WHEN …` and explicit output names. Direct field projections keep their documented names. |
+| Analytic aggregates and `FIRST_VALUE`/`LAST_VALUE` without explicit `ROWS` frames | No implicit GoogleSQL default frame. The explicit-frame forms remain supported. |
+| `NTILE`, `PERCENT_RANK`, three-argument `LAG`/`LEAD` | Not in the selected analytic signatures; no default-value or rank semantics are guessed. |
+| `CAST(… AS INT64)`, `EXTRACT`, `TIMESTAMP_DIFF`, `TIMESTAMP_TRUNC`, `DATE(y,m,d)` and GoogleSQL `DATE_* … INTERVAL/unit` overloads | Not selected cast/function signatures. The documented `NUMBER`, timestamp, `DATE_DIFF(a,b,'unit')` and `DATE_TRUNC(t,'unit')` forms retain their own meaning. |
+| `MOD`, `DIV`, `GENERATE_ARRAY`, `ARRAY_LENGTH`, `ARRAY_TO_STRING`, `ARRAY_CONCAT` | These GoogleSQL function spellings are not selected; array literals and the documented `UNNEST` forms remain supported. |
+| `REGEXP_CONTAINS`, `REGEXP_EXTRACT`, `REGEXP_REPLACE`, `ANY_VALUE`, `JSON_VALUE`, `FORMAT`, `TO_JSON_STRING`, `UNIX_SECONDS`, `SHA256`, `FARM_FINGERPRINT`, `CURRENT_DATE`, `LOGICAL_AND`, `LOGICAL_OR` | Outside the selected public function signatures. Refused as unsupported functions, not resolved through host-language functions or implicit timezone, regex, JSON, hashing or aggregation defaults. |
+| Comma joins; `GROUP BY ROLLUP` | Use the documented explicit joins and grouping forms; no implicit expansion is selected. |
+| Recursive queries, `GENERATE_UUID`, `DATETIME`/`TIME`/`NUMERIC`/`INTERVAL` literals | Outside the selected profile pending explicit language decisions; no recursive, random, clock or new scalar domain is introduced. |
 | `\|> CALL`, `\|> WINDOW` as a standalone step, `\|> TABLESAMPLE`, `\|> ASSERT condition` | GoogleSQL pipe operators outside the accepted set; the `WINDOW` clause inside `SELECT`/`EXTEND` and `\|> ASSERT UNIQUE BY` are accepted. |
 | String interpolation, several statements in one text | One query per Program text, with at most one data-changing Effect and Command postludes after the `;`. |
 

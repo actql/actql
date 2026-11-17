@@ -157,6 +157,18 @@ independent of the product's output. A controlled HTTPS responder is ordinary
 SDK/Host transport evidence; it does not establish support for an external
 service's undocumented behaviour.
 
+Run that installed reference case with the author command:
+
+```sh
+node scripts/connector.mjs conformance /absolute/normal-input.json --timeout-seconds 180
+```
+
+The command requires the explicit descriptor and duration, and uses the existing
+bounded, nonzero-test runner. The case verifies the selected source and package
+bytes before creating the fresh installation and running public reads. This
+selection does not execute the connector's live service or imply a passed case.
+`connector.mjs test` continues to check generated projection freshness only.
+
 First prove a real public read and the actual first close with separate live
 scoped-FD observations. Preserve the pending submission's original public
 projection before its first await, and any returned Run reference before

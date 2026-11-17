@@ -40,9 +40,12 @@ fn binary_name(op : BinaryOperator) -> String {
     LTrimSet => "ltrim"
     RTrimSet => "rtrim"
     Contains => "contains"
+    Like => "like"
     DateTruncate => "date_trunc"
     DecimalDivide(_) => "decimal_divide"
     Utf8Truncate => "utf8_truncate"
+    ParseTimestamp => "parse_timestamp"
+    FormatTimestamp => "format_timestamp"
     StartsWith => "starts_with"
     EndsWith => "ends_with"
     Equal => "eq"
@@ -323,6 +326,14 @@ fn emit_frames(
             @encode.begin_object(output)
             pending.push(
               ObjectExpressions([("max_bytes", max_bytes), ("value", value)], 0),
+            )
+          }
+          Binary(op, value, pattern) if op == ParseTimestamp ||
+            op == FormatTimestamp => {
+            pending.push(Op(binary_name(op)))
+            @encode.begin_object(output)
+            pending.push(
+              ObjectExpressions([("pattern", pattern), ("value", value)], 0),
             )
           }
           Binary(op, left, right) => {

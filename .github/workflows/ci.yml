@@ -96,6 +96,7 @@ jobs:
       deep_proofs: ${{ steps.select.outputs.deep_proofs }}
       plan: ${{ steps.select.outputs.plan }}
       python_wheels: ${{ steps.select.outputs.python_wheels }}
+      rust_library: ${{ steps.select.outputs.rust_library }}
       moon_test_selection: ${{ steps.select.outputs.moon_test_selection }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -1406,11 +1407,15 @@ jobs:
         id: host-runtime-preparation
         if: ${{ !cancelled() && steps.host-toolchain.outcome == 'success' }}
         run: moon build --target js --release src/connectors_builtin_node
-      - name: Test funded Model registry and Account construction boundaries
+      - name: Test funded Model registry, Account and REST Common boundaries
         if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         env:
           ACTQL_TEST_PUBLIC_MODEL_TASK_RUNTIME: ${{ github.workspace }}/_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js
-        run: node scripts/local-checks.mjs test node -- adapters/host-node/installed-project-model-task-funding.actual.test.mjs adapters/host-node/account-construction.test.mjs
+          ACTQL_TEST_BOUND_CONSTRUCTION_RUNTIME: ${{ github.workspace }}/_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js
+          ACTQL_METADATA_COMMON_RUNTIME: ${{ github.workspace }}/_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js
+        run: |
+          node scripts/local-checks.mjs test node -- adapters/host-node/installed-project-model-task-funding.actual.test.mjs adapters/host-node/account-construction.test.mjs adapters/host-node/installed-model-configuration.test.mjs adapters/host-node/model-task-candidate-binding.actual.test.mjs
+          node scripts/ci-rest-actual-common.mjs
       - name: Test bounded retained storage and process lifecycle
         if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: node --test adapters/local-node/managed-output-custody.test.mjs adapters/host-common/run-publication-preflight-capacity.test.mjs adapters/host-common/publication-global-capacity.test.mjs adapters/store-local/files.test.mjs adapters/store-local/shared-read.test.mjs adapters/store-local/delegated-file.test.mjs adapters/store-local/direct-file.test.mjs adapters/store-local/managed-manifest.test.mjs adapters/store-local/managed-representations.test.mjs adapters/store-local/managed-memory-transfer.test.mjs adapters/store-local/publication-store.test.mjs adapters/store-local/physical-retirement-owner.test.mjs adapters/store-local/publication-commit-owner.test.mjs adapters/store-local/process-service.test.mjs adapters/store-local/process-client.test.mjs adapters/store-local/row-frames.test.mjs adapters/store-local/representations.test.mjs adapters/local-node/retained-input.test.mjs adapters/local-node/retained-output.test.mjs adapters/local-node/carrier-snapshot.test.mjs adapters/local-node/strategy-bundle.test.mjs adapters/host-common/execution-sites.test.mjs adapters/host-common/managed-site-transfer.test.mjs adapters/host-common/managed-failure.test.mjs adapters/host-common/publication-contract-control.fixture.test.mjs adapters/host-node/managed-identity-policy.test.mjs adapters/host-node/process-frames.test.mjs adapters/host-node/process-channel.test.mjs adapters/host-node/host-service.test.mjs adapters/host-node/completion-custody.test.mjs adapters/store-local/publication-capacity.test.mjs adapters/store-local/prepared-custody-queue.test.mjs
@@ -2932,7 +2937,7 @@ jobs:
   check:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     needs: [select-targets, preflight, lint, core, host, client, native-cli-installed, native-cli-linux-local, native-cli-linux-local-installed, native-cli-linux-local-mock, native, spec, session-evidence, session-controls, pipeline-evidence, pipeline-validation, native-macos, python-wheels,
-      native-separated-network, workers, connector-addition, duckdb-node, focused-tests, main-performance, health-quick, client-readme-packed]
+      native-separated-network, workers, connector-addition, duckdb-node, focused-tests, main-performance, health-quick, client-readme-packed, rust-library]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -3151,6 +3156,67 @@ jobs:
               }
             }
           '
+  # One same-source Core fixture for the initial locked Rust library gate.
+  # This component is selected by its actual inputs, not for every unrelated PR.
+  rust-library:
+    needs: [select-targets]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.rust_library == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      RUSTUP_TOOLCHAIN: 1.90.0
+      CARGO_BUILD_JOBS: 2
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.22.0
+          cache: npm
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - run: npm ci
+      - name: Install the pinned MoonBit and Rust compilers
+        run: |
+          node scripts/setup-moonbit.mjs
+          toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
+          echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
+          echo "$toolchain/bin" >> "$GITHUB_PATH"
+          echo "ACTQL_CORE_WASM=$RUNNER_TEMP/rust-library/core/wasm/release/build/client_host_wasm/client_host_wasm.wasm" >> "$GITHUB_ENV"
+          rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal --no-self-update
+          rustc --version
+          cargo --version
+      - name: Execute the locked Rust syntax-reader controls
+        run: node scripts/local-checks.mjs test cargo --allow-heavy --timeout-seconds 300 --kill-grace-seconds 5 -- --locked --manifest-path packages/rust/tools/source-inventory/Cargo.toml --lib -- --nocapture
+      - name: Check Cargo source responsibility and generated scalar bindings
+        timeout-minutes: 3
+        run: node scripts/check-rust-interface-owners.mjs
+      - name: Build the actual same-source Core Wasm once
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node scripts/local-checks.mjs build moon --allow-heavy --timeout-seconds 600 --kill-grace-seconds 5 -- --target wasm --release src/client_host_wasm --target-dir "$RUNNER_TEMP/rust-library/core"
+          sha256sum "$ACTQL_CORE_WASM" > "$RUNNER_TEMP/rust-library/core.sha256"
+          git rev-parse HEAD > "$RUNNER_TEMP/rust-library/source-revision.txt"
+          rustc --version > "$RUNNER_TEMP/rust-library/rustc-version.txt"
+          cargo --version > "$RUNNER_TEMP/rust-library/cargo-version.txt"
+      - name: Execute every locked Rust library case with nonzero evidence
+        run: node scripts/local-checks.mjs test cargo --allow-heavy --timeout-seconds 900 --kill-grace-seconds 5 -- --locked --manifest-path packages/rust/Cargo.toml --lib -- --nocapture
+      - name: Verify that checks did not rewrite tracked source
+        run: git diff --exit-code
+      - name: Retain the exact fixture, tool versions and original bounded execution evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: rust-library-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/rust-library/core/wasm/release/build/client_host_wasm/client_host_wasm.wasm
+            ${{ runner.temp }}/rust-library/core.sha256
+            ${{ runner.temp }}/rust-library/*.txt
+            _build/local-checks/attempts
+            _build/focused-evidence
+          if-no-files-found: error
   python-wheels:
     needs: [select-targets, lint, core-js]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !cancelled() && needs.lint.result == 'success' && ((needs.select-targets.outputs.profile == 'full' && contains(fromJSON(needs.select-targets.outputs.targets), 'js') && needs.core-js.result == 'success') || ((needs.select-targets.outputs.profile != 'full' || !contains(fromJSON(needs.select-targets.outputs.targets), 'js')) && needs.core-js.result == 'skipped')) && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.python_wheels == 'true' }}

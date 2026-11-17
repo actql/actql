@@ -535,6 +535,7 @@ fn bind_request_single_model_read_scope(
     plan.graph,
     ledger,
     identity,
+    model_limits=Some(plan.model_limits),
   )
 }
 

@@ -400,61 +400,54 @@ pub fn prepare_client_keyed_native_batch_plan(
     is Some(controls) else {
     return Err(Assembly("native_batch_plan_capacity"))
   }
-  let metadata_phase = match
-    grow_keyed_lookup_protocol_metadata(
-      state,
-      max_bytes,
-      keys.length().to_int64(),
-      extra_controls=controls,
-    ) {
-    Err(issue) => return Err(issue)
-    Ok(value) => value
-  }
-  // This measured nested walk visits actual key/occurrence controls, not
-  // provider Values or a policy quota. Spend work before constructing output.
-  let work = keys.length().to_int64() * requests.length().to_int64()
-  if work > 2147483647L || !charge_keyed_lookup_input_work(state, work.to_int()) {
-    return Err(LookupLimit("work"))
-  }
-  let plan = match
-    @publication.issue_native_file_lookup_batch_plan(
-      component.barrier.logical_cid,
-      identity.keys,
-      transport,
-      max_bytes,
-      max_nodes,
-      max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Identity(@publication.Contract(issue)))
-  }
-  let order = []
-  for slot in keys {
-    for row, (_, original_slot) in requests {
-      if original_slot == slot {
-        order.push(row)
+  with_keyed_protocol_construction(
+    state,
+    max_bytes,
+    keys.length().to_int64(),
+    max_nodes,
+    max_depth,
+    fn() {
+      // This measured nested walk visits actual key/occurrence controls, not
+      // provider Values or a policy quota. Spend work before constructing output.
+      let work = keys.length().to_int64() * requests.length().to_int64()
+      if work > 2147483647L ||
+        !charge_keyed_lookup_input_work(state, work.to_int()) {
+        return Err(LookupLimit("work"))
       }
-    }
-  }
-  if state.closed ||
-    state.left.lookup_issue is Some(_) ||
-    order.length() != requests.length() {
-    return Err(Assembly("retired_or_incomplete_native_batch_plan"))
-  }
-  state.native_batch_plan = Some(plan)
-  state.planned_dispatch_order = Some(order)
-  match
-    finish_keyed_lookup_protocol_metadata(
-      state,
-      metadata_phase,
-      max_nodes,
-      max_depth,
-      [plan],
-    ) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
-  Ok(plan)
+      let plan = match
+        @publication.issue_native_file_lookup_batch_plan(
+          component.barrier.logical_cid,
+          identity.keys,
+          transport,
+          max_bytes,
+          max_nodes,
+          max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Identity(@publication.Contract(issue)))
+      }
+      let order = []
+      for slot in keys {
+        for row, (_, original_slot) in requests {
+          if original_slot == slot {
+            order.push(row)
+          }
+        }
+      }
+      if state.closed ||
+        state.left.lookup_issue is Some(_) ||
+        order.length() != requests.length() {
+        return Err(Assembly("retired_or_incomplete_native_batch_plan"))
+      }
+      Ok(keyed_protocol_built((plan, order), contracts=[plan]))
+    },
+    pair => {
+      state.native_batch_plan = Some(pair.0)
+      state.planned_dispatch_order = Some(pair.1)
+      Ok(())
+    },
+    extra_controls=controls,
+  ).map(settled => settled.value.0)
 }
 
 ///|

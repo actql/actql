@@ -88,157 +88,159 @@ pub fn prepare_client_keyed_native_raw_response(
   } else {
     limits.max_bytes
   }
-  let metadata_phase = match
-    grow_keyed_lookup_protocol_metadata(
-      state,
-      Int::max(codec_bytes, 2048),
-      2L,
-      copies=3,
-      extra_controls=controls,
-    ) {
-    Err(issue) => return Err(issue)
-    Ok(value) => value
-  }
-  match keyed_lookup_observation(request, now_ms) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
-  // The last external current observation may synchronously retire/reenter.
-  // Retain its result, then use only original reference/phase comparisons.
-  guard !state.closed &&
-    state.left.lookup_issue is None &&
-    request.attempts == 1L &&
-    !request.io_complete &&
-    state.selected_request is Some(same) &&
-    physical_equal(same, request) &&
-    state.known.get(slot) is Some((_, None, Some(retained))) &&
-    physical_equal(retained, history) &&
-    history._retained_activation is Some(same_activation) &&
-    physical_equal(same_activation, activation) else {
-    return Err(Assembly("retired_native_raw_response"))
-  }
-  let binding = match
-    @publication.parse_content_reference_binding(binding_wire, limits) {
-    Ok(value) => value
-    Err(_) => return Err(Assembly("native_raw_storage_binding"))
-  }
-  let scope = client_request_authority_scope_cid(activation.client_request)
-  guard binding.capture_authority_cid == scope &&
-    binding.workspace_scope_cid == scope &&
-    binding.effective_data_policy_cid ==
-    component.original.response_data_policy_cid &&
-    @publication.run_definition_lifetime(definition) is Some((_, until)) &&
-    binding.expires_at == Some(until) else {
-    return Err(Assembly("native_raw_storage_binding"))
-  }
-  let source_retention = match
-    @publication.issue_result_retention_for_data_policy(
-      retention,
-      component.original.response_data_policy_cid,
-      codec_bytes,
-      limits.max_nodes,
-      limits.max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Identity(@publication.Contract(issue)))
-  }
-  if !(@publication.result_retention_interval_state(
-      source_retention, captured_at,
-    )
-    is Ok("available")) {
-    return Err(Assembly("native_raw_retention_unavailable"))
-  }
-  let body = try {
-    let writer = @encode.writer(codec_bytes, limits.max_nodes, limits.max_depth)
-    @encode.begin_object(writer)
-    for
-      (field, text) in [
-        ("version", "actql-lookup-raw-response/0.1"),
-        (
-          "call_slot_cid",
-          @publication.publication_contract_identity(activation.slot),
-        ),
-        ("content_cid", content_cid),
-        ("media_type", "application/json"),
-        ("captured_at", captured_at),
-        (
-          "effective_data_policy_cid",
+  let constructed = with_keyed_protocol_construction(
+    state,
+    Int::max(codec_bytes, 2048),
+    2L,
+    limits.max_nodes,
+    limits.max_depth,
+    fn() {
+      match keyed_lookup_observation(request, now_ms) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      // The last external current observation may synchronously retire/reenter.
+      // Retain its result, then use only original reference/phase comparisons.
+      guard !state.closed &&
+        state.left.lookup_issue is None &&
+        request.attempts == 1L &&
+        !request.io_complete &&
+        state.selected_request is Some(same) &&
+        physical_equal(same, request) &&
+        state.known.get(slot) is Some((_, None, Some(retained))) &&
+        physical_equal(retained, history) &&
+        history._retained_activation is Some(same_activation) &&
+        physical_equal(same_activation, activation) else {
+        return Err(Assembly("retired_native_raw_response"))
+      }
+      let binding = match
+        @publication.parse_content_reference_binding(binding_wire, limits) {
+        Ok(value) => value
+        Err(_) => return Err(Assembly("native_raw_storage_binding"))
+      }
+      let scope = client_request_authority_scope_cid(activation.client_request)
+      guard binding.capture_authority_cid == scope &&
+        binding.workspace_scope_cid == scope &&
+        binding.effective_data_policy_cid ==
+        component.original.response_data_policy_cid &&
+        @publication.run_definition_lifetime(definition) is Some((_, until)) &&
+        binding.expires_at == Some(until) else {
+        return Err(Assembly("native_raw_storage_binding"))
+      }
+      let source_retention = match
+        @publication.issue_result_retention_for_data_policy(
+          retention,
           component.original.response_data_policy_cid,
-        ),
-        (
-          "effective_retention_policy_cid",
-          @publication.publication_contract_identity(source_retention),
-        ),
-        ("issuer_id", activation.issuer_id),
-        ("authority_scope_cid", scope),
-      ] {
-      @encode.key(writer, field)
-      @encode.string_value(writer, text)
-    }
-    @encode.key(writer, "network_attempt")
-    @encode.number_value(writer, request.attempts.to_double())
-    @encode.key(writer, "size_bytes")
-    @encode.number_value(writer, size_bytes.to_double())
-    @encode.end_object(writer)
-    @encode.finish(writer)
-  } catch {
-    _ => return Err(Assembly("native_raw_encoding"))
-  }
-  let metadata = match
-    native_lookup_seal(
-      "native_file_lookup_raw_response",
-      body,
-      codec_bytes,
-      limits.max_nodes,
-      limits.max_depth,
-    ) {
-    Ok(value) => value
+          codec_bytes,
+          limits.max_nodes,
+          limits.max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Identity(@publication.Contract(issue)))
+      }
+      if !(@publication.result_retention_interval_state(
+          source_retention, captured_at,
+        )
+        is Ok("available")) {
+        return Err(Assembly("native_raw_retention_unavailable"))
+      }
+      let body = try {
+        let writer = @encode.writer(
+          codec_bytes,
+          limits.max_nodes,
+          limits.max_depth,
+        )
+        @encode.begin_object(writer)
+        for
+          (field, text) in [
+            ("version", "actql-lookup-raw-response/0.1"),
+            (
+              "call_slot_cid",
+              @publication.publication_contract_identity(activation.slot),
+            ),
+            ("content_cid", content_cid),
+            ("media_type", "application/json"),
+            ("captured_at", captured_at),
+            (
+              "effective_data_policy_cid",
+              component.original.response_data_policy_cid,
+            ),
+            (
+              "effective_retention_policy_cid",
+              @publication.publication_contract_identity(source_retention),
+            ),
+            ("issuer_id", activation.issuer_id),
+            ("authority_scope_cid", scope),
+          ] {
+          @encode.key(writer, field)
+          @encode.string_value(writer, text)
+        }
+        @encode.key(writer, "network_attempt")
+        @encode.number_value(writer, request.attempts.to_double())
+        @encode.key(writer, "size_bytes")
+        @encode.number_value(writer, size_bytes.to_double())
+        @encode.end_object(writer)
+        @encode.finish(writer)
+      } catch {
+        _ => return Err(Assembly("native_raw_encoding"))
+      }
+      let metadata = match
+        native_lookup_seal(
+          "native_file_lookup_raw_response",
+          body,
+          codec_bytes,
+          limits.max_nodes,
+          limits.max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      let holding = try {
+        let writer = @encode.hashing_writer(2048, 64, 2)
+        @encode.begin_object(writer)
+        for
+          (field, text) in [
+            ("capture_authority_cid", scope),
+            (
+              "raw_response_cid",
+              @publication.publication_contract_identity(metadata),
+            ),
+            ("role", "lookup_raw_response_bytes"),
+            (
+              "run_definition_cid",
+              @publication.publication_contract_identity(definition),
+            ),
+            ("store_authority_cid", binding.content_store_cid),
+            ("version", "actql-content-private-holding/0.1"),
+          ] {
+          @encode.key(writer, field)
+          @encode.string_value(writer, text)
+        }
+        @encode.end_object(writer)
+        "sha256:" + @encode.finish_hash(writer)
+      } catch {
+        _ => return Err(Assembly("native_raw_holding"))
+      }
+      let result = {
+        metadata,
+        retention: source_retention,
+        holding,
+        store_preparing: false,
+        store_prepared: false,
+      }
+      Ok(
+        keyed_protocol_built(result, contracts=[metadata, source_retention], texts=[
+          holding,
+        ]),
+      )
+    },
+    _ => Ok(()),
+    copies=3,
+    extra_controls=controls,
+  )
+  let result = match constructed {
+    Ok(settled) => settled.value
     Err(issue) => return Err(issue)
-  }
-  let holding = try {
-    let writer = @encode.hashing_writer(2048, 64, 2)
-    @encode.begin_object(writer)
-    for
-      (field, text) in [
-        ("capture_authority_cid", scope),
-        (
-          "raw_response_cid",
-          @publication.publication_contract_identity(metadata),
-        ),
-        ("role", "lookup_raw_response_bytes"),
-        (
-          "run_definition_cid",
-          @publication.publication_contract_identity(definition),
-        ),
-        ("store_authority_cid", binding.content_store_cid),
-        ("version", "actql-content-private-holding/0.1"),
-      ] {
-      @encode.key(writer, field)
-      @encode.string_value(writer, text)
-    }
-    @encode.end_object(writer)
-    "sha256:" + @encode.finish_hash(writer)
-  } catch {
-    _ => return Err(Assembly("native_raw_holding"))
-  }
-  let result = {
-    metadata,
-    retention: source_retention,
-    holding,
-    store_preparing: false,
-    store_prepared: false,
-  }
-  match
-    finish_keyed_lookup_protocol_metadata(
-      state,
-      metadata_phase,
-      limits.max_nodes,
-      limits.max_depth,
-      [metadata, source_retention],
-      texts=[holding],
-    ) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
   }
   guard !state.closed &&
     state.left.lookup_issue is None &&

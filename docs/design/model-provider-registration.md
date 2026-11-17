@@ -1109,3 +1109,78 @@ thrown undefined, and returns only the group's original exports, scans and
 pins. Resource release and physical cleanup acknowledgements stay with their
 existing owners; closed metadata controls do not imply a physical stop or refund
 consumed Model work.
+
+### Initial configured Provider assembly
+
+The installed Host invokes one trusted `registerModelProviders` callback. Its
+optional initialization context reads bounded secret text through the existing
+configuration reader and prepares project Tasks against the same retained
+Provider defaults before physical registration. Common emits Task, prompt and
+schema identities and canonical prompt payload DATA; the plugin does not parse
+Task wire or reconstruct opaque declarations. The context closes when that
+single callback settles, and a failed or unfinished read cannot install a
+fallback Provider. A caller may keep the existing synchronous registration path.
+
+The same initial Resource reserves construction peaks before file decoding and
+Task projection. Successful construction retains the emitted material and drops
+its workspace through the existing managed constructor. This does not reserve a
+Model Call, authorize egress, grant raw custody or replace Account/approval.
+
+For this prepared configuration path, the Host retains the four Common-admitted
+raw-policy originals before initialization closes and persists their exact
+wire/CID through the normal publication Store on its first activation. The
+Store owns write funding, integrity, durability and pending cleanup. Original
+current checks bracket every await; failure stops activation. Later raw capture
+still confirms the same originals and requires its original selected policy,
+current authority and checked Run. Legacy registrations keep their explicit
+policy persistence contract. No raw response or secret is policy metadata.
+
+An admitted response-profile template can be re-emitted for the same normalized
+non-Mock structured Task by Common. Only the Task, input-schema and output-schema
+identities change. The admitted installation, SDK identity, endpoint, completion
+rules, ordered observations and numerical bounds remain exact; Decision templates
+are refused by this constructor. The existing canonical writer/hash computes the
+new wire and self CID with two bounded traversals. This DATA must still enter the
+existing complete profile reader and Task/installation binding check. The Host
+funds simultaneous template, encoder and output retention before construction;
+neither the template nor its re-emission supplies physical adequacy or permission.
+
+Normal Task execution material uses explicit finite Host ceilings and the shared
+canonical no-retry/no-backoff bodies. The constructor fixes one attempt per slot,
+preserves every supplied total ceiling in the existing safe-integer domain, and
+binds the execution wire to the same non-Mock normalized Task. It does not adopt a
+Mock profile or its fixed limits. The ordinary execution and dependency readers
+still check the Task reference and original prompt/retry/backoff before any Run
+can use that DATA. A cost ceiling is not a pricing observation: an OpenAI recipe
+must preserve unknown-cost accounting and cannot choose zero to make a request fit.
+
+The normal binding-material constructor accepts bounded nonsecret JSON text for
+the installation revision, configuration contract and configuration. Existing
+Common source/canonical owners preserve data text and keys and emit each canonical
+wire/CID pair. Host JSON text is a transport representation, not a second canonical
+or identity implementation. The later original Provider binding and defaults
+readers retain their complete checks and configuration-identifier rules. Secret
+acquisition remains separate, and these materials attest neither implementation
+truth nor current authority. The initial Host constructor must fund all source,
+canonical tree, writer and output overlap before invoking this DATA constructor.
+
+### Original physical Model limits in Request Plans
+
+The existing Node Plan entrance checks the native Model floors and receives the
+installed physical retained/execution contribution before folding Compute,
+bootstrap and read demand on the same Request. Its Model-only Plan retains the
+exact supplied `LedgerLimits` separately from that combined demand. The
+constructor funds the additional borrowed reference before retaining the Plan;
+the ordinary Request root and its existing absent-Model field do not change.
+The existing Scope construction inventory already funds its optional selected
+Model ceiling and Some carrier. Binding the same component limit into that
+field is not a new reservation, resource grant or reconstructed total.
+
+The consuming Model startup preserves the exact Task, Provider, row, Scope,
+Request and physical capacity predicates. A composed consumer retains the
+existing provider purpose and exact component ceiling on the shared Request;
+Resource still enforces the whole Request's aggregate expenditure. The Node
+layout reader, claim, current fences and cleanup remain mandatory. Adapter
+holding/workspace contributions and complete prepared-row overlap are separate
+physical declarations, never inferred from spare parent capacity or a smaller
+observed row count.

@@ -155,39 +155,35 @@ pub fn prepare_client_effect_keyed_generic_source_metadata(
         Ok(value) => value
         Err(issue) => return Err(Wire(issue))
       }
-      let phase = match
-        grow_keyed_lookup_protocol_metadata(
-          lookup,
-          Int::max(1, shape.bytes),
-          shape.nodes.to_int64(),
-          copies=1,
-        ) {
-        Ok(value) => value
+      let constructed = with_keyed_protocol_construction(
+        lookup,
+        Int::max(1, shape.bytes),
+        shape.nodes.to_int64(),
+        max_nodes,
+        max_depth,
+        fn() {
+          let document = match
+            @acquisition.parameterized_request_canonical_document(
+              @acquisition.source_acquisition_request(acquisition),
+              shape.bytes,
+              shape.nodes,
+              shape.depth,
+            ) {
+            Ok(value) => value
+            Err(issue) => return Err(Wire(issue))
+          }
+          Ok(
+            keyed_protocol_built(document, texts=[
+              @encode.document_text(document),
+            ]),
+          )
+        },
+        _ => Ok(()),
+      )
+      match constructed {
+        Ok(settled) => settled.value
         Err(issue) => return Err(issue)
       }
-      let document = match
-        @acquisition.parameterized_request_canonical_document(
-          @acquisition.source_acquisition_request(acquisition),
-          shape.bytes,
-          shape.nodes,
-          shape.depth,
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(Wire(issue))
-      }
-      match
-        finish_keyed_lookup_protocol_metadata(
-          lookup,
-          phase,
-          max_nodes,
-          max_depth,
-          [],
-          texts=[@encode.document_text(document)],
-        ) {
-        Ok(_) => ()
-        Err(issue) => return Err(issue)
-      }
-      document
     }
   }
   let request_cid = match original {
@@ -220,139 +216,144 @@ pub fn prepare_client_effect_keyed_generic_source_metadata(
     return Err(Assembly("capacity_overflow"))
   }
   let bytes = Int64::min(bound, max_bytes.to_int64()).to_int()
-  let phase = match
-    grow_keyed_lookup_protocol_metadata(lookup, bytes, 18L, copies=6) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  guard parent.generic is None &&
-    !lookup.closed &&
-    lookup.left.lookup_issue is None &&
-    lookup.left.requests == 0L &&
-    lookup.left.attempts == 0L else {
-    return Err(Assembly("retired_generic_source_metadata"))
-  }
-  match
-    @publication.admit_completed_source_input_logical(
-      logical,
-      @query.captured_source_relation_logical_cid(identity),
-      @query.captured_source_relation_schema_cid(identity),
-      facts.source_contract_cid,
-      "{\"stable\":false,\"keys\":[]}",
-      max_bytes,
-      max_nodes,
-      max_depth,
-    ) {
-    Ok(_) => ()
-    Err(issue) => return Err(SourceLogical(Admission(issue)))
-  }
-  if @publication.admit_completed_source_observation_binding(
-      source_evidence,
-      logical,
-      facts.source_ref,
-      facts.source_contract_cid,
-      client_request_authority_scope_cid(parent.request),
-      facts.source_data_policy_cid,
-      max_bytes,
-      max_nodes,
-      max_depth,
-    )
-    is Err(_) {
-    return Err(Assembly("foreign_generic_source_observation"))
-  }
-  let wire = try {
-    let writer = @encode.writer(bytes, 11, 2)
-    @encode.begin_object(writer)
-    for
-      (name, value) in [
-        ("version", "actql-result-retention-policy/0.1"),
-        ("retention_contract_cid", retention_contract),
-        (
-          "effective_data_policy_cid",
-          component.original.response_data_policy_cid,
-        ),
-        ("available_until", available_until),
-        ("delete_by", delete_by),
-        ("extension_ceiling_at", metadata_delete_by),
-        ("metadata_retention_policy_cid", metadata_policy),
-        ("metadata_delete_by", metadata_delete_by),
-        ("clock_contract_cid", clock_contract),
-      ] {
-      @encode.key(writer, name)
-      @encode.string_value(writer, value)
-    }
-    @encode.end_object(writer)
-    @encode.finish(writer)
-  } catch {
-    _ => return Err(Assembly("generic_retention_encoding"))
-  }
-  let retention = match
-    @publication.seal_publication_contract(
-      "result_retention_policy", wire, bytes, 11, 2,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Identity(@publication.Contract(issue)))
-  }
-  let source_retention = match
-    @publication.issue_result_retention_for_data_policy(
-      retention,
-      facts.source_data_policy_cid,
-      bytes,
-      max_nodes,
-      max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Identity(@publication.Contract(issue)))
-  }
-  let (relation, ordering, scope) = match
-    @publication.issue_captured_source_input_relation(
-      logical,
-      source_evidence,
-      request_cid,
-      @query.captured_source_relation_row_count(identity),
-      source_retention,
-      bytes,
-      max_nodes,
-      max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Identity(issue))
-  }
-  let source = {
-    identity,
-    logical,
-    observation: source_evidence,
-    relation,
-    ordering,
-    scope,
-    retention: source_retention,
-    request: document,
-    request_cid,
-  }
-  let state = {
+  let constructed = with_keyed_protocol_construction(
     lookup,
-    source,
-    retention,
-    observed_at: None,
-    completed: None,
-    bodies: None,
-  }
-  parent.generic = Some(state)
-  match
-    finish_keyed_lookup_protocol_metadata(
-      lookup,
-      phase,
-      max_nodes,
-      max_depth,
-      [retention, source_retention, relation, ordering, scope],
-      texts=match original {
-        Query(_) => [request_cid]
-        Whole(_) => [request_cid]
-      },
-    ) {
-    Ok(_) => ()
+    bytes,
+    18L,
+    max_nodes,
+    max_depth,
+    fn() {
+      guard parent.generic is None &&
+        !lookup.closed &&
+        lookup.left.lookup_issue is None &&
+        lookup.left.requests == 0L &&
+        lookup.left.attempts == 0L else {
+        return Err(Assembly("retired_generic_source_metadata"))
+      }
+      match
+        @publication.admit_completed_source_input_logical(
+          logical,
+          @query.captured_source_relation_logical_cid(identity),
+          @query.captured_source_relation_schema_cid(identity),
+          facts.source_contract_cid,
+          "{\"stable\":false,\"keys\":[]}",
+          max_bytes,
+          max_nodes,
+          max_depth,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(SourceLogical(Admission(issue)))
+      }
+      if @publication.admit_completed_source_observation_binding(
+          source_evidence,
+          logical,
+          facts.source_ref,
+          facts.source_contract_cid,
+          client_request_authority_scope_cid(parent.request),
+          facts.source_data_policy_cid,
+          max_bytes,
+          max_nodes,
+          max_depth,
+        )
+        is Err(_) {
+        return Err(Assembly("foreign_generic_source_observation"))
+      }
+      let wire = try {
+        let writer = @encode.writer(bytes, 11, 2)
+        @encode.begin_object(writer)
+        for
+          (name, value) in [
+            ("version", "actql-result-retention-policy/0.1"),
+            ("retention_contract_cid", retention_contract),
+            (
+              "effective_data_policy_cid",
+              component.original.response_data_policy_cid,
+            ),
+            ("available_until", available_until),
+            ("delete_by", delete_by),
+            ("extension_ceiling_at", metadata_delete_by),
+            ("metadata_retention_policy_cid", metadata_policy),
+            ("metadata_delete_by", metadata_delete_by),
+            ("clock_contract_cid", clock_contract),
+          ] {
+          @encode.key(writer, name)
+          @encode.string_value(writer, value)
+        }
+        @encode.end_object(writer)
+        @encode.finish(writer)
+      } catch {
+        _ => return Err(Assembly("generic_retention_encoding"))
+      }
+      let retention = match
+        @publication.seal_publication_contract(
+          "result_retention_policy", wire, bytes, 11, 2,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Identity(@publication.Contract(issue)))
+      }
+      let source_retention = match
+        @publication.issue_result_retention_for_data_policy(
+          retention,
+          facts.source_data_policy_cid,
+          bytes,
+          max_nodes,
+          max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Identity(@publication.Contract(issue)))
+      }
+      let (relation, ordering, scope) = match
+        @publication.issue_captured_source_input_relation(
+          logical,
+          source_evidence,
+          request_cid,
+          @query.captured_source_relation_row_count(identity),
+          source_retention,
+          bytes,
+          max_nodes,
+          max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Identity(issue))
+      }
+      let source = {
+        identity,
+        logical,
+        observation: source_evidence,
+        relation,
+        ordering,
+        scope,
+        retention: source_retention,
+        request: document,
+        request_cid,
+      }
+      let state = {
+        lookup,
+        source,
+        retention,
+        observed_at: None,
+        completed: None,
+        bodies: None,
+      }
+      Ok(
+        keyed_protocol_built(
+          state,
+          contracts=[retention, source_retention, relation, ordering, scope],
+          texts=[request_cid],
+        ),
+      )
+    },
+    state => {
+      parent.generic = Some(state)
+      Ok(())
+    },
+    copies=6,
+  )
+  let state = match constructed {
+    Ok(settled) => settled.value
     Err(issue) => return Err(issue)
   }
+  let retention = state.retention
   guard !lookup.closed &&
     lookup.left.lookup_issue is None &&
     parent.generic is Some(same) &&
@@ -494,70 +495,72 @@ fn prepare_client_effect_keyed_generic_completion(
     return Err(Assembly("capacity_overflow"))
   }
   let bytes = Int64::min(bound, max_bytes.to_int64()).to_int()
-  let phase = match
-    grow_keyed_lookup_protocol_metadata(
-      lookup,
-      bytes,
-      32L,
-      copies=6,
-      extra_controls=controls,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let (input, source) = match
-    build_keyed_lookup_source_observation(
-      lookup,
-      logical_cid,
-      schema_cid,
-      snapshot,
-      client_request_authority_scope_cid(parent.request),
-      observed_at,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let (relation, ordering, relation_scope) = match
-    @publication.issue_captured_source_input_relation(
-      input,
-      source,
-      requests.static_request_cid,
-      @execution.output_stream_identity(
-        @execution.completed_relation_export_content(receipt),
-      ).3,
-      state.retention,
-      bytes,
-      max_nodes,
-      max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Identity(issue))
-  }
-  let observation = {
+  let constructed = with_keyed_protocol_construction(
     lookup,
-    input,
-    source,
-    logical_relation_cid: logical_cid,
-  }
-  let completed = {
-    observation,
-    relation,
-    ordering,
-    relation_scope,
-    scope: requests.scope,
-    retention: state.retention,
-  }
-  state.completed = Some(completed)
-  match
-    finish_keyed_lookup_protocol_metadata(
-      lookup,
-      phase,
-      max_nodes,
-      max_depth,
-      [relation, ordering, relation_scope],
-      evidence=[input, source],
-    ) {
-    Ok(_) => ()
+    bytes,
+    32L,
+    max_nodes,
+    max_depth,
+    fn() {
+      let (input, source) = match
+        build_keyed_lookup_source_observation(
+          lookup,
+          logical_cid,
+          schema_cid,
+          snapshot,
+          client_request_authority_scope_cid(parent.request),
+          observed_at,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      let (relation, ordering, relation_scope) = match
+        @publication.issue_captured_source_input_relation(
+          input,
+          source,
+          requests.static_request_cid,
+          @execution.output_stream_identity(
+            @execution.completed_relation_export_content(receipt),
+          ).3,
+          state.retention,
+          bytes,
+          max_nodes,
+          max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Identity(issue))
+      }
+      let observation = {
+        lookup,
+        input,
+        source,
+        logical_relation_cid: logical_cid,
+      }
+      let completed = {
+        observation,
+        relation,
+        ordering,
+        relation_scope,
+        scope: requests.scope,
+        retention: state.retention,
+      }
+      Ok(
+        keyed_protocol_built(
+          completed,
+          contracts=[relation, ordering, relation_scope],
+          evidence=[input, source],
+        ),
+      )
+    },
+    completed => {
+      state.completed = Some(completed)
+      Ok(())
+    },
+    copies=6,
+    extra_controls=controls,
+  )
+  let completed = match constructed {
+    Ok(settled) => settled.value
     Err(issue) => return Err(issue)
   }
   prepare_client_effect_keyed_generic_dependencies(

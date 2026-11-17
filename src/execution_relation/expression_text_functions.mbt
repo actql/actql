@@ -36,7 +36,10 @@ priv enum TextFunctionKind {
   TextLTrim
   TextRTrim
   TextContains
+  TextLike
   TextUtf8Truncate
+  TextParseTimestamp
+  TextFormatTimestamp
 } derive(Eq)
 
 ///|
@@ -112,6 +115,7 @@ priv struct TextFunctionState {
   normalization : @canonical.NormalizationCursor?
   mut normalization_phase : Int
   mut normalization_input_bytes : Int64
+  timestamp : TimestampFunctionState?
 }
 
 ///|
@@ -127,7 +131,10 @@ fn start_text_function(
   for i, value in values {
     match value {
       Null => null_result = true
+      Captured(@admitted.Timestamp(_)) if kind == TextFormatTimestamp && i == 0 =>
+        ()
       Text(_) if kind != TextChr &&
+        (kind != TextFormatTimestamp || i != 0) &&
         (
           (
             !is_slice_text_function(kind) &&
@@ -149,9 +156,45 @@ fn start_text_function(
   }
   fn text(value : Value) -> String {
     match value {
-      Text(text) => text
+      Text(text) | Captured(@admitted.Timestamp(text)) => text
       _ => ""
     }
+  }
+  let timestamp_pattern = if kind == TextParseTimestamp ||
+    kind == TextFormatTimestamp {
+    guard values.length() == 2 &&
+      values[1] is Text(_) &&
+      @lower.expression_text_bound(expression) is Some(original) &&
+      @lower.text_bound_timestamp_pattern(original) is Some(pattern) else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    let operation = @text_bounds.output_operation(
+      @lower.text_bound_output(original),
+    )
+    if !(if kind == TextParseTimestamp {
+        operation is @text_bounds.ParseTimestamp &&
+        @timestamp.mode(pattern) == @timestamp.Parse
+      } else {
+        operation is @text_bounds.FormatTimestamp(bound) &&
+        physical_equal(bound, pattern) &&
+        @timestamp.mode(pattern) == @timestamp.Format
+      }) {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    Some(pattern)
+  } else {
+    None
+  }
+  let like_original = if kind == TextLike {
+    guard values.length() == 2 &&
+      values[1] is Text(pattern) &&
+      @lower.expression_like_pattern_source(expression) is Some(original) &&
+      pattern.length() == original.length() else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    original
+  } else {
+    ""
   }
   let input = text(values[0])
   let repeat_count = if kind == TextRepeat && !null_result {
@@ -244,8 +287,18 @@ fn start_text_function(
   } else {
     0
   }
-  let reserved = (if kind == TextUtf8Truncate { 6 } else { 2 }) +
-    normalization_slots
+  let reserved = (if kind == TextUtf8Truncate {
+      6
+    } else if kind == TextLike {
+      3
+    } else {
+      2
+    }) +
+    normalization_slots +
+    (if timestamp_pattern is Some(_) { 16 } else { 0 })
+  // Timestamp continuation: one original pattern handle, seven component
+  // words and their container, plus fixed progress controls. Admit before the
+  // private state and component array are constructed under this workspace.
   if is_normalization {
     guard @lower.expression_text_bound(expression) is Some(original) else {
       return Err({ kind: Scalar(InvalidOperand), expression, })
@@ -318,6 +371,7 @@ fn start_text_function(
     kind != TextUnicode &&
     kind != TextStrpos &&
     kind != TextContains &&
+    kind != TextLike &&
     kind != TextInstr &&
     !null_result &&
     scope is Some(scope) {
@@ -369,6 +423,7 @@ fn start_text_function(
     } else if kind == TextReplace ||
       kind == TextStrpos ||
       kind == TextContains ||
+      kind == TextLike ||
       kind == TextTranslate ||
       kind == TextInstr ||
       (is_trim_text_function(kind) && values.length() == 2) {
@@ -376,13 +431,19 @@ fn start_text_function(
     } else {
       ""
     },
-    replacement: if kind == TextReplace || kind == TextTranslate {
+    replacement: if kind == TextLike {
+      // Borrow the original pattern once. This third mode-local alias is
+      // reserved before constructing the cursor, without copying its text.
+      like_original
+    } else if kind == TextReplace || kind == TextTranslate {
       text(values[2])
     } else {
       ""
     },
     output_root,
-    reserved: if is_normalization {
+    reserved: if is_normalization ||
+      timestamp_pattern is Some(_) ||
+      kind == TextLike {
       reserved
     } else if truncate is Some(_) {
       6
@@ -447,6 +508,15 @@ fn start_text_function(
     },
     normalization_phase: 0,
     normalization_input_bytes: 0L,
+    timestamp: timestamp_pattern.map(pattern => {
+      pattern,
+      parts: FixedArray::make(7, 0),
+      phase: 0,
+      component: 0,
+      digit: 0,
+      offset: 0,
+      input_bytes: 0L,
+    }),
     trim_end: if kind == TextRTrim || kind == TextUtf8Truncate {
       0
     } else {
@@ -584,15 +654,21 @@ fn append_text_function_scalar(
 }
 
 ///|
-/// One comparison code unit or one scanned/emitted scalar per poll. No substring,
+/// One bounded comparison/restart or scanned/emitted scalar per poll. No substring,
 /// whole-string search, normalization, output measurement or replay occurs.
 fn advance_text_function(
   state : TextFunctionState,
   workspace : RowWorkspace,
 ) -> Result[Value?, EvalIssue] {
   let expression = state.expression
+  if state.kind == TextLike {
+    return advance_like_function(state)
+  }
   if state.null_result {
     return Ok(Some(Null))
+  }
+  if state.timestamp is Some(timestamp) {
+    return advance_timestamp_function(state, timestamp, workspace)
   }
   if state.normalization is Some(cursor) {
     return advance_normalization_function(state, cursor, workspace)

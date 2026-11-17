@@ -28,6 +28,7 @@ import {
   "actql/actql/temporal_window",
   "actql/actql/text_time_bounds",
   "actql/actql/time_series",
+  "actql/actql/timestamp_pattern",
   "actql/actql/value_admission",
   "actql/actql/value_contract",
   "actql/actql/vector_typing",
@@ -310,6 +311,8 @@ pub fn event_watermark_drops_late(PreparedEvent) -> Bool?
 pub fn expression_body(Expression) -> ExpressionBody
 
 pub fn expression_contract(Expression) -> @value_contract.Contract
+
+pub fn expression_like_pattern_source(Expression) -> String?
 
 pub fn expression_location(Expression) -> @expression_syntax.Location
 
@@ -1043,6 +1046,8 @@ pub fn text_bound_output(ExpressionTextBound) -> @text_time_bounds.Output
 
 pub fn text_bound_policy(ExpressionTextBound) -> @check_environment.TextTime
 
+pub fn text_bound_timestamp_pattern(ExpressionTextBound) -> @timestamp_pattern.Pattern?
+
 pub fn time_series_end(PreparedTimeSeries) -> String
 
 pub fn time_series_row_count(PreparedTimeSeries) -> Int
@@ -1211,9 +1216,12 @@ pub(all) enum BinaryOperator {
   In
   NotIn
   Contains
+  Like
   DateTruncate
   DecimalDivide(String)
   Utf8Truncate
+  ParseTimestamp
+  FormatTimestamp
 } derive(Eq, @debug.Debug)
 
 pub struct BindingIssue {

@@ -46,6 +46,10 @@ for (const phase of ['not_accepted', 'preparation_failed']) {
     const {error, calls} = await fixture(t, {phase});
     assert.equal(sdk.getSubmissionOutcome(error)?.kind, phase, '[check-mutation:submission-check-phase]');
     const checked = sdk.getSubmissionCheckObservation(error);
+    assert.match(error.message, /getSubmissionCheckObservation/);
+    assert.match(error.message, /formatCheckOutcome/);
+    assert.match(error.message, /ClientProgramInvalidInput/);
+    assert.equal(error.message.includes(text), false, 'the passive pointer does not serialize original Source');
     assert.deepEqual(checked, observation(), '[check-mutation:submission-check-observation]');
     assert.equal(sdk.getCheckInput(checked, 'source', revision).text, text);
     assert.deepEqual(sdk.resolveCheckTextRange(checked, location).range,

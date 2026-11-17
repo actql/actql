@@ -1,4 +1,30 @@
 ///|
+// Keep the original failure wrapper and its original sequence step. Neither
+// branch re-executes a task, checks current or reads a later Ledger snapshot.
+pub fn local_managed_failure_cause(issue : LocalDispatchIssue) -> String? {
+  match issue {
+    Configuration(@connector.Execution(@execution.Rows(step, original)))
+    | Execution(
+      @strategy.Compute(@connector.Execution(@execution.Rows(step, original)))
+    ) if step >= 0 => @execution.row_failure_diagnostic_cause(original)
+    _ => None
+  }
+}
+
+///|
+/// Original sequence step, or -1 when this failure has no such row occurrence.
+/// This ordinal DATA is not a current proof, retry or execution permission.
+pub fn local_managed_failure_row_step(issue : LocalDispatchIssue) -> Int {
+  match issue {
+    Configuration(@connector.Execution(@execution.Rows(step, _)))
+    | Execution(
+      @strategy.Compute(@connector.Execution(@execution.Rows(step, _)))
+    ) if step >= 0 => step
+    _ => -1
+  }
+}
+
+///|
 /// Project the already-retained immutable limit only for this original
 /// provider's closed work failure. No new counter or allowance is created.
 fn local_managed_provider_failure(

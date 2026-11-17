@@ -73,7 +73,11 @@ pub fn[T] local_managed_dispatch_uses_provider(LocalManagedDispatchConfiguration
 
 pub fn local_managed_failure_budget(LocalDispatchIssue) -> (String, Bool, Int64, Int64, Int64)?
 
+pub fn local_managed_failure_cause(LocalDispatchIssue) -> String?
+
 pub fn local_managed_failure_resource_dimension(LocalDispatchIssue) -> String?
+
+pub fn local_managed_failure_row_step(LocalDispatchIssue) -> Int
 
 pub fn[T] local_managed_relation_output(@execution_relation.ManagedCompletedOutput[T]) -> LocalManagedAvailableOutput[T]
 

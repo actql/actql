@@ -115,7 +115,7 @@ export function createInstalledRestSource(definition, {decodePage} = {}) {
       maxPages: limits.maxPages, maxResponseBytes: limits.maxPageBytes,
       maxRows: limits.maxPageRows, maxTotalRows: limits.maxCaptureRows, ...pageBounds});
     const implementation = services('sourceReaderImplementation', {installation, sourceInitialization, limits: implementationLimits,
-      columnCount: Math.max(...declared.views.map(view => view.fields.length))});
+      columnCount: Math.max(...declared.views.map(view => view.fields.length)), cursorProgress: true});
     const targets = new Map(original.sources.map(source => [source.resource, source]));
     const physicalTarget = (resource, fields) => {
       const source = targets.get(resource), view = declared.views.find(view => view.resource === resource);

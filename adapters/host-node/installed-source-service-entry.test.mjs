@@ -36,6 +36,48 @@ function fixture(extra = {}) {
     counts: () => [profileCalls, capacityCalls], close() {current = false;}};
 }
 
+test('portable cursor Source mode uses its original quote once and cannot reuse legacy geometry', () => {
+  const cursorCapacity=Object.freeze({}),calls=[];
+  const f=fixture({clientProgramInstalledJsonCursorSourceReaderCapacity(limits,columns,secret){
+    assert.equal(this,f.moon);assert.deepEqual(limits,values.slice(0,16));assert.equal(columns,3);
+    assert.equal(secret,65536);calls.push('cursor');return cursorCapacity;
+  }});
+  retainInstalledHostServiceInstallation(f.services,f.installation,'sha256:'+'a'.repeat(64));
+  const policy=f.services.sourceReaderImplementationProfile({installation:f.installation,metadataResponses:3,originUnits:20});
+  const input={installation:f.installation,limits:policy,columnCount:3,cursorProgress:true};
+  const original=f.services.sourceReaderImplementation(input);
+  assert.equal(original.capacity,cursorCapacity);assert.equal(f.services.sourceReaderImplementation({...input}),original);
+  assert.deepEqual(calls,['cursor']);assert.deepEqual(f.counts(),[1,0]);
+  assert.throws(()=>f.services.sourceReaderImplementation({installation:f.installation,limits:policy,columnCount:3}),
+    {code:'InstalledSourceReaderSelectionChanged'});
+  f.close();assert.throws(()=>f.services.sourceReaderImplementation(input),/same current failure/u);
+  assert.deepEqual(calls,['cursor']);
+
+  const old=fixture({clientProgramInstalledJsonCursorSourceReaderCapacity(){assert.fail('No changed-mode construction');}});
+  retainInstalledHostServiceInstallation(old.services,old.installation,'sha256:'+'a'.repeat(64));
+  const legacy={installation:old.installation,limits:policy,columnCount:3};
+  old.services.sourceReaderImplementation(legacy);
+  assert.throws(()=>old.services.sourceReaderImplementation({...legacy,cursorProgress:true}),
+    {code:'InstalledSourceReaderSelectionChanged'});
+  assert.deepEqual(old.counts(),[0,1]);
+});
+
+test('portable cursor Source mode refuses missing quote or incompatible constructors without fallback', () => {
+  const f=fixture();retainInstalledHostServiceInstallation(f.services,f.installation,'sha256:'+'a'.repeat(64));
+  const policy=f.services.sourceReaderImplementationProfile({installation:f.installation,metadataResponses:3,originUnits:20});
+  const input={installation:f.installation,limits:policy,columnCount:3,cursorProgress:true};
+  assert.throws(()=>f.services.sourceReaderImplementation(input),{code:'InstalledSourceReaderRuntimeUnavailable'});
+  let getters=0;
+  for(const changed of [{cursorProgress:false},{get cursorProgress(){getters++;return true;}},
+    {requestConstruction:Object.freeze({capacity:{},maxRequestBytes:512})},
+    {preservingRequestConstruction:Object.freeze({capacity:{},maxRequestBytes:512})},
+    {readSequenceConstruction:Object.freeze({})}]) {
+    const selected=Object.defineProperties({...input},Object.getOwnPropertyDescriptors(changed));
+    assert.throws(()=>f.services.sourceReaderImplementation(selected),{code:'InvalidInstalledSourceReaderSelection'});
+  }
+  assert.equal(getters,0);assert.deepEqual(f.counts(),[1,0]);
+});
+
 test('public Source service keeps original installation policy and typed capacity before any Site', () => {
   const f = fixture();
   assert.throws(() => f.services.sourceReaderImplementationProfile({installation: f.installation,

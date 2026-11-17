@@ -248,129 +248,131 @@ fn build_client_keyed_native_whole_source_evidence(
     is Some(document_controls) else {
     return Err(Assembly("capacity_overflow"))
   }
-  let metadata_phase = match
-    grow_keyed_lookup_protocol_metadata(
-      lookup,
-      max_bytes,
-      7L,
-      copies=7,
-      extra_controls=document_controls,
-    ) {
+  let constructed = with_keyed_protocol_construction(
+    lookup,
+    max_bytes,
+    7L,
+    max_nodes,
+    max_depth,
+    fn() {
+      guard !lookup.closed &&
+        lookup.left.lookup_issue is None &&
+        lookup.native_left_identity is Some(same) &&
+        physical_equal(same, left) &&
+        state.sources.length() == index else {
+        return Err(Assembly("retired_native_source_metadata"))
+      }
+      let dag = match composed.keyed.program {
+        KeyedEffect(prepared) =>
+          @strategy.checked_effect_computation_graph(prepared.graph)
+        _ => return Err(ForeignLeft)
+      }
+      let logical = match
+        issue_captured_whole_source_input_logical(
+          dag,
+          source,
+          identity,
+          original,
+          task~,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(SourceLogical(issue))
+      }
+      let facts = @row_host.row_input_acquisition_facts(acquisition)
+      let observation = match
+        @row_host.issue_row_input_source_evidence(
+          acquisition,
+          capture,
+          identity,
+          logical,
+          client_request_authority_scope_cid(request),
+          facts.source_data_policy_cid,
+          observed_at,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(SourceObservation(issue))
+      }
+      let request_document = match
+        @acquisition.parameterized_request_canonical_document(
+          @acquisition.source_acquisition_request(original),
+          max_bytes,
+          max_nodes,
+          max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Wire(issue))
+      }
+      // The final Ref-emission callback may retire the original. No derived
+      // artifact follows it without retaining that original current observation.
+      guard client_keyed_left_available(lookup.left) &&
+        !lookup.closed &&
+        lookup.left.lookup_issue is None &&
+        lookup.planned_requests is None &&
+        state.sources.length() == index else {
+        return Err(Assembly("retired_native_source_metadata"))
+      }
+      let request_cid = match
+        @sha.text_hex(@encode.document_text(request_document)) {
+        Ok(hash) => "sha256:" + hash
+        Err(_) => return Err(Assembly("native_source_request_encoding"))
+      }
+      let source_retention = match
+        @publication.issue_result_retention_for_data_policy(
+          retention,
+          facts.source_data_policy_cid,
+          max_bytes,
+          max_nodes,
+          max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Identity(@publication.Contract(issue)))
+      }
+      let (relation, ordering, scope) = match
+        @publication.issue_captured_source_input_relation(
+          logical,
+          observation,
+          request_cid,
+          @query.captured_source_relation_row_count(identity),
+          source_retention,
+          max_bytes,
+          max_nodes,
+          max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Identity(issue))
+      }
+      let result = {
+        identity,
+        identity_custody: ScannedHere,
+        logical,
+        observation,
+        relation,
+        ordering,
+        scope,
+        retention: source_retention,
+        request: request_document,
+        request_cid,
+      }
+      Ok(
+        keyed_protocol_built(
+          result,
+          contracts=[relation, ordering, scope, source_retention],
+          evidence=[logical, observation],
+          texts=[@encode.document_text(request_document), request_cid],
+        ),
+      )
+    },
+    result => {
+      state.sources.push(result)
+      state.source_identity = None
+      Ok(())
+    },
+    copies=7,
+    extra_controls=document_controls,
+  )
+  let result = match constructed {
+    Ok(settled) => settled.value
     Err(issue) => return Err(issue)
-    Ok(value) => value
-  }
-  guard !lookup.closed &&
-    lookup.left.lookup_issue is None &&
-    lookup.native_left_identity is Some(same) &&
-    physical_equal(same, left) &&
-    state.sources.length() == index else {
-    return Err(Assembly("retired_native_source_metadata"))
-  }
-  let dag = match composed.keyed.program {
-    KeyedEffect(prepared) =>
-      @strategy.checked_effect_computation_graph(prepared.graph)
-    _ => return Err(ForeignLeft)
-  }
-  let logical = match
-    issue_captured_whole_source_input_logical(
-      dag,
-      source,
-      identity,
-      original,
-      task~,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(SourceLogical(issue))
-  }
-  let facts = @row_host.row_input_acquisition_facts(acquisition)
-  let observation = match
-    @row_host.issue_row_input_source_evidence(
-      acquisition,
-      capture,
-      identity,
-      logical,
-      client_request_authority_scope_cid(request),
-      facts.source_data_policy_cid,
-      observed_at,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(SourceObservation(issue))
-  }
-  let request_document = match
-    @acquisition.parameterized_request_canonical_document(
-      @acquisition.source_acquisition_request(original),
-      max_bytes,
-      max_nodes,
-      max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Wire(issue))
-  }
-  // The final Ref-emission callback may retire the original. No derived
-  // artifact follows it without retaining that original current observation.
-  guard client_keyed_left_available(lookup.left) &&
-    !lookup.closed &&
-    lookup.left.lookup_issue is None &&
-    lookup.planned_requests is None &&
-    state.sources.length() == index else {
-    return Err(Assembly("retired_native_source_metadata"))
-  }
-  let request_cid = match
-    @sha.text_hex(@encode.document_text(request_document)) {
-    Ok(hash) => "sha256:" + hash
-    Err(_) => return Err(Assembly("native_source_request_encoding"))
-  }
-  let source_retention = match
-    @publication.issue_result_retention_for_data_policy(
-      retention,
-      facts.source_data_policy_cid,
-      max_bytes,
-      max_nodes,
-      max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Identity(@publication.Contract(issue)))
-  }
-  let (relation, ordering, scope) = match
-    @publication.issue_captured_source_input_relation(
-      logical,
-      observation,
-      request_cid,
-      @query.captured_source_relation_row_count(identity),
-      source_retention,
-      max_bytes,
-      max_nodes,
-      max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Identity(issue))
-  }
-  let result = {
-    identity,
-    identity_custody: ScannedHere,
-    logical,
-    observation,
-    relation,
-    ordering,
-    scope,
-    retention: source_retention,
-    request: request_document,
-    request_cid,
-  }
-  state.sources.push(result)
-  state.source_identity = None
-  match
-    finish_keyed_lookup_protocol_metadata(
-      lookup,
-      metadata_phase,
-      max_nodes,
-      max_depth,
-      [relation, ordering, scope, source_retention],
-      evidence=[logical, observation],
-      texts=[@encode.document_text(request_document), request_cid],
-    ) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
   }
   guard !lookup.closed &&
     lookup.left.lookup_issue is None &&
@@ -402,8 +404,18 @@ fn native_left_relation_phase(
   state : ClientKeyedNativeSourceState,
   source_count : Int,
 ) -> Bool {
+  !lookup.growing && native_left_relation_original(lookup, state, source_count)
+}
+
+///|
+// Callback-free original facts, also used inside the already-fenced managed
+// construction. The public entry additionally requires no active growth.
+fn native_left_relation_original(
+  lookup : ClientKeyedLookupInput,
+  state : ClientKeyedNativeSourceState,
+  source_count : Int,
+) -> Bool {
   !lookup.closed &&
-  !lookup.growing &&
   !lookup.identifying &&
   lookup.planned_requests is None &&
   lookup.left.requests == 0L &&
@@ -480,111 +492,114 @@ pub fn prepare_client_keyed_native_left_relation(
   } else {
     max_bytes
   }
-  let metadata_phase = match
-    grow_keyed_lookup_protocol_metadata(
-      lookup,
-      writer_bytes,
-      state.sources.length().to_int64(),
-      copies=5,
-    ) {
+  let constructed = with_keyed_protocol_construction(
+    lookup,
+    writer_bytes,
+    state.sources.length().to_int64(),
+    max_nodes,
+    max_depth,
+    fn() {
+      guard native_left_relation_original(
+          lookup,
+          state,
+          composed.sources.length(),
+        ) &&
+        lookup.native_left_identity is Some(same_left) &&
+        physical_equal(same_left, left) else {
+        return Err(Assembly("claimed_native_left_relation"))
+      }
+      lookup.identifying = true
+      defer {
+        lookup.identifying = false
+      }
+      let scope = match
+        @publication.issue_combined_acquisition_scope(
+          state.sources.map(value => value.scope),
+          writer_bytes,
+          max_nodes,
+          max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Identity(issue))
+      }
+      let selected_retention = match
+        @publication.issue_result_retention_for_data_policy(
+          retention,
+          policy.cid,
+          writer_bytes,
+          max_nodes,
+          max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Identity(@publication.Contract(issue)))
+      }
+      // Derivation inputs are a sorted distinct CID set (artifacts.md), while
+      // state.sources and the checked computation retain every actual occurrence.
+      // Assemble that set from admitted originals before issuing the new body;
+      // never normalize or reseal an incoming evidence envelope.
+      let inputs = state.sources.map(value => {
+        @publication.publication_contract_identity(value.relation)
+      })
+      inputs.sort()
+      let mut index = inputs.length() - 1
+      while index > 0 {
+        if inputs[index] == inputs[index - 1] {
+          inputs.remove(index) |> ignore
+        }
+        index -= 1
+      }
+      let ordering = match
+        @publication.issue_local_result_occurrence_evidence(
+          left.producer_contract_cid,
+          left.logical_value_cid,
+          left.relation_schema_cid,
+          left.computation_contract_cid,
+          inputs,
+          @publication.publication_contract_identity(scope),
+          policy.cid,
+          issuer,
+          client_request_authority_scope_cid(request),
+          writer_bytes,
+          max_nodes,
+          max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Derivation(issue))
+      }
+      let artifact = match
+        @publication.issue_computed_input_relation(
+          ordering,
+          scope,
+          selected_retention,
+          left.rows,
+          "complete",
+          writer_bytes,
+          max_nodes,
+          max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Identity(issue))
+      }
+      let result = { artifact, ordering, scope, retention: selected_retention, }
+      Ok(
+        keyed_protocol_built(result, contracts=[
+          artifact,
+          scope,
+          selected_retention,
+          @publication.result_ordering_evidence_contract(ordering),
+          @publication.result_ordering_derivation_contract(ordering),
+        ]),
+      )
+    },
+    result => {
+      state.relation = Some(result)
+      Ok(())
+    },
+    copies=5,
+  )
+  let result = match constructed {
+    Ok(settled) => settled.value
     Err(issue) => return Err(issue)
-    Ok(value) => value
-  }
-  guard native_left_relation_phase(lookup, state, composed.sources.length()) &&
-    lookup.native_left_identity is Some(same_left) &&
-    physical_equal(same_left, left) else {
-    return Err(Assembly("claimed_native_left_relation"))
-  }
-  lookup.identifying = true
-  defer {
-    lookup.identifying = false
-  }
-  let scope = match
-    @publication.issue_combined_acquisition_scope(
-      state.sources.map(value => value.scope),
-      writer_bytes,
-      max_nodes,
-      max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Identity(issue))
-  }
-  let selected_retention = match
-    @publication.issue_result_retention_for_data_policy(
-      retention,
-      policy.cid,
-      writer_bytes,
-      max_nodes,
-      max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Identity(@publication.Contract(issue)))
-  }
-  // Derivation inputs are a sorted distinct CID set (artifacts.md), while
-  // state.sources and the checked computation retain every actual occurrence.
-  // Assemble that set from admitted originals before issuing the new body;
-  // never normalize or reseal an incoming evidence envelope.
-  let inputs = state.sources.map(value => {
-    @publication.publication_contract_identity(value.relation)
-  })
-  inputs.sort()
-  let mut index = inputs.length() - 1
-  while index > 0 {
-    if inputs[index] == inputs[index - 1] {
-      inputs.remove(index) |> ignore
-    }
-    index -= 1
-  }
-  let ordering = match
-    @publication.issue_local_result_occurrence_evidence(
-      left.producer_contract_cid,
-      left.logical_value_cid,
-      left.relation_schema_cid,
-      left.computation_contract_cid,
-      inputs,
-      @publication.publication_contract_identity(scope),
-      policy.cid,
-      issuer,
-      client_request_authority_scope_cid(request),
-      writer_bytes,
-      max_nodes,
-      max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Derivation(issue))
-  }
-  let artifact = match
-    @publication.issue_computed_input_relation(
-      ordering,
-      scope,
-      selected_retention,
-      left.rows,
-      "complete",
-      writer_bytes,
-      max_nodes,
-      max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Identity(issue))
-  }
-  let result = { artifact, ordering, scope, retention: selected_retention, }
-  state.relation = Some(result)
-  match
-    finish_keyed_lookup_protocol_metadata(
-      lookup,
-      metadata_phase,
-      max_nodes,
-      max_depth,
-      [
-        artifact,
-        scope,
-        selected_retention,
-        @publication.result_ordering_evidence_contract(ordering),
-        @publication.result_ordering_derivation_contract(ordering),
-      ],
-    ) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
   }
   guard !lookup.closed &&
     lookup.left.lookup_issue is None &&

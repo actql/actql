@@ -198,6 +198,7 @@ struct ClientInstalledManagedModelPlan {
   source_free : ClientInstalledManagedSourceFreePreparation?
   captured : ClientInstalledManagedCapturePlan?
   content_prefix : ClientInstalledManagedSerializationPreparation?
+  model_limits : @resources.LedgerLimits
   limits : @resources.LedgerLimits
   max_reservations : Int
   max_holdings : Int
@@ -205,12 +206,12 @@ struct ClientInstalledManagedModelPlan {
 }
 
 ///|
-// This exact record above: one header, eleven retained references and three
+// This exact record above: one header, twelve retained references and three
 // scalar inventory words. The selected module/compiler, Option carriers,
 // Model Scope, provider and all nested construction frames are separate.
 let installed_model_plan_record : @execution.PreparationRepresentationUnits = {
   record_headers: 1L,
-  reference_slots: 11L,
+  reference_slots: 12L,
   scalar_words: 3L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
@@ -391,6 +392,9 @@ fn prepare_installed_mock_model_plan_owned(
     Some(value) => value
     None => return Err(InsufficientCapacity)
   }
+  // Keep the exact supplied component allowance before the whole-Run fold.
+  // A combined Compute/read total cannot reconstruct this Model ceiling.
+  let selected_model_limits = model_limits
   guard max_reservations >= 0 &&
     max_holdings >= 0 &&
     max_delegations >= 0 &&
@@ -439,6 +443,7 @@ fn prepare_installed_mock_model_plan_owned(
     source_free,
     captured,
     content_prefix,
+    model_limits: selected_model_limits,
     limits,
     max_reservations,
     max_holdings,

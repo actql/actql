@@ -139,177 +139,179 @@ pub fn prepare_client_keyed_native_activation(
   } else {
     max_bytes
   }
-  let metadata_phase = match
-    grow_keyed_lookup_protocol_metadata(
-      state,
-      writer_bytes,
-      3L,
-      extra_controls=controls,
-      copies=3,
-    ) {
-    Err(issue) => return Err(issue)
-    Ok(value) => value
-  }
-  let policy = match keyed_lookup_observation(request, now_ms) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let remaining = @environment.lookup_execution_ceiling(
-      policy,
-      @environment.TotalDurationMs,
-    ) -
-    (now_ms - state.left.started_ms.unwrap())
-  let response_bound = @environment.lookup_capacity_response_bytes_per_page(
-    @acquisition.keyed_source_capacity(state.left.acquisition.facts),
-  )
-  // This Native implementation emits the same per-page ceiling from its
-  // actual physical file limits. There is no compression or pagination. A
-  // smaller remaining Host allowance cannot silently cap that original read.
-  if response_bound < 0L ||
-    response_bound >
-    @environment.lookup_execution_ceiling(
-      policy,
-      @environment.TotalResponseWireBytes,
-    ) -
-    state.left.response_bytes ||
-    response_bound >
-    @environment.lookup_execution_ceiling(
-      policy,
-      @environment.TotalResponseDecodedBytes,
-    ) -
-    state.left.decoded_bytes {
-    return Err(LookupLimit("native_activation_reservation"))
-  }
-  guard remaining > 0L &&
-    epoch <= 9223372036854775807L - remaining &&
-    @values.epoch_milliseconds_timestamp(epoch + remaining) is Some(deadline) else {
-    return Err(InvalidObservation)
-  }
-  // All interpolated identities are the admitted ASCII CIDs above. wire is
-  // the original typed encoder output already retained by this SAME request
-  // plan; it is neither caller JSON nor a capability reconstructed from a key.
-  let transport_cid = @publication.publication_contract_identity(transport)
-  let body = "{\"continuation\":null,\"request_schema_cid\":\"" +
-    schema +
-    "\",\"request_values\":" +
-    wire +
-    ",\"source_view_contract_cid\":\"" +
-    source +
-    "\",\"transport_plan_cid\":\"" +
-    transport_cid +
-    "\",\"version\":\"actql-lookup-semantic-request/0.1\"}"
-  let semantic_request = match
-    native_lookup_seal(
-      "native_file_lookup_request", body, writer_bytes, max_nodes, max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let batch_cid = @publication.publication_contract_identity(batch)
-  let slot_body = "{\"batch_index\":" +
-    batch_index.to_string() +
-    ",\"batch_plan_cid\":\"" +
-    batch_cid +
-    "\",\"page_index\":0,\"semantic_request_cid\":\"" +
-    @publication.publication_contract_identity(semantic_request) +
-    "\",\"version\":\"actql-lookup-call-slot/0.1\"}"
-  let slot = match
-    native_lookup_seal(
-      "native_file_lookup_call_slot", slot_body, writer_bytes, max_nodes, max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let activation_body = try {
-    let writer = @encode.writer(writer_bytes, max_nodes, max_depth)
-    @encode.begin_object(writer)
-    for
-      (name, value) in [
-        (
-          "authority_scope_cid",
-          client_request_authority_scope_cid(client_request),
-        ),
-        ("barrier_cid", component.barrier.logical_cid),
-        ("batch_plan_cid", batch_cid),
-        ("call_slot_cid", @publication.publication_contract_identity(slot)),
-        ("deadline", deadline),
-        ("issuer_id", issuer_id),
-        ("recorded_at", recorded_at),
-        ("version", "actql-lookup-attempt-activation/0.1"),
-      ] {
-      @encode.key(writer, name)
-      @encode.string_value(writer, value)
-    }
-    @encode.key(writer, "network_attempt")
-    @encode.number_value(writer, 1.0)
-    @encode.key(writer, "previous_activation_cid")
-    @encode.null_value(writer)
-    @encode.key(writer, "previous_attempt_event_cid")
-    @encode.null_value(writer)
-    @encode.end_object(writer)
-    @encode.finish(writer)
-  } catch {
-    _ => return Err(Assembly("native_activation_encoding"))
-  }
-  let activation = match
-    native_lookup_seal(
-      "native_file_lookup_activation", activation_body, writer_bytes, max_nodes,
-      max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  if state.closed ||
-    state.left.lookup_issue is Some(_) ||
-    !(state.selected_request is Some(same) && physical_equal(same, request)) {
-    return Err(Assembly("retired_native_activation"))
-  }
-  // Growth/current/observation can reenter this SAME preparation. The inner
-  // caller may already have received its original. After the last callback,
-  // compare only our retained slot/history; never replace or poison that token.
-  guard state.known.get(slot_index) is Some((_, None, Some(retained))) &&
-    physical_equal(retained, history) &&
-    history._retained_activation is None else {
-    return Err(Assembly("claimed_native_activation"))
-  }
-  let result = {
-    original: state,
-    request,
-    client_request,
-    definition: original.definition,
-    usage: {
-      request_bytes: 0L,
-      response_wire_bytes: 0L,
-      response_decoded_bytes: 0L,
-      started_ms: -1L,
-      observed_ms: -1L,
-      usage_final: false,
+  let constructed = with_keyed_protocol_construction(
+    state,
+    writer_bytes,
+    3L,
+    max_nodes,
+    max_depth,
+    fn() {
+      let policy = match keyed_lookup_observation(request, now_ms) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      let remaining = @environment.lookup_execution_ceiling(
+          policy,
+          @environment.TotalDurationMs,
+        ) -
+        (now_ms - state.left.started_ms.unwrap())
+      let response_bound = @environment.lookup_capacity_response_bytes_per_page(
+        @acquisition.keyed_source_capacity(state.left.acquisition.facts),
+      )
+      // This Native implementation emits the same per-page ceiling from its
+      // actual physical file limits. There is no compression or pagination. A
+      // smaller remaining Host allowance cannot silently cap that original read.
+      if response_bound < 0L ||
+        response_bound >
+        @environment.lookup_execution_ceiling(
+          policy,
+          @environment.TotalResponseWireBytes,
+        ) -
+        state.left.response_bytes ||
+        response_bound >
+        @environment.lookup_execution_ceiling(
+          policy,
+          @environment.TotalResponseDecodedBytes,
+        ) -
+        state.left.decoded_bytes {
+        return Err(LookupLimit("native_activation_reservation"))
+      }
+      guard remaining > 0L &&
+        epoch <= 9223372036854775807L - remaining &&
+        @values.epoch_milliseconds_timestamp(epoch + remaining)
+        is Some(deadline) else {
+        return Err(InvalidObservation)
+      }
+      // All interpolated identities are the admitted ASCII CIDs above. wire is
+      // the original typed encoder output already retained by this SAME request
+      // plan; it is neither caller JSON nor a capability reconstructed from a key.
+      let transport_cid = @publication.publication_contract_identity(transport)
+      let body = "{\"continuation\":null,\"request_schema_cid\":\"" +
+        schema +
+        "\",\"request_values\":" +
+        wire +
+        ",\"source_view_contract_cid\":\"" +
+        source +
+        "\",\"transport_plan_cid\":\"" +
+        transport_cid +
+        "\",\"version\":\"actql-lookup-semantic-request/0.1\"}"
+      let semantic_request = match
+        native_lookup_seal(
+          "native_file_lookup_request", body, writer_bytes, max_nodes, max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      let batch_cid = @publication.publication_contract_identity(batch)
+      let slot_body = "{\"batch_index\":" +
+        batch_index.to_string() +
+        ",\"batch_plan_cid\":\"" +
+        batch_cid +
+        "\",\"page_index\":0,\"semantic_request_cid\":\"" +
+        @publication.publication_contract_identity(semantic_request) +
+        "\",\"version\":\"actql-lookup-call-slot/0.1\"}"
+      let slot = match
+        native_lookup_seal(
+          "native_file_lookup_call_slot", slot_body, writer_bytes, max_nodes, max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      let activation_body = try {
+        let writer = @encode.writer(writer_bytes, max_nodes, max_depth)
+        @encode.begin_object(writer)
+        for
+          (name, value) in [
+            (
+              "authority_scope_cid",
+              client_request_authority_scope_cid(client_request),
+            ),
+            ("barrier_cid", component.barrier.logical_cid),
+            ("batch_plan_cid", batch_cid),
+            ("call_slot_cid", @publication.publication_contract_identity(slot)),
+            ("deadline", deadline),
+            ("issuer_id", issuer_id),
+            ("recorded_at", recorded_at),
+            ("version", "actql-lookup-attempt-activation/0.1"),
+          ] {
+          @encode.key(writer, name)
+          @encode.string_value(writer, value)
+        }
+        @encode.key(writer, "network_attempt")
+        @encode.number_value(writer, 1.0)
+        @encode.key(writer, "previous_activation_cid")
+        @encode.null_value(writer)
+        @encode.key(writer, "previous_attempt_event_cid")
+        @encode.null_value(writer)
+        @encode.end_object(writer)
+        @encode.finish(writer)
+      } catch {
+        _ => return Err(Assembly("native_activation_encoding"))
+      }
+      let activation = match
+        native_lookup_seal(
+          "native_file_lookup_activation", activation_body, writer_bytes, max_nodes,
+          max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      if state.closed ||
+        state.left.lookup_issue is Some(_) ||
+        !(state.selected_request is Some(same) && physical_equal(same, request)) {
+        return Err(Assembly("retired_native_activation"))
+      }
+      // Growth/current/observation can reenter this SAME preparation. The inner
+      // caller may already have received its original. After the last callback,
+      // compare only our retained slot/history; never replace or poison that token.
+      guard state.known.get(slot_index) is Some((_, None, Some(retained))) &&
+        physical_equal(retained, history) &&
+        history._retained_activation is None else {
+        return Err(Assembly("claimed_native_activation"))
+      }
+      let result = {
+        original: state,
+        request,
+        client_request,
+        definition: original.definition,
+        usage: {
+          request_bytes: 0L,
+          response_wire_bytes: 0L,
+          response_decoded_bytes: 0L,
+          started_ms: -1L,
+          observed_ms: -1L,
+          usage_final: false,
+        },
+        batch,
+        transport,
+        keys: identity.keys,
+        semantic_request,
+        slot,
+        activation,
+        batch_index,
+        batch_count: order.length(),
+        deadline_epoch_ms: epoch + remaining,
+        issuer_id,
+        reserved_wire_bytes: response_bound,
+        reserved_decoded_bytes: response_bound,
+        reserved_duration_ms: remaining,
+      }
+      Ok(
+        keyed_protocol_built(result, contracts=[
+          semantic_request, slot, activation,
+        ]),
+      )
     },
-    batch,
-    transport,
-    keys: identity.keys,
-    semantic_request,
-    slot,
-    activation,
-    batch_index,
-    batch_count: order.length(),
-    deadline_epoch_ms: epoch + remaining,
-    issuer_id,
-    reserved_wire_bytes: response_bound,
-    reserved_decoded_bytes: response_bound,
-    reserved_duration_ms: remaining,
-  }
-  history._retained_activation = Some(result)
-  match
-    finish_keyed_lookup_protocol_metadata(
-      state,
-      metadata_phase,
-      max_nodes,
-      max_depth,
-      [semantic_request, slot, activation],
-    ) {
+    result => {
+      history._retained_activation = Some(result)
+      Ok(())
+    },
+    extra_controls=controls,
+    copies=3,
+  )
+  let result = match constructed {
+    Ok(settled) => settled.value
     Err(issue) => return Err(issue)
-    Ok(_) => ()
   }
   guard !state.closed &&
     state.left.lookup_issue is None &&

@@ -26,6 +26,23 @@ runtime capability. Typed expression/Task details and authoring meta not present
 in the original projection are not reconstructed here. This presentation unit
 does not install Samples, pause/step/breakpoints or shared-process Host support.
 
+`explanationStoryModel(view, facts, {locale})` additionally consumes the separate
+SDK-admitted structural Explanation Facts. It checks the original map, Step
+keys and each input/output port occurrence before displaying schema fields,
+ordered projection, JOIN keys and typed predicate/parameter structure. Literal
+values remain redacted; unsupported meaning stays explicitly unprojected.
+This is deterministic formatting of compiler facts, not another expression
+parser or semantic checker. Finite node, depth and text bounds refuse malformed
+or oversized presentation instead of truncating it under an original CID.
+Text pieces, escaped names and each cached-child copy consume the remaining
+construction allowance before quoting, concatenation or joining; checking the
+completed output's length alone would not bound its construction.
+
+Both inputs still require the actual Host's current read and egress admission;
+shape or CID correspondence here grants neither access nor compiler provenance.
+This pure model does not install a new SDK read, retain Saved facts, reconstruct
+missing originals or make an unprojected Normal Run explainable.
+
 ## Read-only presentation
 
 This package contains the finite read model, public SDK read adapter and shared

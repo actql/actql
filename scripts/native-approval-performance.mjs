@@ -7,6 +7,45 @@ import {latencySummary, resourceSummary, nativeApprovalTarget} from './operation
 import {peakRssBytes} from './layout-measurement-support.mjs';
 import {mockTemplates} from './native-cli-mock-scenario.mjs';
 
+// Harness durations describe the existing sequential consumer, not Native CPU
+// or physical cleanup acknowledgement. Scenario durations contain their command
+// durations; neither is added to the separately sampled approval latency.
+export async function observeNativeMockHarnessPhase(records, phase, action, template) {
+  assert(['release-verification', 'source-platform-admission', 'scratch-creation',
+    'registry-open', 'installation', 'installed-package-admission', 'scenario',
+    'installed-integrity', 'registry-close'].includes(phase), 'Unknown Mock harness phase');
+  assert(phase === 'scenario' ? mockTemplates.includes(template) : template === undefined,
+    'Mock harness template belongs only to its scenario');
+  const record = {phase, ...(template === undefined ? {} : {template}), state: 'running'};
+  records.push(record);
+  const started = process.hrtime.bigint();
+  try {
+    const value = await action();
+    record.state = 'completed';
+    return value;
+  } catch (error) {
+    record.state = 'failed';
+    throw error;
+  } finally {
+    const wallNs = Number(process.hrtime.bigint() - started);
+    if (Number.isSafeInteger(wallNs) && wallNs >= 0) record.wallNs = wallNs;
+    else record.observationIssue = 'Monotonic harness duration unavailable';
+  }
+}
+
+export function nativeMockWorkflowTiming({harnessPhases, scenarios}) {
+  assert(Array.isArray(harnessPhases) && harnessPhases.length > 0 &&
+    harnessPhases.every(row => row.state === 'completed' && !row.observationIssue &&
+      Number.isSafeInteger(row.wallNs) && row.wallNs >= 0), 'Incomplete Mock harness observations');
+  assert(harnessPhases.some(row => row.phase === 'registry-close'), 'Registry closure observation missing');
+  return {harnessPhases, scenarios: scenarios.map(({template, commands}) => ({template,
+    commands: commands.map(({workflowPhase, wallNs, launcherTiming}) => {
+      assert(typeof workflowPhase === 'string' && workflowPhase.length > 0 &&
+        Number.isSafeInteger(wallNs) && wallNs > 0, 'Original Mock command timing unavailable');
+      return {workflowPhase, wallNs, ...(launcherTiming ? {launcherTiming} : {})};
+    })}))};
+}
+
 // The ordinary and formal paths keep their original command. Tracing is an
 // explicit separate Linux diagnostic and cannot select a formal sample.
 export function nativeApprovalObservationOptions(extra, platform) {

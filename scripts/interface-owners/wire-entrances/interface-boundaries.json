@@ -11815,7 +11815,7 @@
     {
       "module": "packages/client-wire/interactive-control.generated.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "ea3c0b925d2691af6b0933b607491758c788d53198077523380d38d4d0fbd151",
+      "sha256": "b57100d0b4c5a7904697bd3955096fb228e1fb6221f512ea32f766916ea19238",
       "exports": [
         "ControlJsonValue",
         "WireControlAdmission",
@@ -11834,6 +11834,13 @@
         "WireControlResumeOrigin",
         "WireControlledRunState",
         "WireEffectfulStaticPlanView",
+        "WireExplanationExpressionNode",
+        "WireExplanationFacts",
+        "WireExplanationMeaning",
+        "WireExplanationPredicate",
+        "WireExplanationSchema",
+        "WireExplanationStep",
+        "WireExplanationType",
         "WireLogicalMap",
         "WireLogicalPort",
         "WireLogicalPortKey",
@@ -11843,6 +11850,7 @@
         "WirePlanView",
         "WireResolvedControlProfile",
         "WireRunControlCapabilities",
+        "WireRunExplanationView",
         "WireRunPlanView",
         "WireRunSample",
         "WireRunView",
@@ -11872,6 +11880,13 @@
         "validWireControlResumeOriginShape",
         "validWireControlledRunStateShape",
         "validWireEffectfulStaticPlanViewShape",
+        "validWireExplanationExpressionNodeShape",
+        "validWireExplanationFactsShape",
+        "validWireExplanationMeaningShape",
+        "validWireExplanationPredicateShape",
+        "validWireExplanationSchemaShape",
+        "validWireExplanationStepShape",
+        "validWireExplanationTypeShape",
         "validWireLogicalMapShape",
         "validWireLogicalPortKeyShape",
         "validWireLogicalPortShape",
@@ -11881,6 +11896,7 @@
         "validWirePlanViewShape",
         "validWireResolvedControlProfileShape",
         "validWireRunControlCapabilitiesShape",
+        "validWireRunExplanationViewShape",
         "validWireRunPlanViewShape",
         "validWireRunSampleShape",
         "validWireRunViewShape",
@@ -12007,6 +12023,55 @@
           "result": "value is WireEffectfulStaticPlanView"
         },
         {
+          "name": "validWireExplanationExpressionNodeShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireExplanationExpressionNode"
+        },
+        {
+          "name": "validWireExplanationFactsShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireExplanationFacts"
+        },
+        {
+          "name": "validWireExplanationMeaningShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireExplanationMeaning"
+        },
+        {
+          "name": "validWireExplanationPredicateShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireExplanationPredicate"
+        },
+        {
+          "name": "validWireExplanationSchemaShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireExplanationSchema"
+        },
+        {
+          "name": "validWireExplanationStepShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireExplanationStep"
+        },
+        {
+          "name": "validWireExplanationTypeShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireExplanationType"
+        },
+        {
           "name": "validWireLogicalMapShape",
           "parameters": [
             "value: unknown"
@@ -12068,6 +12133,13 @@
             "value: unknown"
           ],
           "result": "value is WireRunControlCapabilities"
+        },
+        {
+          "name": "validWireRunExplanationViewShape",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireRunExplanationView"
         },
         {
           "name": "validWireRunPlanViewShape",
@@ -15822,6 +15894,13 @@
             "WireControlResumeOrigin",
             "WireControlledRunState",
             "WireEffectfulStaticPlanView",
+            "WireExplanationExpressionNode",
+            "WireExplanationFacts",
+            "WireExplanationMeaning",
+            "WireExplanationPredicate",
+            "WireExplanationSchema",
+            "WireExplanationStep",
+            "WireExplanationType",
             "WireLogicalMap",
             "WireLogicalPort",
             "WireLogicalPortKey",
@@ -15831,6 +15910,7 @@
             "WirePlanView",
             "WireResolvedControlProfile",
             "WireRunControlCapabilities",
+            "WireRunExplanationView",
             "WireRunPlanView",
             "WireRunSample",
             "WireRunView",
@@ -15942,6 +16022,838 @@
               {
                 "path": "spec/requirements/run.json",
                 "anchor": "\"requirement_id\": \"actql.protocol.run/run-observation.state-revision\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "validWireExplanationExpressionNodeShape"
+          ],
+          "exports": [
+            "validWireExplanationExpressionNodeShape"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| responsibility |"
+              },
+              {
+                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "anchor": "generateControlWire"
+              },
+              {
+                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "anchor": "packages/client-wire/interactive-control.generated.d.ts"
+              },
+              {
+                "path": "spec/contracts/actql-interactive-run-control.json",
+                "anchor": "\"schemas\""
+              },
+              {
+                "path": "packages/client-wire/interactive-control.generated.d.ts",
+                "anchor": "validWireExplanationExpressionNodeShape"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| inputsOutputs |"
+              },
+              {
+                "path": "packages/client-wire/interactive-control.generated.d.ts",
+                "anchor": "export "
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| identity |"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| ownership |"
+              },
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "the structural guard does not authorize either value."
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "This group describes TypeScript declarations only; it starts no runtime operation. Corresponding received-value predicates are synchronous and remain in the original JS wire modules."
+            },
+            "failure": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| failure |"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Type declarations neither cancel work nor close readers. A cancellation declaration describes received evidence only; its existing operation Owner retains physical stop and cleanup."
+            },
+            "resources": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| resources |"
+              },
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "bounded text before Host authorization."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| extension |"
+              },
+              {
+                "path": "packages/client-wire/package.json",
+                "anchor": "\"files\""
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| verification |"
+              },
+              {
+                "path": "scripts/public-wire-language-vectors.test.mjs",
+                "anchor": "jsWireVector"
+              },
+              {
+                "path": "scripts/interactive-run-control-contract.test.mjs",
+                "anchor": "ExplanationFacts structural profile rejects literal metadata and permission fabrication"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "validWireExplanationFactsShape"
+          ],
+          "exports": [
+            "validWireExplanationFactsShape"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| responsibility |"
+              },
+              {
+                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "anchor": "generateControlWire"
+              },
+              {
+                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "anchor": "packages/client-wire/interactive-control.generated.d.ts"
+              },
+              {
+                "path": "spec/contracts/actql-interactive-run-control.json",
+                "anchor": "\"schemas\""
+              },
+              {
+                "path": "packages/client-wire/interactive-control.generated.d.ts",
+                "anchor": "validWireExplanationFactsShape"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| inputsOutputs |"
+              },
+              {
+                "path": "packages/client-wire/interactive-control.generated.d.ts",
+                "anchor": "export "
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| identity |"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| ownership |"
+              },
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "the structural guard does not authorize either value."
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "This group describes TypeScript declarations only; it starts no runtime operation. Corresponding received-value predicates are synchronous and remain in the original JS wire modules."
+            },
+            "failure": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| failure |"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Type declarations neither cancel work nor close readers. A cancellation declaration describes received evidence only; its existing operation Owner retains physical stop and cleanup."
+            },
+            "resources": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| resources |"
+              },
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "bounded text before Host authorization."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| extension |"
+              },
+              {
+                "path": "packages/client-wire/package.json",
+                "anchor": "\"files\""
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| verification |"
+              },
+              {
+                "path": "scripts/public-wire-language-vectors.test.mjs",
+                "anchor": "jsWireVector"
+              },
+              {
+                "path": "scripts/interactive-run-control-contract.test.mjs",
+                "anchor": "ExplanationFacts structural profile rejects literal metadata and permission fabrication"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "validWireExplanationMeaningShape"
+          ],
+          "exports": [
+            "validWireExplanationMeaningShape"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| responsibility |"
+              },
+              {
+                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "anchor": "generateControlWire"
+              },
+              {
+                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "anchor": "packages/client-wire/interactive-control.generated.d.ts"
+              },
+              {
+                "path": "spec/contracts/actql-interactive-run-control.json",
+                "anchor": "\"schemas\""
+              },
+              {
+                "path": "packages/client-wire/interactive-control.generated.d.ts",
+                "anchor": "validWireExplanationMeaningShape"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| inputsOutputs |"
+              },
+              {
+                "path": "packages/client-wire/interactive-control.generated.d.ts",
+                "anchor": "export "
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| identity |"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| ownership |"
+              },
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "the structural guard does not authorize either value."
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "This group describes TypeScript declarations only; it starts no runtime operation. Corresponding received-value predicates are synchronous and remain in the original JS wire modules."
+            },
+            "failure": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| failure |"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Type declarations neither cancel work nor close readers. A cancellation declaration describes received evidence only; its existing operation Owner retains physical stop and cleanup."
+            },
+            "resources": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| resources |"
+              },
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "bounded text before Host authorization."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| extension |"
+              },
+              {
+                "path": "packages/client-wire/package.json",
+                "anchor": "\"files\""
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| verification |"
+              },
+              {
+                "path": "scripts/public-wire-language-vectors.test.mjs",
+                "anchor": "jsWireVector"
+              },
+              {
+                "path": "scripts/interactive-run-control-contract.test.mjs",
+                "anchor": "ExplanationFacts structural profile rejects literal metadata and permission fabrication"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "validWireExplanationPredicateShape"
+          ],
+          "exports": [
+            "validWireExplanationPredicateShape"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| responsibility |"
+              },
+              {
+                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "anchor": "generateControlWire"
+              },
+              {
+                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "anchor": "packages/client-wire/interactive-control.generated.d.ts"
+              },
+              {
+                "path": "spec/contracts/actql-interactive-run-control.json",
+                "anchor": "\"schemas\""
+              },
+              {
+                "path": "packages/client-wire/interactive-control.generated.d.ts",
+                "anchor": "validWireExplanationPredicateShape"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| inputsOutputs |"
+              },
+              {
+                "path": "packages/client-wire/interactive-control.generated.d.ts",
+                "anchor": "export "
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| identity |"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| ownership |"
+              },
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "the structural guard does not authorize either value."
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "This group describes TypeScript declarations only; it starts no runtime operation. Corresponding received-value predicates are synchronous and remain in the original JS wire modules."
+            },
+            "failure": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| failure |"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Type declarations neither cancel work nor close readers. A cancellation declaration describes received evidence only; its existing operation Owner retains physical stop and cleanup."
+            },
+            "resources": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| resources |"
+              },
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "bounded text before Host authorization."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| extension |"
+              },
+              {
+                "path": "packages/client-wire/package.json",
+                "anchor": "\"files\""
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| verification |"
+              },
+              {
+                "path": "scripts/public-wire-language-vectors.test.mjs",
+                "anchor": "jsWireVector"
+              },
+              {
+                "path": "scripts/interactive-run-control-contract.test.mjs",
+                "anchor": "ExplanationFacts structural profile rejects literal metadata and permission fabrication"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "validWireExplanationSchemaShape"
+          ],
+          "exports": [
+            "validWireExplanationSchemaShape"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| responsibility |"
+              },
+              {
+                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "anchor": "generateControlWire"
+              },
+              {
+                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "anchor": "packages/client-wire/interactive-control.generated.d.ts"
+              },
+              {
+                "path": "spec/contracts/actql-interactive-run-control.json",
+                "anchor": "\"schemas\""
+              },
+              {
+                "path": "packages/client-wire/interactive-control.generated.d.ts",
+                "anchor": "validWireExplanationSchemaShape"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| inputsOutputs |"
+              },
+              {
+                "path": "packages/client-wire/interactive-control.generated.d.ts",
+                "anchor": "export "
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| identity |"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| ownership |"
+              },
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "the structural guard does not authorize either value."
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "This group describes TypeScript declarations only; it starts no runtime operation. Corresponding received-value predicates are synchronous and remain in the original JS wire modules."
+            },
+            "failure": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| failure |"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Type declarations neither cancel work nor close readers. A cancellation declaration describes received evidence only; its existing operation Owner retains physical stop and cleanup."
+            },
+            "resources": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| resources |"
+              },
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "bounded text before Host authorization."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| extension |"
+              },
+              {
+                "path": "packages/client-wire/package.json",
+                "anchor": "\"files\""
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| verification |"
+              },
+              {
+                "path": "scripts/public-wire-language-vectors.test.mjs",
+                "anchor": "jsWireVector"
+              },
+              {
+                "path": "scripts/interactive-run-control-contract.test.mjs",
+                "anchor": "ExplanationFacts structural profile rejects literal metadata and permission fabrication"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "validWireExplanationStepShape"
+          ],
+          "exports": [
+            "validWireExplanationStepShape"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| responsibility |"
+              },
+              {
+                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "anchor": "generateControlWire"
+              },
+              {
+                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "anchor": "packages/client-wire/interactive-control.generated.d.ts"
+              },
+              {
+                "path": "spec/contracts/actql-interactive-run-control.json",
+                "anchor": "\"schemas\""
+              },
+              {
+                "path": "packages/client-wire/interactive-control.generated.d.ts",
+                "anchor": "validWireExplanationStepShape"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| inputsOutputs |"
+              },
+              {
+                "path": "packages/client-wire/interactive-control.generated.d.ts",
+                "anchor": "export "
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| identity |"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| ownership |"
+              },
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "the structural guard does not authorize either value."
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "This group describes TypeScript declarations only; it starts no runtime operation. Corresponding received-value predicates are synchronous and remain in the original JS wire modules."
+            },
+            "failure": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| failure |"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Type declarations neither cancel work nor close readers. A cancellation declaration describes received evidence only; its existing operation Owner retains physical stop and cleanup."
+            },
+            "resources": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| resources |"
+              },
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "bounded text before Host authorization."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| extension |"
+              },
+              {
+                "path": "packages/client-wire/package.json",
+                "anchor": "\"files\""
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| verification |"
+              },
+              {
+                "path": "scripts/public-wire-language-vectors.test.mjs",
+                "anchor": "jsWireVector"
+              },
+              {
+                "path": "scripts/interactive-run-control-contract.test.mjs",
+                "anchor": "ExplanationFacts structural profile rejects literal metadata and permission fabrication"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "validWireExplanationTypeShape"
+          ],
+          "exports": [
+            "validWireExplanationTypeShape"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| responsibility |"
+              },
+              {
+                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "anchor": "generateControlWire"
+              },
+              {
+                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "anchor": "packages/client-wire/interactive-control.generated.d.ts"
+              },
+              {
+                "path": "spec/contracts/actql-interactive-run-control.json",
+                "anchor": "\"schemas\""
+              },
+              {
+                "path": "packages/client-wire/interactive-control.generated.d.ts",
+                "anchor": "validWireExplanationTypeShape"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| inputsOutputs |"
+              },
+              {
+                "path": "packages/client-wire/interactive-control.generated.d.ts",
+                "anchor": "export "
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| identity |"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| ownership |"
+              },
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "the structural guard does not authorize either value."
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "This group describes TypeScript declarations only; it starts no runtime operation. Corresponding received-value predicates are synchronous and remain in the original JS wire modules."
+            },
+            "failure": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| failure |"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Type declarations neither cancel work nor close readers. A cancellation declaration describes received evidence only; its existing operation Owner retains physical stop and cleanup."
+            },
+            "resources": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| resources |"
+              },
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "bounded text before Host authorization."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| extension |"
+              },
+              {
+                "path": "packages/client-wire/package.json",
+                "anchor": "\"files\""
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| verification |"
+              },
+              {
+                "path": "scripts/public-wire-language-vectors.test.mjs",
+                "anchor": "jsWireVector"
+              },
+              {
+                "path": "scripts/interactive-run-control-contract.test.mjs",
+                "anchor": "ExplanationFacts structural profile rejects literal metadata and permission fabrication"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "validWireRunExplanationViewShape"
+          ],
+          "exports": [
+            "validWireRunExplanationViewShape"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| responsibility |"
+              },
+              {
+                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "anchor": "generateControlWire"
+              },
+              {
+                "path": "scripts/generate-interactive-run-control-wire.mjs",
+                "anchor": "packages/client-wire/interactive-control.generated.d.ts"
+              },
+              {
+                "path": "spec/contracts/actql-interactive-run-control.json",
+                "anchor": "\"schemas\""
+              },
+              {
+                "path": "packages/client-wire/interactive-control.generated.d.ts",
+                "anchor": "validWireRunExplanationViewShape"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| inputsOutputs |"
+              },
+              {
+                "path": "packages/client-wire/interactive-control.generated.d.ts",
+                "anchor": "export "
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| identity |"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| ownership |"
+              },
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "the structural guard does not authorize either value."
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "This group describes TypeScript declarations only; it starts no runtime operation. Corresponding received-value predicates are synchronous and remain in the original JS wire modules."
+            },
+            "failure": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| failure |"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Type declarations neither cancel work nor close readers. A cancellation declaration describes received evidence only; its existing operation Owner retains physical stop and cleanup."
+            },
+            "resources": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| resources |"
+              },
+              {
+                "path": "packages/client-wire/README.md",
+                "anchor": "bounded text before Host authorization."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| extension |"
+              },
+              {
+                "path": "packages/client-wire/package.json",
+                "anchor": "\"files\""
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| verification |"
+              },
+              {
+                "path": "scripts/public-wire-language-vectors.test.mjs",
+                "anchor": "jsWireVector"
+              },
+              {
+                "path": "scripts/interactive-run-control-contract.test.mjs",
+                "anchor": "ExplanationFacts structural profile rejects literal metadata and permission fabrication"
               }
             ]
           }

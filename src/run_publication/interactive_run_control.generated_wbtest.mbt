@@ -109,7 +109,34 @@ test "interactive identity 3: logical_step_key" {
 }
 
 ///|
-test "interactive identity 4: control_request_intent" {
+test "interactive identity 4: explanation_facts" {
+  let value = seal_run_evidence_value(
+    "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  assert_eq(
+    run_evidence_value_identity(value),
+    "sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682",
+  )
+  let restored = admit_run_evidence_value(
+    "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  assert_eq(
+    run_evidence_value_identity(restored),
+    "sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682",
+  )
+  assert_true(
+    parse_interactive_run_control_shape(
+      "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive identity 5: control_request_intent" {
   let value = seal_run_evidence_value(
     "control_request_intent", "{\"expected_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"legacy_request_fingerprint_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\",\"requested_profile_cid\":\"sha256:bfaf0bf9b06cb598cdc3f7d56d23745e7bc6b5277bd9320e632c51a4f1cf8b50\",\"submission_ref\":{\"epoch\":{\"authenticator\":\"2222222222222222222222222222222222222222222222222222222222222222\",\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"epochNonce\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"expiresAt\":2,\"notBefore\":1,\"version\":\"actql-submission-epoch/0.1\"},\"nonce\":\"original-request\"},\"version\":\"actql-control-request-intent/0.1\"}",
     20000, 2000, 32,
@@ -136,7 +163,7 @@ test "interactive identity 4: control_request_intent" {
 }
 
 ///|
-test "interactive identity 5: resolved_control_profile" {
+test "interactive identity 6: resolved_control_profile" {
   let value = seal_run_evidence_value(
     "resolved_control_profile", "{\"breakpoints\":[],\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"effective_profile_cid\":\"sha256:bfaf0bf9b06cb598cdc3f7d56d23745e7bc6b5277bd9320e632c51a4f1cf8b50\",\"logical_map_cid\":\"sha256:867d5e152bedc53aa4d4015b25da927eef2589c59d127040ee7b4f6af16fbf14\",\"requested_profile_cid\":\"sha256:bfaf0bf9b06cb598cdc3f7d56d23745e7bc6b5277bd9320e632c51a4f1cf8b50\",\"sample_output_port_ids\":[],\"version\":\"actql-resolved-control-profile/0.1\"}",
     20000, 2000, 32,
@@ -163,7 +190,7 @@ test "interactive identity 5: resolved_control_profile" {
 }
 
 ///|
-test "interactive identity 6: logical_map" {
+test "interactive identity 7: logical_map" {
   let value = seal_run_evidence_value(
     "logical_map", "{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"program_definition_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"steps\":[{\"can_stop_after\":false,\"can_stop_before\":false,\"key\":{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"occurrence\":{\"input_port_ordinal\":0,\"kind\":\"input_output\"},\"self_cid\":\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"stage_ordinal\":1,\"version\":\"actql-logical-step-key/0.1\"},\"names\":[\"answer\"],\"operator\":null,\"ports\":[{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:abbcfe1695d0131a6ea1bce21d849de09b3f861fd66a7456ff8274ac1faa0ce2\",\"port_ordinal\":0,\"role\":\"input\",\"sample_reason\":\"not_installed\",\"source\":{\"input_port_ordinal\":0,\"kind\":\"stage_input\",\"stage_ordinal\":1}},{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:a231373ceaedc02373d14b4ed788390f5f0961e1b1d561085b7fea28278821b4\",\"port_ordinal\":0,\"role\":\"output\",\"sample_reason\":\"not_installed\",\"source\":{\"input_port_ordinal\":0,\"kind\":\"stage_input\",\"stage_ordinal\":1}}],\"step_id\":\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"stop_reason\":\"not_installed\"}],\"version\":\"actql-logical-map/0.1\"}",
     20000, 2000, 32,
@@ -190,7 +217,7 @@ test "interactive identity 6: logical_map" {
 }
 
 ///|
-test "interactive identity 7: control_admission" {
+test "interactive identity 8: control_admission" {
   let value = seal_run_evidence_value(
     "control_admission", "{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"logical_map_cid\":\"sha256:867d5e152bedc53aa4d4015b25da927eef2589c59d127040ee7b4f6af16fbf14\",\"policy_revision_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"request_intent_cid\":\"sha256:b8ae769f4a12476cb618e0c5fe8944330fe634fdb04ad59156905252e6959631\",\"resolved_profile_cid\":\"sha256:ca3bd661efba7c8d414a565bf10164ba85edc2b70704af1375d537c4eef74e78\",\"run_ref\":{\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"namespaceId\":\"workspace:test\",\"runDefinitionCid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"version\":\"actql-control-admission/0.1\"}",
     20000, 2000, 32,
@@ -472,6 +499,39 @@ test "interactive positive 23: control_money" {
   assert_true(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"9223372036854775807\",\"currency\":\"USD\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive positive 24: explanation_facts" {
+  assert_true(
+    parse_interactive_run_control_shape(
+      "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive positive 25: run_explanation_view" {
+  assert_true(
+    parse_interactive_run_control_shape(
+      "run_explanation_view", "{\"explanation\":{\"facts\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"},\"state\":\"projected\"},\"run_ref\":{\"authorityScopeCid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"namespaceId\":\"original-namespace\",\"runDefinitionCid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"},\"version\":\"actql-run-explanation-view/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive positive 26: run_explanation_view" {
+  assert_true(
+    parse_interactive_run_control_shape(
+      "run_explanation_view", "{\"explanation\":{\"reason\":\"not_retained\",\"state\":\"not_projected\"},\"run_ref\":{\"authorityScopeCid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"namespaceId\":\"original-namespace\",\"runDefinitionCid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"},\"version\":\"actql-run-explanation-view/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -966,6 +1026,193 @@ test "interactive negative 44: controlled_run_state" {
   assert_false(
     parse_interactive_run_control_shape(
       "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":9007199254740992,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 45: explanation_facts" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"},\"value\":\"private\"}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 46: explanation_facts" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"},\"value_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\"}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 47: explanation_facts" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"length\":\"private\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 48: explanation_facts" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"byte_length\":\"private\",\"form\":\"literal_redacted\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 49: explanation_facts" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"text\":\"private\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 50: explanation_facts" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"source\":\"private\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 51: explanation_facts" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"prompt\":\"private\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 52: explanation_facts" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"type\":{\"kind\":\"number\",\"max_utf8_bytes\":17,\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 53: explanation_facts" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"type\":{\"kind\":\"number\",\"max_codepoints\":17,\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 54: explanation_facts" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"type\":{\"enumeration\":17,\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 55: explanation_facts" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"type\":{\"contract_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 56: explanation_facts" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"prompt\":\"private\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 57: explanation_facts" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"source_body\":\"private\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 58: explanation_facts" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "explanation_facts", "{\"can_execute\":\"private\",\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 59: explanation_facts" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"sample\":\"private\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 60: explanation_facts" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"values\",\"row_count\":9,\"schema\":{\"fields\":[]}},\"operator\":\"values\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 61: run_explanation_view" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "run_explanation_view", "{\"explanation\":{\"facts\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"},\"reason\":\"not_retained\",\"state\":\"not_projected\"},\"run_ref\":{\"authorityScopeCid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"namespaceId\":\"original-namespace\",\"runDefinitionCid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"},\"version\":\"actql-run-explanation-view/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),

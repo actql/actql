@@ -2,9 +2,8 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, unlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {delimiter,join} from 'node:path';
 import test from 'node:test';
-import {runInNewContext} from 'node:vm';
 import {installationFiles} from './moonbit-installation.mjs';
 
 async function api() { return import('./native-query-preparation.mjs'); }
@@ -73,9 +72,52 @@ test('Query compiler failure never publishes a preparation and absence retains t
   const {prepareNativeQuerySoftware,preparedNativeQuerySoftware}=await api(),f=fixture(t);
   assert.equal(preparedNativeQuerySoftware(f.repository,f.env),undefined);
   assert.throws(()=>prepareNativeQuerySoftware(f.repository,f.destination,
-    {env:{...f.env,QUERY_FIXTURE_BUILD_FAILURE:'1'}}));
+    {env:{...f.env,QUERY_FIXTURE_BUILD_FAILURE:'1'}}),error=>error.status===17);
   assert.equal(existsSync(join(f.destination,'query-software.json')),false);
   assert.equal(f.calls().length,1);
+  const failed=JSON.parse(readFileSync(join(f.destination,'phase-query-3.timing.json')));
+  assert.equal(failed.phase,'build-only');assert.equal(failed.succeeded,false);
+  assert.equal(existsSync(join(f.destination,'phase-query-4.timing.json')),false);
+});
+
+test('Query preparation times original input, tool, build and retention work without claiming executed cases',async t=>{
+  const {prepareNativeQuerySoftware,preparedNativeQuerySoftware}=await api(),f=fixture(t);
+  const receipt=prepareNativeQuerySoftware(f.repository,f.destination,{env:f.env});
+  const body=JSON.parse(readFileSync(receipt));
+  assert.deepEqual(body.timings.map(row=>row.phase),
+    ['input-admission','tool-copy','build-only','input-correspondence','output-retention']);
+  for(const [index,row] of body.timings.entries()) {
+    assert.equal(row.scope,'native-query-preparation');assert.equal(row.source,body.identity.source);
+    assert.equal(row.target,process.platform+'-'+process.arch);assert.equal(row.succeeded,true);
+    assert(Number.isSafeInteger(row.milliseconds)&&row.milliseconds>=0);
+    assert(Number.isSafeInteger(row.startedEpochMs)&&Number.isSafeInteger(row.endedEpochMs));
+    assert.deepEqual(JSON.parse(readFileSync(join(f.destination,`phase-query-${index+1}.timing.json`))),row);
+  }
+  assert.equal(f.calls().length,1);assert(f.calls()[0].args.includes('--build-only'));
+  const runtime=preparedNativeQuerySoftware(f.repository,{...f.env,ACTQL_TEST_NATIVE_QUERY_PREPARATION:receipt});
+  runtime.verify();assert.equal(f.calls().length,1,'Timing and validation cannot execute cases');
+});
+
+test('Query timing file refusal preserves the earlier evidence and the same compiler failure',async t=>{
+  const {prepareNativeQuerySoftware}=await api(),f=fixture(t);
+  const file=join(f.destination,'phase-query-1.timing.json');f.put(file,'earlier diagnostic evidence');
+  const original=new Error('original compiler failure');
+  assert.throws(()=>prepareNativeQuerySoftware(f.repository,f.destination,
+    {env:f.env,execute:()=>{throw original;}}),error=>error===original);
+  assert.equal(readFileSync(file,'utf8'),'earlier diagnostic evidence');
+  const failed=JSON.parse(readFileSync(join(f.destination,'phase-query-3.timing.json')));
+  assert.equal(failed.phase,'build-only');assert.equal(failed.succeeded,false);
+  assert.equal(existsSync(join(f.destination,'query-software.json')),false);
+});
+
+test('Query timing file refusal cannot prevent the original successful preparation',async t=>{
+  const {prepareNativeQuerySoftware,preparedNativeQuerySoftware}=await api(),f=fixture(t);
+  const file=join(f.destination,'phase-query-1.timing.json');f.put(file,'earlier diagnostic evidence');
+  const receipt=prepareNativeQuerySoftware(f.repository,f.destination,{env:f.env});
+  assert.equal(readFileSync(file,'utf8'),'earlier diagnostic evidence');
+  assert(JSON.parse(readFileSync(receipt)).timings.every(row=>row.succeeded));
+  const original=preparedNativeQuerySoftware(f.repository,{...f.env,ACTQL_TEST_NATIVE_QUERY_PREPARATION:receipt});
+  original.verify();assert.equal(f.calls().length,1);
 });
 
 test('Query reuse allows the same pinned installation at a fresh owner path but refuses aliases and duplicate construction',async t=>{
@@ -121,19 +163,17 @@ test('the existing Darwin preparation publishes Query software before either ori
   assert.equal(entry.split("import './native-query-preparation.test.mjs';").length,2);
 });
 
-test('the actual Query preparation call keeps the enclosing selected Moon home over ambient environment',()=>{
-  const source=readFileSync(new URL('./prepare-native-runtime-bundle-fixture.mjs',import.meta.url),'utf8');
-  const calls=[...source.matchAll(/prepareNativeQuerySoftware\([^]*?\);/gu)];assert.equal(calls.length,1);
-  const ambient=Object.freeze({MOON_HOME:'/ambient/tool',PATH:'/original/bin',CC:'/original/cc',
-    ACTQL_NATIVE_CI_DEADLINE:'123456789'});
-  const selected='/selected/original/tool',observed=[];
-  runInNewContext(calls[0][0],{repository:'/original/source',destination:'/original/preparation',
-    process:{env:ambient},moonHome:selected,prepareNativeQuerySoftware:(...args)=>observed.push(args)});
-  assert.equal(observed.length,1);
-  assert.deepEqual(observed[0].slice(0,2),['/original/source','/original/preparation']);
-  assert.equal(observed[0][2]?.env?.MOON_HOME,selected);
-  assert.deepEqual(JSON.parse(JSON.stringify(observed[0][2].env)),{...ambient,MOON_HOME:selected});
-  assert.equal(ambient.MOON_HOME,'/ambient/tool');
+test('the actual Query preparation call keeps the enclosing selected Moon home over ambient environment',async t=>{
+  const {prepareNativeQuerySoftware,preparedNativeQuerySoftware}=await api(),f=fixture(t);
+  const ambient=Object.freeze({...f.env,MOON_HOME:join(f.destination,'not-an-installed-tool')});
+  const receipt=prepareNativeQuerySoftware(f.repository,f.destination,{env:ambient,moonHome:f.home});
+  assert.equal(ambient.MOON_HOME,join(f.destination,'not-an-installed-tool'));
+  assert.equal(f.calls().length,1);assert(f.calls()[0].args.includes('--build-only'));
+  const original=preparedNativeQuerySoftware(f.repository,{...ambient,MOON_HOME:f.home,
+    ACTQL_TEST_NATIVE_QUERY_PREPARATION:receipt});
+  original.verify();
+  assert.equal(original.environment.PATH.split(delimiter)[0],join(original.environment.MOON_HOME,'bin'));
+  assert.equal(original.environment.QUERY_FIXTURE_COMMANDS,ambient.QUERY_FIXTURE_COMMANDS);
 });
 
 test('Query preparation retains the tracked skill directory alias and every original target file',async t=>{

@@ -8,20 +8,6 @@ fn model_mock_execution_profile_wire() -> String {
 }
 
 ///|
-fn model_mock_retry_wire() -> String {
-  (
-    #|{"retryable_failures":[],"self_cid":"sha256:0c53e62a9c01afcf23a2036a06dd0b5e47653e943cae76d48bee1c84c11efb90","version":"actql-model-retry-policy/0.1"}
-  )
-}
-
-///|
-fn model_mock_backoff_wire() -> String {
-  (
-    #|{"delays_ms":[],"self_cid":"sha256:739f886f72a9d0393470b92ccc3eb6a3a00f0616ed2d6f61df714f429de99d56","version":"actql-model-backoff/0.1"}
-  )
-}
-
-///|
 fn model_mock_execution_bounds(
   budget : ModelTaskBudget,
 ) -> Array[(String, Int64)] raise ModelTaskStop {
@@ -86,42 +72,6 @@ fn model_mock_execution_bounds(
 }
 
 ///|
-fn emit_mock_execution(
-  writer : @encode.Writer,
-  normalized : NormalizedPublicModelTask,
-  bounds : Array[(String, Int64)],
-  self_cid : String?,
-) -> Unit raise @encode.EncodeFailure {
-  @encode.begin_object(writer)
-  @encode.key(writer, "backoff_contract_cid")
-  @encode.string_value(
-    writer, "sha256:739f886f72a9d0393470b92ccc3eb6a3a00f0616ed2d6f61df714f429de99d56",
-  )
-  @encode.key(writer, "default_publication")
-  @encode.string_value(writer, "outcomes")
-  for (name, value) in bounds {
-    @encode.key(writer, name)
-    @encode.number_value(writer, value.to_double())
-  }
-  @encode.key(writer, "media_input_contracts")
-  @encode.begin_object(writer)
-  @encode.end_object(writer)
-  @encode.key(writer, "model_task_contract_cid")
-  @encode.string_value(writer, normalized.task_cid)
-  @encode.key(writer, "retry_classification_contract_cid")
-  @encode.string_value(
-    writer, "sha256:0c53e62a9c01afcf23a2036a06dd0b5e47653e943cae76d48bee1c84c11efb90",
-  )
-  if self_cid is Some(cid) {
-    @encode.key(writer, "self_cid")
-    @encode.string_value(writer, cid)
-  }
-  @encode.key(writer, "version")
-  @encode.string_value(writer, "actql-model-execution-contract/0.1")
-  @encode.end_object(writer)
-}
-
-///|
 /// Actual Mock execution/retry/backoff originals for the existing ordinary
 /// Host readers. Prompt originals remain the normalization's exact materials.
 /// These finite ceilings and no-retry policies issue no reservation or grant.
@@ -156,7 +106,7 @@ pub fn model_mock_execution_materials(
       budget,
       normalized.declaration.original,
     )
-    emit_mock_execution(hash_writer, normalized, bounds, None) catch {
+    emit_no_retry_model_execution(hash_writer, normalized, bounds, None) catch {
       _ => model_task_fail(BodyLimit, normalized.declaration.original)
     }
     let preimage = @encode.finish(hash_writer) catch {
@@ -172,7 +122,7 @@ pub fn model_mock_execution_materials(
       budget,
       normalized.declaration.original,
     )
-    emit_mock_execution(writer, normalized, bounds, Some(cid)) catch {
+    emit_no_retry_model_execution(writer, normalized, bounds, Some(cid)) catch {
       _ => model_task_fail(BodyLimit, normalized.declaration.original)
     }
     let wire = @encode.finish(writer) catch {
@@ -182,9 +132,9 @@ pub fn model_mock_execution_materials(
       (
         wire,
         cid,
-        model_mock_retry_wire(),
+        model_no_retry_wire(),
         "sha256:0c53e62a9c01afcf23a2036a06dd0b5e47653e943cae76d48bee1c84c11efb90",
-        model_mock_backoff_wire(),
+        model_no_backoff_wire(),
         "sha256:739f886f72a9d0393470b92ccc3eb6a3a00f0616ed2d6f61df714f429de99d56",
       ),
     )

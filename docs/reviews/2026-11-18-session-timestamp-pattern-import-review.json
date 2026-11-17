@@ -1,0 +1,23 @@
+{
+  "source": "eb441ff1ed3c42bd243730306d883d1ddee41d45",
+  "qualification": "Finite current JS configuration/import review only. The actual included timestamp implementation adds one literal timestamp_pattern dependency to execution_relation and lowering_relation. Removing each import restores its complete actual parent descriptor. This review does not execute SQL, prove a compiler backend or authorize evidence reuse.",
+  "path": "src/execution_relation/moon.pkg",
+  "mode": "100644",
+  "sha256": "58e075b724106152e31ae7dfb9c39394b5840e5169d3e4449fe842bc63651f11",
+  "bytes": 2076,
+  "previousRevision": "bc3a7c1797727c1da985962f747a382be961b1ac",
+  "previousSha256": "2a223e06a52cbb8c01280e9d5c5132485434728f59271ff02900f74ea582d079",
+  "previousBytes": 2030,
+  "historicalReviewRevision": "6813ab0330a17f99c8eef5c9f4a70480ecc7e96c",
+  "previousReview": "docs/reviews/2026-11-08-session-whole-input-text-target-review.md",
+  "rule": "literal-target-selectors-with-bound-source-membership",
+  "addedImport": "  \"actql/actql/timestamp_pattern\" @timestamp,\n",
+  "companion": {
+    "path": "src/lowering_relation/moon.pkg",
+    "sha256": "a3aebad6a856dc93b7fc6007a0d9cf82fcc821616df47d1dc1c0f1cb71704e94",
+    "bytes": 1872,
+    "meaning": "The existing finite literal-import parser accepts this descriptor with no unknown remainder. Its changed import and the complete timestamp_pattern package remain keyed inputs; no additional opaque-configuration admission is needed."
+  },
+  "meaning": "execution_relation keeps its exact supported targets, imports other than the one addition, and paired JS/non-JS workspace selectors. All immediate source bytes/modes/memberships and transitive literal imports remain inputs. The prior descriptor remains historical, not current evidence.",
+  "refusalPolicy": "Only the exact reviewed execution_relation descriptor, JS target and toolchain qualify. Changed imports, selectors, options, paths, targets or toolchain remain refused with unresolved reuse/full-source fallback. No wildcard package-language admission or historical receipt promotion is added."
+}

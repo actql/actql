@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import {machineCid} from './actql-spec-family.mjs';
+import {explanationFactSchemas} from './explanation-facts-contract.mjs';
 
 export const controlRegistryPath =
   'spec/contracts/actql-interactive-run-control.json';
@@ -367,7 +368,7 @@ export function interactiveRunControlSchemas() {
       permission: unobserved, gate: unobserved, approval: unobserved,
       preview: object({state: {const: 'unavailable'}, reason: {const: 'not_sealed'}})}),
   });
-  return schemas;
+  return Object.assign(schemas, explanationFactSchemas({logicalOperators}));
 }
 
 export const controlErrors = Object.freeze([

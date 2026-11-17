@@ -3,7 +3,7 @@
 // so a local check never drifts from CI; `changed` lists the narrow checks and
 // related CI jobs for inspection, not a complete reverse-dependency closure.
 //
-//   node scripts/local-checks.mjs test node|moon -- <test arguments>
+//   node scripts/local-checks.mjs test node|moon|cargo -- <test arguments>
 //   node scripts/local-checks.mjs list
 //   node scripts/local-checks.mjs changed [--base origin/main]
 //   node scripts/local-checks.mjs run <job> [--target js|wasm|native] [--dry-run]
@@ -260,8 +260,15 @@ async function runSelected(command, kind, args) {
   const options = executionOptions(args.slice(0, delimiter));
   if (options['--target'] !== undefined || options['--dry-run']) fail('Pass target after --; dry-run is only for jobs');
   const selected = args.slice(delimiter + 1);
-  const classification = kind === 'moon' ? classifyMoon(command, selected) :
+  let classification = kind === 'moon' ? classifyMoon(command, selected) :
     {heavy: false, classification: 'focused'};
+  if (kind === 'cargo') {
+    const {cargoTestArguments} = await import('./test-execution.mjs');
+    cargoTestArguments(selected);
+    classification = {heavy: true, classification: 'full',
+      reason: 'Complete locked Rust library tests may compile Wasmtime and the actual Core fixture',
+      alternatives: ['Use focused Node harness tests when changing only verification tooling.']};
+  }
   requireHeavy(classification, options);
   const defaultMinutes = classification.heavy ? undefined :
     workflowMinutes(kind === 'moon' ? 'core' : 'lint', kind === 'moon' ? selectedMoonTarget(selected) : null);
@@ -386,7 +393,7 @@ if (command === 'list') {
       console.log(`  - ${step.name ?? step.run.split('\n')[0]}`);
     }
   }
-} else if ((command === 'test' && ['node', 'moon'].includes(argument)) ||
+} else if ((command === 'test' && ['node', 'moon', 'cargo'].includes(argument)) ||
     (command === 'build' && argument === 'moon')) {
   try { process.exitCode = await runSelected(command, argument, process.argv.slice(4)); }
   catch (error) { fail(error.message); }
@@ -396,7 +403,7 @@ if (command === 'list') {
   try { process.exitCode = await runJob(argument, process.argv.slice(4)); }
   catch (error) { fail(error.message); }
 } else {
-  fail('Usage: local-checks.mjs test node|moon [--allow-heavy] [--timeout-seconds N] -- <test arguments> | ' +
+  fail('Usage: local-checks.mjs test node|moon|cargo [--allow-heavy] [--timeout-seconds N] -- <test arguments> | ' +
     'build moon [--allow-heavy] [--timeout-seconds N] -- <build arguments> | list | changed [--base <ref>] | ' +
     'run <job> [--target js|wasm|native] [--allow-heavy] [--timeout-seconds N] [--dry-run]');
 }

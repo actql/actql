@@ -39232,11 +39232,15 @@
     },
     {
       "module": "src/client_local_host/installed_source_reader_capacity.mbt",
-      "sha256": "60cd3d40f109f03523c8edaba1a0cf312a8bc196ccdcdf0bc3b677b62e47abeb",
+      "sha256": "cbf3e8a20ca368cdf3b838c51935ec03317ceca164ce03cd9aecf88f3b5ca486",
       "operations": [
         {
           "name": "installed_gmail_thread_reader_capacity",
           "declaration": "installed_gmail_thread_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , list_pages : Int , mailbox_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "installed_json_cursor_source_reader_capacity",
+          "declaration": "installed_json_cursor_source_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "installed_json_source_reader_capacity",
@@ -39265,6 +39269,10 @@
         {
           "name": "installed_source_child_grant_construction_capacity",
           "declaration": "installed_source_child_grant_construction_capacity ( ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "installed_source_cursor_progress_inventory",
+          "declaration": "installed_source_cursor_progress_inventory ( pages : Int64 , ) - > @ execution . PreparationRepresentationUnits ?"
         },
         {
           "name": "installed_source_reader_control_inventory",
@@ -39729,6 +39737,83 @@
               {
                 "path": "adapters/connectors/salesforce/test/salesforce-rejected-query-accounting.test.mjs",
                 "anchor": "test('Salesforce current constructor receives the original body and query with exact raw-prefix counters'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installed_json_cursor_source_reader_capacity",
+            "installed_source_cursor_progress_inventory"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "The installed REST factory selects the generic `cursorProgress` construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity.mbt",
+                "anchor": "pub fn installed_json_cursor_source_reader_capacity("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "previous.cursorProgress !== cursorProgress"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "The same opaque provider capacity flows through `providerCaptureCapacity`"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "current(); sourceImplementations.set(selection"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "fail('InstalledSourceReaderCapacityUnavailable')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "holds its conservative complete peak until this reader retires."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/decode_shape/map_construction.mbt",
+                "anchor": "pub fn map_construction_extent("
+              },
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity.mbt",
+                "anchor": "fn installed_source_cursor_progress_inventory("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Program DATA cannot select this installation mode."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity_wbtest.mbt",
+                "anchor": "portable cursor reader same recipe admits exact backing and refuses either one-short dimension"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "portable cursor Source mode"
               }
             ]
           }
@@ -58815,11 +58900,15 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_source_reader_bridge.mbt",
-      "sha256": "61854a57491248e5c3fbd094679b078886e69286898429574d1e9e79a6081d63",
+      "sha256": "48c6466bcbcfce40f78c9868602d375243809564dfe34204f79e9a9a8d0b82a7",
       "operations": [
         {
           "name": "client_program_installed_gmail_thread_reader_capacity",
           "declaration": "client_program_installed_gmail_thread_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , list_pages : Int , mailbox_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_installed_json_cursor_source_reader_capacity",
+          "declaration": "client_program_installed_json_cursor_source_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_installed_json_source_reader_capacity",
@@ -59451,6 +59540,82 @@
               {
                 "path": "adapters/connectors/salesforce/test/salesforce-rejected-query-accounting.test.mjs",
                 "anchor": "test('Salesforce current constructor receives the original body and query with exact raw-prefix counters'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_installed_json_cursor_source_reader_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "The installed REST factory selects the generic `cursorProgress` construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity.mbt",
+                "anchor": "pub fn installed_json_cursor_source_reader_capacity("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "previous.cursorProgress !== cursorProgress"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "The same opaque provider capacity flows through `providerCaptureCapacity`"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "current(); sourceImplementations.set(selection"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "fail('InstalledSourceReaderCapacityUnavailable')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "holds its conservative complete peak until this reader retires."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/decode_shape/map_construction.mbt",
+                "anchor": "pub fn map_construction_extent("
+              },
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity.mbt",
+                "anchor": "fn installed_source_cursor_progress_inventory("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Program DATA cannot select this installation mode."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity_wbtest.mbt",
+                "anchor": "portable cursor reader same recipe admits exact backing and refuses either one-short dimension"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "portable cursor Source mode"
               }
             ]
           }
@@ -64413,7 +64578,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_row_json_page_bridge.mbt",
-      "sha256": "48d3942147b781758d6d14410d83557f68560fc74c5a3973f091edd06db758a3",
+      "sha256": "a1d13537d08c92c07f061bd454f68581531e769f840ce90d7a627ded8931e3d1",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common row Source envelope and schema admission owners; DATA only, no new physical/current or resource issuer",
@@ -64422,6 +64587,26 @@
         {
           "name": "client_program_row_source_accept_charged_projected_page",
           "declaration": "client_program_row_source_accept_charged_projected_page ( run : @ client_row_source_host . RowRun , charge : @ client_row_source_host . RowPageCharge , page : @ client_row_source_host . RowSourceProjectedJsonPage , ) - > Result [ Int , @ client_row_source_host . RowHostIssue ]"
+        },
+        {
+          "name": "client_program_row_source_advance_cursor_progress",
+          "declaration": "client_program_row_source_advance_cursor_progress ( progress : @ client_row_source_host . RowSourceCursorProgress , page_index : Int , row_count : Int , envelope : @ client_row_source_host . RowSourceProjectedJsonPage , rows : @ client_row_source_host . RowSourceProjectedJsonPage , ) - > Result [ Bool , @ client_row_source_host . RowSourceCursorIssue ]"
+        },
+        {
+          "name": "client_program_row_source_cursor_has_next",
+          "declaration": "client_program_row_source_cursor_has_next ( progress : @ client_row_source_host . RowSourceCursorProgress , ) - > Bool"
+        },
+        {
+          "name": "client_program_row_source_cursor_issue_code",
+          "declaration": "client_program_row_source_cursor_issue_code ( issue : @ client_row_source_host . RowSourceCursorIssue , ) - > String"
+        },
+        {
+          "name": "client_program_row_source_cursor_next",
+          "declaration": "client_program_row_source_cursor_next ( progress : @ client_row_source_host . RowSourceCursorProgress , ) - > Result [ String , @ client_row_source_host . RowSourceCursorIssue ]"
+        },
+        {
+          "name": "client_program_row_source_cursor_remaining_rows",
+          "declaration": "client_program_row_source_cursor_remaining_rows ( progress : @ client_row_source_host . RowSourceCursorProgress , page_index : Int , row_count : Int , ) - > Result [ Int , @ client_row_source_host . RowSourceCursorIssue ]"
         },
         {
           "name": "client_program_row_source_json_page_has_next_cursor",
@@ -64442,6 +64627,10 @@
         {
           "name": "client_program_row_source_json_page_rows_wire",
           "declaration": "client_program_row_source_json_page_rows_wire ( value : @ client_row_source_host . RowSourceJsonPage , ) - > String"
+        },
+        {
+          "name": "client_program_row_source_prepare_cursor_progress",
+          "declaration": "client_program_row_source_prepare_cursor_progress ( max_pages : Int , max_rows : Int , max_page_rows : Int , max_cursor_bytes : Int , ) - > Result [ @ client_row_source_host . RowSourceCursorProgress , @ client_row_source_host . RowSourceCursorIssue , ]"
         },
         {
           "name": "client_program_row_source_project_json_page",
@@ -64468,13 +64657,19 @@
         {
           "operations": [
             "<module>",
+            "client_program_row_source_accept_charged_projected_page",
+            "client_program_row_source_advance_cursor_progress",
+            "client_program_row_source_cursor_has_next",
+            "client_program_row_source_cursor_issue_code",
+            "client_program_row_source_cursor_next",
+            "client_program_row_source_cursor_remaining_rows",
             "client_program_row_source_json_page_has_next_cursor",
             "client_program_row_source_json_page_next_cursor",
+            "client_program_row_source_json_page_original",
             "client_program_row_source_json_page_row_count",
             "client_program_row_source_json_page_rows_wire",
+            "client_program_row_source_prepare_cursor_progress",
             "client_program_row_source_project_json_page",
-            "client_program_row_source_accept_charged_projected_page",
-            "client_program_row_source_json_page_original",
             "client_program_row_source_project_typed_json_page",
             "client_program_row_source_typed_json_page_has_next_cursor",
             "client_program_row_source_typed_json_page_next_cursor",
@@ -66148,7 +66343,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_row_json_page_bridge.mbt",
-      "sha256": "4069a9a3ef6a08a248cf09e075dd88b9c35248f2a5211357ce3758e09a234e2d",
+      "sha256": "6ec773cc23147b4dab373454e21566f202095c1de77d472342df62f574889a3e",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common row Source envelope and schema admission owners; DATA only, no new physical/current or resource issuer",
@@ -66157,6 +66352,26 @@
         {
           "name": "client_program_row_source_accept_charged_projected_page",
           "declaration": "client_program_row_source_accept_charged_projected_page ( run : @ client_row_source_host . RowRun , charge : @ client_row_source_host . RowPageCharge , page : @ client_row_source_host . RowSourceProjectedJsonPage , ) - > Result [ Int , @ client_row_source_host . RowHostIssue ]"
+        },
+        {
+          "name": "client_program_row_source_advance_cursor_progress",
+          "declaration": "client_program_row_source_advance_cursor_progress ( progress : @ client_row_source_host . RowSourceCursorProgress , page_index : Int , row_count : Int , envelope : @ client_row_source_host . RowSourceProjectedJsonPage , rows : @ client_row_source_host . RowSourceProjectedJsonPage , ) - > Result [ Bool , @ client_row_source_host . RowSourceCursorIssue ]"
+        },
+        {
+          "name": "client_program_row_source_cursor_has_next",
+          "declaration": "client_program_row_source_cursor_has_next ( progress : @ client_row_source_host . RowSourceCursorProgress , ) - > Bool"
+        },
+        {
+          "name": "client_program_row_source_cursor_issue_code",
+          "declaration": "client_program_row_source_cursor_issue_code ( issue : @ client_row_source_host . RowSourceCursorIssue , ) - > String"
+        },
+        {
+          "name": "client_program_row_source_cursor_next",
+          "declaration": "client_program_row_source_cursor_next ( progress : @ client_row_source_host . RowSourceCursorProgress , ) - > Result [ String , @ client_row_source_host . RowSourceCursorIssue ]"
+        },
+        {
+          "name": "client_program_row_source_cursor_remaining_rows",
+          "declaration": "client_program_row_source_cursor_remaining_rows ( progress : @ client_row_source_host . RowSourceCursorProgress , page_index : Int , row_count : Int , ) - > Result [ Int , @ client_row_source_host . RowSourceCursorIssue ]"
         },
         {
           "name": "client_program_row_source_json_page_has_next_cursor",
@@ -66177,6 +66392,10 @@
         {
           "name": "client_program_row_source_json_page_rows_wire",
           "declaration": "client_program_row_source_json_page_rows_wire ( value : @ client_row_source_host . RowSourceJsonPage , ) - > String"
+        },
+        {
+          "name": "client_program_row_source_prepare_cursor_progress",
+          "declaration": "client_program_row_source_prepare_cursor_progress ( max_pages : Int , max_rows : Int , max_page_rows : Int , max_cursor_bytes : Int , ) - > Result [ @ client_row_source_host . RowSourceCursorProgress , @ client_row_source_host . RowSourceCursorIssue , ]"
         },
         {
           "name": "client_program_row_source_project_json_page",
@@ -66203,13 +66422,19 @@
         {
           "operations": [
             "<module>",
+            "client_program_row_source_accept_charged_projected_page",
+            "client_program_row_source_advance_cursor_progress",
+            "client_program_row_source_cursor_has_next",
+            "client_program_row_source_cursor_issue_code",
+            "client_program_row_source_cursor_next",
+            "client_program_row_source_cursor_remaining_rows",
             "client_program_row_source_json_page_has_next_cursor",
             "client_program_row_source_json_page_next_cursor",
+            "client_program_row_source_json_page_original",
             "client_program_row_source_json_page_row_count",
             "client_program_row_source_json_page_rows_wire",
+            "client_program_row_source_prepare_cursor_progress",
             "client_program_row_source_project_json_page",
-            "client_program_row_source_accept_charged_projected_page",
-            "client_program_row_source_json_page_original",
             "client_program_row_source_project_typed_json_page",
             "client_program_row_source_typed_json_page_has_next_cursor",
             "client_program_row_source_typed_json_page_next_cursor",
@@ -91818,7 +92043,7 @@
     },
     {
       "module": "adapters/local-node/managed-advance-diagnostic.mjs",
-      "sha256": "a366253e499419627beb53f94e195202522d4d86c20982e60e218c4714ba4b7b",
+      "sha256": "99294867696772295548d2bf173ce6fa78f33173f001205f264c7a86c714a9fd",
       "exports": [
         "checkedLocalManagedAdvance"
       ],
@@ -92031,7 +92256,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_advance_diagnostic.mbt",
-      "sha256": "d13e26edc34681d148e4ea8b0f202705db70743596b65f24ea32e432a651b7f9",
+      "sha256": "d0d52578d108c2d8fe041fba3c8a24b53d53077290c09f53249f034ed1eafa26",
       "exports": [],
       "operations": [
         {
@@ -92047,8 +92272,16 @@
           "declaration": "local_managed_failure_budget ( issue : LocalDispatchIssue , ) - > ( String , Bool , Int64 , Int64 , Int64 ) ?"
         },
         {
+          "name": "local_managed_failure_cause",
+          "declaration": "local_managed_failure_cause ( issue : LocalDispatchIssue ) - > String ?"
+        },
+        {
           "name": "local_managed_failure_resource_dimension",
           "declaration": "local_managed_failure_resource_dimension ( issue : LocalDispatchIssue , ) - > String ?"
+        },
+        {
+          "name": "local_managed_failure_row_step",
+          "declaration": "local_managed_failure_row_step ( issue : LocalDispatchIssue ) - > Int"
         },
         {
           "name": "local_managed_provider_failure",
@@ -92223,12 +92456,85 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "local_managed_failure_cause",
+            "local_managed_failure_row_step"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/local-node/managed-row-cause-diagnostic.test.mjs",
+                "anchor": "test('original typed row cause reaches"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "src/connectors_builtin_node/local_managed_failure_bridge.mbt",
-      "sha256": "cc845e9fa74a8ccb283f03f4da8b849f8f287b2edb5d02ea54fc02baa0dc40fd",
+      "sha256": "bfdd8c479b967c9e6c11aa6de490fc9f88f0d52897614b28bfe821bce88414f4",
       "exports": [],
       "operations": [
         {
@@ -92240,12 +92546,20 @@
           "declaration": "local_managed_advance_capture_work ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > Array [ Int ] ?"
         },
         {
+          "name": "local_managed_advance_cause",
+          "declaration": "local_managed_advance_cause ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > String ?"
+        },
+        {
           "name": "local_managed_advance_control_work_limit",
           "declaration": "local_managed_advance_control_work_limit ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > Int ?"
         },
         {
           "name": "local_managed_advance_resource_dimension",
           "declaration": "local_managed_advance_resource_dimension ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > String ?"
+        },
+        {
+          "name": "local_managed_advance_row_step",
+          "declaration": "local_managed_advance_row_step ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > Int"
         }
       ],
       "role": "common-semantics",
@@ -92415,12 +92729,85 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "local_managed_advance_cause",
+            "local_managed_advance_row_step"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/local-node/managed-row-cause-diagnostic.test.mjs",
+                "anchor": "test('original typed row cause reaches"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "src/connectors_builtin_node_rela/local_managed_failure_bridge.mbt",
-      "sha256": "4f60e5c10bf346dd9fa8165fd24fe57400ccef4f3ab5f7f9611ec13d57389791",
+      "sha256": "04248702a98e5fd4171de609e2b68402cf65e95255e738aab996a35fdc4147b3",
       "exports": [],
       "operations": [
         {
@@ -92432,8 +92819,20 @@
           "declaration": "local_managed_advance_capture_work ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > Array [ Int ] ?"
         },
         {
+          "name": "local_managed_advance_cause",
+          "declaration": "local_managed_advance_cause ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > String ?"
+        },
+        {
           "name": "local_managed_advance_control_work_limit",
           "declaration": "local_managed_advance_control_work_limit ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > Int ?"
+        },
+        {
+          "name": "local_managed_advance_resource_dimension",
+          "declaration": "local_managed_advance_resource_dimension ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > String ?"
+        },
+        {
+          "name": "local_managed_advance_row_step",
+          "declaration": "local_managed_advance_row_step ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > Int"
         }
       ],
       "role": "common-semantics",
@@ -92599,6 +92998,80 @@
               {
                 "path": "src/connectors_builtin_node/local_managed_failure_bridge_wbtest.mbt",
                 "anchor": "original budget bridge"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "local_managed_advance_cause",
+            "local_managed_advance_resource_dimension",
+            "local_managed_advance_row_step"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/local-node/managed-row-cause-diagnostic.test.mjs",
+                "anchor": "test('original typed row cause reaches"
               }
             ]
           }
@@ -97589,6 +98062,1210 @@
               {
                 "path": "src/run_publication/public_index_construction_test.mbt",
                 "anchor": "test \"public index geometry measures the actual sealed issuer including its identity\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_row_source_host/json_page_cursor.mbt",
+      "sha256": "3b9d0a0a4c266448baadd045a55b51f8bed5ad98066049728e76238f0a6dd7f8",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Common row Source pagination DATA; managed RowRun retains I/O, current authority, response charges and physical cleanup",
+      "exports": [],
+      "operations": [
+        {
+          "name": "advance_row_source_cursor_progress",
+          "declaration": "advance_row_source_cursor_progress ( progress : RowSourceCursorProgress , page_index : Int , row_count : Int , envelope : RowSourceProjectedJsonPage , rows : RowSourceProjectedJsonPage , ) - > Result [ Bool , RowSourceCursorIssue ]"
+        },
+        {
+          "name": "prepare_row_source_cursor_progress",
+          "declaration": "prepare_row_source_cursor_progress ( max_pages : Int , max_rows : Int , max_page_rows : Int , max_cursor_bytes : Int , ) - > Result [ RowSourceCursorProgress , RowSourceCursorIssue ]"
+        },
+        {
+          "name": "row_source_cursor_has_next",
+          "declaration": "row_source_cursor_has_next ( progress : RowSourceCursorProgress ) - > Bool"
+        },
+        {
+          "name": "row_source_cursor_next",
+          "declaration": "row_source_cursor_next ( progress : RowSourceCursorProgress , ) - > Result [ String , RowSourceCursorIssue ]"
+        },
+        {
+          "name": "row_source_cursor_remaining_rows",
+          "declaration": "row_source_cursor_remaining_rows ( progress : RowSourceCursorProgress , page_index : Int , row_count : Int , ) - > Result [ Int , RowSourceCursorIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "advance_row_source_cursor_progress",
+            "prepare_row_source_cursor_progress",
+            "row_source_cursor_has_next",
+            "row_source_cursor_next",
+            "row_source_cursor_remaining_rows"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "src/client_row_source_host/json_page_projection_wbtest.mbt",
+                "anchor": "original JSON page array enters existing full row admission without dropping fields or rounding"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "src/client_row_source_host/typed_json_page_wbtest.mbt",
+                "anchor": "typed JSON page keeps whole schema NULL Unicode and original cursor without wire replay"
+              },
+              {
+                "path": "src/client_row_source_host/typed_json_page_wbtest.mbt",
+                "anchor": "typed JSON page namespace provenance refuses a foreign original without wire fallback"
+              },
+              {
+                "path": "src/client_row_source_host/json_page_cursor_wbtest.mbt",
+                "anchor": "portable cursor progress preserves empty and Unicode cursors until exact EOF"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/client-dispatch-diagnostic.mjs",
+      "sha256": "6a5378016107730e9f0fb959907de0ae8683c1d3d273a73da4562b9055924eb8",
+      "exports": [
+        "dispatchFailureSnapshot",
+        "publicBudgetFailureMessage",
+        "retainedBudgetFailureMessage"
+      ],
+      "operations": [
+        {
+          "name": "dispatchFailureSnapshot",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "dispatchFailureSnapshot/dispatchFailureSnapshot",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicBudgetFailureMessage",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainedBudgetFailureMessage",
+          "parameters": [
+            "key",
+            "state",
+            "runId",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainedBudgetFailureMessage/retainedBudgetFailureMessage",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "observation-presentation",
+      "responsibilityFacet": "primary",
+      "owner": "Existing Local execution, original typed cause and SAME dispatch/Journal observation Owners",
+      "referenceQualification": "Original source/component contract; no normal artifact, authority or physical cleanup admission",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "dispatchFailureSnapshot",
+            "dispatchFailureSnapshot/dispatchFailureSnapshot",
+            "publicBudgetFailureMessage",
+            "retainedBudgetFailureMessage",
+            "retainedBudgetFailureMessage/retainedBudgetFailureMessage"
+          ],
+          "exports": [
+            "dispatchFailureSnapshot",
+            "publicBudgetFailureMessage",
+            "retainedBudgetFailureMessage"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/local-node/managed-row-cause-diagnostic.test.mjs",
+                "anchor": "test('original typed row cause reaches"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/execution_relation/row_failure_diagnostic.mbt",
+      "sha256": "d64debbc95663f04a527a08359c14539b956f7d805ec8f42a5080f1da5d70cdd",
+      "exports": [],
+      "operations": [
+        {
+          "name": "row_failure_diagnostic_cause",
+          "declaration": "row_failure_diagnostic_cause ( issue : RowIssue ) - > String ?"
+        }
+      ],
+      "role": "observation-presentation",
+      "responsibilityFacet": "primary",
+      "owner": "Existing Local execution, original typed cause and SAME dispatch/Journal observation Owners",
+      "referenceQualification": "Original source/component contract; no normal artifact, authority or physical cleanup admission",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "row_failure_diagnostic_cause"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/local-node/managed-row-cause-diagnostic.test.mjs",
+                "anchor": "test('original typed row cause reaches"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/execution_relation/preparation_canonical_retained.mbt",
+      "sha256": "be9f6d1a822158862001f9d9c4a16b6e931d69af3421fe49e1bb278b2386d028",
+      "exports": [],
+      "operations": [
+        {
+          "name": "canonical_preparation_retained_bytes",
+          "declaration": "canonical_preparation_retained_bytes ( tree : @ identity . CanonicalRepresentationExtent , headers : Int64 , references : Int64 , words : Int64 , text : Int64 , ) - > Int64 ?"
+        }
+      ],
+      "role": "common-semantics",
+      "responsibilityFacet": "primary",
+      "owner": "Existing canonical preparation representation and original domain capacity Owner",
+      "referenceQualification": "Original source/component contract; no normal artifact, authority or physical cleanup admission",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "canonical_preparation_retained_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/execution_relation/preparation_canonical_retained.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/execution_relation/preparation_canonical_retained.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/execution_relation/preparation_canonical_retained.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/execution_relation/preparation_canonical_retained.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/execution_relation/preparation_canonical_retained.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/execution_relation/preparation_canonical_retained.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/execution_relation/preparation_canonical_retained.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/execution_relation/preparation_canonical_retained.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/execution_relation/preparation_canonical_retained.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/execution_relation/preparation_canonical_retained.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "src/execution_relation/preparation_canonical_retained_wbtest.mbt",
+                "anchor": "test \"canonical retained fold preserves"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node_rela/client_installed_source_reader_bridge.mbt",
+      "sha256": "e963e8360182c19db432fca29dbf9942f1b94f546f03de425a7dfaffcbfb6ebe",
+      "operations": [
+        {
+          "name": "client_program_installed_gmail_thread_reader_capacity",
+          "declaration": "client_program_installed_gmail_thread_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , list_pages : Int , mailbox_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_installed_json_cursor_source_reader_capacity",
+          "declaration": "client_program_installed_json_cursor_source_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_installed_json_source_reader_capacity",
+          "declaration": "client_program_installed_json_source_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_installed_json_source_reader_capacity_with_request",
+          "declaration": "client_program_installed_json_source_reader_capacity_with_request ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , request : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_installed_json_source_reader_profile",
+          "declaration": "client_program_installed_json_source_reader_profile ( metadata_responses : Int , origin_units : Int , ) - > Array [ Int ] ?"
+        },
+        {
+          "name": "client_program_installed_native_source_reader_capacity",
+          "declaration": "client_program_installed_native_source_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , native : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_installed_preserving_json_source_reader_capacity_with_request",
+          "declaration": "client_program_installed_preserving_json_source_reader_capacity_with_request ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , request : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_installed_salesforce_current_response_capacity",
+          "declaration": "client_program_installed_salesforce_current_response_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , describe : Array [ Int ] , max_observation_bytes : Int , binding_units : Int , resource_units : Int , query_pages : Int , api_units : Int , soql_units : Int , metadata_bytes : Int , read : @ salesforce_catalog . QueryRead ? , path : String , body : Bytes ? , received_bytes : Int64 , received_responses : Int , ) - > Result [ @ execution . ExecutionCapacity , @ salesforce_catalog . QueryReadIssue ]"
+        },
+        {
+          "name": "client_program_installed_salesforce_source_reader_capacity",
+          "declaration": "client_program_installed_salesforce_source_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , describe : Array [ Int ] , max_observation_bytes : Int , binding_units : Int , resource_units : Int , query_pages : Int , api_units : Int , soql_units : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_installed_salesforce_source_reader_response_capacity",
+          "declaration": "client_program_installed_salesforce_source_reader_response_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , describe : Array [ Int ] , max_observation_bytes : Int , binding_units : Int , resource_units : Int , query_pages : Int , api_units : Int , soql_units : Int , response_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_installed_slack_source_reader_capacity",
+          "declaration": "client_program_installed_slack_source_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , protocol_pages : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_installed_source_reader_policy",
+          "declaration": "client_program_installed_source_reader_policy ( ) - > Array [ Int ]"
+        },
+        {
+          "name": "installed_salesforce_describe_source_geometry",
+          "declaration": "installed_salesforce_describe_source_geometry ( body : Bytes , limits : Array [ Int ] , ) - > @ source . JsonSourceGeometry ?"
+        },
+        {
+          "name": "installed_salesforce_reader_capacity",
+          "declaration": "installed_salesforce_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , describe : Array [ Int ] , max_observation_bytes : Int , binding_units : Int , resource_units : Int , query_pages : Int , api_units : Int , soql_units : Int , response_bytes : Int ? , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Core Source reader representation and original parent admission owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_installed_gmail_thread_reader_capacity",
+            "client_program_installed_json_source_reader_capacity",
+            "client_program_installed_json_source_reader_profile",
+            "client_program_installed_slack_source_reader_capacity",
+            "client_program_installed_source_reader_policy"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed users Source"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "anchor": "export function prepareSlackSourceReadSequence("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/slack/catalog/message_history.mbt",
+                "anchor": "pub fn prepare_slack_message_history_from_channel("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "export function createInstalledCredentialSourceReader("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "anchor": "if(pending)return false;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "No failed"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "Retirement waits for any actual in-flight reader"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity.mbt",
+                "anchor": "pub fn installed_slack_source_reader_capacity("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "occurrences, not new user tuning dimensions"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/slack/test/slack-source-read.test.mjs",
+                "anchor": "test('managed Slack messages keeps original channel history reply and nanosecond coalescence'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_installed_json_source_reader_capacity_with_request"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Managed Sheets grid Source uses the common standard page Reader"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_source_reader_bridge.mbt",
+                "anchor": "pub fn client_program_installed_json_source_reader_capacity_with_request("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Managed Sheets grid Source uses the common standard page Reader"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Managed Sheets grid Source uses the common standard page Reader"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Synchronous immutable quantities; no callback, scheduler transition, permission or current observation."
+            },
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity.mbt",
+                "anchor": "guard request is Some(request)"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Quantity composition issues no cancellation, retirement or physical acknowledgement."
+            },
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity.mbt",
+                "anchor": "@execution.add_execution_capacity(reader, request)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Managed Sheets grid Source uses the common standard page Reader"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/sheets/host_node/source_read_construction_wbtest.mbt",
+                "anchor": "test \"Sheets standard Source request constructor composes through same Core reader without an HTTP grant\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_installed_preserving_json_source_reader_capacity_with_request"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The grid response selects the preserving Reader quote because its actual"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_source_reader_bridge.mbt",
+                "anchor": "pub fn client_program_installed_preserving_json_source_reader_capacity_with_request("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The grid response selects the preserving Reader quote because its actual"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/source_value/json_parser.mbt",
+                "anchor": "if frames.length() >= self.limits.max_depth {"
+              },
+              {
+                "path": "src/decode_core/admission.mbt",
+                "anchor": "if is_container && parent_depth >= limits.max_depth {"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Synchronous immutable recipe DATA. Parser and decoder workspaces are sequential, with no callbacks or current observations in quoting."
+            },
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity.mbt",
+                "anchor": "if limits.length() != 16 || columns < 1 || secret_bytes < 1 {"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "No grant, cancellation or physical release is issued by a constructor quote."
+            },
+            "resources": [
+              {
+                "path": "src/decode_shape/key_admission_construction.mbt",
+                "anchor": "pub fn key_admission_construction_extent("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The grid response selects the preserving Reader quote because its actual"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The grid response selects the preserving Reader quote because its actual"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_preserving_source_reader_wbtest.mbt",
+                "anchor": "test \"Sheets existing response bounds use sequential active key maps without NFC or policy increase\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_installed_salesforce_source_reader_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce constructor and normal caller"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_source_reader_bridge.mbt",
+                "anchor": "pub fn client_program_installed_gmail_thread_reader_capacity("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce constructor and normal caller"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce constructor and normal caller"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Synchronous original construction quantities; no external callback or current observation in quoting."
+            },
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce constructor and normal caller"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This quantity supplies no cancellation, retirement or physical acknowledgement."
+            },
+            "resources": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_source_reader_bridge.mbt",
+                "anchor": "pub fn client_program_installed_salesforce_source_reader_capacity("
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce constructor and normal caller"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_source_reader_bridge_wbtest.mbt",
+                "anchor": "test \"Salesforce native quote keeps original two metadata occurrences and same opaque composition\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_installed_salesforce_source_reader_response_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_source_reader_bridge.mbt",
+                "anchor": "pub fn client_program_installed_salesforce_source_reader_response_capacity("
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_source_reader_bridge_wbtest.mbt",
+                "anchor": "test \"actual Salesforce response extent quotes before parsing without replacing original rejection limits\""
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installed_salesforce_reader_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_source_reader_bridge.mbt",
+                "anchor": "fn installed_salesforce_reader_capacity("
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_installed_source_reader_bridge_wbtest.mbt",
+                "anchor": "test \"actual Salesforce response extent quotes before parsing without replacing original rejection limits\""
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_installed_native_source_reader_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/github/host_node/read_construction.mbt",
+                "anchor": "pub fn github_source_read_construction_capacity("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "Fixed request quantities derive from the same Catalog documents"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The same RowRun grant, scope, request packet and use ordinal"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "Initial request/control construction is selected before any read callback."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "a failed decoder close keeps that same original page for retirement retry."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
+                "anchor": "if(pending)return false;"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "Read projections still enforce their unchanged current/stop fences."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/github/host_node/read_construction.mbt",
+                "anchor": "fn github_read_request_inventory()"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "original provider quantity; neither quantity issues permission or a new budget."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "row and total-response rejection limits keep their original values."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/github/host_node/read_construction_wbtest.mbt",
+                "anchor": "test \"GitHub Source request quantity covers original escaped node cursor and all fixed document families\""
+              },
+              {
+                "path": "adapters/connectors/github/test/github-managed-source-read.test.mjs",
+                "anchor": "test('GitHub original decoder failure survives caller stop and its same close remains retryable'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_installed_salesforce_current_response_capacity",
+            "installed_salesforce_describe_source_geometry"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Salesforce response construction on the original reader"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The installed Salesforce reader charges and retains each original response"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing QueryRead retains the original body, path and digest with the"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "advances that same parser. A copied or changed body cannot consume the cursor."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Only one query page is pending; its original acknowledgment precedes the next"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "before grammar construction. This geometry bounds malformed prefixes as well"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "locator request. Interruption retires its pending parser through the existing"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "one next bounded transport buffer, including the first offending response. The"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "admission. Missing nullable cells, compound roles and multipicklist expansion"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/salesforce/catalog/query_response_source_wbtest.mbt",
+                "anchor": "test \"original query preflight retains one parser and the same long response\""
+              },
+              {
+                "path": "src/client_local_host/installed_native_source_reader_current_wbtest.mbt",
+                "anchor": "test \"native reader funds received raw prefix and only one next response\""
+              },
+              {
+                "path": "src/connectors_builtin_node/client_salesforce_current_response_bridge_wbtest.mbt",
+                "anchor": "test \"current Salesforce bridge quotes long original body without future raw totals\""
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/salesforce-rejected-query-accounting.test.mjs",
+                "anchor": "test('Salesforce current constructor receives the original body and query with exact raw-prefix counters'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_installed_json_cursor_source_reader_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "The installed REST factory selects the generic `cursorProgress` construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity.mbt",
+                "anchor": "pub fn installed_json_cursor_source_reader_capacity("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "previous.cursorProgress !== cursorProgress"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "The same opaque provider capacity flows through `providerCaptureCapacity`"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "current(); sourceImplementations.set(selection"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "fail('InstalledSourceReaderCapacityUnavailable')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "holds its conservative complete peak until this reader retires."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/decode_shape/map_construction.mbt",
+                "anchor": "pub fn map_construction_extent("
+              },
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity.mbt",
+                "anchor": "fn installed_source_cursor_progress_inventory("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Program DATA cannot select this installation mode."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_source_reader_capacity_wbtest.mbt",
+                "anchor": "portable cursor reader same recipe admits exact backing and refuses either one-short dimension"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "portable cursor Source mode"
               }
             ]
           }

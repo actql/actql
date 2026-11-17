@@ -52,6 +52,11 @@ test "checked fragment execution retains unused branch failures and fresh retry 
       result
       is Err(Rows(1, Evaluation(0, 0, { kind: Scalar(ArithmeticFailure), .. }))),
     )
+    guard result is Err(Rows(_, original)) else { fail("original row failure") }
+    assert_eq(
+      row_failure_diagnostic_cause(original),
+      Some("evaluation.arithmetic_failure"),
+    )
   }
 }
 

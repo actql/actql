@@ -247,9 +247,9 @@ export async function runNativeCliMockScenario({root, template, run, launcherTim
   assert.equal(typeof run, 'function');
   const project = join(root, template), file = join(project, 'mock/data.json');
   const commands = [];
-  async function invoke(args, cwd = project) {
+  async function invoke(workflowPhase, args, cwd = project) {
     const record = await run(args, cwd);
-    commands.push({args, cwd, ...record});
+    commands.push({args, cwd, ...record, workflowPhase});
     assert.equal(record.signal, null, `${args[0]} terminated by signal`);
     assert.equal(record.code, 0, `${args.join(' ')} failed: ${record.stderr}`);
     const envelope = nativeLauncherEnvelope(record.stderr, launcherTimings);
@@ -260,9 +260,9 @@ export async function runNativeCliMockScenario({root, template, run, launcherTim
     commands.at(-1).acceptance = record.acceptance;
     return record;
   }
-  await invoke(['init', '--template', template, project], root);
+  await invoke('scaffold', ['init', '--template', template, project], root);
   const before = await targetSnapshot(file);
-  const original = runState(await invoke(['run', `${template.slice(0, -5)}.aql`,
+  const original = runState(await invoke('prepare', ['run', `${template.slice(0, -5)}.aql`,
     '--stop-before', 'commit', '--json']), 'waiting_checkpoint');
   const runId = original.run_id, checkpoint = checkpointId(original);
   // Resume must consume retained preparation, never recompile the input file.
@@ -274,16 +274,16 @@ export async function runNativeCliMockScenario({root, template, run, launcherTim
 
   // All commands have exited. The next command must find the same durable
   // Run/Checkpoint, not prepare another program or reconstruct a new preview.
-  const pending = runState(await invoke(['status', runId, '--json']), 'waiting_checkpoint', runId);
+  const pending = runState(await invoke('waiting-status', ['status', runId, '--json']), 'waiting_checkpoint', runId);
   assert.equal(checkpointId(pending), checkpoint);
   assert.equal(pending.checkpoint.checkpoint_cid, original.checkpoint.checkpoint_cid);
   assert.deepEqual(await targetSnapshot(file), before, 'Pending status must not write');
   // The AQL and Model answers are already gone. HUMAN status must consume the
   // same saved review, not prepare another Run or repeat Source/Model work.
-  const humanWaiting = waitingHuman(await invoke(['status', runId]), original, before, expectedChanges[template]);
+  const humanWaiting = waitingHuman(await invoke('waiting-review', ['status', runId]), original, before, expectedChanges[template]);
   assert.deepEqual(await targetSnapshot(file), before, 'Human waiting status must not write');
 
-  await invoke(['approve', checkpoint, '--wait', '--json']);
+  await invoke('approval', ['approve', checkpoint, '--wait', '--json']);
   const after = await targetSnapshot(file);
   const actual = JSON.parse(after.bytes), expected = JSON.parse(before.bytes);
   const change = expectedChanges[template];
@@ -294,11 +294,11 @@ export async function runNativeCliMockScenario({root, template, run, launcherTim
   }
   assert.deepEqual(actual, expected, 'Only the independently expected target fields may change');
   assert.notEqual(after.sha256, before.sha256, 'Approval must perform the mock write');
-  runState(await invoke(['status', runId, '--json']), 'succeeded', runId);
+  runState(await invoke('completed-status', ['status', runId, '--json']), 'succeeded', runId);
   assert.deepEqual(await targetSnapshot(file), after, 'Completed status must not rewrite the target');
 
   const resultArguments = ['result', runId, '--result', 'updates', '--format', 'jsonl'];
-  const first = await invoke(resultArguments);
+  const first = await invoke('result', resultArguments);
   const rows = first.stdout.trim().split('\n').map(line => JSON.parse(line));
   assert.equal(rows.length, 2, 'Both independently expected updates must be retained');
   assert.deepEqual(rows.map(value => value.id).sort(), change.rows.map(value => value.id).sort());
@@ -314,8 +314,8 @@ export async function runNativeCliMockScenario({root, template, run, launcherTim
     }
   }
   assert.deepEqual(await targetSnapshot(file), after, 'Reading Result must not replay the Effect');
-  runState(await invoke(['status', runId, '--json']), 'succeeded', runId);
-  const reread = await invoke(resultArguments);
+  runState(await invoke('saved-status', ['status', runId, '--json']), 'succeeded', runId);
+  const reread = await invoke('saved-result', resultArguments);
   assert.equal(reread.stdout, first.stdout, 'Fresh-process Result must retain original bytes');
   assert.deepEqual(await targetSnapshot(file), after, 'Saved Run/Result reread must not rewrite the target');
   return {template, runId, checkpointId: checkpoint, checkpointCid: original.checkpoint.checkpoint_cid,

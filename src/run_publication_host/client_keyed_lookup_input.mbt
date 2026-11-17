@@ -96,9 +96,13 @@ fn keyed_lookup_layout_capacity(
       // Two selected-wire scalar facts and one transient measured-extent
       // tuple/Some (H2/R3/W1) coexist at dependency admission. The old
       // selected key slot itself is unchanged; no Request gains a field.
-      record_headers: 2L,
-      reference_slots: 9L,
-      scalar_words: 4L,
+      // One active synchronous protocol construction additionally owns its
+      // original phase, built/settled/Result/Some records, four metadata array
+      // headers and bounded callback captures (12H/32R/16W). Payload/extent
+      // backing remains separately admitted before construction.
+      record_headers: 14L,
+      reference_slots: 41L,
+      scalar_words: 20L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })

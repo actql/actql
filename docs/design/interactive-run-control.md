@@ -219,6 +219,43 @@ by these contract definitions.
 
 ## Static compiler projection
 
+The Core operation-explanation read accepts the original prepared Program and
+its nominal Values or task compilation. Equal re-preparation, copied JSON and
+a matching CID cannot replace that owner. Its occurrence DATA retains the
+original compiled Plan, Program Definition, effective Parameters and logical
+Stage/operation coordinates, including input-only occurrences.
+
+Meaning is read from the checked operation: VALUES schema and authored row
+cardinality, FILTER's typed predicate, ordered SELECT/RENAME/DROP projection,
+and JOIN's kind and left/right keys. Those are borrowed immutable compiler
+facts, not another interpreter or runtime snapshot. An operation lacking this
+explanation projection remains `NotProjected`; it is not a language refusal
+or an empty/successful computation. Authored VALUES cardinality is not a count
+of acquired, processed or written rows.
+
+These internal Core values cannot be sent as private handles. The separate
+closed structural Explanation Facts family emits shape/nullability, ordered
+projection, JOIN keys and a finite checked predicate projection. It omits
+literal values, inferred bounds, literal collection sizes and value CIDs.
+An unsupported predicate form remains explicitly unprojected as a whole.
+Public emission still needs the selected existing-Owner disclosure/current/
+egress checks and finite construction/output admission.
+In particular a typed predicate is not unconditional permission to disclose
+its literals, a Task prompt or a Source body. Registering or reading these
+facts installs no Sample, execution boundary or durable control.
+
+The structural envelope borrows the same compiled owner and original logical
+map. It copies that map's Step keys and input/output port identities; it does
+not issue them again. Capture follows the existing static-plan construction
+admission. A separate measuring writer then quotes the exact body and complete
+self-identified output without rendering another wire. Those extents are DATA,
+not physical backing: the caller still funds the measurement, original map,
+emission, canonical parsing and hashing overlap in its existing read scope.
+Only the existing canonical identity owner seals the new envelope. Retained
+sealed facts support historical reads; the capture constructor is not a repair
+path for an old or Normal Run lacking them. This compiler API alone exposes no
+Host capability, current read service or Saved retention mechanism.
+
 The shared static Story renderer consumes that same SDK-admitted Plan view.
 It preserves original logical occurrence keys and each input/output port;
 presentation items issue neither a second graph identity nor execution order.

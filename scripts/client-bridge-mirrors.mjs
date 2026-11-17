@@ -31,6 +31,8 @@ export function checkRelaClientBridges(root, write = false) {
     throw new Error(`RelA Node bridge is stale: ${outputPath}`);
   }
   for (const file of ['client_preparation_root_bridge.mbt',
+    'local_managed_failure_bridge.mbt',
+    'client_installed_source_reader_bridge.mbt',
     'client_result_read_workspace_bridge.mbt',
     'client_native_snapshot_reader.mbt',
     'client_hubspot_effect_construction_bridge.mbt',
@@ -52,6 +54,8 @@ export function checkRelaClientBridges(root, write = false) {
     'client_model_task_construction_bridge.mbt',
     'client_infer_run_materials_bridge.mbt',
     'client_public_model_task_bridge.mbt',
+    'client_normal_model_execution_bridge.mbt',
+    'client_model_configuration_bridge.mbt',
     'client_row_listing_capacity.mbt',
     'client_request_value_policy.mbt',
     'client_prepared_public_environment.mbt',

@@ -380,6 +380,8 @@ pub fn cancel_retained_storage_scan(RetainedStorageScan) -> Bool
 
 pub fn cancel_row_wire_order(RowWireOrderPreparation) -> Bool
 
+pub fn canonical_preparation_retained_bytes(@canonical_json.CanonicalRepresentationExtent, Int64, Int64, Int64, Int64) -> Int64?
+
 pub fn capture(@value_admission.Value) -> Value
 
 pub fn capture_generated_supplied_source_input(GeneratedSequence, SuppliedRelationRead, Int, Int) -> Result[CompletedOutput, TrustedOutputIssue]
@@ -1467,6 +1469,8 @@ pub fn reuse_retained_scan_identity(RetainedProducerScan, RetainedScanReuse) -> 
 pub fn reuse_retained_scan_values(RetainedProducerScan) -> Bool
 
 pub fn[T] revoke_unpublished_managed_completed_output(ManagedCompletedOutput[T]) -> Bool
+
+pub fn row_failure_diagnostic_cause(RowIssue) -> String?
 
 pub fn row_wire_cid(RowWireIdentity) -> String
 

@@ -4,9 +4,16 @@
 fn resource_lifecycle_execute_sql(
   sql : String,
   format? : String = "sql",
+  memory? : Int64? = None,
+  source_free_max_work? : Int? = None,
 ) -> Array[String] raise {
+  let policy = client_local_resource_policy()
   let environment = collection_capacity_selected_environment(
-    client_local_materialized_row_ceiling(client_local_resource_policy()).unwrap(),
+    client_local_materialized_row_ceiling(
+      policy,
+      retained_bytes=memory,
+      execution_bytes=memory,
+    ).unwrap(),
     numeric_profile_cid=Some(
       "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df",
     ),
@@ -17,7 +24,20 @@ fn resource_lifecycle_execute_sql(
     @checked.checking_environment_cid(environment) +
     "\",\"aliases\":[]}",
   ).unwrap()
-  let (parent, input) = native_driver_parent(sql)
+  let (parent, input) = match memory {
+    None => native_driver_parent(sql)
+    Some(_) =>
+      native_driver_parent(
+        sql,
+        initial_limits=Some(
+          client_local_preparation_initial_limits(
+            policy,
+            retained_bytes=memory,
+            execution_bytes=memory,
+          ).unwrap(),
+        ),
+      )
+  }
   defer (if parent.phase != Selected && parent.phase != Selecting {
     abort_request_preparation_after_cleanup(parent).unwrap()
   })
@@ -49,6 +69,7 @@ fn resource_lifecycle_execute_sql(
     compilation_limits=request_program_compilation_limits(parent, input).unwrap(),
     retained_output=true,
     provider_factory=_ => [],
+    source_free_max_work~,
   ).unwrap()
   let plan = parent.program_source_free.unwrap()
   let request = @publication_host.prepare_source_free_client_request_identity(
@@ -100,6 +121,39 @@ fn resource_lifecycle_execute_sql(
   assert_eq(after.reserved_retention_bytes, 0L)
   assert_eq(after.reserved_execution_bytes, 0L)
   rows
+}
+
+///|
+test "original raised policy returns all hundred-thousand rows for unfiltered ordered and filtered shapes" {
+  let digits = Array::makei(10, n => "SELECT " + n.to_string() + " AS n").join(
+    " UNION ALL ",
+  )
+  let expression = "a.n*10000+b.n*1000+c.n*100+d.n*10+e.n"
+  let prefix = "WITH d AS (" +
+    digits +
+    ") SELECT " +
+    expression +
+    " AS id FROM d AS a CROSS JOIN d AS b CROSS JOIN d AS c CROSS JOIN d AS d CROSS JOIN d AS e"
+  for suffix in ["", " ORDER BY id", " WHERE " + expression + " < 100000"] {
+    // Exact previously reported explicit installation, selected before the
+    // original Request/Ledger; these are not new production policy defaults.
+    let rows = resource_lifecycle_execute_sql(
+      prefix + suffix,
+      memory=Some(1073741824L),
+      source_free_max_work=Some(30000000),
+    )
+    let expected = Array::makei(100000, index => {
+      "{\"id\":" + index.to_string() + "}"
+    })
+    assert_eq(rows.length(), 100000)
+    if suffix == " ORDER BY id" {
+      assert_eq(rows, expected)
+    } else {
+      rows.sort()
+      expected.sort()
+      assert_eq(rows, expected)
+    }
+  }
 }
 
 ///|

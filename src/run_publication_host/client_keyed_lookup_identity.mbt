@@ -375,57 +375,47 @@ fn prepare_keyed_lookup_request_metadata(
     // static document supplies a corresponding measured construction demand.
     max_bytes
   }
-  let metadata_phase = match
-    grow_keyed_lookup_protocol_metadata(
-      lookup,
-      metadata_bytes,
-      slots,
-      // Retained EncodedDocument1H1R3W + Some1H1R1W. Text stays borrowed.
-      extra_controls=if lookup.native_read_profile is Some(_) {
-        80L
+  with_keyed_protocol_construction(
+    lookup,
+    metadata_bytes,
+    slots,
+    max_nodes,
+    max_depth,
+    fn() {
+      // The existing builder retains static documents on this original and
+      // returns the identity/order into the managed returning frame.
+      let (identity, order) = match
+        build_client_keyed_lookup_request_identity(
+          lookup, max_bytes, max_nodes, max_depth, true,
+        ) {
+        Ok(value) => value
+        Err(issue) => {
+          keyed_lookup_fail(lookup.left, issue) |> ignore
+          return Err(issue)
+        }
+      }
+      Ok(
+        keyed_protocol_built(
+          (identity, order),
+          contracts=[identity.keys, identity.scope],
+          texts=[identity.static_request, identity.static_request_cid],
+        ),
+      )
+    },
+    _ => {
+      if lookup.closed ||
+        lookup.left.lookup_issue is Some(_) ||
+        !(lookup.input is Some(original) && physical_equal(original, input)) {
+        let issue = Assembly("retired_publication_input")
+        keyed_lookup_fail(lookup.left, issue) |> ignore
+        Err(issue)
       } else {
-        0L
-      },
-    ) {
-    Err(issue) => return Err(issue)
-    Ok(value) => value
-  }
-  // Reference key projection can invoke its original current observer. Keep
-  // the original input/response holders until that synchronous borrow ends.
-  lookup.growing = true
-  let built = build_client_keyed_lookup_request_identity(
-    lookup, max_bytes, max_nodes, max_depth, true,
-  )
-  lookup.growing = false
-  let (identity, order) = match built {
-    Ok(value) => value
-    Err(issue) => {
-      keyed_lookup_fail(lookup.left, issue) |> ignore
-      return Err(issue)
-    }
-  }
-  // The builder already observed original current after its last reference
-  // callback. Pure hash/scope work adds no new external-state boundary here.
-  if lookup.closed ||
-    lookup.left.lookup_issue is Some(_) ||
-    !(lookup.input is Some(original) && physical_equal(original, input)) {
-    let issue = Assembly("retired_publication_input")
-    keyed_lookup_fail(lookup.left, issue) |> ignore
-    return Err(issue)
-  }
-  match
-    finish_keyed_lookup_protocol_metadata(
-      lookup,
-      metadata_phase,
-      max_nodes,
-      max_depth,
-      [identity.keys, identity.scope],
-      texts=[identity.static_request, identity.static_request_cid],
-    ) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
-  Ok((identity, order))
+        Ok(())
+      }
+    },
+    // Retained EncodedDocument1H1R3W + Some1H1R1W. Text stays borrowed.
+    extra_controls=if lookup.native_read_profile is Some(_) { 80L } else { 0L },
+  ).map(settled => settled.value)
 }
 
 ///|
@@ -535,7 +525,10 @@ fn grow_keyed_lookup_protocol_metadata(
   slots : Int64,
   extra_controls? : Int64 = 0L,
   copies? : Int = 1,
-) -> Result[(Int64, Int64, Int64), ClientKeyedRequestIssue] {
+) -> Result[KeyedProtocolConstruction, ClientKeyedRequestIssue] {
+  if lookup.closed || lookup.growing || lookup.left.lookup_issue is Some(_) {
+    return Err(Assembly("unavailable_protocol_construction"))
+  }
   guard client_protocol_metadata_construction_bytes(
       max_bytes,
       slots,
@@ -549,7 +542,8 @@ fn grow_keyed_lookup_protocol_metadata(
     metadata > 9223372036854775807L - lookup.execution_bytes {
     return Err(Assembly("capacity_overflow"))
   }
-  let basis = (lookup.retained_bytes, lookup.execution_bytes, controls)
+  let basis_retained = lookup.retained_bytes
+  let basis_execution = lookup.execution_bytes
   let retained = lookup.retained_bytes + metadata
   let execution = lookup.execution_bytes + metadata
   lookup.growing = true
@@ -577,7 +571,7 @@ fn grow_keyed_lookup_protocol_metadata(
     keyed_lookup_fail(lookup.left, issue) |> ignore
     return Err(issue)
   }
-  Ok(basis)
+  Ok({ lookup, basis_retained, basis_execution, controls, finished: false, })
 }
 
 ///|
@@ -588,7 +582,7 @@ fn grow_keyed_lookup_protocol_metadata(
 fn keyed_lookup_protocol_extent_cost(
   extent : @publication.PublicationRepresentationExtent,
 ) -> Int64? {
-  keyed_lookup_canonical_extent_cost(
+  @execution.canonical_preparation_retained_bytes(
     extent.canonical,
     3L * extent.contract_records + extent.contract_strings,
     7L * extent.contract_records,
@@ -598,39 +592,13 @@ fn keyed_lookup_protocol_extent_cost(
 }
 
 ///|
-fn keyed_lookup_canonical_extent_cost(
-  tree : @canonical.CanonicalRepresentationExtent,
-  headers : Int64,
-  references : Int64,
-  words : Int64,
-  text : Int64,
-) -> Int64? {
-  let containers = tree.arrays + tree.objects
-  @execution.preparation_representation_cost({
-    record_headers: headers +
-    tree.nodes +
-    tree.strings +
-    3L * containers +
-    tree.object_backing_slots,
-    reference_slots: references +
-    tree.nodes +
-    2L * containers +
-    tree.array_backing_slots +
-    3L * tree.object_backing_slots,
-    scalar_words: words + 2L * tree.nodes + 2L * containers,
-    owned_utf16_units: text + tree.text_utf16_units,
-    owned_wire_bytes: 0L,
-  })
-}
-
-///|
 // Called only after the actual writers/scans have returned and their outputs
 // are retained on this same lookup (or the original returning frame). Failure
 // keeps the construction peak. Success returns only unused codec workspace;
 // all previous backing, actual bodies and call controls remain charged.
 fn finish_keyed_lookup_protocol_metadata(
   lookup : ClientKeyedLookupInput,
-  phase : (Int64, Int64, Int64),
+  phase : KeyedProtocolConstruction,
   max_nodes : Int,
   max_depth : Int,
   contracts : Array[@publication.PublicationContract],
@@ -638,9 +606,19 @@ fn finish_keyed_lookup_protocol_metadata(
   texts? : Array[String] = [],
   dependency_bodies? : Array[@publication.CapturedEffectDependencyBody]? = None,
 ) -> Result[Unit, ClientKeyedRequestIssue] {
+  if !physical_equal(phase.lookup, lookup) {
+    return Err(Assembly("foreign_protocol_construction"))
+  }
+  if phase.finished {
+    return Err(Assembly("retired_protocol_construction"))
+  }
   if max_nodes < 1 || max_depth < 1 || lookup.closed || lookup.growing {
     return Err(Assembly("unavailable_protocol_workspace_return"))
   }
+  // This construction attempt is consumed before any fallible measurement
+  // or settlement. Cleanup retains the same reservation on failure; it never
+  // retries construction or turns low-level absolute reduction single-use.
+  phase.finished = true
   // Bound the existing immutable extent walk BEFORE allocating its depth
   // stack. No wire is re-encoded/hashed/admitted and no permission is observed.
   // Dependency bodies are visited sequentially. Only one body/extent/control
@@ -667,7 +645,7 @@ fn finish_keyed_lookup_protocol_metadata(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  let mut retained = phase.2
+  let mut retained = phase.controls
   for contract in contracts {
     let extent = match
       @publication.publication_contract_representation_extent(
@@ -741,7 +719,7 @@ fn finish_keyed_lookup_protocol_metadata(
         Ok(value) => value
         Err(issue) => return Err(Identity(@publication.Contract(issue)))
       }
-      guard keyed_lookup_canonical_extent_cost(
+      guard @execution.canonical_preparation_retained_bytes(
           tree,
           controls.record_headers,
           controls.reference_slots,
@@ -756,9 +734,18 @@ fn finish_keyed_lookup_protocol_metadata(
       retained = total
     }
   }
-  guard @execution.checked_preparation_add_product(phase.0, retained, 1L)
+  guard @execution.checked_preparation_add_product(
+      phase.basis_retained,
+      retained,
+      1L,
+    )
     is Some(r) &&
-    @execution.checked_preparation_add_product(phase.1, retained, 1L) is Some(e) else {
+    @execution.checked_preparation_add_product(
+      phase.basis_execution,
+      retained,
+      1L,
+    )
+    is Some(e) else {
     return Err(Assembly("capacity_overflow"))
   }
   lookup.growing = true

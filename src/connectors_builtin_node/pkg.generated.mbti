@@ -2032,6 +2032,8 @@ pub fn client_program_installed_gmail_thread_reader_capacity(Array[Int], Int, In
 
 pub fn client_program_installed_infer_plan_graph(@run_publication_host.PreparedClientProgram, Int, @check_environment.ModelExecutionContract) -> Result[@run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferPlanGraphIssue]
 
+pub fn client_program_installed_json_cursor_source_reader_capacity(Array[Int], Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_installed_json_effect_request_construction_capacity(@execution_relation.ExecutionCapacity, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_installed_json_effect_response_construction_capacity(@execution_relation.ExecutionCapacity, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
@@ -3178,7 +3180,13 @@ pub fn client_program_normalize_project_model_task(@run_publication_host.ClientP
 
 pub fn client_program_normalized_public_model_task_materials(@check_environment.NormalizedPublicModelTask) -> (String, String, String, String)
 
+pub fn client_program_normalized_public_model_task_no_retry_materials(@check_environment.NormalizedPublicModelTask, Int64, Int64, Int64, Int64, Int64, Int, Int, Int, Int) -> Result[(String, String, String, String, String, String), @check_environment.ModelTaskIssue]
+
 pub fn client_program_normalized_public_model_task_provider_data(@check_environment.NormalizedPublicModelTask, Int, Int, Int, Int) -> Result[(String, String, String), @check_environment.ModelTaskIssue]
+
+pub fn client_program_normalized_public_model_task_response_profile(@check_environment.NormalizedPublicModelTask, @check_environment.ModelResponseProfile, Int, Int, Int, Int) -> Result[(String, String), @check_environment.ModelTaskIssue]
+
+pub fn client_program_normalized_public_model_task_schema_cids(@check_environment.NormalizedPublicModelTask) -> (String, String)
 
 pub fn client_program_notion_database_limits(Int, Int, Int, Int, Int, Int, Int) -> @actql/actql/connectors/notion/catalog.NotionDatabaseLimits
 
@@ -3433,6 +3441,8 @@ pub fn client_program_prepare_local_preparation_admission(@physical_resources.Or
 pub fn client_program_prepare_local_query_requirement(@run_publication_host.PreparedClientProgram, Int, Int, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?) -> Result[@query_planning.QueryRequirement, @client_local_host.ClientLocalQueryIssue]
 
 pub fn client_program_prepare_local_query_requirement_at_query_time(@run_publication_host.PreparedClientProgram, Int, Int, @run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?) -> Result[@query_planning.QueryRequirement, @client_local_host.ClientLocalQueryIssue]
+
+pub fn client_program_prepare_model_provider_originals(String, String, String, Int, Int, Int, Int) -> Result[(String, String, String, String, String, String), @check_environment.ModelTaskIssue]
 
 pub fn client_program_prepare_multi_captured_effect_acquisition_ledger(@run_publication_host.PreparedClientEffectComputation, Array[@actql/actql/connectors/duckdb/host.CaptureConfiguration], Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?) -> @physical_resources.Ledger?
 
@@ -4088,6 +4098,8 @@ pub fn client_program_row_source_acquisition_contracts_construction_capacity(Int
 
 pub fn client_program_row_source_admit_acquisition_contracts(String, String) -> Result[@query_planning.QueryEvidenceContracts, @client_row_source_host.RowHostIssue]
 
+pub fn client_program_row_source_advance_cursor_progress(@client_row_source_host.RowSourceCursorProgress, Int, Int, @client_row_source_host.RowSourceProjectedJsonPage, @client_row_source_host.RowSourceProjectedJsonPage) -> Result[Bool, @client_row_source_host.RowSourceCursorIssue]
+
 pub fn client_program_row_source_advance_listing_page(@client_row_source_host.RowRun, Int, Int64) -> Result[String, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_attempt(@client_row_source_host.RowRun) -> @client_row_source_host.RowAttempt
@@ -4136,6 +4148,14 @@ pub fn client_program_row_source_complete_response_construction_capacity(@client
 
 pub fn client_program_row_source_consume_observation_charge(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge) -> Result[Unit, @client_row_source_host.RowHostIssue]
 
+pub fn client_program_row_source_cursor_has_next(@client_row_source_host.RowSourceCursorProgress) -> Bool
+
+pub fn client_program_row_source_cursor_issue_code(@client_row_source_host.RowSourceCursorIssue) -> String
+
+pub fn client_program_row_source_cursor_next(@client_row_source_host.RowSourceCursorProgress) -> Result[String, @client_row_source_host.RowSourceCursorIssue]
+
+pub fn client_program_row_source_cursor_remaining_rows(@client_row_source_host.RowSourceCursorProgress, Int, Int) -> Result[Int, @client_row_source_host.RowSourceCursorIssue]
+
 pub fn client_program_row_source_declaration_json(@client_row_source_host.RowDeclaration) -> String
 
 pub fn client_program_row_source_ensure_response_transfer_capacity(@client_row_source_host.RowRunResponseBorrow, Int64) -> Result[Unit, @client_row_source_host.RowHostIssue]
@@ -4177,6 +4197,8 @@ pub fn client_program_row_source_original_read(@client_row_source_host.RowSource
 pub fn client_program_row_source_prepare_acquisition(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String, @capacity_policy.Policy?) -> Result[@client_row_source_host.RowAcquisition, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_prepare_acquisition_with_contracts(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, @query_planning.QueryEvidenceContracts, @capacity_policy.Policy?) -> Result[@client_row_source_host.RowAcquisition, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_prepare_cursor_progress(Int, Int, Int, Int) -> Result[@client_row_source_host.RowSourceCursorProgress, @client_row_source_host.RowSourceCursorIssue]
 
 pub fn client_program_row_source_prepare_mapping(@client_row_source_host.RowDeclaration, String, String, String) -> String
 
@@ -4856,9 +4878,13 @@ pub fn local_managed_advance_budget(Result[@actql/actql/connectors/local/driver.
 
 pub fn local_managed_advance_capture_work(Result[@actql/actql/connectors/local/driver.LocalManagedAdvance, @actql/actql/connectors/local/driver.LocalDispatchIssue]) -> Array[Int]?
 
+pub fn local_managed_advance_cause(Result[@actql/actql/connectors/local/driver.LocalManagedAdvance, @actql/actql/connectors/local/driver.LocalDispatchIssue]) -> String?
+
 pub fn local_managed_advance_control_work_limit(Result[@actql/actql/connectors/local/driver.LocalManagedAdvance, @actql/actql/connectors/local/driver.LocalDispatchIssue]) -> Int?
 
 pub fn local_managed_advance_resource_dimension(Result[@actql/actql/connectors/local/driver.LocalManagedAdvance, @actql/actql/connectors/local/driver.LocalDispatchIssue]) -> String?
+
+pub fn local_managed_advance_row_step(Result[@actql/actql/connectors/local/driver.LocalManagedAdvance, @actql/actql/connectors/local/driver.LocalDispatchIssue]) -> Int
 
 pub fn local_managed_capacity(@actql/actql/connectors/local/driver.LocalManagedDispatchConfiguration[Int]) -> (Int64, Int64)?
 

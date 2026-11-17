@@ -73,3 +73,29 @@ test "normalized Provider DATA refuses insufficient output and work without muta
     is Ok(_),
   )
 }
+
+///|
+test "normalized schema DATA projects both independently pinned original contract identities" {
+  let original = provider_data_original()
+  let before = normalized_public_model_task_materials(original)
+  // Independent canonical Contract preimages hashed with Python hashlib.
+  // Input and output have different field names and types, so a repeated or
+  // swapped schema, Task CID or prompt CID cannot satisfy this consumer.
+  assert_eq(
+    normalized_public_model_task_schema_cids(original),
+    (
+      "sha256:817c8076607db02262314e660f3453be4908d97f625170a311e7e922fbfa08a6",
+      "sha256:f94fdb05ed5b8d96d49bce3de5e34d929bd746506b7280273569fed9703235bd",
+    ),
+  )
+  let (_, _, payload) = normalized_public_model_task_provider_data(
+    original, 10000, 1000, 32, 11000,
+  ).unwrap()
+  assert_eq(
+    payload,
+    (
+      #|{"format":"actql.openai_chat_prompt/0.1","instructions":"Original é\r\n"}
+    ),
+  )
+  assert_eq(normalized_public_model_task_materials(original), before)
+}

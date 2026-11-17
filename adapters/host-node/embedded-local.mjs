@@ -85,7 +85,7 @@ import {installNodeClientProgramPreparation} from
 import {sourceAliasPublication, sourceAliasPublicationOriginal,
   retireSourceAliasPublicationOriginal} from './source-alias-publication.mjs';
 import {installedModelEnvironment, readInstalledModelExecution, consumeInstalledModelPreparationRefusal,
-  readInstalledModelDependencies, installModelProviders,
+  readInstalledModelDependencies,
   admitInstalledModelProvider, admitInstalledModelProviderBinding} from
   './installed-model.mjs';
 import {loadInstalledProjectConfiguration, installedProjectOriginalsForRuntime,
@@ -95,6 +95,7 @@ import {beginInitialControlInstallation, assertInitialControlInstallationCurrent
   readInitialControlInstallationAsset, readInitialControlInstallationInput}
   from './node-initial-control-installation.mjs';
 import {loadInstalledProjectModelTasks} from './installed-project-model-tasks.mjs';
+import {installConfiguredModelProviders} from './installed-model-configuration.mjs';
 import {loadInstalledProjectMockAnswers} from '../local-node/installed-project-mock-answers.mjs';
 import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
 import {prepareInstalledProjectMock, installPreparedProjectMockSources, installedMockRequestRealization}
@@ -1467,6 +1468,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   let modelSdkStaticOriginals;
   let modelProviders;
   let projectTasks;
+  let persistModelOriginals;
   let mockModels;
   let mockAccount;
   let standardAccountPreparation;
@@ -1550,6 +1552,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     // This drops DATA/backreferences only after the same Host shutdown duties
     // retire. It is not physical read/Provider/Store or numerical release ACK.
     projectTasks = undefined;
+    persistModelOriginals = undefined;
     projectProfile?.retire(projectRuntime);
     if (project !== undefined) retireInstalledProjectConfiguration(project, projectRuntime);
     projectProfile = undefined;
@@ -1685,12 +1688,20 @@ async function openInstalledHost(originalInstallation, preparation) {
   // The explicit Mock profile never registers a configured physical Provider.
   // Its portable Model owner retains the original fixture Task and answers;
   // neither that DATA installation nor this empty physical table grants send.
-  modelProviders = !mockSourceInstallation
-    ? installModelProviders(moon, registerModelProviders,
-      modelRuntimeView === undefined ? undefined : assertModelRuntime,
-      modelRuntimeView === undefined ? undefined : assertNewModelRuntime,
-      modelRuntimeView === undefined ? undefined : bindModelSdkStaticOriginals)
-    : new Map();
+  const modelTaskLimits = Object.freeze({maxBytes: 65536, maxNodes: 4096, maxDepth: 64,
+    maxMembers: 256, contractNodes: 4096, contractDepth: 64,
+    contractTextBytes: 65536, maxWork: 2097152});
+  if (!mockSourceInstallation) {
+    const configured = await installConfiguredModelProviders({moon,
+      register: registerModelProviders, project, taskLimits: modelTaskLimits,
+      installationServices, assertCurrent: assertProjectRuntime,
+      assertHostRuntime: modelRuntimeView === undefined ? undefined : assertModelRuntime,
+      assertNewHostRuntime: modelRuntimeView === undefined ? undefined : assertNewModelRuntime,
+      bindSdkStaticOriginals: modelRuntimeView === undefined ? undefined : bindModelSdkStaticOriginals});
+    modelProviders = configured.providers;
+    projectTasks = configured.projectTasks;
+    persistModelOriginals = configured.persistOriginals;
+  } else modelProviders = new Map();
   const inferSelections = new WeakMap();
   const earlyMockInferPlans = new WeakMap();
   const earlyContentPlans = new WeakMap();
@@ -2125,15 +2136,13 @@ async function openInstalledHost(originalInstallation, preparation) {
       environmentWire = installedModelEnvironment(moon, baseEnvironmentWire,
         environmentWire, modelInstallation);
     }
-    if (mockModels === undefined && project !== undefined &&
+    if (mockModels === undefined && projectTasks === undefined && project !== undefined &&
         installedProjectOriginalsForRuntime(project, moon).modelRegistry !== undefined) {
       // These are installation-time reader ceilings, not Model fuel, memory
       // reservations or a numerical execution profile. The ordinary complete
       // Environment checker below still enforces its existing aggregate bounds.
       projectTasks = await loadInstalledProjectModelTasks(moon, project, modelProviders, {
-        limits: {maxBytes: 65536, maxNodes: 4096, maxDepth: 64,
-          maxMembers: 256, contractNodes: 4096, contractDepth: 64,
-          contractTextBytes: 65536, maxWork: 2097152},
+        limits: modelTaskLimits,
         assertCurrent: assertProjectRuntime, installationServices,
       });
     }
@@ -2533,6 +2542,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     store = preparation === undefined
       ? await openLocalPublicationStore(storeOptions, control, undefined, undefined, publicationOwnership)
       : await preparation.openResultPublicationStore(storeOptions, control);
+    await persistModelOriginals?.(store);
     if (mockAccount !== undefined) await mockAccount.adoptStore(store);
     if (standardAccountPreparation !== undefined) {
       const subjectFrame = accountConstruction?.begin();

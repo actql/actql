@@ -516,102 +516,108 @@ fn prepare_client_effect_keyed_generic_dependencies(
     physical_equal(same, completed) else {
     return Err(Assembly("foreign_generic_dependency_entry"))
   }
-  // New temporary receiver H1/R4 + Some H1/R1/W1; Catalog geometry
-  // callback H1/R4 + Some H1/R1/W1 + three scalar Refs H3/W3;
-  // returned body/byte tuple and Result H2/R2/W2. Total H9/R12/W7.
-  // The same original reservation covers this peak before any closure/Ref.
-  let controls = @execution.preparation_representation_cost({
-    record_headers: 9L,
-    reference_slots: 12L,
-    scalar_words: 7L,
-    owned_utf16_units: 0L,
-    owned_wire_bytes: 0L,
-  }).unwrap()
-  match
-    keyed_lookup_body_grow(
-      lookup,
-      lookup.retained_bytes,
-      lookup.execution_bytes,
-      controls,
-      None,
-    ) {
-    Ok(_) => ()
-    Err(issue) => return Err(issue)
-  }
-  match
-    grow_keyed_lookup_protocol_metadata(
-      lookup,
-      1,
-      64L + 2L * max_depth.to_int64(),
-    ) {
-    Ok(_) => ()
-    Err(issue) => return Err(issue)
-  }
-  let primary : Ref[ClientKeyedRequestIssue?] = Ref(None)
-  let before = (bytes : Int, nodes : Int, depth : Int) => {
-    if primary.val is Some(_) ||
-      bytes < 0 ||
-      nodes < 0 ||
-      depth < 0 ||
-      bytes > 2147483647 - nodes ||
-      lookup.closed ||
-      lookup.left.lookup_issue is Some(_) {
-      return false
-    }
-    if !charge_keyed_lookup_input_work(lookup, bytes + nodes) {
-      primary.val = Some(LookupLimit("work"))
-      return false
-    }
-    let capacity = @execution.execution_capacity_inventory(
-      [
-        { unit: ValueNodeSlots, count: nodes.to_int64(), copies: 3, },
-        { unit: DecodedTextBytes, count: bytes.to_int64(), copies: 3, },
-        { unit: CanonicalWireBytes, count: bytes.to_int64(), copies: 4, },
-        // Existing shared capture-recovery member/Map/spare-array allowance.
-        { unit: QuotedBytes, count: 4096L, copies: 1, },
-      ],
-      [{ unit: CursorRootSlots, count: depth.to_int64() + 1L, copies: 2, }],
-      RetainedAlongsideExecution,
-    )
-    guard capacity is Some(capacity) else {
-      primary.val = Some(Assembly("capacity_overflow"))
-      return false
-    }
-    match
-      keyed_lookup_body_grow(
-        lookup,
-        lookup.retained_bytes,
-        lookup.execution_bytes,
-        0L,
-        Some(capacity),
-      ) {
-      Ok(_) => true
-      Err(issue) => {
-        primary.val = Some(issue)
-        false
+  // Begin before even the temporary receiver/callback controls. They do not
+  // escape into the completed dependency bodies and cannot become a stale
+  // retained baseline merely because the collector used them first.
+  with_keyed_protocol_construction(
+    lookup,
+    1,
+    64L + 2L * max_depth.to_int64(),
+    max_nodes,
+    max_depth,
+    fn() {
+      // New temporary receiver H1/R4 + Some H1/R1/W1; Catalog geometry
+      // callback H1/R4 + Some H1/R1/W1 + three scalar Refs H3/W3;
+      // returned body/byte tuple and Result H2/R2/W2. Total H9/R12/W7.
+      // The same original reservation covers this peak before any closure/Ref.
+      let controls = @execution.preparation_representation_cost({
+        record_headers: 9L,
+        reference_slots: 12L,
+        scalar_words: 7L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      }).unwrap()
+      match
+        keyed_lookup_body_grow(
+          lookup,
+          lookup.retained_bytes,
+          lookup.execution_bytes,
+          controls,
+          None,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
       }
-    }
-  }
-  let bodies = match
-    build_client_effect_keyed_generic_dependency_bodies(
-      parent,
-      lookup,
-      state,
-      completed,
-      max_nodes,
-      max_depth,
-      Some(before),
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(primary.val.unwrap_or(Dependency(issue)))
-  }
-  guard !lookup.closed &&
-    lookup.left.lookup_issue is None &&
-    state.completed is Some(same) &&
-    physical_equal(same, completed) &&
-    state.bodies is None else {
-    return Err(Assembly("retired_generic_dependency_entry"))
-  }
-  state.bodies = Some(bodies)
-  Ok(())
+      let primary : Ref[ClientKeyedRequestIssue?] = Ref(None)
+      let before = (bytes : Int, nodes : Int, depth : Int) => {
+        if primary.val is Some(_) ||
+          bytes < 0 ||
+          nodes < 0 ||
+          depth < 0 ||
+          bytes > 2147483647 - nodes ||
+          lookup.closed ||
+          lookup.left.lookup_issue is Some(_) {
+          return false
+        }
+        if !charge_keyed_lookup_input_work(lookup, bytes + nodes) {
+          primary.val = Some(LookupLimit("work"))
+          return false
+        }
+        let capacity = @execution.execution_capacity_inventory(
+          [
+            { unit: ValueNodeSlots, count: nodes.to_int64(), copies: 3, },
+            { unit: DecodedTextBytes, count: bytes.to_int64(), copies: 3, },
+            { unit: CanonicalWireBytes, count: bytes.to_int64(), copies: 4, },
+            // Existing shared capture-recovery member/Map/spare-array allowance.
+            { unit: QuotedBytes, count: 4096L, copies: 1, },
+          ],
+          [{ unit: CursorRootSlots, count: depth.to_int64() + 1L, copies: 2, }],
+          RetainedAlongsideExecution,
+        )
+        guard capacity is Some(capacity) else {
+          primary.val = Some(Assembly("capacity_overflow"))
+          return false
+        }
+        match
+          keyed_lookup_body_grow(
+            lookup,
+            lookup.retained_bytes,
+            lookup.execution_bytes,
+            0L,
+            Some(capacity),
+          ) {
+          Ok(_) => true
+          Err(issue) => {
+            primary.val = Some(issue)
+            false
+          }
+        }
+      }
+      let bodies = match
+        build_client_effect_keyed_generic_dependency_bodies(
+          parent,
+          lookup,
+          state,
+          completed,
+          max_nodes,
+          max_depth,
+          Some(before),
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(primary.val.unwrap_or(Dependency(issue)))
+      }
+      Ok(keyed_protocol_built(bodies, dependency_bodies=Some(bodies)))
+    },
+    bodies => {
+      guard !lookup.closed &&
+        lookup.left.lookup_issue is None &&
+        state.completed is Some(same) &&
+        physical_equal(same, completed) &&
+        state.bodies is None else {
+        return Err(Assembly("retired_generic_dependency_entry"))
+      }
+      state.bodies = Some(bodies)
+      Ok(())
+    },
+  ).map(_ => ())
 }

@@ -63,6 +63,8 @@ pub fn advance_row_run_keyed_page(RowRun, Int) -> Result[RowKeyedPagePoll, RowHo
 
 pub fn advance_row_run_listing_page(RowRun, Int, Int64) -> Result[RowListingPagePoll, RowHostIssue]
 
+pub fn advance_row_source_cursor_progress(RowSourceCursorProgress, Int, Int, RowSourceProjectedJsonPage, RowSourceProjectedJsonPage) -> Result[Bool, RowSourceCursorIssue]
+
 pub fn begin_charged_row_run_keyed_page(RowRun, RowPageCharge, Bytes) -> Result[Unit, RowHostIssue]
 
 pub fn begin_charged_row_run_listing_page(RowRun, RowPageCharge, Bytes, Int64) -> Result[Unit, RowHostIssue]
@@ -261,6 +263,8 @@ pub fn prepare_row_mapping(RowDeclaration, String, String, Array[RowMappingSourc
 
 pub fn prepare_row_source(@query_planning.QueryRequirement, RowDeclaration) -> Result[RowSourcePreparation, RowSourceIssue]
 
+pub fn prepare_row_source_cursor_progress(Int, Int, Int, Int) -> Result[RowSourceCursorProgress, RowSourceCursorIssue]
+
 pub fn prepare_row_update_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]
 
 pub fn project_relation_target_document(RelationDocument, RowDeclaration, String, Array[String], Array[String]?, String, Array[String], prepared_contract? : RelationDocumentPreparedContract?) -> Result[RelationTargetDocument, RowSourceIssue]
@@ -458,6 +462,12 @@ pub fn row_run_normal_available(RowRun) -> Bool
 pub fn row_run_response_selection(RowRunResponseBorrow) -> Result[RowResponseSelection, RowHostIssue]
 
 pub fn row_source_columns(RowSourcePreparation) -> Array[String]
+
+pub fn row_source_cursor_has_next(RowSourceCursorProgress) -> Bool
+
+pub fn row_source_cursor_next(RowSourceCursorProgress) -> Result[String, RowSourceCursorIssue]
+
+pub fn row_source_cursor_remaining_rows(RowSourceCursorProgress, Int, Int) -> Result[Int, RowSourceCursorIssue]
 
 pub fn row_source_json_page_has_next_cursor(RowSourceJsonPage) -> Bool
 
@@ -783,6 +793,20 @@ pub struct RowRunResponseBorrow {
 }
 
 type RowSourceCapture
+
+pub(all) enum RowSourceCursorIssue {
+  InvalidLimits
+  ProgressMismatch
+  Completed
+  PageLimit
+  RowLimit
+  CursorLimit
+  CursorCycle
+  ForeignPage
+  NoNextCursor
+} derive(Eq, @debug.Debug)
+
+type RowSourceCursorProgress
 
 pub(all) enum RowSourceEvidenceIssue {
   ObservationUnavailable

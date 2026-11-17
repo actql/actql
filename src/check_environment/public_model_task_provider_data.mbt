@@ -1,4 +1,13 @@
 ///|
+/// Borrow the two original checked schema identities. No contract re-emission,
+/// parsing, hashing or Provider registration is performed by this projection.
+pub fn normalized_public_model_task_schema_cids(
+  value : NormalizedPublicModelTask,
+) -> (String, String) {
+  (value.declaration.input.cid, value.declaration.output.cid)
+}
+
+///|
 /// Bounded DATA from the same normalized declaration. This neither registers a
 /// Provider nor admits a new Task, Environment, permission or execution owner.
 /// The existing prompt emitter preserves instruction text exactly.

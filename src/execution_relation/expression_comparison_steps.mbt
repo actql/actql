@@ -84,7 +84,8 @@ fn advance_binary_comparison(
     | Strpos
     | StartsWith
     | EndsWith
-    | Contains => false
+    | Contains
+    | Like => false
     _ => true
   }
   let result = if comparison_operator &&

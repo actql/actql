@@ -128,7 +128,9 @@ export const currentPackageConfigurations = Object.freeze({
   // See docs/reviews/2026-11-18-session-local-resource-lifecycle-selector-review.json.
   'src/client_local_host/moon.pkg': Object.freeze({digest: '497f93c3defd265ba83791d7a8c3290302f368406e1d348f04a5d5f1c472fefd', rule: 'literal-target-selectors-with-bound-source-membership', revision: '8385cf48bbffd611f7fa62e872a21c764aa7787f'}),
   'src/connectors_builtin_node/moon.pkg': Object.freeze({digest: 'd515c9868140c30ef68b5778b71863813cad0d53cc7300e4ba8fcc3e00405d9d', rule: 'literal-js-foreign-library-with-bound-source-membership', revision: '6f27dfdf10aa232977277ec8580557463e44e81f'}),
-  'src/execution_relation/moon.pkg': Object.freeze({digest: '2a223e06a52cbb8c01280e9d5c5132485434728f59271ff02900f74ea582d079', rule: 'literal-target-selectors-with-bound-source-membership', revision: '6813ab0330a17f99c8eef5c9f4a70480ecc7e96c'}),
+  // One literal timestamp-pattern dependency; existing JS/non-JS selectors unchanged.
+  // See docs/reviews/2026-11-18-session-timestamp-pattern-import-review.json.
+  'src/execution_relation/moon.pkg': Object.freeze({digest: '58e075b724106152e31ae7dfb9c39394b5840e5169d3e4449fe842bc63651f11', rule: 'literal-target-selectors-with-bound-source-membership', revision: 'eb441ff1ed3c42bd243730306d883d1ddee41d45'}),
   'src/native_values_integration/moon.pkg': Object.freeze({digest: 'aa3777f1835f552da0ea34a13bbcb0de9afeb6c96adeadfbb26b483ce683c54f', rule: 'literal-native-options-with-bound-source-membership'}),
   'src/physical_resources/moon.pkg': Object.freeze({digest: '508d45513dd76478ece212cd3e9a2da45aa93f2e100d99c44076a31afa46be23', rule: 'literal-target-selectors-with-bound-source-membership', revision: 'bf198225499436c26be2f7d763582b0efaeeae2b'}),
   'src/platform_native/bounded_files/moon.pkg': Object.freeze({digest: '9dcccf37816250ccb794c1467658f3cd4c2ff239ed752b36e59ef167a40553a5', rule: 'literal-native-options-with-bound-source-membership'}),

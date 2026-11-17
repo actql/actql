@@ -20,7 +20,6 @@ test('installed Mock acceptance requires both complete same-cohort public templa
   for (const requirement of ['await verifyNativeCliRelease(directory)',
     "assert.equal(source.revision, manifest.sourceSha",
     'assert(expectedArtifact?.localRuntime',
-    'for (const template of mockTemplates) scenarios.push(await runNativeCliMockScenario',
     "assert.equal(scenarios.length, 2, 'Both README and Quickstart must finish without skips')",
     "run(process.execPath, [launcher, ...args], cwd)",
     "records.push(record)", "await writeFile(join(root, 'commands.json')"]) {
@@ -294,6 +293,9 @@ for (const template of mockTemplates) test(`harness requires the public ${templa
   assert.equal(receipt.resultRows, 2);
   assert.deepEqual(options.calls.map(({args}) => args[0]),
     ['init', 'run', 'status', 'status', 'approve', 'status', 'result', 'status', 'result']);
+  assert.deepEqual(receipt.commands.map(command => command.workflowPhase),
+    ['scaffold', 'prepare', 'waiting-status', 'waiting-review', 'approval',
+      'completed-status', 'result', 'saved-status', 'saved-result']);
   assert.equal(options.calls.filter(({args}) => args[0] === 'run').length, 1);
   assert.equal(options.calls.filter(({args}) => args[0] === 'approve').length, 1);
   assert.deepEqual(receipt.humanWaiting, {runId: 'unit-original-run', checkpointId: 'unit-original-checkpoint',

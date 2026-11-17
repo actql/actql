@@ -1,0 +1,24 @@
+///|
+/// Common DATA for the same normalized Task and explicit finite Host policy.
+/// The existing Request/Model/dependency owners still perform full admission.
+#export_name("clientProgramNormalizedPublicModelTaskNoRetryMaterials")
+pub fn client_program_normalized_public_model_task_no_retry_materials(
+  value : @check_environment.NormalizedPublicModelTask,
+  max_attempts : Int64,
+  max_cost_units : Int64,
+  max_duration_ms : Int64,
+  max_wire_bytes : Int64,
+  max_tokens : Int64,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_work : Int,
+) -> Result[
+  (String, String, String, String, String, String),
+  @check_environment.ModelTaskIssue,
+] {
+  @check_environment.normalized_public_model_task_no_retry_materials(
+    value, max_attempts, max_cost_units, max_duration_ms, max_wire_bytes, max_tokens,
+    max_bytes, max_nodes, max_depth, max_work,
+  )
+}

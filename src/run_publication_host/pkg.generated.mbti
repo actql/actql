@@ -17,6 +17,7 @@ import {
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/execution_site",
+  "actql/actql/expression_typing",
   "actql/actql/logical_request_scope",
   "actql/actql/lowering_relation",
   "actql/actql/numeric_reduction",
@@ -31,6 +32,9 @@ import {
   "actql/actql/query_planning",
   "actql/actql/query_program",
   "actql/actql/query_syntax",
+  "actql/actql/relation_join_shape",
+  "actql/actql/relation_schema",
+  "actql/actql/relation_typing",
   "actql/actql/remote_site_protocol",
   "actql/actql/remote_transfer",
   "actql/actql/run_publication",
@@ -328,6 +332,8 @@ pub fn cancel_client_model_current_state_write(@physical_resources.OriginalCurre
 pub fn capture_client_effect_run_observation_originals(PreparedClientEffectComputation, ClientEffectAllowedRun, @run_publication.PublicationContract) -> Result[ClientRunObservationOriginals, ClientRunObservationOriginalsIssue]
 
 pub fn capture_client_run_observation_originals(ClientCompiledRun, @run_publication.PublicationContract) -> Result[ClientRunObservationOriginals, ClientRunObservationOriginalsIssue]
+
+pub fn capture_client_structural_explanation_original(ClientCompiledRun, PreparedClientProgram, Int, Int, Int) -> Result[ClientStructuralExplanationOriginal, ClientExplanationFactsIssue]
 
 pub fn captured_client_result_transformation_matches_run(CapturedClientResultTransformation, @physical_strategy_host.CapturedDAG) -> Bool
 
@@ -1269,6 +1275,12 @@ pub fn client_native_product_placement_root(ClientNativeProductPlacement, Client
 
 pub fn client_node_model_state_read(ClientNodeModelStateWriter) -> Result[ClientModelReadPreparation, ClientNodeModelStateIssue]
 
+pub fn client_operation_explanation_meaning(ClientOperationExplanation, PreparedClientProgram) -> Result[ClientExplanationMeaning, ClientInteractivePlanIssue]
+
+pub fn client_operation_explanation_occurrence(ClientOperationExplanation, PreparedClientProgram) -> Result[ClientExplanationOccurrence, ClientInteractivePlanIssue]
+
+pub fn client_operation_explanation_structural_json(ClientOperationExplanation, PreparedClientProgram, Int, Int, Int) -> Result[String, ClientExplanationProjectionIssue]
+
 pub fn client_original_keyed_capture_available(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, ClientKeyedAcquisition) -> Bool
 
 pub fn client_original_keyed_lookup_available(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, ClientKeyedAcquisition, ClientKeyedLookupInput) -> Bool
@@ -1647,6 +1659,8 @@ pub fn client_task_material_original_chunks(String, String) -> Result[Array[(Str
 
 pub fn client_task_material_original_cid(String) -> Result[String, ClientJournalEncodingIssue]
 
+pub fn client_task_operation_explanation(PreparedClientProgram, ClientTaskCompilation, Int, Int) -> Result[ClientOperationExplanation, ClientInteractivePlanIssue]
+
 pub fn client_task_plan_graph_wire(ClientTaskPlanGraph) -> String
 
 pub fn client_task_run_binding_definition_cid(ClientTaskRunBinding) -> String
@@ -1708,6 +1722,8 @@ pub fn client_values_fragment_output_contract_cid(ClientValuesFragmentNode) -> S
 pub fn client_values_fragment_output_contract_wire(ClientValuesFragmentNode) -> String
 
 pub fn client_values_fragment_wire(ClientValuesFragmentNode) -> String
+
+pub fn client_values_operation_explanation(PreparedClientProgram, ClientValuesCompilation, Int, Int) -> Result[ClientOperationExplanation, ClientInteractivePlanIssue]
 
 pub fn client_values_plan_graph_wire(ClientValuesPlanGraph) -> String
 
@@ -2121,6 +2137,10 @@ pub fn measure_client_local_normalization_construction(ClientLocalNormalizationP
 
 pub fn measure_client_model_provider_binding_construction(String) -> (Int, Int, Int)?
 
+pub fn measure_client_operation_explanation_structural(ClientOperationExplanation, PreparedClientProgram, Int, Int, Int) -> Result[(Int, Int, Int), ClientExplanationProjectionIssue]
+
+pub fn measure_client_structural_explanation_facts(ClientStructuralExplanationOriginal, ClientCompiledRun, PreparedClientProgram, Int, Int, Int) -> Result[ClientExplanationFactsConstruction, ClientExplanationFactsIssue]
+
 pub fn measure_installed_client_composed_infer_graph_construction(ClientInferOccurrence, @check_environment.ModelExecutionContract, @lowering_relation.SequenceLimits, Int, Int, Int, serialization? : ClientSerializationPlanGraph?, keyed_native_read? : (ClientKeyedAcquisition, @run_publication.PublicationContract)?) -> Result[ClientInferGraphConstruction, ClientInferPlanGraphIssue]
 
 pub fn measure_prepared_client_effect_compilation_construction(ClientEffectCompilationConstructionInput, ClientCompilationManifests, @lowering_relation.SequenceLimits, ClientPureCompilationLimits) -> Result[ClientEffectCompilationConstruction, ClientValuesExecutablePlanIssue]
@@ -2322,6 +2342,8 @@ pub fn prepare_client_keyed_native_whole_source_evidence(ClientKeyedLookupInput,
 pub fn prepare_client_keyed_serialization_inputs(PreparedClientProgram, ClientKeyedLookupInput, @execution_query.CapturedInputSource, @physical_resources.Ledger, @execution_relation.GeneratedSequence) -> Result[(@execution_relation.ProducerRead, @execution_relation.SuppliedRelationRead), ClientKeyedRequestIssue]
 
 pub fn prepare_client_local_checkpoint_proof(String, String) -> Result[ClientLocalCheckpointProof, ClientLocalCheckpointProofIssue]
+
+pub fn prepare_client_model_provider_originals(String, String, String, Int, Int, Int, Int) -> Result[(String, String, String, String, String, String), @check_environment.ModelTaskIssue]
 
 pub fn prepare_client_model_read(ClientModelReadScope, Int64, Int64) -> Result[ClientModelReadPreparation, ClientModelReadPreparationIssue]
 
@@ -2722,6 +2744,8 @@ pub fn reuse_client_keyed_lookup_response(ClientKeyedLookupInput, ClientKeyedReq
 pub fn seal_client_requested_effect_stop(ClientRequestedEffectStop, @checkpoint_runtime.CheckpointRequest, String, @checkpoint_runtime.WireLimits) -> Result[@checkpoint_runtime.SealedCheckpoint, ClientRequestedEffectStopIssue]
 
 pub fn seal_client_requested_effect_stop_body(ClientRequestedEffectStop, String, String, @checkpoint_runtime.WireLimits) -> Result[String, ClientRequestedEffectStopIssue]
+
+pub fn seal_client_structural_explanation_facts(ClientStructuralExplanationOriginal, ClientCompiledRun, PreparedClientProgram, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientExplanationFactsIssue]
 
 pub fn select_client_direct_acquisition_occurrences(PreparedClientProgram, Int) -> Result[ClientDirectAcquisitionOccurrences, ClientDirectAcquisitionOccurrenceIssue]
 
@@ -3531,6 +3555,45 @@ pub(all) enum ClientExecutionMaterialIssue {
   InferTemplate(ClientInferBoundTemplateIssue)
 }
 
+pub(all) struct ClientExplanationFactsConstruction {
+  body : (Int, Int, Int)
+  complete : (Int, Int, Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ClientExplanationFactsIssue {
+  OriginalPlan(ClientCompiledRunPlanIssue)
+  ForeignOriginal
+  InvalidReadLimits
+  Meaning(ClientExplanationProjectionIssue)
+  Encoding(@encode_core.EncodeFailure)
+  Evidence(@run_publication.RunEvidenceValueIssue)
+} derive(Eq, @debug.Debug)
+
+pub enum ClientExplanationMeaning {
+  InputOutput
+  Values(row_count~ : Int, schema~ : @relation_schema.Schema)
+  Filter(@expression_typing.TypedExpression)
+  Projection(@relation_typing.CheckedOperation)
+  Join(@relation_join_shape.CheckedJoin)
+  NotProjected
+}
+
+pub(all) struct ClientExplanationOccurrence {
+  compiled_plan_cid : String
+  program_definition_cid : String
+  parameter_values_cid : String
+  stage_ordinal : Int
+  occurrence_ordinal : Int
+  input_only : Bool
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ClientExplanationProjectionIssue {
+  Original(ClientInteractivePlanIssue)
+  InvalidReadLimits
+  MalformedCheckedExpression
+  Encoding(@encode_core.EncodeFailure)
+} derive(Eq, @debug.Debug)
+
 type ClientHostSignerConfiguration
 pub fn ClientHostSignerConfiguration::has_explicit_signers(Self) -> Bool
 pub fn ClientHostSignerConfiguration::original_wire(Self) -> String
@@ -4304,6 +4367,15 @@ pub(all) enum ClientNodeModelStateIssue {
 } derive(Eq, @debug.Debug)
 
 type ClientNodeModelStateWriter
+
+pub struct ClientOperationExplanation {
+  owner : PreparedClientProgram
+  plan : @run_publication.PublicationContract
+  stage : Int
+  occurrence : Int
+  input_only : Bool
+  meaning : ClientExplanationMeaning
+}
 
 type ClientOriginalKeyedPrefixLookup
 
@@ -5223,6 +5295,12 @@ pub(all) struct ClientStaticPlanViewConstruction {
   map_sealed : (Int, Int, Int)
   view : (Int, Int, Int)
 } derive(Eq, @debug.Debug)
+
+pub struct ClientStructuralExplanationOriginal {
+  compiled : ClientCompiledRun
+  prepared : PreparedClientProgram
+  map : @canonical_json.CanonicalValue
+}
 
 pub struct ClientSubmissionEpochToken {
   body : @logical_request_scope.SubmissionEpoch

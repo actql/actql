@@ -2377,6 +2377,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
   const sourcePolicy = moon.clientProgramInstalledSourceReaderPolicy;
   const sourceProfile = moon.clientProgramInstalledJsonSourceReaderProfile;
   const sourceCapacity = moon.clientProgramInstalledJsonSourceReaderCapacity;
+  const cursorSourceCapacity = moon.clientProgramInstalledJsonCursorSourceReaderCapacity;
   const sourceRequestCapacity = moon.clientProgramInstalledJsonSourceReaderCapacityWithRequest;
   const preservingSourceRequestCapacity = moon.clientProgramInstalledPreservingJsonSourceReaderCapacityWithRequest;
   const current = () => {
@@ -2428,6 +2429,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       if (Reflect.ownKeys(fields).length !== (Object.hasOwn(fields, 'sourceInitialization') ? 4 : 3) +
           (Object.hasOwn(fields, 'requestConstruction') ? 1 : 0) +
           (Object.hasOwn(fields, 'preservingRequestConstruction') ? 1 : 0) +
+          (Object.hasOwn(fields, 'cursorProgress') ? 1 : 0) +
           (Object.hasOwn(fields, 'readSequenceConstruction') ? 1 : 0) ||
           Object.hasOwn(fields, 'requestConstruction') && Object.hasOwn(fields, 'preservingRequestConstruction') || ['installation', 'limits', 'columnCount'].some(name =>
         !Object.hasOwn(fields[name] ?? {}, 'value'))) fail('InvalidInstalledSourceReaderSelection');
@@ -2437,6 +2439,14 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       const selection = requireSourceConstructor(services, installation, fields);
       const columns = fields.columnCount.value;
       const preservingResponse = Object.hasOwn(fields, 'preservingRequestConstruction');
+      // Trusted Source construction selects its actual representation. Program
+      // DATA and Account policy do not choose a cheaper quote or another mode.
+      const cursorProgress = Object.hasOwn(fields, 'cursorProgress');
+      if (cursorProgress && (!Object.hasOwn(fields.cursorProgress, 'value') ||
+          fields.cursorProgress.value !== true || Object.hasOwn(fields, 'requestConstruction') ||
+          preservingResponse || Object.hasOwn(fields, 'readSequenceConstruction'))) {
+        fail('InvalidInstalledSourceReaderSelection');
+      }
       let requestConstruction;
       if (Object.hasOwn(fields, 'requestConstruction') || preservingResponse) {
         const field = preservingResponse ? fields.preservingRequestConstruction : fields.requestConstruction;
@@ -2501,8 +2511,9 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
         fail('InstalledSourceReaderImplementationBoundsExceeded');
       }
       const selectedRequestCapacity = preservingResponse ? preservingSourceRequestCapacity : sourceRequestCapacity;
+      const selectedPageCapacity = cursorProgress ? cursorSourceCapacity : sourceCapacity;
       if (typeof sourcePolicy !== 'function' || readSequenceConstruction === undefined &&
-          typeof (requestConstruction === undefined ? sourceCapacity : selectedRequestCapacity) !== 'function') fail('InstalledSourceReaderRuntimeUnavailable');
+          typeof (requestConstruction === undefined ? selectedPageCapacity : selectedRequestCapacity) !== 'function') fail('InstalledSourceReaderRuntimeUnavailable');
       const policy = Reflect.apply(sourcePolicy, moon, []);
       // The Values cells-per-row default is not Source schema eligibility.
       // Source columns retain their declared bounds and typed RowRun capacity;
@@ -2515,19 +2526,20 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       const previous = sourceImplementations.get(selection);
       if (previous !== undefined) {
         if (previous.requestConstruction !== requestConstruction || previous.preservingResponse !== preservingResponse ||
+            previous.cursorProgress !== cursorProgress ||
             previous.readSequenceConstruction !== readSequenceConstruction ||
             previous.runtimeBundleCid !== runtimeBundleCid || previous.columns !== columns ||
             names.some(name => previous.value.limits[name] !== limits[name])) fail('InstalledSourceReaderSelectionChanged');
         return previous.value;
       }
       const capacity = readSequenceConstruction !== undefined ? readSequenceConstruction.capacity
-        : Reflect.apply(requestConstruction === undefined ? sourceCapacity : selectedRequestCapacity, moon,
+        : Reflect.apply(requestConstruction === undefined ? selectedPageCapacity : selectedRequestCapacity, moon,
           [installedJsonSourceReaderLimitNames.map(name => limits[name]), columns, limits.maxSecretBytes,
             ...(requestConstruction === undefined ? [] : [requestConstruction.capacity])]);
       if (capacity === undefined || capacity === null) fail('InstalledSourceReaderCapacityUnavailable');
       const value = Object.freeze({capacity, limits, runAcquisitionLimits: Object.freeze({
         maxBindings: policy[1], maxSecretBytes: limits.maxSecretBytes})});
-      current(); sourceImplementations.set(selection, Object.freeze({runtimeBundleCid, columns, readSequenceConstruction, requestConstruction, preservingResponse, value}));
+      current(); sourceImplementations.set(selection, Object.freeze({runtimeBundleCid, columns, readSequenceConstruction, requestConstruction, preservingResponse, cursorProgress, value}));
       return value;
     },
     createSourceReader(options) {

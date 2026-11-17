@@ -1,0 +1,63 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/checkpoint_document"
+
+import {
+  "actql/actql/canonical_json",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn artifact_type(String) -> String?
+
+pub fn canonical_of(Json, Limits) -> @canonical_json.CanonicalValue?
+
+pub fn canonical_text(String) -> Bool
+
+pub fn cid_of(@canonical_json.CanonicalValue, Limits) -> String?
+
+pub fn closed_shape(@canonical_json.CanonicalValue, Array[String], Array[String]) -> ShapeIssue?
+
+pub fn combination_valid(String, String, String) -> Bool
+
+pub fn parse_wire(String, Limits) -> @canonical_json.CanonicalValue?
+
+pub fn requirement_max_arity(String) -> Int?
+
+pub fn requirements_valid(String, Array[String]) -> Bool
+
+pub fn reviewer_signature_valid(String) -> Bool
+
+pub fn string_array_json(Array[String]) -> Json
+
+pub fn string_field(@canonical_json.CanonicalValue, String) -> String?
+
+pub fn string_list_field(@canonical_json.CanonicalValue, String) -> Array[String]?
+
+pub fn valid_base64(String) -> Bool
+
+pub fn valid_cid(String) -> Bool
+
+pub fn valid_limits(Limits) -> Bool
+
+pub fn valid_timestamp(String) -> Bool
+
+pub fn wire_of(@canonical_json.CanonicalValue, Limits) -> String?
+
+// Errors
+
+// Types and methods
+pub(all) struct Limits {
+  max_wire_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ShapeIssue {
+  Unknown(String)
+  Missing(String)
+  NotObject
+}
+
+// Type aliases
+
+// Traits

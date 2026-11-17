@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {pathToFileURL} from 'node:url';
+import {runtimeField, runtimeUnboxedReferenceOption} from '../host-common/compiler-binding.generated.mjs';
 import {restSourcePageReader} from './rest-source-page.mjs';
 import {createInstalledCredentialSourceReader} from './installed-credential-source-reader.mjs';
 
@@ -8,6 +10,8 @@ import {createInstalledCredentialSourceReader} from './installed-credential-sour
 // with explicit Site/Account/charge ports; no case issues a normal public Run.
 function fixture(transform, options = {}) {
   const calls = [], first = Object.freeze({}), changed = Object.freeze({}), legacy = Object.freeze({});
+  const cursorCalls = [], progress = Object.freeze({}), cycle = Object.freeze({});
+  let advanced = 0;
   const bytes = Buffer.from('original response DATA'), wire = '[{"id":"9007199254740993"}]';
   const projected = (method, value) => function(...args) {
     assert.equal(this, moon);calls.push([method, ...args]);
@@ -16,6 +20,31 @@ function fixture(transform, options = {}) {
     return {$tag: 1, _0: value};
   };
   const moon = {
+    clientProgramRowSourcePrepareCursorProgress(...limits) {
+      assert.equal(this,moon);assert.deepEqual(limits,[3,4,2,32]);
+      cursorCalls.push(['prepare']);return {$tag:1,_0:progress};
+    },
+    clientProgramRowSourceCursorRemainingRows(value,index,count) {
+      assert.equal(this,moon);assert.equal(value,progress);
+      cursorCalls.push(['remaining',index,count]);return {$tag:1,_0:2};
+    },
+    clientProgramRowSourceAdvanceCursorProgress(value,index,count,envelope,rows) {
+      assert.equal(this,moon);assert.equal(value,progress);assert.equal(envelope,first);
+      assert([first,changed].includes(rows));cursorCalls.push(['advance',index,count,envelope,rows]);
+      // Canned typed port outcomes, not another pagination implementation.
+      // Actual bounds/cycle/EOF semantics are executed by the Core cases.
+      advanced++;
+      return advanced===1 ? {$tag:1,_0:options.hasNext===false} : {$tag:0,_0:cycle};
+    },
+    clientProgramRowSourceCursorHasNext(value) {
+      assert.equal(this,moon);assert.equal(value,progress);return advanced!==0;
+    },
+    clientProgramRowSourceCursorNext(value) {
+      assert.equal(this,moon);assert.equal(value,progress);return {$tag:1,_0:''};
+    },
+    clientProgramRowSourceCursorIssueCode(value) {
+      assert.equal(this,moon);assert.equal(value,cycle);return 'RestSourceCursorCycle';
+    },
     clientProgramRowSourceProjectJsonPage: projected('wire', legacy),
     clientProgramRowSourceProjectTypedJsonPage: projected('typed', first),
     clientProgramRowSourceJsonPageRowsWire(value) {
@@ -41,7 +70,7 @@ function fixture(transform, options = {}) {
       maxRows: 4, maxPages: 3, maxCursorBytes: 32}};
   const prepare = restSourcePageReader({moon, source, decodePage: transform});
   const invoke = (fn, receiver, args) => Reflect.apply(fn, receiver, args);
-  return {calls, moon, first, changed, bytes, wire, legacy, source, prepare,
+  return {calls, cursorCalls, cycle, moon, first, changed, bytes, wire, legacy, source, prepare,
     reader: prepare(undefined, invoke), response: {accepted: true, statusCode: 200, body: bytes},
     progress: {pageIndex: 0, rowCount: 0}};
 }
@@ -51,10 +80,12 @@ test('REST typed page forwards the same opaque original without rows wire encodi
   assert.equal(result.projectedPage, f.first);assert.equal(result.rowCount, 1);assert.equal(result.done, false);
   assert.deepEqual(Object.keys(result).sort(), ['done', 'projectedPage', 'rowCount']);
   assert.equal(f.calls.length, 1);assert.equal(f.calls[0][0], 'typed');assert.equal(f.calls[0][1], f.bytes);
+  assert.deepEqual(f.cursorCalls.at(-1),['advance',0,0,f.first,f.first]);
   assert.deepEqual(f.reader.fetchPage({pageIndex: 1, rowCount: 1}).query, [['cursor', '']]);
   // Captured methods/receiver remain the same after the author installation changes.
   f.moon.clientProgramRowSourceProjectTypedJsonPage = () => assert.fail('No replacement method');
-  assert.throws(() => f.reader.decodePage(f.response, {pageIndex: 1, rowCount: 1}), {code: 'RestSourceCursorCycle'});
+  assert.throws(() => f.reader.decodePage(f.response, {pageIndex: 1, rowCount: 1}),
+    error => error.code==='RestSourceCursorCycle' && error.cause===f.cycle);
 });
 
 test('REST unchanged author transform preserves its old DTO and reuses the parsed original', () => {
@@ -89,6 +120,7 @@ test('REST changed author wire is a new bounded Core parse while original cursor
   assert.equal(result.projectedPage, f.changed);assert.equal(result.rowCount, 2);assert.equal(result.done, false);
   assert.deepEqual(reader.fetchPage({pageIndex: 1, rowCount: 2}).query, [['cursor', '']]);
   assert.deepEqual(f.calls.map(call => call[0]), ['wire', 'original', 'rows-wire', 'changed-typed']);
+  assert.deepEqual(f.cursorCalls.at(-2),['advance',0,0,f.first,f.changed]);
 });
 
 test('REST typed page never substitutes EOF for malformed cursor projection or parser refusal', () => {
@@ -236,3 +268,66 @@ test('REST changed author wire preserves the original Core schema refusal', () =
   assert.throws(() => f.reader.decodePage(f.response, f.progress), error => error === cause);
   assert.deepEqual(f.calls.map(call => call[0]), ['wire', 'original', 'rows-wire', 'typed']);
 });
+
+// Reuse the existing explicit Common-module test input. Absent input leaves
+// only these two compiled-boundary cases unexecuted; canned ports above do not
+// qualify a runtime. Every nominal value below comes from this ONE namespace.
+const selectedCommon = process.env.ACTQL_METADATA_COMMON_RUNTIME;
+const actualCommon = selectedCommon === undefined ? undefined : import(pathToFileURL(selectedCommon));
+
+test('REST actual Common cursor boundary keeps empty Unicode EOF and original progress',
+  {skip: selectedCommon === undefined}, async () => {
+    const moon = await actualCommon;
+    const source = {resource: 'records', fields: [{name: 'id'}], read: {path: '/records'},
+      pagination: {kind: 'cursor', parameter: 'cursor', items: ['items'], next: ['next']},
+      limits: {maxPageBytes: 1024, maxNodes: 64, maxDepth: 8, maxPageRows: 2,
+        maxRows: 4, maxPages: 3, maxCursorBytes: 32}};
+    const prepare = restSourcePageReader({moon, source});
+    const reader = prepare();
+    const response = body => ({accepted: true, statusCode: 200,
+      body: Buffer.from(JSON.stringify(body), 'utf8')});
+    assert.deepEqual(reader.fetchPage({pageIndex: 0, rowCount: 0}).query, []);
+    const first = reader.decodePage(response({items: [{id: '🌱'}], next: ''}),
+      {pageIndex: 0, rowCount: 0});
+    assert.equal(first.rowCount, 1);assert.equal(first.done, false);
+    assert.deepEqual(reader.fetchPage({pageIndex: 1, rowCount: 1}).query, [['cursor', '']]);
+    assert.throws(() => reader.fetchPage({pageIndex: 1, rowCount: 0}),
+      {code: 'RestSourceCursorProgressMismatch'});
+    const empty = reader.decodePage(response({items: [], next: '次🌱'}),
+      {pageIndex: 1, rowCount: 1});
+    assert.equal(empty.rowCount, 0);assert.equal(empty.done, false);
+    assert.deepEqual(reader.fetchPage({pageIndex: 2, rowCount: 1}).query, [['cursor', '次🌱']]);
+    const last = reader.decodePage(response({items: [{id: 'last'}]}),
+      {pageIndex: 2, rowCount: 1});
+    assert.equal(last.rowCount, 1);assert.equal(last.done, true);
+    assert.throws(() => reader.fetchPage({pageIndex: 3, rowCount: 2}),
+      {code: 'RestSourceCursorCompleted'});
+
+    const cycle = prepare();
+    cycle.decodePage(response({items: [{id: 'first'}], next: ''}),
+      {pageIndex: 0, rowCount: 0});
+    assert.throws(() => cycle.decodePage(response({items: [{id: 'second'}], next: ''}),
+      {pageIndex: 1, rowCount: 1}), error => error.code === 'RestSourceCursorCycle' &&
+      moon.clientProgramRowSourceCursorIssueCode(error.cause) === error.code);
+    assert.deepEqual(cycle.fetchPage({pageIndex: 1, rowCount: 1}).query, [['cursor', '']]);
+  });
+
+test('REST actual Common cursor capacity uses the original domain representation',
+  {skip: selectedCommon === undefined}, async () => {
+    const moon = await actualCommon;
+    const limits = [4, 6, 3, 4, 2, 3, 2, 2, 5, 7, 8, 2, 9, 10, 11, 4];
+    const original = runtimeUnboxedReferenceOption(
+      moon.clientProgramInstalledJsonSourceReaderCapacity(limits, 2, 3));
+    const cursor = runtimeUnboxedReferenceOption(
+      moon.clientProgramInstalledJsonCursorSourceReaderCapacity(limits, 2, 3));
+    assert(original !== undefined && original !== null);
+    assert(cursor !== undefined && cursor !== null);
+    // Independent shared-tariff/domain vector from the exact/one-short Core
+    // fixture. The original capacity is opaque; use its existing typed Common
+    // projection, then the canonical tuple binding. This issues no capacity.
+    const originalBytes = moon.clientProgramSerializationCapacityBytes(original);
+    const cursorBytes = moon.clientProgramSerializationCapacityBytes(cursor);
+    assert.equal(runtimeField(originalBytes, 0), 3632n);
+    assert.equal(runtimeField(cursorBytes, 0), 4366n);
+    assert.equal(runtimeField(cursorBytes, 1) - runtimeField(originalBytes, 1), 774n);
+  });

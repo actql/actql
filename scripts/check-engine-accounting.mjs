@@ -3,8 +3,11 @@ import {readFile, readdir} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {workspaceCustodyMutation} from './engine-accounting-guard.mjs';
+import {checkResourceLifecycle} from './resource-lifecycle-guard.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+assert.deepEqual(checkResourceLifecycle(root).problems, [],
+  'Original keyed protocol construction bypasses its managed Owner boundary');
 const executionRoot = path.join(root, 'src/execution_relation');
 const files = await readdir(executionRoot);
 const productFiles = files.filter(name =>

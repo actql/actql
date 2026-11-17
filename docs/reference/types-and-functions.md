@@ -14,7 +14,7 @@ live in the specification; this page is the lookup table.
 | `number` | `NUMBER`, `FLOAT64`, `DOUBLE` | Finite IEEE-754 double. |
 | `decimal(P,S)` | `DECIMAL(P,S)` | Exact base-10 value with precision and scale. Use it for money. |
 | `boolean` | `BOOLEAN` | `TRUE` or `FALSE`. |
-| `timestamp` | `TIMESTAMP` | An instant, canonical UTC `YYYY-MM-DDTHH:mm:ss.sssZ`. |
+| `timestamp` | `TIMESTAMP` | An instant, canonical UTC with 3–9 fractional digits, for example `2026-01-02T03:04:05.123456789Z`. |
 | `date` | `DATE` | A calendar date, `YYYY-MM-DD`; distinct from a timestamp. |
 | `json` | | Untyped JSON; no static field information. |
 | `object` | | A closed record with declared, typed fields. |
@@ -125,7 +125,7 @@ Decimals use `add`, `subtract`, `multiply`, comparison, `sum`, `min`, `max`,
 | `date_trunc(t, unit)` | Truncate to `ms`, `s`, `m`, `h` or `d` (fixed UTC units). |
 | `date_add(t, n, unit)` | Add a fixed number of units. Dates accept only whole days. |
 | `date_diff(a, b, unit)` | Difference in whole units, truncated toward zero. |
-| `parse_timestamp(format, s)`, `format_timestamp(format, t)` | Pinned timestamp grammar (text-time profile). |
+| SQL `PARSE_TIMESTAMP(format, s)`, `FORMAT_TIMESTAMP(format, t)` | Pinned timestamp grammar (text-time profile); Common expressions use value first, pattern second. |
 | `calendar_bucket`, `calendar_series` | Calendar-aware buckets (months, weeks, time zones) — the calendar profile. |
 
 Fixed units never do calendar arithmetic: a day is exactly 86,400,000 ms.
