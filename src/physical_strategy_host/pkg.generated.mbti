@@ -591,6 +591,8 @@ pub fn finish_captured_effect_plan_verifier(CapturedEffectPlanVerifier) -> Resul
 
 pub fn finish_captured_effect_proposal_plan(CapturedEffectProposalPlan, Int) -> Result[Unit, CapturedEffectProposalIssue]
 
+pub fn fork_captured_task_boundary_for_logical_projection(CapturedDAG, CapturedTaskBoundary) -> Result[CapturedTaskBoundary, CapturedTaskBoundaryIssue]
+
 pub fn graph_captured_prefix(@physical_strategy.CheckedDAG) -> Int
 
 pub fn graph_control_at(@physical_strategy.CheckedDAG, Int) -> @physical_strategy.ControlEdge?

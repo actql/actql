@@ -2749,6 +2749,8 @@ pub fn retire_client_model_resource_park(@physical_resources.OriginalResourcePar
 
 pub fn retire_client_project_profile(ClientProjectProfileSelection) -> Result[Unit, ClientProjectProfileIssue]
 
+pub fn return_client_logical_task_boundary(ClientLogicalTaskBoundary) -> Result[Unit, ClientLogicalTaskBoundaryIssue]
+
 pub fn reuse_client_keyed_lookup_response(ClientKeyedLookupInput, ClientKeyedRequest, Int) -> Result[Unit, ClientKeyedRequestIssue]
 
 pub fn seal_client_requested_effect_stop(ClientRequestedEffectStop, @checkpoint_runtime.CheckpointRequest, String, @checkpoint_runtime.WireLimits) -> Result[@checkpoint_runtime.SealedCheckpoint, ClientRequestedEffectStopIssue]
@@ -4233,6 +4235,7 @@ pub(all) enum ClientLogicalTaskBoundaryIssue {
   InvalidReadLimits
   MissingOriginalOccurrence
   Encoding(@encode_core.EncodeFailure)
+  Boundary(@physical_strategy_host.CapturedTaskBoundaryIssue)
 } derive(Eq, @debug.Debug)
 
 pub enum ClientLogicalTaskBoundaryProjection {
