@@ -6,6 +6,7 @@ fn resource_lifecycle_execute_sql(
   format? : String = "sql",
   memory? : Int64? = None,
   source_free_max_work? : Int? = None,
+  observe_limits? : Bool = false,
 ) -> Array[String] raise {
   let policy = client_local_resource_policy()
   let environment = collection_capacity_selected_environment(
@@ -72,13 +73,28 @@ fn resource_lifecycle_execute_sql(
     source_free_max_work~,
   ).unwrap()
   let plan = parent.program_source_free.unwrap()
+  if observe_limits {
+    let selected = plan.capacity_plan
+    println(
+      "OriginalSelectedLimits:admitted_rows=\{selected.admitted_rows}" +
+      ":max_rows=\{selected.execution.rows.max_rows}" +
+      ":operation_entries=\{selected.execution.rows.operation_entries}" +
+      ":max_work=\{selected.execution.max_work}",
+    )
+  }
   let request = @publication_host.prepare_source_free_client_request_identity(
     prepared,
     "sha256:" + "a".repeat(64),
     "original-lifecycle-regression",
   ).unwrap()
   let run = begin_request_program_managed_run(parent, request).unwrap()
-  defer retire_installed_managed_run(run).unwrap()
+  defer (match retire_installed_managed_run(run) {
+    Ok(_) => ()
+    Err(_) =>
+      // The explicit success path below still requires retirement. A failed
+      // cleanup must not replace the original raised test failure on unwind.
+      println("OriginalLifecycleCleanupPending:retirement_refused")
+  })
   let ledger = run.ledger.unwrap()
   let setup = open_installed_managed_source_free_host(
       run,
@@ -97,9 +113,10 @@ fn resource_lifecycle_execute_sql(
     Ok(value) => value
     Err(original) => {
       let issue = local_values_execution_failure_issue(original)
-      assert_true(retry_local_values_execution_failure_cleanup(original))
-      retire_installed_managed_run(run).unwrap()
-      assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+      let cleanup_complete = retry_local_values_execution_failure_cleanup(
+        original,
+      )
+      let retirement = retire_installed_managed_run(run)
       let diagnostic = match issue {
         Driver(ExecutionCapacityRefusal(cause, needed, available, policy)) =>
           @debug.to_string(cause) +
@@ -108,9 +125,19 @@ fn resource_lifecycle_execute_sql(
           "Physical:" + @debug.to_string(cause)
         Driver(Configuration(Execution(Rows(step, RowLimit)))) =>
           "Configuration.Execution.Rows.RowLimit:\{step}"
+        Driver(original) =>
+          @local_driver.local_managed_failure_cause(original).unwrap_or(
+            "OriginalLocalFailure",
+          )
         _ => "OriginalLocalFailure"
       }
-      fail("OriginalLocalExecution:" + diagnostic)
+      fail(
+        "OriginalLocalExecution:" +
+        sql +
+        ":" +
+        diagnostic +
+        ":cleanup_complete=\{cleanup_complete}:retired=\{retirement is Ok(_)}",
+      )
     }
   }
   let rows = output.rows().unwrap().copy()
@@ -233,5 +260,61 @@ test "unfiltered and all-pass filtered ten-thousand rows share original resource
       expected.sort()
       assert_eq(rows, expected)
     }
+  }
+}
+
+///|
+fn resource_lifecycle_boundary_rows(count : Int) -> Unit raise {
+  let digits = Array::makei(10, n => "SELECT " + n.to_string() + " AS n").join(
+    " UNION ALL ",
+  )
+  let expression = "a.n*1000+b.n*100+c.n*10+e.n"
+  let prefix = "WITH d AS (" +
+    digits +
+    ") SELECT " +
+    expression +
+    " AS id FROM d a CROSS JOIN d b CROSS JOIN d c CROSS JOIN d e"
+  let suffix = if count == 9999 {
+    " WHERE " + expression + " < 9999"
+  } else {
+    " UNION ALL SELECT 10000 AS id"
+  }
+  let rows = resource_lifecycle_execute_sql(
+    prefix + suffix,
+    observe_limits=true,
+  )
+  let expected = Array::makei(count, index => {
+    "{\"id\":" + index.to_string() + "}"
+  })
+  assert_eq(rows.length(), count)
+  // Neither query declares ORDER BY: preserve independent multiplicity.
+  rows.sort()
+  expected.sort()
+  assert_eq(rows, expected)
+}
+
+///|
+test "boundary preceding ten thousand retains every original row" {
+  resource_lifecycle_boundary_rows(9999)
+}
+
+///|
+test "boundary following ten thousand retains every original row" {
+  resource_lifecycle_boundary_rows(10001)
+}
+
+///|
+test "boundary nullable and empty aggregates retain their original typed results" {
+  let prefix = "WITH t AS (SELECT 10 AS v UNION ALL SELECT CAST(NULL AS FLOAT64) AS v " +
+    "UNION ALL SELECT 30 AS v) "
+  let query = "SELECT MIN(v) AS lo, MAX(v) AS hi, COUNTIF(v > 10) AS n, " +
+    "COUNT(DISTINCT v) AS d FROM t"
+  for
+    (suffix, expected) in [
+      ("", "{\"lo\":10,\"hi\":30,\"n\":1,\"d\":2}"),
+      (" WHERE FALSE", "{\"lo\":null,\"hi\":null,\"n\":0,\"d\":0}"),
+    ] {
+    let actual = resource_lifecycle_execute_sql(prefix + query + suffix)
+    assert_eq(actual.map(value => @json.parse(value)), [@json.parse(expected)])
   }
 }
