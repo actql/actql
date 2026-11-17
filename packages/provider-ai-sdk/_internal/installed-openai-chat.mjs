@@ -59,8 +59,10 @@ function installedChatRegistration(config, originalUndici) {
   }
   const keys='apiKey,baseURL,bindingOriginals,fetch,modelId,modelSelector,observeAt,observeEgress,originalReadInstallation,originalStringLimits,outputSchemaCid,projectionLimits,promptCid,promptPayloadWire,providerId,quantityCapacity,rawCaptureSelection,requestLimits,responseLimits,taskCid';
   const materialMode = config!==null && typeof config==='object' && Object.hasOwn(config,'originalMaterials');
+  const recipeMode = config!==null && typeof config==='object' && Object.hasOwn(config,'originalReadRecipe');
   const selectedKeys = materialMode ? keys.replace(',originalReadInstallation',',originalMaterials')
-    .replace(',rawCaptureSelection','') : keys;
+    .replace(',rawCaptureSelection','') : recipeMode
+      ? keys.replace(',originalReadInstallation',',originalReadRecipe') : keys;
   config=snapshotData(config,originalUndici ? selectedKeys.replace(',fetch', '')
     .replace(',projectionLimits',',physicalAcquisitionLimits,projectionLimits') : selectedKeys,
     'InvalidInstalledOpenAIChatConfiguration');
@@ -153,7 +155,7 @@ function installedChatRegistration(config, originalUndici) {
   const responseLimits=fixedInferResponseLimits(config.responseLimits);
   // No supported normal supplier is synthesized when installation is missing.
   // Clamps, positive integers or a matching profile CID are not that supplier.
-  const original=config.originalReadInstallation;
+  const original=recipeMode ? config.originalReadRecipe : config.originalReadInstallation;
   const raw=config.rawCaptureSelection;
   if (!frozen(original) || !frozen(original.bootstrap) || !frozen(original.nodeInstallation) ||
       !frozen(original.nodeInstallation.layout) || !frozen(raw) ||
@@ -200,7 +202,8 @@ function installedChatRegistration(config, originalUndici) {
       physicalAcquisitionLimits:config.physicalAcquisitionLimits}) : fetch;
     return [Object.freeze({providerId,entryPersistence:'async',
       sdkStaticOriginals:openAIChatStaticOriginals,
-      bindingOriginals:bindings,originalReadInstallation:original,
+      bindingOriginals:bindings,
+      ...(recipeMode ? {originalReadRecipe:original} : {originalReadInstallation:original}),
       rawCaptureSelection:raw,quantityCapacity:quantities,observeEgress,
       // Common has already admitted the exact Task/prompt dependency. This
       // comparator selects the installed interpretation, not a JS evaluator.

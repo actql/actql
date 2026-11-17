@@ -105,6 +105,18 @@ all be included in the original Host/Run simultaneous budget. Missing complete
 funding still returns the existing Unavailable; these reader limits cannot
 stand in for it. This remains a development installer, not live-ready guidance.
 
+An installation may select `originalReadRecipe` instead of
+`originalReadInstallation`, either in `originalMaterials` or as an already
+admitted opaque-profile declaration. These selections are mutually exclusive.
+The recipe retains the same original response profile, physical declarations,
+finite quantities and policies. Its layout omits `program_definition_cid`,
+`parameter_values_cid` and `barrier_cid`: the existing Host binds those from each
+actual checked Graph before the original Plan/Scope constructor. Supplying
+prebound identities in recipe DATA refuses. Applications must not manufacture
+those identities or reuse a previous Program's bound installation. This
+connection supplies neither a normal physical profile nor secret resolution;
+normal configuration, complete funding and live acceptance remain unfinished.
+
 This entry selects the fixed private Undici transport after the same existing
 Host snapshots/profile/original-selection checks. It reuses the existing
 exclusive async registration, physical preflight and original Call cleanup;

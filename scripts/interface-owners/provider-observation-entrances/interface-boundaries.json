@@ -2354,15 +2354,17 @@
     {
       "module": "packages/provider-ai-sdk/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "58cff6db206180a5e8afba86e6affea7e26012a4942384d2bcc002e5ce2e0bc5",
+      "sha256": "246dd2023a7b6c2aef81ac027b24515b090661aa60e23e7798de458c374bc759",
       "exports": [
         "ModelProviderRegistration",
         "OpenAIChatMaterialsRegistrationOptions",
+        "OpenAIChatRecipeRegistrationOptions",
         "OpenAIChatRegistrationOptions",
         "OpenAIInstallationData",
         "OpenAIOriginalMaterials",
         "OriginalBody",
         "OriginalReadInstallationData",
+        "OriginalReadRecipeData",
         "OriginalStringLimits",
         "PhysicalAcquisitionLimits",
         "ProjectionLimits",
@@ -2371,6 +2373,7 @@
         "ResponseLimits",
         "Sha256Cid",
         "UndiciOpenAIChatMaterialsRegistrationOptions",
+        "UndiciOpenAIChatRecipeRegistrationOptions",
         "UndiciOpenAIChatRegistrationOptions",
         "createInstalledOpenAIChatRegistration",
         "createInstalledUndiciOpenAIChatRegistration"
@@ -2410,6 +2413,13 @@
         {
           "name": "createInstalledOpenAIChatRegistration#2",
           "parameters": [
+            "options: OpenAIChatRecipeRegistrationOptions"
+          ],
+          "result": "ModelProviderRegistration"
+        },
+        {
+          "name": "createInstalledOpenAIChatRegistration#3",
+          "parameters": [
             "options: OpenAIChatMaterialsRegistrationOptions"
           ],
           "result": "ModelProviderRegistration"
@@ -2423,6 +2433,13 @@
         },
         {
           "name": "createInstalledUndiciOpenAIChatRegistration#2",
+          "parameters": [
+            "options: UndiciOpenAIChatRecipeRegistrationOptions"
+          ],
+          "result": "ModelProviderRegistration"
+        },
+        {
+          "name": "createInstalledUndiciOpenAIChatRegistration#3",
           "parameters": [
             "options: UndiciOpenAIChatMaterialsRegistrationOptions"
           ],
@@ -2441,17 +2458,21 @@
             "<call>#4",
             "createInstalledOpenAIChatRegistration",
             "createInstalledOpenAIChatRegistration#2",
+            "createInstalledOpenAIChatRegistration#3",
             "createInstalledUndiciOpenAIChatRegistration",
-            "createInstalledUndiciOpenAIChatRegistration#2"
+            "createInstalledUndiciOpenAIChatRegistration#2",
+            "createInstalledUndiciOpenAIChatRegistration#3"
           ],
           "exports": [
             "ModelProviderRegistration",
             "OpenAIChatMaterialsRegistrationOptions",
+            "OpenAIChatRecipeRegistrationOptions",
             "OpenAIChatRegistrationOptions",
             "OpenAIInstallationData",
             "OpenAIOriginalMaterials",
             "OriginalBody",
             "OriginalReadInstallationData",
+            "OriginalReadRecipeData",
             "OriginalStringLimits",
             "PhysicalAcquisitionLimits",
             "ProjectionLimits",
@@ -2460,6 +2481,7 @@
             "ResponseLimits",
             "Sha256Cid",
             "UndiciOpenAIChatMaterialsRegistrationOptions",
+            "UndiciOpenAIChatRecipeRegistrationOptions",
             "UndiciOpenAIChatRegistrationOptions",
             "createInstalledOpenAIChatRegistration",
             "createInstalledUndiciOpenAIChatRegistration"
@@ -2563,6 +2585,10 @@
               {
                 "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
                 "anchor": "no success claim"
+              },
+              {
+                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
+                "anchor": "recipe binds each original checked Graph through the existing Host owner"
               }
             ]
           }

@@ -42,6 +42,10 @@ const installation = value => record(value,{
 // reconstruction or funding proof. Each descriptor is read exactly once;
 // the existing Common readers alone admit the original wire and CID.
 export function snapshotOpenAIOriginalMaterials(value) {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) fail();
+  const recipe = Object.hasOwn(value, 'originalReadRecipe');
+  const readKey = recipe ? 'originalReadRecipe' : 'originalReadInstallation';
+  if (recipe && Object.hasOwn(value, 'originalReadInstallation')) fail();
   return record(value,{
     responseProfile:original,
     policyOriginals:value => record(value,{retention:original,metadata:original,clock:original,data:original}),
@@ -50,7 +54,7 @@ export function snapshotOpenAIOriginalMaterials(value) {
         if (!Number.isSafeInteger(value) || value < 1 || value > 2147483647) fail();return value;
       }]))),
     installation,
-    originalReadInstallation:value => record(value,{
+    [readKey]:value => record(value,{
       bootstrap:value => record(value,{
         ...fields('bootstrapExecutionBytes,bootstrapRetainedBytes',quantity),
         ...fields('maxDelegations,maxHoldings,maxReservations',integer),
@@ -59,7 +63,8 @@ export function snapshotOpenAIOriginalMaterials(value) {
       nodeInstallation:value => record(value,{
         runtimeArtifactCid:identity,layoutArtifactCid:identity,
         layout:value => record(value,{
-          ...fields('barrier_cid,layout_artifact_cid,parameter_values_cid,program_definition_cid,runtime_artifact_cid',identity),
+          ...fields(recipe ? 'layout_artifact_cid,runtime_artifact_cid'
+            : 'barrier_cid,layout_artifact_cid,parameter_values_cid,program_definition_cid,runtime_artifact_cid',identity),
           ...fields('execution_bytes,prepared_rows,retained_bytes',quantity),
         }),
       }),
@@ -105,9 +110,12 @@ export function admitOpenAIOriginalMaterials(moon, materials) {
     return [name,checked(moon.clientProgramAdmitEffectDependencyBody(
       kind,body.cid,body.wire,maxBytes,maxNodes,maxDepth))];
   }));
-  const {installation,originalReadInstallation:read,rawCaptureSelection:raw} = materials;
+  const {installation,rawCaptureSelection:raw} = materials;
+  const readKey = Object.hasOwn(materials, 'originalReadRecipe')
+    ? 'originalReadRecipe' : 'originalReadInstallation';
+  const read = materials[readKey];
   return Object.freeze({
-    originalReadInstallation:Object.freeze({...read,nodeInstallation:Object.freeze({
+    [readKey]:Object.freeze({...read,nodeInstallation:Object.freeze({
       ...read.nodeInstallation,installation,probability:undefined,
       layout:Object.freeze({...read.nodeInstallation.layout,response_profile:profile}),
     })}),

@@ -60,17 +60,30 @@ export type OriginalReadInstallationData = Readonly<{
       parse: Readonly<{max_input_bytes: number; max_nodes: number; max_depth: number}>;
       tree: Readonly<{max_nodes: number; max_depth: number; max_string_bytes: number; max_total_string_bytes: number}>}>}>;
 }>;
+/** The same Host binds these identities from each actual checked Graph.
+ * A recipe is not an opaque read installation or a resource grant. */
+export type OriginalReadRecipeData =
+  Omit<OriginalReadInstallationData, 'nodeInstallation'> & Readonly<{
+    nodeInstallation: Omit<OriginalReadInstallationData['nodeInstallation'], 'layout'> & Readonly<{
+      layout: Omit<OriginalReadInstallationData['nodeInstallation']['layout'],
+        'program_definition_cid' | 'parameter_values_cid' | 'barrier_cid'> &
+        Readonly<{program_definition_cid?: never; parameter_values_cid?: never; barrier_cid?: never}>;
+    }>;
+  }>;
 /** Selected once, then admitted only when the actual Host calls registration.
  * This snapshot and its reader workspace need the original Host budget. */
-export type OpenAIOriginalMaterials = Readonly<{
+type OpenAIOriginalMaterialsCommon = Readonly<{
   responseProfile: OriginalBody;
   policyOriginals: Readonly<{retention: OriginalBody; metadata: OriginalBody; clock: OriginalBody; data: OriginalBody}>;
   readerLimits: Readonly<{maxBytes: number; maxNodes: number; maxDepth: number; maxMembers: number; maxWork: number}>;
   installation: OpenAIInstallationData;
-  originalReadInstallation: OriginalReadInstallationData;
   rawCaptureSelection: Readonly<{selectedAt: string; availableUntil: string; deleteBy: string;
     extensionCeilingAt: string; metadataDeleteBy: string; selectionAvailable: () => boolean}>;
 }>;
+export type OpenAIOriginalMaterials = OpenAIOriginalMaterialsCommon & (
+  Readonly<{originalReadInstallation: OriginalReadInstallationData; originalReadRecipe?: never}> |
+  Readonly<{originalReadRecipe: OriginalReadRecipeData; originalReadInstallation?: never}>
+);
 export type OpenAIChatRegistrationOptions = Readonly<{
   providerId: string; modelSelector: string; modelId: string;
   baseURL: string; apiKey: string;
@@ -80,6 +93,7 @@ export type OpenAIChatRegistrationOptions = Readonly<{
   /** Already selected original Host/Run installation; never reconstructed
    * from Program fields, matching CIDs or caller-owned byte declarations. */
   originalReadInstallation: object;
+  originalReadRecipe?: never;
   rawCaptureSelection: object;
   originalMaterials?: never;
   bindingOriginals: object;
@@ -97,11 +111,18 @@ export type OpenAIChatRegistrationOptions = Readonly<{
 export declare function createInstalledOpenAIChatRegistration(
   options: OpenAIChatRegistrationOptions,
 ): ModelProviderRegistration;
+/** Host-selected recipe; per-Program identities come from the checked Graph. */
+export type OpenAIChatRecipeRegistrationOptions =
+  Omit<OpenAIChatRegistrationOptions, 'originalReadInstallation' | 'originalReadRecipe'> &
+  Readonly<{originalReadRecipe: object; originalReadInstallation?: never}>;
+export declare function createInstalledOpenAIChatRegistration(
+  options: OpenAIChatRecipeRegistrationOptions,
+): ModelProviderRegistration;
 /** Mutually exclusive with already opaque selections. One callback per Host. */
 export type OpenAIChatMaterialsRegistrationOptions =
-  Omit<OpenAIChatRegistrationOptions, 'originalReadInstallation' | 'rawCaptureSelection' | 'originalMaterials'> &
+  Omit<OpenAIChatRegistrationOptions, 'originalReadInstallation' | 'originalReadRecipe' | 'rawCaptureSelection' | 'originalMaterials'> &
   Readonly<{originalMaterials: OpenAIOriginalMaterials;
-    originalReadInstallation?: never; rawCaptureSelection?: never}>;
+    originalReadInstallation?: never; originalReadRecipe?: never; rawCaptureSelection?: never}>;
 export declare function createInstalledOpenAIChatRegistration(
   options: OpenAIChatMaterialsRegistrationOptions,
 ): ModelProviderRegistration;
@@ -113,6 +134,12 @@ export type UndiciOpenAIChatRegistrationOptions =
   Readonly<{physicalAcquisitionLimits: PhysicalAcquisitionLimits}>;
 export declare function createInstalledUndiciOpenAIChatRegistration(
   options: UndiciOpenAIChatRegistrationOptions,
+): ModelProviderRegistration;
+export type UndiciOpenAIChatRecipeRegistrationOptions =
+  Omit<OpenAIChatRecipeRegistrationOptions, 'fetch'> &
+  Readonly<{physicalAcquisitionLimits: PhysicalAcquisitionLimits}>;
+export declare function createInstalledUndiciOpenAIChatRegistration(
+  options: UndiciOpenAIChatRecipeRegistrationOptions,
 ): ModelProviderRegistration;
 export type UndiciOpenAIChatMaterialsRegistrationOptions =
   Omit<OpenAIChatMaterialsRegistrationOptions, 'fetch'> &
