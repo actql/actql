@@ -1172,14 +1172,6 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Verification: `installed-composed-recovery.integration.test.mjs` exercises"
-              },
-              {
-                "path": "scripts/row-effect-create-types.test.mjs",
-                "anchor": "standard CREATE and existing driver consumers use the same public exclusive factory"
-              },
-              {
-                "path": "scripts/row-effect-create-types.test.mjs",
-                "anchor": "standard CREATE rejects conflicting/missing implementations and invalid pure callbacks"
               }
             ]
           }
