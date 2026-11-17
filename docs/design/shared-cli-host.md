@@ -47,10 +47,14 @@ retained material. Loss of an HTTP connection does not prove nonacceptance,
 physical stop or cleanup. An uncertain response is looked up using its original
 operation identity; a fresh submission is not a recovery mechanism.
 
-Cancellation targets the same Run and observed control revision. Accepted
-cancellation, later semantic cancellation, physical stop and resource return
-remain distinct. Pause and step must use that same control owner once genuinely
-implemented; the service cannot create those capabilities through routing.
+Cancellation targets the same Run using its existing public cancellation,
+CAS and original-operation lookup semantics. The SDK's `expectedRevision`
+remains optional; this design adds no mandatory observed-revision precondition.
+Accepted cancellation, later semantic cancellation, physical stop and resource
+return remain distinct. Future interactive pause and step use their original
+integer `control_revision` CAS contract, which must not be conflated with the
+existing cancellation options. The service cannot create those capabilities
+through routing.
 
 ## Owner close and restart
 
