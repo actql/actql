@@ -379,43 +379,44 @@ test('Native retained verification builds exactly its checked release module inv
 });
 
 test('normal lint executes behavioral operation performance assessment tests', () => {
-  const step = jobs.lint.steps.find(row =>
-    row.name === 'Test ordinary operation performance assessment');
-  const policy = jobs.lint.steps.find(row =>
-    row.name === 'Test ordinary operation performance policy oracles');
-  assert.ok(step);
-  assert.ok(policy);
-  assert.equal(policy.run, 'npm run test:operation-performance-policy');
+  const collectors = jobs.lint.steps.filter(row => row.run === 'npm run test:operation-performance-collectors');
+  const policies = jobs.lint.steps.filter(row => row.run === 'npm run test:operation-performance-policy');
+  assert.equal(collectors.length, 1);
+  assert.equal(policies.length, 1);
+  const [step] = collectors, [policy] = policies;
   assert.equal(policy.if, undefined);
-  assert.equal(step.run, 'npm run test:operation-performance-collectors');
   assert.equal(step.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
   // These tests validate raw samples, frame counts, faults and incomplete
   // evidence. Running them is not an ordinary-package performance result.
   assert.ok(jobs.host.steps.some(row => row.run === 'npm run check:checkpoint-runtime'));
-  const observed = jobs.host.steps.find(row =>
-    row.name === 'Test operation authorization and unchanged Run observations');
-  assert.equal(observed.run, 'npm run test:host-observations');
-  assert.ok(jobs.host.steps.indexOf(observed) > jobs.host.steps.findIndex(row =>
-    row.run === 'npm run check:retained-boundary'));
+  const observations = jobs.host.steps.filter(row => row.run === 'npm run test:host-observations');
+  assert.equal(observations.length, 1);
+  assert.equal(observations[0].if, "${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}");
 });
 
 test('normal lint executes ordinary process collector protocol tests', () => {
-  const step = jobs.lint.steps.find(row =>
-    row.name === 'Test ordinary process collector protocols');
-  assert.ok(step);
-  assert.equal(step.run, 'python3 -I -B scripts/benchmark-ordinary-processes.test.py');
+  const selected = jobs.lint.steps.filter(row => row.run === 'python3 -I -B scripts/benchmark-ordinary-processes.test.py');
+  assert.equal(selected.length, 1);
+  const [step] = selected;
   assert.equal(step.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
   assert.equal(step['continue-on-error'], undefined);
   // Process fixtures exercise the collector and package fence, not product speed.
 });
 
 test('normal Host CI executes bounded Journal preparation and cursor regressions', () => {
-  const step = jobs.host.steps.find(row =>
-    row.name === 'Test bounded Journal preparation and execution');
-  assert.ok(step);
-  assert.equal(step.run, 'node --test adapters/host-node/client-request-journal-sql-bounds.test.mjs adapters/host-node/client-request-journal-execution-bounds.test.mjs adapters/host-node/client-request-journal-wal-bounds.test.mjs adapters/host-node/client-request-journal-fresh-schema.test.mjs');
-  assert.ok(jobs.host.steps.indexOf(step) > jobs.host.steps.findIndex(row =>
-    row.run === 'npm run check:retained-boundary'));
+  const files = ['adapters/host-node/client-request-journal-sql-bounds.test.mjs',
+    'adapters/host-node/client-request-journal-execution-bounds.test.mjs',
+    'adapters/host-node/client-request-journal-wal-bounds.test.mjs',
+    'adapters/host-node/client-request-journal-fresh-schema.test.mjs'];
+  for (const file of files) {
+    const owners = jobs.host.steps.filter(row => row.run?.split(/\s+/u).includes(file));
+    assert.equal(owners.length, 1, file);
+    const [step] = owners, args = step.run.split(/\s+/u);
+    assert.deepEqual(args.slice(0, 2), ['node', '--test']);
+    assert.equal(args.filter(value => value === file).length, 1, file);
+    assert.equal(step.if, "${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}");
+    assert.equal(step['continue-on-error'], undefined);
+  }
 });
 
 test('normal Host CI checks real connector initialization after its ordinary runtime build', () => {
