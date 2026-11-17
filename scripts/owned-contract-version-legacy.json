@@ -1803,6 +1803,14 @@
       "line": 15,
       "count": 1,
       "reason": "Reviewed read-only assertion of the already adopted dispatch-journal SQLite schema after a lost COMMIT reply. Product format, writer and accepted versions are unchanged; this exact test context authorizes no new version or writer."
+    },
+    {
+      "path": "src/run_publication/model_capture_usage.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "75f4f04e0755f3a89fa8937e1c37b98015fe52b52c7fb479509047a6dc2375d5",
+      "line": 20,
+      "count": 1,
+      "reason": "Explicit Root review on November 18 permits only this existing current-reported observation reader context. It distinguishes the already supported historical and current invocation formats without changing either writer or default wire bytes. The new opt-in usage Sink receives local seven-field DATA, not a new versioned artifact, writer, authority or self-CID."
     }
   ]
 }
