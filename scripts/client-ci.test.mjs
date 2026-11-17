@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, unlinkSync, writeFileSync} from 'node:fs';
+import {mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, symlinkSync, unlinkSync, writeFileSync} from 'node:fs';
 import {readFile, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -53,6 +53,34 @@ const runs = name => jobs[name].steps.filter(step => step.run).flatMap(step => {
 });
 const run = (script, env) => spawnSync('bash', ['-eo', 'pipefail', '-c', script], {
   cwd: root, env: {...process.env, ...env}, encoding: 'utf8',
+});
+
+for (const status of [0, 73]) test(`normal provider owner ${status === 0 ? 'continues after' : 'refuses'} its original recipe type gate`, t => {
+  const recipe = JSON.parse(readFileSync(new URL('../package.json', import.meta.url))).scripts['check:provider-ai-sdk'];
+  const directory = mkdtempSync(join(tmpdir(), 'actql-provider-ci-types-')), bin = join(directory, 'bin');
+  t.after(() => rmSync(directory, {recursive: true, force: true}));
+  mkdirSync(bin);
+  const callsPath = join(directory, 'calls.txt');
+  for (const executable of ['tsc', 'node']) writeFileSync(join(bin, executable),
+    `#!/bin/sh\nprintf 'exec:${executable}\\n' >> "$ACTQL_CI_CALLS"\nprintf '%s\\n' "$@" >> "$ACTQL_CI_CALLS"\n` +
+    (executable === 'tsc' ? 'exit "$ACTQL_CI_TYPE_STATUS"\n' : ''), {mode: 0o755});
+  const result = spawnSync('/bin/sh', ['-c', recipe], {cwd: root, encoding: 'utf8', timeout: 3000,
+    env: {...process.env, PATH: bin, ACTQL_CI_CALLS: callsPath, ACTQL_CI_TYPE_STATUS: String(status)}});
+  assert.equal(result.error, undefined); assert.equal(result.signal, null);
+  assert.equal(result.status, status, result.stderr);
+  const calls = readFileSync(callsPath, 'utf8').trim().split('\n');
+  assert.equal(calls[0], 'exec:tsc');
+  const nodeIndex = calls.indexOf('exec:node');
+  const typeArguments = calls.slice(1, nodeIndex === -1 ? calls.length : nodeIndex);
+  for (const required of ['--noEmit', '--strict']) assert(typeArguments.includes(required), required);
+  assert.equal(typeArguments.filter(value => value ===
+    'packages/provider-ai-sdk/original-recipe.typecheck.mts').length, 1);
+  assert.equal(calls.filter(value => value === 'exec:node').length, status === 0 ? 1 : 0);
+  if (status === 0) {
+    assert(calls.includes('scripts/local-checks.mjs') && calls.includes('--expose-gc'));
+    assert(calls.some(value => value.startsWith('packages/provider-ai-sdk/') && value.endsWith('.test.mjs')));
+  }
+  assert.equal(jobs['client-distribution'].steps.filter(step => step.run === 'npm run check:provider-ai-sdk').length, 1);
 });
 
 test('packed INFER original preparation evidence excludes opaque values getters and proxy traps', () => {
