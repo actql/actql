@@ -118,6 +118,51 @@ fn bounded_number_group_scalar_schema(schema : @schema.Schema) -> Bool {
 }
 
 ///|
+// The actual bounded group constructor scans the original scalar cells.
+// Its contributor arrays, DISTINCT hash/comparison cursors and output recheck
+// reserve the existing RowWorkspace; no input forest or measurement wire is
+// copied. Keep complete output DATA and Fragment inventories independently.
+// This is a representation proof, not another aggregate-support table.
+fn bounded_scalar_group_borrows_input(kernel : @lower.PreparedKernel) -> Bool {
+  guard @lower.kernel_group(kernel) is Some(group) &&
+    !@lower.group_is_window(group) &&
+    @lower.group_aggregate_count(group) > 0 &&
+    bounded_number_group_scalar_schema(@lower.kernel_input_schema(kernel)) &&
+    bounded_number_group_scalar_schema(@lower.kernel_output_schema(kernel)) else {
+    return false
+  }
+  for index in 0..<@lower.group_aggregate_count(group) {
+    let aggregate = @lower.group_aggregate_at(group, index).unwrap()
+    if @lower.group_aggregate_order_count(aggregate) != 0 {
+      return false
+    }
+    if @lower.group_aggregate_filter(aggregate) is Some(filter) &&
+      !bounded_string_group_scalar_filter(filter) {
+      return false
+    }
+    match @lower.group_aggregate_argument(aggregate) {
+      @lower.AggregateRows => ()
+      @lower.AggregateField(_) => ()
+      @lower.AggregateExpression(expression) => {
+        if @lower.expression_view_entries(expression) != 0 {
+          return false
+        }
+        match @lower.expression_body(expression) {
+          @lower.Field(_, @relation.InputField(_))
+          | @lower.Literal(_)
+          | @lower.TypedNull => ()
+          _ =>
+            if !bounded_string_group_scalar_filter(expression) {
+              return false
+            }
+        }
+      }
+    }
+  }
+  true
+}
+
+///|
 /// Direct Number SUM/AVG and row COUNT borrow the original scalar input cells.
 /// Key cells are returned from the representative input row; aggregate Number
 /// cells and pending row arrays are funded by the complete group workspace.
@@ -572,6 +617,12 @@ pub fn generated_bounded_sequence_capacity(
       )
     _ => false
   }
+  let borrowed_scalar_group = match operation {
+    @lower.RowStep(kernel) =>
+      bounded_scalar_group_borrows_input(kernel) &&
+      bounded_group_step_supported(generated, kernel)
+    _ => false
+  }
   let borrowed_string_group = match operation {
     @lower.RowStep(kernel) =>
       bounded_string_group_borrows_input(kernel) &&
@@ -587,6 +638,7 @@ pub fn generated_bounded_sequence_capacity(
     !borrowed_window_group &&
     !borrowed_analytic &&
     !borrowed_number_group &&
+    !borrowed_scalar_group &&
     !borrowed_string_group &&
     !borrowed_pivot {
     return generated_sequence_capacity(generated, limits, measurement)
@@ -666,6 +718,7 @@ pub fn generated_bounded_sequence_capacity(
       borrowed_window_group ||
       borrowed_analytic ||
       borrowed_number_group ||
+      borrowed_scalar_group ||
       borrowed_string_group,
     // Append uses the same workspace-funded binary input scan as CROSS JOIN;
     // its constructor receives no physical measurement forest or wire buffer.
@@ -681,6 +734,7 @@ pub fn generated_bounded_sequence_capacity(
       borrowed_window_group ||
       borrowed_analytic ||
       borrowed_number_group ||
+      borrowed_scalar_group ||
       borrowed_string_group,
   )
   guard ordinary is Some(ordinary) else { return None }

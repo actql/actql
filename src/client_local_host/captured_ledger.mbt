@@ -96,7 +96,11 @@ fn client_local_filter_expression_slots(
 // exported child references, 2K builder/root entries, and sixteen expression,
 // row/measurement controls. Its allocation-free getter reads the SAME checked
 // expression; no child view is copied while selecting this quantity.
-// This is not a bound on StringAgg builders, sort arrays or other constructors:
+// Closed primitive binding expressions use the same original expression walk.
+// Stable sort retains two row-index arrays; its field/order metadata and one
+// output row overlap those arrays. These entries are selected HERE, before
+// the ordinary Plan quote, never by enlarging an explicit managed workspace.
+// This is not a bound on StringAgg builders or other constructors:
 // their complete existing workspace/Fragment/DATA quotes use the SAME selected
 // shared Plan limit. No byte/work amount is reinterpreted as an entry count.
 fn client_local_request_operation_entries(
@@ -132,6 +136,27 @@ fn client_local_request_operation_entries(
       if !primitive {
         continue
       }
+      let scalar_binding_slots = match @lower.kernel_bindings(kernel) {
+        None => -1
+        Some(bindings) => {
+          let mut slots = if @lower.bindings_count(bindings) > 0 {
+            8
+          } else {
+            -1
+          }
+          for index in 0..<@lower.bindings_count(bindings) {
+            let (_, expression) = @lower.binding_at(bindings, index).unwrap()
+            let count = client_local_filter_expression_slots(expression, frames)
+            if slots < 0 || count < 0 || count > 2147483647 - slots {
+              slots = -1
+              break
+            }
+            slots += count
+          }
+          slots
+        }
+      }
+      let mut row_entries = rows
       let extra = if @lower.kernel_is_filter(kernel) {
         guard @lower.kernel_view_entries(kernel) == 0 &&
           @lower.kernel_body(kernel) is @lower.Filter(predicate) else {
@@ -148,6 +173,18 @@ fn client_local_request_operation_entries(
           continue
         }
         predicate + 8
+      } else if @lower.kernel_body(kernel) is @lower.StableSort(_) {
+        if rows > 1073741823 {
+          continue
+        }
+        row_entries = 2 * rows
+        let terms = @lower.kernel_sort_term_count(kernel)
+        if terms > 2147483639 {
+          continue
+        }
+        terms + 8
+      } else if scalar_binding_slots >= 0 {
+        scalar_binding_slots
       } else {
         guard @lower.kernel_bindings(kernel) is Some(bindings) &&
           @lower.bindings_count(bindings) == 1 &&
@@ -184,12 +221,12 @@ fn client_local_request_operation_entries(
       let i = @schema.field_count(input)
       let o = @schema.field_count(output)
       // Every product/sum is checked before it can affect an admitted cap.
-      if rows > 2147483647 - extra ||
-        i > (2147483647 - extra - rows) / 3 ||
-        o > (2147483647 - extra - rows - 3 * i) / 4 {
+      if row_entries > 2147483647 - extra ||
+        i > (2147483647 - extra - row_entries) / 3 ||
+        o > (2147483647 - extra - row_entries - 3 * i) / 4 {
         continue
       }
-      selected = Int::max(selected, rows + 3 * i + 4 * o + extra)
+      selected = Int::max(selected, row_entries + 3 * i + 4 * o + extra)
     }
   }
   selected

@@ -813,6 +813,90 @@ test "bounded selected sort rejects a workspace one entry short" {
 }
 
 ///|
+test "bounded managed sort preserves an explicit one-short entry cap" {
+  let calls = Ref(0)
+  let (_, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",
+    sort=true,
+    max_entries=20,
+    constrain=Some(generated => {
+      let limits = {
+        ..compute_test_limits(),
+        rows: { ..run_limits(), operation_entries: 20, },
+      }
+      bind_generated_workspace_growth(generated, limits, 1000000L, _ => {
+        calls.val += 1
+        Ok(())
+      }).unwrap()
+    }),
+  )
+  let mut failed = false
+  for _ in 0..<1000 {
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsFailed(Rows(RowLimit), ..) => {
+        failed = true
+        break
+      }
+      _ => fail("growth must not authorize an extra explicit entry")
+    }
+  }
+  assert_true(failed)
+  assert_eq(calls.val, 0)
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+}
+
+///|
+test "bounded managed sort funds additional live index backing before allocation" {
+  // The same two-row sort has an independently established peak of 21 slots.
+  // Twenty are already funded; the last CursorRootSlot costs 256 model bytes.
+  for (available, succeeds) in [(256L, true), (255L, false)] {
+    let requested : Array[Int64] = []
+    let (_, execution, input) = bounded_binding_rows_fixture(
+      "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",
+      sort=true,
+      max_entries=21,
+      constrain=Some(generated => {
+        let limits = {
+          ..compute_test_limits(),
+          rows: { ..run_limits(), operation_entries: 20, },
+        }
+        bind_generated_workspace_growth(generated, limits, 1000000L, bytes => {
+          requested.push(bytes)
+          if bytes <= available {
+            Ok(())
+          } else {
+            Err(WorkspaceUnavailable)
+          }
+        }).unwrap()
+      }),
+    )
+    let mut terminal = false
+    for _ in 0..<1000 {
+      match advance_bounded_binding_rows(execution, 1).unwrap() {
+        BoundedBindingRowsContinue(..) => ()
+        BoundedBindingRowsComplete(output, ..) if succeeds => {
+          assert_eq(completed_row_count(output), 2)
+          terminal = true
+          break
+        }
+        BoundedBindingRowsFailed(Rows(RowLimit), ..) if !succeeds => {
+          terminal = true
+          break
+        }
+        _ =>
+          fail("managed index backing must respect its actual growth refusal")
+      }
+    }
+    assert_true(terminal)
+    assert_eq(requested, [256L])
+    assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+    assert_true(producer_read_available(input))
+  }
+}
+
+///|
 test "bounded selected sort has an exact control-work boundary" {
   let rows = "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]"
   // Independent control sum: input row open/close 4, schema names 14,

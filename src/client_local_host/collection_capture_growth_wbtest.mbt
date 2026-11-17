@@ -440,10 +440,28 @@ test "ordinary FILTER entry demand uses checked scalar structures and finite ove
     Some(assets.fragment),
     assets.ordered,
   ).unwrap()
-  assert_eq(
-    client_local_request_operation_entries(sequences, 10001, 10000, 100),
-    10000,
-  )
+  let mut unsupported_filter = false
+  for sequence in sequences {
+    for index in 0..<@execution.generated_sequence_step_count(sequence) {
+      guard @execution.generated_sequence_step_at(sequence, index)
+        is Some(@lower.RowStep(kernel)) &&
+        @lower.kernel_is_filter(kernel) else {
+        continue
+      }
+      // A different scalar projection in this same Program now has its own
+      // lawful inventory. Only this unsupported CAST predicate uses fallback.
+      let selected = @execution.select_generated_sequence_step(
+        sequence,
+        @lower.kernel_step(kernel),
+      ).unwrap()
+      assert_eq(
+        client_local_request_operation_entries([selected], 10001, 10000, 100),
+        10000,
+      )
+      unsupported_filter = true
+    }
+  }
+  assert_true(unsupported_filter)
 }
 
 ///|

@@ -70,22 +70,23 @@ test "direct Number group borrows only its existing scalar constructor input" {
   }
   let large = { ..measure, max_nodes: 2830000, max_bytes: 10000000, }
   for
-    (recursive, aggregate, borrowed) in [
-      (false, "{\"fn\":\"sum\",\"field\":\"n\"}", true),
-      (false, "{\"fn\":\"avg\",\"field\":\"n\"}", true),
-      (true, "{\"fn\":\"sum\",\"field\":\"n\"}", false),
+    (recursive, aggregate, number_borrowed, borrowed) in [
+      (false, "{\"fn\":\"sum\",\"field\":\"n\"}", true, true),
+      (false, "{\"fn\":\"avg\",\"field\":\"n\"}", true, true),
+      (true, "{\"fn\":\"sum\",\"field\":\"n\"}", false, false),
       (
         false, "{\"fn\":\"array_agg\",\"field\":\"n\",\"max_items\":5,\"order_by\":[{\"n\":\"asc\"}]}",
-        false,
+        false, false,
       ),
-      (false, "{\"fn\":\"sum\",\"field\":\"n\",\"distinct\":true}", false),
+      (false, "{\"fn\":\"sum\",\"field\":\"n\",\"distinct\":true}", false, true),
     ] {
     let selected = number_group_capacity_fixture(recursive, aggregate)
     guard generated_sequence_step_at(selected, 0)
       is Some(@lower.RowStep(kernel)) else {
       fail("original group kernel missing")
     }
-    assert_eq(bounded_number_group_borrows_input(kernel), borrowed)
+    assert_eq(bounded_number_group_borrows_input(kernel), number_borrowed)
+    assert_eq(bounded_scalar_group_borrows_input(kernel), borrowed)
     let original = generated_bounded_sequence_capacity(
       selected, limits, measure,
     ).unwrap()
@@ -149,11 +150,13 @@ test "mixed Number reductions borrow row COUNT without conflating field COUNT" {
     max_depth: 10,
   }
   for
-    (recursive, count, borrowed) in [
-      (false, "{\"fn\":\"count\"}", true),
-      (false, "{\"fn\":\"count\",\"field\":\"n\"}", false),
-      (false, "{\"fn\":\"count\",\"field\":\"n\",\"distinct\":true}", false),
-      (true, "{\"fn\":\"count\"}", false),
+    (recursive, count, number_borrowed, borrowed) in [
+      (false, "{\"fn\":\"count\"}", true, true),
+      (false, "{\"fn\":\"count\",\"field\":\"n\"}", false, true),
+      (
+        false, "{\"fn\":\"count\",\"field\":\"n\",\"distinct\":true}", false, true,
+      ),
+      (true, "{\"fn\":\"count\"}", false, false),
     ] {
     let selected = number_group_capacity_fixture(
       recursive,
@@ -164,7 +167,8 @@ test "mixed Number reductions borrow row COUNT without conflating field COUNT" {
       is Some(@lower.RowStep(kernel)) else {
       fail("original mixed group kernel missing")
     }
-    assert_eq(bounded_number_group_borrows_input(kernel), borrowed)
+    assert_eq(bounded_number_group_borrows_input(kernel), number_borrowed)
+    assert_eq(bounded_scalar_group_borrows_input(kernel), borrowed)
     let bounded = generated_bounded_sequence_capacity(selected, limits, measure).unwrap()
     let full = generated_sequence_capacity(selected, limits, measure).unwrap()
     if borrowed {
