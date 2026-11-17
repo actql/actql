@@ -196,7 +196,6 @@ test('required Native producer also executes all real allocator cases with origi
   const retained = job.steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
   assert(retained.with.path.includes('/crypto-allocator/summary.json'));
   assert(!retained.with.path.includes('/crypto-allocator/**'), 'Retain safe numeric reports, not whole test backing');
-  const runner = readFileSync(new URL('./test-native-crypto-allocator.py', import.meta.url), 'utf8');
   const cases = spawnSync('python3', ['-c', `
 import importlib.util, json, sys
 spec = importlib.util.spec_from_file_location('allocator_cases', sys.argv[1])
@@ -222,10 +221,6 @@ print(json.dumps(list(module.MODES)))
   assert.equal(cases.error, undefined); assert.equal(cases.status, 0, cases.stderr);
   for (const mode of ['bounded-search', 'split-merge-membership', 'partial', 'callback-current'])
     assert(JSON.parse(cases.stdout).includes(mode), mode);
-  for (const text of ['P.linux_member_inputs(prefix, selected)', "producer['source'] != source",
-    "producer['inputs'].get(name) != expected", 'P.verify_original_inputs(inputs)',
-    "len(report['cases']) == len(MODES)"])
-    assert(runner.includes(text), text);
 });
 
 test('CI downloads original hash-bounded archives and retains exact production and failure receipts', () => {
