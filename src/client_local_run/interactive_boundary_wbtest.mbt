@@ -443,6 +443,8 @@ test "actual task boundary binds only the same original logical key and expires 
     ).unwrap(),
     step_id,
   )
+  @host.return_client_logical_task_boundary(bound).unwrap()
+  @host.return_client_logical_task_boundary(after).unwrap()
   boundary_test_close(host, operations, available, boundary_reads=[
     before, emitted,
   ])

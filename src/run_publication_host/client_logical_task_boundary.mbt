@@ -2,7 +2,13 @@
 /// Borrowed original compiler key plus a real task-boundary observation. This
 /// is not a public wire value, Sample holding, stop receipt or control grant.
 struct ClientLogicalTaskBoundary {
-  original : ClientStructuralExplanationOriginal
+  mut original : ClientLogicalTaskBoundaryOriginal?
+  cleanup : @strategy.CapturedTaskBoundary
+}
+
+///|
+priv struct ClientLogicalTaskBoundaryOriginal {
+  facts : ClientStructuralExplanationOriginal
   run : @strategy.CapturedDAG
   observed : @strategy.CapturedTaskBoundary
   step : @canonical.CanonicalValue
@@ -27,6 +33,7 @@ pub(all) enum ClientLogicalTaskBoundaryIssue {
   InvalidReadLimits
   MissingOriginalOccurrence
   Encoding(@encode.EncodeFailure)
+  Boundary(@strategy.CapturedTaskBoundaryIssue)
 } derive(Eq, Debug)
 
 ///|
@@ -53,6 +60,39 @@ pub fn bind_client_logical_task_boundary(
   if max_nodes <= 0 {
     return Err(InvalidReadLimits)
   }
+  let owned = match
+    @strategy.fork_captured_task_boundary_for_logical_projection(run, observed) {
+    Err(issue) => return Err(Boundary(issue))
+    Ok(value) => value
+  }
+  let result = project_client_logical_task_boundary(
+    original, prepared, run, owned, max_nodes,
+  )
+  if result is Ok(Projected(_)) {
+    return result
+  }
+  // No higher wrapper was issued. Return this fork only; never the caller's
+  // source observation. A failed return remains on the same Owner's list.
+  let returned = @strategy.return_captured_task_boundary(owned)
+  match result {
+    Err(_) => result // Preserve the original construction failure.
+    _ =>
+      match returned {
+        Err(issue) => Err(Boundary(issue))
+        Ok(_) => result
+      }
+  }
+}
+
+///|
+// Invoked only with the Owner-issued complete logical construction fork.
+fn project_client_logical_task_boundary(
+  original : ClientStructuralExplanationOriginal,
+  prepared : PreparedClientProgram,
+  run : @strategy.CapturedDAG,
+  observed : @strategy.CapturedTaskBoundary,
+  max_nodes : Int,
+) -> Result[ClientLogicalTaskBoundaryProjection, ClientLogicalTaskBoundaryIssue] {
   guard @canonical.object_field(original.map, "steps")
     is Some(@canonical.Array(steps)) else {
     return Err(MissingOriginalOccurrence)
@@ -98,7 +138,12 @@ pub fn bind_client_logical_task_boundary(
       let occurrence = explanation_original_field(key, "occurrence")
       if explanation_original_text(occurrence, "kind") == "operation" &&
         explanation_original_ordinal(occurrence, "operation_ordinal") == index {
-        return Ok(Projected({ original, run, observed, step, }))
+        return Ok(
+          Projected({
+            original: Some({ facts: original, run, observed, step, }),
+            cleanup: observed,
+          }),
+        )
       }
     }
     Err(MissingOriginalOccurrence)
@@ -115,8 +160,11 @@ pub fn client_logical_task_boundary_current(
   compiled : ClientCompiledRun,
   prepared : PreparedClientProgram,
 ) -> Bool {
-  explanation_original_matches(value.original, compiled, prepared) &&
-  @strategy.captured_task_boundary_current(value.run, value.observed)
+  guard value.original is Some(original) else { return false }
+  explanation_original_matches(original.facts, compiled, prepared) &&
+  @strategy.captured_task_boundary_current(original.run, original.observed) &&
+  value.original is Some(current) &&
+  physical_equal(current, original)
 }
 
 ///|
@@ -128,7 +176,7 @@ pub fn client_logical_task_boundary_step_id(
   if !client_logical_task_boundary_current(value, compiled, prepared) {
     return Err(StaleBoundary)
   }
-  Ok(explanation_original_text(value.step, "step_id")) catch {
+  Ok(explanation_original_text(value.original.unwrap().step, "step_id")) catch {
     issue => Err(Encoding(issue))
   }
 }
@@ -152,7 +200,7 @@ pub fn client_logical_task_boundary_key_json(
   }
   Ok(
     @canonical.stringify_value(
-      explanation_original_field(value.step, "key"),
+      explanation_original_field(value.original.unwrap().step, "key"),
       max_bytes,
       max_nodes,
       max_depth,
@@ -177,7 +225,7 @@ pub fn client_logical_task_boundary_output_port_id(
   if ordinal < 0 || max_ports <= 0 {
     return Err(InvalidReadLimits)
   }
-  guard @canonical.object_field(value.step, "ports")
+  guard @canonical.object_field(value.original.unwrap().step, "ports")
     is Some(@canonical.Array(ports)) else {
     return Err(MissingOriginalOccurrence)
   }
@@ -195,5 +243,22 @@ pub fn client_logical_task_boundary_output_port_id(
     Ok(None)
   } catch {
     issue => Err(Encoding(issue))
+  }
+}
+
+///|
+/// Release this higher wrapper's independent original fork. Dispose its heavy
+/// context BEFORE the same lower Owner may acknowledge or autonomously retry
+/// settlement. Only that exact token remains reachable for pending cleanup.
+/// A completed token is a scalar tombstone; repeated logical close is harmless.
+pub fn return_client_logical_task_boundary(
+  value : ClientLogicalTaskBoundary,
+) -> Result[Unit, ClientLogicalTaskBoundaryIssue] {
+  // Do not bind the old context to a local across settlement callbacks. The
+  // only retained alias is the prequoted original token, never facts/Run/step.
+  value.original = None
+  match @strategy.return_captured_task_boundary(value.cleanup) {
+    Err(@strategy.ReadReturned) | Ok(_) => Ok(())
+    Err(issue) => Err(Boundary(issue))
   }
 }

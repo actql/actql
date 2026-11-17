@@ -307,6 +307,28 @@ The same finite member/work and complete read/emit bounds apply. Host current
 readonly authorization and public installed acceptance remain independent
 requirements; a Core projection or schema registration alone installs no support.
 
+## Original logical boundary borrow lifetime
+
+The logical-key wrapper owns an independent borrow of the same original fact,
+issued by the existing task owner only after that Run's Ledger reserves the
+complete fixed fork, wrapper and bounded lookup constructor peak. A caller
+cannot replace that admission with a Boolean, a numerical quote or a different
+Ledger. No new logical identity is minted. The source observation stays with
+its caller and can be returned independently after the fork is issued. During
+admission it is pinned against a reentrant return; the same current fences and
+nominal record are checked again before delivery.
+
+Each wrapper has an explicit return. It disposes its heavy original context
+before requesting token return, so autonomous Owner retry cannot refund a live
+facts/Run/step context. Only the same token remains for declined cleanup, under
+the existing Owner retry path. A completed scalar token tombstone makes repeated
+logical close idempotent. Failed construction and
+unprojected boundaries return only their unused fork. Stopping, losing a plain
+wrapper reference or returning another consumer cannot acknowledge that debt.
+The fixed lookup holding does not fund capture of the original facts tree,
+variable key encoding, a physical parent, Journal ACK or egress; those actual
+supplier duties remain separate.
+
 ## Compiler-original plan capture
 
 Initial plan capture consumes the same nominal compiled Run, checked Program

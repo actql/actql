@@ -49,6 +49,7 @@ priv struct CapturedBoundaryRead {
   record : CapturedBoundaryRecord
   mut returning : Int
   mut delivered : Bool
+  mut forking : Bool
 }
 
 ///|
@@ -330,7 +331,7 @@ pub fn return_captured_task_boundary(
   boundary : CapturedTaskBoundary,
 ) -> Result[Unit, CapturedTaskBoundaryIssue] {
   guard boundary.original is Some(original) else { return Err(ReadReturned) }
-  if original.returning == 1 {
+  if original.returning == 1 || original.forking {
     return Err(ReadInProgress)
   }
   original.returning = 1
@@ -366,6 +367,57 @@ pub fn read_captured_task_boundary(
   if !captured_boundary_record_current(run, hooks, record, phase) {
     return Ok(None)
   }
+  match
+    acquire_captured_boundary_read(
+      run, hooks, record, phase, captured_boundary_read_bytes,
+    ) {
+    Err(issue) => Err(issue)
+    Ok(value) => Ok(Some(value))
+  }
+}
+
+///|
+/// The existing Owner issues an independent borrow of this SAME original fact.
+/// The closed logical projection recipe includes the whole fixed higher
+/// wrapper and lookup peak BEFORE its fork is allocated. Callers supply no
+/// quote, Boolean admission, Ledger or replacement observation identity.
+pub fn fork_captured_task_boundary_for_logical_projection(
+  run : CapturedDAG,
+  source : CapturedTaskBoundary,
+) -> Result[CapturedTaskBoundary, CapturedTaskBoundaryIssue] {
+  guard source.original is Some(original) else { return Err(ReadReturned) }
+  if original.forking || original.returning != 0 {
+    return Err(ReadInProgress)
+  }
+  // Pin BEFORE current as well as reservation callbacks: both can reenter.
+  // This original read's own funded word is the fence, not a new Run field.
+  original.forking = true
+  if !captured_task_boundary_current(run, source) {
+    original.forking = false
+    return Err(StaleBoundary)
+  }
+  // Keep the source's funded original record alive through admission.
+  let result = acquire_captured_boundary_read(
+    run,
+    original.hooks,
+    original.record,
+    source.phase,
+    captured_boundary_logical_projection_bytes,
+  )
+  original.forking = false
+  result
+}
+
+///|
+// Private issuance engine. Only the two closed constructor purposes above
+// choose its recipe; no public numeric capacity request can mint a fork.
+fn acquire_captured_boundary_read(
+  run : CapturedDAG,
+  hooks : CapturedTaskBoundaryHooks,
+  record : CapturedBoundaryRecord,
+  phase : CapturedTaskBoundaryPhase,
+  bytes : Int64,
+) -> Result[CapturedTaskBoundary, CapturedTaskBoundaryIssue] {
   if hooks.admitting_read {
     return Err(ReadInProgress)
   }
@@ -374,11 +426,7 @@ pub fn read_captured_task_boundary(
   let strategy_revision = record.strategy_revision
   hooks.admitting_read = true
   let reservation = match
-    @resources.reserve_capacity(
-      run.ledger,
-      captured_boundary_read_bytes,
-      captured_boundary_read_bytes,
-    ) {
+    @resources.reserve_capacity(run.ledger, bytes, bytes) {
     Err(issue) => {
       hooks.admitting_read = false
       return Err(Resource(issue))
@@ -393,6 +441,7 @@ pub fn read_captured_task_boundary(
       record,
       returning: 0,
       delivered: false,
+      forking: false,
     }),
     previous: None,
     next: hooks.reads,
@@ -417,7 +466,7 @@ pub fn read_captured_task_boundary(
     return Err(StaleBoundary)
   }
   boundary.original.unwrap().delivered = true
-  Ok(Some(boundary))
+  Ok(boundary)
 }
 
 ///|
