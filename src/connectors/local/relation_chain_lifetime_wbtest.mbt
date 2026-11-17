@@ -124,6 +124,9 @@ fn chain_lifetime_generated(
       (
         @lower.kernel_body(kernel) is @lower.Filter(_) ||
         @lower.kernel_bindings(kernel) is Some(_) ||
+        @lower.kernel_analytic(kernel)
+        .map(@lower.analytic_requires_expression_context)
+        .unwrap_or(false) ||
         @lower.kernel_group(kernel)
         .map(group => {
           let mut dynamic = false

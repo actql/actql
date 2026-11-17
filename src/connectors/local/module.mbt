@@ -531,7 +531,13 @@ fn local_module_default_output_start_capacity(
       Some(@lower.RowStep(kernel)) => {
         if (
             !selected_binding_rows_supported(kernel) &&
-            !@execution.bounded_string_group_borrows_input(kernel)
+            !@execution.bounded_string_group_borrows_input(kernel) &&
+            !(@execution.bounded_analytic_borrows_input(kernel) &&
+            @execution.bounded_analytic_staged_text_capacity(
+              kernel,
+              installed.execution,
+            )
+            is Some(_))
           ) ||
           !@schema.all_fields_required(@lower.kernel_input_schema(kernel)) ||
           !@schema.all_fields_required(@lower.kernel_output_schema(kernel)) {
@@ -763,14 +769,16 @@ fn local_module_default_output_start_capacity(
         @lower.kernel_analytic(kernel) is Some(analytic) => {
         // The existing bounded analytic child funds its accepted buffer row
         // before transfer. Keep all ordering/input/evaluation scratch prepaid;
-        // only immediate ROW_NUMBER DATA uses this original growth owner.
+        // immediate ROW_NUMBER DATA keeps its existing growth owner. Other
+        // qualified analytics retain complete staged and returned output DATA.
         if @lower.analytic_call_count(analytic) < 1 {
           return None
         }
+        let mut immediate = true
         for index in 0..<@lower.analytic_call_count(analytic) {
           let call = @lower.analytic_call_at(analytic, index).unwrap()
           if !(@lower.analytic_call_function(call) is @lower.PreparedRowNumber) {
-            return None
+            immediate = false
           }
         }
         for
@@ -779,24 +787,41 @@ fn local_module_default_output_start_capacity(
             @lower.kernel_output_schema(kernel),
           ] {
           if !@schema.all_fields_required(schema) {
-            return None
+            immediate = false
           }
           for field in 0..<@schema.field_count(schema) {
             match @schema.field_at(schema, field).unwrap().contract.shape {
               @contract.Number | @contract.Boolean => ()
-              _ => return None
+              _ => immediate = false
             }
           }
+        }
+        if !immediate {
+          if !@execution.bounded_analytic_borrows_input(kernel) ||
+            @execution.bounded_analytic_staged_text_capacity(
+              kernel,
+              installed.execution,
+            )
+            is None {
+            return None
+          }
+          // All staged frame Text and the complete returned DATA remain
+          // prepaid; only the actual bounded constructor replaces the absent
+          // input forest/measurement body. Ranking's old immediate path stays.
+          metered_retention = false
         }
       }
       Some(@lower.RowStep(kernel)) if count > 1 &&
         required_row_chain &&
-        @execution.bounded_string_group_borrows_input(kernel) =>
-        // The exact built-in ordered StringAgg reserves its UTF16 builder
-        // and completed Text in the same finite RowWorkspace before allocation.
-        // CommitOutput then funds persistent output before releasing that row
-        // scope. Keep the complete final-output R; only the already qualified
-        // child chain replaces the absent legacy sequence-table workspace.
+        (
+          @execution.bounded_string_group_borrows_input(kernel) ||
+          @execution.bounded_analytic_borrows_input(kernel)
+        ) =>
+        // Ordered StringAgg and qualified analytics retain complete returned
+        // output DATA. Analytic frame Text is independently prepaid before
+        // output admission; their current builder and all operation/Fragment
+        // storage remain in the bounded constructor quote. Keep full R while
+        // this original ACK-qualified chain replaces the absent legacy table.
         metered_retention = false
       Some(@lower.RowStep(kernel)) if @lower.kernel_count_group(kernel)
         is Some(group) => {

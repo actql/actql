@@ -554,6 +554,12 @@ pub fn generated_bounded_sequence_capacity(
       .unwrap_or(false)
     _ => false
   }
+  let borrowed_analytic = match operation {
+    @lower.RowStep(kernel) =>
+      bounded_analytic_borrows_input(kernel) &&
+      bounded_group_step_supported(generated, kernel)
+    _ => false
+  }
   let borrowed_number_group = match operation {
     @lower.RowStep(kernel) =>
       bounded_number_group_borrows_input(kernel) &&
@@ -579,6 +585,7 @@ pub fn generated_bounded_sequence_capacity(
       @lower.kernel_analytic(kernel) is Some(_)
     ) &&
     !borrowed_window_group &&
+    !borrowed_analytic &&
     !borrowed_number_group &&
     !borrowed_string_group &&
     !borrowed_pivot {
@@ -657,6 +664,7 @@ pub fn generated_bounded_sequence_capacity(
       borrowed_join ||
       borrowed_window ||
       borrowed_window_group ||
+      borrowed_analytic ||
       borrowed_number_group ||
       borrowed_string_group,
     // Append uses the same workspace-funded binary input scan as CROSS JOIN;
@@ -671,10 +679,30 @@ pub fn generated_bounded_sequence_capacity(
       borrowed_join ||
       borrowed_window ||
       borrowed_window_group ||
+      borrowed_analytic ||
       borrowed_number_group ||
       borrowed_string_group,
   )
   guard ordinary is Some(ordinary) else { return None }
+  let ordinary = if borrowed_analytic {
+    guard operation is @lower.RowStep(kernel) &&
+      bounded_analytic_staged_text_capacity(kernel, limits) is Some(staged) &&
+      generated_sequence_capacity(generated, limits, measurement) is Some(full) &&
+      full.retained_bytes >= ordinary.retained_bytes &&
+      checked_preparation_add_product(ordinary.execution_bytes, staged, 1L)
+      is Some(execution) &&
+      checked_preparation_add_product(
+        execution,
+        full.retained_bytes - ordinary.retained_bytes,
+        1L,
+      )
+      is Some(execution) else {
+      return generated_sequence_capacity(generated, limits, measurement)
+    }
+    { retained_bytes: full.retained_bytes, execution_bytes: execution, }
+  } else {
+    ordinary
+  }
   // The Values provider does not pass FixedInputGuardMeasureLimits to its
   // constructor. Its original admitted Number/Boolean cells are borrowed;
   // bounded_values_step uses the scalar measure/recheck branch, without a

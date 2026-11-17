@@ -315,6 +315,8 @@ pub fn expression_location(Expression) -> @expression_syntax.Location
 
 pub fn expression_primitive_array_length(Expression) -> Int?
 
+pub fn expression_result_borrows_payload(Expression) -> Bool
+
 pub fn expression_source(Expression) -> @decode_core.Cursor
 
 pub fn expression_text_bound(Expression) -> ExpressionTextBound?

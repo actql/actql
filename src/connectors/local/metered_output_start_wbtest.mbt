@@ -1327,14 +1327,29 @@ test "ROW_NUMBER startup keeps nonprimitive other-function and injected provider
       chain_lifetime_limits(),
       chain_lifetime_measurement(),
     ).unwrap()
-    assert_eq(
-      (full.retained_bytes, full.execution_bytes),
-      (generic.retained_bytes, generic.execution_bytes),
-    )
+    let borrowed = @execution.generated_sequence_step_at(sequence, 0)
+      .map(operation => {
+        match operation {
+          @lower.RowStep(kernel) =>
+            @execution.bounded_analytic_borrows_input(kernel)
+          _ => false
+        }
+      })
+      .unwrap_or(false)
+    assert_eq(full.retained_bytes, generic.retained_bytes)
     let startup = local_module_metered_output_start_capacity(
       original, 0, sequence,
     )
-    assert_true(startup is None)
+    if borrowed {
+      assert_true(full.execution_bytes <= generic.execution_bytes)
+      if startup is Some(value) {
+        assert_eq(value.retained_bytes, full.retained_bytes)
+        assert_true(value.execution_bytes <= full.execution_bytes)
+      }
+    } else {
+      assert_eq(full.execution_bytes, generic.execution_bytes)
+      assert_true(startup is None)
+    }
     let starts = Ref(0)
     let replacement = managed_provider(_ => true, _ => Some(full), (
       _,
