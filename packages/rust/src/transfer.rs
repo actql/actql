@@ -16,6 +16,10 @@ pub(crate) struct InputBuffer {
     closed: bool,
 }
 
+impl InputBuffer {
+    pub(crate) fn is_closed(&self) -> bool { self.closed }
+}
+
 #[derive(Debug)]
 pub(crate) struct CoreFailure {
     pub(crate) operation: &'static str,
@@ -45,7 +49,7 @@ impl<H: Imports> CoreInstance<H> {
         Ok(InputBuffer { identity: self.identity.clone(), nonce, handle, bytes, closed: false })
     }
 
-    fn original_buffer(&self, buffer: &InputBuffer) -> wasmtime::Result<()> {
+    pub(crate) fn original_buffer(&self, buffer: &InputBuffer) -> wasmtime::Result<()> {
         anyhow::ensure!(Arc::ptr_eq(&self.identity, &buffer.identity) && !buffer.closed,
                         "Foreign or closed original input buffer");
         Ok(())
@@ -99,6 +103,8 @@ impl<H: Imports> CoreInstance<H> {
 mod tests {
     use super::*;
     use std::collections::BTreeMap;
+    use std::sync::{atomic::{AtomicBool, AtomicUsize, Ordering}, mpsc};
+    use std::time::Duration;
     use wasmtime::Caller;
     use crate::abi::{StoreState, test_support};
 
@@ -111,6 +117,27 @@ mod tests {
         stop_ready: bool,
         short_copy: bool,
         panic_copy: bool,
+        cleanup_signal: Option<Arc<AtomicBool>>,
+        cleanup_fail_once: Option<Arc<AtomicBool>>,
+        cleanup_block: Option<(mpsc::SyncSender<()>, mpsc::Receiver<()>)>,
+        cleanup_display_trap: Option<Arc<AtomicUsize>>,
+        cleanup_panic_payload: Option<Arc<AtomicUsize>>,
+        cleanup_call_count: Option<Arc<AtomicUsize>>,
+    }
+
+    #[derive(Debug)]
+    struct DisplayTrap(Arc<AtomicUsize>);
+    impl std::fmt::Display for DisplayTrap {
+        fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            self.0.fetch_add(1, Ordering::AcqRel);
+            panic!("User error Display must not run during retained cleanup");
+        }
+    }
+    impl std::error::Error for DisplayTrap {}
+
+    struct PanicPayload(Arc<AtomicUsize>);
+    impl Drop for PanicPayload {
+        fn drop(&mut self) { self.0.fetch_add(1, Ordering::AcqRel); }
     }
 
     impl Imports for PhysicalInputs {
@@ -140,7 +167,21 @@ mod tests {
 
         fn input_cleanup(mut caller: Caller<'_, StoreState<Self>>, ticket: i32) -> wasmtime::Result<i32> {
             let host = &mut caller.data_mut().host;
-            if !host.cleanup_ready { return Ok(1); }
+            if let Some(count) = &host.cleanup_call_count { count.fetch_add(1, Ordering::AcqRel); }
+            if let Some(observed) = host.cleanup_display_trap.take() {
+                return Err(anyhow::Error::new(DisplayTrap(observed)));
+            }
+            if let Some(observed) = host.cleanup_panic_payload.take() {
+                std::panic::panic_any(PanicPayload(observed));
+            }
+            if let Some((entered, release)) = host.cleanup_block.take() {
+                entered.send(())?;
+                release.recv_timeout(Duration::from_secs(5))?;
+            }
+            if host.cleanup_fail_once.as_ref().is_some_and(|signal| signal.swap(false, Ordering::AcqRel)) {
+                anyhow::bail!("Original physical cleanup failure");
+            }
+            if !host.cleanup_ready && !host.cleanup_signal.as_ref().is_some_and(|signal| signal.load(Ordering::Acquire)) { return Ok(1); }
             anyhow::ensure!(host.inputs.remove(&ticket).is_some(), "Unknown original cleanup input");
             Ok(0)
         }
@@ -153,7 +194,11 @@ mod tests {
     }
 
     fn pool(nonce: i64) -> CoreInstance<PhysicalInputs> {
-        let mut core = test_support::actual_module().instantiate(PhysicalInputs::default()).unwrap();
+        pool_with_module(nonce, test_support::actual_module())
+    }
+
+    fn pool_with_module(nonce: i64, module: &crate::abi::CompiledCore) -> CoreInstance<PhysicalInputs> {
+        let mut core = module.instantiate(PhysicalInputs::default()).unwrap();
         // Explicit scalar diagnostic pool. This is not a normal Host/Run or
         // an imported execution child, and no unavailable grant is stubbed.
         assert_eq!(core.normal_call(|functions, store| functions.buffer_open.call(store, (nonce, 262_144, 16, 1_048_576, 100_000, 18, 16,
@@ -308,5 +353,217 @@ mod tests {
         assert_eq!(core.close_input_buffer(&mut buffer).unwrap(), 0);
         assert_eq!(core.close_transfer_pool(nonce).unwrap(), 0);
         assert_eq!(core.reserved_transfer_bytes(nonce).unwrap(), 0);
+    }
+
+    #[test]
+    fn supervisor_retains_primary_and_originals_after_drop_without_blocking_notification() {
+        use crate::retirement::{RetainedCore, RetirementSupervisor, CleanupProgress};
+        let nonce = 8206; let mut core = pool(nonce);
+        let original: Arc<[u8]> = b"\"original pending input\"".as_slice().into();
+        let physical = Arc::downgrade(&original);
+        let buffer = input(&mut core, nonce, 21, original);
+        core.begin_normal_budget(1).unwrap();
+        let primary = Arc::new(core.fill_input_buffer(&buffer).unwrap_err());
+        assert!(matches!(primary.downcast_ref::<wasmtime::Trap>(), Some(wasmtime::Trap::OutOfFuel)));
+        let ready = Arc::new(AtomicBool::new(false));
+        core.host_mut().cleanup_signal = Some(ready.clone());
+        core.host_mut().cleanup_fail_once = Some(Arc::new(AtomicBool::new(true)));
+        let (entered_send, entered) = mpsc::sync_channel(1);
+        let (release, release_receive) = mpsc::sync_channel(1);
+        core.host_mut().cleanup_block = Some((entered_send, release_receive));
+        let supervisor = match RetirementSupervisor::start(RetainedCore {
+            core, nonce, inputs: vec![buffer], cleanup_fuel: 100_000_000, failure_slots: 4,
+            primary_failure: Some(primary.clone()),
+        }) { Ok(value) => value, Err(failure) => panic!("{}", failure.cause) };
+        let notification = supervisor.notification();
+        notification.request().unwrap();
+        entered.recv_timeout(Duration::from_secs(5)).unwrap();
+        // The actual Core Store is inside a blocked original Host callback.
+        // A wake and Drop both return before releasing that callback.
+        notification.request().unwrap();
+        drop(supervisor);
+        assert!(physical.upgrade().is_some());
+        assert_eq!(notification.snapshot().attempt, 0);
+        release.send(()).unwrap();
+        let mut snapshot = notification.wait_for_update(0, Duration::from_secs(5)).unwrap();
+        while !matches!(snapshot.progress, CleanupProgress::Pending { .. }) {
+            snapshot = notification.wait_for_update(snapshot.attempt, Duration::from_secs(5)).unwrap();
+        }
+        assert!(Arc::ptr_eq(snapshot.primary_failure.as_ref().unwrap(), &primary));
+        assert_eq!(snapshot.first_cleanup_failure.as_ref().unwrap().root_cause().to_string(), "Original physical cleanup failure");
+        assert!(physical.upgrade().is_some());
+        ready.store(true, Ordering::Release);
+        notification.request().unwrap();
+        snapshot = notification.wait_for_update(snapshot.attempt, Duration::from_secs(5)).unwrap();
+        assert_eq!(snapshot.progress, CleanupProgress::Complete);
+        assert!(Arc::ptr_eq(snapshot.primary_failure.as_ref().unwrap(), &primary));
+        assert!(snapshot.first_cleanup_failure.is_some());
+        assert!(physical.upgrade().is_none());
+    }
+
+    #[test]
+    fn supervisor_requires_actual_cleanup_before_join_and_preserves_failed_start_owner() {
+        use crate::retirement::{RetainedCore, RetirementSupervisor, CleanupProgress};
+        let nonce = 8207; let mut core = pool(nonce);
+        let original: Arc<[u8]> = b"\"same start owner\"".as_slice().into();
+        let physical = Arc::downgrade(&original);
+        let buffer = input(&mut core, nonce, 22, original);
+        let ready = Arc::new(AtomicBool::new(false));
+        core.host_mut().cleanup_signal = Some(ready.clone());
+        let failure = match RetirementSupervisor::start(RetainedCore {
+            core, nonce, inputs: vec![buffer], cleanup_fuel: 0, failure_slots: 4, primary_failure: None,
+        }) { Ok(_) => panic!("Invalid cleanup budget admitted"), Err(failure) => failure };
+        assert!(physical.upgrade().is_some());
+        assert!(failure.cause.to_string().contains("Empty cleanup invocation budget"));
+        let mut retained = failure.retained;
+        retained.cleanup_fuel = 100_000_000;
+        let mut supervisor = match RetirementSupervisor::start(retained) {
+            Ok(value) => value, Err(failure) => panic!("{}", failure.cause),
+        };
+        let notification = supervisor.notification();
+        assert!(!supervisor.join_completed().unwrap());
+        notification.request().unwrap();
+        let pending = notification.wait_for_update(0, Duration::from_secs(5)).unwrap();
+        assert!(matches!(pending.progress, CleanupProgress::Pending { code: -9, .. }));
+        assert!(!supervisor.join_completed().unwrap());
+        assert!(physical.upgrade().is_some());
+        ready.store(true, Ordering::Release);
+        notification.request().unwrap();
+        let complete = notification.wait_for_update(pending.attempt, Duration::from_secs(5)).unwrap();
+        assert_eq!(complete.progress, CleanupProgress::Complete);
+        assert!(supervisor.join_completed().unwrap());
+        assert!(physical.upgrade().is_none());
+    }
+
+    #[test]
+    fn custody_error_display_is_never_called_before_original_retirement() {
+        use crate::retirement::{RetainedCore, RetirementSupervisor, CleanupProgress};
+        // Without Wasm backtrace context the original Host error is the top
+        // error. A safe outer backtrace formatter must not hide this counter.
+        let nonce = 8208; let mut core = pool_with_module(nonce, test_support::actual_module_without_backtrace());
+        let original: Arc<[u8]> = b"\"opaque failure original\"".as_slice().into();
+        let physical = Arc::downgrade(&original);
+        let buffer = input(&mut core, nonce, 23, original);
+        let primary = Arc::new(anyhow::anyhow!("Distinct original primary failure"));
+        let ready = Arc::new(AtomicBool::new(false));
+        let formats = Arc::new(AtomicUsize::new(0));
+        core.host_mut().cleanup_signal = Some(ready.clone());
+        core.host_mut().cleanup_display_trap = Some(formats.clone());
+        let supervisor = match RetirementSupervisor::start(RetainedCore {
+            core, nonce, inputs: vec![buffer], cleanup_fuel: 100_000_000, failure_slots: 4,
+            primary_failure: Some(primary.clone()),
+        }) { Ok(value) => value, Err(_) => panic!("Original retirement constructor refused") };
+        let notification = supervisor.notification();
+        notification.request().unwrap();
+        let observed = notification.wait_for_update(0, Duration::from_secs(5));
+        assert_eq!(formats.load(Ordering::Acquire), 0, "Retained cleanup invoked user Display");
+        let failed = observed.expect("Opaque cleanup error must be recorded without formatting");
+        assert!(matches!(failed.progress, CleanupProgress::Failed(_)));
+        let first = failed.first_cleanup_failure.clone().unwrap();
+        assert!(first.root_cause().downcast_ref::<DisplayTrap>().is_some());
+        assert!(Arc::ptr_eq(failed.primary_failure.as_ref().unwrap(), &primary));
+        drop(supervisor);
+        let pending = notification.wait_for_update(failed.attempt, Duration::from_secs(5)).unwrap();
+        assert!(matches!(pending.progress, CleanupProgress::Pending { code: -9, .. }));
+        assert!(physical.upgrade().is_some());
+        assert!(Arc::ptr_eq(pending.first_cleanup_failure.as_ref().unwrap(), &first));
+        assert!(Arc::ptr_eq(pending.primary_failure.as_ref().unwrap(), &primary));
+        ready.store(true, Ordering::Release);
+        notification.request().unwrap();
+        let complete = notification.wait_for_update(pending.attempt, Duration::from_secs(5)).unwrap();
+        assert_eq!(complete.progress, CleanupProgress::Complete);
+        assert!(Arc::ptr_eq(complete.first_cleanup_failure.as_ref().unwrap(), &first));
+        assert!(Arc::ptr_eq(complete.primary_failure.as_ref().unwrap(), &primary));
+        assert_eq!(formats.load(Ordering::Acquire), 0);
+        assert!(physical.upgrade().is_none());
+    }
+
+    #[test]
+    fn custody_panic_payload_is_not_destroyed_while_original_cleanup_is_pending() {
+        use crate::retirement::{RetainedCore, RetirementSupervisor, CleanupProgress};
+        let nonce = 8209; let mut core = pool(nonce);
+        let original: Arc<[u8]> = b"\"opaque unwind original\"".as_slice().into();
+        let physical = Arc::downgrade(&original);
+        let buffer = input(&mut core, nonce, 24, original);
+        let primary = Arc::new(anyhow::anyhow!("Distinct original primary before unwind"));
+        let ready = Arc::new(AtomicBool::new(false));
+        let payload_drops = Arc::new(AtomicUsize::new(0));
+        core.host_mut().cleanup_signal = Some(ready.clone());
+        core.host_mut().cleanup_panic_payload = Some(payload_drops.clone());
+        let supervisor = match RetirementSupervisor::start(RetainedCore {
+            core, nonce, inputs: vec![buffer], cleanup_fuel: 100_000_000, failure_slots: 4,
+            primary_failure: Some(primary.clone()),
+        }) { Ok(value) => value, Err(_) => panic!("Original retirement constructor refused") };
+        let notification = supervisor.notification();
+        notification.request().unwrap();
+        let failed = notification.wait_for_update(0, Duration::from_secs(5)).unwrap();
+        assert!(matches!(failed.progress, CleanupProgress::Failed(_)));
+        assert_eq!(payload_drops.load(Ordering::Acquire), 0, "Pending custody destroyed original panic payload");
+        drop(supervisor);
+        let pending = notification.wait_for_update(failed.attempt, Duration::from_secs(5)).unwrap();
+        assert!(matches!(pending.progress, CleanupProgress::Pending { code: -9, .. }));
+        assert!(physical.upgrade().is_some());
+        assert_eq!(payload_drops.load(Ordering::Acquire), 0);
+        assert!(Arc::ptr_eq(pending.primary_failure.as_ref().unwrap(), &primary));
+        ready.store(true, Ordering::Release);
+        notification.request().unwrap();
+        let complete = notification.wait_for_update(pending.attempt, Duration::from_secs(5)).unwrap();
+        assert_eq!(complete.progress, CleanupProgress::Complete);
+        assert!(Arc::ptr_eq(complete.primary_failure.as_ref().unwrap(), &primary));
+        assert!(physical.upgrade().is_none());
+    }
+
+    #[test]
+    fn bounded_custody_refuses_before_another_cleanup_and_exposes_unexpected_worker_exit() {
+        use crate::retirement::{RetainedCore, RetirementSupervisor, CleanupProgress, CleanupFailureKind};
+        let nonce = 8210; let mut core = pool(nonce);
+        let original: Arc<[u8]> = b"\"bounded retained original\"".as_slice().into();
+        let physical = Arc::downgrade(&original);
+        let buffer = input(&mut core, nonce, 25, original);
+        let primary = Arc::new(anyhow::anyhow!("Original primary before custody exhaustion"));
+        let ready = Arc::new(AtomicBool::new(false));
+        let calls = Arc::new(AtomicUsize::new(0));
+        core.host_mut().cleanup_signal = Some(ready.clone());
+        core.host_mut().cleanup_call_count = Some(calls.clone());
+        core.host_mut().cleanup_fail_once = Some(Arc::new(AtomicBool::new(true)));
+        let mut supervisor = match RetirementSupervisor::start(RetainedCore {
+            core, nonce, inputs: vec![buffer], cleanup_fuel: 100_000_000, failure_slots: 1,
+            primary_failure: Some(primary.clone()),
+        }) { Ok(value) => value, Err(_) => panic!("Finite custody allocation refused") };
+        let notification = supervisor.notification();
+        notification.request().unwrap();
+        let failed = notification.wait_for_update(0, Duration::from_secs(5)).unwrap();
+        assert_eq!(failed.progress, CleanupProgress::Failed(CleanupFailureKind::Invocation));
+        assert_eq!(failed.failure_slots, 1);
+        assert_eq!(failed.occupied_failure_slots, 1);
+        let first = failed.first_cleanup_failure.clone().unwrap();
+        assert_eq!(calls.load(Ordering::Acquire), 1);
+        // Actual physical cleanup is now ready. No further guest invocation
+        // may occur without space to keep its possible original failure.
+        ready.store(true, Ordering::Release);
+        notification.request().unwrap();
+        let full = notification.wait_for_update(failed.attempt, Duration::from_secs(5)).unwrap();
+        assert_eq!(full.progress, CleanupProgress::RetentionFull);
+        assert_eq!(full.occupied_failure_slots, 1);
+        assert_eq!(calls.load(Ordering::Acquire), 1);
+        assert!(physical.upgrade().is_some());
+        assert!(Arc::ptr_eq(full.first_cleanup_failure.as_ref().unwrap(), &first));
+        assert!(Arc::ptr_eq(full.primary_failure.as_ref().unwrap(), &primary));
+        assert!(!supervisor.join_completed().unwrap());
+        // Inject an unexpected supervisor metadata fault, outside the caught
+        // guest callback. This is not a Host cleanup failure or a success.
+        supervisor.poison_failure_custody_for_test();
+        notification.request().unwrap();
+        let exited = notification.wait_for_update(full.attempt, Duration::from_secs(5)).unwrap();
+        assert_eq!(exited.progress, CleanupProgress::Failed(CleanupFailureKind::WorkerUnwind));
+        assert!(exited.first_cleanup_unwind.is_some());
+        assert!(Arc::ptr_eq(exited.first_cleanup_failure.as_ref().unwrap(), &first));
+        assert!(Arc::ptr_eq(exited.primary_failure.as_ref().unwrap(), &primary));
+        assert!(!supervisor.join_completed().unwrap());
+        drop(supervisor);
+        assert_eq!(calls.load(Ordering::Acquire), 1);
+        assert!(physical.upgrade().is_some());
+        // Terminal pending is deliberate. No recovery/funding or physical ACK
+        // is fabricated to make this negative diagnostic release its originals.
     }
 }

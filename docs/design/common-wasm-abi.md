@@ -109,3 +109,54 @@ public runtime must retain its original owner under a supervisor through stop,
 cleanup and actual retirement; dropping a private buffer or instance does not
 supply that public lifecycle. Cancellation notification and physical I/O stop
 remain separate from guest interruption and must not wait on a guest lock.
+
+## Retained Rust cleanup worker
+
+The private retirement supervisor takes the same Core, physical Host and input
+owners. A bounded one-entry notification channel wakes its cleanup worker
+without taking a Store lock. The worker attempts only the original typed
+cleanup routes under the caller's explicit finite cleanup budget. Pending or
+failed cleanup retains those owners; it neither spins nor starts replacement
+business work. A later physical notification can retry that same cleanup.
+
+The original primary error is retained as the same shared error object. Cleanup
+status is a closed category, with no diagnostic text. Original cleanup errors
+and panic payloads are held opaquely until actual retirement; the first of each
+is observed separately from the primary. The critical path never calls their
+Display/Debug/Clone or discards a secondary failure while custody is pending.
+Later pending or complete observations cannot overwrite the first causes.
+Spawn/validation failure returns the same resources. Callback unwinding is
+caught around cleanup while the retained resource remains owned.
+
+Dropping the supervisor only queues a retirement request. The worker keeps its
+original resources even after ordinary handles disappear. Core completion is
+reported only after the original input and pool close return success; explicit
+join then waits for that same worker. No wake, Drop, empty worker map or detached
+thread is a Run cancellation result, physical cleanup ACK or public Receipt.
+Progress observers retain only observations, not the Core. A same-supervisor
+strong custody reference is established before worker creation and released only
+after actual Core close succeeds. Unexpected worker exit cannot make the last
+ordinary handle release a still-pending Core. No formatter or payload destructor
+can serve as an implicit retirement path.
+
+This component still requires the public runtime's actual resource admission,
+physical stop notification, same-parent cleanup holding and Run control binding.
+Its finite diagnostic budget is DATA, not a new allowance or authorization.
+Opaque failure holdings also remain part of that future public retention
+accounting; this private component does not establish normal funding for them.
+
+Failure custody is finite even in this private component. The caller supplies
+an explicit positive slot count. The constructor allocates and initializes that
+fixed array before creating a worker; allocation refusal returns the original
+Core and inputs. Each cleanup attempt reserves a free slot before fuel reset or
+guest entry. A scalar pending/success frees only that unused reservation; an
+original error or panic occupies its slot until actual Core cleanup succeeds.
+The array never grows and no earlier opaque original is discarded for a retry.
+
+With no free slot, the supervisor reports `RetentionFull` and invokes no cleanup,
+even if physical cleanup has become ready. This is an explicit terminal pending
+state, not completion or permission to reopen/reissue. A later funded recovery
+owner is not supplied by this component. Unexpected worker exit is caught by a
+separate outer boundary and uses fixed, pre-established worker/join unwind
+cells. Its original payload and first causes remain retained, its failure is
+observable, and joining cannot report success for that pending state.

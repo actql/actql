@@ -247,18 +247,25 @@ pub(crate) mod test_support {
 
     pub(crate) fn actual_module() -> &'static CompiledCore {
         static COMPILED: OnceLock<CompiledCore> = OnceLock::new();
-        COMPILED.get_or_init(|| {
+        COMPILED.get_or_init(|| compile_actual(true))
+    }
+
+    pub(crate) fn actual_module_without_backtrace() -> &'static CompiledCore {
+        static COMPILED: OnceLock<CompiledCore> = OnceLock::new();
+        COMPILED.get_or_init(|| compile_actual(false))
+    }
+
+    fn compile_actual(backtrace: bool) -> CompiledCore {
             let path = std::env::var_os("ACTQL_CORE_WASM")
                 .expect("Select actual compiler-produced Core Wasm; no fixture fallback or skip");
             let wasm = std::fs::read(path).unwrap();
             let mut config = wasmtime::Config::new();
-            config.consume_fuel(true);
+            config.consume_fuel(true).wasm_backtrace(backtrace);
             let engine = Engine::new(&config).unwrap();
             CompiledCore::compile(&engine, &wasm, &ArtifactProfile {
                 sha256: Sha256::digest(&wasm).into(), max_module_bytes: 64 * 1024 * 1024,
                 memory_max_pages: 256, initialization_fuel: 1_000_000_000,
             }).unwrap()
-        })
     }
 }
 

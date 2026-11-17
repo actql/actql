@@ -45,3 +45,25 @@ ordinary negative Core status codes remain distinct. Actual fuel-trap and
 callback-unwind controls retain their original input and exercise pending then
 successful cleanup. This remains an internal invocation layer: the public
 supervisor/retirement owner and Run cancellation are not supplied by this flag.
+
+The private retirement component now keeps the same Core/Host/input owners in
+a cleanup worker. Pending/error survives ordinary handle Drop, its bounded
+notification does not wait on the Store, and the original primary error and
+first cleanup cause remain separate. Actual Core close precedes worker join.
+This is physical component coverage, not public shutdown/cancellation or normal
+resource admission. No public Run outcome or cleanup Receipt follows from a
+notification, Drop or detached thread.
+
+Cleanup progress uses bounded categories. The critical path does not format or
+clone user error/panic text, and retains their opaque originals through pending
+custody. Observation handles do not retain Core themselves; the supervisor's
+explicit strong custody reference is released only after actual Core cleanup.
+The new error/payload controls cover a user Display that panics and a panic
+payload whose destructor records premature release. This remains private
+component coverage, with public failure-retention funding still unqualified.
+
+Failure slots are explicitly bounded by the caller and allocated before worker
+creation. Cleanup reserves one before guest entry; exhausted custody reports
+terminal pending without another guest call or discarding an original. An
+unexpected worker exit remains a retained, observable failure. This finite
+component does not claim a public recovery path for exhausted custody.

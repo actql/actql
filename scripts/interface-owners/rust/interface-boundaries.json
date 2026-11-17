@@ -681,7 +681,7 @@
           ]
         }
       ],
-      "sha256": "b3021df1edef16f6d65765d55e973c5ba8e39b0e360e4e6298d5f635b11b3c1e",
+      "sha256": "73fb9f105530cd51892aa2d5fb8496851fcc6df42abf4bd2c9f23d846ae7909b",
       "unresolvedSyntax": [],
       "role": "physical-io",
       "responsibilityFacet": "primary",
@@ -837,11 +837,12 @@
       "imports": [
         "module:abi",
         "module:abi_generated",
+        "module:retirement",
         "module:transfer"
       ],
       "module": "packages/rust/src/lib.rs",
       "operations": [],
-      "sha256": "a942238790d045584c456d15cb94704fe21a41806ac39402cdfd73857980d24c",
+      "sha256": "42d3cd35211273970134465c795b0ed204227585b77dce8bad86cbd9da0e7f47",
       "unresolvedSyntax": [],
       "role": "physical-io",
       "responsibilityFacet": "primary",
@@ -943,6 +944,14 @@
       "operations": [
         {
           "async": false,
+          "declaration": "pub (crate) fn is_closed (& self) -> bool",
+          "name": "impl:InputBuffer/is_closed",
+          "parameters": [
+            "& self"
+          ]
+        },
+        {
+          "async": false,
           "declaration": " fn fmt (& self , f : & mut std :: fmt :: Formatter < '_ >) -> std :: fmt :: Result",
           "name": "impl:std :: fmt :: Display for CoreFailure/fmt",
           "parameters": [
@@ -970,7 +979,7 @@
         },
         {
           "async": false,
-          "declaration": " fn original_buffer (& self , buffer : & InputBuffer) -> wasmtime :: Result < () >",
+          "declaration": "pub (crate) fn original_buffer (& self , buffer : & InputBuffer) -> wasmtime :: Result < () >",
           "name": "impl< H : Imports >:CoreInstance < H >/original_buffer",
           "parameters": [
             "& self",
@@ -1031,7 +1040,7 @@
           "parameters": []
         }
       ],
-      "sha256": "036b76117b7ec5bcee3324c12b87d1126d03902a140f44f61d0b1ef73ef0d81a",
+      "sha256": "bf485c9842631c08339bb91219789b15469c94d96ce2285847c914de6385062d",
       "unresolvedSyntax": [],
       "role": "physical-io",
       "responsibilityFacet": "primary",
@@ -1041,6 +1050,7 @@
         {
           "operations": [
             "<module>",
+            "impl:InputBuffer/is_closed",
             "impl:std :: fmt :: Display for CoreFailure/fmt",
             "impl< H : Imports >:CoreInstance < H >/close_input_buffer",
             "impl< H : Imports >:CoreInstance < H >/fill_input_buffer",
@@ -1756,6 +1766,269 @@
               {
                 "path": "scripts/check-rust-interface-owners.mjs",
                 "anchor": "interfaceOwnerCoverage({root, modules: source.modules, owners})"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "exports": [
+        "CleanupFailureKind",
+        "CleanupNotification",
+        "CleanupProgress",
+        "CleanupSnapshot",
+        "OpaqueCleanupUnwind",
+        "RetainedCore",
+        "RetirementStartFailure",
+        "RetirementSupervisor"
+      ],
+      "imports": [
+        "crate :: { abi :: CoreInstance , abi_generated :: Imports , transfer :: InputBuffer }",
+        "std :: { any :: Any , sync :: { Arc , Condvar , Mutex , mpsc :: { self , SyncSender , TrySendError } } , thread :: { self , JoinHandle } , time :: Duration }"
+      ],
+      "module": "packages/rust/src/retirement.rs",
+      "operations": [
+        {
+          "async": false,
+          "declaration": "pub (crate) fn request (& self) -> Result < () , TrySendError < () > >",
+          "name": "impl:CleanupNotification/request",
+          "parameters": [
+            "& self"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "pub (crate) fn snapshot (& self) -> CleanupSnapshot",
+          "name": "impl:CleanupNotification/snapshot",
+          "parameters": [
+            "& self"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "pub (crate) fn wait_for_update (& self , after : u64 , timeout : Duration) -> Option < CleanupSnapshot >",
+          "name": "impl:CleanupNotification/wait_for_update",
+          "parameters": [
+            "& self",
+            "after",
+            "timeout"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "pub (crate) fn join_completed (& mut self) -> wasmtime :: Result < bool >",
+          "name": "impl< H : Imports + Send + 'static >:RetirementSupervisor < H >/join_completed",
+          "parameters": [
+            "& mut self"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "pub (crate) fn notification (& self) -> CleanupNotification",
+          "name": "impl< H : Imports + Send + 'static >:RetirementSupervisor < H >/notification",
+          "parameters": [
+            "& self"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "pub (crate) fn start (retained : RetainedCore < H >) -> Result < Self , RetirementStartFailure < H > >",
+          "name": "impl< H : Imports + Send + 'static >:RetirementSupervisor < H >/start",
+          "parameters": [
+            "retained"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": " fn drop (& mut self)",
+          "name": "impl< H : Imports >:Drop for RetirementSupervisor < H >/drop",
+          "parameters": [
+            "& mut self"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": " fn advance (& mut self) -> wasmtime :: Result < CleanupProgress >",
+          "name": "impl< H : Imports >:RetainedCore < H >/advance",
+          "parameters": [
+            "& mut self"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "# [derive (Clone , Copy , Debug , PartialEq , Eq)] pub (crate) enum CleanupFailureKind  { Invocation , CallbackUnwind , WorkerUnwind }",
+          "name": "type:CleanupFailureKind",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "declaration": "# [derive (Clone)] pub (crate) struct CleanupNotification  { observation : Arc < Observation > , sender : SyncSender < () > , }",
+          "name": "type:CleanupNotification",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "declaration": "# [derive (Clone , Debug , PartialEq , Eq)] pub (crate) enum CleanupProgress  { Waiting , Pending { operation : & 'static str , code : i32 } , Failed (CleanupFailureKind) , RetentionFull , Complete , }",
+          "name": "type:CleanupProgress",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "declaration": "# [derive (Clone)] pub (crate) struct CleanupSnapshot  { pub (crate) attempt : u64 , pub (crate) progress : CleanupProgress , pub (crate) primary_failure : Option < Arc < anyhow :: Error > > , pub (crate) first_cleanup_failure : Option < Arc < anyhow :: Error > > , pub (crate) first_cleanup_unwind : Option < Arc < OpaqueCleanupUnwind > > , pub (crate) failure_slots : usize , pub (crate) occupied_failure_slots : usize , }",
+          "name": "type:CleanupSnapshot",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "declaration": "  enum HeldFailure  { Reserved , Error (Arc < anyhow :: Error >) , Unwind (Arc < OpaqueCleanupUnwind >) , }",
+          "name": "type:HeldFailure",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "declaration": "  struct Observation  { snapshot : Mutex < CleanupSnapshot > , changed : Condvar , }",
+          "name": "type:Observation",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "declaration": " pub (crate) struct OpaqueCleanupUnwind  { payload : Mutex < Box < dyn Any + Send > > , }",
+          "name": "type:OpaqueCleanupUnwind",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "declaration": " pub (crate) struct RetainedCore < H : Imports > { pub (crate) core : CoreInstance < H > , pub (crate) nonce : i64 , pub (crate) inputs : Vec < InputBuffer > , pub (crate) cleanup_fuel : u64 , pub (crate) failure_slots : usize , pub (crate) primary_failure : Option < Arc < anyhow :: Error > > , }",
+          "name": "type:RetainedCore",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "declaration": " pub (crate) struct RetirementStartFailure < H : Imports > { pub (crate) cause : anyhow :: Error , pub (crate) retained : RetainedCore < H > , }",
+          "name": "type:RetirementStartFailure",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "declaration": " pub (crate) struct RetirementSupervisor < H : Imports > { shared : Arc < Shared < H > > , notification : CleanupNotification , worker : Option < JoinHandle < () > > , }",
+          "name": "type:RetirementSupervisor",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "declaration": "  struct Shared < H : Imports > { retained : Mutex < Option < RetainedCore < H > > > , observation : Arc < Observation > , failures : Mutex < Box < [Option < HeldFailure >] > > , worker_unwind : Mutex < Option < Arc < OpaqueCleanupUnwind > > > , join_unwind : Mutex < Option < Arc < OpaqueCleanupUnwind > > > , keeper : Mutex < Option < Arc < Shared < H > > > > , }",
+          "name": "type:Shared",
+          "parameters": []
+        }
+      ],
+      "sha256": "b9178a3d78d911700ee86e33379d348b93cbb1cad5d6713e4a68a73f071487f7",
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "responsibilityFacet": "primary",
+      "owner": "Existing Core Wasm binding and Rust physical embedding owner",
+      "referenceQualification": "Internal source/generation/reference coverage only. Actual Cargo, compiled module, normal distribution and public Host lifecycle remain separate evidence.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "impl:CleanupNotification/request",
+            "impl:CleanupNotification/snapshot",
+            "impl:CleanupNotification/wait_for_update",
+            "impl< H : Imports + Send + 'static >:RetirementSupervisor < H >/join_completed",
+            "impl< H : Imports + Send + 'static >:RetirementSupervisor < H >/notification",
+            "impl< H : Imports + Send + 'static >:RetirementSupervisor < H >/start",
+            "impl< H : Imports >:Drop for RetirementSupervisor < H >/drop",
+            "impl< H : Imports >:RetainedCore < H >/advance",
+            "type:CleanupFailureKind",
+            "type:CleanupNotification",
+            "type:CleanupProgress",
+            "type:CleanupSnapshot",
+            "type:HeldFailure",
+            "type:Observation",
+            "type:OpaqueCleanupUnwind",
+            "type:RetainedCore",
+            "type:RetirementStartFailure",
+            "type:RetirementSupervisor",
+            "type:Shared"
+          ],
+          "exports": [
+            "CleanupFailureKind",
+            "CleanupNotification",
+            "CleanupProgress",
+            "CleanupSnapshot",
+            "OpaqueCleanupUnwind",
+            "RetainedCore",
+            "RetirementStartFailure",
+            "RetirementSupervisor"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Retained Rust cleanup worker"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Retained Rust cleanup worker"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Retained Rust cleanup worker"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Retained Rust cleanup worker"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Retained Rust cleanup worker"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Retained Rust cleanup worker"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Retained Rust cleanup worker"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Retained Rust cleanup worker"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Retained Rust cleanup worker"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/rust/src/transfer.rs",
+                "anchor": "fn custody_error_display_is_never_called_before_original_retirement("
+              },
+              {
+                "path": "packages/rust/src/transfer.rs",
+                "anchor": "fn custody_panic_payload_is_not_destroyed_while_original_cleanup_is_pending("
+              },
+              {
+                "path": "packages/rust/src/transfer.rs",
+                "anchor": "fn bounded_custody_refuses_before_another_cleanup_and_exposes_unexpected_worker_exit("
               }
             ]
           }
