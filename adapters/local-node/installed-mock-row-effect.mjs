@@ -81,23 +81,10 @@ export async function installPreparedProjectMockEffects({moon, mockPreparation,
   const implementation = await mockPreparation.constructWritableRuntime(moon, 'root', undefined, () => {
     const file = createMockFileTarget({dataPath: bundle.dataPath, maxBytes: targetLimits.maxFileBytes,
       assertCurrent: current, observeWrite, ...(io === undefined ? {} : {io})});
-    return {file, sources: bundle.sources.filter(source => source.writes.length !== 0), retainedRuns: new WeakSet()};
+    return {file, sources: bundle.sources.filter(source => source.writes.length !== 0)};
   });
-  const {file, sources, retainedRuns} = implementation;
-  const retainRun = (original, requireCurrent = false) => {
-    if (requireCurrent || !retainedRuns.has(original)) {
-      current();
-      if (original === null || typeof original !== 'object') fail('ForeignMockEffectRun');
-      synchronous(resources.assertCurrent(original));
-      retainedRuns.add(original);
-    }
-    return original;
-  };
-  const resourceObservation = Object.freeze({
-    limits(original) {retainRun(original, true); return targetLimits;},
-    statusFor(original) {return file.statusFor(retainRun(original));},
-    closeFor(original) {return file.closeFor(retainRun(original));},
-  });
+  const {file, sources} = implementation;
+  let resourceObservation;
   try {
     const installed = await composeInstalledEffects(sources,
       {moon, baseEnvironmentWire, installationServices}, async (original, _options, retain) => {
@@ -122,6 +109,10 @@ export async function installPreparedProjectMockEffects({moon, mockPreparation,
             managedPlanRecipe: mockFileEffectPlanRecipe(moon, bundle, spec.permission, spec.observe_permission)};
         });
         const {driver, site, targets, managedPlanRecipe} = constructed;
+        // Every driver observes this SAME physical file. Reuse an existing
+        // original observer for whole-project custody instead of allocating
+        // another Run registry. This selects no grant or dispatch authority.
+        resourceObservation ??= constructed.resourceObservation;
         try {
           // A member is consumed ONCE with ALL of its original prepared
           // mappings. Logical routing happens inside this same installed driver.
@@ -139,7 +130,7 @@ export async function installPreparedProjectMockEffects({moon, mockPreparation,
             return retainInstalledRowEffectAdapter(effect, Object.freeze({...effect,
               queryUpdateTargets: installedUpdateTargets(effect, aliases)}));
           });
-          installations.set(projection, resourceObservation);
+          installations.set(projection, constructed.resourceObservation);
           return projection;
         } catch (cause) {
           try {await site.close();} catch (cleanup) {
@@ -150,6 +141,7 @@ export async function installPreparedProjectMockEffects({moon, mockPreparation,
           throw cause;
         }
       });
+    if (resourceObservation === undefined) fail('InstalledMockWritableTargetUnavailable');
     installations.set(installed, resourceObservation);
     return installed;
   } catch (cause) {

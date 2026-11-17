@@ -365,8 +365,34 @@ export function declaredProjectWritableRuntimeConstructionGeometry(sources, writ
     // read phase names. Their input names are borrowed; concatenated results
     // and the builder's preceding prefix coexist separately.
     const operationUnits = 2n * operation + 3n * read + 80n;
+    // The selected physical recipe has 2 member + 5 row operations and 3
+    // owned target-read slots. Its public JS normalization inspects 18
+    // records/arrays containing 46 properties (including array lengths).
+    // Each descriptor is a record plus value/writable/enumerable/configurable.
+    // Keep BOTH raw and normalized recipe records until this call returns.
+    // These are quantities in the existing Source allowance, not VM/RSS sizes.
+    const descriptorCalls = 18n, descriptorProperties = 46n;
+    const descriptorRecords = descriptorCalls + 5n * descriptorProperties;
+    const descriptorNamesAndKeys = 2n * (descriptorCalls + descriptorProperties) + 14n + 9n;
+    const descriptorCallbacks = 4n * descriptorCalls + 15n;
+    // Two Set controls, the three-slot index seed, and the 3 phase + 6 index
+    // entries. Keep their entry and old/new construction slots together.
+    const validationSets = 2n + 4n + 3n * (3n + 6n);
+    const rawRecipeOverlap = 66n;
+    // Provider input: dimension/phase vectors, selected/inner arrays, 8
+    // property descriptors, both phase-key vectors, root keys and limit
+    // vocabulary. Include its callbacks and raw zero/workspace constructors.
+    const providerValidation = 4n + 3n + 15n + 10n + 8n + 30n + 3n + 6n + 19n + 15n;
+    // Three six-argument capacity vectors, two one-item composition arrays,
+    // three 15-argument quotes and their optional request-capacity arrays.
+    const nativeArgumentVectors = 3n * 7n + 4n + 3n * 16n + 3n * 2n;
+    // Numeric array-key Strings created by the 2+5 operation-index maps.
+    const indexStrings = 7n;
+    const recipeWorkspace = descriptorRecords + descriptorNamesAndKeys + descriptorCallbacks +
+      validationSets + rawRecipeOverlap + providerValidation + nativeArgumentVectors + indexStrings;
     return stage({nodes: 768n + 2n * targets, text: 2n * operationUnits, wire: 0n},
-      {nodes: 128n + 2n * targets, text: 4n * operationUnits, wire: 0n}, {targets});
+      {nodes: recipeWorkspace + 2n * targets, text: 4n * operationUnits + 2n * indexStrings, wire: 0n},
+      {targets, descriptorCalls, descriptorProperties});
   }
   if (phase !== 'aliases') invalidGeometry();
   const parsed = sourceJsonWireGeometry(selected.effectPrepared.environment.wire);

@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/declared-project-catalog-construction.mjs",
-      "sha256": "fc0ce2ed3faf85a78b7fb1a7bba794124b8c9bfdd4f0a152145fc1d424ddffae",
+      "sha256": "34c76194aac05ddcfade860b1f555eb843959eb56be6514377e67d7e5b925276",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing installed SourceInitialization material and original Source/Effect constructor owners; provider-neutral geometry DATA only",
@@ -287,6 +287,10 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "installationInventory.prepareMetadataInput"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "const fields = Object.getOwnPropertyDescriptors(value);"
               }
             ],
             "extension": [
@@ -299,6 +303,10 @@
               {
                 "path": "adapters/local-node/declared-project-writable-inventory.test.mjs",
                 "anchor": "Mock writable constructor inventory quantities retain original phase identity"
+              },
+              {
+                "path": "adapters/local-node/declared-project-writable-inventory.test.mjs",
+                "anchor": "Mock physical recipe construction inventories its actual selected descriptor normalization"
               }
             ]
           }

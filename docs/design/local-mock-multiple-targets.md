@@ -61,6 +61,14 @@ across unrelated asynchronous work. Member loading retains the actual adapter
 before a later currentness check can fail. Original cleanup custody survives a
 construction failure or currentness loss.
 
+The physical recipe's normalization also belongs to that constructor peak.
+Property descriptors, key/name vectors, validation Sets and callbacks coexist
+with the raw recipe and its normalized output. Their workspace is charged
+alongside the retained driver and recipe; a bound on the returned operation
+list alone does not fund those intermediate constructors. The existing shared
+capacity owner converts these quantities using its logical Host allowances.
+This is distinct from a measured VM heap or backend allocator/RSS bound.
+
 Mappings, Account policy and row claims remain the existing owners' contracts.
 Per-operation physical plans retain their actual operation names and original
 limits. Neither the inventory length nor a maximum member count supplies free
