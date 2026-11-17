@@ -45,7 +45,7 @@ export function fixedOriginalTransportTimeouts(value) {
   const keys = Reflect.ownKeys(value);
   if (keys.some(key => typeof key !== 'string' || ![...names, 'callMs'].includes(key)) ||
       names.some(name => !keys.includes(name))) throw issue('UndiciOriginalTimeoutsUnavailable');
-  const fields = keys.map(name => {
+  const fields = keys.sort().map(name => {
     const field = Object.getOwnPropertyDescriptor(value, name);
     if (!field?.enumerable || !Object.hasOwn(field, 'value') || !positive(field.value)) {
       throw issue('UndiciOriginalTimeoutsUnavailable');

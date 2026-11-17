@@ -1382,7 +1382,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5108a3bb51f2289506d06f6d4dc4850581ade2ac1fa26cb6259f05051c39cb22",
+      "sha256": "7d726bf5b420baae8b6218e1ae783773e7915a18afa63014f04e9eef1c9da099",
       "exports": [
         "cancelSdkPreparation",
         "cleanupSdkPreparation",
@@ -1996,7 +1996,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "51756bb63b30f1801bbf0f8c5a2fa807b4d8c42c485e934189d2f75fa8f504fb",
+      "sha256": "44b15dd2e68ba97f6d10daaaddfefdf104a20ea27712268cfb04926d51c24539",
       "exports": [
         "createOriginalUndiciFetch",
         "fixedOriginalAcquisitionLimits",
@@ -2417,6 +2417,14 @@
               {
                 "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
                 "anchor": "Continuous original data precedes total expiry"
+              },
+              {
+                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
+                "anchor": "physical timeout snapshots preserve canonical three and four key order for every permutation"
+              },
+              {
+                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
+                "anchor": "deadline cleanup aborts the original controller before stopping a pending physical body"
               }
             ]
           }

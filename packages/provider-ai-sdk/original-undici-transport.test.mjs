@@ -716,3 +716,40 @@ test('whole physical call clock retires at original response settlement without 
   await until(() => progressSdkOriginalIoCleanup(handle), value => value === true);
   await until(() => cleanupSdkPreparation(handle), value => value === true);
 });
+
+test('physical timeout snapshots preserve canonical three and four key order for every permutation', () => {
+  const permute = keys => keys.length === 0 ? [[]] : keys.flatMap((key, index) =>
+    permute(keys.filter((_, position) => position !== index)).map(rest => [key, ...rest]));
+  for (const [values, expected] of [
+    [{bodyMs: 300, connectMs: 100, headersMs: 200}, '{"bodyMs":300,"connectMs":100,"headersMs":200}'],
+    [{bodyMs: 300, callMs: 400, connectMs: 100, headersMs: 200}, '{"bodyMs":300,"callMs":400,"connectMs":100,"headersMs":200}'],
+  ]) for (const keys of permute(Object.keys(values))) {
+    const selected = fixedOriginalTransportTimeouts(Object.fromEntries(keys.map(key => [key, values[key]])));
+    assert.equal(JSON.stringify(selected), expected);
+    assert(Object.isFrozen(selected));
+  }
+});
+
+test('deadline cleanup aborts the original controller before stopping a pending physical body', {timeout: 5000}, async t => {
+  const f = await fixture(t, (request, response) => {
+    response.setHeader('content-type', 'application/json'); response.write('{');
+  }, {transportTimeouts: {connectMs: 1000, headersMs: 1000, bodyMs: 1000, callMs: 1000}});
+  let received = false;
+  const errors = [], incoming = channel('undici:request:bodyChunkReceived'), failures = channel('undici:request:error');
+  const same = request => String(request.origin) === new URL(f.endpoint).origin;
+  const onChunk = ({request}) => {if (same(request)) received = true;};
+  const onFailure = ({request}) => {if (same(request)) errors.push(f.signals[0].aborted);};
+  incoming.subscribe(onChunk); failures.subscribe(onFailure);
+  t.after(() => {incoming.unsubscribe(onChunk); failures.unsubscribe(onFailure);});
+  const handle = f.prepare(); startSdkTransport(handle);
+  await until(() => received, value => value === true); await turn();
+  assert.equal(f.signals[0].aborted, false);
+  assert.equal(pollSdkTransport(handle).kind, 'pending');
+  assert.equal(progressSdkOriginalIoCleanup(handle), false, 'Normal progress cannot abandon an active reader');
+  assert.equal(cleanupSdkPreparation(handle), false, 'A stop request is not a physical acknowledgement');
+  await until(() => errors.length, count => count > 0);
+  assert(errors.every(value => value === true), 'Original controller stop must precede physical request failure');
+  await until(() => progressSdkOriginalIoCleanup(handle), value => value === true);
+  await until(() => cleanupSdkPreparation(handle), value => value === true);
+  assert.equal(f.calls.length, 1);
+});
