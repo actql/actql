@@ -133,15 +133,7 @@ fn seal_prepared_reviewer_proof_body(
   if key_id.is_empty() || key_id.length() > limits.max_wire_bytes {
     return Err(ResolutionInvalidField("proof.key_id"))
   }
-  // Canonical base64 of exact Ed25519 64-byte output. Decode is bounded by the
-  // fixed encoded length, not by an unbounded caller string or a secret body.
-  if signature.length() != 88 || !valid_base64(signature) {
-    return Err(ResolutionInvalidField("proof.signature"))
-  }
-  let bytes = @base64.decode(signature[:]) catch {
-    _ => return Err(ResolutionInvalidField("proof.signature"))
-  }
-  if bytes.length() != 64 || @base64.encode(bytes) != signature {
+  if !@document.reviewer_signature_valid(signature) {
     return Err(ResolutionInvalidField("proof.signature"))
   }
   let fields = match @json.object_fields(prepared) {

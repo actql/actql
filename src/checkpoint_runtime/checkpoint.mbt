@@ -67,14 +67,7 @@ pub fn parse_checkpoint_requirement(token : String) -> CheckpointRequirement? {
 ///|
 /// The only required-artifact type for each Checkpoint kind.
 pub fn checkpoint_artifact_type(kind : CheckpointKind) -> String {
-  match kind {
-    RunScope => "prepared_invocation"
-    ReadAccess => "read_scope"
-    DataEgress => "egress_scope"
-    CostScope => "budget_scope"
-    ModelInvocation => "model_invocation_scope"
-    EffectSet => "effect_set_preview"
-  }
+  @document.artifact_type(checkpoint_kind_token(kind)).unwrap()
 }
 
 ///|
@@ -84,13 +77,14 @@ pub fn checkpoint_combination_valid(
   phase : CheckpointPhase,
   kind : CheckpointKind,
 ) -> Bool {
-  match (subject, phase, kind) {
-    (PrepareAttempt(..), Preflight, RunScope) => true
-    (_, Preflight, ReadAccess) => true
-    (RunUnit(..), Preflight, DataEgress | CostScope | ModelInvocation) => true
-    (RunUnit(..), Commit, EffectSet) => true
-    _ => false
-  }
+  @document.combination_valid(
+    match subject {
+      PrepareAttempt(..) => "prepare_attempt"
+      RunUnit(..) => "run_unit"
+    },
+    phase_token(phase),
+    checkpoint_kind_token(kind),
+  )
 }
 
 ///|
@@ -103,12 +97,15 @@ pub fn checkpoint_requirements_valid(
   kind : CheckpointKind,
   requirements : Array[CheckpointRequirement],
 ) -> Bool {
-  match kind {
-    EffectSet =>
-      requirements == [EffectScopeApproved] ||
-      requirements == [EffectScopeApproved, PartialApplicationAccepted]
-    _ => requirements == [InvocationScopeApproved]
+  let token = checkpoint_kind_token(kind)
+  guard @document.requirement_max_arity(token) is Some(maximum) &&
+    requirements.length() <= maximum else {
+    return false
   }
+  @document.requirements_valid(
+    token,
+    requirements.map(checkpoint_requirement_token),
+  )
 }
 
 ///|
