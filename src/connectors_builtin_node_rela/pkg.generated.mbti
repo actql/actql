@@ -1716,6 +1716,8 @@ pub fn client_program_normalize_project_model_task(@run_publication_host.ClientP
 
 pub fn client_program_normalized_public_model_task_materials(@check_environment.NormalizedPublicModelTask) -> (String, String, String, String)
 
+pub fn client_program_normalized_public_model_task_provider_data(@check_environment.NormalizedPublicModelTask, Int, Int, Int, Int) -> Result[(String, String, String), @check_environment.ModelTaskIssue]
+
 pub fn client_program_notion_database_limits(Int, Int, Int, Int, Int, Int, Int) -> @actql/actql/connectors/notion/catalog.NotionDatabaseLimits
 
 pub fn client_program_notion_project_data_source(@actql/actql/connectors/notion/catalog.NotionDatabaseCatalog, Int, Bytes, @actql/actql/connectors/notion/catalog.NotionDatabaseLimits) -> Result[@actql/actql/connectors/notion/catalog.NotionDataSourceCatalog, @actql/actql/connectors/notion/catalog.NotionDatabaseIssue]
