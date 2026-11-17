@@ -111,3 +111,25 @@ export async function assertInstalledDependencyClosure({directory, modules, arti
   return {modules: Object.keys(graph.metafile.inputs).length,
     qualification: 'actual installed dependency closure; not product execution'};
 }
+
+// Validate the actual bundled graph, not the SDK's private module inventory.
+// Generated pure codecs may grow inside these two lightweight packages.
+export function assertRemoteBrowserDependencyBoundary(metadata) {
+  const inputs = Object.entries(metadata.inputs), outputs = Object.values(metadata.outputs);
+  assert(inputs.length && outputs.length, 'Remote browser bundle graph must be nonempty');
+  assert(inputs.some(([path]) => path.replaceAll('\\', '/') ===
+    'node_modules/@actql/sdk/index.mjs'), 'Remote browser SDK entry is missing');
+  for (const [path, input] of inputs) {
+    const normalized = path.replaceAll('\\', '/');
+    const match = /^node_modules\/@actql\/(?:sdk|client-wire)\/(.+)$/u.exec(normalized);
+    assert(match, `Remote browser dependency outside SDK/client-wire: ${path}`);
+    const parts = match[1].split('/');
+    assert(parts.every(part => part && !['.', '..', 'node_modules', '_build', 'native'].includes(part)) &&
+      !/(?:^|\/)Core\.[cm]?js$|\.(?:node|wasm|core|mi|rsp|dylib|so|dll)$/iu.test(match[1]),
+    `Remote browser compiled/runtime dependency: ${path}`);
+    assert(Array.isArray(input.imports) && input.imports.every(value => !value.external),
+      `Remote browser external input import: ${path}`);
+  }
+  assert(outputs.every(output => Array.isArray(output.imports) && output.imports.length === 0),
+    'Remote browser bundle must have no remaining imports');
+}

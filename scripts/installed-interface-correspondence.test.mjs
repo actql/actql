@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {test} from 'node:test';
 import {interfaceAttributes, javascriptInterface} from './interface-inventory.mjs';
-import {installedInterfaceCorrespondence, assertInstalledDependencyClosure} from './installed-interface-correspondence.mjs';
+import {installedInterfaceCorrespondence, assertInstalledDependencyClosure, assertRemoteBrowserDependencyBoundary} from './installed-interface-correspondence.mjs';
 import {checkInterfaceOwners} from './check-interface-owners.mjs';
 import {typescriptInterface} from './typescript-interface-inventory.mjs';
 import {installedInterfaceInventory} from './installed-interface-inventory.mjs';
@@ -233,4 +233,43 @@ test('a runtime import of a declaration still reaches the real runtime resolver'
     modules: installedInterfaceInventory(options.directory).modules,
     runtimeBindings: [{module: 'entry.mjs', targets: ['./contract.d.ts']}]}), failure =>
     failure.errors?.some(value => /must be initialized/u.test(value.text)));
+});
+
+function browserGraph(extra = {}) {
+  return {inputs: {
+    'node_modules/@actql/sdk/index.mjs': {imports: []},
+    'node_modules/@actql/client-wire/index.mjs': {imports: []},
+    ...extra,
+  }, outputs: {'browser.mjs': {imports: []}}};
+}
+
+test('remote browser boundary allows additional pure generated SDK modules', () => {
+  assert.doesNotThrow(() => assertRemoteBrowserDependencyBoundary(browserGraph({
+    'node_modules/@actql/sdk/internal/checkpoint-answer-construction.generated.mjs': {imports: []},
+  })));
+});
+
+test('remote browser boundary refuses Local Node Core native and escaped runtime dependencies', () => {
+  for (const path of [
+    'node_modules/@actql/local-node/index.mjs', 'node_modules/@actql/node/index.mjs',
+    'node_modules/@actql/run-host-core/index.mjs', '_build/js/release/build/Core.js',
+    'node_modules/@actql/sdk/internal/Core.js',
+    'node_modules/@actql/sdk/../local-node/index.mjs',
+    'node_modules/@actql/sdk/node_modules/@actql/local-node/index.mjs',
+    'node_modules/@actql/sdk/_build/runtime.js', 'node_modules/@actql/sdk/native/runtime.mjs',
+    'node_modules/@actql/sdk/internal/engine.wasm', 'node_modules/@actql/sdk/internal/addon.node',
+  ]) assert.throws(() => assertRemoteBrowserDependencyBoundary(browserGraph({[path]: {imports: []}})),
+    /Remote browser/u, path);
+});
+
+test('remote browser boundary refuses external imports and empty or missing entry graphs', () => {
+  const external = browserGraph();
+  external.inputs['node_modules/@actql/sdk/index.mjs'].imports.push({path: 'node:fs', external: true});
+  assert.throws(() => assertRemoteBrowserDependencyBoundary(external), /external input import/u);
+  const outputImport = browserGraph();
+  outputImport.outputs['browser.mjs'].imports.push({path: 'runtime.mjs', external: true});
+  assert.throws(() => assertRemoteBrowserDependencyBoundary(outputImport), /remaining imports/u);
+  assert.throws(() => assertRemoteBrowserDependencyBoundary({inputs: {}, outputs: {}}), /nonempty/u);
+  const missingEntry = browserGraph(); delete missingEntry.inputs['node_modules/@actql/sdk/index.mjs'];
+  assert.throws(() => assertRemoteBrowserDependencyBoundary(missingEntry), /entry is missing/u);
 });

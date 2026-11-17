@@ -12,6 +12,7 @@ import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
 import {packedClientPackage, pinnedDuckDBPackage} from './packed-client-packages.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
+import {assertRemoteBrowserDependencyBoundary} from './installed-interface-correspondence.mjs';
 import {groupedQueryCases, quotedLeadQuery} from './fixtures/grouped-query-programs.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
@@ -2507,41 +2508,7 @@ run(join(repository, 'node_modules/.bin/esbuild'), [
   `--outfile=${browser}`, `--metafile=${browserMetadata}`,
 ], root);
 const metadata = JSON.parse(await readFile(browserMetadata, 'utf8'));
-assert.deepEqual(Object.keys(metadata.inputs).sort(), [
-  'node_modules/@actql/client-wire/client-host.generated.js',
-  'node_modules/@actql/client-wire/index.mjs',
-  'node_modules/@actql/client-wire/interactive-control.generated.js',
-  'node_modules/@actql/client-wire/publication.generated.js',
-  'node_modules/@actql/sdk/check-presentation.mjs',
-  'node_modules/@actql/sdk/check-reason-catalog.generated.js',
-  'node_modules/@actql/sdk/checkpoints.mjs',
-  'node_modules/@actql/sdk/connection-string.mjs',
-  'node_modules/@actql/sdk/index.mjs',
-  'node_modules/@actql/sdk/internal/check-observation.mjs',
-  'node_modules/@actql/sdk/internal/checkpoint-answer-contract.generated.mjs',
-  'node_modules/@actql/sdk/internal/checkpoint-operations.mjs',
-  'node_modules/@actql/sdk/internal/client-lifecycle.mjs',
-  'node_modules/@actql/sdk/internal/client.mjs',
-  'node_modules/@actql/sdk/internal/connection-options.mjs',
-  'node_modules/@actql/sdk/internal/data.mjs',
-  'node_modules/@actql/sdk/internal/errors.mjs',
-  'node_modules/@actql/sdk/internal/plan.mjs',
-  'node_modules/@actql/sdk/internal/private-source-preparation.mjs',
-  'node_modules/@actql/sdk/internal/resources.mjs',
-  'node_modules/@actql/sdk/internal/result-read.mjs',
-  'node_modules/@actql/sdk/internal/run-observation.mjs',
-  'node_modules/@actql/sdk/internal/submission-observation.mjs',
-  'node_modules/@actql/sdk/internal/transport-response.mjs',
-  'node_modules/@actql/sdk/internal/transport.mjs',
-  'node_modules/@actql/sdk/json-value-wire.generated.mjs',
-  'node_modules/@actql/sdk/loopback-http-unavailable.mjs',
-  'node_modules/@actql/sdk/operation-formats.mjs',
-  'node_modules/@actql/sdk/operation-presentation.mjs',
-  'node_modules/@actql/sdk/result-schema.mjs',
-  'node_modules/@actql/sdk/source-query.mjs',
-]);
-assert(Object.values(metadata.outputs).every(output =>
-  output.imports.length === 0));
+assertRemoteBrowserDependencyBoundary(metadata);
 await writeFile(join(root, 'browser-smoke.mjs'), `
 import assert from 'node:assert/strict';
 globalThis.fetch = async () => { throw new Error('NetworkOnImport'); };
