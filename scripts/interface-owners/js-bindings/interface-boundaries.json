@@ -64939,7 +64939,7 @@
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "6495ba1b4e031982c643d9afcf3e6cd457872a2e2ebdea04ddde0a663034eab0",
+      "sha256": "46edea0203446b104cdc706dc6e75fba3ee6bcaa7a23b7532b002d47892ba555",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -65056,6 +65056,22 @@
           "async": true
         },
         {
+          "name": "openNodeInferCaptureCustody/init:projectUsage/init:projectUsage",
+          "parameters": [
+            "slot",
+            "maxBytes",
+            "current"
+          ],
+          "async": false
+        },
+        {
+          "name": "openNodeInferCaptureCustody/init:usageInventory/init:usageInventory",
+          "parameters": [
+            "current"
+          ],
+          "async": false
+        },
+        {
           "name": "openNodeInferCaptureCustody/openNodeInferCaptureCustody",
           "parameters": [
             "preparePublication"
@@ -65123,7 +65139,9 @@
             "openNodeInferCaptureCustody/retainCompleted",
             "openNodeInferCaptureCustody/retirePublication/retirePublication",
             "openNodeInferCaptureCustody/retirePublication/retirePublication/retirePublication",
-            "openNodeInferCaptureCustody/retirePublication/retirePublication/retirePublication#2"
+            "openNodeInferCaptureCustody/retirePublication/retirePublication/retirePublication#2",
+            "openNodeInferCaptureCustody/init:projectUsage/init:projectUsage",
+            "openNodeInferCaptureCustody/init:usageInventory/init:usageInventory"
           ],
           "exports": [
             "openNodeInferCaptureCustody"
@@ -65583,7 +65601,7 @@
     {
       "module": "adapters/host-node/infer-evaluation-evidence.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "d7d3f30d0cf1af1ab8404e3128723c0990fbcbf40bdb2b81494e34f6f22e1bb0",
+      "sha256": "01806815c5b54aacacfe43f1ec37240a33813ce20cc4b6dff5e10403562c290e",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -65637,7 +65655,8 @@
             "partial",
             "copyFunding",
             "current",
-            "programDefinitionCid"
+            "programDefinitionCid",
+            "usageCurrent"
           ],
           "async": true
         },
@@ -65714,6 +65733,33 @@
           "async": false
         },
         {
+          "name": "projectInferUsage/check/check",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectInferUsage/projectInferUsage",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectInferUsage/projectInferUsage#2",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "projectInferUsage/projectInferUsage#3",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "projectInferUsage/unavailable/unavailable",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
           "name": "withPreparedInferEvidence",
           "parameters": [
             "configuration",
@@ -65748,7 +65794,12 @@
       "contracts": [
         {
           "operations": [
-            "canonicalJson/canonicalJson"
+            "canonicalJson/canonicalJson",
+            "projectInferUsage/check/check",
+            "projectInferUsage/projectInferUsage",
+            "projectInferUsage/projectInferUsage#2",
+            "projectInferUsage/projectInferUsage#3",
+            "projectInferUsage/unavailable/unavailable"
           ],
           "exports": [],
           "attributes": {
@@ -66840,7 +66891,9 @@
             "finishNodeInferOriginalReadScopes",
             "finishNodeInferOriginalReadScopes/current/current/current",
             "retireNodeInferOriginalRead",
-            "openNodeComposedInferProvider/component/init:startSourceFreeSingleUnit/init:startSourceFreeSingleUnit"
+            "openNodeComposedInferProvider/component/init:startSourceFreeSingleUnit/init:startSourceFreeSingleUnit",
+            "openNodeInferOperation/operation/init:prepareOriginalUsage/init:prepareOriginalUsage",
+            "openNodeInferOperation/operation/init:projectOriginalUsage/init:projectOriginalUsage"
           ],
           "exports": [
             "finishNodeInferOriginalReadScopes",
@@ -70217,6 +70270,26 @@
           "async": false
         },
         {
+          "name": "openNodeInferOperation/operation/init:prepareOriginalUsage/init:prepareOriginalUsage",
+          "parameters": [
+            "source",
+            "capture",
+            "count"
+          ],
+          "async": false
+        },
+        {
+          "name": "openNodeInferOperation/operation/init:projectOriginalUsage/init:projectOriginalUsage",
+          "parameters": [
+            "source",
+            "capture",
+            "slot",
+            "count",
+            "maxBytes"
+          ],
+          "async": false
+        },
+        {
           "name": "openNodeInferOperation/operation/init:releaseOriginalPublicationCapacity/init:releaseOriginalPublicationCapacity",
           "parameters": [],
           "async": false
@@ -70900,7 +70973,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "c1820633ec8e8ddf48a3658f87267c3db256b8c8302d48fc413ed5a91b2819e2"
+      "sha256": "25db7dd8b7f1499b9148886a60c9bc158ae0af3503ec0d9fbc212ecd82e20f57"
     },
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",
@@ -73531,7 +73604,7 @@
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "d96de15095e5c931a6d0930f6c44f7db342e5f21dde49e3872ef820d3cb4f562",
+      "sha256": "7ea91a69c321aa7a14620d8e28deaf183d566a158238d9465a0cf982561ad6a8",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [

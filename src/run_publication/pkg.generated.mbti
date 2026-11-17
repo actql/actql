@@ -765,6 +765,8 @@ pub fn model_capture_record_tokens(ModelCaptureRecordRead) -> (Int64, Int64)?
 
 pub fn model_input_artifact_relation_identities(RunEvidenceValue) -> (String, String)?
 
+pub fn model_invocation_evidence_usage(RunEvidenceValue) -> Result[ModelCaptureUsage, RunEvidenceValueIssue]
+
 pub fn model_invocation_evidence_version(RunEvidenceValue) -> String?
 
 pub fn model_invocation_review_expires_at(RunEvidenceValue) -> String?
@@ -2053,6 +2055,13 @@ pub struct ModelCaptureRecordRead {
 }
 
 type ModelCaptureStorage
+
+pub(all) struct ModelCaptureUsage {
+  origin : ModelCaptureObservationOrigin
+  input_tokens : Int64?
+  output_tokens : Int64?
+  raw_response_artifact_cid : String?
+}
 
 pub(all) struct ModelInvocationBoundary {
   unit_id : String

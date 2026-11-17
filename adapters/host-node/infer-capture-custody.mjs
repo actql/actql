@@ -456,6 +456,39 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     completedInventoryReceipt() {return capture !== undefined && !publicationCleaned && !reclaimed ? captureInventory : undefined;},
     modelEvidence() {return !publicationRetired && !reclaimed && captureStored
       ? projectedModelEvidence ??= Object.freeze([...modelEvidence]) : undefined;},
+    usageInventory(current) {
+      if (typeof current !== 'function') return undefined;
+      current();
+      if (!captureStored || !exportComplete || reclaimed || publicationCleaned ||
+          fundedInferCaptureInventoryCount(captureInventory, operation) !== count) return undefined;
+      current();
+      if (typeof publicationFunding?.prepareOriginalUsage !== 'function') return undefined;
+      publicationFunding.prepareOriginalUsage(operation, capture, count);
+      current();
+      const calls = [];
+      for (let slot = 0; slot < count; slot++) {
+        const call = moon.clientProgramInferCaptureCall(capture, slot);
+        const outcome = moon.clientProgramInferCaptureOutcome(capture, slot);
+        if (call === undefined || outcome === undefined) return undefined;
+        calls.push(Object.freeze({slotCid: moon.strategyRunEvidenceIdentity(call), outcome}));
+      }
+      current();
+      return Object.freeze({count, calls: Object.freeze(calls),
+        cid: moon.clientProgramInferCaptureExportIdentity(exporter)});
+    },
+    projectUsage(slot, maxBytes, current) {
+      if (typeof current !== 'function') throw new Error('RequiredEvidenceUnavailable');
+      current();
+      if (!captureStored || !exportComplete || reclaimed || publicationCleaned ||
+          fundedInferCaptureInventoryCount(captureInventory, operation) !== count ||
+          typeof publicationFunding?.projectOriginalUsage !== 'function') {
+        throw new Error('RequiredEvidenceUnavailable');
+      }
+      current();
+      const wire = publicationFunding.projectOriginalUsage(operation, capture, slot, count, maxBytes);
+      current();
+      return wire;
+    },
     // This immutable original is available only after the existing Store
     // commit. It conveys no read/capture permission and retains no new owner.
     evaluationBundle() {

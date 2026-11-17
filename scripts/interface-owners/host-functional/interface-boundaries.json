@@ -25344,14 +25344,15 @@
     {
       "module": "adapters/host-node/client-program-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "cb2bc51f79b7ce069e9e6efe272ff223716f6fd758007981f1fc0710b3c628a2",
+      "sha256": "c89d664781f91fb0322c2fb54c6d547ea724c5922ebb7272f6c8fd5b2791e1ec",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
         "checkedRequestProgramPreparation",
         "checkedRequestSnapshotPreparation",
         "installNodeClientProgramPreparation",
-        "requestProgramCapacityRefusal"
+        "requestProgramCapacityRefusal",
+        "requestProgramPreparationProblemCode"
       ],
       "operations": [
         {
@@ -25487,6 +25488,13 @@
         },
         {
           "name": "requestProgramCapacityRefusal",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "requestProgramPreparationProblemCode",
           "parameters": [
             "error"
           ],
@@ -26930,6 +26938,88 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "An actual Request snapshot grow can separately retain its original typed"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "requestProgramPreparationProblemCode"
+          ],
+          "exports": [
+            "requestProgramPreparationProblemCode"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original preparation work problem code"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original preparation work problem code"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original preparation work problem code"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original preparation work problem code"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original preparation work problem code"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original preparation work problem code"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original preparation work problem code"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original preparation work problem code"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original preparation work problem code"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/request_program_work_code_wbtest.mbt",
+                "anchor": "test \"Request compatible work code forwards only the same original Common issue\""
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "compatible work code retains actual Journal"
+              },
+              {
+                "path": "packages/sdk/submission-check-observations.test.mjs",
+                "anchor": "compatible work code public display"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_named_submission.py",
+                "anchor": "test_compatible_problem_code_preserves_actual_submission_phase"
               }
             ]
           }
@@ -33349,7 +33439,7 @@
     {
       "module": "adapters/host-node/client-submission.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e3062223cdb02ea58695b2be070f57bc23aa05a37cf7138552d2b86e0540a385",
+      "sha256": "b31ccd064aee6f3b7778a8b4516c43c5ae47a197224573df45e0cf477edd0f30",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -34698,7 +34788,8 @@
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
         "../../packages/client-wire/index.mjs",
-        "../../packages/sdk/host-port.mjs"
+        "../../packages/sdk/host-port.mjs",
+        "./client-program-preparation.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []

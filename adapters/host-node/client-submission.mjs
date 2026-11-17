@@ -1,6 +1,7 @@
 // Public submission facts live in the existing request journal. This adapter
 // neither dispatches tasks nor infers nonexecution from a missing Run record.
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
+import {requestProgramPreparationProblemCode} from './client-program-preparation.mjs';
 import {validSubmissionRef, validSubmissionOutcome, validSubmissionLookup,
   isClientSubmitRejection, validCheckOutcome, validOperationAttemptRef,
   validSubmissionName, validNamedSubmissionAttempt} from '../../packages/client-wire/index.mjs';
@@ -335,13 +336,15 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       return storedOutcome(journal.lookupSubmittedIntent(value.submissionRef, fields, moon));
     }
     const retainPreparationRefusal = async (error, issuedCode) => {
-      if (!isClientSubmitRejection(issuedCode ?? error?.code)) throw error;
+      const originalCode = requestProgramPreparationProblemCode(error);
+      const originalRefusalCode = originalCode === undefined ? error?.code : 'ClientProgramRejected';
+      if (!isClientSubmitRejection(issuedCode ?? originalRefusalCode)) throw error;
       const kind = retained === undefined ? 'not_accepted' : 'preparation_failed';
       const current = await authorize(value);
       // Preserve the actual typed exception. The same failed Request may also
       // supply a completed audience-bound Source violation before this first
       // durable outcome; neither a later check nor a Source marker supplies it.
-      const code = issuedCode ?? error.code;
+      const code = issuedCode ?? originalRefusalCode;
       const originalObservation = async () => {
         if (observeOriginalPreparationFailure !== undefined) {
           try {
@@ -363,7 +366,8 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
           checkObservation.report.verdict === 'invalid'
         ? 'ClientProgramInvalidInput' : code;
       const candidate = {kind, submissionRef: value.submissionRef, intentCid: value.intentCid,
-        problem: {code: problemCode, classification: classification(problemCode)}};
+        problem: {code: originalCode ?? problemCode,
+          classification: classification(originalCode === undefined ? problemCode : 'ClientProgramRejected')}};
       const projected = await discloseOutcome(value, candidate, current,
         {intentWire: moon.clientSubmittedIntentWire(input)}, checkObservation);
       const {checkObservation: transientObservation, ...outcome} = projected;
@@ -433,9 +437,11 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
         // record before considering a typed preparation refusal.
         const found = await refresh(value, retained, current);
         if (found.kind !== 'preparing') return found;
-        if (!isClientSubmitRejection(error?.code)) throw error;
+        const originalCode = requestProgramPreparationProblemCode(error);
+        const refusalCode = originalCode === undefined ? error?.code : 'ClientProgramRejected';
+        if (!isClientSubmitRejection(refusalCode)) throw error;
         const outcome = {kind: 'preparation_failed', submissionRef: value.submissionRef,
-          intentCid: value.intentCid, problem: {code: error.code, classification: classification(error.code)}};
+          intentCid: value.intentCid, problem: {code: originalCode ?? refusalCode, classification: classification(refusalCode)}};
         return storedOutcome(journal.completeSubmittedIntent(value.submissionRef, outcome,
           {...await authorize(value), connection: value.connection, expectedRevision: retained.revision}, moon));
       }

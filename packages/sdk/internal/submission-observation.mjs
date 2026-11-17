@@ -399,6 +399,10 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
         error.message = `${error.code}: phase=${outcome.kind}` +
           (problem === undefined ? '' : `; problem=${problem}`) +
           '. Inspect formatCheckOutcome(getSubmissionCheckObservation(error)) for the original check diagnostics.';
+      } else if (outcome.problem?.code !== undefined) {
+        // Display the already-admitted DATA only. Neither the phase nor the
+        // code's spelling authorizes retry or changes the typed observation.
+        error.message = `${error.code}: phase=${outcome.kind}; problem=${outcome.problem.code}`;
       }
       retainSubmissionExplanation(error, outcome, snapshot);
       throw error;

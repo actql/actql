@@ -208,3 +208,34 @@ for (const phase of ['not_accepted', 'preparation_failed']) {
     assert.deepEqual(calls, ['connect', 'submit-intent']);
   });
 }
+
+for(const phase of ['not_accepted','preparation_failed']) {
+  test(`compatible work code public display and reference lookup preserve ${phase}`,async t=>{
+    const calls=[], problem={code:'ClientProgramRuntimeFragmentWorkLimit',classification:'operation_failed'};
+    let saved;
+    const port={perform(operation,body) {
+      calls.push(operation);
+      if(operation==='connect')return profile;
+      if(operation==='close')return;
+      if(operation==='lookup-submission')return structuredClone(saved);
+      assert.equal(operation,'submit-intent');
+      saved={kind:phase,submissionRef:body.submissionRef,intentCid:body.intentCid,problem};
+      return submissionAttempt(body,saved);
+    }};
+    const first=await sdk.connectInProcess({mode:'local',owner:'local'},port);
+    t.after(()=>first.close());
+    let error;try{await first.startSource('SELECT 1 AS n',{format:'sql',submissionRef:original});}catch(cause){error=cause;}
+    assert.equal(error.code,phase==='not_accepted'?'SubmissionNotAccepted':'SubmissionPreparationFailed');
+    assert.equal(error.message,`${error.code}: phase=${phase}; problem=${problem.code}`);
+    assert.equal(sdk.getSubmissionCheckObservation(error),undefined);
+    assert.deepEqual(sdk.explainSubmission(error).problem,problem);
+    for(const format of ['text','html','json']) {
+      assert.match(sdk.formatSubmission(error,{format}),/ClientProgramRuntimeFragmentWorkLimit/);
+    }
+    const second=await sdk.connectInProcess({mode:'local',owner:'local'},port);
+    t.after(()=>second.close());
+    const observed=await second.lookupSubmission(saved.submissionRef);
+    assert.deepEqual(observed,saved);
+    assert.deepEqual(calls,['connect','submit-intent','connect','lookup-submission']);
+  });
+}

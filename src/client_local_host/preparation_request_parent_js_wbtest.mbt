@@ -246,7 +246,12 @@ test "fixed Request control envelope preserves original upper bound through the 
     // One original Fragment-root work refusal: header/tag/step/selected work.
     // No string, Demand amount, fresh Request or cleanup token is retained.
     16L +
-    8L * 3L
+    8L * 3L +
+    // Original fixed-code Some (1H/1R/1W), nominal key/value slots2R.
+    // The original String constant is borrowed without a second text buffer.
+    16L +
+    8L * 3L +
+    8L
   assert_eq(
     @execution.preparation_representation_cost(
       request_preparation_fixed_control_envelope,

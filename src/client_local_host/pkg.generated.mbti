@@ -1307,6 +1307,8 @@ pub fn[I] request_program_normalization_work(ClientRequestPreparation[I], I) -> 
 
 pub fn request_program_plan_issue_is_sequence_limit(ClientRequestProgramPlanIssue) -> Bool
 
+pub fn request_program_plan_work_refusal_code(ClientRequestProgramPlanIssue) -> String?
+
 pub fn[I] request_query_syntax_work(ClientRequestPreparation[I], I) -> Result[(Int64, Bool), ClientRequestQuerySyntaxIssue]
 
 pub fn[I] request_source_input_parts(ClientRequestPreparation[I], I) -> Result[(String, @source_frontend.Format, String?, @decode_core.Cursor?), ClientRequestPreparationIssue]

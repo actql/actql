@@ -2886,6 +2886,35 @@ introduced. Portable Resource tests and the actual Pure/Effect constructors
 exercise this boundary; ordinary Host activation and backend supply remain
 separate obligations.
 
+### Original text-bound views before sequence lowering
+
+The same Request's checked Program retains the complete Envelope count, and its
+original checked graph retains the actual Task count. Before any installed
+sequence lowers expressions, the Pure, Effect and static Native Plan quotes add
+their product to the existing construction reservation. Each Envelope can add
+one view record with two original references and a Timestamp Option with one
+original pattern reference: the existing representation tariff charges two
+headers, three reference slots and one scalar tag per Envelope per Task.
+Non-Timestamp views are included; the zero-Envelope case adds nothing. No text,
+pattern, source tree
+or policy inventory is copied to measure this increment.
+
+The retained increment covers each Task's cached sequence. Execution includes
+twice that increment because a replacement with different original limits can
+coexist with its old sequence, including a failed child's constructed prefix.
+The same Request keeps that reservation until its existing retirement; failed
+replacement preserves the original cached sequence. The increment does not
+replace the previous compiler, sequence, output or provider quotes.
+
+The lowerer still binds the same checked closure, stage, step, expression,
+Envelope output/policy resolution and optional original Timestamp pattern.
+Foreign inputs, arithmetic overflow and one-short reservations refuse before
+sequence construction. Existing current, cancellation, cached quote, borrowed
+input and consumed-return cleanup rules remain; no view count issues permission
+or acknowledges physical cleanup. Focused tests exercise exact and one-short
+retained/execution admission, original identities, zero demand and failed
+replacement with its old sequence still live.
+
 ## Publication continuation retains the original body
 
 After construction, `ClientProgramPublication` retains the same original body
@@ -6789,3 +6818,37 @@ continuation and final alias retirement. Compiler type/interface checks establis
 only the selected source boundaries. Actual Native execution, retained Saved
 reads, target ABI and physical cleanup require their own matching artifacts and
 original callers; pure component success does not establish them.
+
+
+### Original preparation work problem code
+
+A reached `RuntimeFragmentWorkLimit` retains the original typed step and selected
+work ceiling on the same Request. Common projects only the stable code
+`ClientProgramRuntimeFragmentWorkLimit` through the existing open Problem code
+field. Its classification is `operation_failed`; a runtime work refusal is not
+language invalidity. The public `/0.1` Problem remains exactly code and
+classification. No step, selected amount, demand, remaining quantity or freeform
+Host message is encoded in the code or added to the wire.
+
+The existing module issue projection returns the same fixed-code Option. The
+same Request's preconstructor control inventory funds that Option and the two
+references of the existing nominal error association: one header, three
+references and one scalar word, 48 bytes under the common representation tariff.
+The code borrows an immutable Common constant, with no owned text. This is in
+addition to the original typed work issue's 40 bytes, not a new Request owner,
+reservation or policy grant.
+
+Node retains the original typed error in its existing private association and
+preserves the existing outer `ClientProgramRejected` refusal. Copied errors or
+mutable properties cannot issue the more specific code. Opaque Host failures
+remain uncertain. Only the actual original Journal acceptance state selects
+`not_accepted` versus `preparation_failed`; neither code nor presentation infers
+admission, nonexecution, retry permission or physical cleanup.
+
+SDK and Python display the already-admitted code and phase when no original
+Check observation is attached. Existing Check presentation takes precedence.
+Reference lookup retains the same durable two-field outcome without preparation
+or resubmission. This code uses the existing bounded open-string contract, so
+strict published decoders continue to accept it. Rich diagnostic text would need
+its own explicitly compatible or negotiated contract and is not part of this
+wire or this construction inventory.

@@ -1004,6 +1004,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     await publishCompletedEffectFreeRun({...publication.plan, execution, store, control, signal});
     await projectInferEvidence({configuration: inferEvidence, moon, control, preparedProgram,
       plan, selected, operation, captureOwner, continuation, authorityScopeCid,
+      usageCurrent: assertOriginalRuntime,
       retainCopy(copy) {
         if (evidenceCopy !== undefined) throw new TypeError('InferEvidenceCopyAlreadyRetained');
         evidenceCopy = copy;

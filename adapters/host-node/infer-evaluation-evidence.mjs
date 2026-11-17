@@ -2,6 +2,7 @@
 // adapter never dispatches, restores, authorizes a call or changes Run state.
 import {runtimeField, runtimeIsOkRequired} from '../host-common/compiler-binding.generated.mjs';
 import {createHash} from 'node:crypto';
+import {types} from 'node:util';
 import {canonicalJson as sdkCanonicalJson} from '../../packages/sdk/host-port.mjs';
 import {inferCopyFundingOriginal, inferEvidenceCopyFunded} from './infer-operation.mjs';
 
@@ -42,7 +43,7 @@ export function configureInferEvidence(configuration) {
   if (configuration === null || typeof configuration !== 'object' ||
     !['authorize,destination,maxBytes,sink,target', 'authorize,destination,kind,maxBytes,sink,target']
       .includes(Object.keys(configuration).sort().join(',')) ||
-    configuration.kind !== undefined && configuration.kind !== 'typed-input' ||
+    configuration.kind !== undefined && !['typed-input', 'usage'].includes(configuration.kind) ||
     !(typeof configuration.target === 'string' || Array.isArray(configuration.target)) ||
     typeof configuration.destination !== 'string' ||
     !configuration.destination || configuration.destination.length > 1024 ||
@@ -72,7 +73,7 @@ export async function withPreparedInferEvidence({configuration, moon, control, p
   const configured = configurations.get(configuration);
   const target = selected.occurrence === undefined ? undefined
     : moon.clientProgramInferOccurrenceTargetName(selected.occurrence);
-  if (configured === undefined || configured.kind === 'typed-input' ||
+  if (configured === undefined || ['typed-input', 'usage'].includes(configured.kind) ||
       !configured.targets.includes(target) || configured.pending ||
       typeof retainCopy !== 'function') return consume(undefined);
   let copy, copying = true, inputs;
@@ -123,10 +124,42 @@ export async function withPreparedInferEvidence({configuration, moon, control, p
 
 export async function projectInferEvidence({configuration, moon, control, preparedProgram,
   plan, selected, operation, captureOwner, continuation, authorityScopeCid, retainCopy, partial = false,
-  copyFunding, current, programDefinitionCid}) {
+  copyFunding, current, programDefinitionCid, usageCurrent}) {
   if (configuration === undefined) return;
   const configured = configurations.get(configuration);
   if (configured === undefined) throw new TypeError('ForeignInferEvidenceConfiguration');
+  if (configured.kind === 'usage') {
+    // Claim the existing flight before trusted current/admission callbacks can
+    // reenter. Fund its fixed window before constructing the async copy input,
+    // subject, items, authorization binding or retained cleanup child.
+    if (configured.pending) return Object.freeze({kind: 'usage', ...missing('RequiredEvidenceUnavailable')});
+    configured.pending = true;
+    try {
+      const actualCurrent = usageCurrent ?? current;
+      if (typeof actualCurrent !== 'function' || partial ||
+          typeof captureOwner?.usageInventory !== 'function' ||
+          typeof captureOwner?.projectUsage !== 'function' || typeof retainCopy !== 'function') {
+        return Object.freeze({kind: 'usage', ...missing('RequiredEvidenceUnavailable')});
+      }
+      actualCurrent();
+      const target = selected.occurrence === undefined
+        ? moon.clientProgramInferTargetName(preparedProgram, selected.step)
+        : moon.clientProgramInferOccurrenceTargetName(selected.occurrence);
+      if (!configured.targets.includes(target)) return;
+      const policy = control.compiledInferEvaluationPolicy(plan.compiled);
+      actualCurrent();
+      if (policy === undefined) return Object.freeze({kind: 'usage', ...missing('RequiredEvidenceUnavailable')});
+      const inventory = captureOwner.usageInventory(actualCurrent);
+      actualCurrent();
+      if (inventory === undefined || !Number.isSafeInteger(inventory.count) || inventory.count < 1 ||
+          !Array.isArray(inventory.calls) || inventory.calls.length !== inventory.count) {
+        return Object.freeze({kind: 'usage', ...missing('RequiredEvidenceUnavailable')});
+      }
+      return await projectInferUsage({configured, plan, captureOwner, continuation, authorityScopeCid,
+        retainCopy, current: actualCurrent, target, policy, inventory});
+    } catch {return Object.freeze({kind: 'usage', ...missing('RequiredEvidenceUnavailable')});}
+    finally {configured.pending = false;}
+  }
   const typedInputOnly = configured.kind === 'typed-input';
   const subject = Object.freeze({runDefinitionCid: plan.runDefinition.identity, authorityScopeCid});
   let manifest, copy, copying = true, target;
@@ -349,4 +382,96 @@ export async function projectInferEvidence({configuration, moon, control, prepar
   if (typedInputOnly) manifest = Object.freeze({...manifest, kind: 'typed-input'});
   try {await configured.sink.record({subject, target, manifest});}
   catch { /* The sink remains responsible for reporting its own unavailable receipt. */ }
+}
+
+// Select one own DATA field without enumerating or retaining callback-owned
+// payloads. The emitted completion is closed; extra input fields are ignored.
+function usageCompletion(value) {
+  if (value === null || typeof value !== 'object' || types.isProxy(value) || Array.isArray(value)) {
+    return missing('EvidenceSinkFailure');
+  }
+  const status = Object.getOwnPropertyDescriptor(value, 'status');
+  return status?.enumerable && Object.hasOwn(status, 'value') && status.value === 'complete'
+    ? Object.freeze({status: 'complete'}) : missing('EvidenceSinkFailure');
+}
+
+async function projectInferUsage({configured, plan, captureOwner, continuation, authorityScopeCid,
+  retainCopy, current, target, policy, inventory}) {
+  let currentUnavailable = false, ownsCopy = false, copying = false, manifest;
+  const check = () => {
+    if (currentUnavailable) throw new Error('RequiredEvidenceUnavailable');
+    try {
+      if (typeof current !== 'function') throw new Error('RequiredEvidenceUnavailable');
+      current();
+    } catch (cause) {currentUnavailable = true; throw cause;}
+  };
+  let subject, items;
+  try {
+    try {
+      check();
+      // usageInventory first funds this fixed control window on the SAME
+      // original publication capacity. It precedes subject/binding/child and
+      // both writer passes; no standalone-copy Ledger is selected.
+      subject = Object.freeze({runDefinitionCid: plan.runDefinition.identity, authorityScopeCid});
+      items = [];
+      copying = true;
+      retainCopy({cleanupPending: () => copying, cleanup: async () => !copying, close: async () => !copying});
+      // Adoption is confirmed only by this callback's successful return. If
+      // it adopted then threw, finally ends our local work on that SAME child;
+      // no Sink await starts without a confirmed owning retention.
+      ownsCopy = true;
+      let copiedBytes = 0;
+      for (let slot = 0; slot < inventory.count; slot++) {
+        check();
+        const call = inventory.calls[slot], entry = continuation?.entry(slot);
+        check();
+        if (entry === undefined || entry.slotCid !== call.slotCid || call.outcome !== 'ok') {
+          items.push(Object.freeze({modelCallSlotCid: call.slotCid, ...missing('RequiredEvidenceUnavailable')}));
+          continue;
+        }
+        const binding = Object.freeze({subject, attemptCid: entry.attemptCid,
+          original: Object.freeze({captureBundleCid: inventory.cid, modelCallSlotCid: call.slotCid}),
+          policy, target, destination: configured.destination, purpose: 'capture', kind: 'usage'});
+        if (await configured.authorize(binding) !== true) {
+          check();
+          items.push(Object.freeze({modelCallSlotCid: call.slotCid, ...missing('EvidenceReadDenied')}));
+          continue;
+        }
+        check();
+        const remaining = configured.maxBytes - copiedBytes;
+        if (remaining < 1) throw new Error('EvaluationBudgetExceeded');
+        const wire = captureOwner.projectUsage(slot, remaining, check);
+        check();
+        if (typeof wire !== 'string') throw new Error('RequiredEvidenceUnavailable');
+        const bytes = Buffer.byteLength(wire);
+        if (bytes > remaining) throw new Error('EvaluationBudgetExceeded');
+        copiedBytes += bytes;
+        const captured = await configured.sink.capture({...binding, wires: Object.freeze({usage: wire})});
+        // Preserve a closed returned completion before a later current loss,
+        // without reading another original or accepting callback-owned fields.
+        items.push(Object.freeze({...usageCompletion(captured), modelCallSlotCid: call.slotCid,
+          attemptCid: entry.attemptCid}));
+        check();
+      }
+      const unavailable = items.find(item => item.status !== 'complete');
+      manifest = Object.freeze({kind: 'usage', status: unavailable ? 'incomplete' : 'complete',
+        ...(unavailable ? {reason: unavailable.reason} : {}), subject, target, items: Object.freeze(items)});
+    } catch {
+      manifest = Object.freeze({kind: 'usage', ...missing('RequiredEvidenceUnavailable'),
+        ...(subject === undefined ? {} : {subject}), ...(target === undefined ? {} : {target}),
+        ...(items === undefined ? {} : {items: Object.freeze(items)})});
+    }
+    // No disclosure/record callback is available without the actual original
+    // copy owner. Absence is an incomplete projection, never a fabricated 0.
+    if (target === undefined || currentUnavailable || !ownsCopy) return manifest;
+    check();
+    await configured.sink.record({subject, target, manifest});
+    check();
+    return manifest;
+  } catch { /* Optional disclosure failure cannot replace or resend the Model. */ }
+  finally {
+    // Include record's actual await in the same child lifetime. A returned
+    // Result or cancellation request is not this Sink's physical completion.
+    copying = false;
+  }
 }

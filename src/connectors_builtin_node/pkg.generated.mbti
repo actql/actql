@@ -3264,6 +3264,8 @@ pub fn client_program_original_effect_unit_manifest_matches(@run_publication_hos
 
 pub fn client_program_original_infer_capture_inventory_capacity(@client_infer_host.Execution, @model_execution.OriginalModelPublicationCapacity) -> Result[(Int, Int64, Int64), @client_infer_host.Issue]
 
+pub fn client_program_original_infer_usage_projection(@client_infer_host.Execution, @model_execution.OriginalModelPublicationCapacity, @model_execution.VerifiedModelCapture, Int, Int64, Int64, Int) -> Result[(String, Int64, Int64), @client_infer_host.Issue]
+
 pub fn client_program_original_mock_declaration(@model_execution.ModelMockInstallation) -> Result[@check_environment.NormalizedPublicModelTask, @model_execution.ModelMockInstallationIssue]
 
 pub fn client_program_original_mock_provider(@model_execution.ModelMockInstallation) -> Result[@model_execution.ModelProvider, @model_execution.ModelMockInstallationIssue]
@@ -3461,6 +3463,8 @@ pub fn client_program_prepare_multi_captured_local_capacity_ledger(@run_publicat
 pub fn client_program_prepare_multi_captured_local_installed_ledger(@run_publication_host.PreparedClientProgram, Array[@client_local_host.ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?) -> @physical_resources.Ledger?
 
 pub fn client_program_prepare_multi_captured_local_ledger(@run_publication_host.PreparedClientProgram, Array[@actql/actql/connectors/duckdb/host.NativeHostConfiguration], Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?) -> @physical_resources.Ledger?
+
+pub fn client_program_prepare_original_infer_usage(@client_infer_host.Execution, @model_execution.OriginalModelPublicationCapacity, @model_execution.VerifiedModelCapture, Int64, Int64) -> Result[(Int64, Int64), @client_infer_host.Issue]
 
 pub fn client_program_prepare_original_mock(@check_environment.ModelMockProfile, @check_environment.PublicModelTaskDeclaration, @check_environment.NormalizedPublicModelTask, () -> String) -> Result[@model_execution.ModelMockInstallation, @model_execution.ModelMockInstallationIssue]
 

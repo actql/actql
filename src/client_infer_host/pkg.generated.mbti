@@ -241,6 +241,8 @@ pub fn preconsumer_model_unit_identity_start_capacity(OutputUse, @run_publicatio
 
 pub fn preconsumer_model_unit_observation_capacity(OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @execution_relation.CompletedRelationExportReceipt, Int) -> @execution_relation.ExecutionCapacity?
 
+pub fn prepare_original_infer_capture_usage(Execution, @model_execution.OriginalModelPublicationCapacity, @model_execution.VerifiedModelCapture, Int64, Int64) -> Result[(Int64, Int64), Issue]
+
 pub fn prepare_original_model_current_state_writer(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], Int, Int, Int) -> Result[OriginalModelCurrentStateWriter, @physical_resources.OriginalStateWriteIssue]
 
 pub fn prepare_original_restored_send_mask(Execution) -> Result[Int, Issue]
@@ -260,6 +262,8 @@ pub fn prepared_input_scope_snapshot(Execution, @model_execution.ModelPreparedCa
 pub fn prepared_input_unit_id(Execution, @model_execution.ModelPreparedCallSet) -> String?
 
 pub fn prepared_observation_issuance_metadata_bytes(ObservationIssuanceLimits) -> Int64?
+
+pub fn project_original_infer_capture_usage(Execution, @model_execution.OriginalModelPublicationCapacity, @model_execution.VerifiedModelCapture, Int, Int64, Int64, Int) -> Result[(String, Int64, Int64), Issue]
 
 pub fn read_saved_input_scope(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, () -> Bool) -> Result[@run_publication_host.ClientInferSavedCallScope, @run_publication_host.ClientInferCallScopeIssue]
 

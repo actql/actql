@@ -63,9 +63,17 @@ if ([...Object.values(issueCodes), ...Object.values(effectIssueCodes)]
 // Only this projection owns these immutable facts. A copied/mutable error
 // property or a lookalike Host exception cannot issue a capacity diagnostic.
 const capacityRefusals = new WeakMap();
-export function requestProgramCapacityRefusal(error) {
+function originalPreparationRefusal(error) {
   return error !== null && (typeof error === 'object' || typeof error === 'function')
     ? capacityRefusals.get(error) : undefined;
+}
+export function requestProgramCapacityRefusal(error) {
+  const original = originalPreparationRefusal(error);
+  return typeof original === 'string' ? undefined : original;
+}
+export function requestProgramPreparationProblemCode(error) {
+  const original = originalPreparationRefusal(error);
+  return typeof original === 'string' ? original : undefined;
 }
 function projectCapacityRefusal(moon, result) {
   const project = moon.clientProgramRequestProgramModuleCapacityRefusal;
@@ -109,6 +117,14 @@ export function checkedRequestProgramPreparation(moon, result,
   projectIssue = moon.clientProgramRequestPreparationIssueCode) {
   if (runtimeIsError(result)) {
     const category = projectIssue.call(moon, result);
+    if (category === 'ClientProgramRuntimeFragmentWorkLimit') {
+      // Keep the existing trusted submit-refusal code. Only the same typed
+      // result may supply its reached Core cause on the open Problem surface.
+      const error = Object.assign(new Error('ClientProgramRejected', {cause: runtimeField(result, 0)}),
+        {code: 'ClientProgramRejected'});
+      capacityRefusals.set(error, category);
+      throw error;
+    }
     if (category === 'source_free_capacity_exceeded') {
       const capacity = projectCapacityRefusal(moon, result);
       // Existing operation_failed refusal: no claim that the Program is

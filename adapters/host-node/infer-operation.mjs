@@ -1253,6 +1253,49 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         operation: new WeakRef(source), funding: new WeakRef(operation)});
       return receipt;
     },
+    prepareOriginalUsage(source, capture, count) {
+      if (closing || reclaimed || originalPublicationCapacity === undefined ||
+          !originalOperations.has(source) || !operation.originalMaterializationCurrent(source, count) ||
+          typeof moon.clientProgramPrepareOriginalInferUsage !== 'function') {
+        throw new Error('RequiredEvidenceUnavailable');
+      }
+      assertRuntimeCurrent?.();
+      const prepared = checked(moon.clientProgramPrepareOriginalInferUsage(activeOperations.get(source),
+        originalPublicationCapacity, capture,
+        publicationBaseRetained + publicationMaterializationRetained,
+        publicationBaseExecution + publicationMaterializationRetained));
+      const retained = runtimeField(prepared, 0), execution = runtimeField(prepared, 1);
+      publicationHeldRetained = retained > publicationHeldRetained ? retained : publicationHeldRetained;
+      publicationHeldExecution = execution > publicationHeldExecution ? execution : publicationHeldExecution;
+      if (closing || reclaimed || !operation.originalMaterializationCurrent(source, count)) {
+        throw new Error('RequiredEvidenceUnavailable');
+      }
+      assertRuntimeCurrent?.();
+    },
+    projectOriginalUsage(source, capture, slot, count, maxBytes) {
+      if (closing || reclaimed || originalPublicationCapacity === undefined ||
+          !originalOperations.has(source) || !operation.originalMaterializationCurrent(source, count) ||
+          typeof moon.clientProgramOriginalInferUsageProjection !== 'function' ||
+          !codecInt(slot) || slot >= count || !codecInt(maxBytes, true) || maxBytes > 1048576) {
+        throw new Error('RequiredEvidenceUnavailable');
+      }
+      assertRuntimeCurrent?.();
+      const projected = checked(moon.clientProgramOriginalInferUsageProjection(activeOperations.get(source),
+        originalPublicationCapacity, capture, slot,
+        publicationBaseRetained + publicationMaterializationRetained,
+        publicationBaseExecution + publicationMaterializationRetained, maxBytes));
+      // Core owns both actual grows, including any grow retained on failure.
+      // These cells only cache a successful covered lower bound; they never
+      // refund or replace the original reservation's authoritative extents.
+      const retained = runtimeField(projected, 1), execution = runtimeField(projected, 2);
+      publicationHeldRetained = retained > publicationHeldRetained ? retained : publicationHeldRetained;
+      publicationHeldExecution = execution > publicationHeldExecution ? execution : publicationHeldExecution;
+      if (closing || reclaimed || !operation.originalMaterializationCurrent(source, count)) {
+        throw new Error('RequiredEvidenceUnavailable');
+      }
+      assertRuntimeCurrent?.();
+      return runtimeField(projected, 0);
+    },
     publicationCapacityPending: () => originalPublicationCapacity !== undefined,
     releaseOriginalPublicationCapacity() {
       if (originalPublicationCapacity === undefined) return true;

@@ -81,6 +81,40 @@ provider request. Keep the same configured endpoint, model, Task files and
 software originals. Credential bytes are never Program input and must not be
 printed in logs or committed.
 
+## Optional usage-only disclosure (development)
+
+`installation.inferEvidence.kind: 'usage'` is a **new explicit opt-in** to a
+usage-aware Sink contract. The parent implementation accepted omitted kind or
+`'typed-input'`; adding `'usage'` does not change either existing path. This is
+local callback DATA for the matching development cohort, not a new artifact
+format version, Model evidence protocol, authority or self-CID.
+
+After the original capture is Store-confirmed and its existing publication
+Resource admits the copy, `sink.capture` receives the original binding and
+`wires: {usage: string}`. That canonical string has exactly these seven keys:
+`input_tokens`, `invocation_evidence_cid`, `model_call_slot_cid`,
+`model_task_contract_cid`, `observation_origin`, `output_tokens`, and
+`raw_response_artifact_cid`. Token and raw-artifact absence is `null`, distinct
+from known zero; origin is `reported` or `historical_admitted`. No prompt,
+context, rendered input, structured answer or provider metadata is included.
+
+Use a Sink that explicitly understands this new shape. The existing five-part
+full-evidence Sink is incompatible and must report incomplete/unsupported;
+the Host never fabricates its missing parts or turns that failure into success.
+The usage string is **not** a full `model-invocation-evidence/0.1` or `/0.2`
+record. Omitted kind retains the full-evidence contract; `'typed-input'` retains
+its own input-only contract.
+
+A usage-aware `capture` callback returns an own enumerable DATA
+`status: 'complete'` only after its selected copy work settles. The Host selects
+that field without enumerating or retaining other callback payloads. Missing,
+accessor, proxy or unsuccessful status remains incomplete. `sink.record`
+receives the corresponding usage availability manifest. This optional outcome
+cannot replace the Model's success/Unknown state, authorize a call or cause a
+retry. Current/identity checks, destination authorization, byte ceilings and
+copy-child cleanup still apply across both callback awaits. These Source and
+component contracts do not establish installed-package or live acceptance.
+
 ## Original-registration integration
 
 The lower-level Host registration assemblers are `createInstalledOpenAIChatRegistration` and the explicit selected

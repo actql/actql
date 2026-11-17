@@ -237,6 +237,28 @@ class AsyncNamedTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(get_submission_check_observation(failures[1]))
         self.assertEqual([op for op, _ in peer.requests], ['connect', 'submit-named-intent', 'submit-named-intent'])
 
+    async def test_compatible_problem_code_preserves_actual_submission_phase(self):
+        for phase, expected in [('not_accepted', 'SubmissionNotAccepted'),
+                                ('preparation_failed', 'SubmissionPreparationFailed')]:
+            with self.subTest(phase=phase):
+                peer = Peer(); client = await self.client(peer)
+                def refused(body):
+                    value = observed(body, reference('saved-original'))
+                    value['outcome'].pop('admission')
+                    value['outcome'] |= {'kind': phase, 'problem': {
+                        'code': 'ClientProgramRuntimeFragmentWorkLimit', 'classification': 'operation_failed'}}
+                    return value
+                peer.response = refused
+                with self.assertRaises(ClientError) as failure:
+                    await client.start_source('SELECT 1', format='sql', request_id='original-policy')
+                error = failure.exception
+                self.assertEqual(error.code, expected)
+                self.assertEqual(error.outcome['kind'], phase)
+                self.assertEqual(set(error.outcome['problem']), {'code', 'classification'})
+                self.assertIn(f'phase={phase}; problem=ClientProgramRuntimeFragmentWorkLimit', str(error))
+                self.assertIsNone(error.execution)
+                self.assertEqual([op for op, _ in peer.requests], ['connect', 'submit-named-intent'])
+
 
 class SyncNamedTests(unittest.TestCase):
     def test_same_public_sync_caller_and_captured_program(self):

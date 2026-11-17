@@ -17185,7 +17185,7 @@
     },
     {
       "module": "adapters/host-node/infer-evaluation-evidence.mjs",
-      "sha256": "d7d3f30d0cf1af1ab8404e3128723c0990fbcbf40bdb2b81494e34f6f22e1bb0",
+      "sha256": "01806815c5b54aacacfe43f1ec37240a33813ce20cc4b6dff5e10403562c290e",
       "role": "physical-io",
       "exports": [
         "configureInferEvidence",
@@ -17238,7 +17238,8 @@
             "partial",
             "copyFunding",
             "current",
-            "programDefinitionCid"
+            "programDefinitionCid",
+            "usageCurrent"
           ],
           "async": true
         },
@@ -17315,6 +17316,33 @@
           "async": false
         },
         {
+          "name": "projectInferUsage/check/check",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectInferUsage/projectInferUsage",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectInferUsage/projectInferUsage#2",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "projectInferUsage/projectInferUsage#3",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "projectInferUsage/unavailable/unavailable",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
           "name": "withPreparedInferEvidence",
           "parameters": [
             "configuration",
@@ -17370,7 +17398,12 @@
             "withPreparedInferEvidence",
             "withPreparedInferEvidence/withPreparedInferEvidence",
             "withPreparedInferEvidence/withPreparedInferEvidence#2",
-            "withPreparedInferEvidence/withPreparedInferEvidence#3"
+            "withPreparedInferEvidence/withPreparedInferEvidence#3",
+            "projectInferUsage/check/check",
+            "projectInferUsage/projectInferUsage",
+            "projectInferUsage/projectInferUsage#2",
+            "projectInferUsage/projectInferUsage#3",
+            "projectInferUsage/unavailable/unavailable"
           ],
           "exports": [
             "configureInferEvidence",
@@ -17795,7 +17828,9 @@
             "withNodeInferResult/retained/init:retry/init:retry",
             "withNodeInferResult/retained/retained",
             "withNodeInferResult/withNodeInferResult",
-            "openNodeComposedInferProvider/component/init:startSourceFreeSingleUnit/init:startSourceFreeSingleUnit"
+            "openNodeComposedInferProvider/component/init:startSourceFreeSingleUnit/init:startSourceFreeSingleUnit",
+            "openNodeInferOperation/operation/init:prepareOriginalUsage/init:prepareOriginalUsage",
+            "openNodeInferOperation/operation/init:projectOriginalUsage/init:projectOriginalUsage"
           ],
           "exports": [
             "finishNodeInferOriginalReadScopes",
@@ -19575,6 +19610,26 @@
           "async": false
         },
         {
+          "name": "openNodeInferOperation/operation/init:prepareOriginalUsage/init:prepareOriginalUsage",
+          "parameters": [
+            "source",
+            "capture",
+            "count"
+          ],
+          "async": false
+        },
+        {
+          "name": "openNodeInferOperation/operation/init:projectOriginalUsage/init:projectOriginalUsage",
+          "parameters": [
+            "source",
+            "capture",
+            "slot",
+            "count",
+            "maxBytes"
+          ],
+          "async": false
+        },
+        {
           "name": "openNodeInferOperation/operation/init:releaseOriginalPublicationCapacity/init:releaseOriginalPublicationCapacity",
           "parameters": [],
           "async": false
@@ -20258,7 +20313,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "c1820633ec8e8ddf48a3658f87267c3db256b8c8302d48fc413ed5a91b2819e2"
+      "sha256": "25db7dd8b7f1499b9148886a60c9bc158ae0af3503ec0d9fbc212ecd82e20f57"
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
@@ -21693,7 +21748,7 @@
     },
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
-      "sha256": "d96de15095e5c931a6d0930f6c44f7db342e5f21dde49e3872ef820d3cb4f562",
+      "sha256": "7ea91a69c321aa7a14620d8e28deaf183d566a158238d9465a0cf982561ad6a8",
       "role": "physical-io",
       "exports": [
         "installNodeInferRun"
@@ -44346,7 +44401,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "515aec8b431bb4d4297a26d5bc9670b700eca7f40f5c27504d0117b04f4089d0",
+      "sha256": "7cac6a2afee245177f87a984638c3c9df8c6307b091cd3ee61c907c256d1c033",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Effect Plan owners",
       "exports": [],
@@ -44427,6 +44482,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "inputsOutputs": [
@@ -44441,6 +44500,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "identity": [
@@ -44455,6 +44518,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "ownership": [
@@ -44473,6 +44540,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Managed Local file quantity selection"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "synchronization": [
@@ -44487,6 +44558,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "failure": [
@@ -44501,6 +44576,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "cancellation": [
@@ -44515,6 +44594,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "resources": [
@@ -44533,6 +44616,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "extension": [
@@ -44547,6 +44634,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "verification": [
@@ -44573,6 +44664,10 @@
               {
                 "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
                 "anchor": "test \"Effect Model Graph transfers its same component to Scope and clears only the adopted Request alias\""
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ]
           }
@@ -44590,30 +44685,50 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "failure": [
@@ -44624,12 +44739,20 @@
               {
                 "path": "src/client_local_host/installed_effect_content_model_js_wbtest.mbt",
                 "anchor": "test \"Content Model Effect ordinary startup preserves original policy and grows control before construction\""
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "resources": [
@@ -44640,12 +44763,20 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "This preparation-owned route admits the actual retained"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "verification": [
@@ -44664,6 +44795,10 @@
               {
                 "path": "src/client_local_host/preparation_request_effect_model_js_wbtest.mbt",
                 "anchor": "test \"ordinary initial Model keeps actual work history and refuses exhausted work before allocation\""
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ]
           }
@@ -46476,7 +46611,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "c76c98702141150644a7b0d0e375b641fe4e0d44c5a7f297c7ce9aba34128c0f",
+      "sha256": "cc606921af106c1249297015b00ff600be0fe5e6761a0027fd8b892e0569de68",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -47551,6 +47686,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Checked compiler configuration at the installed module boundary"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "inputsOutputs": [
@@ -47569,6 +47708,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Checked compiler configuration at the installed module boundary"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "identity": [
@@ -47587,6 +47730,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Checked compiler configuration at the installed module boundary"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "ownership": [
@@ -47605,6 +47752,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Managed Local file quantity selection"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "synchronization": [
@@ -47619,6 +47770,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "failure": [
@@ -47633,6 +47788,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "cancellation": [
@@ -47647,6 +47806,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "resources": [
@@ -47665,6 +47828,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "extension": [
@@ -47679,6 +47846,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "verification": [
@@ -47701,6 +47872,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"Request module codec retains the selected checked profile without another current observation\""
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ]
           }
@@ -47726,6 +47901,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "inputsOutputs": [
@@ -47740,6 +47919,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "identity": [
@@ -47754,6 +47937,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "ownership": [
@@ -47768,6 +47955,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "synchronization": [
@@ -47782,6 +47973,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "failure": [
@@ -47796,6 +47991,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "cancellation": [
@@ -47810,6 +48009,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "resources": [
@@ -47824,6 +48027,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "extension": [
@@ -47838,6 +48045,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "verification": [
@@ -47860,6 +48071,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"successful Request artifact retires returned compiler scratch before runtime adoption\""
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ]
           }
@@ -47874,6 +48089,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "inputsOutputs": [
@@ -47884,6 +48103,10 @@
               {
                 "path": "src/run_publication_host/client_plan_encoding_observation_wbtest.mbt",
                 "anchor": "test \"original Values and Task Plan writer debits preserve"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "identity": [
@@ -47894,6 +48117,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"actual Request compilation records original final Plan encoding"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "ownership": [
@@ -47904,6 +48131,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"actual Request compilation records original final Plan encoding"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "synchronization": [
@@ -47914,6 +48145,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"Request final Plan encoding refusal preserves"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "failure": [
@@ -47924,6 +48159,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"Request final Plan encoding refusal preserves"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "cancellation": [
@@ -47934,6 +48173,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"Request final Plan encoding refusal preserves"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "resources": [
@@ -47944,12 +48187,20 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"Request final Plan encoding refusal preserves"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Final Plan encoding work on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "verification": [
@@ -47964,6 +48215,10 @@
               {
                 "path": "src/run_publication_host/client_plan_encoding_observation_wbtest.mbt",
                 "anchor": "test \"original Values and Task Plan writer debits preserve"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ]
           }
@@ -47983,6 +48238,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body.mbt",
                 "anchor": "pub fn[I] prepare_request_capture_module_body("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "inputsOutputs": [
@@ -47993,6 +48252,10 @@
               {
                 "path": "src/client_local_host/installed_capture_plan.mbt",
                 "anchor": "mut compilation : @publication_host.ClientRunCompilation?"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "identity": [
@@ -48003,6 +48266,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body.mbt",
                 "anchor": "!physical_equal(plan.installed_contracts, contracts) ||"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "ownership": [
@@ -48017,6 +48284,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The preparation-owned Pure source-free route admits that actual retained body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "synchronization": [
@@ -48027,6 +48298,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body.mbt",
                 "anchor": "@resources.reserve_working_preparation_phase(capacity, input, r, e)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "failure": [
@@ -48045,6 +48320,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"Request installed module preserves exact one-byte-short refusal before its original factory\""
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "cancellation": [
@@ -48055,6 +48334,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "The captured Plan's publication artifact is produced by the same Request-owned"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "resources": [
@@ -48073,12 +48356,20 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The preparation-owned Pure source-free route admits that actual retained body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "The captured Plan's publication artifact is produced by the same Request-owned"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "verification": [
@@ -48105,6 +48396,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"Request installed module preserves exact one-byte-short refusal before its original factory\""
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ]
           }
@@ -48127,6 +48422,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "inputsOutputs": [
@@ -48141,6 +48440,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "identity": [
@@ -48155,6 +48458,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "ownership": [
@@ -48169,6 +48476,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "synchronization": [
@@ -48183,6 +48494,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "failure": [
@@ -48197,6 +48512,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "cancellation": [
@@ -48211,6 +48530,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "resources": [
@@ -48229,6 +48552,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "extension": [
@@ -48239,6 +48566,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "verification": [
@@ -48249,6 +48580,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ]
           }
@@ -48264,66 +48599,186 @@
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "reserve one aggregate invocation extent"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "first raw compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "original-identity checks remain required"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "same parent and input"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "Current reentry is fenced"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "Failure keeps the original"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "does not acknowledge physical stop"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "variable backing follows"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "does not enable Model, Content or Effect"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "verification": [
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "timed invocation backing retains its original compiler"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "request_program_plan_work_refusal_code"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original preparation work problem code"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original preparation work problem code"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original preparation work problem code"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original preparation work problem code"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original preparation work problem code"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original preparation work problem code"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original preparation work problem code"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original preparation work problem code"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original preparation work problem code"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/request_program_work_code_wbtest.mbt",
+                "anchor": "test \"Request compatible work code forwards only the same original Common issue\""
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "compatible work code retains actual Journal"
+              },
+              {
+                "path": "packages/sdk/submission-check-observations.test.mjs",
+                "anchor": "compatible work code public display"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_named_submission.py",
+                "anchor": "test_compatible_problem_code_preserves_actual_submission_phase"
               }
             ]
           }
         }
       ],
-      "sha256": "3e7910c29dbdd332a1852fab76f65bebba8b9c9c4bd54c1de828cc56ddd3f756",
+      "sha256": "7974ff6f8e132417f73d78a99b4e1972f776fcd0c022968c3b464c844c900753",
       "exports": [],
       "operations": [
         {
@@ -48405,6 +48860,10 @@
         {
           "name": "request_program_plan_issue_is_sequence_limit",
           "declaration": "request_program_plan_issue_is_sequence_limit ( issue : ClientRequestProgramPlanIssue , ) - > Bool"
+        },
+        {
+          "name": "request_program_plan_work_refusal_code",
+          "declaration": "request_program_plan_work_refusal_code ( issue : ClientRequestProgramPlanIssue , ) - > String ?"
         },
         {
           "name": "request_query_time_invocation_extent",
@@ -61513,7 +61972,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "af0487c4661b45a98c7d7ce4edf8be0017bbd35a874139d1a8281c0b6bd21a5e"
+      "sha256": "fe62d252a6b79007261b9fcf82501b09971dee3a700f41dd05741e70b10f8ebd"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -91447,7 +91906,7 @@
       "operations": [
         {
           "name": "[I,P]reserve_native_static_plan_capacity",
-          "declaration": "[ I , P ] reserve_native_static_plan_capacity ( capacity : @ resources . PreparationCapacity [ I , P ] , input : I , data : @ checked . ParsedCheckDataEstimate , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+          "declaration": "[ I , P ] reserve_native_static_plan_capacity ( capacity : @ resources . PreparationCapacity [ I , P ] , input : I , data : @ checked . ParsedCheckDataEstimate , graph : @ strategy . CheckedDAG , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
         },
         {
           "name": "[I]prepare_request_native_document_check",
@@ -91491,6 +91950,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Ordinary Native static commands"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "inputsOutputs": [
@@ -91501,6 +91964,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Ordinary Native static commands"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "identity": [
@@ -91511,6 +91978,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Ordinary Native static commands"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "ownership": [
@@ -91521,6 +91992,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Ordinary Native static commands"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "synchronization": [
@@ -91531,6 +92006,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Ordinary Native static commands"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "failure": [
@@ -91541,6 +92020,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Ordinary Native static commands"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "cancellation": [
@@ -91551,6 +92034,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Ordinary Native static commands"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "resources": [
@@ -91561,6 +92048,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Ordinary Native static commands"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "extension": [
@@ -91571,6 +92062,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Ordinary Native static commands"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ],
             "verification": [
@@ -91589,13 +92084,17 @@
               {
                 "path": "src/client_local_host/preparation_request_work_calls_js_wbtest.mbt",
                 "anchor": "test \"Native static direct11 uses shared ordinary input selection without compiling\""
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
               }
             ]
           }
         }
       ],
       "referenceQualification": "Original same-Request raw/generated preparation selection and typed checking only; not installed Result-read, reopen or normal runtime acceptance.",
-      "sha256": "c96972fb404c9ee475f99632fc4abf9f400c9843ccef5867267f9bb178d1440c"
+      "sha256": "14739722c43116650ab0d2ae67a91d7498bb5a8f0f2ff8aaaae062f8946aa332"
     },
     {
       "module": "src/stage_syntax/preparation_data.mbt",
@@ -99396,6 +99895,96 @@
               }
             ]
           }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_text_bound_views_layout.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Request preparation and installed Plan owners",
+      "referenceQualification": "Same original checked Envelope and Task counts, existing construction tariff and Request reservation; component admission and compiler checks are not normal runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installed_text_bound_views_layout"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "src/client_local_host/preparation_text_bound_views_js_wbtest.mbt",
+                "anchor": "test \"Request Plan adds original text-bound view and timestamp Option backing before sequence construction\""
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "ff6f9a42257f279513b8bb3ca25425baaa8f455d968cbf2c17ac9bff84336483",
+      "exports": [],
+      "operations": [
+        {
+          "name": "installed_text_bound_views_layout",
+          "declaration": "installed_text_bound_views_layout ( graph : @ strategy . CheckedDAG , ) - > ( Int64 , Int64 ) ?"
         }
       ]
     }

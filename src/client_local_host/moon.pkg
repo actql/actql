@@ -72,6 +72,7 @@ import {
 
 options(
   targets: {
+    "preparation_text_bound_views_js_wbtest.mbt": [ "js" ],
     "resource_lifecycle_regressions_wbtest.mbt": [ "js" ],
     "closed_values_copy_text_js_wbtest.mbt": [ "js" ],
     "closed_values_replace_text_js_wbtest.mbt": [ "js" ],

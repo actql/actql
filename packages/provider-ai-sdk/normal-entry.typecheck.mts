@@ -29,3 +29,13 @@ createOpenAIChatProvider({...options, fetch: globalThis.fetch});
 createOpenAIChatProvider({...options, taskCid: 'sha256:authored'});
 // @ts-expect-error Current observation returns typed DATA, not a void notification.
 createOpenAIChatProvider({...options, observeEgress() {}});
+
+const usage: NonNullable<HostInstallation['inferEvidence']> = {
+  kind: 'usage', target: 'answer', destination: 'local:usage', maxBytes: 4096,
+  authorize: async () => true,
+  sink: {capture: async () => ({status: 'complete'}), record: async () => {}},
+};
+void usage;
+// @ts-expect-error Only the existing full, typed-input or usage disclosure is supported.
+const unknownEvidence: NonNullable<HostInstallation['inferEvidence']> = {...usage, kind: 'tokens-debug'};
+void unknownEvidence;
