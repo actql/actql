@@ -458,8 +458,10 @@ pub fn InstalledArenaNonModelWorkEntry::constructor_scope_for(Self, InstalledAre
 pub fn InstalledArenaNonModelWorkEntry::finish_business_cleanup(Self) -> Bool
 pub fn InstalledArenaNonModelWorkEntry::grow_in_original_read(Self, Int64, Int64) -> Result[Unit, InstalledArenaNonModelWorkEntryIssue]
 pub fn InstalledArenaNonModelWorkEntry::matches_business_scope(Self, Bool) -> Bool
+pub fn InstalledArenaNonModelWorkEntry::matches_publication_scope(Self) -> Bool
 pub fn InstalledArenaNonModelWorkEntry::owns_only_control(Self) -> Bool
 pub fn InstalledArenaNonModelWorkEntry::prepare_constructor_in_entered_scope(Self, Int64, Int64, Int64, entered_ledger? : @physical_resources.Ledger?) -> Result[Unit, InstalledArenaNonModelWorkEntryIssue]
+pub fn InstalledArenaNonModelWorkEntry::prepared_capacity_failure(Self) -> @physical_resources.ImportedChildLedgerIssue?
 pub fn InstalledArenaNonModelWorkEntry::take_entered_ledger(Self, InstalledArenaRetainedExecution, Int64, Int64) -> @physical_resources.Ledger?
 pub fn InstalledArenaNonModelWorkEntry::usage(Self) -> @physical_resources.LedgerUsage
 

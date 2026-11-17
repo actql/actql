@@ -45,7 +45,12 @@ pub fn native_relation_file_entry_read_capacity(
 ///|
 fn native_relation_file_entry_read_control_capacity(
   selection : @row_file.NativeRelationFileSelection,
+  prepared_diagnostic? : Bool = false,
 ) -> @execution.ExecutionCapacity? {
+  // Whole-only reserve refusal: private Failed control, optional getter and
+  // primary issue carrier can coexist, each H1/R1/S1. They borrow the exact
+  // original typed payload; no copied Source, callback or new entry field.
+  let diagnostic = if prepared_diagnostic { 3L } else { 0L }
   let key_fields = match selection.key_path {
     None => 0L
     Some(path) => 14L + 3L * path.length().to_int64()
@@ -69,7 +74,8 @@ fn native_relation_file_entry_read_control_capacity(
       6L +
       16L +
       16L +
-      9L,
+      9L +
+      diagnostic,
       reference_slots: 2L +
       20L +
       12L +
@@ -84,7 +90,8 @@ fn native_relation_file_entry_read_control_capacity(
       source.reference_slots +
       25L +
       12L +
-      11L,
+      11L +
+      diagnostic,
       scalar_words: 25L +
       60L +
       8L +
@@ -98,7 +105,8 @@ fn native_relation_file_entry_read_control_capacity(
       12L +
       12L +
       11L +
-      6L,
+      6L +
+      diagnostic,
       owned_utf16_units: 237L,
       owned_wire_bytes: 0L,
     })
@@ -148,7 +156,9 @@ pub fn native_relation_whole_file_entry_read_capacity(
       selection, limits, provider, graph,
     )
     is Some(whole) &&
-    native_relation_file_entry_read_control_capacity(selection) is Some(entry) &&
+    native_relation_file_entry_read_control_capacity(
+      selection, prepared_diagnostic=true,
+    ) is Some(entry) &&
     @execution.checked_preparation_add_product(
       @execution.execution_capacity_retained_bytes(entry),
       @execution.execution_capacity_retained_bytes(whole),

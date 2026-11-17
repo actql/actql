@@ -5,6 +5,7 @@
 priv enum NonModelWorkEntryCapacity {
   DedicatedNonModelWorkCapacity(@resources.CapacityReservation)
   PreparedNonModelWorkCapacity((Int64, Int64) -> Bool)
+  FailedPreparedNonModelWorkCapacity(@resources.ImportedChildLedgerIssue)
   RetiredPreparedNonModelWorkCapacity
 }
 
@@ -287,8 +288,29 @@ pub fn[P] InstalledArenaHost::prepare_domain_nonmodel_prepared_work_entry(
     Some(Ok(ReadyNonModelWorkEntry(entry)))
   } else {
     entry.finished = true
-    entry.control = RetiredPreparedNonModelWorkCapacity
+    // Diagnostic refinement of THIS already cleanup-only constructor branch.
+    // Other Pending acquisitions and shared Resource Errs are not classified.
+    entry.control = match grown {
+      Err(original) => FailedPreparedNonModelWorkCapacity(original)
+      Ok(_) => RetiredPreparedNonModelWorkCapacity
+    }
     Some(Ok(PendingNonModelWorkEntry(entry)))
+  }
+}
+
+///|
+/// Observe only this original entry's retained reserve refusal. No current
+/// callback, retry, budget, scope transition or cleanup acknowledgement occurs.
+/// The caller must pre-fund this optional diagnostic and its primary carrier.
+pub fn InstalledArenaNonModelWorkEntry::prepared_capacity_failure(
+  self : InstalledArenaNonModelWorkEntry,
+) -> @resources.ImportedChildLedgerIssue? {
+  if !self.is_original() || self.closed || self.growing {
+    return None
+  }
+  match self.control {
+    FailedPreparedNonModelWorkCapacity(original) => Some(original)
+    _ => None
   }
 }
 
@@ -309,7 +331,8 @@ fn InstalledArenaNonModelWorkEntry::capacity_original_matches(
       )
     PreparedNonModelWorkCapacity(matches) =>
       matches(self.retained_bytes, self.execution_bytes)
-    RetiredPreparedNonModelWorkCapacity => false
+    RetiredPreparedNonModelWorkCapacity
+    | FailedPreparedNonModelWorkCapacity(_) => false
   }
 }
 
@@ -596,7 +619,8 @@ pub fn InstalledArenaNonModelWorkEntry::matches_business_scope(
     (
       cleanup &&
       self.finished &&
-      self.control is RetiredPreparedNonModelWorkCapacity
+      (self.control is RetiredPreparedNonModelWorkCapacity ||
+      self.control is FailedPreparedNonModelWorkCapacity(_))
     ) ||
     self.capacity_original_matches()
   )
@@ -648,7 +672,8 @@ pub fn InstalledArenaNonModelWorkEntry::finish_business_cleanup(
     return false
   }
   self.finished = true
-  if self.control is PreparedNonModelWorkCapacity(_) {
+  if self.control is PreparedNonModelWorkCapacity(_) ||
+    self.control is FailedPreparedNonModelWorkCapacity(_) {
     self.control = RetiredPreparedNonModelWorkCapacity
   }
   true
@@ -707,7 +732,8 @@ pub fn InstalledArenaNonModelWorkEntry::close_after_original_return(
   if self.control is PreparedNonModelWorkCapacity(_) {
     return false
   }
-  if self.control is RetiredPreparedNonModelWorkCapacity {
+  if self.control is RetiredPreparedNonModelWorkCapacity ||
+    self.control is FailedPreparedNonModelWorkCapacity(_) {
     if !self.is_original() ||
       self.growing ||
       (self.claimed && !self.finished) ||
@@ -716,6 +742,7 @@ pub fn InstalledArenaNonModelWorkEntry::close_after_original_return(
       !self.execution.closed {
       return false
     }
+    self.control = RetiredPreparedNonModelWorkCapacity
     self.closed = true
     self.original.val = None
     return true

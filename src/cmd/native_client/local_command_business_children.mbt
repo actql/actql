@@ -617,13 +617,15 @@ fn LocalCommandBusinessPreparation::prepare_file_work_entry(
       entry
     }
     Err(failure) => {
+      // Retain the actual typed primary before cleanup can clear its entry.
+      let primary = failure.issue()
       business.file_failure = Some(failure)
       // A never-entered partial entry owns only Read-side construction.
       // Failure is retained if its original cancellation cannot finish here.
       if failure.close() {
         business.file_failure = None
       }
-      stop("LocalSourceWorkEntryUnavailable")
+      stop(local_file_work_preparation_message(primary))
     }
   }
 }

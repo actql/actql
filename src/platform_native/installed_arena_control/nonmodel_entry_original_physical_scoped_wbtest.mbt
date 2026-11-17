@@ -808,7 +808,10 @@ fn nonmodel_prepared_original_work(
     is Some(Err(Unavailable)),
   )
   if refuse {
-    assert_true(entry.control is RetiredPreparedNonModelWorkCapacity)
+    let primary = entry.prepared_capacity_failure().unwrap()
+    assert_true(primary is @resources.Resource(@resources.RetentionLimit))
+    assert_true(entry.control is FailedPreparedNonModelWorkCapacity(original) && original == primary)
+    assert_true(copy.prepared_capacity_failure() is None)
     assert_true(entry.finished && !entry.claimed && !entry.settled)
     let failed = @resources.ledger_usage(ledger)
     assert_eq(failed.live_reservations, before.live_reservations)
@@ -816,6 +819,10 @@ fn nonmodel_prepared_original_work(
     assert_eq(failed.reserved_execution_bytes, before.reserved_execution_bytes)
     assert_false(copy.cancel_unclaimed_in_original_read())
     assert_true(entry.cancel_unclaimed_in_original_read())
+    assert_true(entry.prepared_capacity_failure() is None)
+    // Clearing the entry after its original cleanup cannot erase the retained
+    // typed primary. No extra debit, attempt or retry was created.
+    assert_true(primary is @resources.Resource(@resources.RetentionLimit))
     assert_eq(@resources.ledger_usage(ledger), failed)
     assert_true(
       host.prepare_domain_nonmodel_prepared_work_entry(
@@ -832,6 +839,7 @@ fn nonmodel_prepared_original_work(
     @resources.cleanup_backed_prepared_run_admission(original).unwrap()
     return true
   }
+  assert_true(entry.prepared_capacity_failure() is None)
   let after = @resources.ledger_usage(ledger)
   assert_eq(after.live_reservations, before.live_reservations)
   assert_eq(

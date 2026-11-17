@@ -1409,6 +1409,7 @@ fn native_pure_file_request_payload(
   prepared_control~ : Bool,
   boundary? : Bool = false,
   budget_refusal? : Bool = false,
+  query? : String? = None,
 ) -> String? raise {
   facility.arena
   .enter_domain_retained_execution(facility.physical)
@@ -1426,7 +1427,9 @@ fn native_pure_file_request_payload(
     )
     document
   } else {
-    "SELECT SUM(CASE WHEN trend = 'down' THEN 4 ELSE 12 END) AS total, AVG(CASE WHEN trend = 'down' THEN 4 ELSE 12 END) AS average FROM snowflake.usage_30d"
+    query.unwrap_or(
+      "SELECT SUM(CASE WHEN trend = 'down' THEN 4 ELSE 12 END) AS total, AVG(CASE WHEN trend = 'down' THEN 4 ELSE 12 END) AS average FROM snowflake.usage_30d",
+    )
   }
   let intent = @run_host.prepare_client_submitted_intent(
     local_project_mock_relation_wire({
@@ -1626,14 +1629,15 @@ fn native_pure_file_request_payload(
             (32L + 16L * tasks + 4L * ports) * 8L +
             (8L + 4L * tasks + ports) * 8L
           // Independent 3+3-path vector: entry30146 + Work48234 + clock4274
-          // + prepared-provider119696 + fixed Whole wrappers704 + task loop.
+          // + prepared-provider119696 + fixed Whole wrappers704 + diagnostic96
+          // + task loop.
           assert_eq(
             @execution.execution_capacity_retained_bytes(quoted),
-            203054L + task_loop,
+            203150L + task_loop,
           )
           assert_eq(
             @execution.execution_capacity_execution_bytes(quoted),
-            203054L + task_loop,
+            203150L + task_loop,
           )
           assert_eq(@initial_resources.ledger_usage(physical), before_quote)
           let admission = @local_values.installed_managed_preparation_admission_original(
@@ -1648,22 +1652,51 @@ fn native_pure_file_request_payload(
           assert_eq(r, before.reserved_retention_bytes)
           assert_eq(e, before.reserved_execution_bytes)
           assert_eq(@initial_resources.ledger_usage(physical), before)
-          @initial_resources.reserve_prepared_run_native_work_capacity(
+          let (work_r, work_e) = if query is Some(_) {
+            let actual = @local_host.native_relation_whole_file_work_control_capacity(
+              row._retained_selection,
+              row.limits,
+              row.provider,
+              physical_graph,
+            ).unwrap()
+            (
+              @execution.execution_capacity_retained_bytes(actual),
+              @execution.execution_capacity_execution_bytes(actual),
+            )
+          } else {
+            (2048L, 2048L)
+          }
+          // The issue diagnostic selects the actual production Whole Work
+          // quote on this exact prepared body. Other fixture controls retain
+          // their independently selected finite 2048-byte component demand.
+          let grown = @initial_resources.reserve_prepared_run_native_work_capacity(
             admission,
             prepared,
             physical,
-            r + 2048L,
-            e + 2048L,
-          ).native_file_route_value(
-            "back component constructor on SAME original body",
+            r + work_r,
+            e + work_e,
           )
+          if query is Some(_) {
+            match grown {
+              Ok(_) =>
+                println(
+                  "Native File prepared reserve: actual original Whole quote accepted",
+                )
+              Err(original) =>
+                raise NativeFilePreparedReserveDiagnostic(original)
+            }
+          } else {
+            grown.native_file_route_value(
+              "back component constructor on SAME original body",
+            )
+          }
           assert_true(
             @initial_resources.prepared_run_usage_isolated(admission, physical),
           )
           let after = @initial_resources.ledger_usage(physical)
           assert_eq(after.live_reservations, usage.live_reservations)
-          assert_eq(after.reserved_retention_bytes, r + 2048L)
-          assert_eq(after.reserved_execution_bytes, e + 2048L)
+          assert_eq(after.reserved_retention_bytes, r + work_r)
+          assert_eq(after.reserved_execution_bytes, e + work_e)
           assert_eq(after.attempts, usage.attempts)
           assert_eq(after.planning_work, usage.planning_work)
           assert_true(after.peak_retention_bytes >= usage.peak_retention_bytes)
@@ -1711,6 +1744,7 @@ fn native_pure_file_request_in_metadata_read(
   prepared_control? : Bool = false,
   boundary? : Bool = false,
   budget_refusal? : Bool = false,
+  query? : String? = None,
 ) -> String? raise {
   let original = native_project_mock_model_fixture("churn-risk")
   original
@@ -1746,6 +1780,7 @@ fn native_pure_file_request_in_metadata_read(
     prepared_control~,
     boundary~,
     budget_refusal~,
+    query~,
   )
   facility.arena
   .close_domain_retained_execution(facility.physical)
@@ -1945,4 +1980,23 @@ test "Native original Request parser failure retains invalid input after payload
     }
   }
   local_command_diagnostic_reset()
+}
+
+///|
+// Actual Native backing/Read/Request component. This selects the same admitted
+// template Source and the original issue query; it does not issue a Journal
+// submission, begin Source I/O, or establish ordinary installed acceptance.
+suberror NativeFilePreparedReserveDiagnostic {
+  NativeFilePreparedReserveDiagnostic(
+    @initial_resources.ImportedChildLedgerIssue
+  )
+} derive(Debug)
+
+///|
+test "Native issue3609 projection keeps its SAME prepared body and finite Work growth" {
+  native_project_mock_model_backed_read(
+    false,
+    pure_file_control=true,
+    pure_file_query=Some("SELECT trend FROM snowflake.usage_30d"),
+  )
 }

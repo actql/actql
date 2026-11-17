@@ -362,3 +362,24 @@ test "Primary file diagnostics disclose closed causes without replacing custody 
   }
   local_command_diagnostic_reset()
 }
+
+///|
+test "File Work primary keeps the actual closed reserve cause across cleanup" {
+  let primary : @local_host.NativeClientSourceWorkIssue = FileWorkPreparedCapacity(
+    @initial_resources.Resource(@initial_resources.RetentionLimit),
+  )
+  assert_eq(
+    local_file_work_preparation_message(primary),
+    "LocalSourceWorkEntryUnavailable:prepared-retention",
+  )
+  assert_eq(
+    local_file_work_preparation_message(
+      FileWorkPreparedCapacity(@initial_resources.Unavailable),
+    ),
+    "LocalSourceWorkEntryUnavailable:prepared-unavailable",
+  )
+  assert_eq(
+    local_file_work_preparation_message(Configuration),
+    "LocalSourceWorkEntryUnavailable",
+  )
+}

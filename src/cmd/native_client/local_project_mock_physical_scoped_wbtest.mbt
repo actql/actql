@@ -133,6 +133,7 @@ fn native_project_mock_model_backed_read(
   pure_file_control? : Bool = false,
   pure_file_boundary? : Bool = false,
   pure_file_budget_refusal? : Bool = false,
+  pure_file_query? : String? = None,
 ) -> Unit raise {
   // Reuse the existing real Native facility entry, as in Request/Effect's
   // physical component. This supplies no Command platform/Journal/Account.
@@ -215,6 +216,7 @@ fn native_project_mock_model_backed_read(
       prepared_control=pure_file_control,
       boundary=pure_file_boundary,
       budget_refusal=pure_file_budget_refusal,
+      query=pure_file_query,
     )
   } else if request_facility is Some(facility) {
     request_issue = native_mock_readme_request_in_metadata_read(
