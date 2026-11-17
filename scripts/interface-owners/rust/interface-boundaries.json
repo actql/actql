@@ -1,0 +1,1559 @@
+{
+  "qualification": "Rust source responsibility references only; not artifact, semantic or runtime acceptance",
+  "declarations": [
+    {
+      "exports": [
+        "ABI_VERSION",
+        "CoreExports",
+        "EXPORTS",
+        "IMPORTS",
+        "Imports",
+        "link_imports"
+      ],
+      "imports": [
+        "super :: abi :: { Scalar , Signature , StoreState }",
+        "wasmtime :: { AsContextMut , Caller , Instance , Linker , TypedFunc }"
+      ],
+      "module": "packages/rust/src/abi_generated.rs",
+      "operations": [
+        {
+          "async": false,
+          "declaration": "pub (crate) fn load < T > (instance : Instance , mut store : impl AsContextMut < Data = T >) -> wasmtime :: Result < Self >",
+          "name": "impl:CoreExports/load",
+          "parameters": [
+            "instance",
+            "mut store"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "pub (crate) fn link_imports < H : Imports > (linker : & mut Linker < StoreState < H > >) -> wasmtime :: Result < () >",
+          "name": "link_imports",
+          "parameters": [
+            "linker"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "fn execution_child_admit (caller : Caller < '_ , StoreState < Self > > , nonce : i64) -> wasmtime :: Result < i32 >",
+          "name": "trait:Imports/execution_child_admit",
+          "parameters": [
+            "caller",
+            "nonce"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "fn execution_child_capacity (caller : Caller < '_ , StoreState < Self > > , nonce : i64 , ordinal : i32) -> wasmtime :: Result < i64 >",
+          "name": "trait:Imports/execution_child_capacity",
+          "parameters": [
+            "caller",
+            "nonce",
+            "ordinal"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "fn execution_child_current (caller : Caller < '_ , StoreState < Self > > , nonce : i64) -> wasmtime :: Result < i32 >",
+          "name": "trait:Imports/execution_child_current",
+          "parameters": [
+            "caller",
+            "nonce"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "fn execution_child_limit (caller : Caller < '_ , StoreState < Self > > , nonce : i64 , ordinal : i32) -> wasmtime :: Result < i64 >",
+          "name": "trait:Imports/execution_child_limit",
+          "parameters": [
+            "caller",
+            "nonce",
+            "ordinal"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "fn execution_child_report (caller : Caller < '_ , StoreState < Self > > , nonce : i64 , planning : i32 , attempts : i32 , holdings : i32 , transferred : i64 , uncertain : i64 , reserved_transfer : i64 , held : i64 , reserved_retention : i64 , reserved_execution : i64 , peak_retention : i64 , reserved_attempts : i32 , live_reservations : i32 , live_delegations : i32) -> wasmtime :: Result < i32 >",
+          "name": "trait:Imports/execution_child_report",
+          "parameters": [
+            "caller",
+            "nonce",
+            "planning",
+            "attempts",
+            "holdings",
+            "transferred",
+            "uncertain",
+            "reserved_transfer",
+            "held",
+            "reserved_retention",
+            "reserved_execution",
+            "peak_retention",
+            "reserved_attempts",
+            "live_reservations",
+            "live_delegations"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "fn execution_child_stop (caller : Caller < '_ , StoreState < Self > > , nonce : i64) -> wasmtime :: Result < i32 >",
+          "name": "trait:Imports/execution_child_stop",
+          "parameters": [
+            "caller",
+            "nonce"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "fn input_byte (caller : Caller < '_ , StoreState < Self > > , input : i32 , index : i32) -> wasmtime :: Result < i32 >",
+          "name": "trait:Imports/input_byte",
+          "parameters": [
+            "caller",
+            "input",
+            "index"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "fn input_cleanup (caller : Caller < '_ , StoreState < Self > > , input : i32) -> wasmtime :: Result < i32 >",
+          "name": "trait:Imports/input_cleanup",
+          "parameters": [
+            "caller",
+            "input"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "fn input_copy (caller : Caller < '_ , StoreState < Self > > , input : i32 , start : i32 , offset : i32 , length : i32) -> wasmtime :: Result < i32 >",
+          "name": "trait:Imports/input_copy",
+          "parameters": [
+            "caller",
+            "input",
+            "start",
+            "offset",
+            "length"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "fn journal_copy_row (caller : Caller < '_ , StoreState < Self > > , ticket : i32 , key_buffer : i32 , key_bytes : i32 , body_buffer : i32 , body_bytes : i32) -> wasmtime :: Result < i32 >",
+          "name": "trait:Imports/journal_copy_row",
+          "parameters": [
+            "caller",
+            "ticket",
+            "key_buffer",
+            "key_bytes",
+            "body_buffer",
+            "body_bytes"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "fn journal_current (caller : Caller < '_ , StoreState < Self > > , ticket : i32) -> wasmtime :: Result < i32 >",
+          "name": "trait:Imports/journal_current",
+          "parameters": [
+            "caller",
+            "ticket"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "fn journal_current_operation (caller : Caller < '_ , StoreState < Self > > , ticket : i32) -> wasmtime :: Result < i64 >",
+          "name": "trait:Imports/journal_current_operation",
+          "parameters": [
+            "caller",
+            "ticket"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "fn journal_query_header (caller : Caller < '_ , StoreState < Self > > , ticket : i32 , mode : i32 , namespace_buffer : i32 , namespace_bytes : i32 , key_buffer : i32 , key_bytes : i32 , header_buffer : i32) -> wasmtime :: Result < i32 >",
+          "name": "trait:Imports/journal_query_header",
+          "parameters": [
+            "caller",
+            "ticket",
+            "mode",
+            "namespace_buffer",
+            "namespace_bytes",
+            "key_buffer",
+            "key_bytes",
+            "header_buffer"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "fn journal_schema (caller : Caller < '_ , StoreState < Self > > , ticket : i32) -> wasmtime :: Result < i32 >",
+          "name": "trait:Imports/journal_schema",
+          "parameters": [
+            "caller",
+            "ticket"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "fn native_cleaned (caller : Caller < '_ , StoreState < Self > > , handle : i32) -> wasmtime :: Result < i32 >",
+          "name": "trait:Imports/native_cleaned",
+          "parameters": [
+            "caller",
+            "handle"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "fn native_settled (caller : Caller < '_ , StoreState < Self > > , handle : i32) -> wasmtime :: Result < i32 >",
+          "name": "trait:Imports/native_settled",
+          "parameters": [
+            "caller",
+            "handle"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "fn native_stopped (caller : Caller < '_ , StoreState < Self > > , handle : i32) -> wasmtime :: Result < i32 >",
+          "name": "trait:Imports/native_stopped",
+          "parameters": [
+            "caller",
+            "handle"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "fn platform_vm_observation (caller : Caller < '_ , StoreState < Self > > , nonce : i64 , ordinal : i32) -> wasmtime :: Result < i64 >",
+          "name": "trait:Imports/platform_vm_observation",
+          "parameters": [
+            "caller",
+            "nonce",
+            "ordinal"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "fn publisher_begin (caller : Caller < '_ , StoreState < Self > > , ticket : i32 , length : i32) -> wasmtime :: Result < i32 >",
+          "name": "trait:Imports/publisher_begin",
+          "parameters": [
+            "caller",
+            "ticket",
+            "length"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "fn publisher_copy (caller : Caller < '_ , StoreState < Self > > , ticket : i32 , index : i32 , offset : i32 , length : i32) -> wasmtime :: Result < i32 >",
+          "name": "trait:Imports/publisher_copy",
+          "parameters": [
+            "caller",
+            "ticket",
+            "index",
+            "offset",
+            "length"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "fn publisher_current (caller : Caller < '_ , StoreState < Self > > , ticket : i32) -> wasmtime :: Result < i32 >",
+          "name": "trait:Imports/publisher_current",
+          "parameters": [
+            "caller",
+            "ticket"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "fn publisher_finish (caller : Caller < '_ , StoreState < Self > > , ticket : i32) -> wasmtime :: Result < i32 >",
+          "name": "trait:Imports/publisher_finish",
+          "parameters": [
+            "caller",
+            "ticket"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "fn reader_stop (caller : Caller < '_ , StoreState < Self > > , input : i32 , reader : i32) -> wasmtime :: Result < i32 >",
+          "name": "trait:Imports/reader_stop",
+          "parameters": [
+            "caller",
+            "input",
+            "reader"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": " pub (crate) struct CoreExports  { pub (crate) bootstrap_close : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) bootstrap_length : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) bootstrap_produce : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) bootstrap_produce_sdk : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) bootstrap_reserve : TypedFunc < (i64 , i32 , i32 , i64 ,) , i32 > , pub (crate) buffer_allocated : TypedFunc < (i64 ,) , i64 > , pub (crate) buffer_borrow : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) buffer_byte : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) buffer_close : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) buffer_close_pool : TypedFunc < (i64 ,) , i32 > , pub (crate) buffer_fill : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) buffer_fill_block : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) buffer_open : TypedFunc < (i64 , i64 , i32 , i32 , i32 , i32 , i32 , i64 , i64 , i64 , i64 ,) , i32 > , pub (crate) buffer_open_live : TypedFunc < (i64 , i64 , i32 , i32 ,) , i32 > , pub (crate) buffer_open_platform : TypedFunc < (i64 , i64 , i32 , i32 , i32 , i32 , i32 , i64 , i64 , i64 , i64 ,) , i32 > , pub (crate) buffer_read_block : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) buffer_read_packed : TypedFunc < (i64 , i32 , i32 , i32 ,) , i64 > , pub (crate) buffer_report_live : TypedFunc < (i64 ,) , i32 > , pub (crate) buffer_reserve : TypedFunc < (i64 , i32 , i32 , i64 ,) , i32 > , pub (crate) buffer_reserved : TypedFunc < (i64 ,) , i64 > , pub (crate) buffer_return : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) buffer_seal : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) buffer_stop_live : TypedFunc < (i64 ,) , i32 > , pub (crate) check_close : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) check_current : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) check_length : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) check_produce : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) check_reserve : TypedFunc < (i64 , i32 , i32 , i32 , i32 , i32 , i64 ,) , i32 > , pub (crate) compute_close : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) compute_configure : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) compute_configure_source_free : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) compute_configured : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) compute_reserve : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) compute_reserve_source_free : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) current_bind : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) current_close : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) current_length : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) current_produce : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) current_reserve : TypedFunc < (i64 , i32 , i32 , i64 ,) , i32 > , pub (crate) current_validate : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) host_abi_version : TypedFunc < () , i32 > , pub (crate) journal_admission_length : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) journal_close : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) journal_inspect : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) journal_reserve : TypedFunc < (i64 , i32 , i32 , i32 , i64 ,) , i32 > , pub (crate) journal_revision : TypedFunc < (i64 , i32 , i32 ,) , i64 > , pub (crate) material_close : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) material_close_restoration : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) material_confirm_sdk_publication : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) material_confirm_sdk_start : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) material_length : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) material_produce : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) material_reserve : TypedFunc < (i64 , i32 , i32 , i32 , i64 ,) , i32 > , pub (crate) material_reserve_restoration : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) material_reserve_submitted_rows : TypedFunc < (i64 , i32 , i32 , i32 , i32 , i64 ,) , i32 > , pub (crate) material_restore : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) material_restore_sdk : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) material_restored : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) material_retire_output : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) material_validate_sdk_publication : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) material_validate_sdk_start : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) material_validate_submitted_rows : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) original_close : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) original_length : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) original_produce : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) original_reserve : TypedFunc < (i64 , i32 , i32 , i32 , i64 ,) , i32 > , pub (crate) payload_allocation_begin : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) payload_allocation_close : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) payload_allocation_confirm : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) payload_allocation_length : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) payload_allocation_produce : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) payload_allocation_reserve : TypedFunc < (i64 , i32 , i32 , i32 , i64 ,) , i32 > , pub (crate) payload_allocation_validate : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) payload_binding_close : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) payload_binding_length : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) payload_binding_produce : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) payload_binding_reserve : TypedFunc < (i64 , i32 , i32 , i64 ,) , i32 > , pub (crate) payload_binding_validate : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) payload_chunk_close : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) payload_chunk_final : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) payload_chunk_length : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) payload_chunk_produce : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) payload_chunk_reserve : TypedFunc < (i64 , i32 , i32 , i64 ,) , i32 > , pub (crate) payload_chunk_validate : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) payload_names_close : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) payload_names_length : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) payload_names_produce : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) payload_names_reserve : TypedFunc < (i64 , i32 , i32 , i64 ,) , i32 > , pub (crate) payload_names_validate : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) payload_record_begin : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) payload_record_close : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) payload_record_confirm : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) payload_record_length : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) payload_record_produce : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) payload_record_reserve : TypedFunc < (i64 , i32 , i32 , i64 ,) , i32 > , pub (crate) payload_record_validate : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) payload_record_validate_snapshot : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) payload_request_close : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) payload_request_length : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) payload_request_produce : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) payload_request_reserve : TypedFunc < (i64 , i32 , i32 , i32 , i32 , i64 ,) , i32 > , pub (crate) payload_request_start_replay : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) payload_reservation_begin : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) payload_reservation_close : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) payload_reservation_confirm : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) payload_reservation_length : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) payload_reservation_produce : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) payload_reservation_reserve : TypedFunc < (i64 , i32 , i32 , i64 ,) , i32 > , pub (crate) payload_reservation_validate : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) payload_writing_begin : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) payload_writing_close : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) payload_writing_confirm : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) payload_writing_length : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) payload_writing_produce : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) payload_writing_reserve : TypedFunc < (i64 , i32 , i32 , i32 , i64 ,) , i32 > , pub (crate) payload_writing_validate : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) program_bind_restored : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) program_close_environment : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) program_close_preparation : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) program_install_environment : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) program_install_source_environment : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) program_prepare : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) program_prepared_outcome : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) program_prepared_results : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) program_prepared_tasks : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) program_reserve_preparation : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) publication_advance : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) publication_advance_commit : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) publication_advance_observation : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) publication_close : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) publication_commit_export_bind_sdk_payload_record : TypedFunc < (i64 , i32 , i32 , i32 , i32 , i32 ,) , i32 > , pub (crate) publication_commit_export_close : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) publication_commit_export_confirm_sdk_payload_chunk : TypedFunc < (i64 , i32 ,) , i64 > , pub (crate) publication_commit_export_confirm_sdk_run_state : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) publication_commit_export_count : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) publication_commit_export_length : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) publication_commit_export_observe_sdk_terminal : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) publication_commit_export_prepare_sdk_payload_codecs : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) publication_commit_export_prepare_sdk_payload_input : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) publication_commit_export_produce : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) publication_commit_export_produce_index_key : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) publication_commit_export_produce_lookup_reference : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) publication_commit_export_produce_material : TypedFunc < (i64 , i32 , i32 , i32 , i32 ,) , i32 > , pub (crate) publication_commit_export_produce_observed_index : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) publication_commit_export_produce_run_state : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) publication_commit_export_produce_schema : TypedFunc < (i64 , i32 , i32 , i32 , i32 ,) , i32 > , pub (crate) publication_commit_export_produce_sdk_delivery_lookup : TypedFunc < (i64 , i32 , i32 , i32 , i32 ,) , i32 > , pub (crate) publication_commit_export_produce_sdk_payload_chunk : TypedFunc < (i64 , i32 , i32 , i32 , i32 , i32 , i32 ,) , i32 > , pub (crate) publication_commit_export_produce_sdk_payload_receipt : TypedFunc < (i64 , i32 , i32 , i32 , i32 ,) , i32 > , pub (crate) publication_commit_export_produce_sdk_read_delivery_storage : TypedFunc < (i64 , i32 , i32 , i32 , i32 ,) , i32 > , pub (crate) publication_commit_export_produce_sdk_read_evidence : TypedFunc < (i64 , i32 , i32 , i32 , i32 , i32 ,) , i32 > , pub (crate) publication_commit_export_produce_sdk_read_evidence_decision : TypedFunc < (i64 , i32 , i32 , i32 , i32 ,) , i32 > , pub (crate) publication_commit_export_produce_sdk_read_grant : TypedFunc < (i64 , i32 , i32 , i32 , i32 , i32 ,) , i32 > , pub (crate) publication_commit_export_produce_sdk_read_original : TypedFunc < (i64 , i32 , i32 , i32 , i32 , i32 , i32 ,) , i32 > , pub (crate) publication_commit_export_produce_sdk_run_state : TypedFunc < (i64 , i32 , i32 , i32 , i32 ,) , i32 > , pub (crate) publication_commit_export_produce_sdk_terminal_storage : TypedFunc < (i64 , i32 , i32 , i32 , i32 ,) , i32 > , pub (crate) publication_commit_export_reserve : TypedFunc < (i64 , i32 , i32 , i64 ,) , i32 > , pub (crate) publication_commit_export_reserve_bounded : TypedFunc < (i64 , i32 , i32 , i32 , i64 ,) , i32 > , pub (crate) publication_commit_export_result_count : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) publication_commit_export_retire_sdk_delivery_output : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) publication_commit_export_sdk_payload_ordinal : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) publication_commit_export_validate_payload_binding : TypedFunc < (i64 , i32 , i32 , i32 , i32 , i32 ,) , i32 > , pub (crate) publication_commit_export_validate_sdk_run_state : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) publication_commit_progress : TypedFunc < (i64 , i32 , i32 ,) , i64 > , pub (crate) publication_finish : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) publication_finish_commit : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) publication_finish_observation : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) publication_length : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) publication_observation_progress : TypedFunc < (i64 , i32 , i32 ,) , i64 > , pub (crate) publication_preflight_close : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) publication_preflight_length : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) publication_preflight_prepare : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) publication_preflight_reserve : TypedFunc < (i64 , i32 , i32 , i32 , i64 ,) , i32 > , pub (crate) publication_preflight_result_count : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) publication_preflight_retire_output : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) publication_prepare : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) publication_prepare_commit : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) publication_prepare_lookup : TypedFunc < (i64 , i32 , i32 , i32 , i32 ,) , i32 > , pub (crate) publication_prepare_observation : TypedFunc < (i64 , i32 , i32 , i32 , i32 ,) , i32 > , pub (crate) publication_progress : TypedFunc < (i64 , i32 , i32 ,) , i64 > , pub (crate) publication_reserve : TypedFunc < (i64 , i32 , i32 , i32 , i64 ,) , i32 > , pub (crate) publication_retire_lookup : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) publication_retire_observation : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) publication_retire_output : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) publication_validate_run : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) publisher_authorize : TypedFunc < (i64 , i32 , i32 , i32 , i32 ,) , i32 > , pub (crate) publisher_close : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) publisher_install : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) publisher_reserve : TypedFunc < (i64 , i32 , i32 , i32 , i64 ,) , i32 > , pub (crate) result_advance : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) result_binding_close : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) result_binding_length : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) result_binding_produce : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) result_binding_reserve : TypedFunc < (i64 , i32 , i32 , i32 , i32 , i64 ,) , i32 > , pub (crate) result_chunk_final : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) result_chunk_length : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) result_close : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) result_close_chunk : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) result_feed : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) result_finish_preparation : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) result_inputs_ready : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) result_produce_chunk : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) result_progress : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) result_reserve : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) result_reserve_chunk : TypedFunc < (i64 , i32 , i32 , i64 ,) , i32 > , pub (crate) result_reserve_from_compute : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) result_start : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) run_close : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) run_close_configuration : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) run_close_physical_start : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) run_confirm_physical_start : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) run_dispatch_action : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) run_install_configuration : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) run_install_current_configuration : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) run_install_sdk_configuration : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) run_invocation_close_source_free : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) run_invocation_length_source_free : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) run_invocation_prepare_source_free : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) run_invocation_reserve_source_free : TypedFunc < (i64 , i32 , i32 , i32 , i64 ,) , i32 > , pub (crate) run_physical_start_ready : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) run_prepare : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) run_prepare_sdk : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) run_prepared : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) run_reserve : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) run_reserve_physical_start : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) run_reserve_sdk_physical_start : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) run_restore : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) source_accept : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) source_capacity : TypedFunc < (i64 , i32 , i32 ,) , i64 > , pub (crate) source_close_attempt : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) source_close_command : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) source_close_configuration : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) source_close_event : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) source_command_length : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) source_completed : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) source_configuration_issue : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) source_configure : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) source_configured : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) source_produce_command : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) source_publication_advance : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) source_publication_close : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) source_publication_finish : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) source_publication_length : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) source_publication_prepare : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) source_publication_progress : TypedFunc < (i64 , i32 , i32 ,) , i64 > , pub (crate) source_publication_reserve : TypedFunc < (i64 , i32 , i32 , i32 , i64 ,) , i32 > , pub (crate) source_reserve_attempt : TypedFunc < (i64 , i32 , i32 , i32 ,) , i32 > , pub (crate) source_reserve_command : TypedFunc < (i64 , i32 , i32 , i32 , i32 , i64 ,) , i32 > , pub (crate) source_reserve_configuration : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) source_start : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) source_started : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) submission_begin_cleanup : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) submission_close : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) submission_length : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) submission_produce : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) submission_reserve : TypedFunc < (i64 , i32 , i32 , i32 , i32 , i64 ,) , i32 > , pub (crate) submission_reserve_failure : TypedFunc < (i64 , i32 , i32 , i32 , i32 , i64 ,) , i32 > , pub (crate) submission_retire_output : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) submission_validate_append : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) task_advance : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) task_advance_finalization : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) task_assessment : TypedFunc < (i64 , i32 , i32 , i32 ,) , i64 > , pub (crate) task_close : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) task_complete : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) task_feed : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) task_inputs_ready : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) task_issue : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) task_prepare_finalization : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) task_progress : TypedFunc < (i64 , i32 , i32 ,) , i64 > , pub (crate) task_reserve : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) task_reserve_next_sdk : TypedFunc < (i64 , i32 , i32 ,) , i32 > , pub (crate) task_start : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) task_started : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) workspace_close : TypedFunc < (i64 , i32 ,) , i32 > , pub (crate) workspace_reserve : TypedFunc < (i64 , i32 , i64 ,) , i32 > , pub (crate) workspace_root_reserved : TypedFunc < (i64 ,) , i64 > , }",
+          "name": "type:CoreExports",
+          "parameters": []
+        }
+      ],
+      "sha256": "cf03a08155f49be2cfeeadbe81556953e1d4ecfe5f6fbe5ed75f78db90ba58db",
+      "unresolvedSyntax": [],
+      "role": "generated-binding",
+      "responsibilityFacet": "primary",
+      "owner": "Existing Core Wasm binding and Rust physical embedding owner",
+      "referenceQualification": "Internal source/generation/reference coverage only. Actual Cargo, compiled module, normal distribution and public Host lifecycle remain separate evidence.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "impl:CoreExports/load",
+            "link_imports",
+            "trait:Imports/execution_child_admit",
+            "trait:Imports/execution_child_capacity",
+            "trait:Imports/execution_child_current",
+            "trait:Imports/execution_child_limit",
+            "trait:Imports/execution_child_report",
+            "trait:Imports/execution_child_stop",
+            "trait:Imports/input_byte",
+            "trait:Imports/input_cleanup",
+            "trait:Imports/input_copy",
+            "trait:Imports/journal_copy_row",
+            "trait:Imports/journal_current",
+            "trait:Imports/journal_current_operation",
+            "trait:Imports/journal_query_header",
+            "trait:Imports/journal_schema",
+            "trait:Imports/native_cleaned",
+            "trait:Imports/native_settled",
+            "trait:Imports/native_stopped",
+            "trait:Imports/platform_vm_observation",
+            "trait:Imports/publisher_begin",
+            "trait:Imports/publisher_copy",
+            "trait:Imports/publisher_current",
+            "trait:Imports/publisher_finish",
+            "trait:Imports/reader_stop",
+            "type:CoreExports"
+          ],
+          "exports": [
+            "ABI_VERSION",
+            "CoreExports",
+            "EXPORTS",
+            "IMPORTS",
+            "Imports",
+            "link_imports"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust admission and physical Host ownership"
+              },
+              {
+                "path": "scripts/generate-local-wasm-abi.py",
+                "anchor": "def render_rust("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust admission and physical Host ownership"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust admission and physical Host ownership"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust admission and physical Host ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust admission and physical Host ownership"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust admission and physical Host ownership"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust admission and physical Host ownership"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust admission and physical Host ownership"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust admission and physical Host ownership"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/rust/src/abi.rs",
+                "anchor": "fn startup_import_is_refused_before_any_physical_callback("
+              },
+              {
+                "path": "packages/rust/src/abi.rs",
+                "anchor": "fn unexported_second_memory_is_refused_before_host_callbacks("
+              },
+              {
+                "path": "packages/rust/src/abi.rs",
+                "anchor": "fn initialization_failure_retains_the_same_host_owner_before_and_after_store("
+              },
+              {
+                "path": "packages/rust/src/abi.rs",
+                "anchor": "fn actual_core_module_binds_every_generated_signature("
+              },
+              {
+                "path": "scripts/generate-local-wasm-abi.py",
+                "anchor": "Rust Core Wasm ABI binding is stale"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "exports": [
+        "ArtifactProfile",
+        "CompiledCore",
+        "CoreInstance",
+        "InitializationFailure",
+        "Scalar",
+        "Signature",
+        "StoreState"
+      ],
+      "imports": [
+        "crate :: abi_generated :: { ABI_VERSION , CoreExports , EXPORTS , IMPORTS , Imports , link_imports }",
+        "sha2 :: { Digest , Sha256 }",
+        "std :: { collections :: BTreeSet , sync :: Arc }",
+        "wasmtime :: { Engine , ExternType , FuncType , Instance , Linker , Memory , Module , Store , ValType }"
+      ],
+      "module": "packages/rust/src/abi.rs",
+      "operations": [
+        {
+          "async": false,
+          "declaration": "pub (crate) fn compile (engine : & Engine , wasm : & [u8] , profile : & ArtifactProfile) -> wasmtime :: Result < Self >",
+          "name": "impl:CompiledCore/compile",
+          "parameters": [
+            "engine",
+            "wasm",
+            "profile"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "pub (crate) fn instantiate < H : Imports > (& self , host : H) -> Result < CoreInstance < H > , InitializationFailure < H > >",
+          "name": "impl:CompiledCore/instantiate",
+          "parameters": [
+            "& self",
+            "host"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "pub (crate) fn open (engine : & Engine , wasm : & [u8] , profile : & ArtifactProfile , host : H) -> Result < Self , InitializationFailure < H > >",
+          "name": "impl< H : Imports >:CoreInstance < H >/open",
+          "parameters": [
+            "engine",
+            "wasm",
+            "profile",
+            "host"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": " fn fmt (& self , f : & mut std :: fmt :: Formatter < '_ >) -> std :: fmt :: Result",
+          "name": "impl< H >:std :: fmt :: Debug for InitializationFailure < H >/fmt",
+          "parameters": [
+            "& self",
+            "f"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": " fn matches_signature (actual : & FuncType , expected : & Signature) -> bool",
+          "name": "matches_signature",
+          "parameters": [
+            "actual",
+            "expected"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": " fn scalar (value : ValType) -> Option < Scalar >",
+          "name": "scalar",
+          "parameters": [
+            "value"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": " pub (crate) struct ArtifactProfile  { pub (crate) sha256 : [u8 ; 32] , pub (crate) max_module_bytes : usize , pub (crate) memory_max_pages : u64 , pub (crate) initialization_fuel : u64 , }",
+          "name": "type:ArtifactProfile",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "declaration": " pub (crate) struct CompiledCore  { engine : Engine , module : Module , initialization_fuel : u64 , }",
+          "name": "type:CompiledCore",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "declaration": " pub (crate) struct CoreInstance < H : 'static > { pub (crate) store : Store < StoreState < H > > , pub (crate) functions : CoreExports , pub (crate) memory : Memory , pub (crate) identity : Arc < () > , }",
+          "name": "type:CoreInstance",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "declaration": " pub (crate) struct InitializationFailure < H > { pub (crate) cause : wasmtime :: Error , pub (crate) host : H , }",
+          "name": "type:InitializationFailure",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "declaration": "# [derive (Clone , Copy , Debug , Eq , PartialEq)] pub (crate) enum Scalar  { I32 , I64 }",
+          "name": "type:Scalar",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "declaration": " pub (crate) struct Signature  { pub name : & 'static str , pub parameters : & 'static [Scalar] , pub result : Scalar , }",
+          "name": "type:Signature",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "declaration": " pub (crate) struct StoreState < H > { pub (crate) admitted : bool , pub (crate) host : H , }",
+          "name": "type:StoreState",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "declaration": " fn validate_module (module : & Module , profile : & ArtifactProfile) -> wasmtime :: Result < () >",
+          "name": "validate_module",
+          "parameters": [
+            "module",
+            "profile"
+          ]
+        }
+      ],
+      "sha256": "892d3253d231938cbf19384a4a7976ba72062059827956dfa8558c9f0c1b54eb",
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "responsibilityFacet": "primary",
+      "owner": "Existing Core Wasm binding and Rust physical embedding owner",
+      "referenceQualification": "Internal source/generation/reference coverage only. Actual Cargo, compiled module, normal distribution and public Host lifecycle remain separate evidence.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "impl:CompiledCore/compile",
+            "impl:CompiledCore/instantiate",
+            "impl< H : Imports >:CoreInstance < H >/open",
+            "impl< H >:std :: fmt :: Debug for InitializationFailure < H >/fmt",
+            "matches_signature",
+            "scalar",
+            "type:ArtifactProfile",
+            "type:CompiledCore",
+            "type:CoreInstance",
+            "type:InitializationFailure",
+            "type:Scalar",
+            "type:Signature",
+            "type:StoreState",
+            "validate_module"
+          ],
+          "exports": [
+            "ArtifactProfile",
+            "CompiledCore",
+            "CoreInstance",
+            "InitializationFailure",
+            "Scalar",
+            "Signature",
+            "StoreState"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust admission and physical Host ownership"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust admission and physical Host ownership"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust admission and physical Host ownership"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust admission and physical Host ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust admission and physical Host ownership"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust admission and physical Host ownership"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust admission and physical Host ownership"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust admission and physical Host ownership"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust admission and physical Host ownership"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/rust/src/abi.rs",
+                "anchor": "fn startup_import_is_refused_before_any_physical_callback("
+              },
+              {
+                "path": "packages/rust/src/abi.rs",
+                "anchor": "fn unexported_second_memory_is_refused_before_host_callbacks("
+              },
+              {
+                "path": "packages/rust/src/abi.rs",
+                "anchor": "fn initialization_failure_retains_the_same_host_owner_before_and_after_store("
+              },
+              {
+                "path": "packages/rust/src/abi.rs",
+                "anchor": "fn actual_core_module_binds_every_generated_signature("
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "exports": [],
+      "imports": [
+        "module:abi",
+        "module:abi_generated",
+        "module:transfer"
+      ],
+      "module": "packages/rust/src/lib.rs",
+      "operations": [],
+      "sha256": "a942238790d045584c456d15cb94704fe21a41806ac39402cdfd73857980d24c",
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "responsibilityFacet": "primary",
+      "owner": "Existing Core Wasm binding and Rust physical embedding owner",
+      "referenceQualification": "Internal source/generation/reference coverage only. Actual Cargo, compiled module, normal distribution and public Host lifecycle remain separate evidence.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust admission and physical Host ownership"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust admission and physical Host ownership"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust admission and physical Host ownership"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust admission and physical Host ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust admission and physical Host ownership"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust admission and physical Host ownership"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust admission and physical Host ownership"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust admission and physical Host ownership"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust admission and physical Host ownership"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/rust/src/abi.rs",
+                "anchor": "fn startup_import_is_refused_before_any_physical_callback("
+              },
+              {
+                "path": "packages/rust/src/abi.rs",
+                "anchor": "fn unexported_second_memory_is_refused_before_host_callbacks("
+              },
+              {
+                "path": "packages/rust/src/abi.rs",
+                "anchor": "fn initialization_failure_retains_the_same_host_owner_before_and_after_store("
+              },
+              {
+                "path": "packages/rust/src/abi.rs",
+                "anchor": "fn actual_core_module_binds_every_generated_signature("
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "exports": [
+        "CoreFailure",
+        "InputBuffer"
+      ],
+      "imports": [
+        "crate :: { abi :: CoreInstance , abi_generated :: Imports }",
+        "std :: sync :: Arc"
+      ],
+      "module": "packages/rust/src/transfer.rs",
+      "operations": [
+        {
+          "async": false,
+          "declaration": " fn fmt (& self , f : & mut std :: fmt :: Formatter < '_ >) -> std :: fmt :: Result",
+          "name": "impl:std :: fmt :: Display for CoreFailure/fmt",
+          "parameters": [
+            "& self",
+            "f"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "pub (crate) fn close_input_buffer (& mut self , buffer : & mut InputBuffer) -> wasmtime :: Result < i32 >",
+          "name": "impl< H : Imports >:CoreInstance < H >/close_input_buffer",
+          "parameters": [
+            "& mut self",
+            "buffer"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "pub (crate) fn fill_input_buffer (& mut self , buffer : & InputBuffer) -> wasmtime :: Result < () >",
+          "name": "impl< H : Imports >:CoreInstance < H >/fill_input_buffer",
+          "parameters": [
+            "& mut self",
+            "buffer"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": " fn original_buffer (& self , buffer : & InputBuffer) -> wasmtime :: Result < () >",
+          "name": "impl< H : Imports >:CoreInstance < H >/original_buffer",
+          "parameters": [
+            "& self",
+            "buffer"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "pub (crate) fn read_input_block (& mut self , buffer : & InputBuffer , start : usize , destination : & mut [u8]) -> wasmtime :: Result < () >",
+          "name": "impl< H : Imports >:CoreInstance < H >/read_input_block",
+          "parameters": [
+            "& mut self",
+            "buffer",
+            "start",
+            "destination"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "pub (crate) fn reserve_input_buffer (& mut self , nonce : i64 , ticket : i32 , bytes : usize , physical_copy_bytes : i64) -> wasmtime :: Result < InputBuffer >",
+          "name": "impl< H : Imports >:CoreInstance < H >/reserve_input_buffer",
+          "parameters": [
+            "& mut self",
+            "nonce",
+            "ticket",
+            "bytes",
+            "physical_copy_bytes"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "pub (crate) fn seal_input_buffer (& mut self , buffer : & InputBuffer) -> wasmtime :: Result < () >",
+          "name": "impl< H : Imports >:CoreInstance < H >/seal_input_buffer",
+          "parameters": [
+            "& mut self",
+            "buffer"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": " fn success (operation : & 'static str , code : i32) -> wasmtime :: Result < () >",
+          "name": "success",
+          "parameters": [
+            "operation",
+            "code"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "# [derive (Debug)] pub (crate) struct CoreFailure  { pub (crate) operation : & 'static str , pub (crate) code : i32 , }",
+          "name": "type:CoreFailure",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "declaration": " pub (crate) struct InputBuffer  { identity : Arc < () > , nonce : i64 , pub (crate) handle : i32 , bytes : usize , closed : bool , }",
+          "name": "type:InputBuffer",
+          "parameters": []
+        }
+      ],
+      "sha256": "3956fe3e4f363cffa854d755dfb86918f4c49be421a1e5d0318c482a61e3b0e1",
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "responsibilityFacet": "primary",
+      "owner": "Existing Core Wasm binding and Rust physical embedding owner",
+      "referenceQualification": "Internal source/generation/reference coverage only. Actual Cargo, compiled module, normal distribution and public Host lifecycle remain separate evidence.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "impl:std :: fmt :: Display for CoreFailure/fmt",
+            "impl< H : Imports >:CoreInstance < H >/close_input_buffer",
+            "impl< H : Imports >:CoreInstance < H >/fill_input_buffer",
+            "impl< H : Imports >:CoreInstance < H >/original_buffer",
+            "impl< H : Imports >:CoreInstance < H >/read_input_block",
+            "impl< H : Imports >:CoreInstance < H >/reserve_input_buffer",
+            "impl< H : Imports >:CoreInstance < H >/seal_input_buffer",
+            "success",
+            "type:CoreFailure",
+            "type:InputBuffer"
+          ],
+          "exports": [
+            "CoreFailure",
+            "InputBuffer"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Bounded Rust transfers"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Bounded Rust transfers"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Bounded Rust transfers"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Bounded Rust transfers"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Bounded Rust transfers"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Bounded Rust transfers"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Bounded Rust transfers"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Bounded Rust transfers"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Bounded Rust transfers"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/rust/src/transfer.rs",
+                "anchor": "fn block_round_trip_feeds_the_original_core_preparation("
+              },
+              {
+                "path": "packages/rust/src/transfer.rs",
+                "anchor": "fn equal_numeric_handles_from_another_instance_do_not_copy_or_read("
+              },
+              {
+                "path": "packages/rust/src/transfer.rs",
+                "anchor": "fn short_copy_failure_retains_the_original_cleanup_owner("
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "exports": [
+        "Facts",
+        "inventory"
+      ],
+      "imports": [
+        "anyhow :: { Context , Result , ensure }",
+        "quote :: ToTokens",
+        "serde :: Serialize",
+        "sha2 :: { Digest , Sha256 }",
+        "std :: { collections :: { BTreeMap , BTreeSet } , fs , path :: { Path , PathBuf } }",
+        "syn :: { Item , Visibility , visit :: { self , Visit } }"
+      ],
+      "module": "packages/rust/tools/source-inventory/src/lib.rs",
+      "operations": [
+        {
+          "async": false,
+          "declaration": " fn collect (root : & Path , path : & Path , found : & mut BTreeMap < PathBuf , Facts >) -> Result < () >",
+          "name": "collect",
+          "parameters": [
+            "root",
+            "path",
+            "found"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": " fn export (& mut self , visibility : & Visibility , name : & str)",
+          "name": "impl:Reader/export",
+          "parameters": [
+            "& mut self",
+            "visibility",
+            "name"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": " fn name (& self , name : & str) -> String",
+          "name": "impl:Reader/name",
+          "parameters": [
+            "& self",
+            "name"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": " fn new () -> Self",
+          "name": "impl:Reader/new",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "declaration": " fn signature (& mut self , signature : & syn :: Signature , visibility : Option < & Visibility >)",
+          "name": "impl:Reader/signature",
+          "parameters": [
+            "& mut self",
+            "signature",
+            "visibility"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": " fn ty (& mut self , ident : & syn :: Ident , visibility : & Visibility , declaration : String)",
+          "name": "impl:Reader/ty",
+          "parameters": [
+            "& mut self",
+            "ident",
+            "visibility",
+            "declaration"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": " fn visit_impl_item_fn (& mut self , value : & 'ast syn :: ImplItemFn)",
+          "name": "impl< 'ast >:Visit < 'ast > for Reader/visit_impl_item_fn",
+          "parameters": [
+            "& mut self",
+            "value"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": " fn visit_item (& mut self , item : & 'ast Item)",
+          "name": "impl< 'ast >:Visit < 'ast > for Reader/visit_item",
+          "parameters": [
+            "& mut self",
+            "item"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": " fn visit_trait_item_fn (& mut self , value : & 'ast syn :: TraitItemFn)",
+          "name": "impl< 'ast >:Visit < 'ast > for Reader/visit_trait_item_fn",
+          "parameters": [
+            "& mut self",
+            "value"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "pub fn inventory (root : & Path , entry : & Path) -> Result < Vec < Facts > >",
+          "name": "inventory",
+          "parameters": [
+            "root",
+            "entry"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": " fn material_attributes (attributes : & [syn :: Attribute]) -> String",
+          "name": "material_attributes",
+          "parameters": [
+            "attributes"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": " fn test_only (attributes : & [syn :: Attribute]) -> bool",
+          "name": "test_only",
+          "parameters": [
+            "attributes"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "# [derive (Serialize)] pub struct Facts  { module : String , sha256 : String , exports : Vec < String > , operations : Vec < Operation > , imports : Vec < String > , # [serde (rename = \"unresolvedSyntax\")] unresolved : Vec < String > , }",
+          "name": "type:Facts",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "declaration": "# [derive (Serialize)]  struct Operation  { name : String , parameters : Vec < String > , # [serde (rename = \"async\")] is_async : bool , declaration : String , }",
+          "name": "type:Operation",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "declaration": "  struct Reader  { scope : Vec < String > , exports : BTreeSet < String > , imports : BTreeSet < String > , operations : BTreeMap < String , Operation > , children : Vec < (String , Vec < syn :: Attribute >) > , unresolved : Vec < String > , }",
+          "name": "type:Reader",
+          "parameters": []
+        }
+      ],
+      "sha256": "908b594e8556d371c660e6711946d5a67fe8fc3a565d914345c9da82e6118039",
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "responsibilityFacet": "primary",
+      "owner": "Existing Rust source syntax and selected interface coverage owner",
+      "referenceQualification": "Internal source/generation/reference coverage only. Actual Cargo, compiled module, normal distribution and public Host lifecycle remain separate evidence.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "collect",
+            "impl:Reader/export",
+            "impl:Reader/name",
+            "impl:Reader/new",
+            "impl:Reader/signature",
+            "impl:Reader/ty",
+            "impl< 'ast >:Visit < 'ast > for Reader/visit_impl_item_fn",
+            "impl< 'ast >:Visit < 'ast > for Reader/visit_item",
+            "impl< 'ast >:Visit < 'ast > for Reader/visit_trait_item_fn",
+            "inventory",
+            "material_attributes",
+            "test_only",
+            "type:Facts",
+            "type:Operation",
+            "type:Reader"
+          ],
+          "exports": [
+            "Facts",
+            "inventory"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/rust/tools/source-inventory/src/lib.rs",
+                "anchor": "fn named_operations_preserve_types_receivers_and_skip_only_test_module("
+              },
+              {
+                "path": "scripts/check-rust-interface-owners.mjs",
+                "anchor": "interfaceOwnerCoverage({root, modules: source.modules, owners})"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "exports": [],
+      "imports": [
+        "anyhow :: { Result , ensure }",
+        "std :: path :: Path"
+      ],
+      "module": "packages/rust/tools/source-inventory/src/main.rs",
+      "operations": [
+        {
+          "async": false,
+          "declaration": " fn main () -> Result < () >",
+          "name": "main",
+          "parameters": []
+        }
+      ],
+      "sha256": "3ebaaeca05f902974c98af57956a9c39f9c49dfea31cb18d1a81b4b9826e79f0",
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "responsibilityFacet": "primary",
+      "owner": "Existing Rust source syntax and selected interface coverage owner",
+      "referenceQualification": "Internal source/generation/reference coverage only. Actual Cargo, compiled module, normal distribution and public Host lifecycle remain separate evidence.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "main"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/rust/tools/source-inventory/src/lib.rs",
+                "anchor": "fn named_operations_preserve_types_receivers_and_skip_only_test_module("
+              },
+              {
+                "path": "scripts/check-rust-interface-owners.mjs",
+                "anchor": "interfaceOwnerCoverage({root, modules: source.modules, owners})"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "scripts/rust-interface-sources.mjs",
+      "sha256": "49124cb2210805330a26cbdb9e8dc0a7b897b0a6e7cd284e70dbd908b433b3b5",
+      "exports": [
+        "rustInterfaceSources"
+      ],
+      "operations": [
+        {
+          "name": "rustInterfaceSources",
+          "parameters": [
+            "root",
+            "cargo"
+          ],
+          "async": false
+        },
+        {
+          "name": "rustInterfaceSources/entrances/entrances",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "rustInterfaceSources/entrances/entrances/entrances",
+          "parameters": [
+            "target"
+          ],
+          "async": false
+        },
+        {
+          "name": "rustInterfaceSources/entrances/entrances/entrances/entrances",
+          "parameters": [
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "rustInterfaceSources/entrances/entrances/entrances#2",
+          "parameters": [
+            "target"
+          ],
+          "async": false
+        },
+        {
+          "name": "rustInterfaceSources/entrances/entrances#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "rustInterfaceSources/rustInterfaceSources",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        }
+      ],
+      "privateOperations": [
+        "rustInterfaceSources/run/run"
+      ],
+      "imports": [
+        "node:assert/strict",
+        "node:child_process",
+        "node:crypto",
+        "node:fs",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "responsibilityFacet": "primary",
+      "owner": "Existing Rust source syntax and selected interface coverage owner",
+      "referenceQualification": "Internal source/generation/reference coverage only. Actual Cargo, compiled module, normal distribution and public Host lifecycle remain separate evidence.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "rustInterfaceSources",
+            "rustInterfaceSources/entrances/entrances",
+            "rustInterfaceSources/entrances/entrances/entrances",
+            "rustInterfaceSources/entrances/entrances/entrances/entrances",
+            "rustInterfaceSources/entrances/entrances/entrances#2",
+            "rustInterfaceSources/entrances/entrances#2",
+            "rustInterfaceSources/rustInterfaceSources"
+          ],
+          "exports": [
+            "rustInterfaceSources"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/rust/tools/source-inventory/src/lib.rs",
+                "anchor": "fn named_operations_preserve_types_receivers_and_skip_only_test_module("
+              },
+              {
+                "path": "scripts/check-rust-interface-owners.mjs",
+                "anchor": "interfaceOwnerCoverage({root, modules: source.modules, owners})"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "scripts/check-rust-interface-owners.mjs",
+      "sha256": "b7967e398f3a21700a174b36a9d1241bd323a584d5e17b88c1c638ad4529c63a",
+      "exports": [
+        "checkRustInterfaceOwners"
+      ],
+      "operations": [
+        {
+          "name": "checkRustInterfaceOwners",
+          "parameters": [
+            "root"
+          ],
+          "async": false
+        }
+      ],
+      "privateOperations": [],
+      "imports": [
+        "./interface-inventory.mjs",
+        "./interface-owner-coverage.mjs",
+        "./interface-owner-discovery.mjs",
+        "./rust-interface-sources.mjs",
+        "node:assert/strict",
+        "node:child_process",
+        "node:crypto",
+        "node:fs",
+        "node:path",
+        "node:url"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "responsibilityFacet": "primary",
+      "owner": "Existing Rust source syntax and selected interface coverage owner",
+      "referenceQualification": "Internal source/generation/reference coverage only. Actual Cargo, compiled module, normal distribution and public Host lifecycle remain separate evidence.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "checkRustInterfaceOwners"
+          ],
+          "exports": [
+            "checkRustInterfaceOwners"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Rust source responsibility coverage"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/rust/tools/source-inventory/src/lib.rs",
+                "anchor": "fn named_operations_preserve_types_receivers_and_skip_only_test_module("
+              },
+              {
+                "path": "scripts/check-rust-interface-owners.mjs",
+                "anchor": "interfaceOwnerCoverage({root, modules: source.modules, owners})"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

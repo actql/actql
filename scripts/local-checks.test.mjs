@@ -64,6 +64,43 @@ test('heavy jobs require deliberate override; light lint remains usable', t => {
   assert.equal(readFileSync(join(f.root, 'calls'), 'utf8'), 'from workflow\nfrom workflow\n');
 });
 
+test('Cargo selection refuses filters and requires a deliberate explicit compile budget before starting', t => {
+  const f = fixture(t), cargo = join(f.root, 'bin/cargo');
+  writeFileSync(cargo, `#!${process.execPath}\nrequire('fs').writeFileSync('cargo-started','yes');\n`, {mode: 0o755});
+  const selected = ['--locked', '--manifest-path', 'packages/rust/Cargo.toml', '--lib', '--', '--nocapture'];
+  for (const args of [
+    ['test', 'cargo', '--', ...selected],
+    ['test', 'cargo', '--allow-heavy', '--', ...selected],
+    ['test', 'cargo', '--allow-heavy', '--timeout-seconds', '5', '--', '--no-run', ...selected],
+    ['test', 'cargo', '--allow-heavy', '--timeout-seconds', '5', '--', ...selected.slice(0, -2), 'one_case', '--', '--nocapture'],
+  ]) {
+    const result = f.run(args);
+    assert.equal(result.status, 2, result.stderr);
+    assert.equal(existsSync(join(f.root, 'cargo-started')), false);
+  }
+});
+
+test('Cargo uses the original bounded process and rejects zero execution or a failed child', t => {
+  const f = fixture(t), cargo = join(f.root, 'bin/cargo');
+  writeFileSync(cargo, `#!${process.execPath}\nconst fs=require('fs');
+    fs.appendFileSync('cargo-args',JSON.stringify(process.argv.slice(2))+'\\n');
+    console.log(process.env.ACTQL_TEST_CARGO_OUTPUT);
+    process.exitCode=Number(process.env.ACTQL_TEST_CARGO_STATUS);\n`, {mode: 0o755});
+  const selected = ['--locked', '--manifest-path', 'packages/rust/Cargo.toml', '--lib', '--', '--nocapture'];
+  const passing = 'running 1 test\ntest abi::tests::original ... ok\n' +
+    'test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s';
+  const empty = 'running 0 tests\n' +
+    'test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s';
+  for (const [text, code, accepted] of [[passing, 0, true], [empty, 0, false], [passing, 7, false]]) {
+    const result = f.run(['test', 'cargo', '--allow-heavy', '--timeout-seconds', '5', '--', ...selected],
+      {ACTQL_TEST_CARGO_OUTPUT: text, ACTQL_TEST_CARGO_STATUS: String(code)});
+    assert.equal(result.signal, null); assert.equal(result.status === 0, accepted, result.stderr);
+    assert.match(result.stderr, /Local check evidence:/u);
+  }
+  const calls = readFileSync(join(f.root, 'cargo-args'), 'utf8').trim().split('\n').map(JSON.parse);
+  assert(calls.every(args => JSON.stringify(args) === JSON.stringify(['test', ...selected])));
+});
+
 test('required packed README job is classified and its exact command remains inspectable without execution', t => {
   const f = fixture(t), path = join(f.root, '.github/workflows/ci.yml');
   const workflow = JSON.parse(readFileSync(path, 'utf8'));

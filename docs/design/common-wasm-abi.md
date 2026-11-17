@@ -10,7 +10,8 @@ been admitted.
 
 `scripts/generate-local-wasm-abi.py` reads the original MoonBit declarations
 into a language-neutral model. It derives the Python binding, private C image
-compiler header and `spec/contracts/core-wasm-abi.generated.json` from that
+compiler header, private typed Rust binding and
+`spec/contracts/core-wasm-abi.generated.json` from that
 same model. `--check` checks every derived output without modifying it. A Host
 binding must not recover the common contract by parsing another Host language's
 output, or maintain a separate signature list.
@@ -36,3 +37,54 @@ business I/O. A declaration projection cannot establish execution, cancellation,
 cleanup, platform support or normal distribution acceptance. Host-specific
 physical resource and failure responsibilities remain with the corresponding
 Host; common Run and recovery decisions remain in MoonBit.
+
+## Rust admission and physical Host ownership
+
+The generated Rust binding binds every original function with its scalar type
+and every import through the same admission fence. The Rust runtime checks the
+actual module rather than accepting the declaration manifest as proof. All
+imported memories are refused and exactly one defined memory is required; a
+second unexported memory cannot escape the selected artifact memory profile. Import
+callbacks cannot reach the physical Host during start initialization or ABI
+version validation. An unimplemented physical operation refuses explicitly.
+
+Initialization failure retains and returns the same physical Host owner with
+the original error, including failures after a guest Store was created. The
+runtime has not admitted business I/O in that phase; freeing its guest Store
+therefore does not silently discard a live physical child or acknowledge Host
+cleanup. Normal execution, cancellation, post-trap cleanup and explicit shutdown
+remain distinct operation/lifetime connections, not consequences of scalar
+signature validation.
+
+## Bounded Rust transfers
+
+The internal Rust adapter uses the existing original-input block copy and
+same-instance memory read. It reserves under the existing Buffer Owner, retains
+the original input/instance association and copies at most 16 KiB at a time.
+Raw offsets and borrowed guest slices do not leave the synchronous Store scope.
+No scalar fallback, user callback, guest reentry or asynchronous suspension is
+inserted between obtaining an output offset and copying that block.
+
+Compiled code is immutable reusable runtime material. Sharing it does not share
+a Store, guest memory, physical Host, nonce or buffer holding. Equal numeric
+handles in another instance do not supply the original association. Pending
+cleanup retains the same holding; explicit Core success is required before the
+adapter marks its input binding closed. These mechanisms do not issue a Run,
+Source permission or substitute physical cleanup facts.
+
+## Rust source responsibility coverage
+
+The selected Rust CI job uses Cargo metadata to choose its actual library and
+tooling entrances. A small private `syn` reader follows their source modules
+and derives argument roles, type declarations, imports and exports. It does not
+execute product modules, infer business decisions or define another ABI table.
+Documentation and function bodies are not frozen as type signatures; unknown
+item macros, ambiguous mounts and outside-root modules refuse source coverage.
+
+The existing interface Owner checker validates these actual source facts and
+all ten responsibility references. The Rust generated binding also passes its
+original generator's read-only freshness check. This is source responsibility
+coverage, separately from actual Cargo type checking, artifact identity,
+compiled Wasm admission and Host/Run lifecycle acceptance. Tooling process
+bounds and cancellation remain with the existing verification supervisor; the
+source reader owns no business resource, permission or cleanup acknowledgment.

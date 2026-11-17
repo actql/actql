@@ -10,7 +10,9 @@ import {spawnSync} from 'node:child_process';
 import {runInNewContext} from 'node:vm';
 import test from 'node:test';
 import {parse} from 'yaml';
-import {pullRequestDraft, readChanges, selectTargets, validateSelection, verifyGate, maintenanceFiles, gateJobs, pythonWheelAcceptanceRequired, deepProofRequired, gateJobRequired, readPushChanges} from './ci-targets.mjs';
+import {pullRequestDraft, readChanges, selectTargets, validateSelection, verifyGate, maintenanceFiles, gateJobs, pythonWheelAcceptanceRequired, rustLibraryRequired, deepProofRequired, gateJobRequired, readPushChanges} from './ci-targets.mjs';
+import {cargoTestArguments} from './test-execution.mjs';
+import {localModuleGraphInputs} from './adapter-module-graph.mjs';
 import {occurrences} from './check-owned-contract-versions.mjs';
 import {prepareNativeRuntimeBundle} from './native-runtime-bundle-fixture.mjs';
 import {readCiInput} from './ci-input.mjs';
@@ -1625,6 +1627,99 @@ test('main CLI selects full checks from a fresh checkout without API token or pr
   assert.equal(plan.selection.macos, true);
   assert.equal(Object.hasOwn(plan.selection, 'mainBaseline'), false);
   assert.deepEqual(plan.selection.paths, []);
+});
+
+test('Rust library selects same-source inputs, not unrelated PRs, and remains mandatory on main', () => {
+  for (const path of ['packages/rust/src/abi.rs', 'packages/rust/Cargo.lock',
+    'src/client_host_wasm/host.mbt', 'src/value_admission/value.mbt', 'vendor/dependency/moon.pkg',
+    'moon.mod', 'toolchain.json', 'package-lock.json', 'spec/contracts/core-wasm-abi.generated.json',
+    'scripts/generate-local-wasm-abi.py', 'scripts/local-checks.mjs', 'scripts/test-execution.mjs',
+    'scripts/ci-targets.mjs', 'scripts/check-rust-interface-owners.mjs',
+    'scripts/interface-owner-coverage.mjs', 'scripts/interface-owners/rust/interface-boundaries.json',
+    '.github/workflows/ci.yml']) {
+    const selection = selectTargets([path], {draft: true});
+    assert.equal(rustLibraryRequired(selection), true, path);
+    assert.equal(gateJobRequired(selection, 'rust-library'), true, path);
+    for (const result of ['failure', 'skipped', 'cancelled', undefined]) {
+      assert.throws(() => verifyGate(plan(selection), {...results(selection), 'rust-library': {result}},
+        {...context, draft: true}), /rust-library/u, `${path}/${result}`);
+    }
+  }
+  for (const path of ['README.md', 'docs/ci-client.md', 'packages/sdk/README.md',
+    'adapters/connectors/github/node/reader.mjs']) {
+    const selection = selectTargets([path]);
+    assert.equal(rustLibraryRequired(selection), false, path);
+    verifyGate(plan(selection), results(selection), context);
+  }
+  for (const event of ['push', 'schedule', 'workflow_dispatch']) {
+    assert.equal(rustLibraryRequired(selectTargets(['README.md'], {event})), true, event);
+  }
+  assert.equal(rustLibraryRequired(selectTargets([])), true);
+  assert.equal(rustLibraryRequired(selectTargets(['README.md'], {failure: 'Unavailable exact diff'})), true);
+  assert.equal(rustLibraryRequired(selectTargets(['README.md', 'packages/rust/src/lib.rs'])), true);
+});
+
+test('Rust selection covers the actual JS command module closure and compiler admission inputs', () => {
+  const entrances = [...new Set(jobs['rust-library'].steps.flatMap(step =>
+    [...(step.run ?? '').matchAll(/^\s*node\s+(scripts\/[A-Za-z0-9_.-]+\.mjs)(?=\s|$)/gmu)]
+      .map(match => match[1])))];
+  assert(entrances.length > 0);
+  // The original supervisor is a URL-referenced fork asset, not an ESM import.
+  const inputs = localModuleGraphInputs(fileURLToPath(new URL('../', import.meta.url)),
+    [...entrances, 'scripts/local-checks-supervisor.mjs']);
+  for (const indirect of ['scripts/adapter-module-graph.mjs',
+    'scripts/check-connector-dispatch-boundary.mjs', 'scripts/executable-test-cases.mjs',
+    'scripts/moonbit-installation.mjs']) assert(inputs.includes(indirect), indirect);
+  for (const path of inputs) {
+    const selected = selectTargets([path], {draft: true});
+    assert.equal(rustLibraryRequired(selected), true, path);
+    assert.equal(gateJobRequired(selected, 'rust-library'), true, path);
+    assert.equal(scheduled('rust-library', {'select-targets': {outputs: {
+      rust_library: String(rustLibraryRequired(selected))}}}), true, path);
+  }
+});
+
+test('Rust CI builds one same-source fixture and executes a bounded locked library gate', () => {
+  const job = jobs['rust-library'];
+  assert.deepEqual(job.needs, ['select-targets']);
+  assert(jobs.check.needs.includes('rust-library'));
+  for (const selected of [true, false, undefined]) {
+    assert.equal(scheduled('rust-library', {'select-targets': {outputs: {rust_library: String(selected)}}}),
+      selected === true);
+  }
+  assert.equal(scheduled('rust-library', {'select-targets': {outputs: {rust_library: 'true'}}},
+    {performance_matrix: true}), false);
+  assert.equal(job['continue-on-error'], undefined);
+  const builds = job.steps.filter(step => step.run?.includes('build moon'));
+  assert.equal(builds.length, 1);
+  assert(builds[0].run.includes('src/client_host_wasm'));
+  assert(builds[0].run.includes('git rev-parse HEAD') && builds[0].run.includes('"$GITHUB_SHA"'));
+  assert(builds[0].run.includes('sha256sum "$ACTQL_CORE_WASM"'));
+  const installation = job.steps.find(step => step.run?.includes('rustup toolchain install'));
+  assert(installation.run.includes('ACTQL_CORE_WASM=$RUNNER_TEMP/rust-library/core/'));
+  assert(installation.run.includes('>> "$GITHUB_ENV"'));
+  const gates = job.steps.filter(step => step.run?.includes('test cargo'));
+  const selected = manifest => {
+    const matches = gates.filter(step => step.run.trim().split(/\s+/u).includes(manifest));
+    assert.equal(matches.length, 1, manifest);
+    const args = matches[0].run.trim().split(/\s+/u), separator = args.indexOf('--');
+    cargoTestArguments(args.slice(separator + 1));
+    assert(args.includes('--allow-heavy'));
+    const seconds = Number(args[args.indexOf('--timeout-seconds') + 1]);
+    assert(Number.isSafeInteger(seconds) && seconds > 0 && seconds <= job['timeout-minutes'] * 60);
+    return matches[0];
+  };
+  const runtime = selected('packages/rust/Cargo.toml');
+  const reader = selected('packages/rust/tools/source-inventory/Cargo.toml');
+  const owners = job.steps.find(step => step.run?.split(/\s+/u).includes('scripts/check-rust-interface-owners.mjs'));
+  assert(owners);
+  assert(job.steps.indexOf(reader) < job.steps.indexOf(owners));
+  assert(job.steps.indexOf(owners) < job.steps.indexOf(builds[0]));
+  assert(job.steps.indexOf(builds[0]) < job.steps.indexOf(runtime));
+  const evidence = job.steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
+  assert.equal(evidence.if, 'always()');
+  assert(evidence.with.path.includes('_build/focused-evidence'));
+  assert(evidence.with.path.includes('${{ runner.temp }}/rust-library'));
 });
 
 test('normal Python wheels are mandatory for full profiles independently of optional native macOS', () => {

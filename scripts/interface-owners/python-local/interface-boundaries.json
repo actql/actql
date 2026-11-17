@@ -80896,6 +80896,7 @@
         "PUBLIC",
         "Path",
         "ROOT",
+        "RUST_OUTPUT",
         "SCALAR",
         "annotations",
         "argparse",
@@ -80914,7 +80915,9 @@
         "render",
         "render_compiler_header",
         "render_contract",
+        "render_rust",
         "rendered",
+        "rust_rendered",
         "unit"
       ],
       "imports": [
@@ -81017,6 +81020,13 @@
           "async": false
         },
         {
+          "name": "render_rust",
+          "parameters": [
+            "root"
+          ],
+          "async": false
+        },
+        {
           "name": "unit",
           "parameters": [
             "symbol",
@@ -81025,7 +81035,7 @@
           "async": false
         }
       ],
-      "sha256": "fb8fa5c1349450854467b0654f4d142d5a54b21a4e71abfd4421c91e0686bbf9",
+      "sha256": "8490eb36db59121efb4e64765d200f6078a5473530b3fad1c7209aa83ceff3d1",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing Local Core scalar generator and physical diagnostic fixture owners",
@@ -81046,6 +81056,7 @@
             "render",
             "render_compiler_header",
             "render_contract",
+            "render_rust",
             "unit"
           ],
           "exports": [
@@ -81058,6 +81069,7 @@
             "PUBLIC",
             "Path",
             "ROOT",
+            "RUST_OUTPUT",
             "SCALAR",
             "annotations",
             "argparse",
@@ -81076,7 +81088,9 @@
             "render",
             "render_compiler_header",
             "render_contract",
+            "render_rust",
             "rendered",
+            "rust_rendered",
             "unit"
           ],
           "attributes": {
@@ -81204,6 +81218,10 @@
               {
                 "path": "docs/design/common-wasm-abi.md",
                 "anchor": "## Declaration authority and language projections"
+              },
+              {
+                "path": "scripts/generate-local-wasm-abi.py",
+                "anchor": "def render_rust("
               }
             ],
             "verification": [

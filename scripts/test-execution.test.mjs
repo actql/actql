@@ -5,7 +5,7 @@ import {mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync} from 'node:f
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {nodeTestArguments, parseTestExecution, testExecutionResult}
+import {nodeTestArguments, cargoTestArguments, parseTestExecution, testExecutionResult}
   from './test-execution.mjs';
 
 const childEnv = {...process.env};
@@ -39,6 +39,58 @@ const summary = (values, file) => 'ACTQL_TEST_SUMMARY ' + JSON.stringify({
 const output = values => summary(values, 'selected.test.mjs') + summary(values);
 const checked = (kind, stdout, extra = {}) => testExecutionResult(kind,
   kind, ['--filter', 'selected'], {status: 0, stdout, ...extra});
+
+const cargoOutput = 'running 2 tests\n' +
+  'test abi::tests::original_module ... ok\n' +
+  'test abi::tests::same_host_owner ... ok\n' +
+  'test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s\n';
+
+test('Cargo gate forwards one locked unfiltered library selection without changing argument order', () => {
+  const args = ['--locked', '--manifest-path', 'packages/rust/Cargo.toml', '--lib', '--', '--nocapture'];
+  for (const manifest of ['packages/rust/Cargo.toml', 'packages/rust/tools/source-inventory/Cargo.toml']) {
+    const original = args.map(value => value === 'packages/rust/Cargo.toml' ? manifest : value);
+    assert.deepEqual(cargoTestArguments(original), ['test', ...original]);
+    const reordered = ['--lib', '--manifest-path', manifest, '--locked', '--', '--nocapture'];
+    assert.deepEqual(cargoTestArguments(reordered), ['test', ...reordered]);
+  }
+  for (const bad of [[], ['--locked', '--lib', '--', '--nocapture'],
+    [...args.slice(0, -2), 'only_one_case', '--', '--nocapture'],
+    args.map(value => value === 'packages/rust/Cargo.toml' ? '../other/Cargo.toml' : value),
+    ['--doc', ...args], ['--no-run', ...args], ['--locked', ...args],
+    [...args.slice(0, -1), '--ignored'], [...args.slice(0, -1), '--list']]) {
+    assert.throws(() => cargoTestArguments(bad), undefined, JSON.stringify(bad));
+  }
+});
+
+test('Cargo gate requires actual unique named cases matching the library totals', () => {
+  const actual = checked('cargo', cargoOutput);
+  assert.equal(actual.status, 0);
+  assert.deepEqual(actual.counts, counts({tests: 2, passed: 2, cancelled: null, skipped: 0, todo: null}));
+  for (const bad of [cargoOutput.replace('test abi::tests::same_host_owner ... ok\n', ''),
+    cargoOutput.replace('same_host_owner', 'original_module'),
+    cargoOutput + cargoOutput, cargoOutput.replace('2 passed', '3 passed'),
+    cargoOutput.replace('running 2 tests', 'running 1 test')]) {
+    assert.equal(checked('cargo', bad).status, 1);
+  }
+});
+
+test('Cargo gate refuses compilation-only, zero tests, ignored tests and filtered subsets', () => {
+  const empty = 'running 0 tests\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n';
+  for (const bad of ['', 'Finished test profile\n', '{"reason":"build-finished","success":true}\n',
+    empty, cargoOutput.replace('0 filtered out', '1 filtered out'),
+    cargoOutput.replace('2 passed; 0 failed; 0 ignored', '1 passed; 0 failed; 1 ignored')
+      .replace('same_host_owner ... ok', 'same_host_owner ... ignored')]) {
+    assert.equal(checked('cargo', bad).status, 1);
+  }
+});
+
+test('Cargo process failure and signals remain primary even with green execution text', () => {
+  for (const extra of [{status: 101}, {status: 0, signal: 'SIGTERM'},
+    {status: 0, error: {code: 'ETIMEDOUT'}}]) assert.notEqual(checked('cargo', cargoOutput, extra).status, 0);
+  const failed = cargoOutput.replace('same_host_owner ... ok', 'same_host_owner ... FAILED')
+    .replace('result: ok. 2 passed; 0 failed', 'result: FAILED. 1 passed; 1 failed');
+  assert.equal(checked('cargo', failed).status, 1);
+});
 
 test('Node fixture counts cases, not nested suite/TAP headings or synthetic files', () => {
   const nested = '# Subtest: suite\n    ok 1 - pass\nok 1 - suite\n' +

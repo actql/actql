@@ -1069,6 +1069,25 @@ cases, so skipped/cancelled/todo counts are unknown (`null`), never inferred as
 zero. Each emitted target total must contain a pass. Recheck these fixtures and
 live-tool tests when updating toolchains.
 
+The initial Rust component gate uses the locked, unfiltered library selection:
+
+```sh
+ACTQL_CORE_WASM=/absolute/path/to/the/same-source/client_host_wasm.wasm \
+node scripts/local-checks.mjs test cargo --allow-heavy --timeout-seconds 900 --kill-grace-seconds 5 -- \
+  --locked --manifest-path packages/rust/Cargo.toml --lib -- --nocapture
+```
+
+The selected CI job builds that Core fixture once from its own checkout and
+retains its digest, source revision, compiler versions and original execution
+evidence. Its syntax-reader library controls and the existing source/Owner
+checker run first; that checker also verifies scalar-binding generation freshness.
+It is required on main and for relevant Rust/Core/ABI/CI input changes;
+unrelated PRs do not prepare Rust. This establishes the internal component
+boundary, not a public Rust package or ordinary product acceptance. The current
+guard checks distinct executed case names against the complete libtest summary,
+refuses zero/ignored/filtered/compile-only output, and preserves process failure.
+It does not impose a permanent whole-crate policy on future focused Rust checks.
+
 This does not wrap raw `node`/`moon` commands, every npm script, benchmarks,
 compiled test executables, or all commands in `local-checks run`. Intentional
 process-crash preparation remains an expected failure verified by its original
