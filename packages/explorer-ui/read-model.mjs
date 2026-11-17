@@ -86,6 +86,47 @@ export function planReadModel(view) {
     edges, inputs, sourceOrigins: {state: 'unavailable', reason: 'not_in_projection'}});
 }
 
+const storyText = Object.freeze({
+  en: Object.freeze({operation: 'Logical operation', inputOutput: 'Input/output occurrence',
+    stageInput: 'Stage input', unresolved: 'Origin not represented',
+    ordering: 'Logical dependencies, not execution order'}),
+  ja: Object.freeze({operation: '論理演算', inputOutput: '入力の出力',
+    stageInput: 'Stage入力', unresolved: '取得元の対応は未提供',
+    ordering: '論理的な依存関係。実行順序ではありません'}),
+});
+
+// A deterministic presentation of the existing compiler-issued projection.
+// It issues no Story identities, parses no Program and infers no execution
+// boundary. The caller must obtain the original view through the current SDK
+// authorization path, including Run.plan() when explaining a Saved Run.
+export function planStoryModel(view, {locale = 'en'} = {}) {
+  if (!Object.hasOwn(storyText, locale)) refuse('ExplorerUnsupportedLocale');
+  const model = planReadModel(view), text = storyText[locale];
+  const original = view.version === 'actql-effectful-static-plan-view/0.1'
+    ? view.computation.plan_view : view;
+  return freeze({locale, compiledPlanCid: model.compiledPlanCid,
+    logicalMapCid: model.logicalMapCid, programDefinitionCid: model.programDefinitionCid,
+    observation: model.observation,
+    scope: model.effectful ? 'computation_component' : 'compiled_plan',
+    ordering: {kind: 'logical_dependencies', text: text.ordering},
+    occurrences: model.nodes.map(node => ({stepId: node.id, key: node.key,
+      names: node.names, title: node.names.length === 0 ? node.id : node.names.join(', '),
+      operator: node.operator, kind: node.kind,
+      text: node.kind === 'input_output' ? text.inputOutput
+        : `${text.operation}: ${node.operator}`,
+      ports: node.ports})),
+    // Each input occurrence keeps its own original locator and destination.
+    // A Stage input is not evidence of a Source, Result or physical reader.
+    stageInputs: model.inputs.map(input => ({...input,
+      text: `${text.stageInput} ${input.locator.stage_ordinal}:${input.locator.input_port_ordinal} · ${text.unresolved}`})),
+    dependencies: model.edges,
+    quantities: structuredClone(original.quantities),
+    capabilities: structuredClone(original.capabilities),
+    sourceOrigins: model.sourceOrigins,
+    ...(model.effectful ? {declaredEffects: model.effectful} : {}),
+  });
+}
+
 // A UI epoch only discards stale presentation. It is not a Host permission,
 // session, Run revision, cursor or durable operation fence. Every SDK request
 // still applies the current Host authorization through its normal boundary.
@@ -147,7 +188,7 @@ export async function readExistingRun(client, ref, ticket) {
 
 // Read the original immutable map retained for this exact admitted Run. Missing
 // legacy evidence stays unavailable; static planning is never a repair path.
-export async function readExistingRunPlan(client, ref, ticket) {
+async function originalRunPlan(client, ref, ticket) {
   const original = Object.freeze({...ref});
   if (!validRunRef(original)) refuse('ExplorerInvalidRunPlan');
   const run = await currentRead(ticket, () => client.attach(original));
@@ -161,7 +202,23 @@ export async function readExistingRunPlan(client, ref, ticket) {
       view.run_ref.runDefinitionCid !== original.runDefinitionCid) {
     refuse('ExplorerInvalidRunPlan');
   }
+  return {original, view};
+}
+
+export async function readExistingRunPlan(client, ref, ticket) {
+  const {original, view} = await originalRunPlan(client, ref, ticket);
+  ticket.assertCurrent();
   return freeze({runRef: original, plan: planReadModel(view.plan_view)});
+}
+
+// Capture presentation options before the first asynchronous read, then use
+// the SAME original-Run acquisition and binding check as the existing viewer.
+export async function readExistingRunStory(client, ref, options, ticket) {
+  const locale = options?.locale ?? 'en';
+  if (!Object.hasOwn(storyText, locale)) refuse('ExplorerUnsupportedLocale');
+  const {original, view} = await originalRunPlan(client, ref, ticket);
+  ticket.assertCurrent();
+  return freeze({runRef: original, story: planStoryModel(view.plan_view, {locale})});
 }
 
 // Metadata only: no payload read attempt/grant/open is allocated. A later

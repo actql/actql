@@ -5,8 +5,8 @@ import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {connectInProcess} from '../sdk/host-port.mjs';
 import {startExplorerGateway} from '../explorer/gateway.mjs';
 import {createExplorerBrowserSource} from '../explorer/browser-source.mjs';
-import {createReadEpoch, describeExistingResult, planReadModel,
-  readExistingRun, readExistingRunPlan, readStaticPlan} from './read-model.mjs';
+import {createReadEpoch, describeExistingResult, planReadModel, planStoryModel,
+  readExistingRun, readExistingRunPlan, readExistingRunStory, readStaticPlan} from './read-model.mjs';
 
 // Independent semantic fixture, not compiler output or public acceptance.
 const cid = unit => `sha256:${unit.repeat(64)}`;
@@ -49,6 +49,111 @@ function fixture() {
 const ticket = () => createReadEpoch().capture();
 const ref = () => ({namespaceId: 'original', authorityScopeCid: cid('a'),
   runDefinitionCid: cid('b')});
+
+test('static Story renders EN/JA from the same original Plan and logical ports', () => {
+  const view = fixture(), before = structuredClone(view);
+  const en = planStoryModel(view), ja = planStoryModel(view, {locale: 'ja'});
+  assert.deepEqual(planStoryModel(view), en);
+  assert.equal(en.compiledPlanCid, cid('a'));
+  assert.equal(en.logicalMapCid, view.logical_map.self_cid);
+  assert.equal(en.programDefinitionCid, cid('e'));
+  assert.equal(en.occurrences[1].text, 'Logical operation: join');
+  assert.equal(ja.occurrences[1].text, '論理演算: join');
+  assert.equal(en.ordering.kind, 'logical_dependencies');
+  assert.equal(ja.ordering.text, '論理的な依存関係。実行順序ではありません');
+  assert.deepEqual(en.occurrences.map(({stepId, key, ports}) => ({stepId, key, ports})),
+    view.logical_map.steps.map(({step_id, key, ports}) => ({stepId: step_id, key, ports})));
+  assert.deepEqual(ja.occurrences.map(({stepId, key, ports}) => ({stepId, key, ports})),
+    en.occurrences.map(({stepId, key, ports}) => ({stepId, key, ports})));
+  assert.deepEqual(view, before);
+});
+
+test('static Story keeps both Join input occurrences and unresolved Stage inputs separate', () => {
+  const view = fixture(), first = planStoryModel(view);
+  assert.deepEqual(first.dependencies.map(e => e.targetPortOrdinal), [0, 1]);
+  assert.equal(first.dependencies[0].sourcePortId, first.dependencies[1].sourcePortId);
+  assert.notEqual(first.dependencies[0].targetPortId, first.dependencies[1].targetPortId);
+  view.logical_map.steps[1].ports[0].source = {
+    kind: 'stage_input', stage_ordinal: 3, input_port_ordinal: 7};
+  const story = planStoryModel(view);
+  assert.equal(story.occurrences.length, 2);
+  assert.equal(story.dependencies.length, 1);
+  assert.deepEqual(story.stageInputs, [{stepId: view.logical_map.steps[1].step_id,
+    inputPortId: view.logical_map.steps[1].ports[0].port_id,
+    locator: {kind: 'stage_input', stage_ordinal: 3, input_port_ordinal: 7},
+    text: 'Stage input 3:7 · Origin not represented'}]);
+});
+
+test('static Story input-only occurrence does not acquire a synthetic operation or Source', () => {
+  const plan = cid('a'), key = sealed({version: 'actql-logical-step-key/0.1',
+    compiled_plan_cid: plan, stage_ordinal: 0,
+    occurrence: {kind: 'input_output', input_port_ordinal: 0}});
+  const port = role => ({port_id: sealed({version: 'actql-logical-port-key/0.1',
+    compiled_plan_cid: plan, step_id: key.self_cid, role, port_ordinal: 0}).self_cid,
+    role, port_ordinal: 0, carrier: 'relation', carrier_contract_cid: cid('b'),
+    source: {kind: 'stage_input', stage_ordinal: 0, input_port_ordinal: 0},
+    can_sample: false, sample_reason: 'not_installed'});
+  const input = port('input'), output = port('output');
+  output.source = {kind: 'logical_output', step_id: key.self_cid, output_port_id: output.port_id};
+  const view = fixture();
+  view.logical_map = sealed({version: 'actql-logical-map/0.1', compiled_plan_cid: plan,
+    program_definition_cid: cid('e'), steps: [{step_id: key.self_cid, key, names: [],
+      operator: null, ports: [input, output], can_stop_before: false,
+      can_stop_after: false, stop_reason: 'not_installed'}]});
+  const story = planStoryModel(view);
+  assert.equal(story.occurrences.length, 1);
+  assert.equal(story.occurrences[0].kind, 'input_output');
+  assert.equal(story.occurrences[0].operator, null);
+  assert.equal(story.occurrences[0].text, 'Input/output occurrence');
+  assert.equal(planStoryModel(view, {locale: 'ja'}).occurrences[0].text, '入力の出力');
+  assert.equal(story.stageInputs.length, 1);
+  assert.deepEqual(story.dependencies, []);
+});
+
+test('static Story preserves exact, bound, estimate and unknown quantities without summation', () => {
+  const view = fixture();
+  view.quantities = ['exact', 'bound', 'estimate'].map(kind => ({kind,
+    value: '9007199254740993', unit: 'rows', scope_cid: cid('a'), basis_cid: cid('b')}));
+  view.quantities.push({kind: 'unknown', unit: 'model_calls', reason: 'not_observed'});
+  const story = planStoryModel(view);
+  assert.deepEqual(story.quantities, view.quantities);
+  assert.deepEqual(story.capabilities, view.capabilities);
+  assert.equal(story.capabilities.durable_control, false);
+  assert.deepEqual(story.capabilities.sample_capture, []);
+  assert.deepEqual(story.sourceOrigins, {state: 'unavailable', reason: 'not_in_projection'});
+  view.quantities[0].value = '0'; view.capabilities.sample_capture.push('relation');
+  assert.equal(story.quantities[0].value, '9007199254740993');
+  assert.deepEqual(story.capabilities.sample_capture, []);
+  assert(Object.isFrozen(story.quantities[0]));
+});
+
+test('static Story retains authored text and falls back to the original identity without labels', () => {
+  const view = fixture(); view.logical_map.steps[0].names = ['e\u0301\r\n<script>data</script>'];
+  view.logical_map.steps[1].names = [];
+  const story = planStoryModel(view, {locale: 'ja'});
+  assert.equal(story.occurrences[0].title, 'e\u0301\r\n<script>data</script>');
+  assert.equal(story.occurrences[1].title, view.logical_map.steps[1].step_id);
+  assert(Object.isFrozen(story.occurrences[0].ports[0].source));
+  view.logical_map.steps[0].names[0] = 'changed';
+  assert.equal(story.occurrences[0].names[0], 'e\u0301\r\n<script>data</script>');
+});
+
+test('static Story retains Effect declarations outside the computation dependency graph', async () => {
+  const {effectfulStaticPlan} = await import('../../scripts/fixtures/effectful-static-plan-vectors.mjs');
+  const story = planStoryModel(effectfulStaticPlan);
+  assert.equal(story.scope, 'computation_component');
+  assert.deepEqual(story.dependencies, planReadModel(effectfulStaticPlan.computation.plan_view).edges);
+  assert.deepEqual(story.declaredEffects.members, effectfulStaticPlan.effect_set.members);
+  assert.deepEqual(story.declaredEffects.observations, effectfulStaticPlan.observations);
+  assert.equal(story.declaredEffects.observations.permission.state, 'unknown');
+  assert.equal(story.declaredEffects.observations.preview.state, 'unavailable');
+});
+
+test('static Story refuses unsupported locale and foreign producer without repairing the Plan', () => {
+  assert.throws(() => planStoryModel(fixture(), {locale: 'fr'}), {code: 'ExplorerUnsupportedLocale'});
+  const view = fixture(); view.logical_map.steps[1].ports[0].source.step_id = cid('0');
+  assert.throws(() => planStoryModel(view), {code: 'ExplorerUnresolvedPort'});
+});
 
 test('both Join roles retain exact original ports when one producer is shared', () => {
   const view = fixture(), [producer, join] = view.logical_map.steps;
@@ -203,6 +308,53 @@ test('saved Run Plan uses only exact original attach and Run.plan with frozen re
   assert.equal(observed.plan.nodes[0].id, view.logical_map.steps[0].step_id);
   assert.deepEqual(calls, [['attach', expected], ['run-plan', {
     maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64}]]);
+});
+
+test('saved Story uses the same original Run without recompilation and captures locale once', async () => {
+  const original = ref(), expected = {...original}, calls = [], options = {locale: 'ja'};
+  const client = {async attach(selected) {
+    calls.push(['attach', selected]); original.namespaceId = 'changed'; options.locale = 'en';
+    return {plan(limits) {calls.push(['run-plan', limits]);
+      return {version: 'actql-run-plan-view/0.1', run_ref: expected, plan_view: fixture()};}};
+  }, plan() {assert.fail('no compile');}, start() {assert.fail('no submit');}};
+  const read = await readExistingRunStory(client, original, options, ticket());
+  assert.deepEqual(read.runRef, expected);
+  assert.equal(read.story.locale, 'ja');
+  assert.equal(read.story.occurrences[1].text, '論理演算: join');
+  assert.deepEqual(calls, [['attach', expected], ['run-plan', {
+    maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64}]]);
+  assert(Object.isFrozen(read.runRef));
+});
+
+test('saved Story refuses missing or foreign originals without compile or submit fallback', async () => {
+  let calls = 0;
+  const client = {attach() {calls++;return {};}, plan() {assert.fail('no compile');}};
+  await assert.rejects(readExistingRunStory(client, ref(), undefined, ticket()),
+    {code: 'ExplorerCapabilityUnavailable'});
+  const before = calls;
+  await assert.rejects(readExistingRunStory(client, ref(), {locale: 'fr'}, ticket()),
+    {code: 'ExplorerUnsupportedLocale'});
+  assert.equal(calls, before);
+  for (const dimension of ['namespaceId', 'authorityScopeCid', 'runDefinitionCid']) {
+    client.attach = () => ({plan() {return {version: 'actql-run-plan-view/0.1',
+      run_ref: {...ref(), [dimension]: dimension === 'namespaceId' ? 'foreign' : cid('c')},
+      plan_view: fixture()};}});
+    await assert.rejects(readExistingRunStory(client, ref(), undefined, ticket()),
+      {code: 'ExplorerInvalidRunPlan'});
+  }
+});
+
+test('saved Story discards a delayed read or failure after its presentation scope changes', async () => {
+  for (const failure of [false, true]) {
+    const epoch = createReadEpoch();
+    const client = {attach() {return {async plan() {
+      epoch.invalidate();
+      if (failure) throw new Error('old scope');
+      return {version: 'actql-run-plan-view/0.1', run_ref: ref(), plan_view: fixture()};
+    }};}};
+    await assert.rejects(readExistingRunStory(client, ref(), undefined, epoch.capture()),
+      {code: 'ExplorerStaleScope'});
+  }
 });
 
 test('saved Run Plan refuses each foreign Run reference dimension and malformed envelope', async () => {

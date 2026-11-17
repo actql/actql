@@ -22,6 +22,21 @@ export type PlanReadModel = Readonly<{
   sourceOrigins: Readonly<{state: 'unavailable'; reason: 'not_in_projection'}>;
 }>;
 export function planReadModel(view: WirePlanView | WireEffectfulStaticPlanView): PlanReadModel;
+export type PlanStoryModel = Readonly<{
+  locale: 'en' | 'ja'; compiledPlanCid: string; logicalMapCid: string;
+  programDefinitionCid: string; observation: 'static';
+  scope: 'compiled_plan' | 'computation_component';
+  ordering: Readonly<{kind: 'logical_dependencies'; text: string}>;
+  occurrences: readonly Readonly<{stepId: string; key: Step['key'];
+    names: readonly string[]; title: string; operator: Step['operator'];
+    kind: Step['key']['occurrence']['kind']; text: string; ports: Step['ports']}>[];
+  stageInputs: readonly (PlanReadModel['inputs'][number] & Readonly<{text: string}>)[];
+  dependencies: PlanReadModel['edges']; quantities: WirePlanView['quantities'];
+  capabilities: WirePlanView['capabilities']; sourceOrigins: PlanReadModel['sourceOrigins'];
+  declaredEffects?: PlanReadModel['effectful'];
+}>;
+export function planStoryModel(view: WirePlanView | WireEffectfulStaticPlanView,
+  options?: {locale?: 'en' | 'ja'}): PlanStoryModel;
 export type ReadTicket = Readonly<{assertCurrent(): void}>;
 export function createReadEpoch(): Readonly<{invalidate(): void; capture(): ReadTicket}>;
 export function readStaticPlan(client: Pick<Client, 'plan'>,
@@ -34,5 +49,11 @@ export type OriginalRunPlanReadModel = Readonly<{
 }>;
 export function readExistingRunPlan(client: Pick<Client, 'attach'>,
   ref: RunReference, ticket: ReadTicket): Promise<OriginalRunPlanReadModel>;
+export type OriginalRunStoryReadModel = Readonly<{
+  runRef: RunReference; story: PlanStoryModel;
+}>;
+export function readExistingRunStory(client: Pick<Client, 'attach'>,
+  ref: RunReference, options: {locale?: 'en' | 'ja'} | undefined,
+  ticket: ReadTicket): Promise<OriginalRunStoryReadModel>;
 export function describeExistingResult(client: Pick<Client, 'attach'>,
   ref: RunReference, name: string, ticket: ReadTicket): Promise<ResultDescription>;
