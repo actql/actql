@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {pathToFileURL} from 'node:url';
+import {runtimeField, runtimeUnboxedReferenceOption} from '../host-common/compiler-binding.generated.mjs';
 import {restSourcePageReader} from './rest-source-page.mjs';
 import {createInstalledCredentialSourceReader} from './installed-credential-source-reader.mjs';
 
@@ -266,3 +268,63 @@ test('REST changed author wire preserves the original Core schema refusal', () =
   assert.throws(() => f.reader.decodePage(f.response, f.progress), error => error === cause);
   assert.deepEqual(f.calls.map(call => call[0]), ['wire', 'original', 'rows-wire', 'typed']);
 });
+
+// Reuse the existing explicit Common-module test input. Absent input leaves
+// only these two compiled-boundary cases unexecuted; canned ports above do not
+// qualify a runtime. Every nominal value below comes from this ONE namespace.
+const selectedCommon = process.env.ACTQL_METADATA_COMMON_RUNTIME;
+const actualCommon = selectedCommon === undefined ? undefined : import(pathToFileURL(selectedCommon));
+
+test('REST actual Common cursor boundary keeps empty Unicode EOF and original progress',
+  {skip: selectedCommon === undefined}, async () => {
+    const moon = await actualCommon;
+    const source = {resource: 'records', fields: [{name: 'id'}], read: {path: '/records'},
+      pagination: {kind: 'cursor', parameter: 'cursor', items: ['items'], next: ['next']},
+      limits: {maxPageBytes: 1024, maxNodes: 64, maxDepth: 8, maxPageRows: 2,
+        maxRows: 4, maxPages: 3, maxCursorBytes: 32}};
+    const prepare = restSourcePageReader({moon, source});
+    const reader = prepare();
+    const response = body => ({accepted: true, statusCode: 200,
+      body: Buffer.from(JSON.stringify(body), 'utf8')});
+    assert.deepEqual(reader.fetchPage({pageIndex: 0, rowCount: 0}).query, []);
+    const first = reader.decodePage(response({items: [{id: '🌱'}], next: ''}),
+      {pageIndex: 0, rowCount: 0});
+    assert.equal(first.rowCount, 1);assert.equal(first.done, false);
+    assert.deepEqual(reader.fetchPage({pageIndex: 1, rowCount: 1}).query, [['cursor', '']]);
+    assert.throws(() => reader.fetchPage({pageIndex: 1, rowCount: 0}),
+      {code: 'RestSourceCursorProgressMismatch'});
+    const empty = reader.decodePage(response({items: [], next: '次🌱'}),
+      {pageIndex: 1, rowCount: 1});
+    assert.equal(empty.rowCount, 0);assert.equal(empty.done, false);
+    assert.deepEqual(reader.fetchPage({pageIndex: 2, rowCount: 1}).query, [['cursor', '次🌱']]);
+    const last = reader.decodePage(response({items: [{id: 'last'}]}),
+      {pageIndex: 2, rowCount: 1});
+    assert.equal(last.rowCount, 1);assert.equal(last.done, true);
+    assert.throws(() => reader.fetchPage({pageIndex: 3, rowCount: 2}),
+      {code: 'RestSourceCursorCompleted'});
+
+    const cycle = prepare();
+    cycle.decodePage(response({items: [{id: 'first'}], next: ''}),
+      {pageIndex: 0, rowCount: 0});
+    assert.throws(() => cycle.decodePage(response({items: [{id: 'second'}], next: ''}),
+      {pageIndex: 1, rowCount: 1}), error => error.code === 'RestSourceCursorCycle' &&
+      moon.clientProgramRowSourceCursorIssueCode(error.cause) === error.code);
+    assert.deepEqual(cycle.fetchPage({pageIndex: 1, rowCount: 1}).query, [['cursor', '']]);
+  });
+
+test('REST actual Common cursor capacity uses the original domain representation',
+  {skip: selectedCommon === undefined}, async () => {
+    const moon = await actualCommon;
+    const limits = [4, 6, 3, 4, 2, 3, 2, 2, 5, 7, 8, 2, 9, 10, 11, 4];
+    const original = runtimeUnboxedReferenceOption(
+      moon.clientProgramInstalledJsonSourceReaderCapacity(limits, 2, 3));
+    const cursor = runtimeUnboxedReferenceOption(
+      moon.clientProgramInstalledJsonCursorSourceReaderCapacity(limits, 2, 3));
+    assert(original !== undefined && original !== null);
+    assert(cursor !== undefined && cursor !== null);
+    // Independent shared-tariff/domain vector from the exact/one-short Core
+    // fixture. Observe only the canonical compiler binding; issue no capacity.
+    assert.equal(runtimeField(original, 0), 3632n);
+    assert.equal(runtimeField(cursor, 0), 4366n);
+    assert.equal(runtimeField(cursor, 1) - runtimeField(original, 1), 774n);
+  });
