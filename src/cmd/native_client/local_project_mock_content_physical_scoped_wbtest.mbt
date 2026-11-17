@@ -2494,6 +2494,11 @@ fn Result::native_content_join_plan(
         @local_values.ModelRead(_) => "ModelRead"
         @local_values.ModelLayout(_) => "ModelLayout"
         @local_values.SerializationPrefix(_) => "SerializationPrefix"
+        @local_values.RuntimeFragmentWorkLimit(step, work) =>
+          "RuntimeFragmentWorkLimit:" +
+          step.to_string() +
+          ":" +
+          work.to_string()
         @local_values.MetadataCapacityUnavailable =>
           "MetadataCapacityUnavailable"
         @local_values.AlreadyBound => "AlreadyBound"
