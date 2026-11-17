@@ -197,12 +197,18 @@ test "literal nullable Text chain retains full DATA and bounded child scratch wh
 fn literal_string_group_sequence(
   wider? : Bool = false,
   distinct? : Bool = false,
+  literal_argument? : Bool = false,
 ) -> @execution.GeneratedSequence raise {
   let text = "[{\"values\":{\"schema\":{\"a\":{\"type\":\"number\",\"nullable\":true},\"b\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"a\":1,\"b\":\"x\"},{\"a\":1,\"b\":\"x\"},{\"a\":2,\"b\":\"y\"},{\"a\":null,\"b\":\"n\"}]},\"as\":\"seed\"},{\"group\":{\"by\":[],\"aggregates\":{\"labels\":{\"fn\":\"string_agg\",\"field\":\"b\",\"delimiter\":\"|\",\"max_bytes\":10000,\"order_by\":[{\"a\":\"desc\"}]" +
     (if distinct { ",\"distinct\":true" } else { "" }) +
     "}}},\"as\":\"grouped\"},{\"select\":[\"labels\"]}" +
     (if wider { ",{\"select\":[\"labels\"]}" } else { "" }) +
     "]"
+  let text = if literal_argument {
+    text.replace(old="\"field\":\"b\"", new="\"expr\":{\"literal\":\"x\"}")
+  } else {
+    text
+  }
   chain_lifetime_generated(
     chain_lifetime_bind(
       @pipeline.check(chain_lifetime_cursor(text), [], None, None, {
@@ -320,6 +326,11 @@ test "literal StringAgg chain proof excludes wider distinct and injected provide
   assert_false(
     @execution.bounded_literal_string_group_chain(
       literal_string_group_sequence(distinct=true),
+    ),
+  )
+  assert_false(
+    @execution.bounded_literal_string_group_chain(
+      literal_string_group_sequence(literal_argument=true),
     ),
   )
   let sequence = literal_string_group_sequence()

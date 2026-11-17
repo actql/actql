@@ -43,6 +43,12 @@ test "ordered DISTINCT and scalar filtered StringAgg borrow only their original 
         ),
         true,
       ),
+      (
+        (
+          #|{"fn":"string_agg","expr":{"literal":"kept"},"distinct":true,"order_by":[{"id":"asc"}],"delimiter":"|","max_bytes":4096}
+        ),
+        true,
+      ),
     ] {
     let generated = string_group_capacity_fixture(aggregate~, fragment~)
     guard generated_sequence_step_at(generated, 0)
@@ -129,6 +135,13 @@ test "actual ordered DISTINCT and scalar filter preserve duplicates NULL exact w
         true,
         "b|a",
       ),
+      (
+        (
+          #|{"fn":"string_agg","expr":{"literal":"x"},"distinct":true,"order_by":[{"id":"asc"}],"delimiter":"|","max_bytes":3}
+        ),
+        true,
+        "x",
+      ),
     ] {
     let operation = "\"group\":{\"by\":[],\"aggregates\":{\"text\":" +
       aggregate +
@@ -186,4 +199,25 @@ test "actual ordered DISTINCT and scalar filter preserve duplicates NULL exact w
     assert_eq(short.state.workspace.live, 0)
     assert_true(completed_output_available(short_source))
   }
+}
+
+///|
+test "borrowed checked Text literal StringAgg retains its original Fragment obligation" {
+  let generated = string_group_capacity_fixture(
+    aggregate=(
+      #|{"fn":"string_agg","expr":{"literal":"kept"},"distinct":true,"order_by":[{"id":"asc"}],"delimiter":"|","max_bytes":4096}
+    ),
+    fragment=true,
+  )
+  assert_true(
+    prepare_generated_sequence(
+      registered_relation_contracts(),
+      generated.sequence,
+      [],
+      generated.retained_ids,
+      100000,
+      10000,
+    )
+    is Err(_),
+  )
 }

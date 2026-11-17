@@ -63,6 +63,36 @@ fn bounded_string_group_scalar_filter(expression : @lower.Expression) -> Bool {
 }
 
 ///|
+// Parameter lowering retains the same checked literal. Its existing Fragment
+// evaluation captures that immutable Text (or Null), without constructing a
+// Text payload or an input forest. The full Fragment snapshot, roots and
+// frame quote remains selected by bounded_group_step_supported.
+fn bounded_string_group_borrowed_argument(
+  kernel : @lower.PreparedKernel,
+  argument : @lower.PreparedAggregateArgument,
+) -> Bool {
+  match argument {
+    @lower.AggregateField(field) =>
+      @schema.lookup(@lower.kernel_input_schema(kernel), field)
+      .map(contract => contract.shape is @contract.Text(_))
+      .unwrap_or(false)
+    @lower.AggregateExpression(expression) => {
+      if !(@lower.expression_contract(expression).shape is @contract.Text(_)) ||
+        @lower.expression_view_entries(expression) != 0 {
+        return false
+      }
+      match @lower.expression_body(expression) {
+        @lower.Literal(checked) =>
+          checked.value is @admitted.Text(_) || checked.value is @admitted.Null
+        @lower.TypedNull => true
+        _ => false
+      }
+    }
+    _ => false
+  }
+}
+
+///|
 // The direct ordered StringAgg constructor keeps contributor indices and
 // borrowed flat cells. Its sorter and exact UTF16 builder reserve the SAME
 // RowWorkspace before allocation, including the builder/to_string overlap.
@@ -80,9 +110,10 @@ pub fn bounded_string_group_borrows_input(
     bounded_number_group_scalar_schema(@lower.kernel_output_schema(kernel)) &&
     @lower.group_aggregate_at(group, 0) is Some(aggregate) &&
     @lower.group_aggregate_function(aggregate) is @relation.StringAgg &&
-    @lower.group_aggregate_argument(aggregate) is @lower.AggregateField(field) &&
-    @schema.lookup(@lower.kernel_input_schema(kernel), field) is Some(contract) &&
-    contract.shape is @contract.Text(_) &&
+    bounded_string_group_borrowed_argument(
+      kernel,
+      @lower.group_aggregate_argument(aggregate),
+    ) &&
     @lower.group_aggregate_result(aggregate).shape is @contract.Text(_) &&
     @lower.group_aggregate_delimiter(aggregate) is Some(_) &&
     @lower.group_aggregate_byte_limit(aggregate) is Some(maximum) &&
@@ -125,6 +156,7 @@ pub fn bounded_literal_string_group_chain(sequence : GeneratedSequence) -> Bool 
     bounded_string_group_borrows_input(group) &&
     @lower.kernel_group(group) is Some(direct) &&
     @lower.group_aggregate_at(direct, 0) is Some(aggregate) &&
+    @lower.group_aggregate_argument(aggregate) is @lower.AggregateField(_) &&
     @lower.group_aggregate_filter(aggregate) is None &&
     @lower.group_aggregate_distinct(aggregate) != Some(true) &&
     generated_sequence_step_at(sequence, 2) is Some(@lower.RowStep(projection)) &&

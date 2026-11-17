@@ -138,6 +138,12 @@ test "StringAgg recursive and Text predicates retain their full constructor" {
         aggregate="{\"fn\":\"string_agg\",\"field\":\"payload\",\"filter\":\"payload = 'x'\",\"order_by\":[{\"id\":\"asc\"}],\"delimiter\":\"|\",\"max_bytes\":4096}",
         fragment=true,
       ),
+      string_group_capacity_fixture(
+        aggregate=(
+          #|{"fn":"string_agg","expr":{"upper":{"field":"payload"}},"order_by":[{"id":"asc"}],"delimiter":"|","max_bytes":4096}
+        ),
+        fragment=true,
+      ),
     ] {
     guard generated_sequence_step_at(generated, 0)
       is Some(@lower.RowStep(kernel)) else {
