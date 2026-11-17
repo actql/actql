@@ -168,6 +168,7 @@ fn check_backend_capabilities(
             | StartsWith
             | EndsWith
             | Contains
+            | Like
             | DateTruncate
             | DecimalDivide(_)
             | Utf8Truncate

@@ -399,7 +399,7 @@ pub fn binary(
   right : Value,
 ) -> Result[Value, ScalarIssue] {
   match op {
-    DecimalDivide(_) | Utf8Truncate | ParseTimestamp | FormatTimestamp =>
+    DecimalDivide(_) | Utf8Truncate | ParseTimestamp | FormatTimestamp | Like =>
       Err(InvalidOperand)
     DateTruncate =>
       if left is Null || right is Null {
@@ -510,6 +510,7 @@ pub fn binary(
         | StartsWith
         | EndsWith
         | Contains
+        | Like
         | DateTruncate
         | DecimalDivide(_)
         | Utf8Truncate
@@ -599,6 +600,7 @@ fn binary_comparison_result(
     | StartsWith
     | EndsWith
     | Contains
+    | Like
     | DateTruncate
     | DecimalDivide(_)
     | Utf8Truncate

@@ -104,7 +104,7 @@ propagation is not supported.
 | --- | --- |
 | Literals | strings (single, double, triple-quoted, raw `r'…'`, adjacent chunks concatenate), integers (decimal, hex), finite doubles, `TRUE`/`FALSE`, `NULL`, arrays `[…]`, `ARRAY[…]` and `ARRAY<T>[]` (the empty array needs its element type) |
 | Parameters | `@name`, declared by the Program; never interpolated |
-| Comparison and logic | `=`, `<>`, `!=`, `<`, `<=`, `>`, `>=`, `AND`, `OR`, `NOT`, `IS [NOT] NULL`, `IN (…)`, `IN UNNEST(array)`, `BETWEEN` |
+| Comparison and logic | `=`, `<>`, `!=`, `<`, `<=`, `>`, `>=`, `AND`, `OR`, `NOT`, `IS [NOT] NULL`, `IN (…)`, `IN UNNEST(array)`, `BETWEEN`, `LIKE`, `NOT LIKE` |
 | Conditionals | `CASE WHEN … THEN … ELSE … END`, `IF`, `IFNULL`, `COALESCE`, `NULLIF` |
 | Casts | `CAST(x AS STRING \| NUMBER \| FLOAT64 \| DOUBLE \| BOOLEAN \| TIMESTAMP \| DECIMAL(P,S))`; same-type casts are identity |
 | Timestamp patterns | `PARSE_TIMESTAMP(format, string)`, `FORMAT_TIMESTAMP(format, timestamp)` with the pinned text-time grammar below |
@@ -116,6 +116,16 @@ propagation is not supported.
 
 The full function list, with types and NULL rules, is in
 [Types and functions](types-and-functions.md).
+
+`LIKE` uses the existing case-sensitive Common pattern rules: `%` matches
+zero or more Unicode scalars, `_` matches one scalar, and backslash escapes
+the next scalar. Neither operand is normalized. The pattern must be a checked
+string literal or original bound string Parameter; a computed pattern and a
+trailing escape are refused. A NULL input yields NULL after the original
+pattern checks. `NOT LIKE` negates that Boolean using ordinary NULL propagation.
+There is no implicit regex engine, `ESCAPE` clause or host-language matcher.
+Comparison and backtracking remain subject to the original execution work and
+cancellation limits.
 
 Timestamp casts require a valid canonical UTC value with `T`, a trailing `Z`
 and 3–9 fractional digits. For example, `2026-01-02T03:04:05.123Z` and

@@ -312,6 +312,8 @@ pub fn expression_body(Expression) -> ExpressionBody
 
 pub fn expression_contract(Expression) -> @value_contract.Contract
 
+pub fn expression_like_pattern_source(Expression) -> String?
+
 pub fn expression_location(Expression) -> @expression_syntax.Location
 
 pub fn expression_primitive_array_length(Expression) -> Int?
@@ -1214,6 +1216,7 @@ pub(all) enum BinaryOperator {
   In
   NotIn
   Contains
+  Like
   DateTruncate
   DecimalDivide(String)
   Utf8Truncate

@@ -10,6 +10,7 @@ struct Expression {
   uses_veca : Bool
   text_bound : ExpressionTextBound?
   text_bounds : Map[Int, ExpressionTextBound]
+  like_pattern : @context.LikePatternResolution?
 }
 
 ///|
@@ -124,6 +125,7 @@ pub(all) enum BinaryOperator {
   In
   NotIn
   Contains
+  Like
   DateTruncate
   DecimalDivide(String)
   Utf8Truncate
@@ -389,6 +391,7 @@ fn expression_tag(
     | "log"
     | "strpos"
     | "contains"
+    | "like"
     | "starts_with"
     | "ends_with"
     | "eq"
@@ -982,19 +985,45 @@ fn lower_typed_expression_measured(
       }
     }
     let text_bounds : Map[Int, ExpressionTextBound] = Map([])
+    let mut like_patterns : Map[Int, @context.LikePatternResolution]? = None
     for obligation in @typing.pending_validations(typed) {
       let admitted = match obligation.kind {
         @typing.ProfileAdmission(profile) => profile_admitted(profile)
         @typing.PatternValidation(operation) =>
-          ["parse_timestamp", "format_timestamp"].contains(operation) &&
-          original_expression_discharge(
-            typed,
-            obligation.node_index,
-            obligation.kind,
-            budget,
-            bound=original_context,
-          )
-          is Some(@context.Pattern(@context.Timestamp(_)))
+          match
+            original_expression_discharge(
+              typed,
+              obligation.node_index,
+              obligation.kind,
+              budget,
+              bound=original_context,
+            ) {
+            Some(@context.Pattern(@context.Timestamp(_))) =>
+              ["parse_timestamp", "format_timestamp"].contains(operation)
+            Some(@context.Pattern(@context.Like(pattern))) if operation ==
+              "like" => {
+              let node = @typing.node_at(typed, obligation.node_index).unwrap()
+              let index = @decode.tree_index(root, node.source).unwrap()
+              // The bounded original node walk owns this transient index. No
+              // table is allocated for expressions without a LIKE obligation.
+              expression_spend(budget, node.source)
+              let selected = match like_patterns {
+                Some(selected) => selected
+                None => {
+                  let selected : Map[Int, @context.LikePatternResolution] = Map([],
+                  )
+                  like_patterns = Some(selected)
+                  selected
+                }
+              }
+              if selected.length() >= limits.max_nodes {
+                expression_fail(node.source, ExpressionBudgetExceeded)
+              }
+              selected[index] = pattern
+              true
+            }
+            _ => false
+          }
         @typing.HostEnvelope => {
           let node = @typing.node_at(typed, obligation.node_index).unwrap()
           let (operation, _) = @decode.field_at(node.source, 0).unwrap()
@@ -1272,6 +1301,7 @@ fn lower_typed_expression_measured(
         "timestamp_sub" => Many(TimestampSubtraction, args)
         "date_trunc" => Binary(DateTruncate, args[0], args[1])
         "contains" => Binary(Contains, args[0], args[1])
+        "like" => Binary(Like, args[0], args[1])
         "starts_with" => Binary(StartsWith, args[0], args[1])
         "ends_with" => Binary(EndsWith, args[0], args[1])
         "eq" => Binary(Equal, args[0], args[1])
@@ -1337,6 +1367,7 @@ fn lower_typed_expression_measured(
               uses_veca: false,
               text_bound: None,
               text_bounds,
+              like_pattern: None,
             }
           }
           let clauses = []
@@ -1355,6 +1386,7 @@ fn lower_typed_expression_measured(
         location: @syntax.origin(syntax, cursor).unwrap(),
         text_bound: text_bounds.get(index),
         text_bounds,
+        like_pattern: like_patterns.bind(selected => selected.get(index)),
         uses_veca: match lowered {
           VectorScore(_, _, _) | VectorConcat(_) => true
           Unary(_, child) => child.uses_veca
@@ -1589,4 +1621,11 @@ pub fn expression_text_bound_at(
 /// Constant-time inventory; no detached resolution array is allocated.
 pub fn expression_text_bound_count(value : Expression) -> Int {
   value.text_bounds.length()
+}
+
+///|
+/// Borrowed DATA from the SAME checked expression's original pattern owner.
+/// The private expression constructor cannot issue this from a copied wire.
+pub fn expression_like_pattern_source(value : Expression) -> String? {
+  value.like_pattern.map(@context.like_pattern_source)
 }

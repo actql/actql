@@ -40,6 +40,7 @@ fn binary_name(op : BinaryOperator) -> String {
     LTrimSet => "ltrim"
     RTrimSet => "rtrim"
     Contains => "contains"
+    Like => "like"
     DateTruncate => "date_trunc"
     DecimalDivide(_) => "decimal_divide"
     Utf8Truncate => "utf8_truncate"
