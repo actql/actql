@@ -8,6 +8,7 @@ import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {createHostObservationConnection, installHostObservation} from '../host-common/observation.mjs';
 import {fileURLToPath} from 'node:url';
 import {installNodeClientDispatchOwner as installActualDispatchOwner} from './client-dispatch-owner.mjs';
+import {dispatchFailureSnapshot} from './client-dispatch-diagnostic.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {types as nodeTypes} from 'node:util';
 import {CapturedRunPublicationError} from './entry.mjs';
@@ -288,9 +289,9 @@ const declarations = ast.body.flatMap(node => {
 });
 const installNodeClientDispatchOwner = compileFunction(
   declarations.join('\n') + '\nreturn installNodeClientDispatchOwner;',
-  ['diagnosticObserver', 'CapturedRunPublicationError', 'runtimeTag', 'runPublishedCapturedStrategy', 'nodeTypes'])(
+  ['diagnosticObserver', 'CapturedRunPublicationError', 'runtimeTag', 'runPublishedCapturedStrategy', 'nodeTypes', 'dispatchFailureSnapshot'])(
   diagnosticObserver, class ExplicitPublicationError extends Error {}, () => undefined,
-  () => assert.fail('No fixture Relation execution'), nodeTypes);
+  () => assert.fail('No fixture Relation execution'), nodeTypes, dispatchFailureSnapshot);
 const observation = retained => ({emit() {}, retainOperation(promise) {retained.push(promise);}});
 
 // This distinct component uses the selected original Common namespace and real
