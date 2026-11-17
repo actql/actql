@@ -1,6 +1,25 @@
 import type {Client, RunReference} from '@actql/sdk';
 import {createReadEpoch, describeExistingResult, planStoryModel, readExistingRun, readExistingRunPlan, readExistingRunStory, readStaticPlan} from './read-model.js';
-import type {WirePlanView} from '@actql/client-wire';
+import type {WirePlanView, WireExplanationFacts, WireRunExplanationView} from '@actql/client-wire';
+declare const structuralFacts: WireExplanationFacts;
+declare const savedExplanation: WireRunExplanationView;
+const structuralOnly: 'structural' = structuralFacts.disclosure;
+if (savedExplanation.explanation.state === 'projected') {
+  const boundPlan: string = savedExplanation.explanation.facts.compiled_plan_cid;
+  void boundPlan;
+}
+type FilterMeaning = Extract<WireExplanationFacts['steps'][number]['meaning'], {kind: 'filter'}>;
+type ProjectedPredicate = Extract<FilterMeaning['predicate'], {state: 'projected'}>;
+type RedactedLiteral = Extract<ProjectedPredicate['nodes'][number], {form: 'literal_redacted'}>;
+const redacted: RedactedLiteral = {form: 'literal_redacted',
+  type: {projection: 'shape_and_nullability', kind: 'string', nullable: false}};
+// @ts-expect-error Literal values are outside the first public profile.
+const literalLeak: RedactedLiteral = {...redacted, value: 'private'};
+// @ts-expect-error Inferred Text bounds must not disclose a literal's length.
+const lengthLeak: RedactedLiteral['type'] = {...redacted.type, max_utf8_bytes: 7};
+// @ts-expect-error Retention absence cannot carry reconstructed facts.
+const repaired: WireRunExplanationView['explanation'] = {state: 'not_projected', reason: 'not_retained', facts: structuralFacts};
+void structuralOnly; void literalLeak; void lengthLeak; void repaired;
 declare const originalView: WirePlanView;
 const story = planStoryModel(originalView, {locale: 'ja'});
 const logicalOrder: 'logical_dependencies' = story.ordering.kind;

@@ -54,9 +54,17 @@ This document owns run-wire, checkpoint-wire, resolution-wire, preview-wire, app
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/resolved_control_profile sha256:6c2bb8de6b1f74fc37ecd43a3b3b667ff660e46e09c32846d34544dcace804f9 -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/control_operation_query sha256:411c0a6ceb270757a5ded2334285827387b9a67257e2b62bcc29fb28c4bd32ca -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/sample_selector sha256:345ec8f736c15213fc6c312f010cccf9146ec43c0033221d1f3b385a0f74f269 -->
-<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json# sha256:d79ac12e9ce9785353324da1a17a96af1c01b0692b56eb42692d15c598be781d -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json# sha256:45c70b0da65627b9de1c50ac2974fb588f55a179535d0696abd5a1a8dc6b5690 -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/run_plan_view sha256:bc7d46d0fead62582cde82f78ce9467814640a8ccd293541ee30e31efba6ed77 -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/effectful_static_plan_view sha256:290df7e7a6ceeab8d5198bc7fd39ba4a65d213fa80f83e5a6381b94c6dbde645 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/explanation_type sha256:3695d05cd5c60f600347cbe1eb2589a23374966eb9b3c681f9971b743b9417e3 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/explanation_schema sha256:83f1ada252d57d81b8f64b4b7522ab3dff14b489a89e0f3aae29e5610a388b4b -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/explanation_expression_node sha256:aee03171bcde6e78fba8c658d7131c8bce6743b9c15da441bd51a1bde105109c -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/explanation_predicate sha256:764b56c14af42f3f8c3f6adee77272e18483d67a156782321941742cb50db10f -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/explanation_meaning sha256:9e82adf26acb09fee7542facadca2b5511c0362979a12376c7ec3b59d42403c6 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/explanation_step sha256:ada75fc915fb14351ec4f7406071864b728d9ef2233f0a32fbc77dfce9f5089a -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/explanation_facts sha256:0bd17264c5c1efa5e2fa2984a5052e3ebace93ba3a66bcbe0c3a60ffca01b2a2 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/run_explanation_view sha256:f5c04ef26d8501d981d8640929b657255eb8156d3c114d28d91472f80f281aa1 -->
 <!-- page-contents:start -->
 ## On this page
 
@@ -1099,6 +1107,46 @@ Run/cancellation/authority/holding and Ledger fences remain separate.
 <a id="interactive-run-control"></a>
 
 ## Negotiated Interactive Run Control contracts
+
+### Structural Explanation Facts
+
+`actql-explanation-facts/0.1` is a separate closed, structural-only projection.
+It MUST bind the original checked Program Definition, effective Parameters,
+Compiled Plan and immutable logical map. Each occurrence MUST retain its
+existing logical Step key/identity and original input/output port identities;
+this family MUST NOT issue replacement Step identities or infer execution
+order. Its self-CID hashes the complete canonical body excluding only its own
+`self_cid`, through the existing registered identity owner. Neither a valid
+self-CID nor structural admission establishes compiler provenance or permission.
+The unchanged closed PlanView and RunDefinition are not extended by this family.
+
+The first profile MUST disclose only original operator, schema field structure,
+ordered projection, JOIN kind/key structure, checked predicate structure and
+parameter reference/type facts. Literal values, per-literal value CIDs, lengths,
+Task prompts and Source bodies MUST NOT be emitted. A literal collection MUST
+NOT disclose its cardinality as a substitute for its redacted value. Type
+projection is explicitly shape/nullability only: inferred Text bounds and
+enumerations can reveal literal content or length and MUST NOT be serialized
+as safe type metadata. This is not a complete ValueContract projection.
+
+Expression references are local checked-node coordinates, not another parser
+or identity domain. The original typed compiler Owner MUST verify their shape,
+child relationships, types and occurrence binding before issuance. Unprojected
+checked forms MUST remain explicitly unprojected, not be rejected as language
+errors or reconstructed in a UI. They MUST NOT become fabricated empty facts,
+executed-row counts, physical observations or runtime capabilities.
+
+Current Plan/Run read and egress admission MUST precede acquisition and be
+rechecked before disclosure. The same bounded read construction MUST cover the
+original borrowed compiler material, emitted structural facts and overlapping
+retention. Parameter identity binding is not permission to disclose parameter
+values. Sample access and control grants remain separate.
+
+`actql-run-explanation-view/0.1` MUST bind the complete original Run reference.
+A Saved read MUST consume retained original facts. An old or Normal Run without
+them MUST return explicit `not_projected`; it MUST NOT compile current text,
+reacquire a Source or rerun INFER to repair the omission. This family adds no
+default Sample, heavy per-step scan or mandatory facts retention to Normal Run.
 
 The initial `actql-interactive-run-control-registry/0.1` registers separate
 controlled state, Plan/Run views, control Profile, original request intent,

@@ -2,6 +2,8 @@
 // Fixed identities are checked against an independent canonical JSON oracle.
 import {createHash} from 'node:crypto';
 import {canonicalText} from '../check-canonical-json.mjs';
+import {explanationBody, explanationCid, explanationFacts, explanationLeakageVectors,
+  runExplanation, unprojectedRunExplanation} from './explanation-facts-vectors.mjs';
 export const cid = digit => `sha256:${digit.repeat(64)}`;
 export const ref = {namespaceId: 'workspace:test', authorityScopeCid: cid('a'),
   runDefinitionCid: cid('b')};
@@ -139,6 +141,7 @@ export const identityVectors = [
     cid: 'sha256:0ad21118174563ac8bcbdf62299659b71da72f6ef3b3ec9f42717d99fa4055e9'},
   {name: 'logical_step_key', body: operationKey,
     cid: 'sha256:2ad8ff68dc3e793e262cc6efcb41ffb3d254795cd6780457fd04600cc09d8fbd'},
+  {name: 'explanation_facts', body: explanationBody, cid: explanationCid},
 ];
 export const shapeVectors = [
   {name: 'controlled_run_state', value: running},
@@ -167,6 +170,9 @@ export const shapeVectors = [
   ...['0', '9007199254740993', '9223372036854775806', '9223372036854775807']
     .map(amount_micro => ({name: 'control_money', value: {currency: 'USD',
       amount_micro, scope_cids: [cid('1')], tariff_revision_cid: cid('2'), valid_until: time}})),
+  {name: 'explanation_facts', value: explanationFacts},
+  {name: 'run_explanation_view', value: runExplanation},
+  {name: 'run_explanation_view', value: unprojectedRunExplanation},
 ];
 export const negativeVectors = [
   ...['pause_pending', 'expiry_pending', 'cleanup_pending'].flatMap(field =>
@@ -204,4 +210,7 @@ export const negativeVectors = [
     Object.fromEntries(Object.entries(legacyState).filter(([key]) => key !== 'revision'))}},
   ...[null, -1, 0.5, 9007199254740992].map(revision => ({name: 'controlled_run_state',
     value: {...running, legacy_state: {...legacyState, revision}}})),
+  ...explanationLeakageVectors.map(({value}) => ({name: 'explanation_facts', value})),
+  {name: 'run_explanation_view', value: {...unprojectedRunExplanation,
+    explanation: {...unprojectedRunExplanation.explanation, facts: explanationFacts}}},
 ];

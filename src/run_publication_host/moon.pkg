@@ -43,6 +43,7 @@ import {
   "actql/actql/relation_schema" @schema,
   "actql/actql/relation_join_shape" @join,
   "actql/actql/relation_typing" @relation,
+  "actql/actql/relation_values",
   "actql/actql/expression_typing" @expression,
   "actql/actql/infer_typing" @infer,
   "actql/actql/carrier_contract" @carrier,
