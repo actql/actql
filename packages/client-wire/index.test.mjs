@@ -11,13 +11,36 @@ import {snapshotClientRequest, snapshotCheckRequest, prepareClientHostRequest,
   resourceLimits, validResourceInspection, validResourceListing,
   validResourcePeek,
   validRunState, validSubmitPreparationError,
-  validSubmitReply} from './index.mjs';
+  validSubmitReply, validWireRunExplanationViewShape} from './index.mjs';
+import {runExplanation, unprojectedRunExplanation, explanationLeakageVectors}
+  from '../../scripts/fixtures/explanation-facts-vectors.mjs';
 
 const connection = Object.freeze({mode: 'remote', owner: 'remote',
   consentRefs: [], runners: []});
 const ref = Object.freeze({namespaceId: 'namespace-a',
   authorityScopeCid: `sha256:${'a'.repeat(64)}`,
   runDefinitionCid: `sha256:${'b'.repeat(64)}`});
+
+test('uninstalled Explanation operation is not a public request or synthetic NotProjected result', () => {
+  const request = {connection, ref, maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64};
+  assert.equal(clientHostOperations.includes('run-explanation'), false);
+  assert.equal(validClientBody('run-explanation', request), false);
+  assert.equal(prepareClientHostRequest('run-explanation', request), undefined);
+  // Existing admitted Plan requests keep their own original surface.
+  assert.ok(prepareClientHostRequest('run-plan', request));
+});
+
+test('standalone Explanation DTO stays closed without advertising an operation or disclosure authority', () => {
+  assert.equal(validWireRunExplanationViewShape(runExplanation), true);
+  assert.equal(validWireRunExplanationViewShape(unprojectedRunExplanation), true);
+  assert.equal(validWireRunExplanationViewShape({...runExplanation, capabilities: {explain: true}}), false);
+  assert.equal(validWireRunExplanationViewShape({...unprojectedRunExplanation,
+    explanation: {state: 'not_projected', reason: 'budget_refused'}}), false);
+  for (const {value} of explanationLeakageVectors) {
+    assert.equal(validWireRunExplanationViewShape({...runExplanation,
+      explanation: {state: 'projected', facts: value}}), false);
+  }
+});
 
 test('Host request preparation observes the original check serializer once and owns its target', () => {
   const selected = {...connection, workspaceId:'workspace-A',
