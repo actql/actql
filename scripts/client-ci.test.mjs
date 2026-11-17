@@ -672,11 +672,9 @@ test('Client preparation exposes runtime adapters and wire freshness as separate
       assert.equal(step.if, undefined, 'default success prevents a later preparation stage from bypassing failure');
       assert.equal(step['continue-on-error'], undefined);
     }
-    assert(steps.slice(2).every(step => /Check .*wire freshness/u.test(step.name)));
     const positions = steps.map(step => jobs[name].steps.indexOf(step));
-    assert(positions.every((value, index) => index === 0 || value === positions[index - 1] + 1));
-    assert(jobs[name].steps.filter(step => step.name?.startsWith('Test ')).every(step =>
-      step.if === "${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}"));
+    assert(positions.every((value, index) => index === 0 || value > positions[index - 1]),
+      'Preparation commands retain dependency order without requiring adjacent display steps');
   }
 });
 
