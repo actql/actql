@@ -4,6 +4,23 @@ This private development package provides `createOpenAIChatProvider` for the
 configured Node Host and the lower-level original-registration assemblers below.
 Registry publication and live OpenAI acceptance remain separate work.
 
+For development-package acceptance, install the optional provider tar alongside
+the five matching normal Client/Host tars. The provider is not bundled into
+`@actql/node`; the five normal tars alone do not supply this import. Use the
+original same-source producer artifacts and normal npm lifecycle installation:
+
+```sh
+npm install ./actql-client-wire-0.0.0-development.tgz \
+  ./actql-sdk-0.0.0-development.tgz \
+  ./actql-run-host-core-0.0.0-development.tgz \
+  ./actql-local-node-0.0.0-development.tgz \
+  ./actql-node-0.0.0-development.tgz \
+  ./actql-provider-ai-sdk-0.0.0-development.tgz
+```
+
+This is a local tar installation, not a registry release. Do not substitute a
+checkout import, private runtime path, or a differently built Host artifact.
+
 ## Configure a Host from project Tasks
 
 `createOpenAIChatProvider` returns one asynchronous `registerModelProviders`
