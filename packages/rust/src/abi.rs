@@ -21,10 +21,11 @@ pub(crate) struct StoreState<H> {
 }
 
 pub(crate) struct CoreInstance<H: 'static> {
-    pub(crate) store: Store<StoreState<H>>,
-    pub(crate) functions: CoreExports,
-    pub(crate) memory: Memory,
+    store: Store<StoreState<H>>,
+    functions: CoreExports,
+    memory: Memory,
     pub(crate) identity: Arc<()>,
+    normal_enabled: bool,
 }
 
 // Compiled code can be reused without sharing a Store, callback owner, nonce or
@@ -142,7 +143,7 @@ impl CompiledCore {
         match initialized {
             Ok((functions, memory)) => {
                 store.data_mut().admitted = true;
-                Ok(CoreInstance { store, functions, memory, identity: Arc::new(()) })
+                Ok(CoreInstance { store, functions, memory, identity: Arc::new(()), normal_enabled: true })
             }
             Err(cause) => Err(InitializationFailure { cause, host: store.into_data().host }),
         }
@@ -156,6 +157,86 @@ impl<H: Imports> CoreInstance<H> {
             Ok(compiled) => compiled.instantiate(host),
             Err(cause) => Err(InitializationFailure { cause, host }),
         }
+    }
+
+    pub(crate) fn host(&self) -> &H { &self.store.data().host }
+
+    pub(crate) fn host_mut(&mut self) -> &mut H { &mut self.store.data_mut().host }
+
+    pub(crate) fn normal_available(&self) -> bool { self.normal_enabled }
+
+    pub(crate) fn require_normal(&self) -> wasmtime::Result<()> {
+        anyhow::ensure!(self.normal_enabled, "Core instance is cleanup-only");
+        Ok(())
+    }
+
+    pub(crate) fn begin_normal_budget(&mut self, fuel: u64) -> wasmtime::Result<()> {
+        self.require_normal()?;
+        anyhow::ensure!(fuel > 0, "Empty normal invocation budget");
+        self.store.set_fuel(fuel)
+    }
+
+    pub(crate) fn begin_cleanup_budget(&mut self, fuel: u64) -> wasmtime::Result<()> {
+        anyhow::ensure!(fuel > 0, "Empty cleanup invocation budget");
+        self.normal_enabled = false;
+        self.store.set_fuel(fuel)
+    }
+
+    pub(crate) fn remaining_fuel(&self) -> wasmtime::Result<u64> { self.store.get_fuel() }
+
+    // The private Store never escapes. A raw Wasmtime error or unwinding leaves
+    // normal work fenced. A Core refusal is an ordinary successful scalar
+    // return; its original status remains with the caller, not this gate.
+    pub(crate) fn normal_call<T>(&mut self,
+        call: impl FnOnce(&CoreExports, &mut Store<StoreState<H>>) -> wasmtime::Result<T>) -> wasmtime::Result<T> {
+        self.require_normal()?;
+        self.normal_enabled = false;
+        let result = call(&self.functions, &mut self.store);
+        if result.is_ok() { self.normal_enabled = true; }
+        result
+    }
+
+    fn cleanup_call<T>(&mut self,
+        call: impl FnOnce(&CoreExports, &mut Store<StoreState<H>>) -> wasmtime::Result<T>) -> wasmtime::Result<T> {
+        let was_normal = self.normal_enabled;
+        self.normal_enabled = false;
+        let result = call(&self.functions, &mut self.store);
+        if was_normal && result.is_ok() { self.normal_enabled = true; }
+        result
+    }
+
+    pub(crate) fn copy_memory_block(&mut self, offset: usize, destination: &mut [u8]) -> wasmtime::Result<()> {
+        self.require_normal()?;
+        if let Err(cause) = self.memory.read(&self.store, offset, destination) {
+            self.normal_enabled = false;
+            return Err(cause.into());
+        }
+        Ok(())
+    }
+
+    pub(crate) fn close_transfer_pool(&mut self, nonce: i64) -> wasmtime::Result<i32> {
+        self.normal_enabled = false;
+        self.cleanup_call(|functions, store| functions.buffer_close_pool.call(store, (nonce,)))
+    }
+
+    pub(crate) fn close_buffer_owner(&mut self, nonce: i64, handle: i32) -> wasmtime::Result<i32> {
+        self.cleanup_call(|functions, store| functions.buffer_close.call(store, (nonce, handle)))
+    }
+
+    pub(crate) fn close_preparation_owner(&mut self, nonce: i64, handle: i32) -> wasmtime::Result<i32> {
+        self.cleanup_call(|functions, store| functions.program_close_preparation.call(store, (nonce, handle)))
+    }
+
+    pub(crate) fn close_environment_owner(&mut self, nonce: i64, handle: i32) -> wasmtime::Result<i32> {
+        self.cleanup_call(|functions, store| functions.program_close_environment.call(store, (nonce, handle)))
+    }
+
+    pub(crate) fn allocated_transfer_bytes(&mut self, nonce: i64) -> wasmtime::Result<i64> {
+        self.cleanup_call(|functions, store| functions.buffer_allocated.call(store, (nonce,)))
+    }
+
+    pub(crate) fn reserved_transfer_bytes(&mut self, nonce: i64) -> wasmtime::Result<i64> {
+        self.cleanup_call(|functions, store| functions.buffer_reserved.call(store, (nonce,)))
     }
 }
 

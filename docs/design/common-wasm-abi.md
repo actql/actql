@@ -88,3 +88,24 @@ coverage, separately from actual Cargo type checking, artifact identity,
 compiled Wasm admission and Host/Run lifecycle acceptance. Tooling process
 bounds and cancellation remain with the existing verification supervisor; the
 source reader owns no business resource, permission or cleanup acknowledgment.
+
+## Failed-instance invocation fence
+
+The Rust instance keeps its Store, functions and memory private. Ordinary calls
+enter one gate which disables normal work before guest entry and restores it
+only after a successful raw invocation. A Wasmtime error or Rust unwinding
+therefore leaves the same instance cleanup-only. An ordinary scalar Core refusal
+is not a hard trap: its original code remains available to its original caller.
+Invalid input rejected before guest entry likewise does not become a trap.
+
+A failed instance cannot receive another normal fuel allowance. Explicit finite
+cleanup funding can run only ABI-owned typed close/cleanup observation routes;
+it never resets normal availability. Pending cleanup and repeated close errors
+retain the same input and physical Host. Completing logical transfer-pool close
+does not restore the instance or acknowledge asynchronous Host retirement.
+
+This fence is a physical invocation rule, not another Run state machine. The
+public runtime must retain its original owner under a supervisor through stop,
+cleanup and actual retirement; dropping a private buffer or instance does not
+supply that public lifecycle. Cancellation notification and physical I/O stop
+remain separate from guest interruption and must not wait on a guest lock.

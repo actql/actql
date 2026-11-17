@@ -451,6 +451,124 @@
         },
         {
           "async": false,
+          "declaration": "pub (crate) fn allocated_transfer_bytes (& mut self , nonce : i64) -> wasmtime :: Result < i64 >",
+          "name": "impl< H : Imports >:CoreInstance < H >/allocated_transfer_bytes",
+          "parameters": [
+            "& mut self",
+            "nonce"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "pub (crate) fn begin_cleanup_budget (& mut self , fuel : u64) -> wasmtime :: Result < () >",
+          "name": "impl< H : Imports >:CoreInstance < H >/begin_cleanup_budget",
+          "parameters": [
+            "& mut self",
+            "fuel"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "pub (crate) fn begin_normal_budget (& mut self , fuel : u64) -> wasmtime :: Result < () >",
+          "name": "impl< H : Imports >:CoreInstance < H >/begin_normal_budget",
+          "parameters": [
+            "& mut self",
+            "fuel"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": " fn cleanup_call < T > (& mut self , call : impl FnOnce (& CoreExports , & mut Store < StoreState < H > >) -> wasmtime :: Result < T >) -> wasmtime :: Result < T >",
+          "name": "impl< H : Imports >:CoreInstance < H >/cleanup_call",
+          "parameters": [
+            "& mut self",
+            "call"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "pub (crate) fn close_buffer_owner (& mut self , nonce : i64 , handle : i32) -> wasmtime :: Result < i32 >",
+          "name": "impl< H : Imports >:CoreInstance < H >/close_buffer_owner",
+          "parameters": [
+            "& mut self",
+            "nonce",
+            "handle"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "pub (crate) fn close_environment_owner (& mut self , nonce : i64 , handle : i32) -> wasmtime :: Result < i32 >",
+          "name": "impl< H : Imports >:CoreInstance < H >/close_environment_owner",
+          "parameters": [
+            "& mut self",
+            "nonce",
+            "handle"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "pub (crate) fn close_preparation_owner (& mut self , nonce : i64 , handle : i32) -> wasmtime :: Result < i32 >",
+          "name": "impl< H : Imports >:CoreInstance < H >/close_preparation_owner",
+          "parameters": [
+            "& mut self",
+            "nonce",
+            "handle"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "pub (crate) fn close_transfer_pool (& mut self , nonce : i64) -> wasmtime :: Result < i32 >",
+          "name": "impl< H : Imports >:CoreInstance < H >/close_transfer_pool",
+          "parameters": [
+            "& mut self",
+            "nonce"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "pub (crate) fn copy_memory_block (& mut self , offset : usize , destination : & mut [u8]) -> wasmtime :: Result < () >",
+          "name": "impl< H : Imports >:CoreInstance < H >/copy_memory_block",
+          "parameters": [
+            "& mut self",
+            "offset",
+            "destination"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "pub (crate) fn host (& self) -> & H",
+          "name": "impl< H : Imports >:CoreInstance < H >/host",
+          "parameters": [
+            "& self"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "pub (crate) fn host_mut (& mut self) -> & mut H",
+          "name": "impl< H : Imports >:CoreInstance < H >/host_mut",
+          "parameters": [
+            "& mut self"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "pub (crate) fn normal_available (& self) -> bool",
+          "name": "impl< H : Imports >:CoreInstance < H >/normal_available",
+          "parameters": [
+            "& self"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "pub (crate) fn normal_call < T > (& mut self , call : impl FnOnce (& CoreExports , & mut Store < StoreState < H > >) -> wasmtime :: Result < T >) -> wasmtime :: Result < T >",
+          "name": "impl< H : Imports >:CoreInstance < H >/normal_call",
+          "parameters": [
+            "& mut self",
+            "call"
+          ]
+        },
+        {
+          "async": false,
           "declaration": "pub (crate) fn open (engine : & Engine , wasm : & [u8] , profile : & ArtifactProfile , host : H) -> Result < Self , InitializationFailure < H > >",
           "name": "impl< H : Imports >:CoreInstance < H >/open",
           "parameters": [
@@ -458,6 +576,31 @@
             "wasm",
             "profile",
             "host"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "pub (crate) fn remaining_fuel (& self) -> wasmtime :: Result < u64 >",
+          "name": "impl< H : Imports >:CoreInstance < H >/remaining_fuel",
+          "parameters": [
+            "& self"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "pub (crate) fn require_normal (& self) -> wasmtime :: Result < () >",
+          "name": "impl< H : Imports >:CoreInstance < H >/require_normal",
+          "parameters": [
+            "& self"
+          ]
+        },
+        {
+          "async": false,
+          "declaration": "pub (crate) fn reserved_transfer_bytes (& mut self , nonce : i64) -> wasmtime :: Result < i64 >",
+          "name": "impl< H : Imports >:CoreInstance < H >/reserved_transfer_bytes",
+          "parameters": [
+            "& mut self",
+            "nonce"
           ]
         },
         {
@@ -500,7 +643,7 @@
         },
         {
           "async": false,
-          "declaration": " pub (crate) struct CoreInstance < H : 'static > { pub (crate) store : Store < StoreState < H > > , pub (crate) functions : CoreExports , pub (crate) memory : Memory , pub (crate) identity : Arc < () > , }",
+          "declaration": " pub (crate) struct CoreInstance < H : 'static > { store : Store < StoreState < H > > , functions : CoreExports , memory : Memory , pub (crate) identity : Arc < () > , normal_enabled : bool , }",
           "name": "type:CoreInstance",
           "parameters": []
         },
@@ -538,7 +681,7 @@
           ]
         }
       ],
-      "sha256": "892d3253d231938cbf19384a4a7976ba72062059827956dfa8558c9f0c1b54eb",
+      "sha256": "b3021df1edef16f6d65765d55e973c5ba8e39b0e360e4e6298d5f635b11b3c1e",
       "unresolvedSyntax": [],
       "role": "physical-io",
       "responsibilityFacet": "primary",
@@ -550,7 +693,23 @@
             "<module>",
             "impl:CompiledCore/compile",
             "impl:CompiledCore/instantiate",
+            "impl< H : Imports >:CoreInstance < H >/allocated_transfer_bytes",
+            "impl< H : Imports >:CoreInstance < H >/begin_cleanup_budget",
+            "impl< H : Imports >:CoreInstance < H >/begin_normal_budget",
+            "impl< H : Imports >:CoreInstance < H >/cleanup_call",
+            "impl< H : Imports >:CoreInstance < H >/close_buffer_owner",
+            "impl< H : Imports >:CoreInstance < H >/close_environment_owner",
+            "impl< H : Imports >:CoreInstance < H >/close_preparation_owner",
+            "impl< H : Imports >:CoreInstance < H >/close_transfer_pool",
+            "impl< H : Imports >:CoreInstance < H >/copy_memory_block",
+            "impl< H : Imports >:CoreInstance < H >/host",
+            "impl< H : Imports >:CoreInstance < H >/host_mut",
+            "impl< H : Imports >:CoreInstance < H >/normal_available",
+            "impl< H : Imports >:CoreInstance < H >/normal_call",
             "impl< H : Imports >:CoreInstance < H >/open",
+            "impl< H : Imports >:CoreInstance < H >/remaining_fuel",
+            "impl< H : Imports >:CoreInstance < H >/require_normal",
+            "impl< H : Imports >:CoreInstance < H >/reserved_transfer_bytes",
             "impl< H >:std :: fmt :: Debug for InitializationFailure < H >/fmt",
             "matches_signature",
             "scalar",
@@ -601,24 +760,40 @@
               {
                 "path": "docs/design/common-wasm-abi.md",
                 "anchor": "## Rust admission and physical Host ownership"
+              },
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Failed-instance invocation fence"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/common-wasm-abi.md",
                 "anchor": "## Rust admission and physical Host ownership"
+              },
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Failed-instance invocation fence"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/common-wasm-abi.md",
                 "anchor": "## Rust admission and physical Host ownership"
+              },
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Failed-instance invocation fence"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/common-wasm-abi.md",
                 "anchor": "## Rust admission and physical Host ownership"
+              },
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Failed-instance invocation fence"
               }
             ],
             "extension": [
@@ -643,6 +818,14 @@
               {
                 "path": "packages/rust/src/abi.rs",
                 "anchor": "fn actual_core_module_binds_every_generated_signature("
+              },
+              {
+                "path": "packages/rust/src/transfer.rs",
+                "anchor": "fn hard_trap_cannot_refill_normal_work_but_keeps_original_cleanup("
+              },
+              {
+                "path": "packages/rust/src/transfer.rs",
+                "anchor": "fn callback_unwind_leaves_same_instance_cleanup_only("
               }
             ]
           }
@@ -848,7 +1031,7 @@
           "parameters": []
         }
       ],
-      "sha256": "3956fe3e4f363cffa854d755dfb86918f4c49be421a1e5d0318c482a61e3b0e1",
+      "sha256": "036b76117b7ec5bcee3324c12b87d1126d03902a140f44f61d0b1ef73ef0d81a",
       "unresolvedSyntax": [],
       "role": "physical-io",
       "responsibilityFacet": "primary",
@@ -902,24 +1085,40 @@
               {
                 "path": "docs/design/common-wasm-abi.md",
                 "anchor": "## Bounded Rust transfers"
+              },
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Failed-instance invocation fence"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/common-wasm-abi.md",
                 "anchor": "## Bounded Rust transfers"
+              },
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Failed-instance invocation fence"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/common-wasm-abi.md",
                 "anchor": "## Bounded Rust transfers"
+              },
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Failed-instance invocation fence"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/common-wasm-abi.md",
                 "anchor": "## Bounded Rust transfers"
+              },
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Failed-instance invocation fence"
               }
             ],
             "extension": [
@@ -940,6 +1139,14 @@
               {
                 "path": "packages/rust/src/transfer.rs",
                 "anchor": "fn short_copy_failure_retains_the_original_cleanup_owner("
+              },
+              {
+                "path": "packages/rust/src/transfer.rs",
+                "anchor": "fn hard_trap_cannot_refill_normal_work_but_keeps_original_cleanup("
+              },
+              {
+                "path": "packages/rust/src/transfer.rs",
+                "anchor": "fn callback_unwind_leaves_same_instance_cleanup_only("
               }
             ]
           }

@@ -39,8 +39,8 @@ impl<H: Imports> CoreInstance<H> {
     pub(crate) fn reserve_input_buffer(&mut self, nonce: i64, ticket: i32,
         bytes: usize, physical_copy_bytes: i64) -> wasmtime::Result<InputBuffer> {
         let length = i32::try_from(bytes)?;
-        let handle = self.functions.buffer_reserve.call(&mut self.store,
-            (nonce, ticket, length, physical_copy_bytes))?;
+        let handle = self.normal_call(|functions, store| functions.buffer_reserve.call(store,
+            (nonce, ticket, length, physical_copy_bytes)))?;
         if handle <= 0 { return Err(CoreFailure { operation: "buffer_reserve", code: handle }.into()); }
         Ok(InputBuffer { identity: self.identity.clone(), nonce, handle, bytes, closed: false })
     }
@@ -52,11 +52,12 @@ impl<H: Imports> CoreInstance<H> {
     }
 
     pub(crate) fn fill_input_buffer(&mut self, buffer: &InputBuffer) -> wasmtime::Result<()> {
+        self.require_normal()?;
         self.original_buffer(buffer)?;
         for start in (0..buffer.bytes).step_by(BLOCK_BYTES) {
             let count = (buffer.bytes - start).min(BLOCK_BYTES);
-            let code = self.functions.buffer_fill_block.call(&mut self.store,
-                (buffer.nonce, buffer.handle, i32::try_from(start)?, i32::try_from(count)?))?;
+            let args = (buffer.nonce, buffer.handle, i32::try_from(start)?, i32::try_from(count)?);
+            let code = self.normal_call(|functions, store| functions.buffer_fill_block.call(store, args))?;
             success("buffer_fill_block", code)?;
         }
         Ok(())
@@ -64,7 +65,7 @@ impl<H: Imports> CoreInstance<H> {
 
     pub(crate) fn seal_input_buffer(&mut self, buffer: &InputBuffer) -> wasmtime::Result<()> {
         self.original_buffer(buffer)?;
-        let code = self.functions.buffer_seal.call(&mut self.store, (buffer.nonce, buffer.handle))?;
+        let code = self.normal_call(|functions, store| functions.buffer_seal.call(store, (buffer.nonce, buffer.handle)))?;
         success("buffer_seal", code)
     }
 
@@ -77,10 +78,10 @@ impl<H: Imports> CoreInstance<H> {
         anyhow::ensure!(!destination.is_empty() && destination.len() <= BLOCK_BYTES &&
             start <= buffer.bytes && destination.len() <= buffer.bytes - start,
             "Invalid bounded original buffer read");
-        let offset = self.functions.buffer_read_block.call(&mut self.store,
-            (buffer.nonce, buffer.handle, i32::try_from(start)?, i32::try_from(destination.len())?))?;
+        let args = (buffer.nonce, buffer.handle, i32::try_from(start)?, i32::try_from(destination.len())?);
+        let offset = self.normal_call(|functions, store| functions.buffer_read_block.call(store, args))?;
         if offset < 0 { return Err(CoreFailure { operation: "buffer_read_block", code: offset }.into()); }
-        self.memory.read(&self.store, usize::try_from(offset)?, destination)?;
+        self.copy_memory_block(usize::try_from(offset)?, destination)?;
         Ok(())
     }
 
@@ -88,7 +89,7 @@ impl<H: Imports> CoreInstance<H> {
     // retained state. There is no automatic close on error and no Drop ACK.
     pub(crate) fn close_input_buffer(&mut self, buffer: &mut InputBuffer) -> wasmtime::Result<i32> {
         self.original_buffer(buffer)?;
-        let code = self.functions.buffer_close.call(&mut self.store, (buffer.nonce, buffer.handle))?;
+        let code = self.close_buffer_owner(buffer.nonce, buffer.handle)?;
         if code == 0 { buffer.closed = true; }
         Ok(code)
     }
@@ -109,6 +110,7 @@ mod tests {
         cleanup_ready: bool,
         stop_ready: bool,
         short_copy: bool,
+        panic_copy: bool,
     }
 
     impl Imports for PhysicalInputs {
@@ -117,6 +119,7 @@ mod tests {
             anyhow::ensure!(start >= 0 && offset >= 0 && (1..=16_384).contains(&length),
                             "Invalid physical copy bounds");
             let host = &mut caller.data_mut().host;
+            assert!(!host.panic_copy, "Original physical copy callback panicked");
             let original = host.inputs.get(&ticket).ok_or_else(|| anyhow::anyhow!("Unknown original input"))?.clone();
             let start = usize::try_from(start)?;
             let count = usize::try_from(length)?;
@@ -153,19 +156,18 @@ mod tests {
         let mut core = test_support::actual_module().instantiate(PhysicalInputs::default()).unwrap();
         // Explicit scalar diagnostic pool. This is not a normal Host/Run or
         // an imported execution child, and no unavailable grant is stubbed.
-        assert_eq!(core.functions.buffer_open.call(&mut core.store,
-            (nonce, 262_144, 16, 1_048_576, 100_000, 18, 16,
-             32_000_000, 200_000_000, 16_777_216 + 262_144, 0)).unwrap(), 0);
+        assert_eq!(core.normal_call(|functions, store| functions.buffer_open.call(store, (nonce, 262_144, 16, 1_048_576, 100_000, 18, 16,
+             32_000_000, 200_000_000, 16_777_216 + 262_144, 0))).unwrap(), 0);
         // A fresh diagnostic initialization uses the existing normal Host's
         // finite 1B bootstrap budget; this next scope selects its 32B operation
         // budget once. Neither is replenished inside a guest call or retry.
-        core.store.set_fuel(32_000_000_000).unwrap();
+        core.begin_normal_budget(32_000_000_000).unwrap();
         core
     }
 
     fn input(core: &mut CoreInstance<PhysicalInputs>, nonce: i64, ticket: i32, bytes: Arc<[u8]>) -> InputBuffer {
         let length = bytes.len();
-        assert!(core.store.data_mut().host.inputs.insert(ticket, bytes).is_none());
+        assert!(core.host_mut().inputs.insert(ticket, bytes).is_none());
         core.reserve_input_buffer(nonce, ticket, length,
             i64::try_from(length + std::mem::size_of::<InputBuffer>()).unwrap()).unwrap()
     }
@@ -179,39 +181,39 @@ mod tests {
         let mut buffer = input(&mut core, nonce, 41, original.clone());
         assert!(core.read_input_block(&buffer, 0, &mut [0u8; 1]).is_err());
         core.fill_input_buffer(&buffer).unwrap(); core.seal_input_buffer(&buffer).unwrap();
-        assert_eq!(core.store.data().host.copies, [(0, 16_384), (16_384, 16_384), (32_768, 19)]);
-        assert_eq!(core.store.data().host.scalar_reads, 0);
+        assert_eq!(core.host().copies, [(0, 16_384), (16_384, 16_384), (32_768, 19)]);
+        assert_eq!(core.host().scalar_reads, 0);
         for start in (0..original.len()).step_by(BLOCK_BYTES) {
             let count = (original.len() - start).min(BLOCK_BYTES);
             let mut block = vec![0u8; count]; core.read_input_block(&buffer, start, &mut block).unwrap();
             assert_eq!(block, &original[start..start + count]);
         }
-        assert!(Arc::ptr_eq(core.store.data().host.inputs.get(&41).unwrap(), &original));
+        assert!(Arc::ptr_eq(core.host().inputs.get(&41).unwrap(), &original));
         assert_eq!(core.close_input_buffer(&mut buffer).unwrap(), -9);
-        core.store.data_mut().host.cleanup_ready = true;
+        core.host_mut().cleanup_ready = true;
         assert_eq!(core.close_input_buffer(&mut buffer).unwrap(), 0);
-        core.store.data_mut().host.cleanup_ready = false;
+        core.host_mut().cleanup_ready = false;
         let environment: Arc<[u8]> = include_bytes!("../tests/fixtures/check-environment.json").as_slice().into();
         let mut environment_input = input(&mut core, nonce, 42, environment);
         core.fill_input_buffer(&environment_input).unwrap(); core.seal_input_buffer(&environment_input).unwrap();
-        let environment = core.functions.program_install_environment.call(&mut core.store, (nonce, environment_input.handle)).unwrap();
+        let environment = core.normal_call(|functions, store| functions.program_install_environment.call(store, (nonce, environment_input.handle))).unwrap();
         assert!(environment > 0, "Original Core environment refusal: {environment}");
         let mut query = input(&mut core, nonce, 43, br#""SELECT 41 AS n |> RESULT answer""#.as_slice().into());
         core.fill_input_buffer(&query).unwrap(); core.seal_input_buffer(&query).unwrap();
-        let preparation = core.functions.program_reserve_preparation.call(&mut core.store, (nonce, environment, query.handle, 2)).unwrap();
+        let preparation = core.normal_call(|functions, store| functions.program_reserve_preparation.call(store, (nonce, environment, query.handle, 2))).unwrap();
         assert!(preparation > 0);
-        assert_eq!(core.functions.program_prepare.call(&mut core.store, (nonce, preparation)).unwrap(), 0);
-        assert_eq!(core.functions.program_prepared_results.call(&mut core.store, (nonce, preparation)).unwrap(), 1);
-        assert_eq!(core.functions.program_close_preparation.call(&mut core.store, (nonce, preparation)).unwrap(), -9);
-        core.store.data_mut().host.stop_ready = true;
-        assert_eq!(core.functions.program_close_preparation.call(&mut core.store, (nonce, preparation)).unwrap(), 0);
-        assert_eq!(core.functions.program_close_environment.call(&mut core.store, (nonce, environment)).unwrap(), 0);
-        core.store.data_mut().host.cleanup_ready = true;
+        assert_eq!(core.normal_call(|functions, store| functions.program_prepare.call(store, (nonce, preparation))).unwrap(), 0);
+        assert_eq!(core.normal_call(|functions, store| functions.program_prepared_results.call(store, (nonce, preparation))).unwrap(), 1);
+        assert_eq!(core.close_preparation_owner(nonce, preparation).unwrap(), -9);
+        core.host_mut().stop_ready = true;
+        assert_eq!(core.close_preparation_owner(nonce, preparation).unwrap(), 0);
+        assert_eq!(core.close_environment_owner(nonce, environment).unwrap(), 0);
+        core.host_mut().cleanup_ready = true;
         assert_eq!(core.close_input_buffer(&mut query).unwrap(), 0);
         assert_eq!(core.close_input_buffer(&mut environment_input).unwrap(), 0);
-        assert_eq!(core.functions.buffer_close_pool.call(&mut core.store, (nonce,)).unwrap(), 0);
-        assert_eq!(core.functions.buffer_reserved.call(&mut core.store, (nonce,)).unwrap(), 0);
-        assert_eq!(core.store.data().host.scalar_reads, 0);
+        assert_eq!(core.close_transfer_pool(nonce).unwrap(), 0);
+        assert_eq!(core.reserved_transfer_bytes(nonce).unwrap(), 0);
+        assert_eq!(core.host().scalar_reads, 0);
     }
 
     #[test]
@@ -222,15 +224,15 @@ mod tests {
         assert_eq!(left_buffer.handle, right_buffer.handle);
         assert!(right.fill_input_buffer(&left_buffer).is_err());
         assert!(right.read_input_block(&left_buffer, 0, &mut [0u8; 1]).is_err());
-        assert!(right.store.data().host.copies.is_empty());
+        assert!(right.host().copies.is_empty());
         right.fill_input_buffer(&right_buffer).unwrap(); right.seal_input_buffer(&right_buffer).unwrap();
         let mut output = [0u8; 7]; right.read_input_block(&right_buffer, 0, &mut output).unwrap();
         assert_eq!(&output, b"\"right\"");
         for (core, buffer) in [(&mut left, &mut left_buffer), (&mut right, &mut right_buffer)] {
-            core.store.data_mut().host.cleanup_ready = true;
+            core.host_mut().cleanup_ready = true;
             assert_eq!(core.close_input_buffer(buffer).unwrap(), 0);
             assert!(core.fill_input_buffer(buffer).is_err());
-            assert_eq!(core.functions.buffer_close_pool.call(&mut core.store, (nonce,)).unwrap(), 0);
+            assert_eq!(core.close_transfer_pool(nonce).unwrap(), 0);
         }
     }
 
@@ -239,19 +241,72 @@ mod tests {
         let nonce = 8203; let mut core = pool(nonce);
         let original: Arc<[u8]> = b"original".as_slice().into();
         let mut buffer = input(&mut core, nonce, 9, original.clone());
-        core.store.data_mut().host.short_copy = true;
+        core.host_mut().short_copy = true;
         let failure = core.fill_input_buffer(&buffer).unwrap_err();
         assert!(failure.downcast_ref::<CoreFailure>().unwrap().code < 0);
-        assert_eq!(core.store.data().host.copies, [(0, 8)]);
-        assert_eq!(core.store.data().host.scalar_reads, 0);
-        assert!(Arc::ptr_eq(core.store.data().host.inputs.get(&9).unwrap(), &original));
-        assert!(core.functions.buffer_allocated.call(&mut core.store, (nonce,)).unwrap() > 0);
+        assert!(core.normal_available(), "An ordinary Core refusal is not a hard trap");
+        assert_eq!(core.host().copies, [(0, 8)]);
+        assert_eq!(core.host().scalar_reads, 0);
+        assert!(Arc::ptr_eq(core.host().inputs.get(&9).unwrap(), &original));
+        assert!(core.allocated_transfer_bytes(nonce).unwrap() > 0);
         assert_eq!(core.close_input_buffer(&mut buffer).unwrap(), -9);
-        assert!(core.store.data().host.inputs.contains_key(&9));
-        core.store.data_mut().host.cleanup_ready = true;
+        assert!(core.host().inputs.contains_key(&9));
+        core.host_mut().cleanup_ready = true;
         assert_eq!(core.close_input_buffer(&mut buffer).unwrap(), 0);
-        assert!(!core.store.data().host.inputs.contains_key(&9));
-        assert_eq!(core.functions.buffer_close_pool.call(&mut core.store, (nonce,)).unwrap(), 0);
-        assert_eq!(core.functions.buffer_reserved.call(&mut core.store, (nonce,)).unwrap(), 0);
+        assert!(!core.host().inputs.contains_key(&9));
+        assert_eq!(core.close_transfer_pool(nonce).unwrap(), 0);
+        assert_eq!(core.reserved_transfer_bytes(nonce).unwrap(), 0);
+    }
+
+    #[test]
+    fn hard_trap_cannot_refill_normal_work_but_keeps_original_cleanup() {
+        let nonce = 8204; let mut core = pool(nonce);
+        let original: Arc<[u8]> = b"\"retained original\"".as_slice().into();
+        let mut buffer = input(&mut core, nonce, 7, original.clone());
+        let mut empty = input(&mut core, nonce, 8, b"".as_slice().into());
+        core.begin_normal_budget(1).unwrap();
+        let failure = core.fill_input_buffer(&buffer).unwrap_err();
+        assert!(matches!(failure.downcast_ref::<wasmtime::Trap>(), Some(wasmtime::Trap::OutOfFuel)));
+        assert!(!core.normal_available());
+        let remaining = core.remaining_fuel().unwrap();
+        assert!(core.begin_normal_budget(32_000_000_000).is_err());
+        assert_eq!(core.remaining_fuel().unwrap(), remaining);
+        let copies = core.host().copies.len();
+        assert!(core.fill_input_buffer(&buffer).is_err());
+        assert!(core.fill_input_buffer(&empty).is_err());
+        assert!(core.reserve_input_buffer(nonce, 9, 1, 64).is_err());
+        assert_eq!(core.host().copies.len(), copies);
+        assert!(Arc::ptr_eq(core.host().inputs.get(&7).unwrap(), &original));
+        core.begin_cleanup_budget(100_000_000).unwrap();
+        assert_eq!(core.close_input_buffer(&mut buffer).unwrap(), -9);
+        assert!(!core.normal_available());
+        assert!(core.host().inputs.contains_key(&7));
+        core.host_mut().cleanup_ready = true;
+        assert_eq!(core.close_input_buffer(&mut buffer).unwrap(), 0);
+        assert_eq!(core.close_input_buffer(&mut empty).unwrap(), 0);
+        assert_eq!(core.close_transfer_pool(nonce).unwrap(), 0);
+        assert_eq!(core.reserved_transfer_bytes(nonce).unwrap(), 0);
+        assert!(core.begin_normal_budget(1).is_err());
+    }
+
+    #[test]
+    fn callback_unwind_leaves_same_instance_cleanup_only() {
+        let nonce = 8205; let mut core = pool(nonce);
+        let original: Arc<[u8]> = b"\"callback original\"".as_slice().into();
+        let mut buffer = input(&mut core, nonce, 11, original.clone());
+        core.host_mut().panic_copy = true;
+        let unwind = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            core.fill_input_buffer(&buffer).unwrap();
+        }));
+        assert!(unwind.is_err());
+        assert!(!core.normal_available());
+        assert!(Arc::ptr_eq(core.host().inputs.get(&11).unwrap(), &original));
+        assert!(core.begin_normal_budget(32_000_000_000).is_err());
+        core.begin_cleanup_budget(100_000_000).unwrap();
+        assert_eq!(core.close_input_buffer(&mut buffer).unwrap(), -9);
+        core.host_mut().cleanup_ready = true;
+        assert_eq!(core.close_input_buffer(&mut buffer).unwrap(), 0);
+        assert_eq!(core.close_transfer_pool(nonce).unwrap(), 0);
+        assert_eq!(core.reserved_transfer_bytes(nonce).unwrap(), 0);
     }
 }

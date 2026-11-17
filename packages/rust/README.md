@@ -38,3 +38,10 @@ scalar diagnostic pools are not normal Host/Run admission. They select the
 existing finite 1B bootstrap and one 32B operation scope explicitly; this is not
 an unmetered test or evidence of default-budget public execution. Cleanup,
 foreign-instance and short-copy controls retain their own actual outcomes.
+
+Raw Wasmtime errors and callback unwinding now fence the same instance to typed
+cleanup/inspection routes. Normal fuel cannot be replenished after that fence;
+ordinary negative Core status codes remain distinct. Actual fuel-trap and
+callback-unwind controls retain their original input and exercise pending then
+successful cleanup. This remains an internal invocation layer: the public
+supervisor/retirement owner and Run cancellation are not supplied by this flag.
