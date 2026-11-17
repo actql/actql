@@ -50,7 +50,11 @@ fn static_plan_validation_schema_profile(index : Int) -> (Int, Bool, Bool)? {
       // separately below, rather than pretending all patterns allocate alike.
       if pattern == 2 {
         timestamp = true
-      } else if pattern != 0 && pattern != 1 && pattern != 5 && pattern != 8 {
+      } else if pattern != 0 &&
+        pattern != 1 &&
+        pattern != 5 &&
+        pattern != 8 &&
+        pattern != 9 {
         return None
       }
     ArrayRule(item, _, distinct, _) => {
@@ -155,6 +159,21 @@ let static_plan_validation_profiles : Array[(String, Bool, (Int, Bool, Bool)?)] 
   ("logical_map", false, static_plan_validation_profile("logical_map", false)),
   ("logical_map", true, static_plan_validation_profile("logical_map", true)),
   ("plan_view", true, static_plan_validation_profile("plan_view", true)),
+  (
+    "explanation_facts",
+    false,
+    static_plan_validation_profile("explanation_facts", false),
+  ),
+  (
+    "explanation_facts",
+    true,
+    static_plan_validation_profile("explanation_facts", true),
+  ),
+  (
+    "run_explanation_view",
+    true,
+    static_plan_validation_profile("run_explanation_view", true),
+  ),
   (
     "prepared_invocation",
     true,

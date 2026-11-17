@@ -41,7 +41,7 @@ struct CapturedDAG {
   mut managed_identity_policy_sealed : Bool
   managed_selections : Array[@connector.CapabilityRegistration?]
   mut activation_required : Bool
-  mut activation_grant : (Int, Int)?
+  mut activation : CapturedTaskActivation
 }
 
 ///|
@@ -1193,7 +1193,7 @@ fn open_checked_dag(
     managed_identity_policy_sealed: false,
     managed_selections: Array::make(count, None),
     activation_required: false,
-    activation_grant: None,
+    activation: Unarmed,
   }
   if retained_task is Some(task) {
     // This is a borrowed completion. Its actual Model execution keeps its
@@ -2144,7 +2144,8 @@ pub fn captured_carrier_managed_task_output_matches(
 /// closing the caller-owned capture. In-flight asynchronous cleanup is separate.
 pub fn stop_captured_dag(run : CapturedDAG) -> Unit {
   run.stopped = true
-  run.activation_grant = None
+  clear_captured_task_activation(run)
+  stop_captured_task_boundary_hooks(run)
   if run.running is Some((_, execution)) {
     // Revocation is not stop acknowledgement. The Host still owns cleanup.
     task_execution_cancel(execution)
@@ -2189,6 +2190,11 @@ pub fn captured_dag_ledger(run : CapturedDAG) -> @resources.Ledger {
 ///|
 /// Host-private execution progress, including changes to retained physical
 /// copies. This is not a semantic identity or permission to reset search.
+pub fn captured_dag_strategy_revision(run : CapturedDAG) -> Int {
+  run.revisions
+}
+
+///|
 pub fn captured_dag_generation(run : CapturedDAG) -> Int {
   run.generation
 }
@@ -2711,7 +2717,7 @@ pub fn bind_captured_effect_completed_keyed_input(
   let run = value.captured
   guard next_captured_task(run) == Some(task) &&
     run.managed_selections[task] is None &&
-    run.activation_grant is None &&
+    !captured_task_activation_pending(run) &&
     graph_with_completed_keyed_model_input(run.graph, task, step, read)
     is Some(graph) else {
     return Err(NotReady)
@@ -2731,7 +2737,7 @@ pub fn bind_captured_effect_completed_keyed_input(
     run.supplied_reads[task][slots[0].input] is None &&
     next_captured_task(run) == Some(task) &&
     run.managed_selections[task] is None &&
-    run.activation_grant is None else {
+    !captured_task_activation_pending(run) else {
     return Err(ForeignCapture)
   }
   let slot = slots[0]

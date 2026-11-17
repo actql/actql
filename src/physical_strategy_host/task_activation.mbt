@@ -1,4 +1,35 @@
 ///|
+// Reuse the existing activation slot. Normal retains no extra root field or
+// hook object: Unarmed is inline; Granted is no larger than the old Some(pair).
+// Only explicitly selected Debug retains its separately funded holder.
+priv enum CapturedTaskActivation {
+  Unarmed
+  Preparing
+  SetupCleanup(CapturedBoundarySetup)
+  Granted(Int, Int)
+  Observed(CapturedTaskBoundaryHooks)
+}
+
+///|
+fn captured_task_activation_pending(run : CapturedDAG) -> Bool {
+  match run.activation {
+    Unarmed => false
+    Preparing | SetupCleanup(_) => true
+    Granted(_, _) => true
+    Observed(hooks) => hooks.activation_grant is Some(_)
+  }
+}
+
+///|
+fn clear_captured_task_activation(run : CapturedDAG) -> Unit {
+  match run.activation {
+    Observed(hooks) => hooks.activation_grant = None
+    Preparing | SetupCleanup(_) => ()
+    Unarmed | Granted(_, _) => run.activation = Unarmed
+  }
+}
+
+///|
 /// Opaque proof that one task activation is inside the Run's admitted
 /// authorization envelope. It is created only from an evaluated
 /// `AuthorizedForDispatch` runtime action or from the Host's explicit
@@ -78,7 +109,12 @@ pub fn authorize_captured_task_activation(
     return Err(NotReady)
   }
   ignore(task_activation_grant_basis(grant))
-  run.activation_grant = Some((task, run.revisions))
+  match run.activation {
+    Preparing | SetupCleanup(_) => return Err(NotReady)
+    Observed(hooks) => hooks.activation_grant = Some((task, run.revisions))
+    Unarmed | Granted(_, _) => run.activation = Granted(task, run.revisions)
+  }
+  record_captured_task_boundary_before(run, task)
   Ok(())
 }
 
@@ -86,19 +122,27 @@ pub fn authorize_captured_task_activation(
 /// Pending grant for `task` at the current strategy revision, without
 /// consuming it.
 pub fn captured_task_activation_granted(run : CapturedDAG, task : Int) -> Bool {
-  run.activation_grant is Some((granted, revision)) &&
-  granted == task &&
-  revision == run.revisions
+  match run.activation {
+    Unarmed | Preparing | SetupCleanup(_) => false
+    Granted(granted, revision) => granted == task && revision == run.revisions
+    Observed(hooks) =>
+      hooks.activation_grant is Some((granted, revision)) &&
+      granted == task &&
+      revision == run.revisions
+  }
 }
 
 ///|
 /// Checked by every task start before any reservation or external work. The
 /// grant is consumed whether or not the start later succeeds.
 fn consume_task_activation(run : CapturedDAG, task : Int) -> Bool {
+  if run.activation is Preparing || run.activation is SetupCleanup(_) {
+    return false
+  }
   if !run.activation_required {
     return true
   }
   let granted = captured_task_activation_granted(run, task)
-  run.activation_grant = None
+  clear_captured_task_activation(run)
   granted
 }
