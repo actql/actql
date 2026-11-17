@@ -158,6 +158,48 @@ for (const path of ['_build/native/directory-darwin-arm64.node',
   });
 }
 
+test('the dual-platform original retains both native facts and exact producer engine profiles', t => {
+  const f = fixture(t);
+  const cohort = {version: 'actql-package-release-cohort/0.1', packageVersion: '0.0.2',
+    registry: 'https://registry.npmjs.org/', access: 'public', tag: 'latest',
+    packages: ['client-wire', 'sdk', 'local-node', 'node']};
+  f.put('release/client-cohort.json', JSON.stringify(cohort));
+  const outputs = new Map(), targets = [];
+  for (const [platform, arch, filename] of [['darwin', 'arm64', 'directory-darwin-arm64.node'],
+    ['linux', 'x64', 'local-files-linux-x64.node']]) {
+    const path = '_build/native/' + filename, bytes = Buffer.from(`Independent ${platform} native DATA`);
+    const engine = {node: '22.22.0', v8: 'fixture-v8-' + platform, openssl: 'fixture-openssl',
+      platform, arch, libraries: {node: '22.22.0', v8: 'fixture-v8-' + platform, openssl: 'fixture-openssl'}};
+    const original = {platform, arch, binary: {path, bytes: bytes.length, sha256: sha(bytes)}};
+    const originalSource = JSON.stringify(original, null, 2) + '\n';
+    targets.push({platform, arch, engine, original, originalSource, originalSha256: sha(originalSource)});
+    outputs.set(path, bytes);
+  }
+  const descriptor = {version: 'actql-node-directory-native-cohort/0.1',
+    source: {packageVersion: cohort.packageVersion}, targets};
+  const update = () => outputs.set('_build/native/directory-original.json',
+    Buffer.from(JSON.stringify(descriptor)));
+  update(); f.options.nativeOutputs = outputs;
+  const bytes = f.render(), value = f.read(bytes);
+  assert.deepEqual(value.engineProfiles, targets.map(({engine}) => ({engine: {...engine, eager: true},
+    ordinaryEngine: {...engine, eager: false}})));
+  assert.equal(value.nativeImages.length, 2);
+  assert.deepEqual(value.engine, value.engineProfiles[0].engine);
+  assert.deepEqual(value.ordinaryEngine, value.engineProfiles[0].ordinaryEngine);
+  assert.equal(value.images.find(item => item.path === '_build/native/directory-original.json').sha256,
+    sha(outputs.get('_build/native/directory-original.json')));
+  f.options.nativeOutputs = new Map([...outputs].reverse());
+  assert.deepEqual(f.render(), bytes);
+  outputs.set('_build/native/local-files-linux-x64.node', Buffer.from('changed native DATA'));
+  f.options.nativeOutputs = outputs;
+  assert.throws(f.render, /InvalidInitialControlNativeImage/);
+  outputs.set('_build/native/local-files-linux-x64.node', Buffer.from('Independent linux native DATA'));
+  descriptor.targets = [targets[0], targets[0]]; update();
+  assert.throws(f.render, /InvalidInitialControlNativeImage/);
+  descriptor.targets = targets; descriptor.source.packageVersion = 'different'; update();
+  assert.throws(f.render, /InvalidInitialControlNativeImage/);
+});
+
 test('a missing runtime or package manifest preserves source-only issuer absence', t => {
   const f = fixture(t);
   unlinkSync(join(f.destination, '_build/js/release/build/common/common.js'));

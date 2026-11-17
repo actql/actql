@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {readFileSync, mkdtempSync, writeFileSync, existsSync, rmSync} from 'node:fs';
+import {readFileSync, mkdtempSync, writeFileSync, existsSync, rmSync, symlinkSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
@@ -27,7 +27,7 @@ test('formal collector refuses a diagnostic binding before any artifact or workf
   assert.doesNotMatch(run.stderr, /ENOENT/u); assert.equal(existsSync(output), false);
 });
 
-function smokeScenarios(wallNs = 3000000000) {
+function smokeScenarios(wallNs = nativeApprovalTarget.maxMs * 1e6) {
   return ['deal-review-mock', 'churn-risk-mock'].map(template => ({template,
     commands: [{args: ['original-launcher', 'approve', 'original-checkpoint', '--wait', '--json'],
       code: 0, signal: null, wallNs}]}));
@@ -48,9 +48,9 @@ async function installedSmokeTail(scenarios, measureResources = false, writeFail
 }
 
 test('ordinary Native smoke persists the original slow approvals before rejecting and never marks them passed', async () => {
-  const original = smokeScenarios(6000000000);
+  const original = smokeScenarios(nativeApprovalTarget.maxMs * 1e6 + 1);
   const {events, pending} = await installedSmokeTail(original);
-  await assert.rejects(pending, /approval maximum exceeds 3000 ms/u);
+  await assert.rejects(pending, error => error.message.includes(`approval maximum exceeds ${nativeApprovalTarget.maxMs} ms`));
   assert.deepEqual(events.map(event => event.kind), ['receipt']);
   assert.deepEqual(events[0].value.scenarios, original);
   assert.equal(events[0].value.approvalSmoke.status, 'failed');
@@ -58,10 +58,10 @@ test('ordinary Native smoke persists the original slow approvals before rejectin
   assert.equal(events[0].options.flag, 'wx');
 });
 
-test('ordinary Native smoke accepts three seconds and refuses one nanosecond above without a p95 claim', () => {
+test('ordinary Native smoke accepts its maximum and refuses one nanosecond above without a p95 claim', () => {
   const scenarios = smokeScenarios(), original = structuredClone(scenarios);
   const passed = performance.assessOrdinaryNativeApprovalSmoke(scenarios);
-  assert.equal(passed.status, 'passed'); assert.equal(passed.maximumMs, 3000);
+  assert.equal(passed.status, 'passed');
   assert.equal(passed.maximumMs, nativeApprovalTarget.maxMs);
   assert.equal(passed.formalAcceptance, false); assert.equal(passed.samples.length, 2);
   assert.equal(Object.hasOwn(passed, 'p95Ms'), false);
@@ -69,8 +69,8 @@ test('ordinary Native smoke accepts three seconds and refuses one nanosecond abo
   for (let index = 0; index < 2; index++) {
     const slow = structuredClone(scenarios); slow[index].commands[0].wallNs++;
     const result = performance.assessOrdinaryNativeApprovalSmoke(slow);
-    assert.equal(result.status, 'failed'); assert.equal(result.samples[index].wallNs, 3000000001);
-    assert(result.failures.some(reason => reason.includes('approval maximum exceeds 3000 ms')));
+    assert.equal(result.status, 'failed'); assert.equal(result.samples[index].wallNs, nativeApprovalTarget.maxMs * 1e6 + 1);
+    assert(result.failures.some(reason => reason.includes(`approval maximum exceeds ${nativeApprovalTarget.maxMs} ms`)));
   }
 });
 
@@ -144,38 +144,41 @@ test('Native approval target requires thirty verified samples on the same source
 });
 
 test('Native approval enforces both p95 and maximum without dropping slow failures', () => {
-  const slow = series(); slow.samples[0].wallNs = 11000000000;
+  const slow = series(); slow.samples[0].wallNs = (nativeApprovalTarget.maxMs + 1000) * 1e6;
   slow.samples[0].verified = false;
   const result = assessNativeApproval(slow);
-  assert.equal(result.status, 'failed'); assert.equal(result.summary.maxMs, 11000);
+  assert.equal(result.status, 'failed'); assert.equal(result.summary.maxMs, nativeApprovalTarget.maxMs + 1000);
   assert(result.failures.some(value => value.includes('oracle failed')));
   assert(result.failures.some(value => value.includes('maximum')));
-  const p95 = series(); p95.samples[0].wallNs = p95.samples[1].wallNs = 6000000000;
+  const p95 = series(); p95.samples[0].wallNs = p95.samples[1].wallNs = nativeApprovalTarget.p95Ms * 1e6 + 1;
   assert(assessNativeApproval(p95).failures.some(value => value.includes('p95')));
 });
 
-test('Native approval accepts two seconds p95 and rejects one nanosecond above it', () => {
-  assert.deepEqual(nativeApprovalTarget, {samples: 30, p95Ms: 2000, maxMs: 3000});
+test('Native approval accepts its p95 boundary and rejects one nanosecond above it', () => {
+  assert.deepEqual(nativeApprovalTarget, {samples: 30, p95Ms: 6000, maxMs: 10000});
   assert.equal(assessNativeApproval(series()).status, 'passed');
   const selected = series();
-  selected.samples[0].wallNs = selected.samples[1].wallNs = 2000000001;
+  selected.samples[0].wallNs = selected.samples[1].wallNs = nativeApprovalTarget.p95Ms * 1e6;
+  assert.equal(assessNativeApproval(selected).status, 'passed');
+  selected.samples[0].wallNs++;
+  selected.samples[1].wallNs++;
   const result = assessNativeApproval(selected);
   assert.equal(result.status, 'failed');
-  assert.deepEqual(result.failures, ['approval p95 exceeds 2000 ms']);
+  assert.deepEqual(result.failures, [`approval p95 exceeds ${nativeApprovalTarget.p95Ms} ms`]);
   assert.equal(result.summary.count, 30);
-  assert.equal(result.summary.p95Ms, 2000.000001);
+  assert.equal(result.summary.p95Ms, nativeApprovalTarget.p95Ms + 0.000001);
 });
 
-test('Native approval accepts three seconds maximum and rejects one nanosecond above it', () => {
-  const selected = series(); selected.samples[0].wallNs = 3000000000;
+test('Native approval accepts its maximum boundary and rejects one nanosecond above it', () => {
+  const selected = series(); selected.samples[0].wallNs = nativeApprovalTarget.maxMs * 1e6;
   assert.equal(assessNativeApproval(selected).status, 'passed');
   selected.samples[0].wallNs++;
   const result = assessNativeApproval(selected);
   assert.equal(result.status, 'failed');
-  assert.deepEqual(result.failures, ['approval maximum exceeds 3000 ms']);
+  assert.deepEqual(result.failures, [`approval maximum exceeds ${nativeApprovalTarget.maxMs} ms`]);
   assert.equal(result.summary.count, 30);
   assert.equal(result.summary.p95Ms, 2000);
-  assert.equal(result.summary.maxMs, 3000.000001);
+  assert.equal(result.summary.maxMs, nativeApprovalTarget.maxMs + 0.000001);
 });
 
 test('Native approval diagnostic samples do not supply a final acceptance p95', () => {
@@ -252,4 +255,97 @@ test('approval phases require complete actual boundaries and retain inclusive du
   assert.throws(() => approvalPhases(record()), /unfinished/u);
   rows.shift();
   assert.throws(() => approvalPhases(record()), /incomplete/u);
+});
+
+
+test('syscall diagnosis is a separate explicit Linux resource mode with closed options', () => {
+  assert.deepEqual(performance.nativeApprovalObservationOptions([], 'linux'),
+    {measureResources: false, diagnoseSyscalls: false});
+  assert.deepEqual(performance.nativeApprovalObservationOptions(['--measure-approval-resources'], 'darwin'),
+    {measureResources: true, diagnoseSyscalls: false});
+  assert.deepEqual(performance.nativeApprovalObservationOptions(
+    ['--measure-approval-resources', '--diagnose-approval-syscalls'], 'linux'),
+  {measureResources: true, diagnoseSyscalls: true});
+  for (const extra of [['--diagnose-approval-syscalls'], ['--unknown'],
+    ['--measure-approval-resources', '--measure-approval-resources']]) {
+    assert.throws(() => performance.nativeApprovalObservationOptions(extra, 'linux'));
+  }
+  assert.throws(() => performance.nativeApprovalObservationOptions(
+    ['--measure-approval-resources', '--diagnose-approval-syscalls'], 'darwin'));
+});
+
+test('ordinary and formal commands stay untraced while the separate diagnostic wraps the same OS sampled command', () => {
+  const command = '/original/node', args = ['/original/actql', 'approve', 'same-run', '--wait', '--json'];
+  assert.deepEqual(performance.nativeApprovalObservedCommand(command, args), {command, args});
+  const formal = performance.nativeApprovalObservedCommand(command, args,
+    {platform: 'linux', resources: '/owned/resources.txt'});
+  assert.deepEqual(formal, {command: '/usr/bin/time', args:
+    ['--verbose', '--output', '/owned/resources.txt', command, ...args]});
+  const diagnostic = performance.nativeApprovalObservedCommand(command, args,
+    {platform: 'linux', resources: '/owned/resources.txt', syscalls: '/owned/syscalls.txt'});
+  assert.deepEqual(diagnostic, {command: '/usr/bin/strace', args:
+    ['-f', '-c', '-o', '/owned/syscalls.txt', '--', formal.command, ...formal.args]});
+  assert.deepEqual(performance.nativeApprovalObservedCommand(command, args,
+    {platform: 'darwin', resources: '/owned/resources.txt'}), {command: '/usr/bin/time', args:
+    ['-l', '-p', '-o', '/owned/resources.txt', command, ...args]});
+  assert.throws(() => performance.nativeApprovalObservedCommand(command, args, {syscalls: '/owned/trace'}));
+  assert.throws(() => performance.nativeApprovalObservedCommand(command, args,
+    {platform: 'darwin', resources: '/owned/time', syscalls: '/owned/trace'}));
+});
+
+test('raw OS observations retain original faults filesystem blocks context switches and summary errors after scratch removal', async t => {
+  const root = mkdtempSync(join(tmpdir(), 'native-resource-retention-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const text = ' User time (seconds): 0.30\n System time (seconds): 0.10\n' +
+    ' Maximum resident set size (kbytes): 4096\n Major (requiring I/O) page faults: 4\n' +
+    ' Minor (reclaiming a frame) page faults: 12\n Voluntary context switches: 3\n' +
+    ' Involuntary context switches: 2\n File system inputs: 8\n File system outputs: 24\n';
+  const source = join(root, 'original-time.txt'), output = join(root, 'approval-resources-case.txt');
+  writeFileSync(source, text);
+  const record = await performance.retainNativeApprovalObservation(source, output, 'resources');
+  assert.equal(record.file, 'approval-resources-case.txt');
+  assert.equal(record.bytes, Buffer.byteLength(text));
+  assert.equal(record.sha256, (await import('node:crypto')).createHash('sha256').update(text).digest('hex'));
+  rmSync(source); assert.equal(readFileSync(output, 'utf8'), text);
+  const summary = ' % time     seconds  usecs/call     calls    errors syscall\n 80.00 0.800000 1 800000 0 getpid\n';
+  writeFileSync(source, summary);
+  const syscallOutput = join(root, 'approval-syscalls-case.txt');
+  const syscallRecord = await performance.retainNativeApprovalObservation(source, syscallOutput, 'syscalls');
+  assert.equal(syscallRecord.kind, 'syscalls'); assert.equal(readFileSync(syscallOutput, 'utf8'), summary);
+  await assert.rejects(performance.retainNativeApprovalObservation(source, syscallOutput, 'syscalls'), {code: 'EEXIST'});
+  await assert.rejects(performance.retainNativeApprovalObservation(source, join(root, 'unknown'), 'store'));
+  const link = join(root, 'link'); symlinkSync(source, link);
+  await assert.rejects(performance.retainNativeApprovalObservation(link, join(root, 'linked'), 'resources'));
+  writeFileSync(source, Buffer.alloc(64 * 1024 + 1));
+  await assert.rejects(performance.retainNativeApprovalObservation(source, join(root, 'oversized'), 'resources'));
+  assert.equal(existsSync(join(root, 'oversized')), false);
+});
+
+test('formal samples reject instrumented diagnostics and unavailable original resource files', () => {
+  const approval = {measurement: {sampler: '/usr/bin/time', wallIncludesSampler: true},
+    observationFiles: [{kind: 'resources', file: 'approval-resources-original.txt', bytes: 100, sha256: 'a'.repeat(64)}]};
+  performance.assertNativeApprovalObservation(approval);
+  for (const change of [row => {row.measurement.diagnosticOnly = true;},
+    row => {row.resourceObservationIssue = 'retention failed';}, row => {row.observationFiles = [];},
+    row => {row.observationFiles[0].kind = 'syscalls';}, row => {row.observationFiles[0].sha256 = 'wrong';}]) {
+    const changed = structuredClone(approval); change(changed);
+    assert.throws(() => performance.assertNativeApprovalObservation(changed));
+  }
+});
+
+test('required CI preserves the formal failure and runs at most one separate fresh diagnostic against the same artifact', () => {
+  const job = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8')).jobs['native-cli-linux-local-mock'];
+  const formal = job.steps.find(step => step.id === 'approval_profile');
+  assert(formal && !formal.run.includes('strace') && !formal.run.includes('--diagnose-approval-syscalls'));
+  assert.equal(formal['continue-on-error'], undefined);
+  const diagnostics = job.steps.filter(step => step.run?.includes('--diagnose-approval-syscalls'));
+  assert.equal(diagnostics.length, 1);
+  assert.equal(diagnostics[0].if, "${{ failure() && steps.approval_profile.outcome == 'failure' }}");
+  assert(diagnostics[0].run.includes('--measure-approval-resources'));
+  assert(diagnostics[0].run.includes('"$RUNNER_TEMP/native-cli-linux-local/release"'));
+  assert(diagnostics[0].run.includes('timeout 300s'));
+  assert.equal(diagnostics[0]['continue-on-error'], undefined);
+  const upload = job.steps.find(step => step.name === 'Retain complete Native approval samples and original Mock receipts');
+  for (const pattern of ['approval-resources-*.txt', 'approval-syscalls-*.txt', 'mock-syscalls-*.json']) assert(upload.with.path.includes(pattern));
+  assert.equal(upload.if, 'always()');
 });

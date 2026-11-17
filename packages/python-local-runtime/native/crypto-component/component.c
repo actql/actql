@@ -84,6 +84,16 @@ static int lock_state(void) {
     return original_thread_current() && state && original_process == getpid() &&
         !atomic_flag_test_and_set_explicit(&state->lock, memory_order_acquire);
 }
+/* One fresh observation for this allocation callback, before touching a
+ * possibly inherited state lock. The original provider checks the Read's PID,
+ * active scope and lease; bind_original retained this exact immutable pair.
+ * No observation is kept across callback return, unlock or another entry. */
+static int lock_current_allocation_state(void) {
+    return original_thread_current() && state && original_context &&
+        actql_bootstrap_current_read_context() == original_context &&
+        actql_native_owned_current() == original_lease &&
+        !atomic_flag_test_and_set_explicit(&state->lock, memory_order_acquire);
+}
 static void unlock_state(void) {
     atomic_flag_clear_explicit(&state->lock, memory_order_release);
 }
@@ -111,8 +121,10 @@ static block *find(void *p) {
     return (block *)(value - header_bytes());
 }
 static void *allocate_locked(size_t n) {
+    /* Only the same allocation callback's fresh current guard enters here.
+     * The fixed-heap walk holds its state lock and invokes no callbacks. */
     size_t size = rounded(n);
-    if (!n || !size || !current() || (state->closing && !state->cleanup_active) || state->failed) return NULL;
+    if (!n || !size || (state->closing && !state->cleanup_active) || state->failed) return NULL;
     ALLOCATION_ATTEMPT();
     /* Address-order first fit over free blocks only. A small earlier hole
      * stays eligible without making every request rescan the live prefix. */
@@ -171,7 +183,7 @@ static void free_locked(block *b) {
 }
 static void *component_malloc(size_t n, const char *file, int line) {
     (void)file; (void)line;
-    if (!lock_state()) return NULL;
+    if (!lock_current_allocation_state()) return NULL;
     void *result = allocate_locked(n); unlock_state(); return result;
 }
 static void component_free(void *p, const char *file, int line) {
@@ -185,9 +197,9 @@ static void component_free(void *p, const char *file, int line) {
 static void *component_realloc(void *p, size_t n, const char *file, int line) {
     (void)file; (void)line;
     if (!p) return component_malloc(n, file, line);
-    if (!lock_state()) return NULL;
+    if (!lock_current_allocation_state()) return NULL;
     block *b = find(p);
-    if (!b || !current() || (state->closing && !state->cleanup_active) || state->failed) {
+    if (!b || (state->closing && !state->cleanup_active) || state->failed) {
         if (!b) {state->failed = 1; state->failures++;}
         unlock_state(); return NULL;
     }

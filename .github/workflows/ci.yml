@@ -284,6 +284,9 @@ jobs:
       - name: Test explicit release policy and publication refusal
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/release-policy.test.mjs scripts/release-version-schema.test.mjs scripts/release-set.test.mjs scripts/release-review.test.mjs scripts/release-promotion-review.test.mjs scripts/release-registry.test.mjs scripts/release-stage.test.mjs scripts/release-native-registry.test.mjs scripts/release-native-publish.test.mjs scripts/release-native-latest.test.mjs scripts/release-public-install.test.mjs scripts/release-python-install.test.mjs scripts/release-python-publish.test.mjs scripts/release-python-cold-verifier.test.mjs scripts/release-native-install.test.mjs scripts/release-lanes.test.mjs scripts/release-fixed-source.test.mjs scripts/native-standalone-release.test.mjs scripts/native-cli-version.test.mjs
+      - name: Test release candidate assembly and public consumer controls
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        run: node --test scripts/node-directory-native-inputs.test.mjs scripts/produce-native-cli-darwin-local.test.mjs scripts/test-package-release-readme.test.mjs scripts/test-native-cli-public-install.test.mjs scripts/release-candidate-ci.test.mjs
       - name: Test cross-host Python release preparation without runtime loading
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: |
@@ -2525,7 +2528,7 @@ jobs:
       - name: Produce normal selected Linux Local artifact
         run: |
           node scripts/produce-native-cli-linux-local.mjs \
-            --source "$(git rev-parse HEAD)" --package-version 0.0.2-rc.0 \
+            --source "$(git rev-parse HEAD)" --package-version 0.0.2 \
             --output "$RUNNER_TEMP/native-cli-linux-local/production" \
             --clang "$(realpath /usr/bin/clang-19)" \
             --sqlite-archive "$RUNNER_TEMP/native-cli-linux-local/inputs/sqlite.zip" \
@@ -2535,7 +2538,7 @@ jobs:
       - name: Require Local payload in the selected npm cohort
         id: local_cohort
         run: |
-          printf '%s\n' '{"packageVersion":"0.0.2-rc.0","registry":"https://registry.npmjs.org/","access":"public","tag":"rc"}' > "$RUNNER_TEMP/native-cli-linux-local/cohort.json"
+          printf '%s\n' '{"packageVersion":"0.0.2","registry":"https://registry.npmjs.org/","access":"public","tag":"latest"}' > "$RUNNER_TEMP/native-cli-linux-local/cohort.json"
           node scripts/native-cli-release.mjs prepare-local \
             "$RUNNER_TEMP/native-cli-linux-local/release" \
             "$RUNNER_TEMP/native-cli-linux-local/cohort.json" \
@@ -2565,8 +2568,8 @@ jobs:
             ${{ runner.temp }}/native-cli-linux-local/production/artifact/artifact.json
             ${{ runner.temp }}/native-cli-linux-local/production/artifact/native-producer/build.json
             ${{ runner.temp }}/native-cli-linux-local/release/release.json
-            ${{ runner.temp }}/native-cli-linux-local/release/actql-0.0.2-rc.0.tgz
-            ${{ runner.temp }}/native-cli-linux-local/release/actql-cli-linux-x64-gnu-0.0.2-rc.0.tgz
+            ${{ runner.temp }}/native-cli-linux-local/release/actql-0.0.2.tgz
+            ${{ runner.temp }}/native-cli-linux-local/release/actql-cli-linux-x64-gnu-0.0.2.tgz
             ${{ runner.temp }}/native-cli-linux-local/release/source-free-install-*.json
             ${{ runner.temp }}/native-cli-linux-local/release/source-free-observed-*.json
           if-no-files-found: warn
@@ -2629,12 +2632,23 @@ jobs:
             "$RUNNER_TEMP/native-cli-linux-local/release" \
             > "$RUNNER_TEMP/native-cli-linux-local/approval/source.json"
       - name: Require thirty complete approvals for each original Mock workflow
+        id: approval_profile
         run: |
           node scripts/test-native-approval-performance.mjs \
             --normal "$RUNNER_TEMP/native-cli-linux-local/release" \
             --binding "$RUNNER_TEMP/native-cli-linux-local/approval/source.json" \
             --output "$RUNNER_TEMP/native-cli-linux-local/approval/assessment.json" \
             --runner ubuntu-24.04
+      - name: Diagnose one fresh original workflow only after formal failure
+        if: ${{ failure() && steps.approval_profile.outcome == 'failure' }}
+        run: |
+          if [ ! -x /usr/bin/strace ]; then
+            sudo apt-get update
+            sudo apt-get install --yes --no-install-recommends strace
+          fi
+          timeout 300s node scripts/test-native-cli-mock-install.mjs \
+            "$RUNNER_TEMP/native-cli-linux-local/release" \
+            --measure-approval-resources --diagnose-approval-syscalls
       - name: Retain complete Native approval samples and original Mock receipts
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -2643,7 +2657,12 @@ jobs:
           path: |
             ${{ runner.temp }}/native-cli-linux-local/approval/*.json
             ${{ runner.temp }}/native-cli-linux-local/release/mock-install-*.json
+            ${{ runner.temp }}/native-cli-linux-local/release/mock-syscalls-*.json
+            ${{ runner.temp }}/native-cli-linux-local/release/approval-resources-*.txt
+            ${{ runner.temp }}/native-cli-linux-local/release/approval-syscalls-*.txt
             /tmp/actql-native-mock-install-*/commands.json
+            /tmp/actql-native-mock-install-*/approval-resources-*.txt
+            /tmp/actql-native-mock-install-*/approval-syscalls-*.txt
           if-no-files-found: warn
           retention-days: 14
   # Native storage, publication and control, and the Native retained path.

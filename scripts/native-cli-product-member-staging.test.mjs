@@ -6,6 +6,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {stageProductMembers, verifyStagedProductMembers, launcherMemberPlatform} from './native-cli-product-members.mjs';
+import {DUAL_LOCAL_LAUNCHER_PLATFORM, installedProductCensus} from '../packages/native-cli/lib/product-members.mjs';
 
 const selected = {sourceSha: 'a'.repeat(40), platform: 'darwin-arm64', packageName: 'actql'};
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -101,5 +102,41 @@ test('launcher descriptor selects one finite profile without changing multi Remo
   assert.equal(launcherMemberPlatform([darwin]), 'darwin-arm64');
   assert.equal(launcherMemberPlatform([darwin, linux]), undefined);
   assert.equal(launcherMemberPlatform([{...darwin, localRuntime: {}}, linux]), 'darwin-arm64');
-  assert.equal(launcherMemberPlatform([{...darwin, localRuntime: {}}, {...linux, localRuntime: {}}]), undefined);
+  assert.equal(launcherMemberPlatform([{...darwin, localRuntime: {}}, {...linux, localRuntime: {}}]), DUAL_LOCAL_LAUNCHER_PLATFORM);
+  assert.equal(launcherMemberPlatform([{...linux, localRuntime: {}}, {...darwin, localRuntime: {}}]), DUAL_LOCAL_LAUNCHER_PLATFORM);
+  for (const records of [[], [darwin, darwin], [{platform: 'linux-arm64-gnu'}], [darwin, linux, darwin]])
+    assert.throws(() => launcherMemberPlatform(records));
+});
+
+
+test('one dual launcher descriptor verifies the same strict payload on each exact platform', async t => {
+  const root = await fixture(t), shared = {...selected, platform: DUAL_LOCAL_LAUNCHER_PLATFORM};
+  const metadata = await stageProductMembers(root, shared);
+  const raw = await readFile(join(root, descriptorName), 'utf8');
+  assert(raw.includes('"platform":"darwin-arm64+linux-x64-gnu"'));
+  for (const platform of ['darwin-arm64', 'linux-x64-gnu']) {
+    const launcher = await verifyStagedProductMembers(root, {...selected, platform}, metadata);
+    assert.equal(launcher.platform, DUAL_LOCAL_LAUNCHER_PLATFORM);
+    const osPackage = {...launcher, platform, packageName: `@actql/cli-${platform}`};
+    const placement = installedProductCensus(launcher, osPackage, '/installed/actql',
+      `/installed/actql/node_modules/@actql/cli-${platform}`);
+    assert.equal(placement.layout, 'nested');
+    assert.deepEqual(placement.launcher.directories.at(-1), {path: 'node_modules/@actql',
+      entries: [{name: `cli-${platform}`, kind: 'directory'}]});
+  }
+  await assert.rejects(verifyStagedProductMembers(root, {...selected, sourceSha: 'b'.repeat(40)}, metadata));
+  await assert.rejects(verifyStagedProductMembers(root, {...selected, platform: 'linux-arm64-gnu'}, metadata));
+  await assert.rejects(verifyStagedProductMembers(root, {...shared, packageName: '@actql/cli-linux-x64-gnu'}, metadata));
+  await assert.rejects(verifyStagedProductMembers(root, selected, {...metadata, sha256: 'b'.repeat(64)}));
+});
+
+test('dual launcher payload and generation remain exact physical staging obligations', async t => {
+  const root = await fixture(t), shared = {...selected, platform: DUAL_LOCAL_LAUNCHER_PLATFORM};
+  const metadata = await stageProductMembers(root, shared);
+  const before = await readFile(join(root, descriptorName));
+  await writeFile(join(root, descriptorName), before.toString().replace('darwin-arm64+linux-x64-gnu', 'linux-x64-gnu+darwin-arm64'));
+  await assert.rejects(verifyStagedProductMembers(root, selected, metadata));
+  await writeFile(join(root, descriptorName), before);
+  await writeFile(join(root, 'bin/actql.mjs'), 'changed');
+  await assert.rejects(verifyStagedProductMembers(root, selected, metadata));
 });

@@ -5,6 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
 import {assembleNativeLinuxLocalRecipe} from './native-cli-linux-local-recipe.mjs';
+import {assembleNativeLocalRecipe} from './native-cli-local-recipe.mjs';
 import {prepareNativeLocalRuntime} from './native-cli-local-runtime.mjs';
 
 const sourceSha = 'a'.repeat(40), target = 'x86_64-unknown-linux-gnu';
@@ -15,7 +16,8 @@ const canonical = value => value && typeof value === 'object' && !Array.isArray(
   ? Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])])) : value;
 // Synthetic receipts, headers and inspector responses test DATA assembly only.
 // They are deliberately not compiled components or installed runtime evidence.
-function fixture(t) {
+function fixture(t, platform = 'linux-x64-gnu') {
+  const linux = platform === 'linux-x64-gnu', target = linux ? 'x86_64-unknown-linux-gnu' : 'aarch64-apple-darwin';
   const root = mkdtempSync(join(realpathSync(tmpdir()), 'actql-linux-recipe-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));
   const sourceRoot = join(root, 'source'), sqliteDirectory = join(root, 'sqlite'), cryptoDirectory = join(root, 'crypto');
@@ -31,7 +33,8 @@ function fixture(t) {
     [providerPath]: put(join(sourceRoot, providerPath), Buffer.from('synthetic bootstrap source\n')),
   };
   const sqliteRecipe = {provider_inputs: providerInputs, target: 'aarch64-apple-darwin', deployment_target: '11.0', local: {NOTICE: identity(notice)}};
-  const cryptoRecipe = {local: {NOTICE: identity(cryptoNotice)}, source_targets: {[target]: {license: identity(copyright)}}};
+  const cryptoRecipe = {local: {NOTICE: identity(cryptoNotice)}, license_sha256: hash(copyright), source_targets: {[target]: {license: identity(copyright)}},
+    source_builds: {'darwin-arm64-macos11': {minimum_macos: '11.0', target: 'aarch64-apple-darwin'}}};
   const sqlitePath = join(sourceRoot, 'packages/python-local-runtime/native/sqlite-component/source.json');
   const cryptoPath = join(sourceRoot, 'packages/python-local-runtime/native/crypto-component/source.json');
   const sr = put(sqlitePath, wire(sqliteRecipe)), cr = put(cryptoPath, wire(cryptoRecipe));
@@ -39,15 +42,18 @@ function fixture(t) {
   const selected = {...sqliteRecipe, target, deployment_target: null, original_recipe_sha256: sr.sha256,
     process_format: 'ELF64-little-x86-64-shared', provider_binding: 'same original process namespace',
     automatic_initializers: false, component_tls: false};
-  const recipeHash = hash(wire(canonical(selected)));
+  const recipeHash = linux ? hash(wire(canonical(selected))) : sr.sha256;
   const library = Buffer.alloc(64); library.write('ELF', 1); library[0] = 0x7f; library[4] = 2; library[5] = 1;
   library.writeUInt16LE(3, 16); library.writeUInt16LE(62, 18);
+  if (!linux) {library.writeUInt32LE(0xfeedfacf, 0); library.writeUInt32LE(0x0100000c, 4); library.writeUInt32LE(6, 12);}
   const sqlite = {source_sha: sourceSha, target, compiler_target: 'x86_64-linux-gnu', loaded: false, initialized: false,
     compile: 1, link: 1, elf_machine: 62, automatic_initializers: false, component_tls: false,
-    recipe_sha256: recipeHash, stage: {outputs: {NOTICE: identity(notice)}, provider_inputs: providerInputs, selected_process_recipe: selected, original_recipe_sha256: sr.sha256, recipe_sha256: recipeHash, target},
+    minimum_macos: '11.0', recipe_sha256: recipeHash, stage: {outputs: {NOTICE: identity(notice)}, provider_inputs: providerInputs, selected_process_recipe: selected, original_recipe_sha256: sr.sha256, recipe_sha256: recipeHash, target},
     inputs: {[sqlitePath]: sr}, library: identity(library), notice: identity(notice), system_dependencies: ['libc.so.6']};
   const crypto = {source: sourceSha, target, compiler_target: 'x86_64-linux-gnu', loaded: false, initialized: false,
-    providers: 0, inputs: {[cryptoPath]: cr}, recipe: cr, library: identity(library), dependencies: ['libc.so.6']};
+    providers: 0, inputs: {[cryptoPath]: cr}, recipe: cr, library: identity(library), dependencies: ['libc.so.6'],
+    minimum_macos: '11.0', license: identity(copyright),
+    static_source: {source: sourceSha, target, loaded: false, providers: 0, profile: cryptoRecipe.source_builds['darwin-arm64-macos11']}};
   for (const [receipt, names] of [
     [sqlite, ['scripts/produce-python-sqlite-component.py', 'packages/python-local-runtime/native/sqlite-component/prepare.py']],
     [crypto, ['scripts/produce-native-crypto-component.py']],
@@ -56,18 +62,29 @@ function fixture(t) {
       put(join(sourceRoot, name), Buffer.from(`synthetic source: ${name}\n`));
     receipt.inputs[join(sourceRoot, capacityPath)] = providerInputs[capacityPath];
   }
+  crypto.compiled_inputs = {[join(sourceRoot, capacityPath)]: providerInputs[capacityPath]};
+  for (const [role, receipt] of [['sqlite', sqlite], ['crypto', crypto]]) receipt.links =
+    `synthetic:\n\t@rpath/libactql_${role}_component.dylib (compatibility version 0.0.0, current version 0.0.0)\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1.0.0)\n`;
   crypto.inputs[join(cryptoPath, '../NOTICE')] = identity(cryptoNotice);
   const sqliteReceipt = join(sqliteDirectory, 'process-producer.json'), cryptoReceipt = join(cryptoDirectory, 'producer.json');
   put(sqliteReceipt, wire(sqlite)); put(cryptoReceipt, wire(crypto));
-  put(join(sqliteDirectory, 'libactql_sqlite_component.so'), library);
-  put(join(cryptoDirectory, 'libactql_crypto_component.so'), library);
+  const extension = linux ? 'so' : 'dylib';
+  put(join(sqliteDirectory, `libactql_sqlite_component.${extension}`), library);
+  put(join(cryptoDirectory, `libactql_crypto_component.${extension}`), library);
   put(join(sqliteDirectory, 'SQLITE-NOTICE'), notice);
-  put(join(cryptoDirectory, 'CRYPTO-NOTICE'), cryptoNotice); put(join(cryptoDirectory, 'OPENSSL-COPYRIGHT'), copyright);
+  put(join(cryptoDirectory, 'CRYPTO-NOTICE'), cryptoNotice); put(join(cryptoDirectory, linux ? 'OPENSSL-COPYRIGHT' : 'OPENSSL-LICENSE.txt'), copyright);
   put(join(sourceRoot, 'spec/contracts/actql-aoa.json'), wire({pipeline_registry_file: 'spec/registry.json',
     execution_contracts: {'REL.values': {}, 'ACTQL.expression_fragment/0.1': {}, 'REL.derive.ordered': {}}}));
   put(join(sourceRoot, 'spec/registry.json'), wire({})); put(join(sourceRoot, 'spec/local-check-environment.json'), wire({}));
   const execute = (tool, args) => {
     if (tool === 'git') return args[0] === 'rev-parse' ? sourceSha + '\n' : '';
+    if (!linux) {
+      assert.equal(tool, 'otool');
+      const name = args.at(-1).split('/').at(-1);
+      if (args[0] === '-D') return `${args.at(-1)}:\n@rpath/${name}\n`;
+      if (args[0] === '-l') return 'cmd LC_BUILD_VERSION\n cmdsize 32\n platform 1\n minos 11.0\n';
+      return `${args.at(-1)}:\n\t@rpath/${name} (compatibility version 0.0.0, current version 0.0.0)\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1.0.0)\n`;
+    }
     assert.equal(tool, 'readelf');
     return args[0] === '-d' ? '(NEEDED) Shared library: [libc.so.6]\n' : 'GLIBC_2.2.5 GLIBC_2.34';
   };
@@ -208,4 +225,39 @@ test('missing physical glibc ABI and wrong ELF architecture are refused', t => {
   g.sqlite.library = g.put(path, bytes); g.put(g.sqliteReceipt, wire(g.sqlite));
   assert.throws(() => assembleNativeLinuxLocalRecipe(g.options, g.execute));
   assert(!existsSync(g.options.outputDirectory));
+});
+
+test('Darwin recipe binds source-built components, actual Mach-O ABI and both original licenses', async t => {
+  const f = fixture(t, 'darwin-arm64');
+  const {recipe} = assembleNativeLocalRecipe({...f.options, platform: 'darwin-arm64'}, f.execute);
+  assert.equal(recipe.sourceSha, sourceSha); assert.equal(recipe.platform, 'darwin-arm64');
+  assert.deepEqual(recipe.libraries.map(v => v.name), ['libactql_sqlite_component.dylib', 'libactql_crypto_component.dylib']);
+  assert.deepEqual(readFileSync(recipe.licenses[0].original.path), f.notice);
+  assert.deepEqual(readFileSync(recipe.licenses[1].original.path), Buffer.concat([f.copyright, Buffer.from('\n\n'), f.cryptoNotice]));
+  const output = join(f.root, 'runtime'); mkdirSync(output);
+  const metadata = await prepareNativeLocalRuntime(output, recipe, f.execute);
+  const runtime = JSON.parse(readFileSync(join(output, metadata.path)));
+  assert.deepEqual(runtime.libraries.map(v => v.abi), [{minimumMacOS: '11.0'}, {minimumMacOS: '11.0'}]);
+  assert.deepEqual(runtime.libraries.map(v => v.dependencies), [['/usr/lib/libSystem.B.dylib'], ['/usr/lib/libSystem.B.dylib']]);
+});
+
+test('Darwin recipe refuses foreign source/profile, changed license, wrong image and ambient library search', t => {
+  for (const mutate of [
+    f => {f.crypto.static_source.source = 'b'.repeat(40);},
+    f => {f.crypto.static_source.target = 'x86_64-unknown-linux-gnu';},
+    f => {f.crypto.static_source.profile.minimum_macos = '26.0';},
+    f => {delete f.crypto.static_source;},
+    f => {f.sqlite.initialized = true;},
+    f => {f.crypto.license.sha256 = 'b'.repeat(64);},
+    f => {f.put(join(f.options.cryptoDirectory, 'libactql_crypto_component.dylib'), Buffer.from('not a Mach-O image'));},
+  ]) {
+    const f = fixture(t, 'darwin-arm64'); mutate(f);
+    f.put(f.sqliteReceipt, wire(f.sqlite)); f.put(f.cryptoReceipt, wire(f.crypto));
+    assert.throws(() => assembleNativeLocalRecipe({...f.options, platform: 'darwin-arm64'}, f.execute));
+    assert(!existsSync(f.options.outputDirectory));
+  }
+  const f = fixture(t, 'darwin-arm64');
+  assert.throws(() => assembleNativeLocalRecipe({...f.options, platform: 'darwin-arm64'}, (tool, args) =>
+    tool === 'otool' && args[0] === '-l' ? f.execute(tool, args) + 'cmd LC_RPATH\n' : f.execute(tool, args)));
+  assert(!existsSync(f.options.outputDirectory));
 });

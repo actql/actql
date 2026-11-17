@@ -687,6 +687,90 @@ static bool allocation_domain_failure_observation(void) {
 #ifdef ACTQL_READ_PROCESS_OBSERVATION
 /* Observe real process queries in the existing provider, not a cached PID or
  * substitute allocator. Keep a live sentinel while measuring each free. */
+/* This is the actual Read observation reached by ordinary SQLite/Crypto,
+ * independently of whether Moon values use the stock or scoped allocator. */
+static bool current_process_observations(void) {
+    actql_owned_capacity *lease=lease_new();
+    actql_read_context *context=context_new(lease);
+    assert(actql_read_context_retain(context)==0);
+    assert(actql_read_context_current()==NULL);
+    context_enter(lease,context);
+    process_calls=0; observe_process_calls=true;
+    for(size_t i=0;i<32;i++) assert(actql_read_context_current()==context);
+    observe_process_calls=false; size_t current_calls=process_calls;
+    assert(current_calls>=32 && current_calls<2*32);
+    /* A caller can leave/change its scope between observations. No earlier
+     * successful observation can authorize the next public C entry. */
+    context_leave(lease,context);
+    assert(actql_read_context_current()==NULL);
+    context_enter(lease,context);
+    assert(actql_read_context_current()==context);
+    pid_t child=fork(); assert(child>=0);
+    if(child==0) _exit(actql_read_context_current()==NULL ? 0 : 1);
+    assert(child_status(child,0));
+    actql_read_context *same=context;
+    assert(actql_read_context_try_close(&same)==ACTQL_OWNED_BUSY && same==context);
+    assert(actql_read_context_current()==context);
+    context_leave(lease,context);
+    assert(actql_read_context_current()==NULL);
+    assert(actql_read_context_release_after_owner_ack(context)==0);
+    finish(&lease,&context);
+    assert(actql_read_context_current()==NULL);
+    printf("{\"currentCalls\":32,\"currentProcessQueries\":%zu}\n",current_calls);
+    return true;
+}
+
+/* Generic and private span queries use the original containing allocation.
+ * Observe actual getpid calls without replacing the kernel result. */
+static bool span_process_observations(void) {
+    actql_owned_capacity *lease=lease_new();
+    void *ordinary=NULL; size_t page=lease->page_size;
+    assert(actql_native_owned_allocate(lease,page,page,&ordinary)==0 && ordinary);
+    actql_read_context *context=context_new(lease);
+    assert(actql_read_context_retain(context)==0);
+    context_enter(lease,context);
+    void *heap=actql_native_moon_scoped_allocate(32); assert(heap);
+    void *private=actql_native_private_scoped_allocate(37); assert(private);
+    process_calls=0; observe_process_calls=true;
+    for(size_t i=0;i<32;i++) assert(actql_native_owned_contains_live_span(lease,ordinary,page)==0);
+    observe_process_calls=false; size_t ordinary_calls=process_calls;
+    process_calls=0; observe_process_calls=true;
+    for(size_t i=0;i<32;i++) assert(actql_native_owned_contains_live_span(lease,heap,32)==0);
+    observe_process_calls=false; size_t heap_calls=process_calls;
+    process_calls=0; observe_process_calls=true;
+    for(size_t i=0;i<32;i++) assert(actql_native_private_scoped_contains_allocation(context,lease,private,37)==0);
+    observe_process_calls=false; size_t private_calls=process_calls;
+    assert(ordinary_calls==32 && heap_calls==32 && private_calls==32);
+    assert(actql_native_owned_contains_live_span(lease,ordinary,page+1)==ACTQL_OWNED_INVALID);
+    assert(actql_native_owned_contains_live_span(lease,heap,33)==ACTQL_OWNED_INVALID);
+    assert(actql_native_private_scoped_contains_allocation(context,lease,private,38)==ACTQL_OWNED_INVALID);
+    assert(actql_native_private_scoped_contains_allocation(context,lease,(char *)private+1,1)==ACTQL_OWNED_INVALID);
+    assert(actql_native_private_scoped_contains_allocation(context,lease,heap,1)==ACTQL_OWNED_INVALID);
+    pid_t child=fork(); assert(child>=0);
+    if(child==0) _exit(
+        actql_native_owned_contains_live_span(lease,heap,32)!=0 &&
+        actql_native_private_scoped_contains_allocation(context,lease,private,37)!=0 ? 0 : 1);
+    assert(child_status(child,0));
+    context_leave(lease,context);
+    assert(actql_native_owned_contains_live_span(lease,heap,32)==ACTQL_OWNED_INVALID);
+    assert(actql_native_private_scoped_contains_allocation(context,lease,private,37)==ACTQL_OWNED_INVALID);
+    context_enter(lease,context);
+    assert(actql_native_owned_contains_live_span(lease,heap,32)==0);
+    assert(actql_native_private_scoped_contains_allocation(context,lease,private,37)==0);
+    actql_native_moon_scoped_free(heap);
+    assert(actql_native_owned_contains_live_span(lease,heap,1)==ACTQL_OWNED_INVALID);
+    assert(actql_native_private_scoped_free(private)==0);
+    assert(actql_native_private_scoped_contains_allocation(context,lease,private,1)==ACTQL_OWNED_INVALID);
+    context_leave(lease,context);
+    assert(actql_read_context_release_after_owner_ack(context)==0);
+    assert(actql_native_owned_retire(lease,ordinary)==0);
+    finish(&lease,&context);
+    assert(lease==NULL && context==NULL && actql_read_context_current()==NULL);
+    printf("{\"spanCalls\":32,\"ordinaryProcessQueries\":%zu,\"heapProcessQueries\":%zu,"
+           "\"privateProcessQueries\":%zu}\n",ordinary_calls,heap_calls,private_calls);
+    return true;
+}
+
 static bool managed_process_observations(void) {
     actql_owned_capacity *lease=lease_new();
     actql_read_context *context=context_new(lease);
@@ -704,17 +788,22 @@ static bool managed_process_observations(void) {
     process_calls=0; observe_process_calls=true;
     for(size_t i=0;i<32;i++) actql_native_moon_scoped_free(values[i]);
     observe_process_calls=false; size_t free_calls=process_calls;
-    /* Measured prior costs were six queries per allocation and four per free.
-     * Bound redundant work without freezing a private helper count or layout. */
-    assert(allocation_calls>0 && allocation_calls<6*32);
-    assert(free_calls>0 && free_calls<4*32);
+    /* Every public entry still observes the actual process. A callback-free
+     * locked path must not multiply that observation by its private helpers. */
+    assert(allocation_calls>=32 && allocation_calls<2*32);
+    assert(free_calls>=32 && free_calls<2*32);
     context_leave(lease,context);
     assert(actql_read_context_release_after_owner_ack(context)==0);
     assert(actql_read_context_try_close(&context)==ACTQL_OWNED_BUSY);
+    process_calls=0; observe_process_calls=true;
     actql_native_moon_scoped_free(sentinel); /* Original provenance after leave. */
+    observe_process_calls=false; size_t after_leave_calls=process_calls;
+    assert(after_leave_calls>0);
     finish(&lease,&context);
     printf("{\"allocationCalls\":32,\"allocationProcessQueries\":%zu,"
-           "\"freeCalls\":32,\"freeProcessQueries\":%zu}\n",allocation_calls,free_calls);
+           "\"freeCalls\":32,\"freeProcessQueries\":%zu,"
+           "\"afterLeaveFreeProcessQueries\":%zu}\n",
+           allocation_calls,free_calls,after_leave_calls);
     return true;
 }
 #endif
@@ -1584,6 +1673,25 @@ int main(int argc,char **argv) {
     struct rlimit core={0,0}; assert(setrlimit(RLIMIT_CORE,&core)==0);
     setbuf(stdout,NULL);
 #ifdef ACTQL_READ_PROCESS_OBSERVATION
+    if(argc==2 && strcmp(argv[1],"--span-process-observations-only")==0) {
+        assert(span_process_observations());
+        puts("{\"case\":\"fresh-span-process-observations\",\"passed\":1,\"failed\":0}");
+        return 0;
+    }
+    if(argc==2 && strcmp(argv[1],"--current-process-observations-only")==0) {
+        assert(current_process_observations());
+        puts("{\"case\":\"fresh-current-process-observations\",\"passed\":1,\"failed\":0}");
+        return 0;
+    }
+    if(argc==2 && strcmp(argv[1],"--managed-process-fences-only")==0) {
+        assert(fork_arena());
+        assert(foreign_pid());
+        assert(nested_foreign_closing());
+        assert(exhausted_no_fallback());
+        assert(retire_retry());
+        puts("{\"case\":\"fresh-process-original-fences\",\"passed\":5,\"failed\":0}");
+        return 0;
+    }
     if(argc==2 && strcmp(argv[1],"--managed-process-observations-only")==0) {
         assert(managed_process_observations());
         puts("{\"case\":\"same-original-process-observations\",\"passed\":1,\"failed\":0}");

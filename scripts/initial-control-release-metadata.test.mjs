@@ -33,7 +33,7 @@ test('the exact original and normal release metadata bytes are distinct admitted
   assert.equal(captured.sha256, hash(b)); assert.equal(captured.representation, 'release');
   await writeFile(file, a);
   assert.equal(source.captureInitialControlImageSource(file, expected).representation, 'source');
-  for (const changed of [wire({...JSON.parse(b), version: '0.0.2'}),
+  for (const changed of [wire({...JSON.parse(b), version: '0.0.3'}),
     wire({...JSON.parse(b), exports: './foreign.mjs'}), Buffer.from(b.toString().replace('Apache-2.0', 'changed'))]) {
     await writeFile(file, changed);
     assert.throws(() => source.captureInitialControlImageSource(file, expected), {code: 'InitialControlImageChanged'});
@@ -157,7 +157,7 @@ test('a normal staged cohort captures exact release images and refuses mixed or 
   const mixed = await run('throw new Error("EntryMustNotRun");');
   assert.notEqual(mixed.status, 0); assert.match(mixed.stderr, /InitialControlPackageImageChanged/);
   assert.doesNotMatch(mixed.stderr, /EntryMustNotRun/);
-  const foreign = {...JSON.parse(released.get('sdk')), version: '0.0.2'};
+  const foreign = {...JSON.parse(released.get('sdk')), version: '0.0.3'};
   await writeFile(sdk, wire(foreign));
   const changed = await run('throw new Error("EntryMustNotRun");');
   assert.notEqual(changed.status, 0); assert.match(changed.stderr, /InitialControlImageChanged/);

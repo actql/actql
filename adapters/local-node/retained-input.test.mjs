@@ -6,9 +6,10 @@ import * as moon from '../../_build/js/release/build/connectors_builtin_node/con
 
 const bytes = text => new TextEncoder().encode(text);
 const checked = result => { if (result?.error) throw result.error; return result; };
-function fixture(consume, overrides = {}) {
+function fixture(consume, overrides = {}, bodyBytes) {
   const material = {}, input = {}, events = [];
-  registerRetainedInput(material, read => read === input, {consume},
+  registerRetainedInput(material, read => read === input, Object.freeze({consume,
+    ...(bodyBytes === undefined ? {} : {bytes: bodyBytes})}),
     {wire: {max_bytes: 100}, maxFrameBytes: 64});
   const operation = {material, input,
     frames: {maxBytes: 100, maxRows: 3, maxRowBytes: 64, maxDepth: 4, maxFrameBytes: 64},
@@ -33,6 +34,52 @@ test('Local retained reader charges provisional bytes and verifies only after th
     {bytes: 10, rows: 1});
   assert.deepEqual(events, ['begin', ['charge', 9n], ['row', '{"id":3}'],
     ['charge', 1n], 'store-verified', 'finish']);
+});
+
+test('Local reader bounds the static frame constructor by the same sealed stream extent', async () => {
+  for (const known of [true, false]) {
+    const prepared = [];
+    const facade = {...moon, strategyPrepareDurableResultRowFrames(...args) {
+      prepared.push(args); return moon.strategyPrepareDurableResultRowFrames(...args);
+    }};
+    const f = fixture(async accept => {await accept(bytes('[{"id":3}]'));}, {}, known ? 10 : undefined);
+    assert.deepEqual(await readLocalRetainedInput(facade, f.operation, checked), {bytes: 10, rows: 1});
+    assert.deepEqual(prepared, [[known ? 10 : 100, 3, known ? 10 : 64, 4, 64]]);
+    assert.deepEqual(f.operation.frames, {maxBytes:100,maxRows:3,maxRowBytes:64,maxDepth:4,maxFrameBytes:64});
+    assert.equal(f.events.at(-1), 'finish');
+  }
+});
+
+test('A custom extent accessor remains on the legacy framing path without invocation', async () => {
+  const material = {}, input = {}, prepared = [];
+  const f = fixture(async () => {});
+  registerRetainedInput(material, read => read === input, Object.freeze({
+    get bytes() { assert.fail('custom extent getter must not run'); },
+    consume: async accept => { await accept(bytes('[{"id":3}]')); },
+  }), {wire: {max_bytes: 100}, maxFrameBytes: 64});
+  const facade = {...moon, strategyPrepareDurableResultRowFrames(...args) {
+    prepared.push(args); return moon.strategyPrepareDurableResultRowFrames(...args);
+  }};
+  assert.deepEqual(await readLocalRetainedInput(facade, {...f.operation, material, input}, checked),
+    {bytes: 10, rows: 1});
+  assert.deepEqual(prepared, [[100, 3, 64, 4, 64]]);
+  assert.equal(f.events.at(-1), 'finish');
+});
+
+test('Known stream extent retains tighter byte/row policies and exact input custody', async () => {
+  for (const limit of [{maxRowBytes: 1}, {maxBytes: 4}]) {
+    const f=fixture(async accept=>accept(bytes('[{"id":3}]')),{},10);
+    Object.assign(f.operation.frames,limit);
+    await assert.rejects(readLocalRetainedInput(moon,f.operation,checked));
+    assert(!f.events.includes('finish'));
+  }
+  const empty = fixture(async () => {}, {}, 0);
+  await assert.rejects(readLocalRetainedInput(moon, empty.operation, checked));
+  assert.deepEqual(empty.events, ['begin']);
+  const f=fixture(()=>assert.fail('foreign input must not consume'),{},10);
+  await assert.rejects(readLocalRetainedInput(moon,{...f.operation,material:{}},checked), {code:'RetainedInputUnavailable'});
+  await assert.rejects(readLocalRetainedInput(moon,{...f.operation,input:{}},checked), {code:'RetainedInputUnavailable'});
+  assert.deepEqual(f.events,[]);
 });
 
 test('Store failure after rows, including a reasonless rejection, cannot finish a Local import', async () => {

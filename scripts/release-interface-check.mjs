@@ -4,9 +4,11 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
+import {mkdtemp, readFile, rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
 import {dirname, join, relative} from 'node:path';
 import {checkoutState} from './packed-client-packages.mjs';
-import {verifyPackageRelease, inventory} from './package-release.mjs';
+import {verifyPackageRelease, inventory, unpack} from './package-release.mjs';
 import {npmInterfaceRoots} from './distribution-interface-roots.mjs';
 import {interfaceOwnerDeclarations} from './interface-owner-discovery.mjs';
 import {checkInterfaceOwners} from './check-interface-owners.mjs';
@@ -16,6 +18,8 @@ import {runtimePackageInputs} from './runtime-package-inputs.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 import {buildLocalNodeAdapters, localNodeAdapterSourceInputs} from './build-local-node-adapters.mjs';
 import {buildLocalNodeAssets} from './build-local-node-assets.mjs';
+import {sourceInterfaceClosure} from './source-interface-closure.mjs';
+import {initialControlPackageOriginal} from './initial-control-package-images.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 
@@ -43,10 +47,68 @@ export async function releaseInterfaceCheck({repository, directory}) {
       const bindings = new Map(item.files.map(file => [file.path,
         {member: file.path, source: `${packageSource}/${file.path}`} ]));
       const plan = plans[name];
+      const localArtifacts = [];
       if (name === 'local-node') {
         const inputs = localNodePackageInputs(repository);
-        await buildLocalNodeAdapters({root: repository, destination: installed, inputs, check: true});
-        buildLocalNodeAssets({root: repository, destination: installed, inputs, check: true});
+        // Generation belongs to the original development context. Its image
+        // recipe has both development and selected release manifest facts;
+        // rerendering from an installed release manifest would mix versions
+        // with the unchanged development dependency graph in this checkout.
+        // verifyPackageRelease already proves the metadata/LICENSE-only bridge
+        // to these exact installed members; neither payload is regenerated.
+        const scratch = await mkdtemp(join(tmpdir(), 'actql-release-original-interface-'));
+        try {
+          const archive = join(directory, 'development', item.originalFile);
+          assert.equal(hash(await readFile(archive)), item.originalSha256, 'Changed original development archive');
+          const original = await unpack(archive, scratch), originalInventory = await inventory(original);
+          await buildLocalNodeAdapters({root: repository, destination: original, inputs, check: true});
+          buildLocalNodeAssets({root: repository, destination: original, inputs, check: true});
+          // The normal builder has checked these bytes and their original
+          // descriptor. Reuse the existing finite native input references;
+          // a filename or the public manifest alone cannot register a binary.
+          const nativeMembers = item.files.filter(file => file.path.endsWith('.node'));
+          if (nativeMembers.length) {
+            const reference = await sourceInterfaceClosure(repository, {distributionRoots: [root]});
+            const descriptorModule = '_build/native/directory-original.json';
+            const descriptorFile = item.files.find(file => file.path === descriptorModule);
+            assert(descriptorFile, 'Missing original native descriptor');
+            const descriptor = JSON.parse(await readFile(join(original, descriptorModule)));
+            const records = descriptor.version === 'actql-node-directory-native-cohort/0.1'
+              ? descriptor.targets.map(target => target.original) : [descriptor];
+            for (const file of nativeMembers) {
+              const input = reference.artifacts.find(value => value.module === `${packageSource}/${file.path}` &&
+                value.package === name && value.target?.endsWith('/node-napi8'));
+              const record = records.find(value => value.binary.path === file.path);
+              assert(input && record, `Unregistered normal native artifact: ${file.path}`);
+              assert.equal(file.sha256, record.binary.sha256, 'Changed original native binary');
+              assert.equal(file.bytes, record.binary.bytes, 'Changed original native binary extent');
+              assert.equal(input.target, `${record.platform}-${record.arch}/node-napi8`, 'Foreign original native target');
+              assert(input.sourceFiles.includes(record.source.path), 'Foreign original native source');
+              localArtifacts.push({module: file.path, sha256: file.sha256, sourceSha: before.revision,
+                target: input.target, verification: {build: input.build, sourceFiles: input.sourceFiles,
+                  manifestSha256, originalSha256: item.originalSha256,
+                  descriptor: {module: descriptorModule, sha256: descriptorFile.sha256},
+                  qualification: 'checked normal native original; not operational custody or cross-platform runtime acceptance'}});
+            }
+          }
+          const image = item.files.find(file => file.path === initialControlPackageOriginal);
+          if (image) {
+            // The normal renderer replaces this Source-only absence template
+            // with a fixed generated DATA image. Its actual check above, not
+            // a filename exemption, binds the delivered image to this source.
+            assert.equal(hash(await readFile(join(original, image.path))), image.sha256,
+              'Changed original generated package image');
+            const generator = 'scripts/initial-control-package-images.mjs';
+            localArtifacts.push({module: image.path, sha256: image.sha256, sourceSha: before.revision,
+              target: 'node-package-image-data', verification: {build: 'scripts/build-local-node-adapters.mjs',
+                generator: {module: generator, sha256: hash(readFileSync(join(repository, generator)))},
+                template: {module: image.path, sha256: hash(readFileSync(join(repository, image.path)))},
+                manifestSha256, originalSha256: item.originalSha256,
+                qualification: 'checked normal generated package DATA; not an operational issuer'}});
+          }
+          assert.deepEqual(await inventory(original), originalInventory, 'Normal generation check changed original members');
+          assert.equal(hash(await readFile(archive)), item.originalSha256, 'Original archive changed during verification');
+        } finally {await rm(scratch, {recursive: true});}
         for (const entry of await localNodeAdapterSourceInputs({root: repository, inputs})) {
           bindings.set(entry.path, {member: entry.path, source: relative(repository, entry.source),
             ...(entry.path.endsWith('.mjs') ? {transform: 'local-node-public-imports'} : {})});
@@ -61,7 +123,7 @@ export async function releaseInterfaceCheck({repository, directory}) {
         return {module, sha256: file.sha256, sourceSha: before.revision, target: 'js',
           verification: {manifestSha256, originalSha256: item.originalSha256,
             build: `scripts/${plan.script}.mjs`, sourcePackages: plan.sources}};
-      });
+      }).concat(localArtifacts);
       const actual = installedInterfaceInventory(installed, {artifacts});
       const authoredEntrances = actual.modules.map(module => {
         const binding = bindings.get(module.module);

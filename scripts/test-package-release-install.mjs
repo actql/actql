@@ -125,6 +125,9 @@ try {
   assert.equal(readmeResult.stdout.trim(), '[ { id: 1 } ]', 'Independent README result');
   results.push(readmeResult);
   await copyFile(join(repository, 'packages/sdk/fixtures/values.json'), join(local, 'values.json'));
+  await copyFile(join(repository, 'adapters/host-node/fixtures/query-amount-environment.json'),
+    join(local, 'source-environment.json'));
+  await copyFile(join(repository, 'spec/local-check-environment.json'), join(local, 'base-environment.json'));
   await copyFile(join(repository, 'scripts/fixtures/packed-local-without-duckdb.mjs'), join(local, 'acceptance.mjs'));
   results.push(await run(process.execPath, ['acceptance.mjs', 'initial'], local));
   results.push(await run(process.execPath, ['acceptance.mjs', 'restart'], local));
@@ -141,7 +144,10 @@ try {
   await writeFile(join(approval, 'reviewer.key'), pem(reviewer.privateKey), {mode: 0o600});
   await writeFile(join(approval, 'authorization.json'), JSON.stringify({
     accountConfiguration: canonicalText({version: 'actql-execution-account-config/0.1',
-      account_id: 'packed-embedded-account', entries: [{entry_id: 'run-acceptance', exclusions: [],
+      account_id: 'packed-embedded-account', entries: [{entry_id: 'read-original', exclusions: [],
+        connection: {any_of: ['actql-remote-host']}, operation: {any_of: ['read']},
+        outcome: 'allow', principal: {any_of: [userInfo().username]}, resource: {any_of: ['run']}},
+      {entry_id: 'run-acceptance', exclusions: [],
         connection: {any_of: ['actql-remote-host']}, operation: {any_of: ['write']},
         outcome: 'delegate', principal: {all: true}, resource: {any_of: ['source-free-values']}}]}),
     reviewers: [{keyId: 'reviewer-key', reviewerId: 'reviewer', principalId: userInfo().username,

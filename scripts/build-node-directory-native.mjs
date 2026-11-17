@@ -2,10 +2,12 @@
 // Build facts are DATA, never operational module/loader or resource admission.
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync,
+import {chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync,
   realpathSync, renameSync, rmSync, writeFileSync} from 'node:fs';
 import {dirname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {checkoutState} from './packed-client-packages.mjs';
+import {admitCohort} from './package-release.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const darwinSourcePath = 'adapters/host-node/native/directory-darwin.c';
@@ -31,6 +33,211 @@ const optionalStat = path => {
   try { return lstatSync(path); }
   catch (cause) { if (cause.code !== 'ENOENT') throw cause; }
 };
+
+const inputManifest = 'native-input.json';
+const hashPattern = /^[a-f0-9]{64}$/u;
+const nativeTargets = new Map([['darwin-arm64', '_build/native/directory-darwin-arm64.node'],
+  ['linux-x64', '_build/native/local-files-linux-x64.node']]);
+const recipePaths = [darwinSourcePath, linuxSourcePath, helperPath, platformPath, localFilesPath,
+  localWriterPath, 'scripts/build-node-directory-native.mjs', 'scripts/build-local-node-adapters.mjs',
+  'scripts/initial-control-package-images.mjs', 'toolchain.json', 'release/client-cohort.json',
+  'packages/local-node/package.json'];
+const exactKeys = (value, keys) => {
+  if (value === null || typeof value !== 'object' || Array.isArray(value) ||
+      JSON.stringify(Object.keys(value).sort()) !== JSON.stringify([...keys].sort())) {
+    fail('InvalidDirectoryNativeInput');
+  }
+};
+const concrete = path => typeof path === 'string' && path.length > 0 && path.length <= 4096 &&
+  !isAbsolute(path) && !path.includes('\\') && !/[\u0000-\u001f\u007f]/u.test(path) &&
+  path.split('/').every(part => part !== '' && part !== '.' && part !== '..');
+function inputFile(root, path, maxBytes = 64 * 1024 * 1024) {
+  if (!concrete(path) || !lstatSync(root).isDirectory()) fail('InvalidDirectoryNativeInput');
+  const parts = path.split('/');
+  for (let index = 0; index < parts.length; index++) {
+    const stat = lstatSync(join(root, ...parts.slice(0, index + 1)));
+    if (index === parts.length - 1 ? !stat.isFile() : !stat.isDirectory()) fail('AliasedDirectoryNativeInput');
+    if (index === parts.length - 1 && (stat.size < 1 || stat.size > maxBytes)) fail('InvalidDirectoryNativeInput');
+  }
+  return readFileSync(join(root, path));
+}
+function sourceBinding(root) {
+  const state = checkoutState(root);
+  if (!state.clean) fail('DirtyDirectoryNativeSource');
+  const cohort = admitCohort(JSON.parse(inputFile(root, 'release/client-cohort.json')));
+  return {revision: state.revision, packageVersion: cohort.packageVersion,
+    recipe: recipePaths.map(path => ({path, sha256: sha(inputFile(root, path))}))};
+}
+function fileFact(root, path) {
+  const bytes = inputFile(root, path), stat = lstatSync(join(root, path));
+  return {path, bytes: bytes.length, mode: stat.mode & 0o777, sha256: sha(bytes)};
+}
+function verifiedFile(root, fact) {
+  exactKeys(fact, ['path', 'bytes', 'mode', 'sha256']);
+  if (!Number.isSafeInteger(fact.bytes) || fact.bytes < 1 || ![0o644, 0o755].includes(fact.mode) ||
+      !hashPattern.test(fact.sha256)) fail('InvalidDirectoryNativeInput');
+  const bytes = inputFile(root, fact.path);
+  if (bytes.length !== fact.bytes || sha(bytes) !== fact.sha256 ||
+      (lstatSync(join(root, fact.path)).mode & 0o777) !== fact.mode) fail('ChangedDirectoryNativeInput');
+  return bytes;
+}
+function validateOriginal(original, bytes, target, root) {
+  const path = nativeTargets.get(target), sourcePath = target === 'linux-x64' ? linuxSourcePath : darwinSourcePath;
+  exactKeys(original, ['platform', 'arch', 'node', 'moduleAbi', 'napi', 'source', 'compilerSha256',
+    'nodeSha256', ...(target === 'darwin-arm64' ? ['sdkSettingsSha256'] : []), 'headers', 'binary']);
+  exactKeys(original.source, ['path', 'sha256']); exactKeys(original.binary, ['path', 'bytes', 'sha256']);
+  if (path === undefined || `${original.platform}-${original.arch}` !== target || original.node !== '22.22.0' ||
+      original.napi !== 8 || original.moduleAbi !== '127' || original.source.path !== sourcePath ||
+      !hashPattern.test(original.source.sha256) || !hashPattern.test(original.compilerSha256) ||
+      !hashPattern.test(original.nodeSha256) || target === 'darwin-arm64' && !hashPattern.test(original.sdkSettingsSha256) ||
+      original.binary.path !== path || original.binary.bytes !== bytes.length || original.binary.sha256 !== sha(bytes) ||
+      !Array.isArray(original.headers) || original.headers.length < 1 || original.headers.length > 4096) {
+    fail('InvalidDirectoryNativeOriginal');
+  }
+  // Compiler dependency output includes the selected C translation unit and
+  // these exact shared Source includes as well as toolchain headers. Keep
+  // their original paths and verify them against this same source checkout.
+  const sourceFiles = new Set([sourcePath, helperPath, platformPath, localFilesPath, localWriterPath]);
+  const names = new Set();
+  for (const fact of original.headers) {
+    exactKeys(fact, ['path', 'bytes', 'sha256']);
+    const source = sourceFiles.has(fact.path);
+    if (!concrete(fact.path) || !source && !/^(?:node|compiler|system|sdk)\//u.test(fact.path) || names.has(fact.path) ||
+        !Number.isSafeInteger(fact.bytes) || fact.bytes < 0 || !hashPattern.test(fact.sha256)) {
+      fail('InvalidDirectoryNativeOriginal');
+    }
+    if (source) {
+      const bytes = inputFile(root, fact.path);
+      if (fact.bytes !== bytes.length || fact.sha256 !== sha(bytes)) fail('ChangedDirectoryNativeInput');
+    }
+    names.add(fact.path);
+  }
+}
+function validateEngine(engine, original) {
+  exactKeys(engine, ['node', 'v8', 'openssl', 'platform', 'arch', 'libraries']);
+  if (engine.node !== original.node || engine.platform !== original.platform || engine.arch !== original.arch ||
+      engine.libraries === null || typeof engine.libraries !== 'object' || Array.isArray(engine.libraries) ||
+      Object.keys(engine.libraries).length > 64 || Object.values(engine.libraries)
+        .some(value => typeof value !== 'string' || value.length > 256) ||
+      ['node', 'v8', 'openssl'].some(name => typeof engine[name] !== 'string' || engine[name] !== engine.libraries[name])) {
+    fail('InvalidDirectoryNativeEngine');
+  }
+}
+
+// This exports immutable build DATA, not a trusted artifact or a loading
+// permission. CI must authenticate its producer/source and pin this manifest
+// before a different platform's normal prepack can select it.
+export function exportNodeDirectoryNativeInput({root = repository,
+  destination = join(root, 'packages/local-node'), output} = {}) {
+  if (typeof output !== 'string' || !isAbsolute(output)) fail('InvalidDirectoryNativeExport');
+  const source = sourceBinding(root), target = `${process.platform}-${process.arch}`;
+  const path = nativeTargets.get(target);
+  if (path === undefined) fail('UnsupportedDirectoryNativeExport');
+  if (readdirSync(join(destination, '_build/native')).sort().join('\n') !==
+      [path.split('/').at(-1), 'directory-original.json'].sort().join('\n')) fail('StaleDirectoryNativeOutput');
+  const bytes = inputFile(destination, path), descriptor = inputFile(destination, directoryNativeDescriptor, 4 * 1024 * 1024);
+  const original = JSON.parse(descriptor);
+  validateOriginal(original, bytes, target, root);
+  if (original.source.sha256 !== sha(inputFile(root, original.source.path)) ||
+      original.nodeSha256 !== sha(regular(process.execPath))) fail('ChangedDirectoryNativeInput');
+  const engine = {node: process.versions.node, v8: process.versions.v8, openssl: process.versions.openssl,
+    platform: process.platform, arch: process.arch, libraries: {...process.versions}};
+  validateEngine(engine, original);
+  const binary = {...fileFact(destination, path), path: path.split('/').at(-1)};
+  const record = {...fileFact(destination, directoryNativeDescriptor), path: 'directory-original.json'};
+  if (binary.sha256 !== sha(bytes) || record.sha256 !== sha(descriptor)) fail('ChangedDirectoryNativeInput');
+  if (JSON.stringify(sourceBinding(root)) !== JSON.stringify(source)) fail('DirectoryNativeBuildInputChanged');
+  mkdirSync(output);
+  for (const [fact, value] of [[binary, bytes], [record, descriptor]]) {
+    writeFileSync(join(output, fact.path), value, {flag: 'wx', mode: fact.mode});
+    chmodSync(join(output, fact.path), fact.mode);
+  }
+  const manifest = {version: 'actql-node-directory-native-input/0.1', source, engine, original: record, binary};
+  const contents = Buffer.from(JSON.stringify(manifest, null, 2) + '\n');
+  writeFileSync(join(output, inputManifest), contents, {flag: 'wx'});
+  return {manifest: join(output, inputManifest), sha256: sha(contents)};
+}
+
+// The explicit digest pins caller-selected DATA; it is not producer
+// authentication. No wildcard, directory scan or installed package supplies
+// a second target. Both records must be supplied by the selected CI cohort.
+export function assembleNodeDirectoryNative({root = repository,
+  destination = join(root, 'packages/local-node'), selection, expectedSha256, check = false} = {}) {
+  if (typeof selection !== 'string' || !isAbsolute(selection) || !hashPattern.test(expectedSha256)) {
+    fail('InvalidDirectoryNativeSelection');
+  }
+  const base = dirname(selection), selectionBytes = inputFile(base, selection.split(sep).at(-1), 4 * 1024 * 1024);
+  if (sha(selectionBytes) !== expectedSha256) fail('ChangedDirectoryNativeSelection');
+  const chosen = JSON.parse(selectionBytes);
+  exactKeys(chosen, ['version', 'inputs']);
+  if (chosen.version !== 'actql-node-directory-native-selection/0.1' || !Array.isArray(chosen.inputs) ||
+      chosen.inputs.length !== 2) fail('InvalidDirectoryNativeSelection');
+  const source = sourceBinding(root), targets = [], outputs = new Map(), modes = new Map(), seen = new Set();
+  for (const input of chosen.inputs) {
+    exactKeys(input, ['path', 'sha256']);
+    if (!hashPattern.test(input.sha256)) fail('InvalidDirectoryNativeSelection');
+    const manifestBytes = inputFile(base, input.path, 4 * 1024 * 1024);
+    if (sha(manifestBytes) !== input.sha256) fail('ChangedDirectoryNativeInput');
+    const manifest = JSON.parse(manifestBytes);
+    exactKeys(manifest, ['version', 'source', 'engine', 'original', 'binary']);
+    if (manifest.version !== 'actql-node-directory-native-input/0.1' ||
+        JSON.stringify(manifest.source) !== JSON.stringify(source)) fail('WrongDirectoryNativeSource');
+    const selected = join(base, dirname(input.path));
+    const descriptor = verifiedFile(selected, manifest.original), bytes = verifiedFile(selected, manifest.binary);
+    if (!Buffer.from(descriptor.toString('utf8')).equals(descriptor)) fail('InvalidDirectoryNativeOriginal');
+    const original = JSON.parse(descriptor), target = `${original.platform}-${original.arch}`;
+    validateOriginal(original, bytes, target, root); validateEngine(manifest.engine, original);
+    const path = nativeTargets.get(target);
+    if (seen.has(target) || manifest.original.path !== 'directory-original.json' ||
+        manifest.binary.path !== path?.split('/').at(-1) ||
+        original.source.sha256 !== sha(inputFile(root, original.source.path)) ||
+        readdirSync(selected).sort().join('\n') !== [inputManifest, manifest.original.path, manifest.binary.path].sort().join('\n')) {
+      fail('InvalidDirectoryNativeInput');
+    }
+    seen.add(target); outputs.set(path, bytes); modes.set(path, manifest.binary.mode);
+    targets.push({platform: original.platform, arch: original.arch, engine: manifest.engine,
+      original, originalSource: descriptor.toString('utf8'), originalSha256: manifest.original.sha256,
+      inputSha256: input.sha256});
+  }
+  targets.sort((a, b) => `${a.platform}-${a.arch}` < `${b.platform}-${b.arch}` ? -1 : 1);
+  outputs.set(directoryNativeDescriptor, Buffer.from(JSON.stringify({version: 'actql-node-directory-native-cohort/0.1',
+    source, targets}, null, 2) + '\n'));
+  modes.set(directoryNativeDescriptor, 0o644);
+  for (const path of ['_build', '_build/native']) {
+    const stat = optionalStat(join(destination, path));
+    if (stat !== undefined && !stat.isDirectory()) fail('AliasedDirectoryNativeOutput');
+  }
+  const directory = join(destination, '_build/native');
+  if (existsSync(directory)) for (const name of readdirSync(directory)) {
+    if (![...outputs.keys()].some(path => path.split('/').at(-1) === name) ||
+        !lstatSync(join(directory, name)).isFile()) fail('StaleDirectoryNativeOutput');
+  }
+  if (JSON.stringify(sourceBinding(root)) !== JSON.stringify(source) ||
+      !inputFile(base, selection.split(sep).at(-1)).equals(selectionBytes)) fail('DirectoryNativeBuildInputChanged');
+  // Re-observe every selected file before the first output write. A refusal
+  // leaves the old native output prefix intact.
+  for (const input of chosen.inputs) {
+    const manifestBytes = inputFile(base, input.path);
+    if (sha(manifestBytes) !== input.sha256) fail('ChangedDirectoryNativeInput');
+    const manifest = JSON.parse(manifestBytes), selected = join(base, dirname(input.path));
+    verifiedFile(selected, manifest.original); verifiedFile(selected, manifest.binary);
+  }
+  if (check) {
+    for (const [path, bytes] of outputs) if (!inputFile(destination, path).equals(bytes) ||
+        (lstatSync(join(destination, path)).mode & 0o777) !== modes.get(path)) fail('StaleDirectoryNativeArtifact');
+  } else {
+    mkdirSync(directory, {recursive: true});
+    const scratch = mkdtempSync(join(directory, '.native-assembly-'));
+    try {
+      for (const [path, bytes] of outputs) {
+        const staged = join(scratch, path.split('/').at(-1));
+        writeFileSync(staged, bytes); chmodSync(staged, modes.get(path));
+        renameSync(staged, join(destination, path));
+      }
+    } finally {rmSync(scratch, {recursive: true});}
+  }
+  return outputs;
+}
 
 function dependencyFiles(text) {
   const colon = text.indexOf(':');
@@ -172,5 +379,12 @@ export function buildNodeDirectoryNative({root = repository,
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  buildNodeDirectoryNative({check: process.argv.includes('--check')});
+  const args = process.argv.slice(2);
+  if (args[0] === '--export') {
+    if (args.length !== 2) fail('InvalidDirectoryNativeExport');
+    console.log(JSON.stringify(exportNodeDirectoryNativeInput({output: resolve(args[1])})));
+  } else {
+    if (args.length > 1 || args.length === 1 && args[0] !== '--check') fail('InvalidDirectoryNativeBuild');
+    buildNodeDirectoryNative({check: args[0] === '--check'});
+  }
 }

@@ -44,7 +44,7 @@
  };
 
  /* Each appended mapping belongs to the SAME capacity and lock. Its control
-@@ -113,6 +119,7 @@
+@@ -117,6 +123,7 @@
      bool transferred;
      bool closing;
      size_t active_scopes;
@@ -52,7 +52,24 @@
      atomic_flag lock;
      struct extent extents[];
  };
-@@ -547,8 +554,9 @@
+@@ -206,10 +213,13 @@
+
+ /* This physical exclusion is not child authorization. A trusted bootstrap
+  * validates the original Core loan before publishing the process borrow. */
++static bool foreign_domain_process_observed(actql_owned_capacity *lease, pid_t process) {
++    int borrower = atomic_load_explicit(&lease->domain_borrower_pid, memory_order_acquire);
++    return (!lease->fd_backed && lease->domain_origin_pid != process) ||
++        (lease->extent_domain && borrower != 0 && borrower != (int)process);
++}
+ static bool foreign_domain_process(actql_owned_capacity *lease) {
+-    int borrower = atomic_load_explicit(&lease->domain_borrower_pid, memory_order_acquire);
+-    return (!lease->fd_backed && lease->domain_origin_pid != getpid()) ||
+-        (lease->extent_domain && borrower != 0 && borrower != (int)getpid());
++    return foreign_domain_process_observed(lease, getpid());
+ }
+
+ static void lock_capacity(actql_owned_capacity *lease) {
+@@ -570,8 +580,9 @@
  }
 
  /* Existing generic placement, called under the original capacity lock. */
@@ -64,7 +81,7 @@
      if (lease->pending_growth_domain != growth) return ACTQL_OWNED_BUSY;
      size_t pages;
      if (!round_pages(bytes, lease->page_size, &pages)) return ACTQL_OWNED_INVALID;
-@@ -584,12 +592,17 @@
+@@ -607,12 +618,17 @@
              return ACTQL_OWNED_INVALID;
          void *base = (void *)address;
          size_t length = pages * lease->page_size;
@@ -87,7 +104,7 @@
          }
          if (mprotect(base, length, PROT_READ | PROT_WRITE) != 0) {
              status = ACTQL_OWNED_PHYSICAL_FAILURE;
-@@ -605,13 +618,21 @@
+@@ -628,13 +644,21 @@
                  lease->extent_work_overflow = true;
              else lease->extent_work[i] += work[i];
          }
@@ -111,7 +128,7 @@
  }
 
  static int allocate_storage_locked(actql_owned_capacity *lease, size_t bytes,
-@@ -649,8 +670,11 @@
+@@ -672,8 +696,11 @@
          offset % lease->page_size != 0) return false;
      *start = offset / lease->page_size;
      return !owned_control_page(lease, *start) && owned_extent(lease, *start)->pages != 0 &&
@@ -121,22 +138,39 @@
 +}
 +
 +/* Capacity lock only; implemented by the same provider's private Read heap. */
-+static int read_heap_contains_locked(actql_owned_capacity *, size_t, const void *, size_t);
++static int read_heap_contains_locked(actql_owned_capacity *, size_t, const void *, size_t, pid_t);
 
  /* Parent-local physical guards cover every page in this original allocation.
   * Interior page records retain their own external use counts. */
-@@ -701,6 +725,10 @@
+@@ -706,11 +733,14 @@
+                                          const void *address, size_t bytes) {
+     if (lease == NULL || address == NULL || bytes == 0 ||
+         actql_native_owned_current() != lease) return ACTQL_OWNED_INVALID;
+-    if (foreign_domain_process(lease)) return ACTQL_OWNED_BUSY;
++    /* One actual process observation for this callback-free public entry.
++     * Mutable borrower state is still rechecked after acquiring the lock. */
++    pid_t process = getpid();
++    if (foreign_domain_process_observed(lease, process)) return ACTQL_OWNED_BUSY;
+     lock_capacity(lease);
+     int status = ACTQL_OWNED_INVALID;
+     size_t offset;
+-    if (foreign_domain_process(lease) || lease->closing || !lease->transferred) goto done;
++    if (foreign_domain_process_observed(lease, process) || lease->closing || !lease->transferred) goto done;
+     if (!owned_pointer_offset(lease, address, &offset)) goto done;
+     if (bytes > lease->length - offset) goto done;
+     size_t start = offset / lease->page_size;
+@@ -724,6 +754,10 @@
          owned_extent(lease, start)->domain_storage ||
          owned_extent(lease, start)->retired ||
          pages > lease->page_count - start) goto done;
 +    if (owned_extent(lease, start)->read_heap) {
-+        status = read_heap_contains_locked(lease, start, address, bytes);
++        status = read_heap_contains_locked(lease, start, address, bytes, process);
 +        goto done;
 +    }
      size_t begin = start * lease->page_size;
      size_t length = pages * lease->page_size;
      if (offset >= begin && offset - begin < length && bytes <= length - (offset - begin))
-@@ -828,6 +856,9 @@
+@@ -851,6 +885,9 @@
      if (lease->active_scopes != 0) {
          return ACTQL_OWNED_BUSY;
      }
@@ -146,7 +180,7 @@
      lease->closing = true;
      /* First exclude every live original before reaping any failed retirement.
       * A child may still own the retry receipt for an earlier retired extent;
-@@ -899,3 +930,6 @@
+@@ -922,3 +959,6 @@
 
  /* Child startup and join reuse this provider's original scope and backing. */
  #include "owned_thread.inc"
@@ -155,7 +189,7 @@
 +#include "scoped_read.inc"
 --- a/owned_region.inc
 +++ b/owned_region.inc
-@@ -621,6 +621,7 @@
+@@ -644,6 +644,7 @@
          return ACTQL_OWNED_IMAGE_MISMATCH;
      lock_capacity(lease);
      if (!lease->transferred || lease->closing || lease->active_scopes != 0 ||
@@ -217,7 +251,7 @@
 +#endif
 --- /dev/null
 +++ b/scoped_read.inc
-@@ -0,0 +1,1084 @@
+@@ -0,0 +1,1099 @@
 +/* Derived selected-runtime read allocator, included once by the ORIGINAL
 + * owned_capacity.c. Selection still requires its source-bound recipe and
 + * original physical supplier. This is physical provenance
@@ -340,10 +374,10 @@
 +static _Thread_local actql_read_context *read_current;
 +static _Thread_local size_t read_depth;
 +
-+/* Return only this entry's actual PID while the same index lock is held.
-+ * No caller may retain it across unlock, callback or another C entry. */
-+static bool lock_read_contexts_observe_process(pid_t *observed) {
-+    pid_t process = getpid();
++/* Accept only the actual observation from this same C entry. The scalar is
++ * never retained across unlock, callback or another public entry. Inherited
++ * contexts must refuse before touching a possibly inherited locked flag. */
++static bool lock_read_contexts_for_process(pid_t process) {
 +    pid_t origin = atomic_load_explicit(&read_process, memory_order_acquire);
 +    if (origin == 0) {
 +        atomic_compare_exchange_strong_explicit(&read_process, &origin, process,
@@ -354,6 +388,11 @@
 +    if (origin != process) return false;
 +    while (atomic_flag_test_and_set_explicit(&read_context_lock,
 +                                            memory_order_acquire)) {}
++    return true;
++}
++static bool lock_read_contexts_observe_process(pid_t *observed) {
++    pid_t process = getpid();
++    if (!lock_read_contexts_for_process(process)) return false;
 +    *observed = process;
 +    return true;
 +}
@@ -364,11 +403,14 @@
 +static void unlock_read_contexts(void) {
 +    atomic_flag_clear_explicit(&read_context_lock, memory_order_release);
 +}
-+static bool known_read_context(actql_read_context *context) {
-+    if (read_process != getpid()) return false;
++static bool known_read_context_observed(actql_read_context *context, pid_t process) {
++    if (read_process != process) return false;
 +    for (actql_read_context *item = read_contexts; item; item = item->next)
 +        if (item == context) return true;
 +    return false;
++}
++static bool known_read_context(actql_read_context *context) {
++    return known_read_context_observed(context, getpid());
 +}
 +
 +int actql_read_context_create(actql_owned_capacity *lease,
@@ -563,9 +605,9 @@
 +/* Called under the original capacity lock. Observe only the requested live
 + * allocation, never the adjacent slot, page metadata or unused tail. */
 +static int read_heap_contains_locked(actql_owned_capacity *lease, size_t index,
-+                                      const void *address, size_t bytes) {
++                                      const void *address, size_t bytes, pid_t process) {
 +    if (!owned_extent(lease, index)->read_heap ||
-+        owned_extent(lease, index)->read_process != getpid()) return ACTQL_OWNED_INVALID;
++        owned_extent(lease, index)->read_process != process) return ACTQL_OWNED_INVALID;
 +    void *page = owned_page_address(lease, index);
 +    uintptr_t value = (uintptr_t)address;
 +    for (struct read_heap_block *block = read_heap_first(page); block;
@@ -604,12 +646,12 @@
 + * A failed offset hint still scans every original block. */
 +static bool allocate_read_heap_page_locked(actql_read_context *context,
 +    size_t index, size_t bytes, size_t rounded, enum read_allocation_family family,
-+    void **output) {
++    void **output, pid_t process) {
 +    actql_owned_capacity *lease = context->lease;
 +    if (index >= lease->page_count || owned_control_page(lease, index)) return false;
 +    struct extent *extent = owned_extent(lease, index);
 +    if (!extent->read_heap || extent->read_context != context || extent->retired ||
-+        extent->read_released || extent->read_process != getpid()) return false;
++        extent->read_released || extent->read_process != process) return false;
 +    void *page = owned_page_address(lease, index);
 +    struct read_heap_page *header = page;
 +    size_t page_bytes = extent->pages * lease->page_size;
@@ -763,18 +805,18 @@
 +/* Read index lock is already held; the provider's original lock serializes
 + * page contents against span observations and last-slot physical retirement. */
 +static int allocate_read_heap_bytes(actql_read_context *context, size_t bytes,
-+    enum read_allocation_family family, void **output) {
++    enum read_allocation_family family, void **output, pid_t process) {
 +    actql_owned_capacity *lease = context->lease;
 +    lock_capacity(lease);
 +    int status = ACTQL_OWNED_INVALID;
-+    if (foreign_domain_process(lease) || lease->closing || !lease->transferred)
++    if (foreign_domain_process_observed(lease, process) || lease->closing || !lease->transferred)
 +        goto done;
 +    if (context->managed_serial == UINT64_MAX) { status = ACTQL_OWNED_EXHAUSTED; goto done; }
 +    size_t rounded = read_heap_round(bytes);
 +    size_t overhead = read_heap_round(sizeof(struct read_heap_page)) + read_heap_header();
 +    if (!rounded || rounded > SIZE_MAX - overhead) goto done;
 +    size_t hint = context->managed_page_hint;
-+    if (allocate_read_heap_page_locked(context, hint, bytes, rounded, family, output)) {
++    if (allocate_read_heap_page_locked(context, hint, bytes, rounded, family, output, process)) {
 +        status = ACTQL_OWNED_OK;
 +        goto done;
 +    }
@@ -788,7 +830,7 @@
 +    for (size_t visited = 0; visited < lease->page_count - lease->control_pages; visited++) {
 +        search_index = search_index == lease->page_count - 1 ? lease->control_pages : search_index + 1;
 +        if (search_index != hint &&
-+            allocate_read_heap_page_locked(context, search_index, bytes, rounded, family, output)) {
++            allocate_read_heap_page_locked(context, search_index, bytes, rounded, family, output, process)) {
 +            status = ACTQL_OWNED_OK;
 +            goto done;
 +        }
@@ -799,7 +841,7 @@
 +    size_t index;
 +    status = prepare_read_heap_page_locked(context, rounded + overhead, &index);
 +    if (status == ACTQL_OWNED_OK &&
-+        !allocate_read_heap_page_locked(context, index, bytes, rounded, family, output))
++        !allocate_read_heap_page_locked(context, index, bytes, rounded, family, output, getpid()))
 +        status = ACTQL_OWNED_INVALID;
 +
 +done:
@@ -855,11 +897,11 @@
 + * slabs, but have no heap-page header. The caller holds the Read index lock;
 + * this helper takes only the existing capacity lock and never changes TLS. */
 +static int allocate_read_extent_bytes(actql_read_context *context, size_t bytes,
-+    void **output) {
++    void **output, pid_t process) {
 +    actql_owned_capacity *lease = context->lease;
 +    lock_capacity(lease);
 +    int status = ACTQL_OWNED_INVALID;
-+    if (foreign_domain_process(lease) || lease->closing)
++    if (foreign_domain_process_observed(lease, process) || lease->closing)
 +        status = ACTQL_OWNED_BUSY;
 +    else if (lease->transferred)
 +        status = allocate_storage_read_original_locked(lease, bytes,
@@ -873,9 +915,10 @@
 +    memset(&read_allocation_observation, 0, sizeof(read_allocation_observation));
 +    read_allocation_observation.requested = bytes;
 +    read_allocation_observation.status = ACTQL_OWNED_INVALID;
-+    if (!lock_read_contexts()) return NULL;
++    pid_t process;
++    if (!lock_read_contexts_observe_process(&process)) return NULL;
 +    actql_read_context *context = read_current;
-+    bool known = known_read_context(context);
++    bool known = known_read_context_observed(context, process);
 +    read_allocation_observation.known = known;
 +    read_allocation_observation.depth = read_depth;
 +    if (known) {
@@ -895,14 +938,15 @@
 +    }
 +    /* Closing cannot begin during an active ordinary frame. A closing active
 +     * frame can therefore only be the original cleanup entry above. */
-+    /* The index lock has remained held since the same context check above;
-+     * no callback or index mutation intervenes. Dynamic current checks remain. */
++    /* The same C entry and index lock cover this callback-free allocator path.
++     * Reuse only its actual PID observation; every context, scope, lease and
++     * mutable borrower predicate is still checked under the original locks. */
 +    if (known && prepared_current && read_depth != 0 &&
 +        context->active != 0 && actql_native_owned_current() == context->lease &&
 +        (read_allocation_observation.status = (family == READ_PRIVATE_C ||
 +            (family == READ_MANAGED && bytes <= context->lease->page_size / 2))
-+            ? allocate_read_heap_bytes(context, bytes ? bytes : 1, family, &output)
-+            : allocate_read_extent_bytes(context, bytes ? bytes : 1, &output)) == ACTQL_OWNED_OK) {
++            ? allocate_read_heap_bytes(context, bytes ? bytes : 1, family, &output, process)
++            : allocate_read_extent_bytes(context, bytes ? bytes : 1, &output, process)) == ACTQL_OWNED_OK) {
 +        lock_capacity(context->lease);
 +        size_t logical_offset;
 +        owned_pointer_offset(context->lease, output, &logical_offset);
@@ -920,7 +964,7 @@
 +            return NULL;
 +        }
 +        owned_extent(context->lease, start)->read_context = context;
-+        owned_extent(context->lease, start)->read_process = getpid();
++        owned_extent(context->lease, start)->read_process = process;
 +        owned_extent(context->lease, start)->read_released = false;
 +        unlock_capacity(context->lease);
 +    }
@@ -949,8 +993,9 @@
 + * selected pointers refuse; pending cleanup remains in the same extent table. */
 +static int release_read_bytes(void *pointer, enum read_allocation_family family) {
 +    if (pointer == NULL) return 1;
++    pid_t process = getpid();
 +    pid_t origin = atomic_load_explicit(&read_process, memory_order_acquire);
-+    if (origin != 0 && origin != getpid()) {
++    if (origin != 0 && origin != process) {
 +        /* Never lock/dereference or re-adopt an inherited read context. Classify
 +         * only against the ORIGINAL allocator, before the index PID guard.
 +         * Both APIs safely reject addresses outside their own heap domain.
@@ -970,8 +1015,7 @@
 +        return known_stock_file(pointer) ? 1 : ACTQL_OWNED_INVALID;
 +#endif
 +    }
-+    pid_t process;
-+    if (!lock_read_contexts_observe_process(&process)) return ACTQL_OWNED_INVALID;
++    if (!lock_read_contexts_for_process(process)) return ACTQL_OWNED_INVALID;
 +    if (read_process != 0 && read_process != process) {
 +        unlock_read_contexts();
 +        return ACTQL_OWNED_INVALID;
@@ -1154,21 +1198,25 @@
 + * Read -> capacity lock order and current/fork fencing remain unchanged. */
 +int actql_native_private_scoped_contains_allocation(actql_read_context *context,
 +    actql_owned_capacity *lease, const void *pointer, size_t bytes) {
-+    if (!pointer || !bytes || !lock_read_contexts()) return ACTQL_OWNED_INVALID;
++    if (!pointer || !bytes) return ACTQL_OWNED_INVALID;
++    /* No allocator, verifier, callback or scope transition occurs before the
++     * same index/capacity locks are released. Do not retain this PID afterward. */
++    pid_t process;
++    if (!lock_read_contexts_observe_process(&process)) return ACTQL_OWNED_INVALID;
 +    int status = ACTQL_OWNED_INVALID;
-+    if (!known_read_context(context) || read_current != context || read_depth == 0 ||
++    if (!known_read_context_observed(context, process) || read_current != context || read_depth == 0 ||
 +        context->active == 0 || context->lease != lease ||
 +        actql_native_owned_current() != lease) goto done;
 +    lock_capacity(lease);
 +    size_t logical_offset;
-+    if (foreign_domain_process(lease) || lease->closing || !lease->transferred ||
++    if (foreign_domain_process_observed(lease, process) || lease->closing || !lease->transferred ||
 +        !owned_pointer_offset(lease, pointer, &logical_offset)) goto capacity_done;
 +    size_t index = logical_offset / lease->page_size;
 +    if (owned_control_page(lease, index)) goto capacity_done;
 +    while (index > lease->control_pages && owned_extent(lease, index)->pages == SIZE_MAX) index--;
 +    struct extent *extent = owned_extent(lease, index);
 +    if (owned_control_page(lease, index) || !extent->read_heap || extent->read_context != context ||
-+        extent->read_process != getpid() || extent->read_released || extent->retired) goto capacity_done;
++        extent->read_process != process || extent->read_released || extent->retired) goto capacity_done;
 +    void *page = owned_page_address(lease, index);
 +    for (struct read_heap_block *block = read_heap_first(page); block;
 +         block = read_heap_next(page, extent->pages * lease->page_size, block)) {
@@ -1183,9 +1231,10 @@
 +}
 +
 +actql_read_context *actql_read_context_current(void) {
-+    if (!lock_read_contexts()) return NULL;
++    pid_t process;
++    if (!lock_read_contexts_observe_process(&process)) return NULL;
 +    actql_read_context *context = read_current;
-+    bool current = known_read_context(context) && context->active != 0 &&
++    bool current = known_read_context_observed(context, process) && context->active != 0 &&
 +        read_depth != 0 && actql_native_owned_current() == context->lease;
 +    unlock_read_contexts();
 +    return current ? context : NULL;

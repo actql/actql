@@ -27,7 +27,9 @@ test('explicit Local release profile requires its already admitted Linux Local a
   const linux = {platform: 'linux-x64-gnu', localRuntime: {syntheticSelection: true}};
   const remoteDarwin = {platform: 'darwin-arm64'};
   requireLinuxLocalReleaseArtifacts([linux]);
-  requireLinuxLocalReleaseArtifacts([linux, remoteDarwin]);
+  const darwin = {platform: 'darwin-arm64', localRuntime: {syntheticSelection: true}};
+  requireLinuxLocalReleaseArtifacts([linux, darwin]);
+  assert.throws(() => requireLinuxLocalReleaseArtifacts([linux, remoteDarwin]), /Every included platform/u);
   for (const records of [[], [remoteDarwin], [linux, linux]]) {
     assert.throws(() => requireLinuxLocalReleaseArtifacts(records), /requires one Linux x64 artifact/u);
   }

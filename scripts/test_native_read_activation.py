@@ -99,8 +99,17 @@ class ReadActivationCustody(unittest.TestCase):
         self.assertEqual(record['passed'], expected)
         self.assertEqual(record['failed'], 0)
 
+    def test_span_process_queries_keep_original_bounds_fork_and_cleanup(self):
+        self.execute('span-process-observations', 1)
+
+    def test_current_read_process_queries_keep_scope_fork_and_close_fences(self):
+        self.execute('current-process-observations', 1)
+
     def test_same_entry_process_queries_preserve_original_allocation_and_cleanup(self):
         self.execute('managed-process-observations', 1)
+
+    def test_process_observation_keeps_fork_scope_exhaustion_and_retirement_fences(self):
+        self.execute('managed-process-fences', 5)
 
     def test_ordinary_activation_failure_lost_ack_and_partial_cleanup(self):
         self.execute('read-activation', 3)

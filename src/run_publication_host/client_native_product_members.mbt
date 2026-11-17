@@ -115,8 +115,16 @@ fn product_inventory_read(
   let root = runtime_object(cursor, [
     "files", "packageName", "platform", "sourceSha",
   ])
+  // A shared launcher covers only this closed original platform pair. The
+  // expected platform remains singular and is supplied by the existing Native
+  // installed-image observation, never selected by this descriptor's label.
+  let declared_platform = runtime_text(root, "platform")
   if runtime_text(root, "sourceSha") != source_sha ||
-    runtime_text(root, "platform") != platform ||
+    !(declared_platform == platform ||
+    (
+      package_name == "actql" &&
+      declared_platform == "darwin-arm64+linux-x64-gnu"
+    )) ||
     runtime_text(root, "packageName") != package_name {
     runtime_refuse(InvalidIdentity)
   }
@@ -149,11 +157,13 @@ fn product_inventory_read(
     members.push({ path, bytes: size, mode: mode.to_int(), sha256: hash, })
   }
   let canonical = product_inventory_wire(
-    source_sha, platform, package_name, members,
+    source_sha, declared_platform, package_name, members,
   ).unwrap_or_else(() => runtime_refuse(CapacityExceeded))
   if canonical != wire {
     runtime_refuse(InvalidManifest)
   }
+  // Keep the canonical raw wire/digest and the existing selected-platform
+  // placement facts; no second descriptor, Root or permission is constructed.
   { wire, source_sha, platform, package_name, members, }
 }
 

@@ -35,7 +35,7 @@ test('Local CI uses the normal selected producer and Local-required packaging be
   assert(producer >= 0 && producer < pack && pack < install);
   assert(!commands.some(command => command.includes('node scripts/test-native-cli-mock-install.mjs')));
   const command = commands[producer];
-  for (const selected of ['--source "$(git rev-parse HEAD)"', '--package-version 0.0.2-rc.0',
+  for (const selected of ['--source "$(git rev-parse HEAD)"', '--package-version 0.0.2',
     '--clang "$(realpath /usr/bin/clang-19)"', '--sqlite-archive', '--component-seconds 300', '--compile-seconds 1800']) {
     assert(command.includes(selected), selected);
   }
@@ -126,7 +126,20 @@ test('Mock workflows require a fresh runner and the successful exact producer co
   assert(mockJob.steps.indexOf(download) < mockJob.steps.indexOf(mock));
   assert(mockJob.steps.indexOf(download) < mockJob.steps.indexOf(authentication));
   assert(mockJob.steps.indexOf(authentication) < mockJob.steps.indexOf(mock));
-  assert(!mockJob.steps.some(step => /produce-native|native-cli-release|--measure|performance-diagnostic/u.test(step.run ?? '')));
+  assert(!/--measure|performance-diagnostic/u.test(mock.run), 'The formal collector is not the diagnostic consumer');
+  assert(!mockJob.steps.some(step => /produce-native|native-cli-release/u.test(step.run ?? '')),
+    'Neither formal sampling nor failure diagnostics may rebuild the fixed Native payload');
+  const diagnostics = mockJob.steps.filter(step => step.run?.includes('--diagnose-approval-syscalls'));
+  assert.equal(diagnostics.length, 1, 'One separate diagnostic may follow a failed formal campaign');
+  const diagnostic = diagnostics[0];
+  const diagnosticCondition = diagnostic.if.replace(/^\$\{\{\s*|\s*\}\}$/gu, '');
+  const diagnose = Function('failure', 'steps', `return (${diagnosticCondition});`);
+  for (const failed of [false, true]) for (const outcome of ['success', 'failure', 'cancelled', 'skipped', undefined]) {
+    assert.equal(diagnose(() => failed, {[mock.id]: {outcome}}), failed && outcome === 'failure');
+  }
+  assert(mockJob.steps.indexOf(diagnostic) > mockJob.steps.indexOf(mock));
+  assert(diagnostic.run.includes('"$RUNNER_TEMP/native-cli-linux-local/release"'), 'Keep the same original RC');
+  assert(diagnostic.run.includes('--measure-approval-resources'));
 });
 
 test('exact Local artifact preflight refuses other attempts sources and missing or multiple IDs', () => {
@@ -183,12 +196,31 @@ test('required Native producer also executes all real allocator cases with origi
   const retained = job.steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
   assert(retained.with.path.includes('/crypto-allocator/summary.json'));
   assert(!retained.with.path.includes('/crypto-allocator/**'), 'Retain safe numeric reports, not whole test backing');
-  const runner = readFileSync(new URL('./test-native-crypto-allocator.py', import.meta.url), 'utf8');
-  assert(runner.includes("MODES = ('bounded-search', 'split-merge-membership', 'partial')"));
-  for (const text of ['P.linux_member_inputs(prefix, selected)', "producer['source'] != source",
-    "producer['inputs'].get(name) != expected", 'P.verify_original_inputs(inputs)',
-    "selected[0].get('original_cleanup') is True", "len(report['cases']) == 3"])
-    assert(runner.includes(text), text);
+  const cases = spawnSync('python3', ['-c', `
+import importlib.util, json, sys
+spec = importlib.util.spec_from_file_location('allocator_cases', sys.argv[1])
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+assert module.MODES and len(set(module.MODES)) == len(module.MODES)
+for mode in module.MODES:
+    row = {'case': mode, 'passed': True, 'original_cleanup': True}
+    if mode.startswith('callback-invalid-'):
+        row.update(original_cleanup=False, failure_custody=True, physical_stop='process-exit-required')
+    assert module.observed_case_passed(mode, 0, [row])
+    assert not module.observed_case_passed(mode, 1, [row])
+    assert not module.observed_case_passed(mode, 0, [])
+    assert not module.observed_case_passed(mode, 0, [row, row])
+    assert not module.observed_case_passed(mode, 0, [{**row, 'passed': False}])
+    assert not module.observed_case_passed(mode, 0, [{**row, 'original_cleanup': not row['original_cleanup']}])
+    if mode.startswith('callback-invalid-'):
+        assert not module.observed_case_passed(mode, 0, [{**row, 'failure_custody': False}])
+assert not module.observed_case_passed('unknown', 0, [{'case': 'unknown', 'passed': True, 'original_cleanup': True}])
+print(json.dumps(list(module.MODES)))
+`, fileURLToPath(new URL('./test-native-crypto-allocator.py', import.meta.url))],
+  {encoding: 'utf8', timeout: 5000, env: {...process.env, PYTHONDONTWRITEBYTECODE: '1'}});
+  assert.equal(cases.error, undefined); assert.equal(cases.status, 0, cases.stderr);
+  for (const mode of ['bounded-search', 'split-merge-membership', 'partial', 'callback-current'])
+    assert(JSON.parse(cases.stdout).includes(mode), mode);
 });
 
 test('CI downloads original hash-bounded archives and retains exact production and failure receipts', () => {
@@ -207,11 +239,17 @@ test('CI downloads original hash-bounded archives and retains exact production a
   const mockRetain = mockJob.steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
   assert.equal(mockRetain.if, 'always()');
   assert.equal(mockRetain.with.name, 'native-cli-linux-local-mock-${{ github.run_id }}-${{ github.run_attempt }}');
-  assert.deepEqual(mockRetain.with.path.trim().split('\n'), [
+  const paths = new Set(mockRetain.with.path.trim().split('\n'));
+  for (const path of [
     '${{ runner.temp }}/native-cli-linux-local/approval/*.json',
     '${{ runner.temp }}/native-cli-linux-local/release/mock-install-*.json',
+    '${{ runner.temp }}/native-cli-linux-local/release/mock-syscalls-*.json',
+    '${{ runner.temp }}/native-cli-linux-local/release/approval-resources-*.txt',
+    '${{ runner.temp }}/native-cli-linux-local/release/approval-syscalls-*.txt',
     '/tmp/actql-native-mock-install-*/commands.json',
-  ]);
+    '/tmp/actql-native-mock-install-*/approval-resources-*.txt',
+    '/tmp/actql-native-mock-install-*/approval-syscalls-*.txt',
+  ]) assert(paths.has(path), `Missing formal or diagnostic evidence family: ${path}`);
   assert(!mockRetain.with.path.includes('mock-consumers/**'), 'Do not upload private project state or keys');
 });
 

@@ -7,6 +7,7 @@ import {tmpdir} from 'node:os';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {join, dirname} from 'node:path';
+import {pathToFileURL} from 'node:url';
 import {parse} from 'yaml';
 import {parse as parseJavaScript} from 'acorn';
 import {gateJobs, gateJobRequired, selectTargets, verifyGate} from './ci-targets.mjs';
@@ -19,9 +20,11 @@ import {twoModelDealReviewFiles, twoModelWholeDealReviewFiles, twoModelJoinedWho
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 import {createCommandEvidence, checkCommandEvidenceUpload} from './packed-query-evidence.mjs';
 import {nativeCoreScopedTestEnvironment} from './native-core-test-selection.mjs';
-import {projectFileStoreRows101, projectFileStoreMembers17} from './fixtures/project-file-store-inventory-cases.mjs';
+import {projectFileStoreRows101, projectFileStoreMembers17,
+  projectFileStoreInventoryAcceptance} from './fixtures/project-file-store-inventory-cases.mjs';
 import {packedDependencyBoundaryCases, packedDependencyBoundaryPhases} from './packed-project-dependency-boundary.mjs';
-import {packedProjectFileStoreInventoryCases} from './packed-project-file-store-inventory.mjs';
+import {packedProjectFileStoreInventoryCases,
+  runPackedProjectFileStoreInventory} from './packed-project-file-store-inventory.mjs';
 import {readWholeResults, checkJoinedSourceRows, readJoinedWholeResults, assertRecordWorkflowWork} from '../adapters/host-node/fixtures/work-observation.fixture.mjs';
 
 const workflow = parse(await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
@@ -3033,6 +3036,33 @@ test('required dependency restoration cannot pass an unexecuted consumer and ret
     assert.equal(summary.complete, mode === 'passed');
     assert(summary.cases.every(row => row.completed), 'Independent README consumers still execute after this refusal');
   }
+});
+
+test('File inventory capture keeps finite functional headroom inside the original bounded child', async t => {
+  const timeout = projectFileStoreInventoryAcceptance.captureTimeoutMs;
+  assert(Number.isSafeInteger(timeout) && timeout > 0);
+  const {root} = await scratch(t), consumer = join(root, 'consumer');
+  await mkdir(join(consumer, 'node_modules'), {recursive: true});
+  const primary = new Error('Explicit command-port refusal');
+  const report = {cases: []}, cleanup = [];
+  let commands = 0;
+  await assert.rejects(runPackedProjectFileStoreInventory({prepared: {consumer},
+    root: join(root, 'file-inventory'), repository, report, cleanup,
+    verifyPreparedPackages: async () => {},
+    command: async (_executable, args, options) => {
+      commands++;
+      assert.equal(args[1], 'capture');
+      assert(Number.isSafeInteger(options.timeout) && options.timeout > timeout,
+        'The child leaves finite time for open, original functional wait and first close');
+      const copied = await import(pathToFileURL(join(options.cwd,
+        'scripts/fixtures/project-file-store-inventory-cases.mjs')));
+      assert.deepEqual(copied.projectFileStoreInventoryAcceptance, projectFileStoreInventoryAcceptance);
+      throw primary;
+    }}), error => error === primary);
+  assert.equal(commands, 1);
+  assert.equal(report.cases[0].completed, false);
+  assert.equal(report.cases[0].status, 'failed');
+  assert.deepEqual(cleanup, []);
 });
 
 test('File inventory phase oracle requires three cold processes and no completed work replay', async () => {

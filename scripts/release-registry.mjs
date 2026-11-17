@@ -6,6 +6,7 @@ import {closeSync, fsyncSync, openSync, writeSync} from 'node:fs';
 import {lstat, mkdir, readFile, writeFile} from 'node:fs/promises';
 import {dirname, join, resolve} from 'node:path';
 import {publishedVersion, verifyPackageRelease} from './package-release.mjs';
+import {verifyNativeCliRelease} from './native-cli-release.mjs';
 import {nativeReleaseDraftRequest, resumeReleaseSet, verifyReleaseSet} from './release-set.mjs';
 
 class RegistryUnavailable extends Error {}
@@ -439,14 +440,22 @@ async function pypiObservation(artifact, siblings, fetchResponse, requests) {
 // development originals), not a newly assembled upper set. Reuse the exact
 // same npm identity and streamed-byte owner before its explicit public mode.
 export async function observeNpmPackageRelease(directory, expectedSha256, {fetchResponse = fetch} = {}) {
+  return observeNpmCohort(directory, expectedSha256, verifyPackageRelease, 'Node', fetchResponse);
+}
+
+export async function observeNativeCliNpmRelease(directory, expectedSha256, {fetchResponse = fetch} = {}) {
+  return observeNpmCohort(directory, expectedSha256, verifyNativeCliRelease, 'Native CLI', fetchResponse);
+}
+
+async function observeNpmCohort(directory, expectedSha256, verify, label, fetchResponse) {
   assert.match(expectedSha256, /^[a-f0-9]{64}$/u);
   directory = resolve(directory); const path = join(directory, 'release.json');
   const root = await lstat(directory); assert(root.isDirectory() && !root.isSymbolicLink());
   const stat = await lstat(path); assert(stat.isFile() && !stat.isSymbolicLink());
   const original = await readFile(path), sha256 = createHash('sha256').update(original).digest('hex');
-  assert.equal(sha256, expectedSha256, 'Node cohort differs from its externally retained manifest digest');
-  const manifest = await verifyPackageRelease(directory);
-  assert.deepEqual(await readFile(path), original, 'Node cohort changed during original verification');
+  assert.equal(sha256, expectedSha256, `${label} cohort differs from its externally retained manifest digest`);
+  const manifest = await verify(directory);
+  assert.deepEqual(await readFile(path), original, `${label} cohort changed during original verification`);
   const startedAt = new Date().toISOString(), observations = [], issues = [], requests = [];
   for (const item of manifest.packages) {
     const artifact = {...item, ecosystem: 'npm'}, base = {name: item.name, version: item.version, file: item.file};
@@ -459,8 +468,8 @@ export async function observeNpmPackageRelease(directory, expectedSha256, {fetch
       observations.push({...base, state}); issues.push({...base, state, reason: failure.message});
     }
   }
-  await verifyPackageRelease(directory);
-  assert.deepEqual(await readFile(path), original, 'Node cohort changed during public observation');
+  await verify(directory);
+  assert.deepEqual(await readFile(path), original, `${label} cohort changed during public observation`);
   const after = await lstat(path); assert(after.isFile() && !after.isSymbolicLink());
   return {schemaVersion: 'actql-npm-public-observation/0.1', manifestSha256: sha256, sourceSha: manifest.sourceSha,
     startedAt, endedAt: new Date().toISOString(), observations, issues, requests,

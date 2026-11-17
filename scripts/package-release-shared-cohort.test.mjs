@@ -97,5 +97,5 @@ test('common release metadata equality requires the same selected package versio
   assert.deepEqual(releasePackageMetadata(original, 'node', four),
     releasePackageMetadata(original, 'node', six));
   assert.notDeepEqual(releasePackageMetadata(original, 'node', four),
-    releasePackageMetadata(original, 'node', {...six, packageVersion: '0.0.2'}));
+    releasePackageMetadata(original, 'node', {...six, packageVersion: '0.0.3'}));
 });
