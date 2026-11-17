@@ -159,7 +159,8 @@ try {
     original.ref = run.ref; await save(handoffPath, original);
     // Functional completion bound for acquisition plus Compute, not a latency
     // assertion. Cold approval and Saved keep their separate existing bounds.
-    const waiting = await run.wait({signal: AbortSignal.timeout(45_000)});
+    report.captureCompletionTimeoutMs = projectFileStoreInventoryAcceptance.captureTimeoutMs;
+    const waiting = await run.wait({signal: AbortSignal.timeout(report.captureCompletionTimeoutMs)});
     timing.stamp('terminal-or-abort');
     report.captureState = snapshot(waiting);
     assert.equal(waiting.status, 'waiting_checkpoint');

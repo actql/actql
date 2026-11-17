@@ -51,6 +51,9 @@ export const projectFileStoreInventoryAcceptance=Object.freeze({
   // destination.files is one installed Local STORE owner in both cases.
   installation:'ordinary Project Local files/contents and required STORE approval',
   budgetBytes:512*1024**2,
+  // Functional acquisition/Compute headroom, shared by every installed platform.
+  // This does not select an execution budget or a latency acceptance criterion.
+  captureTimeoutMs:90_000,
   capture:['one fresh Run per case','actual public checkpoint and sealed review; no writes',
     'FIRST close returns before original Program and Source suppliers are removed'],
   approve:['different process; cold attach SAME original Run and Checkpoint',
