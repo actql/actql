@@ -391,7 +391,15 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
       submissionInputs.set(error, snapshot);
       submissionOutcomes.set(error, outcome);
       submissionAttempts.set(error, attempt);
-      if (checkObservation !== undefined) submissionCheckObservations.set(error, freezeInput(checkObservation));
+      if (checkObservation !== undefined) {
+        submissionCheckObservations.set(error, freezeInput(checkObservation));
+        // Point to this SAME already-bound report. Do not serialize original
+        // Source, invent a cause from an error code, or issue another check.
+        const problem = outcome.problem?.code;
+        error.message = `${error.code}: phase=${outcome.kind}` +
+          (problem === undefined ? '' : `; problem=${problem}`) +
+          '. Inspect formatCheckOutcome(getSubmissionCheckObservation(error)) for the original check diagnostics.';
+      }
       retainSubmissionExplanation(error, outcome, snapshot);
       throw error;
     })();
