@@ -242,7 +242,11 @@ test "fixed Request control envelope preserves original upper bound through the 
     // one scalar closure. Events' closure also borrows its record policy.
     16L * 8L +
     8L * 14L +
-    8L * 4L
+    8L * 4L +
+    // One original Fragment-root work refusal: header/tag/step/selected work.
+    // No string, Demand amount, fresh Request or cleanup token is retained.
+    16L +
+    8L * 3L
   assert_eq(
     @execution.preparation_representation_cost(
       request_preparation_fixed_control_envelope,

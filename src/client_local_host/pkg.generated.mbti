@@ -1785,6 +1785,7 @@ pub(all) enum ClientInstalledManagedRunIssue {
   Sequence(@lowering_relation.SequenceIssue)
   SerializationPrefix(ClientSerializationPrefixIssue)
   MetadataCapacityUnavailable
+  RuntimeFragmentWorkLimit(Int, Int)
 }
 
 type ClientInstalledManagedSerializationPreparation

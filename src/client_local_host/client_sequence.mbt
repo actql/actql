@@ -933,6 +933,8 @@ fn prepare_client_local_sequences_owned(
               max_work: preparation_work,
             }) {
             Ok(value) => value
+            Err(@lower.RootWorkLimit) =>
+              return Err(RuntimeFragmentWorkLimit(step, preparation_work))
             Err(_) => return Err(Unsupported)
           }
           // Work covers measuring every value these rows admit, with a small

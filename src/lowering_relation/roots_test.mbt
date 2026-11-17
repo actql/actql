@@ -155,16 +155,16 @@ test "root index budgets are cumulative and empty map has no invented root" {
   }
   assert_true(@lowering_relation.prepare_roots(sequence, exact) is Ok(_))
   for
-    limited in [
-      { ..exact, max_roots: 1, },
-      { ..exact, max_pointer_bytes: 12, },
-      { ..exact, max_work: 20, },
-    ] {
+    limited in [{ ..exact, max_roots: 1, }, { ..exact, max_pointer_bytes: 12, }] {
     assert_true(
       @lowering_relation.prepare_roots(sequence, limited)
       is Err(@lowering_relation.RootLimit),
     )
   }
+  assert_true(
+    @lowering_relation.prepare_roots(sequence, { ..exact, max_work: 20, })
+    is Err(@lowering_relation.RootWorkLimit),
+  )
   assert_true(
     @lowering_relation.prepare_roots(sequence, { ..exact, max_roots: -1, })
     is Err(@lowering_relation.InvalidRootLimits),
@@ -208,4 +208,45 @@ test "root pointer sorting uses UTF16 but pointer ceilings use UTF8" {
     })
     is Err(@lowering_relation.RootLimit),
   )
+}
+
+///|
+test "root work diagnostics keep actual work separate from root and pointer ceilings" {
+  for
+    tail in [
+      ",{\"derive\":{\"next\":\"id + 1\"}}", ",{\"derive\":[{\"next\":\"id + 1\"}]}",
+      ",{\"filter\":\"id > 0\"}", ",{\"group\":{\"by\":[\"id\"],\"aggregates\":{\"total\":{\"fn\":\"sum\",\"expr\":\"id + 1\",\"filter\":\"id > 0\"}}}}",
+    ] {
+    let sequence = @lowering_relation.prepare_sequence(
+      expression_pipeline(tail),
+      sequence_limits(),
+    ).unwrap()
+    assert_true(
+      @lowering_relation.prepare_kernel_roots(sequence, 1, root_limits())
+      is Ok(_),
+    )
+    for work in [0, 1] {
+      assert_true(
+        @lowering_relation.prepare_kernel_roots(sequence, 1, {
+          ..root_limits(),
+          max_work: work,
+        })
+        is Err(@lowering_relation.RootWorkLimit),
+      )
+    }
+    assert_true(
+      @lowering_relation.prepare_kernel_roots(sequence, 1, {
+        ..root_limits(),
+        max_roots: 0,
+      })
+      is Err(@lowering_relation.RootLimit),
+    )
+    assert_true(
+      @lowering_relation.prepare_kernel_roots(sequence, 1, {
+        ..root_limits(),
+        max_pointer_bytes: 0,
+      })
+      is Err(@lowering_relation.RootLimit),
+    )
+  }
 }

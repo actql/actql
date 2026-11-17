@@ -299,9 +299,12 @@ let request_preparation_fixed_control_envelope : @execution.PreparationRepresent
   // Events adds Some(quote) (1H/1R) and a closure borrowing its retained
   // record policy and capturing storage_bytes (1H/1R/1W).
   // These fixed controls are backed before the installed factory is entered.
-  record_headers: 257L,
+  // The actual Fragment-root work refusal retains one original error variant
+  // (1H/3W: tag, step, selected work). Reserve it before entering construction;
+  // no new Request field, callback or policy is introduced on the failure path.
+  record_headers: 258L,
   reference_slots: 472L,
-  scalar_words: 523L,
+  scalar_words: 526L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }
