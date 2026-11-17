@@ -26,6 +26,7 @@ fn keyed_lookup_body_grow(
     basis_execution + controls + e,
   )
   if retained > lookup.retained_bytes || execution > lookup.execution_bytes {
+    let outer_growing = lookup.growing
     lookup.growing = true
     let result = @resources.grow_execution_reservation_capacity(
       lookup.ledger,
@@ -33,7 +34,7 @@ fn keyed_lookup_body_grow(
       retained,
       execution,
     )
-    lookup.growing = false
+    lookup.growing = outer_growing
     match result {
       Err(issue) => return Err(Physical(issue))
       Ok(_) => {

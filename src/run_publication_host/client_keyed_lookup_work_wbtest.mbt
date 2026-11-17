@@ -262,8 +262,15 @@ fn keyed_work_original_fixture(
       return true
     }
     stop_client_keyed_lookup_input(lookup)
-    while !cleanup_client_keyed_lookup_input(lookup, 64).unwrap() {
-
+    let mut complete = false
+    for _ in 0..<100000 {
+      if cleanup_client_keyed_lookup_input(lookup, 64).unwrap() {
+        complete = true
+        break
+      }
+    }
+    if !complete {
+      return false
     }
     stopped.val = true
     @row_host.close_accounted_row_run(run).unwrap()

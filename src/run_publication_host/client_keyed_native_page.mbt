@@ -401,143 +401,149 @@ fn build_client_keyed_native_captured_page(
   } else {
     max_bytes
   }
-  let metadata_phase = match
-    grow_keyed_lookup_protocol_metadata(
-      state,
-      codec_bytes,
-      2L,
-      copies=3,
-      extra_controls=controls,
-    ) {
-    Err(issue) => return Err(issue)
-    Ok(value) => value
-  }
-  guard @row_host.keyed_row_capture_matches_request(capture, request.request) &&
-    !state.closed &&
-    state.left.lookup_issue is None &&
-    state.selected_request is Some(same) &&
-    physical_equal(same, request) &&
-    partial.capture is Some(same_capture) &&
-    physical_equal(same_capture, capture) &&
-    partial.read is Some(same_read) &&
-    physical_equal(same_read, read) &&
-    partial.output is Some(same_output) &&
-    physical_equal(same_output, output) &&
-    partial.result is None else {
-    return Err(Assembly("retired_native_captured_page"))
-  }
-  let slot = @publication.publication_contract_identity(activation.slot)
-  let batch = @publication.publication_contract_identity(activation.batch)
-  let activation_cid = @publication.publication_contract_identity(
-    activation.activation,
+  let constructed = with_keyed_protocol_construction(
+    state,
+    codec_bytes,
+    2L,
+    max_nodes,
+    max_depth,
+    fn() {
+      guard @row_host.keyed_row_capture_matches_request(
+          capture,
+          request.request,
+        ) &&
+        !state.closed &&
+        state.left.lookup_issue is None &&
+        state.selected_request is Some(same) &&
+        physical_equal(same, request) &&
+        partial.capture is Some(same_capture) &&
+        physical_equal(same_capture, capture) &&
+        partial.read is Some(same_read) &&
+        physical_equal(same_read, read) &&
+        partial.output is Some(same_output) &&
+        physical_equal(same_output, output) &&
+        partial.result is None else {
+        return Err(Assembly("retired_native_captured_page"))
+      }
+      let slot = @publication.publication_contract_identity(activation.slot)
+      let batch = @publication.publication_contract_identity(activation.batch)
+      let activation_cid = @publication.publication_contract_identity(
+        activation.activation,
+      )
+      let raw_cid = @publication.publication_contract_identity(raw.metadata)
+      let authority = client_request_authority_scope_cid(
+        activation.client_request,
+      )
+      let event_body = try {
+        let writer = @encode.writer(codec_bytes, max_nodes, max_depth)
+        @encode.begin_object(writer)
+        for
+          (name, text) in [
+            ("version", "actql-lookup-attempt-event/0.1"),
+            ("barrier_cid", barrier),
+            ("batch_plan_cid", batch),
+            ("call_slot_cid", slot),
+            ("recorded_at", recorded_at),
+            ("outcome", "captured"),
+            ("raw_response_artifact_cid", raw_cid),
+            ("issuer_id", activation.issuer_id),
+            ("authority_scope_cid", authority),
+          ] {
+          @encode.key(writer, name)
+          @encode.string_value(writer, text)
+        }
+        @encode.key(writer, "network_attempt")
+        @encode.number_value(writer, 1.0)
+        for name in ["previous_event_cid", "runtime_error_cid", "failure_code"] {
+          @encode.key(writer, name)
+          @encode.null_value(writer)
+        }
+        @encode.end_object(writer)
+        @encode.finish(writer)
+      } catch {
+        _ => return Err(Assembly("native_capture_event_encoding"))
+      }
+      let event = match
+        native_lookup_seal(
+          "native_file_lookup_attempt_event", event_body, codec_bytes, max_nodes,
+          max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      let page_cid = @execution.logical_relation_cid(logical)
+      let adoption_body = try {
+        let writer = @encode.writer(codec_bytes, max_nodes, max_depth)
+        @encode.begin_object(writer)
+        for
+          (name, text) in [
+            ("version", "actql-lookup-page-adoption/0.1"),
+            ("barrier_cid", barrier),
+            ("batch_plan_cid", batch),
+            ("call_slot_cid", slot),
+            ("activation_cid", activation_cid),
+            (
+              "capture_event_cid",
+              @publication.publication_contract_identity(event),
+            ),
+            ("raw_response_artifact_cid", raw_cid),
+            ("response_schema_cid", response_schema),
+            ("page_value_cid", page_cid),
+            ("recorded_at", recorded_at),
+            ("issuer_id", activation.issuer_id),
+            ("authority_scope_cid", authority),
+          ] {
+          @encode.key(writer, name)
+          @encode.string_value(writer, text)
+        }
+        @encode.key(writer, "network_attempt")
+        @encode.number_value(writer, 1.0)
+        for name in ["previous_adoption_cid", "next_token"] {
+          @encode.key(writer, name)
+          @encode.null_value(writer)
+        }
+        @encode.key(writer, "terminal")
+        @encode.bool_value(writer, true)
+        @encode.end_object(writer)
+        @encode.finish(writer)
+      } catch {
+        _ => return Err(Assembly("native_page_adoption_encoding"))
+      }
+      let adoption = match
+        native_lookup_seal(
+          "native_file_lookup_adoption", adoption_body, codec_bytes, max_nodes, max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      let result = {
+        batch_index: activation.batch_index,
+        deadline_epoch_ms: activation.deadline_epoch_ms,
+        call_slot_cid: slot,
+        batch_plan_cid: batch,
+        activation_cid,
+        raw: raw.metadata,
+        raw_retention: raw.retention,
+        event,
+        adoption,
+        logical_value_cid: page_cid,
+        body,
+        schema_wire: @execution.relation_schema_wire(schema),
+      }
+      Ok(keyed_protocol_built(result, contracts=[event, adoption]))
+    },
+    result => {
+      partial.result = Some(result)
+      @execution.cancel_completed_relation_identity_scan(scan) |> ignore
+      partial.scan = None
+      Ok(())
+    },
+    copies=3,
+    extra_controls=controls,
   )
-  let raw_cid = @publication.publication_contract_identity(raw.metadata)
-  let authority = client_request_authority_scope_cid(activation.client_request)
-  let event_body = try {
-    let writer = @encode.writer(codec_bytes, max_nodes, max_depth)
-    @encode.begin_object(writer)
-    for
-      (name, text) in [
-        ("version", "actql-lookup-attempt-event/0.1"),
-        ("barrier_cid", barrier),
-        ("batch_plan_cid", batch),
-        ("call_slot_cid", slot),
-        ("recorded_at", recorded_at),
-        ("outcome", "captured"),
-        ("raw_response_artifact_cid", raw_cid),
-        ("issuer_id", activation.issuer_id),
-        ("authority_scope_cid", authority),
-      ] {
-      @encode.key(writer, name)
-      @encode.string_value(writer, text)
-    }
-    @encode.key(writer, "network_attempt")
-    @encode.number_value(writer, 1.0)
-    for name in ["previous_event_cid", "runtime_error_cid", "failure_code"] {
-      @encode.key(writer, name)
-      @encode.null_value(writer)
-    }
-    @encode.end_object(writer)
-    @encode.finish(writer)
-  } catch {
-    _ => return Err(Assembly("native_capture_event_encoding"))
-  }
-  let event = match
-    native_lookup_seal(
-      "native_file_lookup_attempt_event", event_body, codec_bytes, max_nodes, max_depth,
-    ) {
-    Ok(value) => value
+  let result = match constructed {
+    Ok(settled) => settled.value
     Err(issue) => return Err(issue)
-  }
-  let page_cid = @execution.logical_relation_cid(logical)
-  let adoption_body = try {
-    let writer = @encode.writer(codec_bytes, max_nodes, max_depth)
-    @encode.begin_object(writer)
-    for
-      (name, text) in [
-        ("version", "actql-lookup-page-adoption/0.1"),
-        ("barrier_cid", barrier),
-        ("batch_plan_cid", batch),
-        ("call_slot_cid", slot),
-        ("activation_cid", activation_cid),
-        ("capture_event_cid", @publication.publication_contract_identity(event)),
-        ("raw_response_artifact_cid", raw_cid),
-        ("response_schema_cid", response_schema),
-        ("page_value_cid", page_cid),
-        ("recorded_at", recorded_at),
-        ("issuer_id", activation.issuer_id),
-        ("authority_scope_cid", authority),
-      ] {
-      @encode.key(writer, name)
-      @encode.string_value(writer, text)
-    }
-    @encode.key(writer, "network_attempt")
-    @encode.number_value(writer, 1.0)
-    for name in ["previous_adoption_cid", "next_token"] {
-      @encode.key(writer, name)
-      @encode.null_value(writer)
-    }
-    @encode.key(writer, "terminal")
-    @encode.bool_value(writer, true)
-    @encode.end_object(writer)
-    @encode.finish(writer)
-  } catch {
-    _ => return Err(Assembly("native_page_adoption_encoding"))
-  }
-  let adoption = match
-    native_lookup_seal(
-      "native_file_lookup_adoption", adoption_body, codec_bytes, max_nodes, max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let result = {
-    batch_index: activation.batch_index,
-    deadline_epoch_ms: activation.deadline_epoch_ms,
-    call_slot_cid: slot,
-    batch_plan_cid: batch,
-    activation_cid,
-    raw: raw.metadata,
-    raw_retention: raw.retention,
-    event,
-    adoption,
-    logical_value_cid: page_cid,
-    body,
-    schema_wire: @execution.relation_schema_wire(schema),
-  }
-  partial.result = Some(result)
-  @execution.cancel_completed_relation_identity_scan(scan) |> ignore
-  partial.scan = None
-  match
-    finish_keyed_lookup_protocol_metadata(
-      state,
-      metadata_phase,
-      max_nodes,
-      max_depth,
-      [event, adoption],
-    ) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
   }
   if !client_keyed_native_captured_page_matches_original(
       result,

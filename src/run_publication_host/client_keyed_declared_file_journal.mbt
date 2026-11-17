@@ -79,69 +79,74 @@ fn prepare_client_keyed_declared_file_activation_record_original(
     return Err(Assembly("capacity_overflow"))
   }
   let bytes = Int64::min(bound, max_bytes.to_int64()).to_int()
-  let phase = match
-    grow_keyed_lookup_protocol_metadata(state, bytes, 15L, copies=2) {
+  let constructed = with_keyed_protocol_construction(
+    state,
+    bytes,
+    15L,
+    15,
+    2,
+    fn() {
+      // Growth observes the same current owner. A reentered retirement cannot
+      // turn an old activation into a new dispatch or Journal constructor.
+      guard !state.identifying &&
+        client_keyed_native_activation_matches_original(
+          original, request, compiled, definition,
+        ) else {
+        return Err(Assembly("retired_declared_file_activation_record"))
+      }
+      state.identifying = true
+      defer {
+        state.identifying = false
+      }
+      let wire = try {
+        let writer = @encode.writer(bytes, 15, 2)
+        @encode.begin_object(writer)
+        for
+          (name, contract) in [
+            ("activation", original.activation),
+            ("batch_plan", original.batch),
+            ("call_slot", original.slot),
+            ("key_set", original.keys),
+            ("request", original.semantic_request),
+            ("transport", original.transport),
+          ] {
+          @encode.key(writer, name)
+          @encode.string_value(
+            writer,
+            @publication.publication_contract_json(contract),
+          )
+        }
+        @encode.key(writer, "request_scope_cid")
+        @encode.string_value(writer, request_scope)
+        @encode.key(writer, "run_definition_cid")
+        @encode.string_value(writer, definition_cid)
+        for
+          (name, value) in [
+            ("batch_index", original.batch_index.to_int64()),
+            ("batch_count", original.batch_count.to_int64()),
+            ("reserved_wire_bytes", original.reserved_wire_bytes),
+            ("reserved_decoded_bytes", original.reserved_decoded_bytes),
+            ("reserved_duration_ms", original.reserved_duration_ms),
+          ] {
+          @encode.key(writer, name)
+          @encode.number_value(writer, value.to_double())
+        }
+        @encode.key(writer, "version")
+        @encode.string_value(
+          writer, "actql-declared-file-lookup-activation-original/0.1",
+        )
+        @encode.end_object(writer)
+        @encode.finish(writer)
+      } catch {
+        _ => return Err(Assembly("declared_file_activation_record_encoding"))
+      }
+      Ok(keyed_protocol_built(wire, texts=[wire]))
+    },
+    _ => Ok(()),
+    copies=2,
+  )
+  let settled = match constructed {
     Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  // Growth observes the same current owner. A reentered retirement cannot
-  // turn an old activation into a new dispatch or Journal constructor.
-  guard !state.growing &&
-    !state.identifying &&
-    client_keyed_native_activation_matches_original(
-      original, request, compiled, definition,
-    ) else {
-    return Err(Assembly("retired_declared_file_activation_record"))
-  }
-  state.identifying = true
-  defer {
-    state.identifying = false
-  }
-  let wire = try {
-    let writer = @encode.writer(bytes, 15, 2)
-    @encode.begin_object(writer)
-    for
-      (name, contract) in [
-        ("activation", original.activation),
-        ("batch_plan", original.batch),
-        ("call_slot", original.slot),
-        ("key_set", original.keys),
-        ("request", original.semantic_request),
-        ("transport", original.transport),
-      ] {
-      @encode.key(writer, name)
-      @encode.string_value(
-        writer,
-        @publication.publication_contract_json(contract),
-      )
-    }
-    @encode.key(writer, "request_scope_cid")
-    @encode.string_value(writer, request_scope)
-    @encode.key(writer, "run_definition_cid")
-    @encode.string_value(writer, definition_cid)
-    for
-      (name, value) in [
-        ("batch_index", original.batch_index.to_int64()),
-        ("batch_count", original.batch_count.to_int64()),
-        ("reserved_wire_bytes", original.reserved_wire_bytes),
-        ("reserved_decoded_bytes", original.reserved_decoded_bytes),
-        ("reserved_duration_ms", original.reserved_duration_ms),
-      ] {
-      @encode.key(writer, name)
-      @encode.number_value(writer, value.to_double())
-    }
-    @encode.key(writer, "version")
-    @encode.string_value(
-      writer, "actql-declared-file-lookup-activation-original/0.1",
-    )
-    @encode.end_object(writer)
-    @encode.finish(writer)
-  } catch {
-    _ => return Err(Assembly("declared_file_activation_record_encoding"))
-  }
-  match
-    finish_keyed_lookup_protocol_metadata(state, phase, 15, 2, [], texts=[wire]) {
-    Ok(_) => ()
     Err(issue) => return Err(issue)
   }
   guard client_keyed_native_activation_matches_original(
@@ -149,7 +154,7 @@ fn prepare_client_keyed_declared_file_activation_record_original(
   ) else {
     return Err(Assembly("retired_declared_file_activation_record"))
   }
-  Ok(wire)
+  Ok(settled.value)
 }
 
 ///|
@@ -223,51 +228,60 @@ pub fn prepare_client_keyed_declared_file_retention(
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()
-  let phase = match
-    grow_keyed_lookup_protocol_metadata(lookup, bytes, 11L, extra_controls~) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  guard !lookup.closed &&
-    lookup.planned_requests is None &&
-    lookup.left.lookup_issue is None &&
-    state.retention_base is None else {
-    return Err(Assembly("retired_declared_file_retention"))
-  }
-  let wire = try {
-    let writer = @encode.writer(bytes, 10, 2)
-    @encode.begin_object(writer)
-    for
-      (name, value) in [
-        ("version", "actql-result-retention-policy/0.1"),
-        ("retention_contract_cid", retention_contract),
-        (
-          "effective_data_policy_cid",
-          component.original.response_data_policy_cid,
-        ),
-        ("available_until", available_until),
-        ("delete_by", delete_by),
-        ("extension_ceiling_at", metadata_delete_by),
-        ("metadata_retention_policy_cid", metadata_policy),
-        ("metadata_delete_by", metadata_delete_by),
-        ("clock_contract_cid", clock_contract),
-      ] {
-      @encode.key(writer, name)
-      @encode.string_value(writer, value)
-    }
-    @encode.end_object(writer)
-    @encode.finish(writer)
-  } catch {
-    _ => return Err(Assembly("declared_file_retention_encoding"))
-  }
-  let result = match
-    native_lookup_seal("result_retention_policy", wire, bytes, 11, 2) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  state.retention_base = Some(result)
-  match finish_keyed_lookup_protocol_metadata(lookup, phase, 11, 2, [result]) {
-    Ok(_) => ()
+  let constructed = with_keyed_protocol_construction(
+    lookup,
+    bytes,
+    11L,
+    11,
+    2,
+    fn() {
+      guard !lookup.closed &&
+        lookup.planned_requests is None &&
+        lookup.left.lookup_issue is None &&
+        state.retention_base is None else {
+        return Err(Assembly("retired_declared_file_retention"))
+      }
+      let wire = try {
+        let writer = @encode.writer(bytes, 10, 2)
+        @encode.begin_object(writer)
+        for
+          (name, value) in [
+            ("version", "actql-result-retention-policy/0.1"),
+            ("retention_contract_cid", retention_contract),
+            (
+              "effective_data_policy_cid",
+              component.original.response_data_policy_cid,
+            ),
+            ("available_until", available_until),
+            ("delete_by", delete_by),
+            ("extension_ceiling_at", metadata_delete_by),
+            ("metadata_retention_policy_cid", metadata_policy),
+            ("metadata_delete_by", metadata_delete_by),
+            ("clock_contract_cid", clock_contract),
+          ] {
+          @encode.key(writer, name)
+          @encode.string_value(writer, value)
+        }
+        @encode.end_object(writer)
+        @encode.finish(writer)
+      } catch {
+        _ => return Err(Assembly("declared_file_retention_encoding"))
+      }
+      let result = match
+        native_lookup_seal("result_retention_policy", wire, bytes, 11, 2) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      Ok(keyed_protocol_built(result, contracts=[result]))
+    },
+    result => {
+      state.retention_base = Some(result)
+      Ok(())
+    },
+    extra_controls~,
+  )
+  let result = match constructed {
+    Ok(settled) => settled.value
     Err(issue) => return Err(issue)
   }
   guard !lookup.closed &&
@@ -389,46 +403,53 @@ fn prepare_client_keyed_declared_file_page_record_original(
     return Err(Assembly("capacity_overflow"))
   }
   let bytes = Int64::min(bound, max_bytes.to_int64()).to_int()
-  let phase = match
-    grow_keyed_lookup_protocol_metadata(state, bytes, 9L, copies=2) {
+  let constructed = with_keyed_protocol_construction(
+    state,
+    bytes,
+    9L,
+    9,
+    2,
+    fn() {
+      guard client_keyed_native_captured_page_matches_original(
+          page, keyed_request, request, compiled, definition, original,
+        ) &&
+        !state.identifying else {
+        return Err(Assembly("retired_declared_file_page_record"))
+      }
+      state.identifying = true
+      defer {
+        state.identifying = false
+      }
+      let wire = try {
+        let writer = @encode.writer(bytes, 9, 2)
+        @encode.begin_object(writer)
+        for
+          (name, text) in [
+            ("adoption", @publication.publication_contract_json(page.adoption)),
+            ("event", @publication.publication_contract_json(page.event)),
+            ("raw", @publication.publication_contract_json(page.raw)),
+            ("page_value_wire", page.body),
+            ("page_schema_wire", page.schema_wire),
+            ("request_scope_cid", scope),
+            ("run_definition_cid", definition_cid),
+            ("version", "actql-declared-file-lookup-page-original/0.1"),
+          ] {
+          @encode.key(writer, name)
+          @encode.string_value(writer, text)
+        }
+        @encode.end_object(writer)
+        @encode.finish(writer)
+      } catch {
+        _ => return Err(Assembly("declared_file_page_record_encoding"))
+      }
+      // The managed returning frame retains the exact wire through settlement.
+      Ok(keyed_protocol_built(wire, texts=[wire]))
+    },
+    _ => Ok(()),
+    copies=2,
+  )
+  let settled = match constructed {
     Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  guard client_keyed_native_captured_page_matches_original(
-      page, keyed_request, request, compiled, definition, original,
-    ) &&
-    !state.identifying else {
-    return Err(Assembly("retired_declared_file_page_record"))
-  }
-  state.identifying = true
-  defer {
-    state.identifying = false
-  }
-  let wire = try {
-    let writer = @encode.writer(bytes, 9, 2)
-    @encode.begin_object(writer)
-    for
-      (name, text) in [
-        ("adoption", @publication.publication_contract_json(page.adoption)),
-        ("event", @publication.publication_contract_json(page.event)),
-        ("raw", @publication.publication_contract_json(page.raw)),
-        ("page_value_wire", page.body),
-        ("page_schema_wire", page.schema_wire),
-        ("request_scope_cid", scope),
-        ("run_definition_cid", definition_cid),
-        ("version", "actql-declared-file-lookup-page-original/0.1"),
-      ] {
-      @encode.key(writer, name)
-      @encode.string_value(writer, text)
-    }
-    @encode.end_object(writer)
-    @encode.finish(writer)
-  } catch {
-    _ => return Err(Assembly("declared_file_page_record_encoding"))
-  }
-  match
-    finish_keyed_lookup_protocol_metadata(state, phase, 9, 2, [], texts=[wire]) {
-    Ok(_) => ()
     Err(issue) => return Err(issue)
   }
   guard client_keyed_native_captured_page_matches_original(
@@ -436,7 +457,7 @@ fn prepare_client_keyed_declared_file_page_record_original(
   ) else {
     return Err(Assembly("retired_declared_file_page_record"))
   }
-  Ok(wire)
+  Ok(settled.value)
 }
 
 ///|
@@ -596,51 +617,55 @@ pub fn prepare_client_keyed_declared_file_raw_capture(
     return Err(Assembly("capacity_overflow"))
   }
   let bytes = Int64::min(bound, limits.max_bytes.to_int64()).to_int()
-  let phase = match
-    grow_keyed_lookup_protocol_metadata(state, bytes, 12L, copies=2) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  guard !state.closed &&
-    state.left.lookup_issue is None &&
-    state.selected_request is Some(same) &&
-    physical_equal(same, request) &&
-    request.attempts == 1L &&
-    !request.io_complete &&
-    history._retained_activation is Some(same) &&
-    physical_equal(same, activation) else {
-    return Err(Assembly("retired_declared_file_raw_capture"))
-  }
-  let binding = try {
-    let writer = @encode.writer(bytes, 12, 2)
-    @encode.begin_object(writer)
-    for
-      (name, text) in [
-        ("content_store_id", store_id),
-        ("content_store_cid", store_cid),
-        ("workspace_scope_cid", scope),
-        ("storage_scope", "workspace"),
-        ("retention_class", "local-content"),
-        ("expires_at", until),
-        ("availability_evidence_cid", availability_cid),
-        ("effective_data_policy_cid", facts.source_data_policy_cid),
-        ("data_classification", facts.data_classification),
-        ("issuer_contract_cid", issuer_cid),
-        ("capture_authority_cid", scope),
-      ] {
-      @encode.key(writer, name)
-      @encode.string_value(writer, text)
-    }
-    @encode.end_object(writer)
-    @encode.finish(writer)
-  } catch {
-    _ => return Err(Assembly("declared_file_raw_binding_encoding"))
-  }
-  match
-    finish_keyed_lookup_protocol_metadata(state, phase, 12, 2, [], texts=[
-      binding,
-    ]) {
-    Ok(_) => ()
+  let constructed = with_keyed_protocol_construction(
+    state,
+    bytes,
+    12L,
+    12,
+    2,
+    fn() {
+      guard !state.closed &&
+        state.left.lookup_issue is None &&
+        state.selected_request is Some(same) &&
+        physical_equal(same, request) &&
+        request.attempts == 1L &&
+        !request.io_complete &&
+        history._retained_activation is Some(same) &&
+        physical_equal(same, activation) else {
+        return Err(Assembly("retired_declared_file_raw_capture"))
+      }
+      let binding = try {
+        let writer = @encode.writer(bytes, 12, 2)
+        @encode.begin_object(writer)
+        for
+          (name, text) in [
+            ("content_store_id", store_id),
+            ("content_store_cid", store_cid),
+            ("workspace_scope_cid", scope),
+            ("storage_scope", "workspace"),
+            ("retention_class", "local-content"),
+            ("expires_at", until),
+            ("availability_evidence_cid", availability_cid),
+            ("effective_data_policy_cid", facts.source_data_policy_cid),
+            ("data_classification", facts.data_classification),
+            ("issuer_contract_cid", issuer_cid),
+            ("capture_authority_cid", scope),
+          ] {
+          @encode.key(writer, name)
+          @encode.string_value(writer, text)
+        }
+        @encode.end_object(writer)
+        @encode.finish(writer)
+      } catch {
+        _ => return Err(Assembly("declared_file_raw_binding_encoding"))
+      }
+      Ok(keyed_protocol_built(binding, texts=[binding]))
+    },
+    _ => Ok(()),
+    copies=2,
+  )
+  let binding = match constructed {
+    Ok(settled) => settled.value
     Err(issue) => return Err(issue)
   }
   let raw = match
@@ -682,98 +707,90 @@ fn prepare_declared_file_lookup_dependencies(
   }
   // Callback/Result/Map/Array controls and bounded measuring-writer frames.
   // Per-member controls, spare slots, text and parser/workspace follow below.
-  let phase = match
-    grow_keyed_lookup_protocol_metadata(
-      lookup,
-      1,
-      64L + 2L * max_depth.to_int64(),
-    ) {
-    Ok(phase) => phase
-    Err(issue) => return Err(issue)
-  }
-  let primary : Ref[ClientKeyedRequestIssue?] = Ref(None)
-  let before = (bytes : Int, nodes : Int, depth : Int) => {
-    if primary.val is Some(_) ||
-      bytes < 0 ||
-      nodes < 0 ||
-      depth < 0 ||
-      lookup.closed ||
-      lookup.left.lookup_issue is Some(_) {
-      return false
-    }
-    let capacity = @execution.execution_capacity_inventory(
-      [
-        // Shared capture-recovery units: parsed body, retained typed body and
-        // partial constructor; Strings and canonical/hash writer backing.
-        { unit: ValueNodeSlots, count: nodes.to_int64(), copies: 3, },
-        { unit: DecodedTextBytes, count: bytes.to_int64(), copies: 3, },
-        { unit: CanonicalWireBytes, count: bytes.to_int64(), copies: 4, },
-        // The same original member's Map/spare-array entries and later opaque
-        // getter/Node DATA aliases use the established fixed Host allowance.
-        { unit: QuotedBytes, count: 4096L, copies: 1, },
-      ],
-      [{ unit: CursorRootSlots, count: depth.to_int64() + 1L, copies: 2, }],
-      RetainedAlongsideExecution,
-    )
-    guard capacity is Some(capacity) else {
-      primary.val = Some(Assembly("capacity_overflow"))
-      return false
-    }
-    match
-      keyed_lookup_body_grow(
-        lookup,
-        lookup.retained_bytes,
-        lookup.execution_bytes,
-        0L,
-        Some(capacity),
-      ) {
-      Ok(_) => true
-      Err(issue) => {
-        primary.val = Some(issue)
-        false
-      }
-    }
-  }
-  let bodies = match
-    keyed_lookup_native_dependency_bodies_from_original(
-      lookup,
-      completed,
-      retention,
-      {
-        max_entries: 4096,
-        max_total_bytes: 16777216,
-        max_references: 65536,
-        max_depth,
-      },
-      max_nodes,
-      max_depth,
-      state.physical_source,
-      Some(before),
-      retain_catalog=!defer_catalog,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(primary.val.unwrap_or(Dependency(issue)))
-  }
-  guard !lookup.closed &&
-    lookup.left.lookup_issue is None &&
-    lookup.native_completion is Some(same) &&
-    physical_equal(same, completed) &&
-    state.dependency_bodies is None else {
-    return Err(Assembly("retired_declared_file_dependency_entry"))
-  }
-  state.dependency_bodies = Some(bodies)
-  // The synchronous collector returned; its parser/writer/seen/callback
-  // frames cannot escape in these opaque bodies. Retain the SAME completed
-  // bodies before this fallible cut. All prior Source, Value, receipt and IO
-  // backing remains in phase's original basis; only finished scratch returns.
-  finish_keyed_lookup_protocol_metadata(
+  with_keyed_protocol_construction(
     lookup,
-    phase,
+    1,
+    64L + 2L * max_depth.to_int64(),
     max_nodes,
     max_depth,
-    [],
-    dependency_bodies=Some(bodies),
-  )
+    fn() {
+      let primary : Ref[ClientKeyedRequestIssue?] = Ref(None)
+      let before = (bytes : Int, nodes : Int, depth : Int) => {
+        if primary.val is Some(_) ||
+          bytes < 0 ||
+          nodes < 0 ||
+          depth < 0 ||
+          lookup.closed ||
+          lookup.left.lookup_issue is Some(_) {
+          return false
+        }
+        let capacity = @execution.execution_capacity_inventory(
+          [
+            // Shared capture-recovery units: parsed body, retained typed body and
+            // partial constructor; Strings and canonical/hash writer backing.
+            { unit: ValueNodeSlots, count: nodes.to_int64(), copies: 3, },
+            { unit: DecodedTextBytes, count: bytes.to_int64(), copies: 3, },
+            { unit: CanonicalWireBytes, count: bytes.to_int64(), copies: 4, },
+            // The same original member's Map/spare-array entries and later opaque
+            // getter/Node DATA aliases use the established fixed Host allowance.
+            { unit: QuotedBytes, count: 4096L, copies: 1, },
+          ],
+          [{ unit: CursorRootSlots, count: depth.to_int64() + 1L, copies: 2, }],
+          RetainedAlongsideExecution,
+        )
+        guard capacity is Some(capacity) else {
+          primary.val = Some(Assembly("capacity_overflow"))
+          return false
+        }
+        match
+          keyed_lookup_body_grow(
+            lookup,
+            lookup.retained_bytes,
+            lookup.execution_bytes,
+            0L,
+            Some(capacity),
+          ) {
+          Ok(_) => true
+          Err(issue) => {
+            primary.val = Some(issue)
+            false
+          }
+        }
+      }
+      let bodies = match
+        keyed_lookup_native_dependency_bodies_from_original(
+          lookup,
+          completed,
+          retention,
+          {
+            max_entries: 4096,
+            max_total_bytes: 16777216,
+            max_references: 65536,
+            max_depth,
+          },
+          max_nodes,
+          max_depth,
+          state.physical_source,
+          Some(before),
+          retain_catalog=!defer_catalog,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(primary.val.unwrap_or(Dependency(issue)))
+      }
+      Ok(keyed_protocol_built(bodies, dependency_bodies=Some(bodies)))
+    },
+    bodies => {
+      guard !lookup.closed &&
+        lookup.left.lookup_issue is None &&
+        lookup.native_completion is Some(same) &&
+        physical_equal(same, completed) &&
+        state.dependency_bodies is None else {
+        return Err(Assembly("retired_declared_file_dependency_entry"))
+      }
+      state.dependency_bodies = Some(bodies)
+      Ok(())
+    },
+  ).map(_ => ())
 }
 
 ///|
@@ -799,9 +816,33 @@ pub fn bind_client_keyed_declared_file_physical_source(
   }
   // Getter/Some/original-pair controls only. The immutable String belongs to
   // the same installed declaration; later dependency parsing is funded there.
-  match grow_keyed_lookup_protocol_metadata(lookup, 1, 6L) {
+  guard client_protocol_metadata_construction_bytes(1, 6L)
+    is Some((controls, _)) else {
+    return Err(Assembly("capacity_overflow"))
+  }
+  // This is retained-only alias/control backing, not a temporary codec scope.
+  // Preserve its exact old amount and original current observation without
+  // creating and then discarding a construction phase.
+  match
+    keyed_lookup_body_grow(
+      lookup,
+      lookup.retained_bytes,
+      lookup.execution_bytes,
+      controls,
+      None,
+    ) {
     Ok(_) => ()
-    Err(issue) => return Err(issue)
+    Err(issue) => {
+      keyed_lookup_fail(lookup.left, issue) |> ignore
+      return Err(issue)
+    }
+  }
+  if lookup.closed ||
+    lookup.left.lookup_issue is Some(_) ||
+    !client_keyed_left_available(lookup.left) {
+    let issue = Assembly("retired_publication_input")
+    keyed_lookup_fail(lookup.left, issue) |> ignore
+    return Err(issue)
   }
   guard !lookup.closed &&
     lookup.left.lookup_issue is None &&

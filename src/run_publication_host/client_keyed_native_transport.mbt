@@ -71,40 +71,27 @@ fn prepare_client_keyed_native_transport(
   let (_, nodes, _) = @encode.document_usage(document)
   // Reuse the same bounded protocol-metadata recipe with the actual static
   // subtree nodes,16 envelope values,16 field names and the final CID pair.
-  let metadata_phase = match
-    grow_keyed_lookup_protocol_metadata(
-      lookup,
-      max_bytes,
-      34L + nodes.to_int64(),
-    ) {
-    Err(issue) => return Err(issue)
-    Ok(value) => value
-  }
-  lookup.growing = true
-  let result = @publication.issue_file_lookup_transport(
-    profile, document, max_bytes, max_nodes, max_depth,
-  )
-  lookup.growing = false
-  if lookup.closed || lookup.left.lookup_issue is Some(_) {
-    return Err(Assembly("retired_native_transport"))
-  }
-  let transport = match result {
-    Ok(value) => value
-    Err(issue) => return Err(Identity(@publication.Contract(issue)))
-  }
-  lookup.native_transport = Some(transport)
-  match
-    finish_keyed_lookup_protocol_metadata(
-      lookup,
-      metadata_phase,
-      max_nodes,
-      max_depth,
-      [transport],
-    ) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
-  Ok(())
+  with_keyed_protocol_construction(
+    lookup,
+    max_bytes,
+    34L + nodes.to_int64(),
+    max_nodes,
+    max_depth,
+    fn() {
+      match
+        @publication.issue_file_lookup_transport(
+          profile, document, max_bytes, max_nodes, max_depth,
+        ) {
+        Ok(transport) =>
+          Ok(keyed_protocol_built(transport, contracts=[transport]))
+        Err(issue) => Err(Identity(@publication.Contract(issue)))
+      }
+    },
+    transport => {
+      lookup.native_transport = Some(transport)
+      Ok(())
+    },
+  ).map(_ => ())
 }
 
 ///|

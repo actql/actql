@@ -110,46 +110,46 @@ fn prepare_native_keyed_lookup_completion(
   // Existing protocol workspace plus the actual original-pair/sort inventory.
   // The two bounded writers allocate at most max_bytes each; they never build
   // an unbounded intermediate JSON array before applying the wire ceiling.
-  let phase = match
-    grow_keyed_lookup_protocol_metadata(
-      lookup,
-      codec_bytes,
-      4L * order.length().to_int64() + 4L,
-      copies=10,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let result = match
-    build_native_keyed_lookup_completion(
-      lookup, original, component, request, left, identity, batch, started_at, recorded_at,
-      issuer, elapsed, codec_bytes, max_nodes, max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  // Retain before the fallible workspace return; no retry issues a second
-  // receipt or resets actual consumed work after a partial failure.
-  lookup.native_completion = Some(result)
-  lookup.left.observed_ms = now_ms
-  match
-    finish_keyed_lookup_protocol_metadata(
-      lookup,
-      phase,
-      max_nodes,
-      max_depth,
-      [
-        result.accounting,
-        result.receipt,
-        result.relation,
-        result.retention,
-        result.evidence,
-        @publication.result_ordering_evidence_contract(result.ordering),
-        @publication.result_ordering_derivation_contract(result.ordering),
-      ],
-      evidence=[result.input, result.source],
-    ) {
-    Ok(_) => ()
+  let constructed = with_keyed_protocol_construction(
+    lookup,
+    codec_bytes,
+    4L * order.length().to_int64() + 4L,
+    max_nodes,
+    max_depth,
+    fn() {
+      let result = match
+        build_native_keyed_lookup_completion(
+          lookup, original, component, request, left, identity, batch, started_at,
+          recorded_at, issuer, elapsed, codec_bytes, max_nodes, max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      Ok(
+        keyed_protocol_built(
+          result,
+          contracts=[
+            result.accounting,
+            result.receipt,
+            result.relation,
+            result.retention,
+            result.evidence,
+            @publication.result_ordering_evidence_contract(result.ordering),
+            @publication.result_ordering_derivation_contract(result.ordering),
+          ],
+          evidence=[result.input, result.source],
+        ),
+      )
+    },
+    result => {
+      lookup.native_completion = Some(result)
+      lookup.left.observed_ms = now_ms
+      Ok(())
+    },
+    copies=10,
+  )
+  let result = match constructed {
+    Ok(settled) => settled.value
     Err(issue) => return Err(issue)
   }
   if @publication.read_profile_uses_installed_rows(component.original.profile) {
