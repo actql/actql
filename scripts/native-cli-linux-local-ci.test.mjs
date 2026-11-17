@@ -126,7 +126,20 @@ test('Mock workflows require a fresh runner and the successful exact producer co
   assert(mockJob.steps.indexOf(download) < mockJob.steps.indexOf(mock));
   assert(mockJob.steps.indexOf(download) < mockJob.steps.indexOf(authentication));
   assert(mockJob.steps.indexOf(authentication) < mockJob.steps.indexOf(mock));
-  assert(!mockJob.steps.some(step => /produce-native|native-cli-release|--measure|performance-diagnostic/u.test(step.run ?? '')));
+  assert(!/--measure|performance-diagnostic/u.test(mock.run), 'The formal collector is not the diagnostic consumer');
+  assert(!mockJob.steps.some(step => /produce-native|native-cli-release/u.test(step.run ?? '')),
+    'Neither formal sampling nor failure diagnostics may rebuild the fixed Native payload');
+  const diagnostics = mockJob.steps.filter(step => step.run?.includes('--diagnose-approval-syscalls'));
+  assert.equal(diagnostics.length, 1, 'One separate diagnostic may follow a failed formal campaign');
+  const diagnostic = diagnostics[0];
+  const diagnosticCondition = diagnostic.if.replace(/^\$\{\{\s*|\s*\}\}$/gu, '');
+  const diagnose = Function('failure', 'steps', `return (${diagnosticCondition});`);
+  for (const failed of [false, true]) for (const outcome of ['success', 'failure', 'cancelled', 'skipped', undefined]) {
+    assert.equal(diagnose(() => failed, {[mock.id]: {outcome}}), failed && outcome === 'failure');
+  }
+  assert(mockJob.steps.indexOf(diagnostic) > mockJob.steps.indexOf(mock));
+  assert(diagnostic.run.includes('"$RUNNER_TEMP/native-cli-linux-local/release"'), 'Keep the same original RC');
+  assert(diagnostic.run.includes('--measure-approval-resources'));
 });
 
 test('exact Local artifact preflight refuses other attempts sources and missing or multiple IDs', () => {
@@ -207,11 +220,17 @@ test('CI downloads original hash-bounded archives and retains exact production a
   const mockRetain = mockJob.steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
   assert.equal(mockRetain.if, 'always()');
   assert.equal(mockRetain.with.name, 'native-cli-linux-local-mock-${{ github.run_id }}-${{ github.run_attempt }}');
-  assert.deepEqual(mockRetain.with.path.trim().split('\n'), [
+  const paths = new Set(mockRetain.with.path.trim().split('\n'));
+  for (const path of [
     '${{ runner.temp }}/native-cli-linux-local/approval/*.json',
     '${{ runner.temp }}/native-cli-linux-local/release/mock-install-*.json',
+    '${{ runner.temp }}/native-cli-linux-local/release/mock-syscalls-*.json',
+    '${{ runner.temp }}/native-cli-linux-local/release/approval-resources-*.txt',
+    '${{ runner.temp }}/native-cli-linux-local/release/approval-syscalls-*.txt',
     '/tmp/actql-native-mock-install-*/commands.json',
-  ]);
+    '/tmp/actql-native-mock-install-*/approval-resources-*.txt',
+    '/tmp/actql-native-mock-install-*/approval-syscalls-*.txt',
+  ]) assert(paths.has(path), `Missing formal or diagnostic evidence family: ${path}`);
   assert(!mockRetain.with.path.includes('mock-consumers/**'), 'Do not upload private project state or keys');
 });
 
