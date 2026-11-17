@@ -42,7 +42,10 @@ test "portable cursor reader same recipe admits exact backing and refuses either
     if r_short == 0L && e_short == 0L {
       let original = result.unwrap()
       assert_eq(@resources.ledger_usage(ledger).live_reservations, 1)
-      assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, retention)
+      assert_eq(
+        @resources.ledger_usage(ledger).reserved_retention_bytes,
+        retention,
+      )
       @resources.settle_reservation(ledger, original).unwrap()
     } else if r_short == 1L {
       assert_true(result is Err(@resources.RetentionLimit))

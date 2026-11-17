@@ -115,7 +115,10 @@ pub fn installed_json_cursor_source_reader_capacity(
   secret_bytes : Int,
 ) -> @execution.ExecutionCapacity? {
   installed_json_source_reader_capacity_with_decoder(
-    limits, columns, secret_bytes, installed_source_response_workspace,
+    limits,
+    columns,
+    secret_bytes,
+    installed_source_response_workspace,
     cursor_progress=true,
   )
 }
@@ -134,22 +137,25 @@ fn installed_source_cursor_progress_inventory(
   guard @shape.map_construction_extent(1L, pages - 1L) is Some(map) else {
     return None
   }
-  @execution.compose_preparation_representation([{
-    record_headers: map.record_headers,
-    reference_slots: map.reference_slots,
-    scalar_words: map.scalar_words,
-    owned_utf16_units: 0L,
-    owned_wire_bytes: 0L,
-  }, {
-    // The fixed reader's former cursor-Set header is now the progress record.
-    // Its ten fields add3R/7W; its present cursor adds Some1H/1R/1W. The
-    // original cursor String is shared with the Map, counted separately once.
-    record_headers: 1L,
-    reference_slots: 4L,
-    scalar_words: 8L,
-    owned_utf16_units: 0L,
-    owned_wire_bytes: 0L,
-  }])
+  @execution.compose_preparation_representation([
+    {
+      record_headers: map.record_headers,
+      reference_slots: map.reference_slots,
+      scalar_words: map.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+    {
+      // The fixed reader's former cursor-Set header is now the progress record.
+      // Its ten fields add3R/7W; its present cursor adds Some1H/1R/1W. The
+      // original cursor String is shared with the Map, counted separately once.
+      record_headers: 1L,
+      reference_slots: 4L,
+      scalar_words: 8L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+  ])
 }
 
 ///|
@@ -180,7 +186,11 @@ fn installed_source_reader_retained_inventory(
   let ids = if track_row_identity { limits[5].to_int64() } else { 0L }
   let pages = limits[6].to_int64()
   let cursors = if track_row_identity {
-    if cursor_progress { pages - 1L } else { pages }
+    if cursor_progress {
+      pages - 1L
+    } else {
+      pages
+    }
   } else {
     0L
   }
@@ -350,7 +360,10 @@ fn installed_json_source_reader_capacity_with_decoder(
   cursor_progress? : Bool = false,
 ) -> @execution.ExecutionCapacity? {
   guard installed_source_reader_retained_inventory(
-      limits, columns, secret_bytes, cursor_progress~,
+      limits,
+      columns,
+      secret_bytes,
+      cursor_progress~,
     )
     is Some(retained) else {
     return None
