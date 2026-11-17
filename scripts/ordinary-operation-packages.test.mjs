@@ -231,6 +231,37 @@ test('Native approval keeps event head and exact same-head or PR-merge build ide
   }
 });
 
+test('Native approval records recognized aggregate scheduling states without weakening its successful producer', () => {
+  for (const status of ['queued', 'requested', 'waiting', 'pending', 'in_progress', 'completed']) {
+    for (const merge of [false, true]) {
+      const p = nativeApprovalProvenance({merge});
+      Object.assign(p.run, {status, conclusion: status === 'completed' ? 'failure' : null});
+      const before = structuredClone(p), result = validateNativeApprovalSource(p);
+      assert.equal(result.sourceRunStatus, status);
+      assert.equal(result.sourceRunConclusion, p.run.conclusion);
+      assert.equal(result.producerJobConclusion, 'success');
+      assert.equal(result.artifactDigest, p.artifact.digest);
+      assert.equal(result.relation, merge ? 'pull-request-merge' : 'same-head');
+      assert.match(result.qualification, /final source-run CI acceptance remains separate/u);
+      assert.deepEqual(p, before);
+      if (status !== 'completed') {
+        assert.throws(() => validatePerformanceProcessPackageProducer({...p, nativeApproval: false}));
+      }
+    }
+    for (const mutate of [p => {p.jobs[0].status = 'queued';},
+      p => {p.jobs[0].status = 'in_progress';}, p => {p.jobs[0].conclusion = 'failure';},
+      p => {p.jobs[0].conclusion = 'cancelled';}, p => {p.jobs[0].conclusion = 'skipped';},
+      p => {p.jobs[0].conclusion = null;}]) {
+      const p = nativeApprovalProvenance(); p.run.status = status; mutate(p);
+      assert.throws(() => validateNativeApprovalSource(p));
+    }
+  }
+  for (const status of [undefined, null, '', 'unknown', 'success', 'failure', 'cancelled', 'skipped', 1]) {
+    const p = nativeApprovalProvenance(); p.run.status = status;
+    assert.throws(() => validateNativeApprovalSource(p), /Unrecognized source workflow scheduling state/u);
+  }
+});
+
 function nativeCpuProvenance() {
   const p = nativeApprovalProvenance({merge: true});
   Object.assign(p.run, {status: 'completed', conclusion: 'failure'});
@@ -425,7 +456,7 @@ test('Native approval rejects foreign runs attempts artifacts and uncompleted pr
     'The Native-only entry must never admit a valid general Node producer');
   for (const mutate of [p => {p.runId = '18';}, p => {p.artifactId = '24';},
     p => {p.run.repository.full_name = 'foreign/repo';}, p => {p.run.head_sha = 'f'.repeat(40);},
-    p => {p.run.path = '.github/workflows/other.yml';}, p => {p.run.status = 'queued';},
+    p => {p.run.path = '.github/workflows/other.yml';}, p => {p.run.status = 'unrecognized-state';},
     p => {p.run.run_attempt++;}, p => {p.artifact.workflow_run.id++;},
     p => {p.artifact.workflow_run.head_sha = 'f'.repeat(40);}, p => {p.artifact.expired = true;},
     p => {p.artifact.workflow_run.repository_id++;}, p => {p.artifact.workflow_run.head_repository_id++;},

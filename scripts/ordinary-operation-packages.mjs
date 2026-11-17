@@ -139,7 +139,10 @@ function validateProcessPackageProducer(options, purpose) {
   assert.equal(run.path.split('@')[0], '.github/workflows/ci.yml');
   if (nativeApproval) {
     assert.equal(adapter, 'native'); assert.equal(producerJob, 'native-cli-linux-local');
-    assert(['completed', 'in_progress'].includes(run.status));
+    // The aggregate workflow status can lag its completed successful producer.
+    // Record GitHub's scheduling state; the exact producer below owns admission.
+    assert(['queued', 'requested', 'waiting', 'pending', 'in_progress', 'completed'].includes(run.status),
+      'Unrecognized source workflow scheduling state');
   } else assert.equal(run.status, 'completed');
   assert(positiveId(run.run_attempt));
   assert.equal(String(artifact.id), String(artifactId)); assert.equal(artifact.expired, false);
