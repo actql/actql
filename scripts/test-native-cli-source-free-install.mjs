@@ -1028,6 +1028,15 @@ async function observeInstalledSourceFree(input, observationPath) {
     // to count work. Invalid-input controls retain their original failure path.
     const sourceFreeCli = (args, cwd = project, code = 0) => code === 0 && ['check', 'run', 'sql', 'result'].includes(args[0])
       ? observeNativeSourceFreeCommand({args, cwd, cli, environment: env}) : cli(args, cwd, code);
+    // Bounded phase progress survives in the parent's captured output if its
+    // enclosing watchdog expires. It is not a success or cleanup receipt.
+    const phase = async (name, observe) => {
+      const started = performance.now();
+      console.log(`Native source-free progress: ${name} started`);
+      const value = await observe();
+      console.log(`Native source-free progress: ${name} returned (${Math.round(performance.now() - started)}ms)`);
+      return value;
+    };
     diagnoseFailure = () => observeFreshSubmissionFailureDiagnostic({
       root: join(root, 'submission-failure-diagnostic'), cli, environment: env});
     assert.equal((await cli(['--version'], root)).stdout, `${manifest.cohort.packageVersion}\n`);
@@ -1036,11 +1045,11 @@ async function observeInstalledSourceFree(input, observationPath) {
     const plainInitialization = await observeTimingEnabledPlainInitialization({root, cli, environment: env});
     assert.equal(env.ACTQL_NATIVE_TIMINGS, undefined);
     assert.equal(JSON.parse(await readFile(join(project, 'actql.config.json'))).profile, undefined);
-    const defaultNumeric = await observeNativeDefaultNumericQueries({project, cli: sourceFreeCli});
-    const defaultUnionMetadata = await observeNativeDefaultUnionMetadata({root, cli: sourceFreeCli});
-    const defaultUnionRows = await observeNativeUnionRows({root, cli: sourceFreeCli});
-    const fileSourceNumeric = await observeNativeFileSourceNumeric({root, cli});
-    const fileTaskBoundary = await observeNativeFileTaskBoundary({root, cli, environment: env});
+    const defaultNumeric = await phase('default-numeric', () => observeNativeDefaultNumericQueries({project, cli: sourceFreeCli}));
+    const defaultUnionMetadata = await phase('union-metadata', () => observeNativeDefaultUnionMetadata({root, cli: sourceFreeCli}));
+    const defaultUnionRows = await phase('union-rows', () => observeNativeUnionRows({root, cli: sourceFreeCli}));
+    const fileSourceNumeric = await phase('file-numeric', () => observeNativeFileSourceNumeric({root, cli}));
+    const fileTaskBoundary = await phase('file-task-boundary', () => observeNativeFileTaskBoundary({root, cli, environment: env}));
     await writeFile(join(project, 'query.sql'), 'SELECT 1 AS id\n');
     const help = (await cli(['--help'])).stdout;
     assert.match(help, /Usage: actql/u);
@@ -1102,15 +1111,15 @@ async function observeInstalledSourceFree(input, observationPath) {
     }
     const numericLibraries = Object.fromEntries(localRuntime.libraries.map(item =>
       [item.role, join(platformRoot, item.path)]));
-    const journalExhaustion = await observeNativeJournalExhaustion({project: join(root, 'journal-exhaustion'),
+    const journalExhaustion = await phase('journal-exhaustion', async () => observeNativeJournalExhaustion({project: join(root, 'journal-exhaustion'),
       cli, assets: numericAssets, libraries: numericLibraries, environment: env,
-      runtimeWire: await readFile(join(platformRoot, artifact.localRuntime.path), 'utf8')});
-    const numericScale = await observeNativeNumericOperatorScale({project: join(root, 'numeric-operator'),
+      runtimeWire: await readFile(join(platformRoot, artifact.localRuntime.path), 'utf8')}));
+    const numericScale = await phase('numeric-scale', async () => observeNativeNumericOperatorScale({project: join(root, 'numeric-operator'),
       cli, assets: numericAssets, libraries: numericLibraries,
-      runtimeWire: await readFile(join(platformRoot, artifact.localRuntime.path), 'utf8')});
-    const resourceShapes = await observeNativeResourceOperatorShapes({project: join(root, 'resource-operator'),
+      runtimeWire: await readFile(join(platformRoot, artifact.localRuntime.path), 'utf8')}));
+    const resourceShapes = await phase('resource-shapes', async () => observeNativeResourceOperatorShapes({project: join(root, 'resource-operator'),
       cli, assets: numericAssets, libraries: numericLibraries,
-      runtimeWire: await readFile(join(platformRoot, artifact.localRuntime.path), 'utf8')});
+      runtimeWire: await readFile(join(platformRoot, artifact.localRuntime.path), 'utf8')}));
     receipt = {version: 'actql-native-cli-install-acceptance/0.1', scope: 'source-free-local',
       cliSourceSha: manifest.sourceSha, platform, node: process.version, glibc: glibc ?? null,
       artifact, scriptSha256: createHash('sha256').update(await readFile(fileURLToPath(import.meta.url))).digest('hex'),
